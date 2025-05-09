@@ -1,0 +1,1026 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Version>1</Version>
+  <Snippets>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>CSV 파일 읽기</Name>
+      <ToolTip>쉼표로 구분된 CSV 파일의 내용을 ArrayList로 읽습니다.</ToolTip>
+      <Index>2001</Index>
+      <Code><![CDATA[Dim ReadCSV As New System.IO.StreamReader(ThisDoc.Path & "\filename.csv")
+Dim WordSets As New ArrayList()
+
+Do While ReadCSV.Peek <> -1
+WordSets.Add(ReadCSV.ReadLine.Split(","))
+Loop
+
+getvalue = WordSets.item(0)(0)
+messagebox.show(getvalue)
+
+'csv file looks like this:
+'test0,00,000
+'test1,100,1000
+'test2,200,2000
+
+]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>매개변수를 CSV로 내보내기</Name>
+      <ToolTip>매개변수 이름과 해당 값을 쉼표로 구분된 CSV 파일로
+내보냅니다.</ToolTip>
+      <Index>2002</Index>
+      <Code><![CDATA['Output parameters names and values to a comma delimited CSV file
+
+fileheader = "Parameters Report for " & ThisDoc.PathAndFileName(True) 'first line header of csv file
+description = "Main Parameters and their values" 'use this variable in the body of the html
+TableMembers = New String () {"d0", "d1", "d2"} 'parameters (names) to include in table
+delimiter = "," 'character to separate the names and values on each line
+
+'CSV filename uses this documents path and filename with a .csv extention
+Dim oFile as System.IO.File
+Dim oWrite as System.IO.StreamWriter
+csv_filename = ThisDoc.PathAndFileName(False) & ".csv"
+
+oWrite = oFile.CreateText(csv_filename) 'name and path of csv file to create/overwrite
+oWrite.WriteLine(fileheader) 'include the fileheader on the first line
+oWrite.WriteLine(description) 'include the description on the second line
+oWrite.WriteLine(NOW()) 'include the current date and time on the third line
+oWrite.WriteLine() 'blank line
+
+'write the parameter name , value for each parameter in the TableMembers Arraylist
+For Each pName as String in TableMembers
+oWrite.WriteLine(pName & delimiter & Parameter(pName)) 
+Next
+
+oWrite.Close()
+
+'option to view report
+go = MessageBox.Show("Would you like to view the csv file?", "iLogic CSV Output", MessageBoxButtons.YesNo)
+if go = 6 then ThisDoc.Launch(csv_filename)]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>DWF 3D 게시</Name>
+      <ToolTip>이 규칙이 포함된 문서의 3D DWF 파일을 게시합니다.
+파일 이름과 경로는 확장자가 .dwf인 규칙 문서와 일치합니다.</ToolTip>
+      <Index>2003</Index>
+      <Code><![CDATA[i = MessageBox.Show("Launch the viewer now?", "Title",MessageBoxButtons.YesNo)
+if i = vbYes then : launchviewer = 1 : else : launchviewer = 0 : end if
+
+path_and_name = ThisDoc.PathAndFileName(False) ' without extension
+DWFAddIn = ThisApplication.ApplicationAddIns.ItemById("{0AC6FD95-2F4D-42CE-8BE0-8AEA580399E4}")
+oDocument = ThisApplication.ActiveDocument
+oContext = ThisApplication.TransientObjects.CreateTranslationContext
+oContext.Type = IOMechanismEnum.kFileBrowseIOMechanism
+oOptions = ThisApplication.TransientObjects.CreateNameValueMap
+oDataMedium = ThisApplication.TransientObjects.CreateDataMedium
+
+If DWFAddIn.HasSaveCopyAsOptions(oDocument, oContext, oOptions) Then
+oOptions.Value("Launch_Viewer") = launchviewer
+oOptions.Value("Publish_All_Component_Props") = 1
+oOptions.Value("Publish_All_Physical_Props") = 1
+oOptions.Value("Password") = 0
+End If
+
+'Set the destination file name
+oDataMedium.FileName = path_and_name & ".dwf"
+
+'Publish document.
+Call DWFAddIn.SaveCopyAs(oDocument, oContext, oOptions, oDataMedium)
+if launchviewer = 1 then ThisDoc.Launch(path_and_name & ".dwf")]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>DWF 2D 게시</Name>
+      <ToolTip>현재 도면 문서에 있는 모든 시트의 DWF 파일을 게시합니다.
+3D 모형은 포함되지 않습니다.</ToolTip>
+      <Index>2004</Index>
+      <Code><![CDATA['this rule outputs all drawing sheets to dwf, 3D models not included
+path_and_name = ThisDoc.PathAndFileName(False)
+DWFAddIn = ThisApplication.ApplicationAddIns.ItemById("{0AC6FD95-2F4D-42CE-8BE0-8AEA580399E4}")
+oDocument = ThisApplication.ActiveDocument
+oContext = ThisApplication.TransientObjects.CreateTranslationContext
+oContext.Type = IOMechanismEnum.kFileBrowseIOMechanism
+oOptions = ThisApplication.TransientObjects.CreateNameValueMap
+oDataMedium = ThisApplication.TransientObjects.CreateDataMedium
+
+i = MessageBox.Show("Launch the viewer now?", "Title",MessageBoxButtons.YesNo)
+if i = vbYes then : launchviewer = 1 : else : launchviewer = 0 : end if 
+
+If DWFAddIn.HasSaveCopyAsOptions(oDocument, oContext, oOptions) Then
+oOptions.Value("Launch_Viewer") = launchviewer
+oOptions.Value("Publish_All_Component_Props") = 1
+oOptions.Value("Publish_All_Physical_Props") = 1
+oOptions.Value("Password") = 0
+If TypeOf oDocument Is DrawingDocument Then
+oOptions.Value("Publish_Mode") = DWFPublishModeEnum.kCustomDWFPublish
+oOptions.Value("Publish_All_Sheets") = 1
+End If
+End If
+
+oDataMedium.FileName = path_and_name & "_2D.dwf"
+Call DWFAddIn.SaveCopyAs(oDocument, oContext, oOptions, oDataMedium)
+if launchviewer = 1 then ThisDoc.Launch(path_and_name & "_2D.dwf")]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>DWF 2D 및 3D 게시</Name>
+      <ToolTip>현재 도면 문서에 있는 모든 시트의 DWF 파일을 게시합니다.
+3D 모형은 Sheet:1에 대해 포함됩니다.
+도면 규칙에서 이를 사용하십시오.</ToolTip>
+      <Index>2005</Index>
+      <Code><![CDATA['this rule outputs all drawing sheets to dwf, 3D models of first sheet included
+path_and_name = ThisDoc.PathAndFileName(False)
+DWFAddIn = ThisApplication.ApplicationAddIns.ItemById("{0AC6FD95-2F4D-42CE-8BE0-8AEA580399E4}")
+oDocument = ThisApplication.ActiveDocument
+oContext = ThisApplication.TransientObjects.CreateTranslationContext
+oContext.Type = IOMechanismEnum.kFileBrowseIOMechanism
+oOptions = ThisApplication.TransientObjects.CreateNameValueMap
+oDataMedium = ThisApplication.TransientObjects.CreateDataMedium
+
+i = MessageBox.Show("Launch the viewer now?", "Title",MessageBoxButtons.YesNo)
+if i = vbYes then : launchviewer = 1 : else : launchviewer = 0 : end if 
+
+If DWFAddIn.HasSaveCopyAsOptions(oDocument, oContext, oOptions) Then
+oOptions.Value("Launch_Viewer") = launchviewer
+oOptions.Value("Publish_All_Component_Props") = 1
+oOptions.Value("Publish_All_Physical_Props") = 1
+oOptions.Value("Password") = 0
+If TypeOf oDocument Is DrawingDocument Then
+Dim oSheets As NameValueMap
+oSheets = ThisApplication.TransientObjects.CreateNameValueMap
+oOptions.Value("Publish_Mode") = DWFPublishModeEnum.kCustomDWFPublish
+oOptions.Value("Publish_All_Sheets") = 1
+' Publish the first sheet AND its 3D model
+Dim oSheet1Options As NameValueMap
+oSheet1Options = ThisApplication.TransientObjects.CreateNameValueMap
+oSheet1Options.Add("Name", "Sheet:1")
+oSheet1Options.Add("3DModel", True)
+oSheets.Value("Sheet1") = oSheet1Options
+end If
+End If
+
+oDataMedium.FileName = path_and_name & ".dwf"
+Call DWFAddIn.SaveCopyAs(oDocument, oContext, oOptions, oDataMedium)
+if launchviewer = 1 then ThisDoc.Launch(path_and_name & ".dwf")]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>IDW에서 DXF 내보내기</Name>
+      <ToolTip>Inventor 도면 문서(.idw)에서 DXF 파일을 내보냅니다.</ToolTip>
+      <Index>2006</Index>
+      <Code><![CDATA[' Get the DXF translator Add-In.
+Dim DXFAddIn As TranslatorAddIn
+DXFAddIn = ThisApplication.ApplicationAddIns.ItemById("{C24E3AC4-122E-11D5-8E91-0010B541CD80}")
+'Set a reference to the active document (the document to be published).
+Dim oDocument As Document
+oDocument = ThisApplication.ActiveDocument
+Dim oContext As TranslationContext
+oContext = ThisApplication.TransientObjects.CreateTranslationContext
+oContext.Type = IOMechanismEnum.kFileBrowseIOMechanism
+' Create a NameValueMap object
+Dim oOptions As NameValueMap
+oOptions = ThisApplication.TransientObjects.CreateNameValueMap
+' Create a DataMedium object
+Dim oDataMedium As DataMedium
+oDataMedium = ThisApplication.TransientObjects.CreateDataMedium
+' Check whether the translator has 'SaveCopyAs' options
+If DXFAddIn.HasSaveCopyAsOptions(oDocument, oContext, oOptions) Then
+Dim strIniFile As String
+strIniFile = "C:\temp\dxfout.ini"
+' Create the name-value that specifies the ini file to use.
+oOptions.Value("Export_Acad_IniFile") = strIniFile
+End If
+'Set the destination file name
+oDataMedium.FileName = ThisDoc.PathAndFileName(False) & ".dxf"
+'Publish document.
+DXFAddIn.SaveCopyAs(oDocument, oContext, oOptions, oDataMedium)
+'Launch the dxf file in whatever application Windows is set to open this document type with
+i = MessageBox.Show("Preview the DXF file?", "Title",MessageBoxButtons.YesNo,MessageBoxIcon.Question)
+if i = vbyes then ThisDoc.Launch(oDataMedium.FileName)
+]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>SAT 파일로 저장</Name>
+      <ToolTip>Save As the current document to a SAT file.
+(assemblies and parts only)</ToolTip>
+      <Index>2007</Index>
+      <Code><![CDATA[' Set reference to active document.
+oDoc = ThisApplication.ActiveDocument
+
+' Check the Document type is an assembly or part
+If (oDoc.DocumentType <> kAssemblyDocumentObject And _
+   oDoc.DocumentType <> kPartDocumentObject) Then
+   MsgBox("Error:Document type is not assembly/part")
+   Exit Sub
+End If
+
+' Get document's full file name
+sFname = ThisDoc.PathAndFileName(False) & ".sat"
+
+' Do a 'Save Copy As' to SAT format
+oDoc.SaveAs(sFname, True)
+]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>IGES 파일로 저장</Name>
+      <ToolTip>Save As the current document to an IGES file.</ToolTip>
+      <Index>2008</Index>
+      <Code><![CDATA[' Get the IGES translator Add-In.
+Dim oIGESTranslator As TranslatorAddIn
+oIGESTranslator = ThisApplication.ApplicationAddIns.ItemById("{90AF7F44-0C01-11D5-8E83-0010B541CD80}")
+Dim oContext As TranslationContext
+oContext = ThisApplication.TransientObjects.CreateTranslationContext
+Dim oOptions As NameValueMap
+oOptions = ThisApplication.TransientObjects.CreateNameValueMap
+If oIGESTranslator.HasSaveCopyAsOptions(ThisApplication.ActiveDocument, oContext, oOptions) Then
+   ' Set geometry type for wireframe.
+   ' 0 = Surfaces, 1 = Solids, 2 = Wireframe
+   oOptions.Value("GeometryType") = 1
+   ' To set other translator values:
+   ' oOptions.Value("SolidFaceType") = n
+   ' 0 = NURBS, 1 = Analytic
+   ' oOptions.Value("SurfaceType") = n
+   ' 0 = 143(Bounded), 1 = 144(Trimmed)
+oContext.Type = IOMechanismEnum.kFileBrowseIOMechanism
+Dim oData As DataMedium
+oData = ThisApplication.TransientObjects.CreateDataMedium
+oData.FileName = ThisDoc.PathAndFileName(False) & ".igs"
+oIGESTranslator.SaveCopyAs(ThisApplication.ActiveDocument, oContext, oOptions, oData)
+End If
+]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>STEP 파일로 저장</Name>
+      <ToolTip>Save As the current document to a STEP file.</ToolTip>
+      <Index>2009</Index>
+      <Code><![CDATA[' Get the STEP translator Add-In.
+Dim oSTEPTranslator As TranslatorAddIn
+oSTEPTranslator = ThisApplication.ApplicationAddIns.ItemById("{90AF7F40-0C01-11D5-8E83-0010B541CD80}")
+Dim oContext As TranslationContext
+oContext = ThisApplication.TransientObjects.CreateTranslationContext
+Dim oOptions As NameValueMap
+oOptions = ThisApplication.TransientObjects.CreateNameValueMap
+
+If oSTEPTranslator.HasSaveCopyAsOptions(ThisApplication.ActiveDocument, oContext, oOptions) Then
+    ' Set application protocol.
+    ' 2 = AP 203 - Configuration Controlled Design
+    ' 3 = AP 214 - Automotive Design
+    oOptions.Value("ApplicationProtocolType") = 3
+    ' Other options...
+    'oOptions.Value("Author") = ""
+    'oOptions.Value("Authorization") = ""
+    'oOptions.Value("Description") = ""
+    'oOptions.Value("Organization") = ""
+    oContext.Type = IOMechanismEnum.kFileBrowseIOMechanism
+    Dim oData As DataMedium
+    oData = ThisApplication.TransientObjects.CreateDataMedium
+    oData.FileName = ThisDoc.PathAndFileName(False) & ".stp"
+oSTEPTranslator.SaveCopyAs(ThisApplication.ActiveDocument, oContext, oOptions, oData)
+End If]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>파일 선택 대화상자</Name>
+      <ToolTip>파일 선택 대화상자
+코드를 편집하여 기본 경로와 파일 확장자 필터를 설정합니다.</ToolTip>
+      <Index>2010</Index>
+      <Code><![CDATA[Dim oFileDlg As inventor.FileDialog = Nothing
+ThisApplication.CreateFileDialog(oFileDlg)
+'oFileDlg.Filter = "Inventor Files (*.iam;*.ipt)|*.iam;*.ipt|All Files (*.*)|*.*"
+'oFileDlg.Filter = "XML Files (*.xml)|*.xml"
+'oFileDlg.Filter = "Excel Files (*.xls;*.xlsx)|*.xls;*.xlsx"
+'oFileDlg.Filter = "Text Files (*.txt;*.csv)|*.txt;*.csv"
+'oFileDlg.Filter = "SAT Files (*.sat)|*.sat"
+'oFileDlg.Filter = "IGES Files (*.igs)|*.igs"
+oFileDlg.Filter = "Step Files (*.stp)|*.stp"
+'oFileDlg.DialogTitle = "Select a File"
+oFileDlg.InitialDirectory = ThisDoc.Path
+oFileDlg.CancelError = True
+On Error Resume Next
+oFileDlg.ShowOpen()
+If Err.Number <> 0 Then
+MessageBox.Show("File not chosen.", "Dialog Cancellation")
+ElseIf oFileDlg.FileName <> "" Then
+selectedfile = oFileDlg.FileName
+MessageBox.Show("File " & selectedfile & " was selected.", "Dialog Selection Made")
+End If]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>HTML 보고서 템플릿</Name>
+      <ToolTip>현재 모형 뷰에서 캡처한 이미지와 함께 매개변수 이름과 해당 값의 테이블을
+포함하는 HTML 보고서를 작성합니다.</ToolTip>
+      <Index>2011</Index>
+      <Code><![CDATA['create an html report sample
+report_title = "Design Report for " & ThisDoc.PathAndFileName(true) 'variable used the body of the html
+description = "Main Parameters and their values" 'variable used in the body of the html
+
+Dim oFile as System.IO.File
+Dim oWrite as System.IO.StreamWriter
+TableMembers = New String () {"d0", "d1", "d2"} 'parameters to include in table
+
+html_filename = ThisDoc.PathAndFileName(False) & ".html"
+
+oWrite = oFile.CreateText(html_filename) 'name and path of html file to create/overwrite
+oWrite.WriteLine(“<HTML>")
+oWrite.WriteLine(“<HEAD>")
+oWrite.WriteLine(“<META CONTENT=""text/html; charset=iso-8859-1"" HTTP-EQUIV=""Content-Type"" >")
+oWrite.WriteLine(“<TITLE>")
+oWrite.WriteLine(report_title) 'set the html search title with local variable
+oWrite.WriteLine(“</TITLE>")
+oWrite.WriteLine(“</HEAD>")
+oWrite.WriteLine(“<BODY BGCOLOR=""#FFFFFF"">")
+oWrite.WriteLine(“<B><EM><H3>")
+oWrite.WriteLine(report_title) 'first line of the report
+oWrite.WriteLine(“</B></EM></H3>")
+oWrite.WriteLine("<B>Date & Time: </B>")
+oWrite.WriteLine(NOW()) 'today's date and time on the second line
+oWrite.WriteLine("<BR>")
+oWrite.WriteLine(“<B>Description: </B>") 
+oWrite.WriteLine(description) 'desciption string goes on the third line of the report
+oWrite.WriteLine(“<BR>") 
+oWrite.WriteLine(“<B>Customer:</B>  Inventor Designers and Engineers<BR><BR>")
+oWrite.WriteLine(“<TABLE BORDER=""1"" WIDTH=""500"">") 'table width in pixels.  Use % to adjust to browser size.
+
+'create html text lines nessesary to build the table for each parameter specified in the TableMembers array
+for each pName as String in TableMembers
+  oWrite.WriteLine(“<TR><TD WIDTH=""50%"">") 'column width is half of table size
+  oWrite.WriteLine(pName) ' parameter name
+  oWrite.WriteLine(“</TD><TD>")
+  oWrite.WriteLine(Parameter(pName) ) ' parameter value
+  oWrite.WriteLine(“</TD> </TR>")
+next
+
+'save iso view to jpg
+imagedoc = ThisDoc.PathAndFileName(False) & ".jpg"
+oCamera = ThisApplication.ActiveView.Camera 'current iso view
+oCamera.fit
+oCamera.apply
+ThisApplication.ActiveView.SaveAsBitmap(imagedoc,1680,1050 ) 
+
+oWrite.WriteLine("</TABLE>") ' end the table
+oWrite.WriteLine("<BR><BR>This is a sample report whose iLogic Rule can be used as a template.<BR>") 'footer notes
+oWrite.WriteLine("iLogic created this report using a rule to generate an html file.")'footer notes
+oWrite.WriteLine("<IMG SRC= """ & imagedoc & """ ALT=""text"" WIDTH = 300 ALIGN = LEFT> ")
+oWrite.WriteLine("</BODY>")
+oWrite.Close()
+
+'option to view report
+go = MessageBox.Show("Would you like to view the Design Report?", "iLogic Reports", MessageBoxButtons.YesNo)
+if go = 6 then ThisDoc.Launch(html_filename)
+]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>Windows 음성 명령</Name>
+      <ToolTip>Windows 음성 명령을 사용하여 오디오 피드백 정보를 작성합니다.</ToolTip>
+      <Index>2012</Index>
+      <Code><![CDATA['___Use windows voice command____________
+Dim objSPVoice,colVoices
+objSPVoice = CreateObject("SAPI.SpVoice")
+objSPVoice.Speak ("i Logic Rules")]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>배열 리스트 값의 합계</Name>
+      <ToolTip>ArrayList에 있는 모든 숫자 값의 총합을 계산합니다(1차원).</ToolTip>
+      <Index>2013</Index>
+      <Code><![CDATA[values = MultiValue.List("test")
+sum = 0
+for each oval in values
+sum += oval
+next
+msgbox(sum)]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>문장을 단어로 분할</Name>
+      <ToolTip>문장 문자열을 개별 단어로 분할합니다.
+단어는 배열로 캡처됩니다.</ToolTip>
+      <Index>2014</Index>
+      <Code><![CDATA['specify word splitting characters "space" and "dash"
+Dim Separators() As Char = {" "c, "-"c} 
+Sentence = "This is a sentence string to split into words"
+Words = Sentence.Split(Separators)
+i = 0
+For each wrd in Words
+MessageBox.Show("Word Index #" & i & " = " & Words(i))
+i += 1
+Next
+]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>단어를 문자로 분할</Name>
+      <ToolTip>단어 문자열을 개별 문자로 분할합니다.
+색인 번호를 사용하여 문자열에서 문자를 읽을 수 있습니다.
+예를 들어 letter = string(0)은 문자열의 첫 번째 문자를 반환합니다.</ToolTip>
+      <Index>2015</Index>
+      <Code><![CDATA[WordString = "word"
+For Each letter In WordString
+MsgBox(letter)
+Next]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>텍스트 파일 작성</Name>
+      <ToolTip>텍스트 파일을 작성하고 씁니다.
+실행할 때마다 파일을 덮어 씁니다.</ToolTip>
+      <Index>2016</Index>
+      <Code><![CDATA['____Create and write to a text file_________________
+oWrite = System.IO.File.CreateText(ThisDoc.PathAndFileName(False) & ".txt")
+oWrite.WriteLine("text in first line")
+oWrite.WriteLine("next line")
+oWrite.WriteLine("next line")
+oWrite.Close()
+'open the file
+ThisDoc.Launch(ThisDoc.PathAndFileName(False) & ".txt")
+]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>텍스트 파일 읽기</Name>
+      <ToolTip>텍스트 파일의 전체 내용을 문자열 변수로 읽습니다.</ToolTip>
+      <Index>2017</Index>
+      <Code><![CDATA['____Open and read a text file_______________________
+oRead = System.IO.File.OpenText(ThisDoc.PathAndFileName(False) & ".txt")
+EntireFile = oRead.ReadToEnd()
+oRead.Close()
+MsgBox(EntireFile, MsgBoxStyle.Information, "Text File Contents")
+]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>텍스트 파일 추가</Name>
+      <ToolTip>기존 텍스트 파일에 추가합니다.
+파일이 이미 있어야 합니다.</ToolTip>
+      <Index>2018</Index>
+      <Code><![CDATA['____Open and append to an existing text file_______
+Dim oAppend As System.IO.StreamWriter
+oFile = ThisDoc.PathAndFileName(False) & ".txt"
+oAppend = IO.File.AppendText(oFile)
+oAppend.WriteLine("new line at the end")
+oAppend.Flush()
+oAppend.Close()
+ThisDoc.Launch(oFile)
+]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>내 조각</Category>
+      <Name>문서 인쇄</Name>
+      <ToolTip>현재 Inventor 문서를 인쇄합니다.</ToolTip>
+      <Index>2019</Index>
+      <Code><![CDATA[oPrintMgr = ThisApplication.ActiveDocument.PrintManager
+oPrintMgr.ColorMode = kPrintGrayScale
+'oPrintMgr.ColorMode = kPrintColorPalette
+oPrintMgr.NumberOfCopies = 1
+oPrintMgr.Orientation = kPortraitOrientation
+'oPrintMgr.Orientation = kLandscapeOrientation
+oPrintMgr.PaperSize = kPaperSizeCustom
+oPrintMgr.PaperHeight = 11
+oPrintMgr.PaperWidth = 8.5
+oPrintMgr.SubmitPrint
+]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>구성요소</Category>
+      <Name>구성요소 확인 및 초기화</Name>
+      <ToolTip>Function checkAndSetup(BlockNo As String, DwgNo As String,  Gno As String, PickNo As String) As String</ToolTip>
+      <Index>1016</Index>
+      <Code><![CDATA[Function checkAndSetup(BlockNo As String, DwgNo As String,  Gno As String, PickNo As String) As String
+	Dim CompName As String = getComponentInfo(DwgNo, PickNo)(0)
+	If CompName IsNot Nothing Then '구성 요소가 있는 경우
+		Component.ActiveModelState(CompName) = Gno
+		Return Nothing
+	Else '구성 요소가 없는 경우
+		CompName = DwgNo & "_" & PickNo & ":1"
+		Dim PickParam As String = BlockNo & "_PICK" & PickNo
+		If Parameter(PickParam) <> "" Then 'PICK 자재 DEL
+			Dim PICK_DWG As String = Left(Parameter(PickParam), 8)
+			Dim PICK_INFO As List(Of String) = getComponentInfo(PICK_DWG, PickNo)
+			If PICK_INFO.Count > 1 Then '이전 부품 삭제
+				PICK_COMP_NAME = PICK_INFO(0)
+				PICK_SERIAL = PICK_INFO(2)
+				If CInt(PICK_SERIAL) = 1 Then
+					deleteComponent(PICK_COMP_NAME)
+				Else
+					Dim PICK_NAME As String = PICK_COMP_NAME.Split(":")(0)
+					deleteComponent(PICK_NAME)
+				End If
+			End If
+		End If
+		Return CompName
+	End If
+End Function
+]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>구성요소</Category>
+      <Name>구성요소 정보 가져오기</Name>
+      <ToolTip>Function getComponentInfo(DwgNo As String, PickNo As String, Optional Serial As String = "", Optional ByRef MissMsg As String = "") As Object</ToolTip>
+      <Index>1014</Index>
+      <Code><![CDATA[Function getComponentInfo(DwgNo As String, PickNo As String, Optional Serial As String = "", Optional ByRef MissMsg As String = "") As Object
+	Dim CompInfo As New List(Of String)
+	Dim CompName As String = ""
+	Dim CompPickNo As String = ""
+	Dim CompSerial As String = ""
+	Dim CompCount As Integer
+	Dim AssyDoc As AssemblyDocument = ThisDoc.Document
+	For Each CompOccurrence As ComponentOccurrence In AssyDoc.ComponentDefinition.Occurrences
+		Dim CompOccName As String = CompOccurrence.Name
+		Dim CompAndPickNo As String = CompOccName.Split(":")(0)
+		Dim CompOccSerial As String = CompOccName.Split(":")(1)
+		Dim CompOccDwgNo As String = ""
+		Dim CompOccPickNo As String = ""
+		If CompAndPickNo.Contains("_") Then
+			CompOccDwgNo = CompAndPickNo.Split("_")(0)
+			CompOccPickNo = CompAndPickNo.Split("_")(1)
+		End If
+		If DwgNo = CompOccDwgNo Then
+			If CompOccPickNo <> "" And CompOccPickNo = PickNo Then
+				CompPickNo = CompOccPickNo
+				CompCount += 1
+				If (Serial <> "" And Serial = CompOccSerial) Or (Serial = "" And Val(CompSerial) < CInt(CompOccSerial)) Then
+					CompName = CompOccName
+					CompSerial = CompOccSerial
+				Else
+					CompSerial = "확인 불가"
+				End If
+			ElseIf CompPickNo = "" Then
+				CompPickNo = "확인 불가"
+				Continue For
+			End If
+		End If
+	Next
+	If CompName <> "" Then
+		CompInfo.Add(CompName)
+		CompInfo.Add(CompPickNo)
+		CompInfo.Add(CompSerial)
+		CompInfo.Add(CStr(CompCount))
+	Else
+		CompInfo.Add(Nothing)
+		If CompPickNo = "확인 불가" Then
+			MissMsg &= DwgNo & "의 PICK 번호가 확인되지 않습니다" & vbCrLf
+		ElseIf CompSerial = "확인 불가" Then
+			MissMsg &= DwgNo & "의 Serial 번호가 확인되지 않습니다" & vbCrLf
+		End If
+	End If
+	Return CompInfo
+End Function]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>구성요소</Category>
+      <Name>구성요소 이름(Block No)</Name>
+      <ToolTip>Function getCompNameByBlockNo(BlockNo As String) As String</ToolTip>
+      <Index>1020</Index>
+      <Code><![CDATA[Function getCompNameByBlockNo(BlockNo As String) As String
+	Dim AssyDoc As AssemblyDocument = ThisDoc.Document
+	Dim OccComps As ComponentOccurrences = AssyDoc.ComponentDefinition.Occurrences
+	Dim CompName As String = ""
+	For Each OccComp As ComponentOccurrence In OccComps
+		CompBlockNo = iProperties.Value(OccCompName, "Custom", "Block No")
+		If CompBlockNo = BlockNo Then
+			CompName = OccComp.Name
+		End If
+	Next
+	Return CompName
+End Function]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>구성요소</Category>
+      <Name>구성요소 속성(블럭번호)</Name>
+      <ToolTip>Function getBlockNo(CompName As String) As String</ToolTip>
+      <Index>1019</Index>
+      <Code><![CDATA[Function getBlockNo(CompName As String) As String
+	Dim AssyDoc As AssemblyDocument = ThisDoc.Document
+	Dim OccComps As ComponentOccurrences = AssyDoc.ComponentDefinition.Occurrences
+	Dim CompBlockNo As String = ""
+	For Each OccComp As ComponentOccurrence In OccComps
+		OccCompName = OccComp.Name
+		Dim SubAssyDoc As AssemblyDocument = OccComp.Definition.Document
+		Dim CustomiPropeties As PropertySet = SubAssyDoc.PropertySets.Item("Inventor User Defined Properties")
+		For Each CustomiPropety In CustomiPropeties
+			If CustomiPropety.Name = "Block No" Then
+				CompBlockNo = CustomiPropety.Value
+				Return CompBlockNo
+			End If
+		Next
+	Next
+	Return CompBlockNo
+End Function
+
+Function getBlockNo(CompName As String) As String
+	Dim AssyDoc As AssemblyDocument = ThisDoc.Document
+	Dim OccComps As ComponentOccurrences = AssyDoc.ComponentDefinition.Occurrences
+	Dim CompBlockNo As String = ""
+	For Each OccComp As ComponentOccurrence In OccComps
+		OccCompName = OccComp.Name
+		If OccCompName = CompName Then
+			CompBlockNo = iProperties.Value(OccCompName, "Custom", "Block No")
+		End If
+	Next
+	Return CompBlockNo
+End Function]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>구성요소</Category>
+      <Name>구성요소 개수와 순차 확인</Name>
+      <ToolTip>Function getSerialNo(partNo As String) As String</ToolTip>
+      <Index>1009</Index>
+      <Code><![CDATA[Function getCompCount(partNo As String, pickNo As String) As Object
+	Dim AssmDoc As AssemblyDocument = ThisDoc.Document
+	Dim SerialNo As String
+	Dim CompCount As Integer
+	
+	For Each compOccurrence As ComponentOccurrence In AssmDoc.ComponentDefinition.Occurrences
+		Dim compName As String = compOccurrence.Name
+		Dim splitCompName As Array = compName.Split(":")
+		If Left(partNo, 8) & "_" & pickNo = splitCompName(0) Then
+			CompCount += 1
+			If SerialNo = "" Or CInt(splitCompName(1)) > CInt(SerialNo) Then
+				SerialNo = splitCompName(1)
+			End If
+		End If
+	Next
+	If CStr(CompCount) <> SerialNo Then
+		Return "구성요소의 개수와 구성요소 이름의 순차가 맞지 않습니다"
+	Else
+		Return CompCount
+	End If
+End Function]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>구성요소</Category>
+      <Name>구성요소 이름 변경</Name>
+      <ToolTip>Function renameComponentName(DwgNo As String, PickNo As String) As Integer</ToolTip>
+      <Index>1015</Index>
+      <Code><![CDATA[Function renameComponent(DwgNo As String, PickNo As String) As Integer
+	Dim AssemDoc As AssemblyDocument = ThisDoc.Document
+	Dim CompOccs As ComponentOccurrences = AssemDoc.ComponentDefinition.Occurrences
+	Dim CompName As String = DwgNo & "_" & PickNo
+	Dim CompCount As Integer = 0
+	For Each CompOcc As ComponentOccurrence In CompOccs
+		Dim CompOccName As String = CompOcc.Name
+		If CompOccName.Contains(DwgNo) Then
+			CompCount += 1
+			If Not CompOccName.Contains("_") Then
+				CompOcc.Name = CompOccName.Replace(Left(CompOccName, 8), CompName)
+			End If
+		End If
+	Next
+	Return CompCount
+End Function
+]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>구성요소</Category>
+      <Name>구성요소 억제 일괄 제어</Name>
+      <ToolTip>setSuppression(구성요소 이름, True/Fasle, {구속조건 이름})
+모든 구속조건을 제어하려는 경우 {"ALL"}</ToolTip>
+      <Index>1023</Index>
+      <Code><![CDATA[Sub setSuppression(compName As String, suppression As Boolean, constraintNames As Array)
+	Dim compOcc As ComponentOccurrence = Component.InventorComponent(compName)
+	Dim missConstraints As New List(Of String)
+	
+	If constraintNames.Length = 0 Then
+		MessageBox.Show("구속조건 이름이 누락되었습니다.", "구속조건 이름 누락", MessageBoxButtons.OK, MessageBoxIcon.Question)
+		Exit Sub
+	ElseIf constraintNames(0) ="ALL" Then
+		For Each compJoint As AssemblyJoint In compOcc.Joints
+			compJoint.Suppressed = suppression
+		Next
+		For Each compConstraint As AssemblyConstraint In compOcc.Constraints
+			compConstraint.Suppressed = suppression
+		Next
+	Else
+		For Each constraintName As String In constraintNames
+			findConstraint = False
+			For Each compConstraint As AssemblyConstraint In compOcc.Constraints
+				If compConstraint.Name = constraintName Then
+					compConstraint.Suppressed = suppression
+					findConstraint = True
+					Continue For
+				End If
+			Next
+			If findConstraint = False Then
+				For Each compJoint As AssemblyJoint In compOcc.Joints
+					If compJoint.Name = constraintName Then
+						compJoint.Suppressed = suppression
+						findConstraint = True
+						Exit For
+					End If
+				Next
+			End If
+			If findConstraint = False Then
+				missConstraints.Add(constraintName)
+			End If
+		Next
+	End If
+	If suppression = True Then
+		compOcc.Suppress
+	ElseIf suppression = False Then
+		compOcc.Unsuppress
+	End If
+	If missConstraints.Count > 1 Then
+		MessageBox.Show("구속조건 " & String.Join(", ",missConstraints) & "를 찾을수 없습니다.", "구속조건 확인 불가", MessageBoxButtons.OK, MessageBoxIcon.Error)
+	End If
+End Sub]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>구성요소</Category>
+      <Name>구성요소 삭제</Name>
+      <ToolTip>Sub deleteComponent(CompName As String)</ToolTip>
+      <Index>1018</Index>
+      <Code><![CDATA[Sub deleteComponent(CompName As String)
+	Dim AssyDoc As AssemblyDocument = ThisDoc.Document
+	Dim OccComps As ComponentOccurrences = AssyDoc.ComponentDefinition.Occurrences
+	Dim CompType As String
+	If CompName.Contains(":") Then
+		CompName = CompName.Split(":")(0)
+	End If
+	Dim OccPtrns As OccurrencePatterns = AssyDoc.ComponentDefinition.OccurrencePatterns
+	For Each OccPtrn As OccurrencePattern In OccPtrns
+		Dim PtrnComp As ComponentOccurrence = OccPtrn.OccurrencePatternElements.Item(1).Occurrences.Item(1)
+		If PtrnComp.Name.Contains(CompName) Then
+			OccPtrn.Delete
+		End If
+	Next
+	For Each OccComp As ComponentOccurrence In OccComps
+		If OccComp.Name.Contains(CompName) Then
+			OccComp.Delete2
+		End If
+	Next
+End Sub]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>관계</Category>
+      <Name>구속 조건 일괄 억제</Name>
+      <ToolTip>suppressConstraintsAndJoints(compOcc, {"구속조건이름1", "구속조건이름2"})
+모든 구속 조건 변경 필요 시 {“ALL”}</ToolTip>
+      <Index>1022</Index>
+      <Code><![CDATA[Sub Main()
+	suppressConstraintsAndJoints("구성요소 이름", {"구속조건1", "구속조건2"})
+End Sub
+
+Sub suppressConstraintsAndJoints(compName As String, constraintNames As Array)
+	Dim compOcc As ComponentOccurrence = Component.InventorComponent(compName)
+	Dim missConstraints As New List(Of String)
+	If constraintNames.Length = 0 Then
+		MessageBox.Show("구속조건 이름이 누락되었습니다.", "구속조건 이름 누락", MessageBoxButtons.OK, MessageBoxIcon.Question)
+		Exit Sub
+	ElseIf constraintNames(0) ="ALL" Then
+		For Each compJoint As AssemblyJoint In compOcc.Joints
+			compJoint.Suppressed = True
+		Next
+		For Each compConstraint As AssemblyConstraint In compOcc.Constraints
+			compConstraint.Suppressed = True
+		Next
+	Else
+		For Each constraintName As String In constraintNames
+			findConstraint = False
+			For Each compConstraint As AssemblyConstraint In compOcc.Constraints
+				If compConstraint.Name = constraintName Then
+					compConstraint.Suppressed = True
+					findConstraint = True
+					Continue For
+				End If
+			Next
+			If findConstraint = False Then
+				For Each compJoint As AssemblyJoint In compOcc.Joints
+					If compJoint.Name = constraintName Then
+						compJoint.Suppressed = True
+						findConstraint = True
+						Exit For
+					End If
+				Next
+			End If
+			If findConstraint = False Then
+				missConstraints.Add(constraintName)
+			End If
+		Next
+	End If
+	If missConstraints.Count > 1 Then
+		MessageBox.Show("구속조건 " & String.Join(", ",missConstraints) & "를 찾을수 없습니다.", "구속조건 확인 불가", MessageBoxButtons.OK, MessageBoxIcon.Error)
+	End If
+End Sub]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>조립</Category>
+      <Name>iMate 유무 확인</Name>
+      <ToolTip>Function checkiMate(CompName, iMateName) As Boolean</ToolTip>
+      <Index>1017</Index>
+      <Code><![CDATA[Function checkiMate(CompName, iMateName) As Boolean
+	Dim AssyDoc As AssemblyDocument = ThisDoc.Document
+	Dim OccComp As ComponentOccurrence = AssyDoc.ComponentDefinition.Occurrences.ItemByName(CompName)
+	Dim iMateDefs As iMateDefinitions = OccComp.Definition.iMateDefinitions
+	For Each iMateDef As iMateDefinition In iMateDefs
+		If iMateDef.Suppressed = False And iMateDef.Name = iMateName  Then
+			Return True
+		End If
+	Next
+	Return False
+End Function]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>조립</Category>
+      <Name>Pattern 조립</Name>
+      <ToolTip>Function addPattern(CompName As String, Count As String, Offeset As Integer, B120B03_1_DIR As Boolean) As String 'Count는 매개변수</ToolTip>
+      <Index>1013</Index>
+      <Code><![CDATA[Function addPattern(CompName As String, Count As String, Offeset As Integer, B120B03_1_DIR As Boolean) As String
+	Dim MngPattern As ManagedPattern = Patterns.AddRectangular(CompName & " 패턴 1", CompName, Parameter(Count), Offeset, "", "X Axis", columnNaturalDirection := B120B03_1_DIR)
+	Dim RectOccPattern As RectangularOccurrencePattern = MngPattern.Pattern
+	RectOccPattern.ColumnCount.Expression = Count
+	Dim AssemDoc As AssemblyDocument = ThisApplication.ActiveDocument
+	Dim oOccs As ComponentOccurrences = AssemDoc.ComponentDefinition.Occurrences
+	Dim SplitSerial As String = CompName.Split(":")(0)
+	Dim DwgNo As String = Left(CompName, 8)
+	For Each oOcc As ComponentOccurrence In oOccs
+		Dim oOccName As String = oOcc.Name
+		If Not oOccName.Contains("_") Then
+			Dim PickNo As String = SplitSerial.Split("_")(1)
+			oOcc.Name = oOccName.Replace(DwgNo, DwgNo & "_" & PickNo)
+		End If
+	Next
+End Function]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>Vault</Category>
+      <Name>Vault에서 자재 불러오기</Name>
+      <ToolTip>SearchComponent(Filename As String, Extension As String) As String</ToolTip>
+      <Index>1007</Index>
+      <Code><![CDATA[Function searchComponent(Filename As String, Optional Extension As String = ".iam") As String
+	Dim SearchCondition As New System.Collections.Generic.Dictionary(Of String, String)
+	SearchCondition.Add("파일 이름", Filename & Extension)
+	SearchCondition.Add("폴더 경로", "$/Component/*")
+	Dim LocalPath = iLogicVault.GetFileBySearchCriteria(SearchCondition, True, False)
+	If LocalPath Is Nothing Then
+		SearchCondition("파일 이름") = Filename & ".ipt"
+		LocalPath = iLogicVault.GetFileBySearchCriteria(SearchCondition, True, False)
+		If LocalPath Is Nothing Then
+			MsgBox(Filename & "를 찾을 수 없습니다.")
+			Return Nothing
+		End If
+	End If
+	Return LocalPath
+End Function]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>매개변수</Category>
+      <Name>사용자 매개변수 생성</Name>
+      <ToolTip>Set_Spec(Param_Name As String, Param_Val As String, Units As String)</ToolTip>
+      <Index>1008</Index>
+      <Code><![CDATA[Sub Set_Spec(ParamName As String, ParamVal As String, Units As String)
+	Dim PartDoc As PartDocument = ThisApplication.ActiveDocument
+    Dim UserParams As UserParameters = PartDoc.ComponentDefinition.Parameters.UserParameters
+	If Units = "TEXT" Then ' UnitsTypeEnum
+		UserParams.AddByValue(ParamName, ParamVal, kTextUnits)
+	ElseIf Units = "mm" Then
+		UserParams.AddByExpression(ParamName, ParamVal, kMillimeterLengthUnits)
+	ElseIf Units = "kg" Then
+		UserParams.AddByExpression(ParamName, ParamVal, kKilogramMassUnits)
+	ElseIf Units = "g" Then
+		UserParams.AddByExpression(ParamName, ParamVal, kGramMassUnits)
+	ElseIf Units = "ul" Then
+		UserParams.AddByExpression(ParamName, ParamVal, kUnitlessUnits)
+	Else
+		MsgBox("매개변수 타입을 확인해주세요.")
+	End If
+End Sub]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>모형상태</Category>
+      <Name>모형상태 매개변수 연결</Name>
+      <ToolTip>linkParam("구성요소이름", {"구성요소의 모형상태1", "구성요소의 모형상태2"}, "구성요소의 매개변수", 매개변수)
+
+* 모든 모형 상태에 변환이 필요한 경우 "모형상태"="ALL"</ToolTip>
+      <Index>1001</Index>
+      <Code><![CDATA[Sub linkParam(childCompName As String, childModelState As Array, childParam As String, param As String)
+	Dim comp = Component.InventorComponent(childCompName)
+	Dim facdoc As Document = comp.Definition.FactoryDocument
+	If childModelState.Length = 1 And childModelState(0) = "ALL" Then
+		facdoc.ComponentDefinition.ModelStates.MemberEditScope = MemberEditScopeEnum.kEditAllMembers
+		facdoc.ComponentDefinition.Parameters.UserParameters.Item(childParam).Expression = param
+		facdoc.Update2()
+		facdoc.ComponentDefinition.ModelStates.MemberEditScope = MemberEditScopeEnum.kEditActiveMember
+	Else
+		For Each model_state As String In childModelState
+			facdoc.ComponentDefinition.ModelStates.MemberEditScope = MemberEditScopeEnum.kEditActiveMember
+			facdoc.ComponentDefinition.ModelStates.Item(model_state).Activate()
+			childParam_unit = facdoc.ComponentDefinition.Parameters.UserParameters.Item(childParam).Units
+			If childParam_unit = "Text" Then
+				facdoc.ComponentDefinition.Parameters.UserParameters.Item(childParam).Value = param
+			Else
+				facdoc.ComponentDefinition.Parameters.UserParameters.Item(childParam).Expression = param
+			End If
+			facdoc.Update2()
+		Next
+	End If
+	RuleParametersOutput()
+	InventorVb.DocumentUpdate()
+End Sub]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>모형상태</Category>
+      <Name>모형상태 활성화(업데이트)</Name>
+      <ToolTip>activeModelState(compName As String)</ToolTip>
+      <Index>1006</Index>
+      <Code><![CDATA[Sub activeModelState(compName As String)
+	Dim comp As ComponentOccurrence = Component.InventorComponent(compName)
+	Dim facdoc As Document = comp.Definition.FactoryDocument
+	facdoc.ComponentDefinition.ModelStates.MemberEditScope = MemberEditScopeEnum.kEditActiveMember
+	facdoc.ComponentDefinition.ModelStates.Item(Component.ActiveModelState(compName)).Activate()
+	RuleParametersOutput()
+	InventorVb.DocumentUpdate()
+End Sub]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>모형상태</Category>
+      <Name>규칙이 포함된 하위 자재 모형상태 업데이트</Name>
+      <ToolTip>update_model_state(SubCpntName As String, SubCpntModelState As String)</ToolTip>
+      <Index>1005</Index>
+      <Code><![CDATA[Sub update_model_state(SubCpntName As String, SubCpntModelState As String)
+	Dim SubCpnt = Component.InventorComponent(SubCpntName)
+	Dim FacDoc As Document = SubCpnt.Definition.FactoryDocument
+	FacDoc.ComponentDefinition.ModelStates.MemberEditScope = MemberEditScopeEnum.kEditActiveMember
+	FacDoc.ComponentDefinition.ModelStates.Item(SubCpntModelState).Activate()
+	FacDoc.Update2()
+End Sub]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>기타</Category>
+      <Name>iLogicAuto</Name>
+      <ToolTip>Dim oAssmDoc As AssemblyDocument = ThisDoc.Document
+
+Dim iLogicAuto = iLogicVb.Automation
+
+Dim oRule As Object
+
+For Each oRefDoc As Document In oAssmDoc.AllReferencedDocuments
+	On Error Resume Next
+	Logger.Info(oRefDoc.DisplayName)
+
+	oRule = iLogicAuto.GetRule(oRefDoc, "변수 연결")
+	iLogicAuto.RunRuleDirect(oRole)
+Next
+
+	</ToolTip>
+      <Index>1006</Index>
+      <Code><![CDATA[Dim oAssmDoc As AssemblyDocument = ThisDoc.Document
+
+Dim iLogicAuto = iLogicVb.Automation
+
+Dim oRule As Object
+
+For Each oRefDoc As Document In oAssmDoc.AllReferencedDocuments
+	On Error Resume Next
+	Logger.Info(oRefDoc.DisplayName)
+
+	oRule = iLogicAuto.GetRule(oRefDoc, "변수 연결")
+	iLogicAuto.RunRuleDirect(oRole)
+Next
+
+	]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>기타</Category>
+      <Name>C# dll 연결</Name>
+      <ToolTip>AddReference "elvInfo.dll"</ToolTip>
+      <Index>1021</Index>
+      <Code><![CDATA[Dim elvForm As New ClassLibrary1.Form1
+elvForm.inventor = ThisApplication
+elvForm.Show]]></Code>
+    </CodeSnippet>
+    <CodeSnippet>
+      <Category>기타</Category>
+      <Name>의장 재질 적용</Name>
+      <ToolTip>Sub setAestheticMaterial(Material As String)
+	Dim oPartDoc As PartDocument = ThisDoc.Document
+	Dim assetLib As AssetLibrary = ThisApplication.AssetLibraries.Item("HDEL 의장")
+	Dim libMaterial As MaterialAsset = assetLib.MaterialAssets.Item(Material)
+	
+	oPartDoc.ActiveMaterial = libMaterial
+	
+	InventorVb.DocumentUpdate()
+End Sub
+
+</ToolTip>
+      <Index>1022</Index>
+      <Code><![CDATA[Sub setAestheticMaterial(Material As String)
+	Dim oPartDoc As PartDocument = ThisDoc.Document
+	Dim assetLib As AssetLibrary = ThisApplication.AssetLibraries.Item("HDEL 의장")
+	Dim libMaterial As MaterialAsset = assetLib.MaterialAssets.Item(Material)
+	
+	oPartDoc.ActiveMaterial = libMaterial
+	
+	InventorVb.DocumentUpdate()
+End Sub
+
+]]></Code>
+    </CodeSnippet>
+  </Snippets>
+</CodeSnippets>
