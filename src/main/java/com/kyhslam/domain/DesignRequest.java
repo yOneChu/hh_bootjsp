@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 //신전산요청
-@Entity
+//@Entity
 @Setter
 @Getter
 @Table(name = "design_request")
