@@ -972,8 +972,8 @@
 
 
                 <div class="row">
-                    <!-- <div class="col-12"> -->
-                    <div class="col-lg-7">
+                   <div class="col-12">
+                    <%--<div class="col-lg-7">--%>
                         <!-- <section class="col-lg-6 connectedSortable ui-sortable"> -->
 
                         <div class="card card-primary">
@@ -998,7 +998,7 @@
 
                                     <tr class="bg-secondary">
                                         <th style="font-weight: bold; text-align: center;" colspan="8">2024년</th>
-                                        <th style="font-weight: bold; text-align: center;" colspan="5">2025년</th>
+                                        <th style="font-weight: bold; text-align: center;" colspan="12">2025년</th>
                                     </tr>
 
                                     <tr class="bg-secondary">
@@ -1016,6 +1016,13 @@
                                         <th style="font-weight: bold; text-align: center;">03</th>
                                         <th style="font-weight: bold; text-align: center;">04</th>
                                         <th style="font-weight: bold; text-align: center;">05</th>
+                                        <th style="font-weight: bold; text-align: center;">06</th>
+                                        <th style="font-weight: bold; text-align: center;">07</th>
+                                        <th style="font-weight: bold; text-align: center;">08</th>
+                                        <th style="font-weight: bold; text-align: center;">09</th>
+                                        <th style="font-weight: bold; text-align: center;">10</th>
+                                        <th style="font-weight: bold; text-align: center;">11</th>
+                                        <th style="font-weight: bold; text-align: center;">12</th>
                                     </tr>
                                     </thead>
 
@@ -1420,10 +1427,38 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202505');"><%= OPB_D521AG_17 %></a></td>
                                     </tr>
 
+                                    <%
+                                        //개선
+                                        DashDto OPB_S521A_dto = jdcbService.findById("OPB_S521A", todayVal);
+                                        System.out.println("OPB_S521A_dto = " + OPB_S521A_dto);
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;"> OPB (S521A) </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', 'total');"><font color="red"><%=OPB_S521A %> </font></a></td>
+
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', 'total');"><font color="red"><%=OPB_S521A_dto.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202405');"><%= OPB_S521A_dto.getPrice202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202406');"><%= OPB_S521A_dto.getPrice202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202407');"><%= OPB_S521A_dto.getPrice202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202408');"><%= OPB_S521A_dto.getPrice202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202409');"><%= OPB_S521A_dto.getPrice202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202410');"><%= OPB_S521A_dto.getPrice202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202411');"><%= OPB_S521A_dto.getPrice202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202412');"><%= OPB_S521A_dto.getPrice202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202501');"><%= OPB_S521A_dto.getPrice202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202502');"><%= OPB_S521A_dto.getPrice202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202503');"><%= OPB_S521A_dto.getPrice202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202504');"><%= OPB_S521A_dto.getPrice202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202505');"><%= OPB_S521A_dto.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202506');"><%= OPB_S521A_dto.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202507');"><%= OPB_S521A_dto.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202508');"><%= OPB_S521A_dto.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202509');"><%= OPB_S521A_dto.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202510');"><%= OPB_S521A_dto.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202511');"><%= OPB_S521A_dto.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202512');"><%= OPB_S521A_dto.getPrice202512() %></a></td>
+
+                                        <%--<td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', 'total');"><font color="red"><%=OPB_S521A %> </font></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202405');"><%= OPB_S521A_05 %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202406');"><%= OPB_S521A_06 %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202407');"><%= OPB_S521A_07 %></a></td>
@@ -1436,32 +1471,38 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202502');"><%= OPB_S521A_14 %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202503');"><%= OPB_S521A_15 %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202504');"><%= OPB_S521A_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202505');"><%= OPB_S521A_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202505');"><%= OPB_S521A_17 %></a></td>--%>
                                     </tr>
 
-
                                     <%
-                                        DashDto HPB_K21_TOP_dto = jdcbService.findById("HPB_K21_TOP", todayVal);
-
-                                        System.out.println("11 " + HPB_K21_TOP_dto.getTotal());
+                                        DashDto HPB_K21_TOP = jdcbService.findById("HPB_K21_TOP", todayVal);
+                                        System.out.println("11 " + HPB_K21_TOP.getTotal());
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;"> HPB(K21,TOP) </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', 'total');"><font color="red"><%=HPB_K21_TOP_dto.getTotal() %> </font></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202405');"><%= HPB_K21_TOP_dto.getPrice202405() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202406');"><%= HPB_K21_TOP_dto.getPrice202406() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202407');"><%= HPB_K21_TOP_dto.getPrice202407() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202408');"><%= HPB_K21_TOP_dto.getPrice202408() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202409');"><%= HPB_K21_TOP_dto.getPrice202409() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202410');"><%= HPB_K21_TOP_dto.getPrice202410() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202411');"><%= HPB_K21_TOP_dto.getPrice202411() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202412');"><%= HPB_K21_TOP_dto.getPrice202412() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202501');"><%= HPB_K21_TOP_dto.getPrice202501() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202502');"><%= HPB_K21_TOP_dto.getPrice202502() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202503');"><%= HPB_K21_TOP_dto.getPrice202503() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202504');"><%= HPB_K21_TOP_dto.getPrice202504() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202505');"><%= HPB_K21_TOP_dto.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', 'total');"><font color="red"><%=HPB_K21_TOP.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202405');"><%= HPB_K21_TOP.getPrice202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202406');"><%= HPB_K21_TOP.getPrice202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202407');"><%= HPB_K21_TOP.getPrice202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202408');"><%= HPB_K21_TOP.getPrice202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202409');"><%= HPB_K21_TOP.getPrice202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202410');"><%= HPB_K21_TOP.getPrice202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202411');"><%= HPB_K21_TOP.getPrice202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202412');"><%= HPB_K21_TOP.getPrice202412() %></a></td>
+
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202501');"><%= HPB_K21_TOP.getPrice202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202502');"><%= HPB_K21_TOP.getPrice202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202503');"><%= HPB_K21_TOP.getPrice202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202504');"><%= HPB_K21_TOP.getPrice202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202505');"><%= HPB_K21_TOP.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202506');"><%= HPB_K21_TOP.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202507');"><%= HPB_K21_TOP.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202508');"><%= HPB_K21_TOP.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202509');"><%= HPB_K21_TOP.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202510');"><%= HPB_K21_TOP.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202511');"><%= HPB_K21_TOP.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202512');"><%= HPB_K21_TOP.getPrice202512() %></a></td>
                                     </tr>
 
 
@@ -1480,11 +1521,19 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202410');"><%= HPB_K21_MID.getPrice202410() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202411');"><%= HPB_K21_MID.getPrice202411() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202412');"><%= HPB_K21_MID.getPrice202412() %></a></td>
+
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202501');"><%= HPB_K21_MID.getPrice202501() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202502');"><%= HPB_K21_MID.getPrice202502() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202503');"><%= HPB_K21_MID.getPrice202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202504');"><%= HPB_K21_MID.getPrice202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202505');"><%= HPB_K21_MID.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202506');"><%= HPB_K21_MID.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202507');"><%= HPB_K21_MID.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202508');"><%= HPB_K21_MID.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202509');"><%= HPB_K21_MID.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202510');"><%= HPB_K21_MID.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202511');"><%= HPB_K21_MID.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202512');"><%= HPB_K21_MID.getPrice202512() %></a></td>
                                     </tr>
 
                                     <%
@@ -1502,11 +1551,19 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202410');"><%= HPB_K21_BOT.getPrice202410() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202411');"><%= HPB_K21_BOT.getPrice202411() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202412');"><%= HPB_K21_BOT.getPrice202412() %></a></td>
+
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202501');"><%= HPB_K21_BOT.getPrice202501() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202502');"><%= HPB_K21_BOT.getPrice202502() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202503');"><%= HPB_K21_BOT.getPrice202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202504');"><%= HPB_K21_BOT.getPrice202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202505');"><%= HPB_K21_BOT.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202506');"><%= HPB_K21_BOT.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202507');"><%= HPB_K21_BOT.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202508');"><%= HPB_K21_BOT.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202509');"><%= HPB_K21_BOT.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202510');"><%= HPB_K21_BOT.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202511');"><%= HPB_K21_BOT.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202512');"><%= HPB_K21_BOT.getPrice202512() %></a></td>
                                     </tr>
 
 
@@ -1525,11 +1582,19 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202410');"><%= HPB_K21A_TOP.getPrice202410() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202411');"><%= HPB_K21A_TOP.getPrice202411() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202412');"><%= HPB_K21A_TOP.getPrice202412() %></a></td>
+
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202501');"><%= HPB_K21A_TOP.getPrice202501() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202502');"><%= HPB_K21A_TOP.getPrice202502() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202503');"><%= HPB_K21A_TOP.getPrice202503() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202504');"><%= HPB_K21A_TOP.getPrice202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202504');"><%= HPB_K21A_TOP.getPrice202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202505');"><%= HPB_K21A_TOP.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202506');"><%= HPB_K21A_TOP.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202507');"><%= HPB_K21A_TOP.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202508');"><%= HPB_K21A_TOP.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202509');"><%= HPB_K21A_TOP.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202510');"><%= HPB_K21A_TOP.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202511');"><%= HPB_K21A_TOP.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202512');"><%= HPB_K21A_TOP.getPrice202512() %></a></td>
                                     </tr>
 
 
@@ -1548,11 +1613,19 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202410');"><%= HPB_K21A_MID.getPrice202410() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202411');"><%= HPB_K21A_MID.getPrice202411() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202412');"><%= HPB_K21A_MID.getPrice202412() %></a></td>
+
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202501');"><%= HPB_K21A_MID.getPrice202501() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202502');"><%= HPB_K21A_MID.getPrice202502() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202503');"><%= HPB_K21A_MID.getPrice202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202504');"><%= HPB_K21A_MID.getPrice202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202505');"><%= HPB_K21A_MID.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202506');"><%= HPB_K21A_MID.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202507');"><%= HPB_K21A_MID.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202508');"><%= HPB_K21A_MID.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202509');"><%= HPB_K21A_MID.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202510');"><%= HPB_K21A_MID.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202511');"><%= HPB_K21A_MID.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202512');"><%= HPB_K21A_MID.getPrice202512() %></a></td>
                                     </tr>
 
                                     <%
@@ -1570,11 +1643,19 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202410');"><%= HPB_K21A_BOT.getPrice202410() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202411');"><%= HPB_K21A_BOT.getPrice202411() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202412');"><%= HPB_K21A_BOT.getPrice202412() %></a></td>
+
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202501');"><%= HPB_K21A_BOT.getPrice202501() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202502');"><%= HPB_K21A_BOT.getPrice202502() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202503');"><%= HPB_K21A_BOT.getPrice202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202504');"><%= HPB_K21A_BOT.getPrice202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202505');"><%= HPB_K21A_BOT.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202506');"><%= HPB_K21A_BOT.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202507');"><%= HPB_K21A_BOT.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202508');"><%= HPB_K21A_BOT.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202509');"><%= HPB_K21A_BOT.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202510');"><%= HPB_K21A_BOT.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202511');"><%= HPB_K21A_BOT.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202512');"><%= HPB_K21A_BOT.getPrice202512() %></a></td>
                                     </tr>
 
 
@@ -1593,11 +1674,19 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202410');"><%= HIP_SK21_TOP.getPrice202410() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202411');"><%= HIP_SK21_TOP.getPrice202411() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202412');"><%= HIP_SK21_TOP.getPrice202412() %></a></td>
+
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202501');"><%= HIP_SK21_TOP.getPrice202501() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202502');"><%= HIP_SK21_TOP.getPrice202502() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202503');"><%= HIP_SK21_TOP.getPrice202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202504');"><%= HIP_SK21_TOP.getPrice202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202505');"><%= HIP_SK21_TOP.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202506');"><%= HIP_SK21_TOP.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202507');"><%= HIP_SK21_TOP.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202508');"><%= HIP_SK21_TOP.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202509');"><%= HIP_SK21_TOP.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202510');"><%= HIP_SK21_TOP.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202511');"><%= HIP_SK21_TOP.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202512');"><%= HIP_SK21_TOP.getPrice202512() %></a></td>
                                     </tr>
 
 
@@ -1616,11 +1705,19 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202410');"><%= HIP_SK21_MID.getPrice202410() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202411');"><%= HIP_SK21_MID.getPrice202411() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202412');"><%= HIP_SK21_MID.getPrice202412() %></a></td>
+
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202501');"><%= HIP_SK21_MID.getPrice202501() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202502');"><%= HIP_SK21_MID.getPrice202502() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202503');"><%= HIP_SK21_MID.getPrice202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202504');"><%= HIP_SK21_MID.getPrice202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202505');"><%= HIP_SK21_MID.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202506');"><%= HIP_SK21_MID.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202507');"><%= HIP_SK21_MID.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202508');"><%= HIP_SK21_MID.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202509');"><%= HIP_SK21_MID.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202510');"><%= HIP_SK21_MID.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202511');"><%= HIP_SK21_MID.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202512');"><%= HIP_SK21_MID.getPrice202512() %></a></td>
                                     </tr>
 
                                     <%
@@ -1638,11 +1735,19 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202410');"><%= HIP_SK21_BOT.getPrice202410() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202411');"><%= HIP_SK21_BOT.getPrice202411() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202412');"><%= HIP_SK21_BOT.getPrice202412() %></a></td>
+
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202501');"><%= HIP_SK21_BOT.getPrice202501() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202502');"><%= HIP_SK21_BOT.getPrice202502() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202503');"><%= HIP_SK21_BOT.getPrice202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202504');"><%= HIP_SK21_BOT.getPrice202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202505');"><%= HIP_SK21_BOT.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202506');"><%= HIP_SK21_BOT.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202507');"><%= HIP_SK21_BOT.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202508');"><%= HIP_SK21_BOT.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202509');"><%= HIP_SK21_BOT.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202510');"><%= HIP_SK21_BOT.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202511');"><%= HIP_SK21_BOT.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202512');"><%= HIP_SK21_BOT.getPrice202512() %></a></td>
                                     </tr>
 
 
@@ -1661,11 +1766,20 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202410');"><%= HPI_S700.getPrice202410() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202411');"><%= HPI_S700.getPrice202411() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202412');"><%= HPI_S700.getPrice202412() %></a></td>
+
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202501');"><%= HPI_S700.getPrice202501() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202502');"><%= HPI_S700.getPrice202502() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202503');"><%= HPI_S700.getPrice202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202504');"><%= HPI_S700.getPrice202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202505');"><%= HPI_S700.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202505');"><%= HPI_S700.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202506');"><%= HPI_S700.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202507');"><%= HPI_S700.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202508');"><%= HPI_S700.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202509');"><%= HPI_S700.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202510');"><%= HPI_S700.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202511');"><%= HPI_S700.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202512');"><%= HPI_S700.getPrice202512() %></a></td>
                                     </tr>
 
                                     <%
@@ -1683,11 +1797,19 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202410');"><%= HPI_SC.getPrice202410() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202411');"><%= HPI_SC.getPrice202411() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202412');"><%= HPI_SC.getPrice202412() %></a></td>
+
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202501');"><%= HPI_SC.getPrice202501() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202502');"><%= HPI_SC.getPrice202502() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202503');"><%= HPI_SC.getPrice202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202504');"><%= HPI_SC.getPrice202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202505');"><%= HPI_SC.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202506');"><%= HPI_SC.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202507');"><%= HPI_SC.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202508');"><%= HPI_SC.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202509');"><%= HPI_SC.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202510');"><%= HPI_SC.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202511');"><%= HPI_SC.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202512');"><%= HPI_SC.getPrice202512() %></a></td>
                                     </tr>
 
                                     </tbody>
@@ -1705,7 +1827,7 @@
 
 
                     <!-- <div class="col-12"> -->
-                    <div class="col-lg-5">
+                    <%--<div class="col-lg-5">
 
                         <div class="card card-danger">
                             <div class="card-header">
@@ -1739,7 +1861,7 @@
                         </div>
 
                         <!-- /.card -->
-                    </div>
+                    </div>--%>
                     <!-- /.col -->
 
 
@@ -1751,7 +1873,7 @@
 
 
                 <!-- Dashboard -->
-                <div class="row">
+                <%--<div class="row">
                     <div class="col-12">
                         <div class="card card-warning">
                             <div class="card-header">
@@ -1767,7 +1889,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>--%>
 
 
             </div> <!-- /.container-fluid -->

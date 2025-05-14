@@ -18,6 +18,7 @@ public class DashDtoV3 {
     private String export202410;
     private String export202411;
     private String export202412;
+
     private String export202501;
     private String export202502;
     private String export202503;
@@ -47,6 +48,7 @@ public class DashDtoV3 {
         this.export202410 = export202410;
         this.export202411 = export202411;
         this.export202412 = export202412;
+
         this.export202501 = export202501;
         this.export202502 = export202502;
         this.export202503 = export202503;
@@ -63,15 +65,13 @@ public class DashDtoV3 {
     }
 
     public int getTotal2024() {
-        int total = Integer.parseInt(this.export202405) + Integer.parseInt(this.export202406) + Integer.parseInt(this.export202407) + Integer.parseInt(this.export202408) + Integer.parseInt(this.export202409) + Integer.parseInt(this.export202410)
-                + Integer.parseInt(this.export202411) + Integer.parseInt(this.export202412);
-
+        int total = Integer.parseInt(this.export202405) + Integer.parseInt(this.export202406) + Integer.parseInt(this.export202407) + Integer.parseInt(this.export202408)
+                + Integer.parseInt(this.export202409) + Integer.parseInt(this.export202410) + Integer.parseInt(this.export202411) + Integer.parseInt(this.export202412);
         return total;
     }
 
     public int getTotal2025() {
-        int total = Integer.parseInt(this.export202501) + Integer.parseInt(this.export202502) + Integer.parseInt(this.export202503) + Integer.parseInt(this.export202504)
-                + Integer.parseInt(this.export202505)
+        int total = Integer.parseInt(this.export202501) + Integer.parseInt(this.export202502) + Integer.parseInt(this.export202503) + Integer.parseInt(this.export202504)+ Integer.parseInt(this.export202505)
                 + Integer.parseInt(this.export202506) + Integer.parseInt(this.export202507) + Integer.parseInt(this.export202508) + Integer.parseInt(this.export202509) + Integer.parseInt(this.export202510)
                 + Integer.parseInt(this.export202511) + Integer.parseInt(this.export202512);
         return total;
@@ -80,8 +80,7 @@ public class DashDtoV3 {
     public int getTotal() {
         int total = Integer.parseInt(this.export202405) + Integer.parseInt(this.export202406) + Integer.parseInt(this.export202407) + Integer.parseInt(this.export202408) + Integer.parseInt(this.export202409) + Integer.parseInt(this.export202410)
                 + Integer.parseInt(this.export202411) + Integer.parseInt(this.export202412)
-                + Integer.parseInt(this.export202501) + Integer.parseInt(this.export202502) + Integer.parseInt(this.export202503) + Integer.parseInt(this.export202504)
-                + Integer.parseInt(this.export202505)
+                + Integer.parseInt(this.export202501) + Integer.parseInt(this.export202502) + Integer.parseInt(this.export202503) + Integer.parseInt(this.export202504) + Integer.parseInt(this.export202505)
                 + Integer.parseInt(this.export202506) + Integer.parseInt(this.export202507) + Integer.parseInt(this.export202508) + Integer.parseInt(this.export202509) + Integer.parseInt(this.export202510)
                 + Integer.parseInt(this.export202511) + Integer.parseInt(this.export202512) + Integer.parseInt(this.export_etc);
         return total;

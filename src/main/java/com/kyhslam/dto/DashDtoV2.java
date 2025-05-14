@@ -18,11 +18,19 @@ public class DashDtoV2 {
     private String DIS202410;
     private String DIS202411;
     private String DIS202412;
+
     private String DIS202501;
     private String DIS202502;
     private String DIS202503;
     private String DIS202504;
     private String DIS202505;
+    private String DIS202506;
+    private String DIS202507;
+    private String DIS202508;
+    private String DIS202509;
+    private String DIS202510;
+    private String DIS202511;
+    private String DIS202512;
 
 
     public DashDtoV2() {
@@ -40,21 +48,27 @@ public class DashDtoV2 {
         this.DIS202410 = price202410;
         this.DIS202411 = price202411;
         this.DIS202412 = price202412;
+
         this.DIS202501 = price202501;
         this.DIS202502 = price202502;
         this.DIS202503 = price202503;
         this.DIS202504 = price202504;
         this.DIS202505 = price202505;
+        this.DIS202506 = price202506;
+        this.DIS202507 = price202507;
+        this.DIS202508 = price202508;
+        this.DIS202509 = price202509;
+        this.DIS202510 = price202510;
+        this.DIS202511 = price202511;
+        this.DIS202512 = price202512;
     }
 
     public int getTotal() {
         int total = Integer.parseInt(this.DIS202405) + Integer.parseInt(this.DIS202406) + Integer.parseInt(this.DIS202407) + Integer.parseInt(this.DIS202408) + Integer.parseInt(this.DIS202409) + Integer.parseInt(this.DIS202410)
                 + Integer.parseInt(this.DIS202411) + Integer.parseInt(this.DIS202412)
-                + Integer.parseInt(this.DIS202501) + Integer.parseInt(this.DIS202502) + Integer.parseInt(this.DIS202503) + Integer.parseInt(this.DIS202504)
-                + Integer.parseInt(this.DIS202505);
-
-                //+ Integer.parseInt(this.price202506) + Integer.parseInt(this.price202507) + Integer.parseInt(this.price202508) + Integer.parseInt(this.price202509) + Integer.parseInt(this.price202510)
-                //+ Integer.parseInt(this.price202511) + Integer.parseInt(this.price202512);
+                + Integer.parseInt(this.DIS202501) + Integer.parseInt(this.DIS202502) + Integer.parseInt(this.DIS202503) + Integer.parseInt(this.DIS202504) + Integer.parseInt(this.DIS202505)
+                + Integer.parseInt(this.DIS202506) + Integer.parseInt(this.DIS202507) + Integer.parseInt(this.DIS202508) + Integer.parseInt(this.DIS202509) + Integer.parseInt(this.DIS202510)
+                + Integer.parseInt(this.DIS202511) + Integer.parseInt(this.DIS202512);
         return total;
     }
 }

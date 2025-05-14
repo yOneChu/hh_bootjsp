@@ -46,21 +46,27 @@ public class DashDto {
         this.price202410 = price202410;
         this.price202411 = price202411;
         this.price202412 = price202412;
+
         this.price202501 = price202501;
         this.price202502 = price202502;
         this.price202503 = price202503;
         this.price202504 = price202504;
         this.price202505 = price202505;
+        this.price202506 = price202506;
+        this.price202507 = price202507;
+        this.price202508 = price202508;
+        this.price202509 = price202509;
+        this.price202510 = price202510;
+        this.price202511 = price202511;
+        this.price202512 = price202512;
     }
 
     public int getTotal() {
         int total = Integer.parseInt(this.price202405) + Integer.parseInt(this.price202406) + Integer.parseInt(this.price202407) + Integer.parseInt(this.price202408) + Integer.parseInt(this.price202409) + Integer.parseInt(this.price202410)
                 + Integer.parseInt(this.price202411) + Integer.parseInt(this.price202412)
-                + Integer.parseInt(this.price202501) + Integer.parseInt(this.price202502) + Integer.parseInt(this.price202503) + Integer.parseInt(this.price202504)
-                + Integer.parseInt(this.price202505);
-
-                //+ Integer.parseInt(this.price202506) + Integer.parseInt(this.price202507) + Integer.parseInt(this.price202508) + Integer.parseInt(this.price202509) + Integer.parseInt(this.price202510)
-                //+ Integer.parseInt(this.price202511) + Integer.parseInt(this.price202512);
+                + Integer.parseInt(this.price202501) + Integer.parseInt(this.price202502) + Integer.parseInt(this.price202503) + Integer.parseInt(this.price202504)  +Integer.parseInt(this.price202505)
+                + Integer.parseInt(this.price202506)  +Integer.parseInt(this.price202507) + Integer.parseInt(this.price202508) + Integer.parseInt(this.price202509)
+                + Integer.parseInt(this.price202510) + Integer.parseInt(this.price202511) + Integer.parseInt(this.price202512);
         return total;
     }
 }
