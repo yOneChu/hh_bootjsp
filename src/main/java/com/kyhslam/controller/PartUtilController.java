@@ -3,6 +3,7 @@ package com.kyhslam.controller;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.PartUtilService;
 import com.kyhslam.util.PartCommonUtil;
+import com.kyhslam.util.ProductCommonUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -21,7 +22,7 @@ public class PartUtilController {
     @GetMapping("/part/productLists")
     public ArrayList<ProductDto> findProductList(String productNo) {
         ArrayList<ProductDto> result = new ArrayList<>();
-        result = PartCommonUtil.findProductInfo(productNo);
+        result = ProductCommonUtil.findProductInfo(productNo);
 
         return result;
     }

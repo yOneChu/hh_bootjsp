@@ -36,6 +36,6 @@ public class PartInfoDTO {
     private String uCheck; //수정여부
     private String cmt;
     private String nation;
-
+    private String HASCHILD; //하위BOM 존재여부
 
 }
