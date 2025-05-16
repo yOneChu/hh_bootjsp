@@ -30,14 +30,16 @@ public class JdbcTemplateRepositoryV1 {
                 A.dash_public_id AS OID, A.part_name, A.batch_date, A.total_cnt,
                 A.price202405, A.price202406, A.price202407, A.price202408, A.price202409,
                 A.price202410, A.price202411, A.price202412,
-                A.price202501, A.price202502, A.price202503, A.price202504, A.price202505
+                A.price202501, A.price202502, A.price202503, A.price202504, A.price202505,
+                A.price202506, A.price202507, A.price202508, A.price202509, A.price202510,
+                A.price202511, A.price202512
                 FROM DASH_PUBLIC A
                 WHERE A.BATCH_DATE=:batchDate
                 AND A.part_name=:partName
         """;
 
         System.out.println("sql.toString() = " + sql.toString());
-        
+
         SqlParameterSource param = new MapSqlParameterSource()
                 .addValue("batchDate", batchDate)
                 .addValue("partName", partName);
@@ -53,7 +55,9 @@ public class JdbcTemplateRepositoryV1 {
                 A.dash_public_id AS OID, A.part_name, A.batch_date, A.total_cnt,
                 A.DIS202405, A.DIS202406, A.DIS202407, A.DIS202408, A.DIS202409,
                 A.DIS202410, A.DIS202411, A.DIS202412,
-                A.DIS202501, A.DIS202502, A.DIS202503, A.DIS202504, A.DIS202505
+                A.DIS202501, A.DIS202502, A.DIS202503, A.DIS202504, A.DIS202505,
+                A.DIS202506, A.DIS202507, A.DIS202508, A.DIS202509, A.DIS202510,
+                A.DIS202511, A.DIS202512
                 FROM DASH_PUBLIC A
                 WHERE A.BATCH_DATE =:batchDate
                 AND A.part_name =:partName
@@ -67,12 +71,6 @@ public class JdbcTemplateRepositoryV1 {
         return jdbcTemplate.queryForObject(sql, param, itemRowMapperV2());
     }
 
-    /**
-     * 출하예정일
-     * @param batchDate
-     * @param partName
-     * @return
-     */
     public DashDtoV3 findByIdV3(String batchDate, String partName) {
         String sql = """
                 SELECT
@@ -103,6 +101,8 @@ public class JdbcTemplateRepositoryV1 {
                 A.price202405, A.price202406, A.price202407, A.price202408, A.price202409,
                 A.price202410, A.price202411, A.price202412,
                 A.price202501, A.price202502, A.price202503, A.price202504, A.price202505,
+                A.price202506, A.price202507, A.price202508, A.price202509, A.price202510,
+                A.price202511, A.price202512,
                 
                 (SELECT COUNT(DISTINCT A.hogi) FROM dash_publicdata A WHERE SUBSTRING(A.export_date, 1, 6) = '202405' AND A.batch_date =:batchDate) AS EXPORT05,
                 (SELECT COUNT(DISTINCT A.hogi) FROM dash_publicdata A WHERE SUBSTRING(A.export_date, 1, 6) = '202406' AND A.batch_date =:batchDate) AS EXPORT06,
@@ -138,10 +138,12 @@ public class JdbcTemplateRepositoryV1 {
                 .addValue("batchDate", batchDate)
                 .addValue("batchDate", batchDate)
                 .addValue("batchDate", batchDate);
-                //.addValue("partName", partName);
+        //.addValue("partName", partName);
 
         return (ArrayList<DashDto>) jdbcTemplate.query(sql, param, itemRowMapper());
     }
+
+
 
 
     private RowMapper<DashDto> itemRowMapper() {

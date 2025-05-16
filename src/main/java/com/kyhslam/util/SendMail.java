@@ -26,6 +26,7 @@ public class SendMail {
         String username = "SUBAEAdmin@hyundaielevator.com"; // 보내는 사람 이메일
         //String password = "1111"; // 이메일 비밀번호 또는 앱 비밀번호
 
+
         // 수신자 이메일
         //서동기: dongki.seo@hyundaielevator.com
         //박효현: hh.park@hyundaielevator.com
