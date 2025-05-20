@@ -128,7 +128,7 @@ public class SendMail {
             message.setRecipients(
                     Message.RecipientType.TO,
                     InternetAddress.parse(toEmail)
-            ); //수신자
+            );
 
             message.setRecipients(Message.RecipientType.CC, InternetAddress.parse(ccEmail)); //참조자
             message.setSubject(subject);

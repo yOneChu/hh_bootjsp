@@ -388,8 +388,7 @@ public class ChinaCommonUtil {
         ArrayList<PartInfoDTO> list = new ArrayList<>();
 
 
-        //오늘일자 출력
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now().minusDays(1); //하루전 날짜
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         String formattedTodayDate = today.format(formatter);
         //System.out.println(formattedTodayDate);

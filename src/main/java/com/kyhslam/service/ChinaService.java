@@ -20,7 +20,7 @@ public class ChinaService {
      * 배치는 밤에 돌아서 법인자재(전날)와 PLM자재(당일) 비교해야 됨
      * 법인자재(전날) VS PLM자재(당일)
      */
-    @Scheduled(cron = "0 16 14 * * 1-5")
+    @Scheduled(cron = "0 55 6 * * 1-5")
     public void releasedPartsSave() {
 
         log.info("releasedPartsSave === Start " );
