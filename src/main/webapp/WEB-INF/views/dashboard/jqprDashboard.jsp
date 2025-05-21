@@ -1,10 +1,4 @@
-<%@page import="java.util.Iterator"%>
 <%@page import="java.util.ArrayList"%>
-<%@page import="java.util.HashMap"%>
-<%@ page import="com.kyhslam.util.ElvInfoCommonUtil" %>
-<%@ page import="com.kyhslam.service.ELVInfoService" %>
-<%@ page import="com.kyhslam.dto.DesignDashDTO" %>
-<%@ page import="com.kyhslam.dto.ELVInfoDashDTO" %>
 <%@ page import="com.kyhslam.service.JQPRService" %>
 <%@ page import="com.kyhslam.dto.JqplDTO" %>
 <%@ page import="java.util.Collections" %>

@@ -16,9 +16,6 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <!-- <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"> -->
-    <meta http-equiv="Cache-Control" content="no-cache"/>
-    <!-- <script data-jsfiddle="common" src="/js/jquery-1.11.0.min.js"></script> -->
-
     <title>부품공용화 Dahsboard</title>
 
     <!-- Google Font: Source Sans Pro -->
