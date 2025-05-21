@@ -374,7 +374,6 @@ public class JQPRService {
                 dto.setTypeCode(typeCode); //분류코드
                 dto.setItemType(itemType); //ITEM분류명
 
-
                 dto.setTeam01(team01);
                 dto.setTeam01Cost(team01Cost);
                 dto.setTeam02(team02);
@@ -392,9 +391,6 @@ public class JQPRService {
                 dto.setEtcTeamCost(etcTeamCost);
                 dto.setCompleteStatus(completeStatus);
                 jqprRepository.save(dto);
-
-
-
 
                 System.out.println(jqprNo + " > " + receptDate + " + " + cost02 + " - " + failCost);
             }

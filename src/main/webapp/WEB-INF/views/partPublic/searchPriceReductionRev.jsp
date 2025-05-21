@@ -33,812 +33,9 @@
 
     ArrayList<HashMap<String, String>> dashList = new ArrayList<HashMap<String, String>>();
 
-    Connection con 			= null;
-    PreparedStatement pstmt = null;
-    ResultSet rs 			= null;
-
-
-    //2단계 CP(MRL_일반)
-    String cp2_MRL_General = "";
-    String cp2_MRL_General_05 = "";
-    String cp2_MRL_General_06 = "";
-    String cp2_MRL_General_07 = "";
-    String cp2_MRL_General_08 = "";
-    String cp2_MRL_General_09 = "";
-    String cp2_MRL_General_10 = "";
-    String cp2_MRL_General_11 = "";
-    String cp2_MRL_General_12 = "";
-    String cp2_MRL_General_13 = "";
-    String cp2_MRL_General_14 = "";
-    String cp2_MRL_General_15 = "";
-    String cp2_MRL_General_16 = "";
-    String cp2_MRL_General_17 = "";
-
-
-    //2단계 CP(MRL_회생)
-    String cp2_MRL_Revive = "";
-    String cp2_MRL_Revive_05 = "";
-    String cp2_MRL_Revive_06 = "";
-    String cp2_MRL_Revive_07 = "";
-    String cp2_MRL_Revive_08 = "";
-    String cp2_MRL_Revive_09 = "";
-    String cp2_MRL_Revive_10 = "";
-    String cp2_MRL_Revive_11 = "";
-    String cp2_MRL_Revive_12 = "";
-    String cp2_MRL_Revive_13 = "";
-    String cp2_MRL_Revive_14 = "";
-    String cp2_MRL_Revive_15 = "";
-    String cp2_MRL_Revive_16 = "";
-    String cp2_MRL_Revive_17 = "";
-
-
-    //2단계 CP(MR_일반)
-    String cp2_MR_General = "";
-    String cp2_MR_General_05 = "";
-    String cp2_MR_General_06 = "";
-    String cp2_MR_General_07 = "";
-    String cp2_MR_General_08 = "";
-    String cp2_MR_General_09 = "";
-    String cp2_MR_General_10 = "";
-    String cp2_MR_General_11 = "";
-    String cp2_MR_General_12 = "";
-    String cp2_MR_General_13 = "";
-    String cp2_MR_General_14 = "";
-    String cp2_MR_General_15 = "";
-    String cp2_MR_General_16 = "";
-    String cp2_MR_General_17 = "";
-
-
-    //2단계 CP(MR_회생)
-    String cp2_MR_Revive = "";
-    String cp2_MR_Revive_05 = "";
-    String cp2_MR_Revive_06 = "";
-    String cp2_MR_Revive_07 = "";
-    String cp2_MR_Revive_08 = "";
-    String cp2_MR_Revive_09 = "";
-    String cp2_MR_Revive_10 = "";
-    String cp2_MR_Revive_11 = "";
-    String cp2_MR_Revive_12 = "";
-    String cp2_MR_Revive_13 = "";
-    String cp2_MR_Revive_14 = "";
-    String cp2_MR_Revive_15 = "";
-    String cp2_MR_Revive_16 = "";
-    String cp2_MR_Revive_17 = "";
-
-
-    String cpMRL_5 = "";
-    String cpMRL_5_05 = "";
-    String cpMRL_5_06 = "";
-    String cpMRL_5_07 = "";
-    String cpMRL_5_08 = "";
-    String cpMRL_5_09 = "";
-    String cpMRL_5_10 = "";
-    String cpMRL_5_11 = "";
-    String cpMRL_5_12 = "";
-    String cpMRL_5_13 = "";
-    String cpMRL_5_14 = "";
-    String cpMRL_5_15 = "";
-    String cpMRL_5_16 = "";
-    String cpMRL_5_17 = "";
-
-    String cpMRL_9 = "";
-    String cpMRL_9_05 = "";
-    String cpMRL_9_06 = "";
-    String cpMRL_9_07 = "";
-    String cpMRL_9_08 = "";
-    String cpMRL_9_09 = "";
-    String cpMRL_9_10 = "";
-    String cpMRL_9_11 = "";
-    String cpMRL_9_12 = "";
-    String cpMRL_9_13 = "";
-    String cpMRL_9_14 = "";
-    String cpMRL_9_15 = "";
-    String cpMRL_9_16 = "";
-    String cpMRL_9_17 = "";
-
-    String cpMRL_14 = "";
-    String cpMRL_14_05 = "";
-    String cpMRL_14_06 = "";
-    String cpMRL_14_07 = "";
-    String cpMRL_14_08 = "";
-    String cpMRL_14_09 = "";
-    String cpMRL_14_10 = "";
-    String cpMRL_14_11 = "";
-    String cpMRL_14_12 = "";
-    String cpMRL_14_13 = "";
-    String cpMRL_14_14 = "";
-    String cpMRL_14_15 = "";
-    String cpMRL_14_16 = "";
-    String cpMRL_14_17 = "";
-
-    String cpMRL_17 = "";
-    String cpMRL_17_05 = "";
-    String cpMRL_17_06 = "";
-    String cpMRL_17_07 = "";
-    String cpMRL_17_08 = "";
-    String cpMRL_17_09 = "";
-    String cpMRL_17_10 = "";
-    String cpMRL_17_11 = "";
-    String cpMRL_17_12 = "";
-    String cpMRL_17_13 = "";
-    String cpMRL_17_14 = "";
-    String cpMRL_17_15 = "";
-    String cpMRL_17_16 = "";
-    String cpMRL_17_17 = "";
-
-    String cpMR_5 = "";
-    String cpMR_5_05 = "";
-    String cpMR_5_06 = "";
-    String cpMR_5_07 = "";
-    String cpMR_5_08 = "";
-    String cpMR_5_09 = "";
-    String cpMR_5_10 = "";
-    String cpMR_5_11 = "";
-    String cpMR_5_12 = "";
-    String cpMR_5_13 = "";
-    String cpMR_5_14 = "";
-    String cpMR_5_15 = "";
-    String cpMR_5_16 = "";
-    String cpMR_5_17 = "";
-
-    String cpMR_9 = "";
-    String cpMR_9_05 = "";
-    String cpMR_9_06 = "";
-    String cpMR_9_07 = "";
-    String cpMR_9_08 = "";
-    String cpMR_9_09 = "";
-    String cpMR_9_10 = "";
-    String cpMR_9_11 = "";
-    String cpMR_9_12 = "";
-    String cpMR_9_13 = "";
-    String cpMR_9_14 = "";
-    String cpMR_9_15 = "";
-    String cpMR_9_16 = "";
-    String cpMR_9_17 = "";
-
-    String cpMR_14 = "";
-    String cpMR_14_05 = "";
-    String cpMR_14_06 = "";
-    String cpMR_14_07 = "";
-    String cpMR_14_08 = "";
-    String cpMR_14_09 = "";
-    String cpMR_14_10 = "";
-    String cpMR_14_11 = "";
-    String cpMR_14_12 = "";
-    String cpMR_14_13 = "";
-    String cpMR_14_14 = "";
-    String cpMR_14_15 = "";
-    String cpMR_14_16 = "";
-    String cpMR_14_17 = "";
-
-    String cpMR_17 = "";
-    String cpMR_17_05 = "";
-    String cpMR_17_06 = "";
-    String cpMR_17_07 = "";
-    String cpMR_17_08 = "";
-    String cpMR_17_09 = "";
-    String cpMR_17_10 = "";
-    String cpMR_17_11 = "";
-    String cpMR_17_12 = "";
-    String cpMR_17_13 = "";
-    String cpMR_17_14 = "";
-    String cpMR_17_15 = "";
-    String cpMR_17_16 = "";
-    String cpMR_17_17 = "";
-
-    String TM = "";
-    String TM_05 = "";
-    String TM_06 = "";
-    String TM_07 = "";
-    String TM_08 = "";
-    String TM_09 = "";
-    String TM_10 = "";
-    String TM_11 = "";
-    String TM_12 = "";
-    String TM_13 = "";
-    String TM_14 = "";
-    String TM_15 = "";
-    String TM_16 = "";
-    String TM_17 = "";
-
-    String TMRope = "";
-    String TMRope_05 = "";
-    String TMRope_06 = "";
-    String TMRope_07 = "";
-    String TMRope_08 = "";
-    String TMRope_09 = "";
-    String TMRope_10 = "";
-    String TMRope_11 = "";
-    String TMRope_12 = "";
-    String TMRope_13 = "";
-    String TMRope_14 = "";
-    String TMRope_15 = "";
-    String TMRope_16 = "";
-    String TMRope_17 = "";
-
-
-    String CARTOP = "";
-    String CARTOP_05 = "";
-    String CARTOP_06 = "";
-    String CARTOP_07 = "";
-    String CARTOP_08 = "";
-    String CARTOP_09 = "";
-    String CARTOP_10 = "";
-    String CARTOP_11 = "";
-    String CARTOP_12 = "";
-    String CARTOP_13 = "";
-    String CARTOP_14 = "";
-    String CARTOP_15 = "";
-    String CARTOP_16 = "";
-    String CARTOP_17 = "";
-
-    String GOV = "";
-    String GOV_05 = "";
-    String GOV_06 = "";
-    String GOV_07 = "";
-    String GOV_08 = "";
-    String GOV_09 = "";
-    String GOV_10 = "";
-    String GOV_11 = "";
-    String GOV_12 = "";
-    String GOV_13 = "";
-    String GOV_14 = "";
-    String GOV_15 = "";
-    String GOV_16 = "";
-    String GOV_17 = "";
-
-    String LAMP = "";
-    String LAMP_05 = "";
-    String LAMP_06 = "";
-    String LAMP_07 = "";
-    String LAMP_08 = "";
-    String LAMP_09 = "";
-    String LAMP_10 = "";
-    String LAMP_11 = "";
-    String LAMP_12 = "";
-    String LAMP_13 = "";
-    String LAMP_14 = "";
-    String LAMP_15 = "";
-    String LAMP_16 = "";
-    String LAMP_17 = "";
-
-    String HPB = "";
-    String HPB_05 = "";
-    String HPB_06 = "";
-    String HPB_07 = "";
-    String HPB_08 = "";
-    String HPB_09 = "";
-    String HPB_10 = "";
-    String HPB_11 = "";
-    String HPB_12 = "";
-    String HPB_13 = "";
-    String HPB_14 = "";
-    String HPB_15 = "";
-    String HPB_16 = "";
-    String HPB_17 = "";
-
-    String HIP = "";
-    String HIP_05 = "";
-    String HIP_06 = "";
-    String HIP_07 = "";
-    String HIP_08 = "";
-    String HIP_09 = "";
-    String HIP_10 = "";
-    String HIP_11 = "";
-    String HIP_12 = "";
-    String HIP_13 = "";
-    String HIP_14 = "";
-    String HIP_15 = "";
-    String HIP_16 = "";
-    String HIP_17 = "";
-
-    String HPI = "";
-    String HPI_05 = "";
-    String HPI_06 = "";
-    String HPI_07 = "";
-    String HPI_08 = "";
-    String HPI_09 = "";
-    String HPI_10 = "";
-    String HPI_11 = "";
-    String HPI_12 = "";
-    String HPI_13 = "";
-    String HPI_14 = "";
-    String HPI_15 = "";
-    String HPI_16 = "";
-    String HPI_17 = "";
-
-    String PIT = "";
-    String PIT_05 = "";
-    String PIT_06 = "";
-    String PIT_07 = "";
-    String PIT_08 = "";
-    String PIT_09 = "";
-    String PIT_10 = "";
-    String PIT_11 = "";
-    String PIT_12 = "";
-    String PIT_13 = "";
-    String PIT_14 = "";
-    String PIT_15 = "";
-    String PIT_16 = "";
-    String PIT_17 = "";
-
-    //opb_D521AG
-    String OPB_D521AG = "";
-    String OPB_D521AG_05 = "";
-    String OPB_D521AG_06 = "";
-    String OPB_D521AG_07 = "";
-    String OPB_D521AG_08 = "";
-    String OPB_D521AG_09 = "";
-    String OPB_D521AG_10 = "";
-    String OPB_D521AG_11 = "";
-    String OPB_D521AG_12 = "";
-    String OPB_D521AG_13 = "";
-    String OPB_D521AG_14 = "";
-    String OPB_D521AG_15 = "";
-    String OPB_D521AG_16 = "";
-    String OPB_D521AG_17 = "";
-
-    //opb_S521A
-    String OPB_S521A = "";
-    String OPB_S521A_05 = "";
-    String OPB_S521A_06 = "";
-    String OPB_S521A_07 = "";
-    String OPB_S521A_08 = "";
-    String OPB_S521A_09 = "";
-    String OPB_S521A_10 = "";
-    String OPB_S521A_11 = "";
-    String OPB_S521A_12 = "";
-    String OPB_S521A_13 = "";
-    String OPB_S521A_14 = "";
-    String OPB_S521A_15 = "";
-    String OPB_S521A_16 = "";
-    String OPB_S521A_17 = "";
-
-
-
-
-
     LocalDate now = LocalDate.now();
     String todayVal = now.toString();
 
-
-    try {
-
-        /*String url = "jdbc:sqlserver://;serverName=10.225.80.35;port=1433;databaseName=PLMPRDIF;encrypt=false;";
-        String id = "SA";
-        String pw = "AutodeskVault@26200"; // "qwe123!@#"
-
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver").newInstance();
-        con = DriverManager.getConnection(url,id,pw);*/
-
-        con = VaultDBConnection.getConnection();
-
-        StringBuffer sql = new StringBuffer();
-        sql.append(" SELECT ");
-        sql.append(" A.dash_public_id AS OID, A.part_name, A.batch_date, A.total_cnt, ");
-        sql.append(" A.DIS202405, A.DIS202406, A.DIS202407, A.DIS202408, A.DIS202409, ");
-        sql.append(" A.DIS202410, A.DIS202411, A.DIS202412, ");
-        sql.append(" A.DIS202501, A.DIS202502, A.DIS202503, A.DIS202504, A.DIS202505 ");
-        sql.append(" FROM DASH_PUBLIC A ");
-        sql.append(" WHERE A.BATCH_DATE = ? ");
-
-
-        pstmt = con.prepareStatement(sql.toString());
-        pstmt.setString(1, todayVal);
-
-        rs = pstmt.executeQuery();
-
-        while(rs.next())
-        {
-            String part_name = rs.getString("part_name") == null ? "" : rs.getString("part_name");
-            String batch_date = rs.getString("batch_date") == null ? "" : rs.getString("batch_date");
-            String total_cnt = rs.getString("total_cnt") == null ? "" : rs.getString("total_cnt");
-
-            String DIS202405 = rs.getString("DIS202405") == null ? "" : rs.getString("DIS202405");
-            String DIS202406 = rs.getString("DIS202406") == null ? "" : rs.getString("DIS202406");
-            String DIS202407 = rs.getString("DIS202407") == null ? "" : rs.getString("DIS202407");
-            String DIS202408 = rs.getString("DIS202408") == null ? "" : rs.getString("DIS202408");
-            String DIS202409 = rs.getString("DIS202409") == null ? "" : rs.getString("DIS202409");
-            String DIS202410 = rs.getString("DIS202410") == null ? "" : rs.getString("DIS202410");
-            String DIS202411 = rs.getString("DIS202411") == null ? "" : rs.getString("DIS202411");
-            String DIS202412 = rs.getString("DIS202412") == null ? "" : rs.getString("DIS202412");
-
-            String DIS202501 = rs.getString("DIS202501") == null ? "" : rs.getString("DIS202501");
-            String DIS202502 = rs.getString("DIS202502") == null ? "" : rs.getString("DIS202502");
-            String DIS202503 = rs.getString("DIS202503") == null ? "" : rs.getString("DIS202503");
-            String DIS202504 = rs.getString("DIS202504") == null ? "" : rs.getString("DIS202504");
-            String DIS202505 = rs.getString("DIS202505") == null ? "" : rs.getString("DIS202505");
-
-
-            int totalCnt = 0;
-
-            totalCnt = Integer.parseInt(DIS202405) + Integer.parseInt(DIS202406) + Integer.parseInt(DIS202407) + Integer.parseInt(DIS202408) + Integer.parseInt(DIS202409) + Integer.parseInt(DIS202410)
-                    + Integer.parseInt(DIS202411) + Integer.parseInt(DIS202412)
-                    + Integer.parseInt(DIS202501) + Integer.parseInt(DIS202502) + Integer.parseInt(DIS202503) + Integer.parseInt(DIS202504) + Integer.parseInt(DIS202505);
-
-            HashMap<String, String> data = new HashMap<String, String>();
-            data.put("PARTNAME", part_name);
-            data.put("BATCH_DATE", batch_date);
-            data.put("TOTAL_CNT", String.valueOf(totalCnt));
-
-            data.put("DIS202405", DIS202405);
-            data.put("DIS202406", DIS202406);
-            data.put("DIS202407", DIS202407);
-            data.put("DIS202408", DIS202408);
-            data.put("DIS202409", DIS202409);
-            data.put("DIS202410", DIS202410);
-            data.put("DIS202411", DIS202411);
-            data.put("DIS202412", DIS202412);
-            data.put("DIS202501", DIS202501);
-            data.put("DIS202502", DIS202502);
-            data.put("DIS202503", DIS202503);
-            data.put("DIS202504", DIS202504);
-            data.put("DIS202505", DIS202505);
-
-
-            if("cpMRL_5".equals(part_name)) {
-                cpMRL_5 = String.valueOf(totalCnt);
-                cpMRL_5_05 = DIS202405;
-                cpMRL_5_06 = DIS202406;
-                cpMRL_5_07 = DIS202407;
-                cpMRL_5_08 = DIS202408;
-                cpMRL_5_09 = DIS202409;
-                cpMRL_5_10 = DIS202410;
-                cpMRL_5_11 = DIS202411;
-                cpMRL_5_12 = DIS202412;
-                cpMRL_5_13 = DIS202501;
-                cpMRL_5_14 = DIS202502;
-                cpMRL_5_15 = DIS202503;
-                cpMRL_5_16 = DIS202504;
-                cpMRL_5_17 = DIS202505;
-
-            } else if("cpMRL_9".equals(part_name)) {
-                cpMRL_9    = String.valueOf(totalCnt);
-                cpMRL_9_05 = DIS202405;
-                cpMRL_9_06 = DIS202406;
-                cpMRL_9_07 = DIS202407;
-                cpMRL_9_08 = DIS202408;
-                cpMRL_9_09 = DIS202409;
-                cpMRL_9_10 = DIS202410;
-                cpMRL_9_11 = DIS202411;
-                cpMRL_9_12 = DIS202412;
-                cpMRL_9_13 = DIS202501;
-                cpMRL_9_14 = DIS202502;
-                cpMRL_9_15 = DIS202503;
-                cpMRL_9_16 = DIS202504;
-                cpMRL_9_17 = DIS202505;
-
-            } else if("cpMRL_14".equals(part_name)) {
-
-                cpMRL_14    = String.valueOf(totalCnt);
-                cpMRL_14_05 = DIS202405;
-                cpMRL_14_06 = DIS202406;
-                cpMRL_14_07 = DIS202407;
-                cpMRL_14_08 = DIS202408;
-                cpMRL_14_09 = DIS202409;
-                cpMRL_14_10 = DIS202410;
-                cpMRL_14_11 = DIS202411;
-                cpMRL_14_12 = DIS202412;
-                cpMRL_14_13 = DIS202501;
-                cpMRL_14_14 = DIS202502;
-                cpMRL_14_15 = DIS202503;
-                cpMRL_14_16 = DIS202504;
-                cpMRL_14_17 = DIS202505;
-
-            } else if("cpMRL_17".equals(part_name)) {
-                cpMRL_17    = String.valueOf(totalCnt);
-                cpMRL_17_05 = DIS202405;
-                cpMRL_17_06 = DIS202406;
-                cpMRL_17_07 = DIS202407;
-                cpMRL_17_08 = DIS202408;
-                cpMRL_17_09 = DIS202409;
-                cpMRL_17_10 = DIS202410;
-                cpMRL_17_11 = DIS202411;
-                cpMRL_17_12 = DIS202412;
-                cpMRL_17_13 = DIS202501;
-                cpMRL_17_14 = DIS202502;
-                cpMRL_17_15 = DIS202503;
-                cpMRL_17_16 = DIS202504;
-                cpMRL_17_17 = DIS202505;
-
-
-            } else if("cpMR_5_5".equals(part_name)) {
-                cpMR_5    = String.valueOf(totalCnt);
-                cpMR_5_05 = DIS202405;
-                cpMR_5_06 = DIS202406;
-                cpMR_5_07 = DIS202407;
-                cpMR_5_08 = DIS202408;
-                cpMR_5_09 = DIS202409;
-                cpMR_5_10 = DIS202410;
-                cpMR_5_11 = DIS202411;
-                cpMR_5_12 = DIS202412;
-                cpMR_5_13 = DIS202501;
-                cpMR_5_14 = DIS202502;
-                cpMR_5_15 = DIS202503;
-                cpMR_5_16 = DIS202504;
-                cpMR_5_17 = DIS202505;
-            } else if("cpMR_9".equals(part_name)) {
-                cpMR_9    = String.valueOf(totalCnt);
-                cpMR_9_05 = DIS202405;
-                cpMR_9_06 = DIS202406;
-                cpMR_9_07 = DIS202407;
-                cpMR_9_08 = DIS202408;
-                cpMR_9_09 = DIS202409;
-                cpMR_9_10 = DIS202410;
-                cpMR_9_11 = DIS202411;
-                cpMR_9_12 = DIS202412;
-                cpMR_9_13 = DIS202501;
-                cpMR_9_14 = DIS202502;
-                cpMR_9_15 = DIS202503;
-                cpMR_9_16 = DIS202504;
-                cpMR_9_17 = DIS202505;
-            } else if("cpMR_14".equals(part_name)) {
-                cpMR_14    = String.valueOf(totalCnt);
-                cpMR_14_05 = DIS202405;
-                cpMR_14_06 = DIS202406;
-                cpMR_14_07 = DIS202407;
-                cpMR_14_08 = DIS202408;
-                cpMR_14_09 = DIS202409;
-                cpMR_14_10 = DIS202410;
-                cpMR_14_11 = DIS202411;
-                cpMR_14_12 = DIS202412;
-                cpMR_14_13 = DIS202501;
-                cpMR_14_14 = DIS202502;
-                cpMR_14_15 = DIS202503;
-                cpMR_14_16 = DIS202504;
-                cpMR_14_17 = DIS202505;
-            } else if("cpMR_17_5".equals(part_name)) {
-                cpMR_17    = String.valueOf(totalCnt);
-                cpMR_17_05 = DIS202405;
-                cpMR_17_06 = DIS202406;
-                cpMR_17_07 = DIS202407;
-                cpMR_17_08 = DIS202408;
-                cpMR_17_09 = DIS202409;
-                cpMR_17_10 = DIS202410;
-                cpMR_17_11 = DIS202411;
-                cpMR_17_12 = DIS202412;
-                cpMR_17_13 = DIS202501;
-                cpMR_17_14 = DIS202502;
-                cpMR_17_15 = DIS202503;
-                cpMR_17_16 = DIS202504;
-                cpMR_17_17 = DIS202505;
-            } else if("TM".equals(part_name)) {
-                TM    = String.valueOf(totalCnt);
-                TM_05 = DIS202405;
-                TM_06 = DIS202406;
-                TM_07 = DIS202407;
-                TM_08 = DIS202408;
-                TM_09 = DIS202409;
-                TM_10 = DIS202410;
-                TM_11 = DIS202411;
-                TM_12 = DIS202412;
-                TM_13 = DIS202501;
-                TM_14 = DIS202502;
-                TM_15 = DIS202503;
-                TM_16 = DIS202504;
-                TM_17 = DIS202505;
-            } else if("TMRope".equals(part_name)) {
-                TMRope    = String.valueOf(totalCnt);
-                TMRope_05 = DIS202405;
-                TMRope_06 = DIS202406;
-                TMRope_07 = DIS202407;
-                TMRope_08 = DIS202408;
-                TMRope_09 = DIS202409;
-                TMRope_10 = DIS202410;
-                TMRope_11 = DIS202411;
-                TMRope_12 = DIS202412;
-                TMRope_13 = DIS202501;
-                TMRope_14 = DIS202502;
-                TMRope_15 = DIS202503;
-                TMRope_16 = DIS202504;
-                TMRope_17 = DIS202505;
-            } else if("CARTOPBOX".equals(part_name)) {
-                CARTOP    = String.valueOf(totalCnt);
-                CARTOP_05 = DIS202405;
-                CARTOP_06 = DIS202406;
-                CARTOP_07 = DIS202407;
-                CARTOP_08 = DIS202408;
-                CARTOP_09 = DIS202409;
-                CARTOP_10 = DIS202410;
-                CARTOP_11 = DIS202411;
-                CARTOP_12 = DIS202412;
-                CARTOP_13 = DIS202501;
-                CARTOP_14 = DIS202502;
-                CARTOP_15 = DIS202503;
-                CARTOP_16 = DIS202504;
-                CARTOP_17 = DIS202505;
-            } else if("GOV".equals(part_name)) {
-                GOV    = String.valueOf(totalCnt);
-                GOV_05 = DIS202405;
-                GOV_06 = DIS202406;
-                GOV_07 = DIS202407;
-                GOV_08 = DIS202408;
-                GOV_09 = DIS202409;
-                GOV_10 = DIS202410;
-                GOV_11 = DIS202411;
-                GOV_12 = DIS202412;
-                GOV_13 = DIS202501;
-                GOV_14 = DIS202502;
-                GOV_15 = DIS202503;
-                GOV_16 = DIS202504;
-                GOV_17 = DIS202505;
-            } else if("LAMP_HOIST".equals(part_name)) {
-                LAMP    = String.valueOf(totalCnt);
-                LAMP_05 = DIS202405;
-                LAMP_06 = DIS202406;
-                LAMP_07 = DIS202407;
-                LAMP_08 = DIS202408;
-                LAMP_09 = DIS202409;
-                LAMP_10 = DIS202410;
-                LAMP_11 = DIS202411;
-                LAMP_12 = DIS202412;
-                LAMP_13 = DIS202501;
-                LAMP_14 = DIS202502;
-                LAMP_15 = DIS202503;
-                LAMP_16 = DIS202504;
-                LAMP_17 = DIS202505;
-            } else if("HPB_BOT".equals(part_name)) {
-                HPB    = String.valueOf(totalCnt);
-                HPB_05 = DIS202405;
-                HPB_06 = DIS202406;
-                HPB_07 = DIS202407;
-                HPB_08 = DIS202408;
-                HPB_09 = DIS202409;
-                HPB_10 = DIS202410;
-                HPB_11 = DIS202411;
-                HPB_12 = DIS202412;
-                HPB_13 = DIS202501;
-                HPB_14 = DIS202502;
-                HPB_15 = DIS202503;
-                HPB_16 = DIS202504;
-                HPB_17 = DIS202505;
-            } else if("HIP_BOT".equals(part_name)) {
-                HIP    = String.valueOf(totalCnt);
-                HIP_05 = DIS202405;
-                HIP_06 = DIS202406;
-                HIP_07 = DIS202407;
-                HIP_08 = DIS202408;
-                HIP_09 = DIS202409;
-                HIP_10 = DIS202410;
-                HIP_11 = DIS202411;
-                HIP_12 = DIS202412;
-                HIP_13 = DIS202501;
-                HIP_14 = DIS202502;
-                HIP_15 = DIS202503;
-                HIP_16 = DIS202504;
-                HIP_17 = DIS202505;
-            } else if("HPI_S700".equals(part_name)) {
-                HPI    = String.valueOf(totalCnt);
-                HPI_05 = DIS202405;
-                HPI_06 = DIS202406;
-                HPI_07 = DIS202407;
-                HPI_08 = DIS202408;
-                HPI_09 = DIS202409;
-                HPI_10 = DIS202410;
-                HPI_11 = DIS202411;
-                HPI_12 = DIS202412;
-                HPI_13 = DIS202501;
-                HPI_14 = DIS202502;
-                HPI_15 = DIS202503;
-                HPI_16 = DIS202504;
-                HPI_17 = DIS202505;
-            } else if("PIT".equals(part_name)) {
-                PIT    = String.valueOf(totalCnt);
-                PIT_05 = DIS202405;
-                PIT_06 = DIS202406;
-                PIT_07 = DIS202407;
-                PIT_08 = DIS202408;
-                PIT_09 = DIS202409;
-                PIT_10 = DIS202410;
-                PIT_11 = DIS202411;
-                PIT_12 = DIS202412;
-                PIT_13 = DIS202501;
-                PIT_14 = DIS202502;
-                PIT_15 = DIS202503;
-                PIT_16 = DIS202504;
-                PIT_17 = DIS202505;
-            } else if("OPB_D521AG".equals(part_name.toUpperCase())) {
-                OPB_D521AG    = String.valueOf(totalCnt);
-                OPB_D521AG_05 = DIS202405;
-                OPB_D521AG_06 = DIS202406;
-                OPB_D521AG_07 = DIS202407;
-                OPB_D521AG_08 = DIS202408;
-                OPB_D521AG_09 = DIS202409;
-                OPB_D521AG_10 = DIS202410;
-                OPB_D521AG_11 = DIS202411;
-                OPB_D521AG_12 = DIS202412;
-                OPB_D521AG_13 = DIS202501;
-                OPB_D521AG_14 = DIS202502;
-                OPB_D521AG_15 = DIS202503;
-                OPB_D521AG_16 = DIS202504;
-                OPB_D521AG_17 = DIS202505;
-            } else if("OPB_S521A".equals(part_name.toUpperCase())) {
-                OPB_S521A    = String.valueOf(totalCnt);
-                OPB_S521A_05 = DIS202405;
-                OPB_S521A_06 = DIS202406;
-                OPB_S521A_07 = DIS202407;
-                OPB_S521A_08 = DIS202408;
-                OPB_S521A_09 = DIS202409;
-                OPB_S521A_10 = DIS202410;
-                OPB_S521A_11 = DIS202411;
-                OPB_S521A_12 = DIS202412;
-                OPB_S521A_13 = DIS202501;
-                OPB_S521A_14 = DIS202502;
-                OPB_S521A_15 = DIS202503;
-                OPB_S521A_16 = DIS202504;
-                OPB_S521A_17 = DIS202505;
-            } else if("cp2_MRL_General".equals(part_name)) {
-                cp2_MRL_General    = String.valueOf(totalCnt);
-                cp2_MRL_General_05 = DIS202405;
-                cp2_MRL_General_06 = DIS202406;
-                cp2_MRL_General_07 = DIS202407;
-                cp2_MRL_General_08 = DIS202408;
-                cp2_MRL_General_09 = DIS202409;
-                cp2_MRL_General_10 = DIS202410;
-                cp2_MRL_General_11 = DIS202411;
-                cp2_MRL_General_12 = DIS202412;
-                cp2_MRL_General_13 = DIS202501;
-                cp2_MRL_General_14 = DIS202502;
-                cp2_MRL_General_15 = DIS202503;
-                cp2_MRL_General_16 = DIS202504;
-                cp2_MRL_General_17 = DIS202505;
-            } else if("cp2_MRL_Revive".equals(part_name)) {
-                cp2_MRL_Revive    = String.valueOf(totalCnt);
-                cp2_MRL_Revive_05 = DIS202405;
-                cp2_MRL_Revive_06 = DIS202406;
-                cp2_MRL_Revive_07 = DIS202407;
-                cp2_MRL_Revive_08 = DIS202408;
-                cp2_MRL_Revive_09 = DIS202409;
-                cp2_MRL_Revive_10 = DIS202410;
-                cp2_MRL_Revive_11 = DIS202411;
-                cp2_MRL_Revive_12 = DIS202412;
-                cp2_MRL_Revive_13 = DIS202501;
-                cp2_MRL_Revive_14 = DIS202502;
-                cp2_MRL_Revive_15 = DIS202503;
-                cp2_MRL_Revive_16 = DIS202504;
-                cp2_MRL_Revive_17 = DIS202505;
-            } else if("cp2_MR_General".equals(part_name)) {
-                cp2_MR_General    = String.valueOf(totalCnt);
-                cp2_MR_General_05 = DIS202405;
-                cp2_MR_General_06 = DIS202406;
-                cp2_MR_General_07 = DIS202407;
-                cp2_MR_General_08 = DIS202408;
-                cp2_MR_General_09 = DIS202409;
-                cp2_MR_General_10 = DIS202410;
-                cp2_MR_General_11 = DIS202411;
-                cp2_MR_General_12 = DIS202412;
-                cp2_MR_General_13 = DIS202501;
-                cp2_MR_General_14 = DIS202502;
-                cp2_MR_General_15 = DIS202503;
-                cp2_MR_General_16 = DIS202504;
-                cp2_MR_General_17 = DIS202505;
-            } else if("cp2_MR_Revive".equals(part_name)) {
-                cp2_MR_Revive    = String.valueOf(totalCnt);
-                cp2_MR_Revive_05 = DIS202405;
-                cp2_MR_Revive_06 = DIS202406;
-                cp2_MR_Revive_07 = DIS202407;
-                cp2_MR_Revive_08 = DIS202408;
-                cp2_MR_Revive_09 = DIS202409;
-                cp2_MR_Revive_10 = DIS202410;
-                cp2_MR_Revive_11 = DIS202411;
-                cp2_MR_Revive_12 = DIS202412;
-                cp2_MR_Revive_13 = DIS202501;
-                cp2_MR_Revive_14 = DIS202502;
-                cp2_MR_Revive_15 = DIS202503;
-                cp2_MR_Revive_16 = DIS202504;
-                cp2_MR_Revive_17 = DIS202505;
-            }
-        }
-
-
-
-
-    } catch (Exception e) {
-        e.printStackTrace();
-    } finally {
-        //DynaUtils.close(rs,pstmt,con);
-        VaultDBConnection.disconnect(con, pstmt, rs);
-    }
 
 
 
@@ -951,12 +148,12 @@
                                         <th style="font-weight: bold; text-align: center;" rowspan="3">NO</th>
                                         <th style="font-weight: bold; text-align: center;" rowspan="3">과제명</th>
                                         <th style="font-weight: bold; text-align: center;" rowspan="3">총 대수</th>
-                                        <th style="font-weight: bold; text-align: center;" colspan="13">월별실적</th>
+                                        <th style="font-weight: bold; text-align: center;" colspan="20">월별실적</th>
                                     </tr>
 
                                     <tr class="bg-secondary">
                                         <th style="font-weight: bold; text-align: center;" colspan="8">2024년</th>
-                                        <th style="font-weight: bold; text-align: center;" colspan="5">2025년</th>
+                                        <th style="font-weight: bold; text-align: center;" colspan="12">2025년</th>
                                     </tr>
 
                                     <tr class="bg-secondary">
@@ -974,429 +171,655 @@
                                         <th style="font-weight: bold; text-align: center;">03</th>
                                         <th style="font-weight: bold; text-align: center;">04</th>
                                         <th style="font-weight: bold; text-align: center;">05</th>
+                                        <th style="font-weight: bold; text-align: center;">06</th>
+                                        <th style="font-weight: bold; text-align: center;">07</th>
+                                        <th style="font-weight: bold; text-align: center;">08</th>
+                                        <th style="font-weight: bold; text-align: center;">09</th>
+                                        <th style="font-weight: bold; text-align: center;">10</th>
+                                        <th style="font-weight: bold; text-align: center;">11</th>
+                                        <th style="font-weight: bold; text-align: center;">12</th>
                                     </tr>
                                     </thead>
 
                                     <tbody id="contentTable">
 
+                                    <%
+                                        DashDtoV2 cpMRL_5_dto = jdcbService.findByIdV2(todayVal, "cpMRL_5");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">CP (MRL_5.5kW_일반)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', 'total');"> <font color="red"> <%=cpMRL_5 %> </font> </a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202405');"><%= cpMRL_5_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202406');"><%= cpMRL_5_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202407');"><%= cpMRL_5_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202408');"><%= cpMRL_5_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202409');"><%= cpMRL_5_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202410');"><%= cpMRL_5_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202411');"><%= cpMRL_5_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202412');"><%= cpMRL_5_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202501');"><%= cpMRL_5_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202502');"><%= cpMRL_5_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202503');"><%= cpMRL_5_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202504');"><%= cpMRL_5_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202505');"><%= cpMRL_5_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', 'total');"><font color="red"><%=cpMRL_5_dto.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202405');"><%= cpMRL_5_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202406');"><%= cpMRL_5_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202407');"><%= cpMRL_5_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202408');"><%= cpMRL_5_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202409');"><%= cpMRL_5_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202410');"><%= cpMRL_5_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202411');"><%= cpMRL_5_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202412');"><%= cpMRL_5_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202501');"><%= cpMRL_5_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202502');"><%= cpMRL_5_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202503');"><%= cpMRL_5_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202504');"><%= cpMRL_5_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202505');"><%= cpMRL_5_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202506');"><%= cpMRL_5_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202507');"><%= cpMRL_5_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202508');"><%= cpMRL_5_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202509');"><%= cpMRL_5_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202510');"><%= cpMRL_5_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202511');"><%= cpMRL_5_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202512');"><%= cpMRL_5_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 cpMRL_9_dto = jdcbService.findByIdV2(todayVal, "cpMRL_9");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">CP (MRL_9kW_일반)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', 'total');"><font color="red"> <%=cpMRL_9 %> </font> </a> </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202405');"><%= cpMRL_9_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202406');"><%= cpMRL_9_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202407');"><%= cpMRL_9_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202408');"><%= cpMRL_9_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202409');"><%= cpMRL_9_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202410');"><%= cpMRL_9_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202411');"><%= cpMRL_9_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202412');"><%= cpMRL_9_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202501');"><%= cpMRL_9_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202502');"><%= cpMRL_9_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202503');"><%= cpMRL_9_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202504');"><%= cpMRL_9_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202505');"><%= cpMRL_9_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', 'total');"><font color="red"><%=cpMRL_9_dto.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202405');"><%= cpMRL_9_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202406');"><%= cpMRL_9_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202407');"><%= cpMRL_9_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202408');"><%= cpMRL_9_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202409');"><%= cpMRL_9_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202410');"><%= cpMRL_9_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202411');"><%= cpMRL_9_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202412');"><%= cpMRL_9_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202501');"><%= cpMRL_9_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202502');"><%= cpMRL_9_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202503');"><%= cpMRL_9_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202504');"><%= cpMRL_9_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202505');"><%= cpMRL_9_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202506');"><%= cpMRL_9_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202507');"><%= cpMRL_9_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202508');"><%= cpMRL_9_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202509');"><%= cpMRL_9_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202510');"><%= cpMRL_9_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202511');"><%= cpMRL_9_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_9', '202512');"><%= cpMRL_9_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 cpMRL_14_dto = jdcbService.findByIdV2(todayVal, "cpMRL_14");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">CP (MRL_14kW_일반)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', 'total');"><font color="red"> <%=cpMRL_14 %> </font> </a> </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202405');"><%= cpMRL_14_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202406');"><%= cpMRL_14_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202407');"><%= cpMRL_14_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202408');"><%= cpMRL_14_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202409');"><%= cpMRL_14_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202410');"><%= cpMRL_14_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202411');"><%= cpMRL_14_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202412');"><%= cpMRL_14_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202501');"><%= cpMRL_14_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202502');"><%= cpMRL_14_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202503');"><%= cpMRL_14_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202504');"><%= cpMRL_14_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202505');"><%= cpMRL_14_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', 'total');"><font color="red"> <%=cpMRL_14_dto.getTotal() %> </font> </a> </td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202405');"><%= cpMRL_14_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202406');"><%= cpMRL_14_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202407');"><%= cpMRL_14_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202408');"><%= cpMRL_14_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202409');"><%= cpMRL_14_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202410');"><%= cpMRL_14_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202411');"><%= cpMRL_14_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202412');"><%= cpMRL_14_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202501');"><%= cpMRL_14_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202502');"><%= cpMRL_14_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202503');"><%= cpMRL_14_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202504');"><%= cpMRL_14_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202505');"><%= cpMRL_14_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202506');"><%= cpMRL_14_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202507');"><%= cpMRL_14_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202508');"><%= cpMRL_14_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202509');"><%= cpMRL_14_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202510');"><%= cpMRL_14_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202511');"><%= cpMRL_14_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_14', '202512');"><%= cpMRL_14_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 cpMRL_17_dto = jdcbService.findByIdV2(todayVal, "cpMRL_17");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">CP (MRL_17.5kW_일반)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', 'total');"><font color="red"> <%=cpMRL_17 %> </font> </a> </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202405');"><%= cpMRL_17_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202406');"><%= cpMRL_17_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202407');"><%= cpMRL_17_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202408');"><%= cpMRL_17_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202409');"><%= cpMRL_17_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202410');"><%= cpMRL_17_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202411');"><%= cpMRL_17_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202412');"><%= cpMRL_17_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202501');"><%= cpMRL_17_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202502');"><%= cpMRL_17_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202503');"><%= cpMRL_17_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202504');"><%= cpMRL_17_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202505');"><%= cpMRL_17_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', 'total');"><font color="red"> <%=cpMRL_17_dto.getTotal() %> </font> </a> </td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202405');"><%= cpMRL_17_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202406');"><%= cpMRL_17_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202407');"><%= cpMRL_17_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202408');"><%= cpMRL_17_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202409');"><%= cpMRL_17_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202410');"><%= cpMRL_17_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202411');"><%= cpMRL_17_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202412');"><%= cpMRL_17_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202501');"><%= cpMRL_17_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202502');"><%= cpMRL_17_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202503');"><%= cpMRL_17_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202504');"><%= cpMRL_17_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202505');"><%= cpMRL_17_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202506');"><%= cpMRL_17_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202507');"><%= cpMRL_17_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202508');"><%= cpMRL_17_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202509');"><%= cpMRL_17_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202510');"><%= cpMRL_17_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202511');"><%= cpMRL_17_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_17', '202512');"><%= cpMRL_17_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 cpMR_5_5_dto = jdcbService.findByIdV2(todayVal, "cpMR_5_5");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">CP (MR_5.5kW_회생)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', 'total');"><font color="red"> <%=cpMR_5 %> </font> </a> </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202405');"><%= cpMR_5_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202406');"><%= cpMR_5_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202407');"><%= cpMR_5_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202408');"><%= cpMR_5_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202409');"><%= cpMR_5_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202410');"><%= cpMR_5_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202411');"><%= cpMR_5_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202412');"><%= cpMR_5_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202501');"><%= cpMR_5_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202502');"><%= cpMR_5_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202503');"><%= cpMR_5_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202504');"><%= cpMR_5_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202505');"><%= cpMR_5_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', 'total');"><font color="red"> <%=cpMR_5_5_dto.getTotal() %> </font> </a> </td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202405');"><%= cpMR_5_5_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202406');"><%= cpMR_5_5_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202407');"><%= cpMR_5_5_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202408');"><%= cpMR_5_5_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202409');"><%= cpMR_5_5_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202410');"><%= cpMR_5_5_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202411');"><%= cpMR_5_5_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202412');"><%= cpMR_5_5_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202501');"><%= cpMR_5_5_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202502');"><%= cpMR_5_5_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202503');"><%= cpMR_5_5_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202504');"><%= cpMR_5_5_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202505');"><%= cpMR_5_5_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202506');"><%= cpMR_5_5_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202507');"><%= cpMR_5_5_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202508');"><%= cpMR_5_5_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202509');"><%= cpMR_5_5_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202510');"><%= cpMR_5_5_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202511');"><%= cpMR_5_5_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_5_5', '202512');"><%= cpMR_5_5_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 cpMR_9_dto = jdcbService.findByIdV2(todayVal, "cpMR_9");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">CP (MR_9kW_회생)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', 'total');"><font color="red"> <%=cpMR_9 %> </font> </a> </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202405');"><%= cpMR_9_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202406');"><%= cpMR_9_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202407');"><%= cpMR_9_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202408');"><%= cpMR_9_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202409');"><%= cpMR_9_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202410');"><%= cpMR_9_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202411');"><%= cpMR_9_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202412');"><%= cpMR_9_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202501');"><%= cpMR_9_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202502');"><%= cpMR_9_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202503');"><%= cpMR_9_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202504');"><%= cpMR_9_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202505');"><%= cpMR_9_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', 'total');"><font color="red"> <%=cpMR_9_dto.getTotal() %> </font> </a> </td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202405');"><%= cpMR_9_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202406');"><%= cpMR_9_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202407');"><%= cpMR_9_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202408');"><%= cpMR_9_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202409');"><%= cpMR_9_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202410');"><%= cpMR_9_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202411');"><%= cpMR_9_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202412');"><%= cpMR_9_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202501');"><%= cpMR_9_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202502');"><%= cpMR_9_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202503');"><%= cpMR_9_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202504');"><%= cpMR_9_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202505');"><%= cpMR_9_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202506');"><%= cpMR_9_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202507');"><%= cpMR_9_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202508');"><%= cpMR_9_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202509');"><%= cpMR_9_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202510');"><%= cpMR_9_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202511');"><%= cpMR_9_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_9', '202512');"><%= cpMR_9_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 cpMR_14_dto = jdcbService.findByIdV2(todayVal, "cpMR_14");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">CP (MR_14kW_회생)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', 'total');"><font color="red"> <%=cpMR_14 %> </font> </a> </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202405');"><%= cpMR_14_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202406');"><%= cpMR_14_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202407');"><%= cpMR_14_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202408');"><%= cpMR_14_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202409');"><%= cpMR_14_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202410');"><%= cpMR_14_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202411');"><%= cpMR_14_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202412');"><%= cpMR_14_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202501');"><%= cpMR_14_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202502');"><%= cpMR_14_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202503');"><%= cpMR_14_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202504');"><%= cpMR_14_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202505');"><%= cpMR_14_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', 'total');"><font color="red"> <%=cpMR_14_dto.getTotal() %> </font> </a> </td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202405');"><%= cpMR_14_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202406');"><%= cpMR_14_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202407');"><%= cpMR_14_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202408');"><%= cpMR_14_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202409');"><%= cpMR_14_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202410');"><%= cpMR_14_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202411');"><%= cpMR_14_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202412');"><%= cpMR_14_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202501');"><%= cpMR_14_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202502');"><%= cpMR_14_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202503');"><%= cpMR_14_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202504');"><%= cpMR_14_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202505');"><%= cpMR_14_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202506');"><%= cpMR_14_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202507');"><%= cpMR_14_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202508');"><%= cpMR_14_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202509');"><%= cpMR_14_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202510');"><%= cpMR_14_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202511');"><%= cpMR_14_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_14', '202512');"><%= cpMR_14_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 cpMR_17_5_dto = jdcbService.findByIdV2(todayVal, "cpMR_17_5");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">CP (MR_17.5kW_회생)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', 'total');"><font color="red"> <%=cpMR_17 %> </font> </a> </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202405');"><%= cpMR_17_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202406');"><%= cpMR_17_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202407');"><%= cpMR_17_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202408');"><%= cpMR_17_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202409');"><%= cpMR_17_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202410');"><%= cpMR_17_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202411');"><%= cpMR_17_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202412');"><%= cpMR_17_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202501');"><%= cpMR_17_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202502');"><%= cpMR_17_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202503');"><%= cpMR_17_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202504');"><%= cpMR_17_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202505');"><%= cpMR_17_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', 'total');"><font color="red"> <%=cpMR_17_5_dto.getTotal() %> </font> </a> </td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202405');"><%= cpMR_17_5_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202406');"><%= cpMR_17_5_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202407');"><%= cpMR_17_5_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202408');"><%= cpMR_17_5_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202409');"><%= cpMR_17_5_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202410');"><%= cpMR_17_5_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202411');"><%= cpMR_17_5_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202412');"><%= cpMR_17_5_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202501');"><%= cpMR_17_5_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202502');"><%= cpMR_17_5_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202503');"><%= cpMR_17_5_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202504');"><%= cpMR_17_5_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202505');"><%= cpMR_17_5_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202506');"><%= cpMR_17_5_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202507');"><%= cpMR_17_5_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202508');"><%= cpMR_17_5_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202509');"><%= cpMR_17_5_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202510');"><%= cpMR_17_5_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202511');"><%= cpMR_17_5_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202512');"><%= cpMR_17_5_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 cp2_MRL_General_dto = jdcbService.findByIdV2(todayVal, "cp2_MRL_General");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">2단계 CP(MRL_일반)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', 'total');"><font color="red"> <%=cp2_MRL_General %> </font> </a> </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202405');"><%= cp2_MRL_General_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202406');"><%= cp2_MRL_General_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202407');"><%= cp2_MRL_General_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202408');"><%= cp2_MRL_General_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202409');"><%= cp2_MRL_General_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202410');"><%= cp2_MRL_General_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202411');"><%= cp2_MRL_General_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202412');"><%= cp2_MRL_General_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202501');"><%= cp2_MRL_General_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202502');"><%= cp2_MRL_General_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202503');"><%= cp2_MRL_General_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202504');"><%= cp2_MRL_General_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202505');"><%= cp2_MRL_General_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', 'total');"><font color="red"> <%=cp2_MRL_General_dto.getTotal() %> </font> </a> </td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202405');"><%= cp2_MRL_General_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202406');"><%= cp2_MRL_General_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202407');"><%= cp2_MRL_General_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202408');"><%= cp2_MRL_General_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202409');"><%= cp2_MRL_General_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202410');"><%= cp2_MRL_General_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202411');"><%= cp2_MRL_General_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202412');"><%= cp2_MRL_General_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202501');"><%= cp2_MRL_General_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202502');"><%= cp2_MRL_General_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202503');"><%= cp2_MRL_General_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202504');"><%= cp2_MRL_General_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202505');"><%= cp2_MRL_General_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202506');"><%= cp2_MRL_General_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202507');"><%= cp2_MRL_General_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202508');"><%= cp2_MRL_General_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202509');"><%= cp2_MRL_General_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202510');"><%= cp2_MRL_General_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202511');"><%= cp2_MRL_General_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_General', '202512');"><%= cp2_MRL_General_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 cp2_MRL_Revive_dto = jdcbService.findByIdV2(todayVal, "cp2_MRL_Revive");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">2단계 CP(MRL_회생)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', 'total');"><font color="red"> <%=cp2_MRL_Revive %> </font> </a> </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202405');"><%= cp2_MRL_Revive_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202406');"><%= cp2_MRL_Revive_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202407');"><%= cp2_MRL_Revive_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202408');"><%= cp2_MRL_Revive_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202409');"><%= cp2_MRL_Revive_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202410');"><%= cp2_MRL_Revive_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202411');"><%= cp2_MRL_Revive_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202412');"><%= cp2_MRL_Revive_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202501');"><%= cp2_MRL_Revive_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202502');"><%= cp2_MRL_Revive_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202503');"><%= cp2_MRL_Revive_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202504');"><%= cp2_MRL_Revive_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202505');"><%= cp2_MRL_Revive_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', 'total');"><font color="red"> <%=cp2_MRL_Revive_dto.getTotal() %> </font> </a> </td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202405');"><%= cp2_MRL_Revive_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202406');"><%= cp2_MRL_Revive_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202407');"><%= cp2_MRL_Revive_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202408');"><%= cp2_MRL_Revive_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202409');"><%= cp2_MRL_Revive_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202410');"><%= cp2_MRL_Revive_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202411');"><%= cp2_MRL_Revive_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202412');"><%= cp2_MRL_Revive_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202501');"><%= cp2_MRL_Revive_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202502');"><%= cp2_MRL_Revive_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202503');"><%= cp2_MRL_Revive_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202504');"><%= cp2_MRL_Revive_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202505');"><%= cp2_MRL_Revive_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202506');"><%= cp2_MRL_Revive_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202507');"><%= cp2_MRL_Revive_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202508');"><%= cp2_MRL_Revive_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202509');"><%= cp2_MRL_Revive_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202510');"><%= cp2_MRL_Revive_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202511');"><%= cp2_MRL_Revive_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MRL_Revive', '202512');"><%= cp2_MRL_Revive_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 cp2_MR_General_dto = jdcbService.findByIdV2(todayVal, "cp2_MR_General");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">2단계 CP(MR_일반)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', 'total');"><font color="red"> <%=cp2_MR_General %> </font> </a> </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202405');"><%= cp2_MR_General_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202406');"><%= cp2_MR_General_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202407');"><%= cp2_MR_General_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202408');"><%= cp2_MR_General_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202409');"><%= cp2_MR_General_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202410');"><%= cp2_MR_General_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202411');"><%= cp2_MR_General_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202412');"><%= cp2_MR_General_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202501');"><%= cp2_MR_General_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202502');"><%= cp2_MR_General_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202503');"><%= cp2_MR_General_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202504');"><%= cp2_MR_General_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202505');"><%= cp2_MR_General_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', 'total');"><font color="red"> <%=cp2_MR_General_dto.getTotal() %> </font> </a> </td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202405');"><%= cp2_MR_General_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202406');"><%= cp2_MR_General_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202407');"><%= cp2_MR_General_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202408');"><%= cp2_MR_General_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202409');"><%= cp2_MR_General_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202410');"><%= cp2_MR_General_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202411');"><%= cp2_MR_General_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202412');"><%= cp2_MR_General_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202501');"><%= cp2_MR_General_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202502');"><%= cp2_MR_General_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202503');"><%= cp2_MR_General_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202504');"><%= cp2_MR_General_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202505');"><%= cp2_MR_General_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202506');"><%= cp2_MR_General_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202507');"><%= cp2_MR_General_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202508');"><%= cp2_MR_General_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202509');"><%= cp2_MR_General_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202510');"><%= cp2_MR_General_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202511');"><%= cp2_MR_General_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_General', '202512');"><%= cp2_MR_General_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 cp2_MR_Revive_dto = jdcbService.findByIdV2(todayVal, "cp2_MR_Revive");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">2단계 CP(MR_회생)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', 'total');"><font color="red"> <%=cp2_MR_Revive %> </font> </a> </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202405');"><%= cp2_MR_Revive_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202406');"><%= cp2_MR_Revive_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202407');"><%= cp2_MR_Revive_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202408');"><%= cp2_MR_Revive_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202409');"><%= cp2_MR_Revive_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202410');"><%= cp2_MR_Revive_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202411');"><%= cp2_MR_Revive_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202412');"><%= cp2_MR_Revive_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202501');"><%= cp2_MR_Revive_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202502');"><%= cp2_MR_Revive_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202503');"><%= cp2_MR_Revive_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202504');"><%= cp2_MR_Revive_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202505');"><%= cp2_MR_Revive_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', 'total');"><font color="red"> <%=cp2_MR_Revive_dto.getTotal() %> </font> </a> </td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202405');"><%= cp2_MR_Revive_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202406');"><%= cp2_MR_Revive_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202407');"><%= cp2_MR_Revive_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202408');"><%= cp2_MR_Revive_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202409');"><%= cp2_MR_Revive_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202410');"><%= cp2_MR_Revive_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202411');"><%= cp2_MR_Revive_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202412');"><%= cp2_MR_Revive_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202501');"><%= cp2_MR_Revive_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202502');"><%= cp2_MR_Revive_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202503');"><%= cp2_MR_Revive_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202504');"><%= cp2_MR_Revive_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202505');"><%= cp2_MR_Revive_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202506');"><%= cp2_MR_Revive_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202507');"><%= cp2_MR_Revive_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202508');"><%= cp2_MR_Revive_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202509');"><%= cp2_MR_Revive_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202510');"><%= cp2_MR_Revive_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202511');"><%= cp2_MR_Revive_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp2_MR_Revive', '202512');"><%= cp2_MR_Revive_dto.getDIS202512() %></a></td>
                                     </tr>
 
 
-
+                                    <%
+                                        DashDtoV2 TM_dto = jdcbService.findByIdV2(todayVal, "TM");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;"> TM(Belt Type)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', 'total');"><font color="red"> <%=TM %></font></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202405');"><%= TM_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202406');"><%= TM_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202407');"><%= TM_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202408');"><%= TM_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202409');"><%= TM_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202410');"><%= TM_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202411');"><%= TM_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202412');"><%= TM_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202501');"><%= TM_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202502');"><%= TM_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202503');"><%= TM_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202504');"><%= TM_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202505');"><%= TM_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', 'total');"><font color="red"> <%=TM_dto.getTotal() %></font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202405');"><%= TM_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202406');"><%= TM_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202407');"><%= TM_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202408');"><%= TM_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202409');"><%= TM_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202410');"><%= TM_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202411');"><%= TM_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202412');"><%= TM_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202501');"><%= TM_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202502');"><%= TM_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202503');"><%= TM_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202504');"><%= TM_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202505');"><%= TM_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202506');"><%= TM_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202507');"><%= TM_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202508');"><%= TM_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202509');"><%= TM_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202510');"><%= TM_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202511');"><%= TM_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TM', '202512');"><%= TM_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 TMRope_dto = jdcbService.findByIdV2(todayVal, "TMRope");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;"> TM(ROPE)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', 'total');"><font color="red"> <%=TMRope %></font></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202405');"><%= TMRope_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202406');"><%= TMRope_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202407');"><%= TMRope_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202408');"><%= TMRope_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202409');"><%= TMRope_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202410');"><%= TMRope_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202411');"><%= TMRope_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202412');"><%= TMRope_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202501');"><%= TMRope_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202502');"><%= TMRope_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202503');"><%= TMRope_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202504');"><%= TMRope_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202505');"><%= TMRope_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', 'total');"><font color="red"> <%=TMRope_dto.getTotal() %></font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202405');"><%= TMRope_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202406');"><%= TMRope_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202407');"><%= TMRope_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202408');"><%= TMRope_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202409');"><%= TMRope_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202410');"><%= TMRope_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202411');"><%= TMRope_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202412');"><%= TMRope_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202501');"><%= TMRope_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202502');"><%= TMRope_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202503');"><%= TMRope_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202504');"><%= TMRope_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202505');"><%= TMRope_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202506');"><%= TMRope_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202507');"><%= TMRope_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202508');"><%= TMRope_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202509');"><%= TMRope_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202510');"><%= TMRope_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202511');"><%= TMRope_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('TMRope', '202512');"><%= TMRope_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 CARTOPBOX_dto = jdcbService.findByIdV2(todayVal, "CARTOPBOX");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;"> Car Top Box</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', 'total');"><font color="red"><%=CARTOP %></font> </a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202405');"><%= CARTOP_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202406');"><%= CARTOP_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202407');"><%= CARTOP_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202408');"><%= CARTOP_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202409');"><%= CARTOP_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202410');"><%= CARTOP_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202411');"><%= CARTOP_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202412');"><%= CARTOP_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202501');"><%= CARTOP_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202502');"><%= CARTOP_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202503');"><%= CARTOP_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202504');"><%= CARTOP_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202505');"><%= CARTOP_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', 'total');"><font color="red"><%=CARTOPBOX_dto.getTotal() %></font> </a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202405');"><%= CARTOPBOX_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202406');"><%= CARTOPBOX_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202407');"><%= CARTOPBOX_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202408');"><%= CARTOPBOX_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202409');"><%= CARTOPBOX_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202410');"><%= CARTOPBOX_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202411');"><%= CARTOPBOX_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202412');"><%= CARTOPBOX_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202501');"><%= CARTOPBOX_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202502');"><%= CARTOPBOX_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202503');"><%= CARTOPBOX_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202504');"><%= CARTOPBOX_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202505');"><%= CARTOPBOX_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202506');"><%= CARTOPBOX_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202507');"><%= CARTOPBOX_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202508');"><%= CARTOPBOX_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202509');"><%= CARTOPBOX_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202510');"><%= CARTOPBOX_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202511');"><%= CARTOPBOX_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('CARTOPBOX', '202512');"><%= CARTOPBOX_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 GOV_dto = jdcbService.findByIdV2(todayVal, "GOV");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;"> Governor</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', 'total');"><font color="red"><%=GOV %> </font></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202405');"><%= GOV_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202406');"><%= GOV_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202407');"><%= GOV_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202408');"><%= GOV_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202409');"><%= GOV_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202410');"><%= GOV_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202411');"><%= GOV_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202412');"><%= GOV_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202501');"><%= GOV_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202502');"><%= GOV_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202503');"><%= GOV_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202504');"><%= GOV_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202505');"><%= GOV_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', 'total');"><font color="red"><%=GOV_dto.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202405');"><%= GOV_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202406');"><%= GOV_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202407');"><%= GOV_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202408');"><%= GOV_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202409');"><%= GOV_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202410');"><%= GOV_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202411');"><%= GOV_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202412');"><%= GOV_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202501');"><%= GOV_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202502');"><%= GOV_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202503');"><%= GOV_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202504');"><%= GOV_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202505');"><%= GOV_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202506');"><%= GOV_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202507');"><%= GOV_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202508');"><%= GOV_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202509');"><%= GOV_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202510');"><%= GOV_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202511');"><%= GOV_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('GOV', '202512');"><%= GOV_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 LAMP_HOIST_dto = jdcbService.findByIdV2(todayVal, "LAMP_HOIST");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;"> 승강로 LAMP(HOISTWAY 기준)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', 'total');"><font color="red"><%=LAMP %> </font></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202405');"><%= LAMP_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202406');"><%= LAMP_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202407');"><%= LAMP_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202408');"><%= LAMP_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202409');"><%= LAMP_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202410');"><%= LAMP_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202411');"><%= LAMP_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202412');"><%= LAMP_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202501');"><%= LAMP_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202502');"><%= LAMP_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202503');"><%= LAMP_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202504');"><%= LAMP_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202505');"><%= LAMP_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', 'total');"><font color="red"><%=LAMP_HOIST_dto.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202405');"><%= LAMP_HOIST_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202406');"><%= LAMP_HOIST_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202407');"><%= LAMP_HOIST_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202408');"><%= LAMP_HOIST_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202409');"><%= LAMP_HOIST_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202410');"><%= LAMP_HOIST_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202411');"><%= LAMP_HOIST_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202412');"><%= LAMP_HOIST_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202501');"><%= LAMP_HOIST_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202502');"><%= LAMP_HOIST_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202503');"><%= LAMP_HOIST_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202504');"><%= LAMP_HOIST_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202505');"><%= LAMP_HOIST_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202506');"><%= LAMP_HOIST_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202507');"><%= LAMP_HOIST_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202508');"><%= LAMP_HOIST_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202509');"><%= LAMP_HOIST_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202510');"><%= LAMP_HOIST_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202511');"><%= LAMP_HOIST_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('LAMP_HOIST', '202512');"><%= LAMP_HOIST_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 PIT_dto = jdcbService.findByIdV2(todayVal, "PIT");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;"> PIT </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', 'total');"><font color="red"><%=PIT %> </font></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202405');"><%= PIT_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202406');"><%= PIT_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202407');"><%= PIT_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202408');"><%= PIT_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202409');"><%= PIT_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202410');"><%= PIT_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202411');"><%= PIT_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202412');"><%= PIT_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202501');"><%= PIT_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202502');"><%= PIT_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202503');"><%= PIT_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202504');"><%= PIT_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202505');"><%= PIT_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', 'total');"><font color="red"><%=PIT_dto.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202405');"><%= PIT_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202406');"><%= PIT_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202407');"><%= PIT_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202408');"><%= PIT_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202409');"><%= PIT_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202410');"><%= PIT_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202411');"><%= PIT_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202412');"><%= PIT_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202501');"><%= PIT_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202502');"><%= PIT_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202503');"><%= PIT_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202504');"><%= PIT_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202505');"><%= PIT_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202506');"><%= PIT_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202507');"><%= PIT_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202508');"><%= PIT_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202509');"><%= PIT_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202510');"><%= PIT_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202511');"><%= PIT_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('PIT', '202512');"><%= PIT_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 HPB_BOT_dto = jdcbService.findByIdV2(todayVal, "HPB_BOT");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">HPB(J21,BOT 기준)</td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', 'total');"><font color="red"><%=HPB %> </font></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202405');"><%= HPB_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202406');"><%= HPB_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202407');"><%= HPB_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202408');"><%= HPB_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202409');"><%= HPB_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202410');"><%= HPB_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202411');"><%= HPB_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202412');"><%= HPB_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202501');"><%= HPB_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202502');"><%= HPB_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202503');"><%= HPB_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202504');"><%= HPB_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202505');"><%= HPB_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', 'total');"><font color="red"><%=HPB_BOT_dto.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202405');"><%= HPB_BOT_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202406');"><%= HPB_BOT_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202407');"><%= HPB_BOT_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202408');"><%= HPB_BOT_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202409');"><%= HPB_BOT_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202410');"><%= HPB_BOT_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202411');"><%= HPB_BOT_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202412');"><%= HPB_BOT_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202501');"><%= HPB_BOT_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202502');"><%= HPB_BOT_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202503');"><%= HPB_BOT_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202504');"><%= HPB_BOT_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202505');"><%= HPB_BOT_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202506');"><%= HPB_BOT_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202507');"><%= HPB_BOT_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202508');"><%= HPB_BOT_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202509');"><%= HPB_BOT_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202510');"><%= HPB_BOT_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202511');"><%= HPB_BOT_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_BOT', '202512');"><%= HPB_BOT_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 HIP_BOT_dto = jdcbService.findByIdV2(todayVal, "HIP_BOT");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;"> HIP(SJ21,BOT 기준) </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', 'total');"><font color="red"><%=HIP %> </font></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202405');"><%= HIP_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202406');"><%= HIP_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202407');"><%= HIP_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202408');"><%= HIP_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202409');"><%= HIP_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202410');"><%= HIP_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202411');"><%= HIP_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202412');"><%= HIP_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202501');"><%= HIP_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202502');"><%= HIP_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202503');"><%= HIP_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202504');"><%= HIP_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202505');"><%= HIP_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', 'total');"><font color="red"><%=HIP_BOT_dto.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202405');"><%= HIP_BOT_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202406');"><%= HIP_BOT_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202407');"><%= HIP_BOT_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202408');"><%= HIP_BOT_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202409');"><%= HIP_BOT_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202410');"><%= HIP_BOT_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202411');"><%= HIP_BOT_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202412');"><%= HIP_BOT_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202501');"><%= HIP_BOT_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202502');"><%= HIP_BOT_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202503');"><%= HIP_BOT_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202504');"><%= HIP_BOT_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202505');"><%= HIP_BOT_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202506');"><%= HIP_BOT_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202507');"><%= HIP_BOT_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202508');"><%= HIP_BOT_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202509');"><%= HIP_BOT_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202510');"><%= HIP_BOT_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202511');"><%= HIP_BOT_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_BOT', '202512');"><%= HIP_BOT_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 opb_D521AG_dto = jdcbService.findByIdV2(todayVal, "opb_D521AG");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;"> OPB (D521AG) </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', 'total');"><font color="red"><%=OPB_D521AG %> </font></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202405');"><%= OPB_D521AG_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202406');"><%= OPB_D521AG_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202407');"><%= OPB_D521AG_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202408');"><%= OPB_D521AG_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202409');"><%= OPB_D521AG_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202410');"><%= OPB_D521AG_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202411');"><%= OPB_D521AG_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202412');"><%= OPB_D521AG_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202501');"><%= OPB_D521AG_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202502');"><%= OPB_D521AG_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202503');"><%= OPB_D521AG_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202504');"><%= OPB_D521AG_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202505');"><%= OPB_D521AG_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', 'total');"><font color="red"><%=opb_D521AG_dto.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202405');"><%= opb_D521AG_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202406');"><%= opb_D521AG_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202407');"><%= opb_D521AG_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202408');"><%= opb_D521AG_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202409');"><%= opb_D521AG_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202410');"><%= opb_D521AG_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202411');"><%= opb_D521AG_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202412');"><%= opb_D521AG_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202501');"><%= opb_D521AG_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202502');"><%= opb_D521AG_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202503');"><%= opb_D521AG_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202504');"><%= opb_D521AG_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202505');"><%= opb_D521AG_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202506');"><%= opb_D521AG_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202507');"><%= opb_D521AG_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202508');"><%= opb_D521AG_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202509');"><%= opb_D521AG_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202510');"><%= opb_D521AG_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202511');"><%= opb_D521AG_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_D521AG', '202512');"><%= opb_D521AG_dto.getDIS202512() %></a></td>
                                     </tr>
 
+                                    <%
+                                        DashDtoV2 opb_S521A_dto = jdcbService.findByIdV2(todayVal, "opb_S521A");
+                                    %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;"> OPB (S521A) </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', 'total');"><font color="red"><%=OPB_S521A %> </font></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202405');"><%= OPB_S521A_05 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202406');"><%= OPB_S521A_06 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202407');"><%= OPB_S521A_07 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202408');"><%= OPB_S521A_08 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202409');"><%= OPB_S521A_09 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202410');"><%= OPB_S521A_10 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202411');"><%= OPB_S521A_11 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202412');"><%= OPB_S521A_12 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202501');"><%= OPB_S521A_13 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202502');"><%= OPB_S521A_14 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202503');"><%= OPB_S521A_15 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202504');"><%= OPB_S521A_16 %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202505');"><%= OPB_S521A_17 %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', 'total');"><font color="red"><%=opb_S521A_dto.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202405');"><%= opb_S521A_dto.getDIS202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202406');"><%= opb_S521A_dto.getDIS202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202407');"><%= opb_S521A_dto.getDIS202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202408');"><%= opb_S521A_dto.getDIS202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202409');"><%= opb_S521A_dto.getDIS202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202410');"><%= opb_S521A_dto.getDIS202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202411');"><%= opb_S521A_dto.getDIS202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202412');"><%= opb_S521A_dto.getDIS202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202501');"><%= opb_S521A_dto.getDIS202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202502');"><%= opb_S521A_dto.getDIS202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202503');"><%= opb_S521A_dto.getDIS202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202504');"><%= opb_S521A_dto.getDIS202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202505');"><%= opb_S521A_dto.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202506');"><%= opb_S521A_dto.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202507');"><%= opb_S521A_dto.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202508');"><%= opb_S521A_dto.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202509');"><%= opb_S521A_dto.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202510');"><%= opb_S521A_dto.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202511');"><%= opb_S521A_dto.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202512');"><%= opb_S521A_dto.getDIS202512() %></a></td>
                                     </tr>
 
 
@@ -1420,6 +843,13 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202503');"><%= HPB_K21_TOP.getDIS202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202504');"><%= HPB_K21_TOP.getDIS202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202505');"><%= HPB_K21_TOP.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202506');"><%= HPB_K21_TOP.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202507');"><%= HPB_K21_TOP.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202508');"><%= HPB_K21_TOP.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202509');"><%= HPB_K21_TOP.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202510');"><%= HPB_K21_TOP.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202511');"><%= HPB_K21_TOP.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_TOP', '202512');"><%= HPB_K21_TOP.getDIS202512() %></a></td>
                                     </tr>
 
                                     <%
@@ -1442,6 +872,13 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202503');"><%= HPB_K21_MID.getDIS202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202504');"><%= HPB_K21_MID.getDIS202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202505');"><%= HPB_K21_MID.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202506');"><%= HPB_K21_MID.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202507');"><%= HPB_K21_MID.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202508');"><%= HPB_K21_MID.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202509');"><%= HPB_K21_MID.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202510');"><%= HPB_K21_MID.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202511');"><%= HPB_K21_MID.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_MID', '202512');"><%= HPB_K21_MID.getDIS202512() %></a></td>
                                     </tr>
 
                                     <%
@@ -1464,6 +901,13 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202503');"><%= HPB_K21_BOT.getDIS202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202504');"><%= HPB_K21_BOT.getDIS202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202505');"><%= HPB_K21_BOT.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202506');"><%= HPB_K21_BOT.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202507');"><%= HPB_K21_BOT.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202508');"><%= HPB_K21_BOT.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202509');"><%= HPB_K21_BOT.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202510');"><%= HPB_K21_BOT.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202511');"><%= HPB_K21_BOT.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21_BOT', '202512');"><%= HPB_K21_BOT.getDIS202512() %></a></td>
                                     </tr>
 
 
@@ -1487,6 +931,13 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202503');"><%= HPB_K21A_TOP.getDIS202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202504');"><%= HPB_K21A_TOP.getDIS202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202505');"><%= HPB_K21A_TOP.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202506');"><%= HPB_K21A_TOP.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202507');"><%= HPB_K21A_TOP.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202508');"><%= HPB_K21A_TOP.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202509');"><%= HPB_K21A_TOP.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202510');"><%= HPB_K21A_TOP.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202511');"><%= HPB_K21A_TOP.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_TOP', '202512');"><%= HPB_K21A_TOP.getDIS202512() %></a></td>
                                     </tr>
 
                                     <%
@@ -1509,6 +960,13 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202503');"><%= HPB_K21A_MID.getDIS202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202504');"><%= HPB_K21A_MID.getDIS202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202505');"><%= HPB_K21A_MID.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202506');"><%= HPB_K21A_MID.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202507');"><%= HPB_K21A_MID.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202508');"><%= HPB_K21A_MID.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202509');"><%= HPB_K21A_MID.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202510');"><%= HPB_K21A_MID.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202511');"><%= HPB_K21A_MID.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202512');"><%= HPB_K21A_MID.getDIS202512() %></a></td>
                                     </tr>
 
                                     <%
@@ -1531,6 +989,13 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202503');"><%= HPB_K21A_BOT.getDIS202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202504');"><%= HPB_K21A_BOT.getDIS202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202505');"><%= HPB_K21A_BOT.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202506');"><%= HPB_K21A_BOT.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202507');"><%= HPB_K21A_BOT.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202508');"><%= HPB_K21A_BOT.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202509');"><%= HPB_K21A_BOT.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202510');"><%= HPB_K21A_BOT.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202511');"><%= HPB_K21A_BOT.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_BOT', '202512');"><%= HPB_K21A_BOT.getDIS202512() %></a></td>
                                     </tr>
 
                                     <%
@@ -1553,6 +1018,13 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202503');"><%= HIP_SK21_TOP.getDIS202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202504');"><%= HIP_SK21_TOP.getDIS202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202505');"><%= HIP_SK21_TOP.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202506');"><%= HIP_SK21_TOP.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202507');"><%= HIP_SK21_TOP.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202508');"><%= HIP_SK21_TOP.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202509');"><%= HIP_SK21_TOP.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202510');"><%= HIP_SK21_TOP.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202511');"><%= HIP_SK21_TOP.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_TOP', '202512');"><%= HIP_SK21_TOP.getDIS202512() %></a></td>
                                     </tr>
 
                                     <%
@@ -1575,6 +1047,13 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202503');"><%= HIP_SK21_MID.getDIS202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202504');"><%= HIP_SK21_MID.getDIS202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202505');"><%= HIP_SK21_MID.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202506');"><%= HIP_SK21_MID.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202507');"><%= HIP_SK21_MID.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202508');"><%= HIP_SK21_MID.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202509');"><%= HIP_SK21_MID.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202510');"><%= HIP_SK21_MID.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202511');"><%= HIP_SK21_MID.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_MID', '202512');"><%= HIP_SK21_MID.getDIS202512() %></a></td>
                                     </tr>
 
                                     <%
@@ -1597,6 +1076,13 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202503');"><%= HIP_SK21_BOT.getDIS202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202504');"><%= HIP_SK21_BOT.getDIS202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202505');"><%= HIP_SK21_BOT.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202506');"><%= HIP_SK21_BOT.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202507');"><%= HIP_SK21_BOT.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202508');"><%= HIP_SK21_BOT.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202509');"><%= HIP_SK21_BOT.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202510');"><%= HIP_SK21_BOT.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202511');"><%= HIP_SK21_BOT.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HIP_SK21_BOT', '202512');"><%= HIP_SK21_BOT.getDIS202512() %></a></td>
                                     </tr>
 
                                     <%
@@ -1619,6 +1105,13 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202503');"><%= HPI_S700.getDIS202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202504');"><%= HPI_S700.getDIS202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202505');"><%= HPI_S700.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202506');"><%= HPI_S700.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202507');"><%= HPI_S700.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202508');"><%= HPI_S700.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202509');"><%= HPI_S700.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202510');"><%= HPI_S700.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202511');"><%= HPI_S700.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202512');"><%= HPI_S700.getDIS202512() %></a></td>
                                     </tr>
 
                                     <%
@@ -1641,6 +1134,13 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202503');"><%= HPI_SC.getDIS202503() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202504');"><%= HPI_SC.getDIS202504() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202505');"><%= HPI_SC.getDIS202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202506');"><%= HPI_SC.getDIS202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202507');"><%= HPI_SC.getDIS202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202508');"><%= HPI_SC.getDIS202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202509');"><%= HPI_SC.getDIS202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202510');"><%= HPI_SC.getDIS202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202511');"><%= HPI_SC.getDIS202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_SC', '202512');"><%= HPI_SC.getDIS202512() %></a></td>
                                     </tr>
 
 
