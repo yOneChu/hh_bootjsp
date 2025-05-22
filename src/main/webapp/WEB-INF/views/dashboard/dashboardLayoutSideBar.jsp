@@ -5,11 +5,8 @@
 
 <%
 
-    // salesInfoFromProductView.jsp
-    // http://10.225.4.20/jsp/help/searchByBlockNoView.jsp
-    // http://localhost/jsp/searchLogic/searchByBlockNoView.jsp
-
-    System.out.println("--- searchLayoutSideBar.jsp ---");
+    //대시보드 전용 Sidebar
+    System.out.println("--- dashboardLayoutSideBar.jsp ---");
 
 
 %>

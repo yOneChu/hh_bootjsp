@@ -6,8 +6,8 @@
 
 <%
 
-    JQPRService jqprService = new JQPRService();
-    ArrayList<JqplDTO> result = jqprService.getJqplDashbard();
+    //JQPRService jqprService = new JQPRService();
+    //ArrayList<JqplDTO> result = jqprService.getJqplDashbard();
 
 
 %>
