@@ -82,9 +82,11 @@
                     </ul>
                 </li>
 
+
+
+                <%--
                 <li class="nav-item menu-open">
                     <a href="#" class="nav-link">
-                        <%--<i class="nav-icon fas fa-book"></i>--%>
                         <p>
                             🖥️ SAP
                             <i class="fas fa-angle-left right"></i>
@@ -94,7 +96,6 @@
                     <ul class="nav nav-treeview">
                         <li>
                             <a href="/sap/searchProductingStatus" class="nav-link">
-                                <%--<i class="far fa-circle nav-icon"></i>--%>
                                 <p>(SAP)품목별 공정진행현황</p>
                             </a>
                         </li>
@@ -103,7 +104,6 @@
                     <ul class="nav nav-treeview">
                         <li>
                             <a href="/sap/getExportDate" class="nav-link">
-                                <%--<i class="far fa-circle nav-icon"></i>--%>
                                 <p>(SAP)출하예정일</p>
                             </a>
                         </li>
@@ -112,26 +112,15 @@
 
                 <li class="nav-item menu-open">
                     <a href="#" class="nav-link">
-                        <%--<i class="nav-icon fas fa-image"></i>--%>
                         <p>
                             📡 3D
                             <i class="fas fa-angle-left right"></i>
                         </p>
                     </a>
 
-                    <%-- <ul class="nav nav-treeview">
-                         <li>
-                             <a href="/download/vaultFile" class="nav-link">
-                                 &lt;%&ndash;<i class="far fa-circle nav-icon"></i>&ndash;%&gt;
-                                 <p>설정파일 다운로드</p>
-                             </a>
-                         </li>
-                     </ul>--%>
-
                     <ul class="nav nav-treeview">
                         <li>
                             <a href="/download/manualDashView" class="nav-link">
-                                <%--<i class="far fa-circle nav-icon"></i>--%>
                                 <p>3D 설정파일 및 메뉴얼</p>
                             </a>
                         </li>
@@ -141,7 +130,6 @@
 
                 <li class="nav-item menu-open">
                     <a href="#" class="nav-link">
-                        <%--<i class="nav-icon fas fa-tachometer-alt"></i>--%>
                         <p>
                             💡 수배로직
                             <i class="fas fa-angle-left right"></i>
@@ -163,28 +151,24 @@
 
                         <li>
                             <a href="/pid/pidDashboard" class="nav-link">
-                                <%--<i class="far fa-circle nav-icon"></i>--%>
                                 <p>PID 작업 현황</p>
                             </a>
                         </li>
 
                         <li>
                             <a href="/subae/comparePartCN" class="nav-link">
-                                <%--<i class="far fa-circle nav-icon"></i>--%>
                                 <p>한국-중국 자재비교(CN)</p>
                             </a>
                         </li>
 
                         <li>
                             <a href="/subae/searchStandardList" class="nav-link">
-                                <%--<i class="far fa-circle nav-icon"></i>--%>
                                 <p>법인자재 1LV 표준수배자재리스트</p>
                             </a>
                         </li>
 
                         <li>
                             <a href="/elvinfoDashboard" class="nav-link">
-                                <%--<i class="far fa-circle nav-icon"></i>--%>
                                 <p>영업사양 등록 현황(2024년)</p>
                             </a>
                         </li>
@@ -194,7 +178,6 @@
 
                 <li class="nav-item menu-open">
                     <a href="#" class="nav-link">
-                        <%--<i class="nav-icon fas fa-tachometer-alt"></i>--%>
                         <p>
                             💡 MLB
                             <i class="fas fa-angle-left right"></i>
@@ -209,7 +192,7 @@
                             </a>
                         </li>
                     </ul>
-                </li>
+                </li>--%>
 
 
 

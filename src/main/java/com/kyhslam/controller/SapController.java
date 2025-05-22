@@ -32,6 +32,10 @@ public class SapController {
     }
 
 
+    /**
+     * PP]출하예정일(ZPPT027) 조회화면
+     * @return
+     */
     @GetMapping("/sap/getExportDate")
     public String getExportDate() {
 
