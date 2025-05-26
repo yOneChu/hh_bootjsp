@@ -450,7 +450,7 @@ public class PIDCommonUtil {
                 tmpObject.put("PID", rs2.getString("PID"));
                 tmpObject.put("NO",  rs2.getString("NO"));
                 tmpObject.put("REMARKS",  rs2.getString("REMARKS"));
-                tmpObject.put("ADDR",  rs2.getString("ADDR"));
+                tmpObject.put("ADDR",  rs2.getString("ADDR") == null ? "" : rs2.getString("ADDR"));
                 //tmpObject.put("KEY1", rs2.getString("KEY1"));
                 //tmpObject.put("VAL1", rs2.getString("VAL1"));
 

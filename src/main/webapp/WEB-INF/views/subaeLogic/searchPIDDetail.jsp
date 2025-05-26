@@ -521,8 +521,9 @@
 
                         str += "<td>" + data[i].PID + "</td>";
                         str += "<td>" + data[i].NO + "</td>";
-                        str += "<td>" + data[i].REMARKS + "</td>";
                         str += "<td>" + data[i].ADDR + "</td>";
+                        str += "<td>" + data[i].REMARKS + "</td>";
+
 
                         str += "<td>" + data[i].SPEC1 + "</td>";  str += "<td>" + data[i].CON1 + "</td>";
                         str += "<td>" + data[i].SPEC2 + "</td>";  str += "<td>" + data[i].CON2 + "</td>";
