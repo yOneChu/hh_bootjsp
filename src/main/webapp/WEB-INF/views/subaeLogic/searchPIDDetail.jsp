@@ -263,6 +263,7 @@
                                     <tr class="bg-secondary">
                                         <th>PID</th>
                                         <th>NO</th>
+                                        <th>ADDR</th>
                                         <th>REMARKS</th>
 
                                         <th>SPEC1</th> <th>CON1</th>
@@ -521,6 +522,7 @@
                         str += "<td>" + data[i].PID + "</td>";
                         str += "<td>" + data[i].NO + "</td>";
                         str += "<td>" + data[i].REMARKS + "</td>";
+                        str += "<td>" + data[i].ADDR + "</td>";
 
                         str += "<td>" + data[i].SPEC1 + "</td>";  str += "<td>" + data[i].CON1 + "</td>";
                         str += "<td>" + data[i].SPEC2 + "</td>";  str += "<td>" + data[i].CON2 + "</td>";

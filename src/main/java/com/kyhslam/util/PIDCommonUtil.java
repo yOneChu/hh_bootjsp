@@ -281,7 +281,7 @@ public class PIDCommonUtil {
 
 
             //SPEC, CON
-            sql.append(" SELECT h.pid, D.NO, NVL(D.REMARKS, '-') AS REMARKS,   ");
+            sql.append(" SELECT h.pid, D.NO, NVL(D.REMARKS, '-') AS REMARKS, D.ADDR AS ADDR,  ");
             sql.append(" NVL(D.SPEC1, '-') AS SPEC1, NVL(D.CON1, '-') AS CON1,   ");
             sql.append(" NVL(D.SPEC2, '-') AS SPEC2,  NVL(D.CON2, '-') AS CON2,   ");
             sql.append(" NVL(D.SPEC3, '-') AS SPEC3,  NVL(D.CON3, '-') AS CON3,   ");
@@ -450,7 +450,7 @@ public class PIDCommonUtil {
                 tmpObject.put("PID", rs2.getString("PID"));
                 tmpObject.put("NO",  rs2.getString("NO"));
                 tmpObject.put("REMARKS",  rs2.getString("REMARKS"));
-
+                tmpObject.put("ADDR",  rs2.getString("ADDR"));
                 //tmpObject.put("KEY1", rs2.getString("KEY1"));
                 //tmpObject.put("VAL1", rs2.getString("VAL1"));
 
