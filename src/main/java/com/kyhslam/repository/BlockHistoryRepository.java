@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Repository;
 import javax.sql.DataSource;
 import java.beans.BeanProperty;
 import java.util.ArrayList;
+import java.util.List;
 
 
 @Repository
@@ -32,8 +34,21 @@ public class BlockHistoryRepository implements IBlockHistory {
         this.basicTemplate = new JdbcTemplate(dataSource);
     }
 
+    /**
+     * 전체 Block 기준정보 삭제
+     */
+    public void deleteAll() {
+        String sql = "delete from block_history where BLOCKNO != '' ";
+        basicTemplate.update(sql);
+    }
+
+
+    /**
+     * BlockNo 정보 저장
+     * @param blockHistory
+     */
     @Override
-    public void saveBlockHistory(BlockHistoryDTO blockHistory) {
+    public void saveBlockHistory(BlockHistoryDTO blockHistory, String version) {
 
     String sql = """
                 INSERT INTO BLOCK_HISTORY(BLOCKNO, BLOCKNAME, VERSION, GC_PRODUCT, PARTTYPE, BLOCK_OPT, MODDATE, PICK, PICKNAME, QTY, CMT, COLOR)
@@ -41,13 +56,12 @@ public class BlockHistoryRepository implements IBlockHistory {
 
             """;
 
-        //System.out.println("blockHistory = " + blockHistory.toString());
         log.info("blockHistory = " + blockHistory.toString());
 
         basicTemplate.update(sql,
                 blockHistory.getBlockNo(),
                 blockHistory.getBlockName(),
-                "1",
+                version,
                 blockHistory.getGc_product(),
                 blockHistory.getPartType(),
                 blockHistory.getBlock_opt(),
@@ -59,27 +73,6 @@ public class BlockHistoryRepository implements IBlockHistory {
                 blockHistory.getCmt(),
                 blockHistory.getColor()
         );
-
-        /*String sql = """
-                INSERT INTO BLOCK_HISTORY(BLOCKNO, BLOCKNAME, VERSION, GC_PRODUCT, PARTTYPE, MODDATE, PICK, PICKNAME, QTY, CMT, COLOR)
-                VALUES(:blockNo, :blockName, :version, :gc_product, :partType, :modDate, :pick, :pickName, :qty, :cmt, :color)
-                
-            """;
-
-        SqlParameterSource param = new MapSqlParameterSource()
-                .addValue("blockNo", blockHistory.getBlockNo())
-                .addValue("blockName", blockHistory.getBlockName())
-                .addValue("version", blockHistory.getVersion())
-                .addValue("gc_product", blockHistory.getGc_product())
-                .addValue("partType",  blockHistory.getPartType())
-                .addValue("modDate", blockHistory.getModDate())
-                .addValue("pick", blockHistory.getPick())
-                .addValue("pickName", blockHistory.getPickName())
-                .addValue("qty", blockHistory.getQty())
-                .addValue("cmt", blockHistory.getCmt())
-                .addValue("color", blockHistory.getColor());
-
-        jdbcTemplate.update(sql, param);*/
     }
 
 
@@ -108,6 +101,25 @@ public class BlockHistoryRepository implements IBlockHistory {
 
         //return jdbcTemplate.queryForObject(sql, param, blockHistoryRowMapper());
         return (ArrayList<BlockHistoryDTO>) jdbcTemplate.query(sql, param, blockHistoryRowMapper());
+    }
+
+    /**
+     * Block 기준정보 전체조회
+     * @return
+     */
+    public List<BlockHistoryDTO> findAll() {
+
+        String sql = """
+            SELECT
+            A.blockNo, A.blockName, A.version, A.gc_product,
+            A.partType, A.uom, A.block_opt,
+            A.pick, A.pickName, A.qty,
+            A.cmt, A.color
+            FROM BLOCK_HISTORY A
+        """;
+
+        System.out.println("sql.toString() = " + sql.toString());
+        return jdbcTemplate.query(sql, blockHistoryRowMapper());
     }
 
 

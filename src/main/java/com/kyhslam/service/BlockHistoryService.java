@@ -5,6 +5,7 @@ import com.kyhslam.dto.BlockHistoryDTO;
 import com.kyhslam.repository.BlockHistoryRepository;
 import com.kyhslam.util.PLMBlockUtil;
 import com.kyhslam.util.PLMDBConnection;
+import com.kyhslam.util.SendMail;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.List;
 
 
 @Service
@@ -29,12 +31,12 @@ public class BlockHistoryService {
 
 
         ArrayList<BlockHistoryDTO> list = new ArrayList<BlockHistoryDTO>();
-        list = PLMBlockUtil.blockHistory_init();
+        list = PLMBlockUtil.blockHistory_init(); //PLM에서 전체 조회
 
         System.out.println("------------ init ------------");
         for (int i = 0; i < list.size(); i++) {
             BlockHistoryDTO dto = list.get(i);
-            blockHistoryRepository.saveBlockHistory(dto);
+            blockHistoryRepository.saveBlockHistory(dto, "1");
         }
     }
 
@@ -51,11 +53,22 @@ public class BlockHistoryService {
     }
 
     /**
+     * 전체조회
+     * @return
+     */
+    public List<BlockHistoryDTO> findAll() {
+        List<BlockHistoryDTO> dto = blockHistoryRepository.findAll();
+        return dto;
+    }
+
+    /**
      * PLM에서 변경된거 찾아서 기존 이력데이터와 비교
      * 월~금 저녁 6시 20분
      */
     @Scheduled(cron = "0 20 18 * * 1-5")
     public void compareData() {
+
+        ArrayList<BlockHistoryDTO> mailDataList = new ArrayList<>();
 
         //금일 변경된 PLM 데이터 조회
         ArrayList<BlockHistoryDTO> plmDataList = PLMBlockUtil.findByTodayBlockNo();
@@ -102,16 +115,21 @@ public class BlockHistoryService {
                 if( !eColor.equals(eColor) ){
                     compareFlag = true;
                 }
-                
+
+                //변경사항이 있음. 메일 발송
                 if( compareFlag == true ){
-                    //변경사항이 있음. 메일 발송
+                    mailDataList.add(existData);
                 }
             }
+
+
+
         } // end for
         
-        
         //전체 초기화 및 데이터 리셋
-
+        if(mailDataList != null && mailDataList.size() > 0) {
+            SendMail.sendBlockHistory(mailDataList);
+        }
     }
 
 }

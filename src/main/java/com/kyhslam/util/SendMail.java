@@ -1,5 +1,6 @@
 package com.kyhslam.util;
 
+import com.kyhslam.dto.BlockHistoryDTO;
 import com.kyhslam.dto.PartInfoDTO;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -151,7 +152,7 @@ public class SendMail {
      * BlockNo 기준정보 변경되었을 경우 메일 발송
      * @param data
      */
-    public static void sendBlockHistory(ArrayList<PartInfoDTO> data) {
+    public static void sendBlockHistory(ArrayList<BlockHistoryDTO> data) {
 
         // SMTP 서버 설정
         String host = "10.111.243.25"; // SMTP 서버 주소 (예: smtp.gmail.com)
@@ -176,7 +177,7 @@ public class SendMail {
         String htmlContent = """
                 <html>
                 <body style="font-family: Arial, sans-serif; line-height: 1.6;">
-                    <h2 style="color: #2F5597;">🔔 법인PDM-PLM 비교 모니터링 알림</h2>
+                    <h2 style="color: #2F5597;">Block 기준정보 변경 메일</h2>
                     <p>안녕하세요,</p>
                     <p>BlockNo 기준정보 변경 모니터링 결과</p>
 
@@ -186,35 +187,25 @@ public class SendMail {
                     <table style="border-collapse: collapse; width: 100%;">
                         <thead>
                             <tr>
-                                <th style="border: 1px solid #ccc; padding: 8px; background-color: #f2f2f2;">자재번호</th>
-                                <th style="border: 1px solid #ccc; padding: 8px; background-color: #f2f2f2;">자재명</th>
-                                <th style="border: 1px solid #ccc; padding: 8px; background-color: #f2f2f2;">버전</th>
+                                <th style="border: 1px solid #ccc; padding: 8px; background-color: #f2f2f2;">Block No</th>
+                                <th style="border: 1px solid #ccc; padding: 8px; background-color: #f2f2f2;">Block 명</th>
+                                <th style="border: 1px solid #ccc; padding: 8px; background-color: #f2f2f2;">품목구분</th>
                             </tr>
                         </thead>
                         <tbody>
                         """;
 
-        /*htmlContent += """
-                            <tr>
-                                <td style="border: 1px solid #ccc; padding: 8px;">김영환</td>
-                                <td style="border: 1px solid #ccc; padding: 8px;">VAULT시스템</td>
-                                <td style="border: 1px solid #ccc; padding: 8px;">hong.gd@yourcompany.com</td>
-                            </tr>
-                        """;*/
-
         String str = "";
 
         for (int i = 0; i < data.size(); i++) {
-            String partNo = data.get(i).getPartNo();
-            String partName = data.get(i).getPartName();
-            String eName = data.get(i).getEName();
-            String cName = data.get(i).getCName();
-            String version = data.get(i).getVersion();
+            String blockNo = data.get(i).getBlockNo();
+            String blockName = data.get(i).getBlockName();
+            String block_opt = data.get(i).getBlock_opt();
 
             str += "<tr>";
-            str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + partNo + "</td>";
-            str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + partName + "</td>";
-            str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + version + "</td>";
+            str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + blockNo + "</td>";
+            str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + blockName + "</td>";
+            str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + block_opt + "</td>";
             str += "</tr>";
         }
 

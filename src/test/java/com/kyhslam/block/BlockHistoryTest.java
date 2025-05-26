@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.List;
 
 @SpringBootTest
 @Transactional
@@ -26,6 +27,7 @@ public class BlockHistoryTest {
     BlockHistoryRepository blockHistoryRepository;
 
 
+    @Description("Block기준정보들 정리해서 테이블에 셋팅")
     @Commit
     @Test
     void save() {
@@ -39,7 +41,15 @@ public class BlockHistoryTest {
         System.out.println("findBlockDto = " + findBlockDto.toString());
     }
 
-
+    @Description("전체조회")
+    @Test
+    void findAll() {
+        List<BlockHistoryDTO> list = service.findAll();
+        for(int i=0;i<list.size();i++){
+            BlockHistoryDTO dto = list.get(i);
+            System.out.println(dto.toString());
+        }
+    }
 
 
     @Description("금일날짜에 수정된 BlockNo History 찾기")
@@ -54,9 +64,8 @@ public class BlockHistoryTest {
         System.out.println("todayValue = " + todayValue);
 
         PLMBlockUtil.findByTodayBlockNo();
-
-
-
     }
+
+
 
 }
