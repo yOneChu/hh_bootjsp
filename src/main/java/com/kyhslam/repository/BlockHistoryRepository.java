@@ -1,27 +1,26 @@
 package com.kyhslam.repository;
 
 import com.kyhslam.dto.BlockHistoryDTO;
-import com.kyhslam.dto.DashDto;
-import com.kyhslam.util.PLMBlockUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
-import java.beans.BeanProperty;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 
 @Repository
 @Slf4j
-public class BlockHistoryRepository implements IBlockHistory {
+public class BlockHistoryRepository implements IFBlockHistory {
 
 
     private final JdbcTemplate basicTemplate;
@@ -50,9 +49,18 @@ public class BlockHistoryRepository implements IBlockHistory {
     @Override
     public void saveBlockHistory(BlockHistoryDTO blockHistory, String version) {
 
+
+        //오늘날짜시간
+        //LocalDateTime now = LocalDateTime.now();
+        //Timestamp timestamp = Timestamp.valueOf(now);
+
+        //오늘날짜
+        LocalDate now = LocalDate.now();
+        String todayValue = now.toString();
+
     String sql = """
-                INSERT INTO BLOCK_HISTORY(BLOCKNO, BLOCKNAME, VERSION, GC_PRODUCT, PARTTYPE, BLOCK_OPT, MODDATE, PICK, PICKNAME, QTY, CMT, COLOR)
-                VALUES(?, ?, ?, ?, ?, ?, ?,  ?,?,?,?,?)
+                INSERT INTO BLOCK_HISTORY(BLOCKNO, BLOCKNAME, VERSION, GC_PRODUCT, PARTTYPE, BLOCK_OPT, MODDATE, CREDATE, PICK, PICKNAME, QTY, CMT, COLOR)
+                VALUES(?, ?, ?, ?, ?, ?, ?,?,  ?,?,?,?,?)
 
             """;
 
@@ -66,6 +74,7 @@ public class BlockHistoryRepository implements IBlockHistory {
                 blockHistory.getPartType(),
                 blockHistory.getBlock_opt(),
                 blockHistory.getModDate(),
+                todayValue,
 
                 blockHistory.getPick(),
                 blockHistory.getPickName(),

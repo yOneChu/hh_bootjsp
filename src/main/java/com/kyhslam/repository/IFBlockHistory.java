@@ -5,10 +5,10 @@ import com.kyhslam.dto.BlockHistoryDTO;
 
 import java.util.ArrayList;
 
-public interface IBlockHistory {
+public interface IFBlockHistory {
 
 
-    void saveBlockHistory(BlockHistoryDTO blockHistory);
+    void saveBlockHistory(BlockHistoryDTO blockHistory, String version);
 
     ArrayList<BlockHistoryDTO> findByBlockNo(String blockNo);
 }

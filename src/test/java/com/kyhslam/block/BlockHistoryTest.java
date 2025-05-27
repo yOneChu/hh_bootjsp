@@ -35,6 +35,7 @@ public class BlockHistoryTest {
         service.insertInit();
     }
 
+
     @Test
     void findBlockNo() {
         ArrayList<BlockHistoryDTO> findBlockDto = service.findByBlockNo("B121A03");

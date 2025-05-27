@@ -11,6 +11,7 @@ public class BlockHistoryDTO {
 
     private String modDate;
     private String modUser;
+    private String creDate; //등록일
 
     private String gc_product; //제품군
     private String uom; //단위
@@ -26,4 +27,5 @@ public class BlockHistoryDTO {
     private String qty;
     private String cmt;
     private String color;
+
 }
