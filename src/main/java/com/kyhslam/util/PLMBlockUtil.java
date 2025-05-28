@@ -33,7 +33,7 @@ public class PLMBlockUtil {
                 SELECT
                        A.MD$NUMBER AS BLOCKNO,
                        A.MD$CDATE, --등록일
-                       A.MD$MDATE, --수정일
+                       A.MD$MDATE AS MODDATE, --수정일
                        DATEFORMAT(A.MD$MDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS MOD_DATE, --수정일2
                        SUBSTR(A.MD$MDATE, 0, 8) AS MOD_DAY,
                        A.MD$DESC AS BLOCKNAME,
@@ -165,7 +165,7 @@ public class PLMBlockUtil {
                 dto.setGc_product(GC_PRODUCT);
                 dto.setUom(UOM);
                 dto.setBlock_opt(BLOCK_OPT);
-
+                dto.setModDate(MOD_DAY);
                 dto.setPick(pickList);
                 dto.setPickName(pickNameList);
                 dto.setQty(qtyList);
@@ -235,19 +235,19 @@ public class PLMBlockUtil {
                        CODN(A.BLOCK_OPT) AS BLOCK_OPT, --품목구분
                        A.QUALITYPERSON,
                     A.PICK1, A.PICK2, A.PICK3, A.PICK4, A.PICK5, A.PICK6, A.PICK7, A.PICK8, A.PICK9, A.PICK10, A.PICK11, A.PICK12, A.PICK13,
-                    A.PICK14, A.PICK15, A.PICK16, A.PICK17, A.PICK18, A.PICK19, A.PICK20, A.PICK21, A.PICK22, A.PICK23, A.PICK24, A.PICK25, A.PICK26, A.PICK27, A.PICK28, A.PICK29, A.PICK30,
+                    A.PICK14, A.PICK15, A.PICK16, A.PICK17, A.PICK18, A.PICK19, A.PICK20, A.PICK21, A.PICK22, A.PICK23, A.PICK24, A.PICK25, A.PICK26, A.PICK27, A.PICK28, A.PICK29, A.PICK30, A.PICK31, A.PICK32, A.PICK33,
                     A.PICKNAME1, A.PICKNAME2, A.PICKNAME3, A.PICKNAME4, A.PICKNAME5, A.PICKNAME6, A.PICKNAME7, A.PICKNAME8, A.PICKNAME9, A.PICKNAME10,
                     A.PICKNAME11, A.PICKNAME12, A.PICKNAME13, A.PICKNAME14, A.PICKNAME15, A.PICKNAME16, A.PICKNAME17, A.PICKNAME18, A.PICKNAME19, A.PICKNAME20,
-                    A.PICKNAME21, A.PICKNAME22, A.PICKNAME23, A.PICKNAME24, A.PICKNAME25, A.PICKNAME26, A.PICKNAME27, A.PICKNAME28, A.PICKNAME29, A.PICKNAME30,
+                    A.PICKNAME21, A.PICKNAME22, A.PICKNAME23, A.PICKNAME24, A.PICKNAME25, A.PICKNAME26, A.PICKNAME27, A.PICKNAME28, A.PICKNAME29, A.PICKNAME30, A.PICKNAME31, A.PICKNAME32, A.PICKNAME33,
                     A.QTY1, A.QTY2, A.QTY3, A.QTY4, A.QTY5, A.QTY6, A.QTY7, A.QTY8, A.QTY9, A.QTY10,
                     A.QTY11, A.QTY12, A.QTY13, A.QTY14, A.QTY15, A.QTY16, A.QTY17, A.QTY18, A.QTY19, A.QTY20,
-                    A.QTY21, A.QTY22, A.QTY23, A.QTY24, A.QTY25, A.QTY26, A.QTY27, A.QTY28, A.QTY29, A.QTY30,
+                    A.QTY21, A.QTY22, A.QTY23, A.QTY24, A.QTY25, A.QTY26, A.QTY27, A.QTY28, A.QTY29, A.QTY30, A.QTY31, A.QTY32, A.QTY33,
                     A.CMT1, A.CMT2, A.CMT3, A.CMT4, A.CMT5, A.CMT6, A.CMT7, A.CMT8, A.CMT9, A.CMT10,
                     A.CMT11, A.CMT12, A.CMT13, A.CMT14, A.CMT15, A.CMT16, A.CMT17, A.CMT18, A.CMT19, A.CMT20,
-                    A.CMT21, A.CMT22, A.CMT23, A.CMT24, A.CMT25, A.CMT26, A.CMT27, A.CMT28, A.CMT29, A.CMT30,
+                    A.CMT21, A.CMT22, A.CMT23, A.CMT24, A.CMT25, A.CMT26, A.CMT27, A.CMT28, A.CMT29, A.CMT30, A.CMT31, A.CMT32, A.CMT33,
                     A.COLOR1, A.COLOR2, A.COLOR3, A.COLOR4, A.COLOR5, A.COLOR6, A.COLOR7, A.COLOR8, A.COLOR9, A.COLOR10,
                     A.COLOR11, A.COLOR12, A.COLOR13, A.COLOR14, A.COLOR15, A.COLOR16, A.COLOR17, A.COLOR18, A.COLOR19, A.COLOR20,
-                    A.COLOR21, A.COLOR22, A.COLOR23, A.COLOR24, A.COLOR25, A.COLOR26, A.COLOR27, A.COLOR28, A.COLOR29, A.COLOR30
+                    A.COLOR21, A.COLOR22, A.COLOR23, A.COLOR24, A.COLOR25, A.COLOR26, A.COLOR27, A.COLOR28, A.COLOR29, A.COLOR30, A.COLOR31, A.COLOR32, A.COLOR33
                 FROM BLOCKNO$SF A
                 WHERE SUBSTR(A.MD$MDATE, 0, 8) = ?
                 """;
@@ -274,12 +274,12 @@ public class PLMBlockUtil {
 
                 //PICK
                 String pickList = "";
-                for (int i = 1; i < 31; i++) {
+                for (int i = 1; i < 34; i++) {
                     String colName = "PICK" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
                     //pickList.add(val.trim());
                     pickList += val.trim();
-                    if (i != 30) {
+                    if (i != 33) {
                         pickList += "-";
                     }
                 }
@@ -287,11 +287,11 @@ public class PLMBlockUtil {
                 //PICKNAME
                 //ArrayList<String> pickNameList = new ArrayList<>();
                 String pickNameList = "";
-                for (int i = 1; i < 31; i++) {
+                for (int i = 1; i < 34; i++) {
                     String colName = "PICKNAME" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
                     pickNameList += val.trim();
-                    if (i != 30) {
+                    if (i != 33) {
                         pickNameList += "-";
                     }
                 }
@@ -299,12 +299,12 @@ public class PLMBlockUtil {
                 //QTY
                 //ArrayList<String> qtyList = new ArrayList<>();
                 String qtyList = "";
-                for (int i = 1; i < 31; i++) {
+                for (int i = 1; i < 34; i++) {
                     String colName = "QTY" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
                     //qtyList.add(val.trim());
                     qtyList += val.trim();
-                    if (i != 30) {
+                    if (i != 33) {
                         qtyList += "-";
                     }
                 }
@@ -312,12 +312,12 @@ public class PLMBlockUtil {
                 //CMT
                 //ArrayList<String> cmtList = new ArrayList<>();
                 String cmtList = "";
-                for (int i = 1; i < 31; i++) {
+                for (int i = 1; i < 34; i++) {
                     String colName = "CMT" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
                     //cmtList.add(val.trim());
                     cmtList += val.trim();
-                    if (i != 30) {
+                    if (i != 33) {
                         cmtList += "-";
                     }
                 }
@@ -325,12 +325,12 @@ public class PLMBlockUtil {
                 //COLOR
                 //ArrayList<String> colorList = new ArrayList<>();
                 String colorList = "";
-                for (int i = 1; i < 31; i++) {
+                for (int i = 1; i < 34; i++) {
                     String colName = "COLOR" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
                     //colorList.add(val.trim());
                     colorList += val.trim();
-                    if (i != 30) {
+                    if (i != 33) {
                         colorList += "-";
                     }
                 }
@@ -339,16 +339,17 @@ public class PLMBlockUtil {
                 //System.out.println((cnt++) + " :: " + BLOCKNO + " > " + BLOCKNAME + " > " + MOD_DAY + " > " + PART_TYPE);
                 //}
 
-
-
                 //BLOCKNO 정보 넣기
                 BlockHistoryDTO dto = new BlockHistoryDTO();
                 dto.setBlockNo(BLOCKNO);
                 dto.setBlockName(BLOCKNAME);
+                dto.setModDate(MOD_DAY); //수정일
+                dto.setModUser(MODUSER);
                 dto.setPartType(PART_TYPE);
                 dto.setGc_product(GC_PRODUCT);
                 dto.setUom(UOM);
                 dto.setBlock_opt(BLOCK_OPT);
+
 
                 dto.setPick(pickList);
                 dto.setPickName(pickNameList);

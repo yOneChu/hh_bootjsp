@@ -4,7 +4,7 @@
 
 <%
 
-    //Block 기준정보 백업 조회 화면
+    //Block 기준정보 백업 조회 화면 - searchBlockStandardView.jsp
 
 
 
@@ -120,40 +120,20 @@
                                 <div class="callout callout-danger">
                                     <h4><i class="fas fa-bullhorn"></i> 도움말</h4>
                                     <h5 style="color: blue;">- PLM의 Block 기준정보 이력관리 </h5>
-                                    <h5>- ㅇㄹㅇㄹ </h5>
+                                    <h5>- PLM의 Block 기준정보 변경 시, 이력이 쌓임 </h5>
                                 </div>
                             </div>
+
 
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>Block No</label>
-                                    <select id="con-01" class="form-control select" style="width: 100%;">
-                                        <option selected="selected">SPEC</option>
-                                        <option>CON</option>
-                                        <option>KEY</option>
-                                        <option>VAL</option>
-                                        <option>REMARKS</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>-</label>
-                                    <select id="con-02" class="form-control select" style="width: 100%;">
-                                        <option selected="selected">LIKE</option>
-                                        <option>EQUAL</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>PID-01</label>
-                                    <input type="search" id="pidVal" class="form-control" placeholder="PID-01" value="">
+                                    <input type="search" id="blockNo" class="form-control" placeholder="blockNo" value="">
                                     <div class="input-group-append">
                                     </div>
                                 </div>
                             </div>
+
 
                             <!-- /.col -->
                         </div>
@@ -184,16 +164,15 @@
                                     <thead>
                                     <!-- bg-primary -->
                                     <tr class="bg-secondary">
-                                        <th>PID</th>
                                         <th>NO</th>
-                                        <th>ADDR</th>
-                                        <th>REMARKS</th>
-
-                                        <th>SPEC1</th> <th>CON1</th>
-                                        <th>SPEC2</th> <th>CON2</th>
-                                        <th>SPEC3</th> <th>CON3</th>
-                                        <th>SPEC4</th> <th>CON4</th>
-                                        <th>SPEC5</th> <th>CON5</th>
+                                        <th>Block no</th>
+                                        <th>Block Name</th>
+                                        <th>Version</th>
+                                        <th>품목 구분</th>
+                                        <th>수정일</th>
+                                        <th>제품군</th>
+                                        <th>단위</th>
+                                        <th>자재유형</th>
                                     </tr>
                                     </thead>
 
@@ -290,10 +269,6 @@
                 return false; // 추가 이벤트 방지위해 false 리턴
             }
         })
-
-
-
-
     });
 
 
@@ -304,11 +279,7 @@
     //검색
     function searchPID()
     {
-        let con01 = $("#con-01").val(); // SPEC
-        let con02 = $("#con-02").val(); // LIKE
-        let pidVal = $("#pidVal").val();
-
-
+        let blockNo = $("#blockNo").val(); // blockNo
 
 
         $('#infoTable').DataTable().destroy();
@@ -318,11 +289,9 @@
             type : "post",
             //url : "searchPID.jsp",
             crossDomain : true,
-            url : "/pid/searchPIDSpecViewJson",
+            url : "/subae/searchBlockLogic",
             data : {
-                pid : pidVal,
-                FIELD : con01,
-                GUBUN : con02
+                blockNo : blockNo
             },
             beforeSend: function() {
                 $("html").css("cursor", "wait");
@@ -330,37 +299,32 @@
             complete: function() {
                 $("html").css("cursor", "auto");
             },
-            success : function(data)
+            success : function(resultData)
             {
-                console.log("data - ", data);
-
-                if(data[0] != null && data[0].msg != null) {
-                    let msg = data[0].msg;
-
-                    console.log(msg);
-                    if(msg != null || "" != msg) {
-                        alert(msg);
-                        return;
-                    }
-                }
-
+                console.log("resultData - ", resultData);
 
                 let str = "";
 
-                if(data != null && data.length > 0) {
+                if(resultData != null && resultData.length > 0) {
 
-                    for(let i=0; i < data.length; i++) {
+                    console.log(resultData.length);
+
+                    for(let i=0; i < resultData.length; i++) {
+                        let blockDto = resultData[i];
+
+                        console.log(blockDto.blockNo + " > " + blockDto.blockName);
+
                         str += "<tr>";
 
-                        str += "<td>" + data[i].PID + "</td>";
-                        str += "<td>" + data[i].NO + "</td>";
-                        str += "<td>" + data[i].ADDR + "</td>";
-                        str += "<td>" + data[i].REMARKS + "</td>";
-
-
-                        str += "<td>" + data[i].SPEC1 + "</td>";  str += "<td>" + data[i].CON1 + "</td>";
-
-
+                            str += "<td>" + (i+1) + "</td>";
+                            str += "<td>" + blockDto.blockNo + "</td>";
+                            str += "<td>" + blockDto.blockName + "</td>";
+                            str += "<td>" + blockDto.version + "</td>";
+                            str += "<td>" + blockDto.block_opt + "</td>";
+                            str += "<td>" + blockDto.modDate + "</td>";
+                            str += "<td>" + blockDto.gc_product + "</td>";
+                            str += "<td>" + blockDto.uom + "</td>";
+                            str += "<td>" + blockDto.partType + "</td>";
                         str += "</tr>";
                     } // end for
 
@@ -374,34 +338,12 @@
                         "pageLength": 50,     //페이지 당 글 개수 설정
                         "autoWidth": false, // 가로자동
                         "processing": true,
-                        "scrollX" : true, //가로  스크롤
-                        "destroy": true, // 테이블 재생성
-                        //"scrollX": true, // 가로 스크롤
-                        //"buttons": ["csv", "excel", "pdf", "print"]
-                        //"buttons": ["csv", "excel"]
-                        "dom": "Bfrtip",
-                        "buttons": [
-                            {
-                                extend: "csv",
-                                charset: "UTF-16LE",
-                                text: "CSV",
-                                filename: 'csv_Result'
-                            },
-                            {
-                                extend: "excel",
-                                charset: "UTF-8",
-                                text: "EXCEL",
-                                filename: 'excel_Result',
-                            },
-                            {
-                                extend: "copy"
-                            }
-                        ]
-                    }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(1)');
+                        //"scrollX" : true, //가로  스크롤
+                        "buttons": ["csv", "excel", "copy"]
+                    }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
 
                 } else {
                     alert("검색결과가 없습니다.");
-
                 }
             } // end success;
         });

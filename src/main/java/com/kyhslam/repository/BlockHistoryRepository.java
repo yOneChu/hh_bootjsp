@@ -59,8 +59,8 @@ public class BlockHistoryRepository implements IFBlockHistory {
         String todayValue = now.toString();
 
     String sql = """
-                INSERT INTO BLOCK_HISTORY(BLOCKNO, BLOCKNAME, VERSION, GC_PRODUCT, PARTTYPE, BLOCK_OPT, MODDATE, CREDATE, PICK, PICKNAME, QTY, CMT, COLOR)
-                VALUES(?, ?, ?, ?, ?, ?, ?,?,  ?,?,?,?,?)
+                INSERT INTO BLOCK_HISTORY(BLOCKNO, BLOCKNAME, VERSION, UOM, GC_PRODUCT, PARTTYPE, BLOCK_OPT, MODDATE, CREDATE, PICK, PICKNAME, QTY, CMT, COLOR)
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?,?,  ?,?,?,?,?)
 
             """;
 
@@ -70,11 +70,12 @@ public class BlockHistoryRepository implements IFBlockHistory {
                 blockHistory.getBlockNo(),
                 blockHistory.getBlockName(),
                 version,
+                blockHistory.getUom(),
                 blockHistory.getGc_product(),
                 blockHistory.getPartType(),
                 blockHistory.getBlock_opt(),
                 blockHistory.getModDate(),
-                todayValue,
+                todayValue, // DB 저장일
 
                 blockHistory.getPick(),
                 blockHistory.getPickName(),
@@ -97,7 +98,7 @@ public class BlockHistoryRepository implements IFBlockHistory {
             SELECT
             A.blockNo, A.blockName, A.version, A.gc_product,
             A.partType, A.uom, A.block_opt,
-            A.pick, A.pickName, A.qty,
+            A.pick, A.pickName, A.qty, A.UOM, A.MODDATE,
             A.cmt, A.color
             FROM BLOCK_HISTORY A
             WHERE A.blockNo=:blockNo
@@ -123,7 +124,7 @@ public class BlockHistoryRepository implements IFBlockHistory {
             SELECT
             A.blockNo, A.blockName, A.version, A.gc_product,
             A.partType, A.uom, A.block_opt,
-            A.pick, A.pickName, A.qty,
+            A.pick, A.pickName, A.qty, A.UOM, A.MODDATE,
             A.cmt, A.color
             FROM BLOCK_HISTORY A
         """;

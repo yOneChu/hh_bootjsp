@@ -53,8 +53,11 @@ public class BlockHistoryService {
      * @return
      */
     public List<BlockHistoryDTO> findAll() {
-        List<BlockHistoryDTO> dto = blockHistoryRepository.findAll();
-        return dto;
+        List<BlockHistoryDTO> result = blockHistoryRepository.findAll();
+        //System.out.println("result = " + result);
+
+
+        return result;
     }
 
     /**
@@ -79,6 +82,7 @@ public class BlockHistoryService {
             String qty = data.getQty();
             String color = data.getColor();
 
+            //백업되있는 데이터 조회
             ArrayList<BlockHistoryDTO> existList = blockHistoryRepository.findByBlockNo(blockNo);
             BlockHistoryDTO existData = existList.get(0);
 
@@ -91,38 +95,42 @@ public class BlockHistoryService {
                 String eCmt = existData.getCmt();
                 String eQty = existData.getQty();
                 String eColor = existData.getColor();
+                String eVersion = existData.getVersion();
+                int modVersion = Integer.parseInt(eVersion);
+
 
                 if( !pick.equals(ePick) ){
                     compareFlag = true;
                 }
 
-                if( !ePickName.equals(ePickName) ){
+                if( !pickName.equals(ePickName) ){
                     compareFlag = true;
                 }
 
-                if( !eCmt.equals(eCmt) ){
+                if( !cmt.equals(eCmt) ){
                     compareFlag = true;
                 }
 
-                if( !eQty.equals(eQty) ){
+                if( !qty.equals(eQty) ){
                     compareFlag = true;
                 }
 
-                if( !eColor.equals(eColor) ){
+                if( !color.equals(eColor) ){
                     compareFlag = true;
                 }
 
-                //변경사항이 있음. 메일 발송
                 if( compareFlag == true ){
+                    //메일발송 위해 데이터 리스트에 저장
                     mailDataList.add(existData);
+
+                    //버전업해서 DB저장
+                    blockHistoryRepository.saveBlockHistory(data, String.valueOf((modVersion + 1)));
                 }
             }
-
-
-
         } // end for
-        
+
         if(mailDataList != null && mailDataList.size() > 0) {
+            //메일발송
             SendMail.sendBlockHistory(mailDataList);
         }
     }

@@ -12,14 +12,13 @@
 
 <%
 
-    //Block 기준정보 상세 화면
+    //Block 기준정보 상세 화면 - searchBlockStandardInfo.jsp
     String blockNo = request.getParameter("blockNo");
     String blockName = request.getParameter("blockName");
     String version = request.getParameter("version");
 
     blockNo = "A115A";
 
-    //BlockHistoryService service = new BlockHistoryService();
     WebApplicationContext context = WebApplicationContextUtils.getRequiredWebApplicationContext(application);
 
     // 원하는 Bean 가져오기

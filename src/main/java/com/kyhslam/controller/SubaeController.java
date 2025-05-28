@@ -1,9 +1,12 @@
 package com.kyhslam.controller;
 
 import com.kyhslam.dto.BlockHistoryDTO;
+import com.kyhslam.service.BlockHistoryService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.ArrayList;
@@ -14,7 +17,10 @@ import java.util.ArrayList;
 
 @Controller
 @Slf4j
+@RequiredArgsConstructor
 public class SubaeController {
+
+    private final BlockHistoryService blockHistoryService;
 
     //본사-법인 자재비교
     @GetMapping("/subae/comparePartCN")
@@ -36,17 +42,34 @@ public class SubaeController {
         return "mlb/searchByBlockNo";
     }
 
+
     //Block 기준정보 조회화면
-    @GetMapping("/subae/searchBlockStand")
+    @GetMapping("/subae/searchBlockStandardView")
     public String searchBlockStand() {
         return "subaeLogic/searchBlockStandardView";
     }
 
-    //조회 로직
-    @GetMapping("/subae/searchBlockLogic")
+    //Block 기준정보 조회 로직
+    @PostMapping("/subae/searchBlockLogic")
     @ResponseBody
     public ArrayList<BlockHistoryDTO> searchBlockLogic(String blockNo) {
+        log.info("blockNo:{}", blockNo);
+        System.out.println("blockNo = " + blockNo);
         ArrayList<BlockHistoryDTO> result = new ArrayList<>();
+
+        if(blockNo == null || blockNo.equals("")){
+            result = (ArrayList<BlockHistoryDTO>) blockHistoryService.findAll();
+        } else {
+            result = blockHistoryService.findByBlockNo(blockNo);
+        }
+
+
+        /*for(int i=0; i <  result.size(); i++){
+            BlockHistoryDTO dto = result.get(i);
+            System.out.println(dto.getBlockNo() + " > " + dto.getPickName());
+        }*/
+
+
         return result;
     }
 
