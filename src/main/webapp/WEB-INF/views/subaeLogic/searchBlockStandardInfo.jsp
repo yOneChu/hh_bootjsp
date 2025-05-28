@@ -129,7 +129,7 @@
                                             List<String> qtyList = Arrays.stream(dto.getQty().split("-")).collect(Collectors.toList());
                                             List<String> cmtList = Arrays.stream(dto.getCmt().split("-")).collect(Collectors.toList());
                                             List<String> colorList = Arrays.stream(dto.getColor().split("-")).collect(Collectors.toList());
-                                            for (int i = 0; i < 30; i++) {
+                                            for (int i = 0; i < 33; i++) {
                                                 String pick = pickList.get(i) == "X" ? "" : pickList.get(i);
                                                 String pickName = pickNameList.get(i) == "X" ? "" : pickNameList.get(i);
                                                 String qty = qtyList.get(i) == "X" ? "" : qtyList.get(i);

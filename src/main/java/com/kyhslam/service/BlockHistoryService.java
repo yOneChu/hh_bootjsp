@@ -122,7 +122,6 @@ public class BlockHistoryService {
 
         } // end for
         
-        //전체 초기화 및 데이터 리셋
         if(mailDataList != null && mailDataList.size() > 0) {
             SendMail.sendBlockHistory(mailDataList);
         }
