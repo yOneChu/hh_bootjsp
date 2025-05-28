@@ -4,20 +4,16 @@ package com.kyhslam.service;
 import com.kyhslam.dto.BlockHistoryDTO;
 import com.kyhslam.repository.BlockHistoryRepository;
 import com.kyhslam.util.PLMBlockUtil;
-import com.kyhslam.util.PLMDBConnection;
 import com.kyhslam.util.SendMail;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
 
-@Service
+@Service("BlockHistoryService")
 @RequiredArgsConstructor
 public class BlockHistoryService {
 

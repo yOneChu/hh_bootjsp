@@ -17,10 +17,6 @@ public class SendMail {
 
     //법인PDM-PLM 모니터링 결과 메일 발송
     public static void sendChinaPart(ArrayList<PartInfoDTO> data) {
-
-        //dongki.seo@hyundaielevator.com
-
-
         // SMTP 서버 설정
         String host = "10.111.243.25"; // SMTP 서버 주소 (예: smtp.gmail.com)
         int port = 25; // SMTP 포트 (보통 587 또는 465)
@@ -162,14 +158,12 @@ public class SendMail {
 
         // 수신자 이메일
         //서동기: dongki.seo@hyundaielevator.com
-        //박효현: hh.park@hyundaielevator.com
         //안대환: daehwan.ahn@hyundaielevator.com
-        //정선우: sunwoo.jung@hyundaielevator.com
         //이선욱: seonuk.lee@hyundaielevator.com
-        String toEmail = "jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, hh.park@hyundaielevator.com, sunwoo.jung@hyundaielevator.com, daehwan.ahn@hyundaielevator.com";
-        String ccEmail = "younghwan.kim@hyundaielevator.com, seonuk.lee@hyundaielevator.com";
-        //String toEmail = "seonuk.lee@hyundaielevator.com, younghwan.kim@hyundaielevator.com, jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, hh.park@hyundaielevator.com, sunwoo.jung@hyundaielevator.com, daehwan.ahn@hyundaielevator.com";
-        //String toEmail = "younghwan.kim@hyundaielevator.com";
+        //String toEmail = "jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, daehwan.ahn@hyundaielevator.com";
+        //String ccEmail = "younghwan.kim@hyundaielevator.com";
+        String toEmail = "younghwan.kim@hyundaielevator.com";
+
         String subject = """
                 📢 BlockNo 기준정보 변경 모니터링 결과 메일
                 """;
@@ -179,11 +173,11 @@ public class SendMail {
                 <body style="font-family: Arial, sans-serif; line-height: 1.6;">
                     <h2 style="color: #2F5597;">Block 기준정보 변경 메일</h2>
                     <p>안녕하세요,</p>
-                    <p>BlockNo 기준정보 변경 모니터링 결과</p>
+                    <p>BlockNo 기준정보 변경 내용이 감지되어 메일 발송합니다.</p>
 
                     <hr style="margin-top: 30px;"/>
                                 
-                    <h4 style="color: #2F5597; margin-bottom: 10px;">📌 PLM 자재 목록 </h4>
+                    <h4 style="color: #2F5597; margin-bottom: 10px;">📌 변경된 Block 기준정보 목록 </h4>
                     <table style="border-collapse: collapse; width: 100%;">
                         <thead>
                             <tr>
@@ -197,13 +191,15 @@ public class SendMail {
 
         String str = "";
 
+
         for (int i = 0; i < data.size(); i++) {
             String blockNo = data.get(i).getBlockNo();
             String blockName = data.get(i).getBlockName();
             String block_opt = data.get(i).getBlock_opt();
+            String link = "https://vault-in.hdel.co.kr:8070/subae/searchBlockStandardInfo?blockNo=" + blockNo;
 
             str += "<tr>";
-            str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + blockNo + "</td>";
+            str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'><a href='" + link + "' target='_blank'>" + blockNo + "</a></td>";
             str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + blockName + "</td>";
             str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + block_opt + "</td>";
             str += "</tr>";
@@ -251,7 +247,7 @@ public class SendMail {
                     InternetAddress.parse(toEmail)
             ); //수신자
 
-            message.setRecipients(Message.RecipientType.CC, InternetAddress.parse(ccEmail)); //참조자
+            //message.setRecipients(Message.RecipientType.CC, InternetAddress.parse(ccEmail)); //참조자
             message.setSubject(subject);
             //message.setText(content);
             message.setContent(htmlContent, "text/html; charset=UTF-8");

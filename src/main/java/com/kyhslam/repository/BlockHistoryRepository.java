@@ -101,6 +101,7 @@ public class BlockHistoryRepository implements IFBlockHistory {
             A.cmt, A.color
             FROM BLOCK_HISTORY A
             WHERE A.blockNo=:blockNo
+            ORDER BY version DESC
         """;
 
         System.out.println("sql.toString() = " + sql.toString());

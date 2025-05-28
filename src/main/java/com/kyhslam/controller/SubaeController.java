@@ -51,9 +51,9 @@ public class SubaeController {
     }
 
     //Block 기준정보 상세화면
-    @GetMapping("/subae/searchBlockStandInfo")
+    @GetMapping("/subae/searchBlockStandardInfo")
     public String searchBlockStandInfo() {
-        return "subaeLogic/searchBlockStandInfo";
+        return "subaeLogic/searchBlockStandardInfo";
     }
 
 }

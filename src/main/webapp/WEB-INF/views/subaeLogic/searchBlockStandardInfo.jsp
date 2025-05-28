@@ -1,3 +1,11 @@
+<%@ page import="com.kyhslam.service.BlockHistoryService" %>
+<%@ page import="org.springframework.web.context.support.WebApplicationContextUtils" %>
+<%@ page import="org.springframework.web.context.WebApplicationContext" %>
+<%@ page import="com.kyhslam.dto.BlockHistoryDTO" %>
+<%@ page import="java.util.ArrayList" %>
+<%@ page import="java.util.Arrays" %>
+<%@ page import="java.util.stream.Collectors" %>
+<%@ page import="java.util.List" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
@@ -9,10 +17,16 @@
     String blockName = request.getParameter("blockName");
     String version = request.getParameter("version");
 
+    blockNo = "A115A";
 
+    //BlockHistoryService service = new BlockHistoryService();
+    WebApplicationContext context = WebApplicationContextUtils.getRequiredWebApplicationContext(application);
 
+    // 원하는 Bean 가져오기
+    BlockHistoryService blockHistoryService = (BlockHistoryService) context.getBean("BlockHistoryService");
 
-
+    ArrayList<BlockHistoryDTO> list = blockHistoryService.findByBlockNo(blockNo);
+    BlockHistoryDTO dto = list.get(0);
 %>
 <!DOCTYPE html>
 <html lang="en">
@@ -51,44 +65,17 @@
 <body class="hold-transition sidebar-mini text-sm" style="zoom:95%;">
 
 <div class="wrapper">
-    <!-- Navbar -->
-    <!-- <nav class="main-header navbar navbar-expand navbar-white navbar-light"> -->
-    <nav class="main-header navbar navbar-expand">
-        <!-- Left navbar links -->
-        <ul class="navbar-nav">
-            <li class="nav-item">
-                <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" data-widget="fullscreen" href="#" role="button">
-                    <i class="fas fa-expand-arrows-alt"></i>
-                </a>
-            </li>
-        </ul>
-    </nav>
-    <!-- /.navbar -->
-
-
-    <!-- Main Sidebar Container -->
-    <%--<jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true" />--%>
-    <jsp:include page="../layout/basicSideBar.jsp" flush="true" />
 
 
     <!-- Content Wrapper. Contains page content -->
-    <div class="content-wrapper">
+    <%--<div class="content-wrapper">--%>
+    <div class="content">
         <!-- Content Header (Page header) -->
         <section class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
-                    <div class="col-sm-6">
-                        <h1>PID 상세조회</h1>
-                    </div>
-                    <div class="col-sm-6">
-                        <ol class="breadcrumb float-sm-right">
-                            <li class="breadcrumb-item"><a href="#">Home</a></li>
-                            <li class="breadcrumb-item active">DataTables</li>
-                        </ol>
+                    <div class="col-sm-12">
+                        <h1>Block 기준정보 상세화면 - <%=dto.getBlockNo() %> ( <%=dto.getBlockName()%> )</h1>
                     </div>
                 </div>
             </div><!-- /.container-fluid -->
@@ -101,85 +88,13 @@
 
             <div class="container-fluid"> <!-- start - container-fluid -->
 
-                <!-- 검색조건 -->
-                <!-- <div class="card card-default"> -->
-                <div class="card card-primary">
-                    <div class="card-header">
-                        <h3 class="card-title"> 검색 조건</h3>
-
-                        <div class="card-tools">
-                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                            <button type="button" class="btn btn-tool" data-card-widget="remove">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- /.card-header -->
-                    <div class="card-body" style="zoom:85%;">
-                        <div class="row">
-                            <!-- <div class="col-6"> -->
-                            <div class="col-md-12">
-                                <div class="callout callout-danger">
-                                    <h4><i class="fas fa-bullhorn"></i> 도움말</h4>
-                                    <h5 style="color: blue;">- PLM의 Block 기준정보 이력관리 </h5>
-                                    <h5>- ㅇㄹㅇㄹ </h5>
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Block No</label>
-                                    <select id="con-01" class="form-control select" style="width: 100%;">
-                                        <option selected="selected">SPEC</option>
-                                        <option>CON</option>
-                                        <option>KEY</option>
-                                        <option>VAL</option>
-                                        <option>REMARKS</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>-</label>
-                                    <select id="con-02" class="form-control select" style="width: 100%;">
-                                        <option selected="selected">LIKE</option>
-                                        <option>EQUAL</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>PID-01</label>
-                                    <input type="search" id="pidVal" class="form-control" placeholder="PID-01" value="">
-                                    <div class="input-group-append">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- /.col -->
-                        </div>
-                        <!-- /.row -->
-                    </div>
-
-
-                    <div class="card-footer">
-                        <button class="btn btn-primary float-right" style="margin-right: 5px;" onclick="searchPID()">검색</button>
-                    </div>
-
-                </div>
-
-
                 <div class="row">
                     <div class="col-12">
 
                         <div class="card card-primary">
 
                             <div class="card-header">
-                                <h3 class="card-title">검색 결과</h3>
+                                <h3 class="card-title">dto.getPick</h3>
                             </div>
 
                             <!-- /.card-header -->
@@ -187,27 +102,20 @@
                                 <!-- <table id="infoTable" class="table table-bordered table-striped" style="height:400px;"> -->
                                 <table id="infoTable" class="table table-bordered table-hover" style="font-family: NotoSans; font-size:15px;">
                                     <thead>
-                                    <!-- bg-primary -->
-                                    <tr class="bg-secondary">
-                                        <th>BLOCK NO</th>
-                                        <th>BLOCK NO</th>
-                                        <th>A101</th>
-                                        <th>BLOCK NAME</th>
-                                        <th>NAME</th>
-                                    </tr>
 
-                                    <tr class="bg-secondary">
-                                        <th>PICK_NAME</th>
-                                        <th></th>
-                                        <th>PICK</th>
-                                        <th></th>
-                                        <th>수량</th>
-                                        <th></th>
-                                        <th>주석</th>
-                                        <th></th>
-                                        <th>도잦ㅇ</th>
-                                        <th></th>
-                                    </tr>
+                                        <tr class="bg-secondary">
+                                            <th>NO</th>
+                                            <th>PICK_NAME</th>
+                                            <th></th>
+                                            <th>PICK</th>
+                                            <th></th>
+                                            <th>수량</th>
+                                            <th></th>
+                                            <th>주석</th>
+                                            <th></th>
+                                            <th>도장</th>
+                                            <th></th>
+                                        </tr>
 
                                     </thead>
 
@@ -215,10 +123,44 @@
 
                                     <%
 
+                                        if (dto != null) {
+                                            List<String> pickList = Arrays.stream(dto.getPick().split("-")).collect(Collectors.toList());
+                                            List<String> pickNameList = Arrays.stream(dto.getPickName().split("-")).collect(Collectors.toList());
+                                            List<String> qtyList = Arrays.stream(dto.getQty().split("-")).collect(Collectors.toList());
+                                            List<String> cmtList = Arrays.stream(dto.getCmt().split("-")).collect(Collectors.toList());
+                                            List<String> colorList = Arrays.stream(dto.getColor().split("-")).collect(Collectors.toList());
+                                            for (int i = 0; i < 30; i++) {
+                                                String pick = pickList.get(i) == "X" ? "" : pickList.get(i);
+                                                String pickName = pickNameList.get(i) == "X" ? "" : pickNameList.get(i);
+                                                String qty = qtyList.get(i) == "X" ? "" : qtyList.get(i);
+                                                String cmt = cmtList.get(i) == "X" ? "" : cmtList.get(i);
+                                                String color = colorList.get(i) == "X" ? "" : colorList.get(i);
+
                                     %>
+                                        <tr>
+                                            <td> <%=(i+1) %></td>
 
+                                            <td>PICK <%=(i+1) %></td>
+                                            <td><%=pick%></td>
 
+                                            <td>PICKNAME <%=(i+1) %></td>
+                                            <td><%=pickName%></td>
 
+                                            <td>QTY <%=(i+1) %></td>
+                                            <td><%=qty%></td>
+
+                                            <td>CMT <%=(i+1) %></td>
+                                            <td><%=cmt%></td>
+
+                                            <td>COLOR <%=(i+1) %></td>
+                                            <td><%=color%></td>
+                                        </tr>
+                                    <%
+                                            }
+                                            System.out.println("pickList = " + pickList);
+                                            System.out.println("pickList = " + pickList.size());
+                                        }
+                                    %>
                                     </tbody>
 
                                 </table>
@@ -257,8 +199,6 @@
 
 </body>
 
-<!-- <script src="https://code.jquery.com/jquery-3.5.1.js"></script> -->
-
 <script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
 
 <!-- AdminLTE App -->
@@ -294,9 +234,7 @@
         "autoWidth": false, // 가로자동
         "processing": true,
         "destroy": true, // 테이블 재생성
-        //"scrollX": true, // 가로 스크롤
-        //"buttons": ["csv", "excel", "pdf", "print"]
-        "buttons": ["csv", "excel", "copy"]
+        "buttons": ["excel", "copy"]
     }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
 
 
@@ -312,126 +250,6 @@
         })
 
     });
-
-
-    //검색
-    function searchPID()
-    {
-        let con01 = $("#con-01").val(); // SPEC
-        let con02 = $("#con-02").val(); // LIKE
-        let pidVal = $("#pidVal").val();
-
-
-
-
-        if(pidVal == null || "" == pidVal) {
-            console.log(pidVal);
-            alert("PID값을 입력하세요.");
-            return;
-        }
-
-
-        if(con01 == 'REMARKS' && pidVal02 != '') {
-            alert("조건1을 REMARKS로 검색 시, 조건2의 PID는 검색할 수 없습니다.");
-            return;
-        }
-
-
-        $('#infoTable').DataTable().destroy();
-        $("#contentTable").empty();
-
-        $.ajax({
-            type : "post",
-            //url : "searchPID.jsp",
-            crossDomain : true,
-            url : "/pid/searchPIDSpecViewJson",
-            data : {
-                pid : pidVal,
-                FIELD : con01,
-                GUBUN : con02
-            },
-            beforeSend: function() {
-                $("html").css("cursor", "wait");
-            },
-            complete: function() {
-                $("html").css("cursor", "auto");
-            },
-            success : function(data)
-            {
-                console.log("data - ", data);
-
-                if(data[0] != null && data[0].msg != null) {
-                    let msg = data[0].msg;
-
-                    console.log(msg);
-                    if(msg != null || "" != msg) {
-                        alert(msg);
-                        return;
-                    }
-                }
-
-
-                let str = "";
-
-                if(data != null && data.length > 0) {
-
-                    for(let i=0; i < data.length; i++) {
-                        str += "<tr>";
-
-                        str += "<td>" + data[i].PID + "</td>";
-                        str += "<td>" + data[i].NO + "</td>";
-                        str += "<td>" + data[i].ADDR + "</td>";
-                        str += "<td>" + data[i].REMARKS + "</td>";
-
-
-                        str += "<td>" + data[i].SPEC1 + "</td>";  str += "<td>" + data[i].CON1 + "</td>";
-
-
-                        str += "</tr>";
-                    } // end for
-
-
-                    $("#contentTable").append(str);
-
-
-                    $("#infoTable").DataTable({
-                        "responsive": true,
-                        "lengthChange": true,
-                        "pageLength": 50,     //페이지 당 글 개수 설정
-                        "autoWidth": false, // 가로자동
-                        "processing": true,
-                        "scrollX" : true, //가로  스크롤
-                        "destroy": true, // 테이블 재생성
-                        //"scrollX": true, // 가로 스크롤
-                        //"buttons": ["csv", "excel", "pdf", "print"]
-                        //"buttons": ["csv", "excel"]
-                        "dom": "Bfrtip",
-                        "buttons": [
-                            {
-                                extend: "csv",
-                                charset: "UTF-16LE",
-                                text: "CSV",
-                                filename: 'csv_Result'
-                            },
-                            {
-                                extend: "excel",
-                                charset: "UTF-8",
-                                text: "EXCEL",
-                                filename: 'excel_Result',
-                            },
-                            {
-                                extend: "copy"
-                            }
-                        ]
-                    }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(1)');
-
-                } else {
-                    alert("검색결과가 없습니다.");
-
-                }
-            } // end success;
-        });
-    }
 
     function isStringAndNotEmptyOrWhitespace(value) {
         // 1. 문자열인지 확인
