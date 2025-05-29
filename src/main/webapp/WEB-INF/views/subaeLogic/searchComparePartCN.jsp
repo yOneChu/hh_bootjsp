@@ -85,7 +85,7 @@
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
-                        <h1>부품 비교(한국-중국)</h1>
+                        <h1>본사/법인 자재비교</h1>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">

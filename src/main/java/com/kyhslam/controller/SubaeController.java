@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.ArrayList;
@@ -75,7 +76,8 @@ public class SubaeController {
 
     //Block 기준정보 상세화면
     @GetMapping("/subae/searchBlockStandardInfo")
-    public String searchBlockStandInfo() {
+    public String searchBlockStandInfo(@RequestParam("blockNo") String blockNo) {
+
         return "subaeLogic/searchBlockStandardInfo";
     }
 

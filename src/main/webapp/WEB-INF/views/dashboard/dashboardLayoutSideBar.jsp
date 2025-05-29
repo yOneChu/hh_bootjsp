@@ -82,9 +82,6 @@
                     </ul>
                 </li>
 
-
-
-                <%--
                 <li class="nav-item menu-open">
                     <a href="#" class="nav-link">
                         <p>
@@ -110,22 +107,7 @@
                     </ul>
                 </li>
 
-                <li class="nav-item menu-open">
-                    <a href="#" class="nav-link">
-                        <p>
-                            📡 3D
-                            <i class="fas fa-angle-left right"></i>
-                        </p>
-                    </a>
 
-                    <ul class="nav nav-treeview">
-                        <li>
-                            <a href="/download/manualDashView" class="nav-link">
-                                <p>3D 설정파일 및 메뉴얼</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
 
 
                 <li class="nav-item menu-open">
@@ -143,11 +125,11 @@
                                 <p>PID-상세조회</p>
                             </a>
                         </li>
-                        <li>
+                        <%--<li>
                             <a href="/designReq/dashboard" class="nav-link">
                                 <p>(신)전산요청 현황</p>
                             </a>
-                        </li>
+                        </li>--%>
 
                         <li>
                             <a href="/pid/pidDashboard" class="nav-link">
@@ -168,10 +150,16 @@
                         </li>
 
                         <li>
+                            <a href="/subae/searchBlockStandardView" class="nav-link">
+                                <p>Block 기준정보 이력관리</p>
+                            </a>
+                        </li>
+
+                        <%--<li>
                             <a href="/elvinfoDashboard" class="nav-link">
                                 <p>영업사양 등록 현황(2024년)</p>
                             </a>
-                        </li>
+                        </li>--%>
                     </ul>
                 </li>
 
@@ -192,8 +180,24 @@
                             </a>
                         </li>
                     </ul>
-                </li>--%>
+                </li>
 
+                <li class="nav-item menu-open">
+                    <a href="#" class="nav-link">
+                        <p>
+                            📡 3D
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+
+                    <ul class="nav nav-treeview">
+                        <li>
+                            <a href="/download/manualDashView" class="nav-link">
+                                <p>3D 설정파일 및 메뉴얼</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
 
 
             </ul>

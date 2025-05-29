@@ -77,7 +77,7 @@
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
-                        <h1>PID 상세조회</h1>
+                        <h1>Block No. 기준정보 이력관리</h1>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
@@ -119,16 +119,17 @@
                             <div class="col-md-12">
                                 <div class="callout callout-danger">
                                     <h4><i class="fas fa-bullhorn"></i> 도움말</h4>
-                                    <h5 style="color: blue;">- PLM의 Block 기준정보 이력관리 </h5>
-                                    <h5>- PLM의 Block 기준정보 변경 시, 이력이 쌓임 </h5>
+                                    <h5 style="color: blue;">- PLM의 Block No 이력관리 </h5>
+                                    <h5>- PLM의 Block 기준정보 변경 시, 변경 이력이 오전 8시에 기록됩니다. </h5>
+                                    <h5>- 오전 8시에 변경 이력이 쌓이고, 관련 담당자들에게 E-Mail 자동 발송됩니다.  </h5>
                                 </div>
                             </div>
 
 
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label>Block No</label>
-                                    <input type="search" id="blockNo" class="form-control" placeholder="blockNo" value="">
+                                    <label>Block No.</label>
+                                    <input type="search" id="blockNo" class="form-control" placeholder="block No." value="">
                                     <div class="input-group-append">
                                     </div>
                                 </div>
@@ -269,8 +270,34 @@
                 return false; // 추가 이벤트 방지위해 false 리턴
             }
         })
+
+/*
+        $("#contentTable").on("click", "tr", function() {
+            let blockNoVal = $(this).find("td:eq(0)").text();
+            let aaa = $(this).find("td:eq(1)").text();
+            console.log(blockNoVal + " , " + aaa);
+        })*/
+
+
+
+
+
     });
 
+
+    function blockView(o) {
+        //console.log("1111")
+        console.log(o);
+        console.log(o.textContent);
+        console.log(o.innerText);
+        let blockNo = o.textContent;
+
+
+        let urlValue = "/subae/searchBlockStandardInfo?";
+        urlValue += "blockNo=" + blockNo;
+        window.open(urlValue,'_blank','width=1600, height=800, top=50, left=50, scrollbars=yes');
+
+    }
 
 
 
@@ -314,10 +341,17 @@
 
                         console.log(blockDto.blockNo + " > " + blockDto.blockName);
 
+                        //<a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202512');">
+
+                        let blockNoVal = blockDto.blockNo;
+
+
                         str += "<tr>";
 
                             str += "<td>" + (i+1) + "</td>";
-                            str += "<td>" + blockDto.blockNo + "</td>";
+                            //str += "<td class='blockIn'><a href='#'>" + blockDto.blockNo + "</a></td>";
+                        str += "<td class='blockIn'><a href='javascript:void(0);' onclick='blockView(this)'>" + blockDto.blockNo + "</a></td>";
+
                             str += "<td>" + blockDto.blockName + "</td>";
                             str += "<td>" + blockDto.version + "</td>";
                             str += "<td>" + blockDto.block_opt + "</td>";
@@ -348,6 +382,10 @@
             } // end success;
         });
     }
+
+
+
+
 
     function isStringAndNotEmptyOrWhitespace(value) {
         // 1. 문자열인지 확인

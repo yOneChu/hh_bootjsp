@@ -72,18 +72,23 @@
                         </li>
 
                         <li>
+                            <a href="/subae/searchBlockStandardView" class="nav-link">
+                                <p>Block No. 이력관리</p>
+                            </a>
+                        </li>
+
+                        <li>
                             <a href="/subae/searchStandardList" class="nav-link">
                                 <%--<i class="far fa-circle nav-icon"></i>--%>
                                 <p>법인자재 1LV 표준수배자재리스트</p>
                             </a>
                         </li>
 
-                        <li>
+                        <%--<li>
                             <a href="/elvinfoDashboard" class="nav-link">
-                                <%--<i class="far fa-circle nav-icon"></i>--%>
                                 <p>영업사양 등록 현황(2024년)</p>
                             </a>
-                        </li>
+                        </li>--%>
                     </ul>
                 </li>
 

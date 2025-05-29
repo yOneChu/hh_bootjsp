@@ -17,7 +17,9 @@
     String blockName = request.getParameter("blockName");
     String version = request.getParameter("version");
 
-    blockNo = "A115A";
+    System.out.println("searchBlockStandardInfo blockNo = " + blockNo);
+
+    //blockNo = "A115A";
 
     WebApplicationContext context = WebApplicationContextUtils.getRequiredWebApplicationContext(application);
 
@@ -233,6 +235,7 @@
         "autoWidth": false, // 가로자동
         "processing": true,
         "destroy": true, // 테이블 재생성
+        "paging" : false, // 페이징표시 삭제
         "buttons": ["excel", "copy"]
     }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
 
