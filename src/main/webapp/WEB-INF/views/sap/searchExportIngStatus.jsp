@@ -326,45 +326,50 @@
                     for(let i=0; i < data.length; i++) {
 
                         let vData = data[i];
-                        str += "<tr>";
-                        str += "<td>" + vData.WBS + "</td>";
-                        //str += "<td>" + vData.MANDT + "</td>";
-                        //str += "<td>" + vData.PJTNAME + "</td>";
 
                         //console.log('vData--', vData);
                         //shipA = shipA.replace(/(\d{4}(\d{2})(\d))/, '$1-$2-$3');
 
-                        let shipA = vData.SHIP_A.substr(0,4) + "-" + vData.SHIP_A.substr(4,2) + "-" + vData.SHIP_A.substr(6,2);
-                        let shipB = vData.SHIP_B.substr(0,4) + "-" + vData.SHIP_B.substr(4,2) + "-" + vData.SHIP_B.substr(6,2);
-                        let shipC = vData.SHIP_C.substr(0,4) + "-" + vData.SHIP_C.substr(4,2) + "-" + vData.SHIP_C.substr(6,2);
-                        let shipD = vData.SHIP_D.substr(0,4) + "-" + vData.SHIP_D.substr(4,2) + "-" + vData.SHIP_D.substr(6,2);
-                        let shipE = vData.SHIP_E.substr(0,4) + "-" + vData.SHIP_E.substr(4,2) + "-" + vData.SHIP_E.substr(6,2);
-                        let shipF = vData.SHIP_F.substr(0,4) + "-" + vData.SHIP_F.substr(4,2) + "-" + vData.SHIP_F.substr(6,2);
+                        if(isStringAndNotEmptyOrWhitespace(vData.SHIP_A) == false || isStringAndNotEmptyOrWhitespace(vData.SHIP_B) == false || isStringAndNotEmptyOrWhitespace(vData.SHIP_C) == false
+                            || isStringAndNotEmptyOrWhitespace(vData.SHIP_D) == false || isStringAndNotEmptyOrWhitespace(vData.SHIP_E) == false) {
+                            alert(vData.WBS + ' 의 출하예정일이 입력되어 있지 않은 것 같습니다.');
 
-                        let ship_min_A = vData.SHIP_MIN_A.substr(0,4) + "-" + vData.SHIP_MIN_A.substr(4,2) + "-" + vData.SHIP_MIN_A.substr(6,2);
-                        let ship_min_B = vData.SHIP_MIN_B.substr(0,4) + "-" + vData.SHIP_MIN_B.substr(4,2) + "-" + vData.SHIP_MIN_B.substr(6,2);
-                        let ship_min_C = vData.SHIP_MIN_C.substr(0,4) + "-" + vData.SHIP_MIN_C.substr(4,2) + "-" + vData.SHIP_MIN_C.substr(6,2);
-                        let ship_min_D = vData.SHIP_MIN_D.substr(0,4) + "-" + vData.SHIP_MIN_D.substr(4,2) + "-" + vData.SHIP_MIN_D.substr(6,2);
-                        let ship_min_E = vData.SHIP_MIN_E.substr(0,4) + "-" + vData.SHIP_MIN_E.substr(4,2) + "-" + vData.SHIP_MIN_E.substr(6,2);
-                        let ship_min_F = vData.SHIP_MIN_F.substr(0,4) + "-" + vData.SHIP_MIN_F.substr(4,2) + "-" + vData.SHIP_MIN_F.substr(6,2);
+                        } else {
+                            str += "<tr>";
+                            str += "<td>" + vData.WBS + "</td>";
+                            //str += "<td>" + vData.MANDT + "</td>";
+                            //str += "<td>" + vData.PJTNAME + "</td>";
+                            let shipA = vData.SHIP_A.substr(0,4) + "-" + vData.SHIP_A.substr(4,2) + "-" + vData.SHIP_A.substr(6,2);
+                            let shipB = vData.SHIP_B.substr(0,4) + "-" + vData.SHIP_B.substr(4,2) + "-" + vData.SHIP_B.substr(6,2);
+                            let shipC = vData.SHIP_C.substr(0,4) + "-" + vData.SHIP_C.substr(4,2) + "-" + vData.SHIP_C.substr(6,2);
+                            let shipD = vData.SHIP_D.substr(0,4) + "-" + vData.SHIP_D.substr(4,2) + "-" + vData.SHIP_D.substr(6,2);
+                            let shipE = vData.SHIP_E.substr(0,4) + "-" + vData.SHIP_E.substr(4,2) + "-" + vData.SHIP_E.substr(6,2);
+                            let shipF = vData.SHIP_F.substr(0,4) + "-" + vData.SHIP_F.substr(4,2) + "-" + vData.SHIP_F.substr(6,2);
+
+                            let ship_min_A = vData.SHIP_MIN_A.substr(0,4) + "-" + vData.SHIP_MIN_A.substr(4,2) + "-" + vData.SHIP_MIN_A.substr(6,2);
+                            let ship_min_B = vData.SHIP_MIN_B.substr(0,4) + "-" + vData.SHIP_MIN_B.substr(4,2) + "-" + vData.SHIP_MIN_B.substr(6,2);
+                            let ship_min_C = vData.SHIP_MIN_C.substr(0,4) + "-" + vData.SHIP_MIN_C.substr(4,2) + "-" + vData.SHIP_MIN_C.substr(6,2);
+                            let ship_min_D = vData.SHIP_MIN_D.substr(0,4) + "-" + vData.SHIP_MIN_D.substr(4,2) + "-" + vData.SHIP_MIN_D.substr(6,2);
+                            let ship_min_E = vData.SHIP_MIN_E.substr(0,4) + "-" + vData.SHIP_MIN_E.substr(4,2) + "-" + vData.SHIP_MIN_E.substr(6,2);
+                            let ship_min_F = vData.SHIP_MIN_F.substr(0,4) + "-" + vData.SHIP_MIN_F.substr(4,2) + "-" + vData.SHIP_MIN_F.substr(6,2);
 
 
+                            str += "<td style='text-align: center;'>" + shipA + "</td>";
+                            str += "<td style='text-align: center;'>" + shipB + "</td>";
+                            str += "<td style='text-align: center;'>" + shipC + "</td>";
+                            str += "<td style='text-align: center;'>" + shipD + "</td>";
+                            str += "<td style='text-align: center;'>" + shipE + "</td>";
+                            str += "<td style='text-align: center;'>" + shipF + "</td>";
 
-                        str += "<td style='text-align: center;'>" + shipA + "</td>";
-                        str += "<td style='text-align: center;'>" + shipB + "</td>";
-                        str += "<td style='text-align: center;'>" + shipC + "</td>";
-                        str += "<td style='text-align: center;'>" + shipD + "</td>";
-                        str += "<td style='text-align: center;'>" + shipE + "</td>";
-                        str += "<td style='text-align: center;'>" + shipF + "</td>";
-
-                        str += "<td style='text-align: center;'>" + ship_min_A + "</td>";
-                        str += "<td style='text-align: center;'>" + ship_min_B + "</td>";
-                        str += "<td style='text-align: center;'>" + ship_min_C + "</td>";
-                        str += "<td style='text-align: center;'>" + ship_min_D + "</td>";
-                        str += "<td style='text-align: center;'>" + ship_min_E + "</td>";
-                        str += "<td style='text-align: center;'>" + ship_min_F + "</td>";
-                        str += "</tr>";
-                    }
+                            str += "<td style='text-align: center;'>" + ship_min_A + "</td>";
+                            str += "<td style='text-align: center;'>" + ship_min_B + "</td>";
+                            str += "<td style='text-align: center;'>" + ship_min_C + "</td>";
+                            str += "<td style='text-align: center;'>" + ship_min_D + "</td>";
+                            str += "<td style='text-align: center;'>" + ship_min_E + "</td>";
+                            str += "<td style='text-align: center;'>" + ship_min_F + "</td>";
+                            str += "</tr>";
+                        }
+                    } // end for
 
                     $("#contentTable").append(str);
 

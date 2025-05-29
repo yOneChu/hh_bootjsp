@@ -494,7 +494,7 @@
 
                                     <%
                                         DashDto cpMRL_5_dto = jdcbService.findById("cpMRL_5", todayVal);
-                                        System.out.println("cpMRL_5_dto = " + cpMRL_5_dto);
+                                        //System.out.println("cpMRL_5_dto = " + cpMRL_5_dto);
                                     %>
 
                                     <tr>
@@ -527,7 +527,7 @@
                                     <%
                                         //cpMRL_9
                                         DashDto cpMRL_9_dto = jdcbService.findById("cpMRL_9", todayVal);
-                                        System.out.println("cpMRL_9_dto = " + cpMRL_9_dto);
+                                        //System.out.println("cpMRL_9_dto = " + cpMRL_9_dto);
                                     %>
 
                                     <tr>
@@ -559,7 +559,7 @@
 
                                     <%
                                         DashDto cpMRL_14_dto = jdcbService.findById("cpMRL_14", todayVal);
-                                        System.out.println("cpMRL_14_dto = " + cpMRL_14_dto);
+                                        //System.out.println("cpMRL_14_dto = " + cpMRL_14_dto);
                                     %>
 
                                     <tr>
@@ -591,7 +591,7 @@
 
                                     <%
                                         DashDto cpMRL_17_dto = jdcbService.findById("cpMRL_17", todayVal);
-                                        System.out.println("cpMRL_17_dto = " + cpMRL_17_dto);
+                                        //System.out.println("cpMRL_17_dto = " + cpMRL_17_dto);
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
@@ -622,7 +622,7 @@
 
                                     <%
                                         DashDto cpMR_5_dto = jdcbService.findById("cpMR_5_5", todayVal);
-                                        System.out.println("cpMR_5_dto = " + cpMR_5_dto);
+                                        //System.out.println("cpMR_5_dto = " + cpMR_5_dto);
                                     %>
 
                                     <tr>
@@ -653,7 +653,7 @@
 
                                     <%
                                         DashDto cpMR_9_dto = jdcbService.findById("cpMR_9", todayVal);
-                                        System.out.println("cpMR_9_dto = " + cpMR_9_dto);
+                                        //System.out.println("cpMR_9_dto = " + cpMR_9_dto);
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
@@ -744,7 +744,7 @@
 
                                     <%
                                         DashDto cp2_MRL_General_dto = jdcbService.findById("cp2_MRL_General", todayVal);
-                                        System.out.println("cp2_MRL_General_dto = " + cp2_MRL_General_dto);
+                                        //System.out.println("cp2_MRL_General_dto = " + cp2_MRL_General_dto);
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
@@ -774,7 +774,7 @@
 
                                     <%
                                         DashDto cp2_MRL_Revive_dto = jdcbService.findById("cp2_MRL_Revive", todayVal);
-                                        System.out.println("cp2_MRL_Revive_dto = " + cp2_MRL_Revive_dto);
+                                        //System.out.println("cp2_MRL_Revive_dto = " + cp2_MRL_Revive_dto);
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
@@ -804,7 +804,7 @@
 
                                     <%
                                         DashDto cp2_MR_General_dto = jdcbService.findById("cp2_MR_General", todayVal);
-                                        System.out.println("cp2_MR_General_dto = " + cp2_MR_General_dto);
+                                        //System.out.println("cp2_MR_General_dto = " + cp2_MR_General_dto);
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
@@ -834,7 +834,7 @@
 
                                     <%
                                         DashDto cp2_MR_Revive_dto = jdcbService.findById("cp2_MR_Revive", todayVal);
-                                        System.out.println("cp2_MR_Revive_dto = " + cp2_MR_Revive_dto);
+                                        //System.out.println("cp2_MR_Revive_dto = " + cp2_MR_Revive_dto);
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
@@ -864,7 +864,7 @@
 
                                     <%
                                         DashDto TM_dto = jdcbService.findById("TM", todayVal);
-                                        System.out.println("TM_dto = " + TM_dto);
+                                        //System.out.println("TM_dto = " + TM_dto);
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
@@ -894,7 +894,7 @@
 
                                     <%
                                         DashDto TMRope_dto = jdcbService.findById("TMRope", todayVal);
-                                        System.out.println("TMRope_dto = " + TMRope_dto);
+                                        //System.out.println("TMRope_dto = " + TMRope_dto);
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
@@ -924,7 +924,7 @@
 
                                     <%
                                         DashDto CARTOPBOX_dto = jdcbService.findById("CARTOPBOX", todayVal);
-                                        System.out.println("CARTOPBOX_dto = " + CARTOPBOX_dto);
+                                        //System.out.println("CARTOPBOX_dto = " + CARTOPBOX_dto);
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
@@ -954,7 +954,7 @@
 
                                     <%
                                         DashDto GOV_dto = jdcbService.findById("GOV", todayVal);
-                                        System.out.println("GOV_dto = " + GOV_dto);
+                                        //System.out.println("GOV_dto = " + GOV_dto);
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
@@ -1012,7 +1012,7 @@
 
                                     <%
                                         DashDto PIT_dto = jdcbService.findById("PIT", todayVal);
-                                        System.out.println("PIT_dto = " + PIT_dto);
+                                        //System.out.println("PIT_dto = " + PIT_dto);
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
@@ -1094,7 +1094,7 @@
 
                                     <%
                                         DashDto opb_D521AG_dto = jdcbService.findById("opb_D521AG", todayVal);
-                                        System.out.println("opb_D521AG_dto = " + opb_D521AG_dto);
+                                        //System.out.println("opb_D521AG_dto = " + opb_D521AG_dto);
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
@@ -1125,7 +1125,7 @@
                                     <%
                                         //개선
                                         DashDto OPB_S521A_dto = jdcbService.findById("OPB_S521A", todayVal);
-                                        System.out.println("OPB_S521A_dto = " + OPB_S521A_dto);
+                                        //System.out.println("OPB_S521A_dto = " + OPB_S521A_dto);
                                     %>
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
@@ -2183,20 +2183,18 @@
                 data: [cpMRL05, cpMRL06, cpMRL07, cpMRL08, cpMRL09, cpMRL10, cpMRL11, cpMRL12, cpMRL13]
             }]
         });
-
-    }); // end document ready
 */
+    }); // end document ready
+
 
 
 
 
     function viewList(type, viewDate) {
 
-        console.log(type + " -- " + viewDate);
+        //console.log(type + " -- " + viewDate);
 
         let todayVal = '<%=todayVal %>'
-
-
 
         let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionPopRev.jsp?";
         //let urlValue = "http://localhost/jsp/searchLogic/searchPriceReductionPopRev.jsp?";

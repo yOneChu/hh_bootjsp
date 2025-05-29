@@ -576,7 +576,7 @@ public class PartCommonUtil {
 
         if(hogiNumber.contains(";")) {
             String[] arr = hogiNumber.split(";");
-            System.out.println("arr = " + Arrays.toString(arr));
+            //System.out.println("arr = " + Arrays.toString(arr));
 
             for(int i=0; i < arr.length; i++) {
                 String a = arr[i].trim();
