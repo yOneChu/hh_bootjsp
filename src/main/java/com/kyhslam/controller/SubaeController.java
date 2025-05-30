@@ -4,12 +4,17 @@ import com.kyhslam.dto.BlockHistoryDTO;
 import com.kyhslam.service.BlockHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.io.File;
 import java.util.ArrayList;
 
 /**
@@ -81,4 +86,24 @@ public class SubaeController {
         return "subaeLogic/searchBlockStandardInfo";
     }
 
+    //메뉴얼 파일 띄우기
+    @GetMapping("/subae/blockManual")
+    public ResponseEntity<FileSystemResource> blockManual() {
+        // 로컬 PDF 파일 경로
+        //String filePath = "D:/PDF/" + fileName + ".pdf";
+
+        String filePath = "C:\\Users\\Administrator\\Downloads\\Process-01.pdf";
+        File pdfFile = new File(filePath);
+        FileSystemResource file = new FileSystemResource(filePath);
+
+        // 파일이 존재하면 반환
+        if (file.exists()) {
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=" + file.getFilename())
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(file);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
 }

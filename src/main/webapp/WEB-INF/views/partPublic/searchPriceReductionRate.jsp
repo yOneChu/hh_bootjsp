@@ -20,8 +20,6 @@
     // http://10.225.4.20/jsp/searchLogic/searchPriceReductionRate.jsp
     // http://localhost/jsp/searchLogic/searchPriceReductionRate.jsp
 
-    //http://10.225.4.20/jsp/searchLogic/searchPriceReductionRate.jsp
-
     String contextPath = request.getContextPath();
     System.out.println("--- searchPriceReductionRate.jsp ---");
 
@@ -37,10 +35,6 @@
     // 원하는 Bean 가져오기
     JdbcTestService jdcbService = (JdbcTestService) context.getBean("JdbcTestService");
 
-
-    System.out.println("jdcbService = " + jdcbService);
-
-
     String cpMRL_5 = "";
     String cpMRL_5_05 = "";
     String cpMRL_5_06 = "";
@@ -55,38 +49,6 @@
     String cpMRL_5_15 = "";
     String cpMRL_5_16 = "";
     String cpMRL_5_17 = "";
-
-
-
-    String TM = "";
-    String TM_05 = "";
-    String TM_06 = "";
-    String TM_07 = "";
-    String TM_08 = "";
-    String TM_09 = "";
-    String TM_10 = "";
-    String TM_11 = "";
-    String TM_12 = "";
-    String TM_13 = "";
-    String TM_14 = "";
-    String TM_15 = "";
-    String TM_16 = "";
-    String TM_17 = "";
-
-    String TMRope = "";
-    String TMRope_05 = "";
-    String TMRope_06 = "";
-    String TMRope_07 = "";
-    String TMRope_08 = "";
-    String TMRope_09 = "";
-    String TMRope_10 = "";
-    String TMRope_11 = "";
-    String TMRope_12 = "";
-    String TMRope_13 = "";
-    String TMRope_14 = "";
-    String TMRope_15 = "";
-    String TMRope_16 = "";
-    String TMRope_17 = "";
 
 
 

@@ -101,14 +101,14 @@ public class BlockHistoryRepository implements IFBlockHistory {
             A.pick, A.pickName, A.qty, A.UOM, A.MODDATE,
             A.cmt, A.color
             FROM BLOCK_HISTORY A
-            WHERE A.blockNo=:blockNo
+            WHERE A.blockNo LIKE :blockNo
             ORDER BY version DESC
         """;
 
         System.out.println("sql.toString() = " + sql.toString());
 
         SqlParameterSource param = new MapSqlParameterSource()
-                .addValue("blockNo", blockNo);
+                .addValue("blockNo", "%" + blockNo + "%");
 
         //return jdbcTemplate.queryForObject(sql, param, blockHistoryRowMapper());
         return (ArrayList<BlockHistoryDTO>) jdbcTemplate.query(sql, param, blockHistoryRowMapper());

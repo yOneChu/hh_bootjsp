@@ -7,6 +7,8 @@
     //Block 기준정보 백업 조회 화면 - searchBlockStandardView.jsp
 
 
+    String serverUrl = "http://" + request.getServerName() + ":" + request.getServerPort();
+    System.out.println("serverUrl = " + serverUrl);
 
 %>
 <!DOCTYPE html>
@@ -77,7 +79,7 @@
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
-                        <h1>Block No. 기준정보 이력관리</h1>
+                        <h1>Block No.기준정보 이력관리</h1>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
@@ -119,9 +121,12 @@
                             <div class="col-md-12">
                                 <div class="callout callout-danger">
                                     <h4><i class="fas fa-bullhorn"></i> 도움말</h4>
-                                    <h5 style="color: blue;">- PLM의 Block No 이력관리 </h5>
-                                    <h5>- PLM의 Block 기준정보 변경 시, 변경 이력이 오전 8시에 기록됩니다. </h5>
-                                    <h5>- 오전 8시에 변경 이력이 쌓이고, 관련 담당자들에게 E-Mail 자동 발송됩니다.  </h5>
+                                    <h5 style="color: blue;">- PLM에서의 Block No 정보 변경 시, 별도의 DB에 이력관리되어 조회되는 화면 </h5>
+                                    <h5>- PLM의 Block 기준정보 변경 시, 월~금 오전 8시에 변경 이력이 쌓이고 관련 담당자들에게 E-Mail 자동 발송  </h5>
+                                    <h5>- 조회 시, 마지막 버전이 최신 정보임  </h5>
+                                    <H5>- <button class="btn btn-success" onclick="viewPDF()">
+                                        📄 프로세스 메뉴얼 열람
+                                    </button></H5>
                                 </div>
                             </div>
 
@@ -297,6 +302,14 @@
         urlValue += "blockNo=" + blockNo;
         window.open(urlValue,'_blank','width=1600, height=800, top=50, left=50, scrollbars=yes');
 
+    }
+
+    function viewPDF() {
+
+        let url = "<%=serverUrl%>";
+        let pdfLink = url + "/subae/blockManual";  // 로컬 서버 URL
+        let windowSize = "width=800,height=600,scrollbars=yes";  // 팝업 창 크기
+        window.open(pdfLink, "pdfPopup", windowSize);
     }
 
 
