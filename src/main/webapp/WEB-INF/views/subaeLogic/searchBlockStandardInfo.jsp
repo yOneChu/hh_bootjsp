@@ -94,9 +94,9 @@
 
                         <div class="card card-primary">
 
-                            <div class="card-header">
+         <%--                   <div class="card-header">
                                 <h3 class="card-title">dto.getPick</h3>
-                            </div>
+                            </div>--%>
 
                             <!-- /.card-header -->
                             <div class="card-body" style="zoom:85%;">
@@ -106,9 +106,9 @@
 
                                         <tr class="bg-secondary">
                                             <th>NO</th>
-                                            <th>PICK_NAME</th>
-                                            <th></th>
                                             <th>PICK</th>
+                                            <th></th>
+                                            <th>PICK_NAME</th>
                                             <th></th>
                                             <th>수량</th>
                                             <th></th>
@@ -131,11 +131,11 @@
                                             List<String> cmtList = Arrays.stream(dto.getCmt().split("-")).collect(Collectors.toList());
                                             List<String> colorList = Arrays.stream(dto.getColor().split("-")).collect(Collectors.toList());
                                             for (int i = 0; i < 33; i++) {
-                                                String pick = pickList.get(i) == "X" ? "" : pickList.get(i);
-                                                String pickName = pickNameList.get(i) == "X" ? "" : pickNameList.get(i);
-                                                String qty = qtyList.get(i) == "X" ? "" : qtyList.get(i);
-                                                String cmt = cmtList.get(i) == "X" ? "" : cmtList.get(i);
-                                                String color = colorList.get(i) == "X" ? "" : colorList.get(i);
+                                                String pick = pickList.get(i).equals("X") ? "" : pickList.get(i);
+                                                String pickName = pickNameList.get(i).equals("X") ? "" : pickNameList.get(i);
+                                                String qty = qtyList.get(i).equals("X") ? "" : qtyList.get(i);
+                                                String cmt = cmtList.get(i).equals("X") ? "" : cmtList.get(i);
+                                                String color = colorList.get(i).equals("X") ? "" : colorList.get(i);
 
                                     %>
                                         <tr>
