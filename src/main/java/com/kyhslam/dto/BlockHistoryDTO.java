@@ -28,4 +28,27 @@ public class BlockHistoryDTO {
     private String cmt;
     private String color;
 
+    public BlockHistoryDTO() {
+    }
+
+    public BlockHistoryDTO(String blockNo, String blockName, String version, String modDate, String modUser, String creDate, String gc_product, String uom, String partType, String block_opt, String drawingOnly, String block_status, String meterial_check, String pick, String pickName, String qty, String cmt, String color) {
+        this.blockNo = blockNo;
+        this.blockName = blockName;
+        this.version = version;
+        this.modDate = modDate;
+        this.modUser = modUser;
+        this.creDate = creDate;
+        this.gc_product = gc_product;
+        this.uom = uom;
+        this.partType = partType;
+        this.block_opt = block_opt;
+        this.drawingOnly = drawingOnly;
+        this.block_status = block_status;
+        this.meterial_check = meterial_check;
+        this.pick = pick;
+        this.pickName = pickName;
+        this.qty = qty;
+        this.cmt = cmt;
+        this.color = color;
+    }
 }

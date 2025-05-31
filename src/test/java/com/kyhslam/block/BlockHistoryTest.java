@@ -2,6 +2,7 @@ package com.kyhslam.block;
 
 import com.kyhslam.dto.BlockHistoryDTO;
 import com.kyhslam.repository.BlockHistoryRepository;
+import com.kyhslam.repository.MyBatisBlockRepository;
 import com.kyhslam.service.BlockHistoryService;
 import com.kyhslam.util.PLMBlockUtil;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,9 @@ public class BlockHistoryTest {
     @Autowired
     BlockHistoryRepository blockHistoryRepository;
 
+    @Autowired
+    MyBatisBlockRepository myBatisBlockRepository;
+
 
     @Description("Block기준정보들 정리해서 테이블에 셋팅")
     @Commit
@@ -38,8 +42,13 @@ public class BlockHistoryTest {
 
     @Test
     void findBlockNo() {
-        ArrayList<BlockHistoryDTO> findBlockDto = service.findByBlockNo("B121A03");
-        System.out.println("findBlockDto = " + findBlockDto.toString());
+        ArrayList<BlockHistoryDTO> findBlockDto = myBatisBlockRepository.findByBlockNo("B121A03");
+        //System.out.println("findBlockDto = " + findBlockDto.toString());
+
+        for(int i=0;i<findBlockDto.size();i++){
+            System.out.println(findBlockDto.get(i).getBlockNo());
+        }
+
     }
 
     @Description("전체조회")

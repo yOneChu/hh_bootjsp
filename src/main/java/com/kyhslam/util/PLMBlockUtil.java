@@ -187,8 +187,7 @@ public class PLMBlockUtil {
 
 
     /**
-     * 금일 수정된 날짜의
-     * PLM에서 해당 BLOCKNO의 정보 조회
+     * PLM에서 금일 수정된 날짜의 해당 BLOCKNO들 정보 조회
      * @return
      */
     public static ArrayList<BlockHistoryDTO> findByTodayBlockNo() {
@@ -197,8 +196,8 @@ public class PLMBlockUtil {
         ResultSet rs 			= null;
         Connection con          = null;
 
-        //현재날짜 구하기
-        LocalDate now = LocalDate.now(); //YYYYMMDD
+        //LocalDate now = LocalDate.now(); //YYYYMMDD //현재날짜 구하기
+        LocalDate now = LocalDate.now().minusDays(1); // 하루 전 날짜
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         String todayValue = now.format(formatter);
 
