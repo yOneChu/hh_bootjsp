@@ -4,22 +4,30 @@
 
 <mapper namespace="com.kyhslam.repository.mybatis.BlockHistoryMapper">
 
+    <!--전체 삭제-->
     <delete id="deleteAll">
         delete from block_history where BLOCKNO != ''
     </delete>
 
-    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+<!--    <insert id="save" useGeneratedKeys="true" keyProperty="id">
         insert into item(item_name, price, quantity)
         values(#{itemName}, #{price}, #{quantity})
+    </insert>-->
+
+    <insert id="saveBlockHistory" >
+        INSERT INTO BLOCK_HISTORY(BLOCKNO, BLOCKNAME, VERSION, UOM, GC_PRODUCT, PARTTYPE, BLOCK_OPT, MODDATE, CREDATE, PICK, PICKNAME, QTY, CMT, COLOR)
+        VALUES(#{blockDto.blockNo}, #{blockDto.blockName}, #{blockDto.version}, #{blockDto.uom}, #{blockDto.gc_product},
+               #{blockDto.partType}, #{blockDto.block_opt}, #{blockDto.modDate}, #{blockDto.creDate},
+               #{blockDto.pick}, #{blockDto.pickName}, #{blockDto.qty}, #{blockDto.cmt}, #{blockDto.color})
     </insert>
 
-    <update id="update">
+<!--    <update id="update">
         update item
         set item_name=#{updateParam.itemName},
             price=#{updateParam.price},
             quantity=#{updateParam.quantity}
         where id = #{id}
-    </update>
+    </update>-->
 
     <select id="findByBlockNo" resultType="BlockHistoryDTO">
         select A.blockNo, A.blockName, A.version, A.gc_product,

@@ -1,6 +1,8 @@
 package com.kyhslam.repository;
 
 import com.kyhslam.dto.BlockHistoryDTO;
+import com.kyhslam.repository.mybatis.BlockHistoryMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -27,6 +29,7 @@ public class BlockHistoryRepository implements IFBlockHistory {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
+    //private final BlockHistoryMapper blockHistoryMapper;
 
     public BlockHistoryRepository(DataSource dataSource) {
         this.jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
