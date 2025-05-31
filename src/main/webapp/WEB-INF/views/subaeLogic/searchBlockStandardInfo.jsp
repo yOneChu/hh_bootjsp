@@ -19,10 +19,7 @@
 
     System.out.println("searchBlockStandardInfo blockNo = " + blockNo);
 
-    //blockNo = "A115A";
-
     WebApplicationContext context = WebApplicationContextUtils.getRequiredWebApplicationContext(application);
-
     // 원하는 Bean 가져오기
     BlockHistoryService blockHistoryService = (BlockHistoryService) context.getBean("BlockHistoryService");
 

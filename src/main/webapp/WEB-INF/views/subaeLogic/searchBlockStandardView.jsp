@@ -8,7 +8,7 @@
 
 
     String serverUrl = "http://" + request.getServerName() + ":" + request.getServerPort();
-    System.out.println("serverUrl = " + serverUrl);
+    //System.out.println("serverUrl = " + serverUrl);
 
 %>
 <!DOCTYPE html>
@@ -176,11 +176,14 @@
                                         <th>Block no</th>
                                         <th>Block Name</th>
                                         <th>Version</th>
-                                        <th>품목 구분</th>
+                                        <th>품목구분</th>
+                                        <th>수정자</th>
                                         <th>수정일</th>
                                         <th>제품군</th>
                                         <th>단위</th>
                                         <th>자재유형</th>
+                                        <th>활성상태</th>
+                                        <th>재질관리</th>
                                     </tr>
                                     </thead>
 
@@ -278,27 +281,19 @@
             }
         })
 
-/*
-        $("#contentTable").on("click", "tr", function() {
-            let blockNoVal = $(this).find("td:eq(0)").text();
-            let aaa = $(this).find("td:eq(1)").text();
-            console.log(blockNoVal + " , " + aaa);
-        })*/
-
-
-
-
-
     });
 
 
+    /**
+     * Block 기준정보 상세화면
+     * @param o
+     */
     function blockView(o) {
         //console.log("1111")
         console.log(o);
         console.log(o.textContent);
         console.log(o.innerText);
         let blockNo = o.textContent;
-
 
         let urlValue = "/subae/searchBlockStandardInfo?";
         urlValue += "blockNo=" + blockNo;
@@ -314,22 +309,16 @@
         window.open(pdfLink, "pdfPopup", windowSize);
     }
 
-
-
-
-
     //검색
     function searchPID()
     {
         let blockNo = $("#blockNo").val(); // blockNo
-
 
         $('#infoTable').DataTable().destroy();
         $("#contentTable").empty();
 
         $.ajax({
             type : "post",
-            //url : "searchPID.jsp",
             crossDomain : true,
             url : "/subae/searchBlockLogic",
             data : {
@@ -359,21 +348,21 @@
                         //<a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202512');">
 
                         let blockNoVal = blockDto.blockNo;
-
-
                         str += "<tr>";
-
                             str += "<td>" + (i+1) + "</td>";
                             //str += "<td class='blockIn'><a href='#'>" + blockDto.blockNo + "</a></td>";
-                        str += "<td class='blockIn'><a href='javascript:void(0);' onclick='blockView(this)'>" + blockDto.blockNo + "</a></td>";
+                            str += "<td class='blockIn'><a href='javascript:void(0);' onclick='blockView(this)'>" + blockDto.blockNo + "</a></td>";
 
                             str += "<td>" + blockDto.blockName + "</td>";
                             str += "<td>" + blockDto.version + "</td>";
                             str += "<td>" + blockDto.block_opt + "</td>";
+                            str += "<td>" + blockDto.modUser + "</td>";
                             str += "<td>" + blockDto.modDate + "</td>";
                             str += "<td>" + blockDto.gc_product + "</td>";
                             str += "<td>" + blockDto.uom + "</td>";
                             str += "<td>" + blockDto.partType + "</td>";
+                            str += "<td>" + blockDto.block_status + "</td>";
+                            str += "<td>" + blockDto.meterial_check + "</td>";
                         str += "</tr>";
                     } // end for
 
