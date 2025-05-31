@@ -126,9 +126,6 @@
                                         📄 프로세스 메뉴얼 열람
                                     </button></h5>
                                     <h5>- 조회 시, 마지막 버전이 최신 데이터 임.  </h5>
-                                    <H5>- <button class="btn btn-success" onclick="viewPDF()">
-                                        📄 프로세스 메뉴얼 열람
-                                    </button></H5>
                                 </div>
                             </div>
 
