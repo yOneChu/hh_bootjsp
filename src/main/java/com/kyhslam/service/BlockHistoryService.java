@@ -48,6 +48,13 @@ public class BlockHistoryService {
         return dto;
     }
 
+    //findOneByBlockNo
+    public ArrayList<BlockHistoryDTO> findOneByBlockNo(String blockNo) {
+        ArrayList<BlockHistoryDTO> dto = blockHistoryRepository.findOneByBlockNo(blockNo);
+        System.out.println("findOneByBlockNo : dto = " + dto);
+        return dto;
+    }
+
     /**
      * 전체조회
      * @return
@@ -62,9 +69,9 @@ public class BlockHistoryService {
 
     /**
      * PLM에서 변경된거 찾아서 기존 이력데이터와 비교
-     * 월~금 저녁 6시 20분
+     * 월~금 오전 7시 10분
      */
-    @Scheduled(cron = "0 20 18 * * 1-5")
+    @Scheduled(cron = "0 59 07 * * 1-5")
     public void compareData() {
 
         ArrayList<BlockHistoryDTO> mailDataList = new ArrayList<>();
@@ -86,6 +93,17 @@ public class BlockHistoryService {
             ArrayList<BlockHistoryDTO> existList = blockHistoryRepository.findByBlockNo(blockNo);
             BlockHistoryDTO existData = existList.get(0);
 
+
+            //메일발송 위해 데이터 리스트에 저장
+            mailDataList.add(existData);
+
+            //버전업해서 DB저장
+            String eVersion = existData.getVersion();
+            int modVersion = Integer.parseInt(eVersion);
+            blockHistoryRepository.saveBlockHistory(data, String.valueOf((modVersion + 1)));
+
+
+           /*
             boolean compareFlag = false;
 
             if (existData != null && existList != null && existList.size() > 0) {
@@ -97,7 +115,6 @@ public class BlockHistoryService {
                 String eColor = existData.getColor();
                 String eVersion = existData.getVersion();
                 int modVersion = Integer.parseInt(eVersion);
-
 
                 if( !pick.equals(ePick) ){
                     compareFlag = true;
@@ -126,7 +143,9 @@ public class BlockHistoryService {
                     //버전업해서 DB저장
                     blockHistoryRepository.saveBlockHistory(data, String.valueOf((modVersion + 1)));
                 }
-            }
+            }*/
+
+
         } // end for
 
         if(mailDataList != null && mailDataList.size() > 0) {

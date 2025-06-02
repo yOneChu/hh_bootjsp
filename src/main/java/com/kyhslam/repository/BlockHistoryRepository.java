@@ -117,6 +117,28 @@ public class BlockHistoryRepository implements IFBlockHistory {
         return (ArrayList<BlockHistoryDTO>) jdbcTemplate.query(sql, param, blockHistoryRowMapper());
     }
 
+    public ArrayList<BlockHistoryDTO> findOneByBlockNo(String blockNo) {
+
+        String sql = """
+            SELECT
+            A.blockNo, A.blockName, A.version, A.gc_product,
+            A.partType, A.uom, A.block_opt,
+            A.pick, A.pickName, A.qty, A.UOM, A.MODDATE,
+            A.cmt, A.color
+            FROM BLOCK_HISTORY A
+            WHERE A.blockNo = :blockNo
+            ORDER BY version DESC
+        """;
+
+        System.out.println("sql.toString() = " + sql.toString());
+
+        SqlParameterSource param = new MapSqlParameterSource()
+                .addValue("blockNo", blockNo);
+
+        //return jdbcTemplate.queryForObject(sql, param, blockHistoryRowMapper());
+        return (ArrayList<BlockHistoryDTO>) jdbcTemplate.query(sql, param, blockHistoryRowMapper());
+    }
+
     /**
      * Block 기준정보 전체조회
      * @return

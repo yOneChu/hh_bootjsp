@@ -160,9 +160,9 @@ public class SendMail {
         //서동기: dongki.seo@hyundaielevator.com
         //안대환: daehwan.ahn@hyundaielevator.com
         //이선욱: seonuk.lee@hyundaielevator.com
-        //String toEmail = "jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, daehwan.ahn@hyundaielevator.com";
-        //String ccEmail = "younghwan.kim@hyundaielevator.com";
-        String toEmail = "younghwan.kim@hyundaielevator.com";
+        String toEmail = "jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, daehwan.ahn@hyundaielevator.com, younghwan.kim@hyundaielevator.com";
+        String ccEmail = "younghwan.kim@hyundaielevator.com";
+        //String toEmail = "younghwan.kim@hyundaielevator.com";
 
         String subject = """
                 📢 BlockNo 기준정보 변경 모니터링 결과 메일
@@ -174,7 +174,12 @@ public class SendMail {
                     <h2 style="color: #2F5597;">Block 기준정보 변경 메일</h2>
                     <p>안녕하세요,</p>
                     <p>BlockNo 기준정보 변경 내용이 감지되어 메일 발송합니다.</p>
-
+                    
+                    <hr style="margin-top: 30px;"/>
+                    <p style="font-size: 14px; color: #333;">
+                        🔗 <strong>기준정보 조회화면 링크:</strong> <a href="https://vault-in.hdel.co.kr:8070/subae/searchBlockStandardView" target="_blank">여기 클릭</a>
+                    </p>
+                    
                     <hr style="margin-top: 30px;"/>
                                 
                     <h4 style="color: #2F5597; margin-bottom: 10px;">📌 변경된 Block 기준정보 목록 </h4>
@@ -211,6 +216,7 @@ public class SendMail {
                         </tbody>
                     </table>
                                 
+                    
                     <p style="margin-top: 30px;">감사합니다.<br><strong>수배로직설계팀</strong></p>
                                 
                     <hr style="margin-top: 40px;" />

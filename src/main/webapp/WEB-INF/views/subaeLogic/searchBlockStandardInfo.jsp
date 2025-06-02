@@ -12,6 +12,8 @@
 
 <%
 
+    //searchBlockStandardInfo?blockNo=B121A
+
     //Block 기준정보 상세 화면 - searchBlockStandardInfo.jsp
     String blockNo = request.getParameter("blockNo");
     String blockName = request.getParameter("blockName");
@@ -23,7 +25,8 @@
     // 원하는 Bean 가져오기
     BlockHistoryService blockHistoryService = (BlockHistoryService) context.getBean("BlockHistoryService");
 
-    ArrayList<BlockHistoryDTO> list = blockHistoryService.findByBlockNo(blockNo);
+    //ArrayList<BlockHistoryDTO> list = blockHistoryService.findByBlockNo(blockNo);
+    ArrayList<BlockHistoryDTO> list = blockHistoryService.findOneByBlockNo(blockNo);
     BlockHistoryDTO dto = list.get(0);
 %>
 <!DOCTYPE html>
@@ -73,7 +76,7 @@
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-12">
-                        <h1>Block 기준정보 상세화면 - <%=dto.getBlockNo() %> ( <%=dto.getBlockName()%> )</h1>
+                        <h1>Block 기준정보 상세화면 - <%=dto.getBlockNo() %> ( <%=dto.getBlockName()%> , <%=dto.getVersion()%>)</h1>
                     </div>
                 </div>
             </div><!-- /.container-fluid -->

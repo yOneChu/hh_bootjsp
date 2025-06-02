@@ -121,11 +121,16 @@
                             <div class="col-md-12">
                                 <div class="callout callout-danger">
                                     <h4><i class="fas fa-bullhorn"></i> 도움말</h4>
+                                    <h5 style="color: blue;"> ■ 사용 예시. </h5>
+                                    <h5>1.	2025.06.01 일자로 PLM에 있는 데이터를 백업해놓음 -> 해당 데이터가 이력조회 시, 버전 1에 해당 됨( 해당작업은 최초 1번 수행하고 수행되지 않음) </h5>
+                                    <h5>2.	PLM에서 “B259B83” Block 정보가 변경 됨 -> “B259B83” 버전2로 데이터가 쌓임 </h5>
+                                    <h5>3.	이력조회 화면에서 “B259B83” 버전1, 버전2 조회하여 데이터 비교하면 됨 </h5>
+
                                     <h5 style="color: blue;">- PLM에서의 Block No 정보 변경 시, 별도의 DB에 이력관리되어 조회되는 화면 </h5>
                                     <h5>- PLM의 Block 기준정보 변경 시, 월~금 오전 8시에 변경 이력이 쌓이고 관련 담당자들에게 E-Mail 자동 발송 -> <button class="btn btn-success" onclick="viewPDF()">
                                         📄 프로세스 메뉴얼 열람
                                     </button></h5>
-                                    <h5>- 조회 시, 마지막 버전이 최신 데이터 임.  </h5>
+                                    <h5 style="color: blue;">- 조회 시, 마지막 버전의 데이터가 PLM에서 조회되는 데이터 임 </h5>
                                 </div>
                             </div>
 
@@ -319,7 +324,7 @@
             crossDomain : true,
             url : "/subae/searchBlockLogic",
             data : {
-                blockNo : blockNo
+                blockNo : blockNo.trim()
             },
             beforeSend: function() {
                 $("html").css("cursor", "wait");
@@ -353,13 +358,13 @@
                             str += "<td>" + blockDto.blockName + "</td>";
                             str += "<td>" + blockDto.version + "</td>";
                             str += "<td>" + blockDto.block_opt + "</td>";
-                            str += "<td>" + blockDto.modUser + "</td>";
+                            str += "<td>" + toSafeString(blockDto.modUser) + "</td>";
                             str += "<td>" + blockDto.modDate + "</td>";
                             str += "<td>" + blockDto.gc_product + "</td>";
                             str += "<td>" + blockDto.uom + "</td>";
                             str += "<td>" + blockDto.partType + "</td>";
-                            str += "<td>" + blockDto.block_status + "</td>";
-                            str += "<td>" + blockDto.meterial_check + "</td>";
+                            str += "<td>" + toSafeString(blockDto.block_status) + "</td>";
+                            str += "<td>" + toSafeString(blockDto.meterial_check) + "</td>";
                         str += "</tr>";
                     } // end for
 
@@ -385,7 +390,14 @@
     }
 
 
-
+    /**
+     * null이거나 undefined이거나 빈 문자열인 경우 공백("")으로 처리하고, 그 외에는 원래 값을 반환
+     * @param value
+     * @returns {string|*}
+     */
+    function toSafeString(value) {
+        return value == null || value === '' ? '' : value;
+    }
 
 
     function isStringAndNotEmptyOrWhitespace(value) {

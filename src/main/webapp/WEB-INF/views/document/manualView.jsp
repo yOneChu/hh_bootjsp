@@ -134,7 +134,7 @@
                                             <td>1.</td>
                                             <td style="font-weight: bold;">
                                                 <h5>환경설정 파일</h5><br>
-                                                <h5 style="color: red"> (개발 진행 중으로 4/28 이후 설치 요청)</h5>
+                                                <%--<h5 style="color: red"> (개발 진행 중으로 4/28 이후 설치 요청)</h5>--%>
                                             </td>
                                             <td>
                                                 <button class="btn btn-success"><a href="http://10.225.80.35/vaultview/api/downloadaddin" target="_blank" style="color: white">⚙️ VaultAddin.zip</a>  </button>
@@ -145,7 +145,7 @@
                                             <td>2.</td>
                                             <td style="font-weight: bold;">
                                                 <h5> 환경설정 파일 설치 가이드</h5><br>
-                                                <h5 style="color: red"> (개발 진행 중으로 4/28 이후 설치 요청)</h5>
+                                                <%--<h5 style="color: red"> (개발 진행 중으로 4/28 이후 설치 요청)</h5>--%>
                                             </td>
                                             <td>
                                                 <button class="btn btn-success" onclick="downloadManual('3D 환경 설정 설치 가이드.pptx', '/resources/document/menual/')">📘 3D 환경설정 설치 가이드.pptx v1</button>
