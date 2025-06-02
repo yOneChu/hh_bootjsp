@@ -62,8 +62,8 @@ public class BlockHistoryRepository implements IFBlockHistory {
         String todayValue = now.toString();
 
     String sql = """
-                INSERT INTO BLOCK_HISTORY(BLOCKNO, BLOCKNAME, VERSION, UOM, GC_PRODUCT, PARTTYPE, BLOCK_OPT, MODDATE, CREDATE, PICK, PICKNAME, QTY, CMT, COLOR)
-                VALUES(?, ?, ?, ?, ?, ?, ?, ?,?,  ?,?,?,?,?)
+                INSERT INTO BLOCK_HISTORY(BLOCKNO, BLOCKNAME, VERSION, UOM, GC_PRODUCT, PARTTYPE, BLOCK_OPT, MODDATE, CREDATE, BLOCK_STATUS, MODUSER,DRAWINGONLY, PARTMANAGEMENT,MATERIAL_CHECK,LEVEL1,FLOOR_PART, PICK, PICKNAME, QTY, CMT, COLOR)
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,?,?,?,  ?,?,?,?,?)
 
             """;
 
@@ -79,7 +79,13 @@ public class BlockHistoryRepository implements IFBlockHistory {
                 blockHistory.getBlock_opt(),
                 blockHistory.getModDate(),
                 todayValue, // DB 저장일
-
+                blockHistory.getBlock_status(),
+                blockHistory.getModUser(),
+                blockHistory.getDrawingOnly(),
+                blockHistory.getPartManagement(),
+                blockHistory.getMaterial_check(),
+                blockHistory.getLevel1(),
+                blockHistory.getFloor_part(),
                 blockHistory.getPick(),
                 blockHistory.getPickName(),
                 blockHistory.getQty(),
@@ -100,8 +106,8 @@ public class BlockHistoryRepository implements IFBlockHistory {
         String sql = """
             SELECT
             A.blockNo, A.blockName, A.version, A.gc_product,
-            A.partType, A.uom, A.block_opt,
-            A.pick, A.pickName, A.qty, A.UOM, A.MODDATE,
+            A.partType, A.uom, A.block_opt, A.block_status,
+            A.pick, A.pickName, A.qty, A.modDate, A.modUser, A.material_check, A.level1, A.partManagement, A.floor_part,
             A.cmt, A.color
             FROM BLOCK_HISTORY A
             WHERE A.blockNo LIKE :blockNo
@@ -122,8 +128,8 @@ public class BlockHistoryRepository implements IFBlockHistory {
         String sql = """
             SELECT
             A.blockNo, A.blockName, A.version, A.gc_product,
-            A.partType, A.uom, A.block_opt,
-            A.pick, A.pickName, A.qty, A.UOM, A.MODDATE,
+            A.partType, A.uom, A.block_opt, A.block_status,
+            A.pick, A.pickName, A.qty, A.modDate, A.modUser, A.material_check, A.level1, A.partManagement, A.floor_part,
             A.cmt, A.color
             FROM BLOCK_HISTORY A
             WHERE A.blockNo = :blockNo
@@ -148,8 +154,8 @@ public class BlockHistoryRepository implements IFBlockHistory {
         String sql = """
             SELECT
             A.blockNo, A.blockName, A.version, A.gc_product,
-            A.partType, A.uom, A.block_opt,
-            A.pick, A.pickName, A.qty, A.UOM, A.MODDATE,
+            A.partType, A.uom, A.block_opt, A.block_status,
+            A.pick, A.pickName, A.qty, A.modDate, A.modUser, A.material_check, A.level1, A.partManagement, A.floor_part,
             A.cmt, A.color
             FROM BLOCK_HISTORY A
         """;

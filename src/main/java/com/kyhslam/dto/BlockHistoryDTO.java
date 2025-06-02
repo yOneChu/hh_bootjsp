@@ -20,7 +20,10 @@ public class BlockHistoryDTO {
     private String block_opt; //품목구분
     private String drawingOnly; //자재번호 사용 불가
     private String block_status; //활성상태
-    private String meterial_check; //재질관리
+    private String material_check; //재질관리
+    private String level1; //신1레벨여부
+    private String partManagement; //부품명 관리
+    private String floor_part; //층별부품
 
     private String pick;
     private String pickName;
@@ -31,7 +34,7 @@ public class BlockHistoryDTO {
     public BlockHistoryDTO() {
     }
 
-    public BlockHistoryDTO(String blockNo, String blockName, String version, String modDate, String modUser, String creDate, String gc_product, String uom, String partType, String block_opt, String drawingOnly, String block_status, String meterial_check, String pick, String pickName, String qty, String cmt, String color) {
+    public BlockHistoryDTO(String blockNo, String blockName, String version, String modDate, String modUser, String creDate, String gc_product, String uom, String partType, String block_opt, String drawingOnly, String block_status, String material_check, String level1, String partManagement, String floor_part, String pick, String pickName, String qty, String cmt, String color) {
         this.blockNo = blockNo;
         this.blockName = blockName;
         this.version = version;
@@ -44,7 +47,10 @@ public class BlockHistoryDTO {
         this.block_opt = block_opt;
         this.drawingOnly = drawingOnly;
         this.block_status = block_status;
-        this.meterial_check = meterial_check;
+        this.material_check = material_check;
+        this.level1 = level1;
+        this.partManagement = partManagement;
+        this.floor_part = floor_part;
         this.pick = pick;
         this.pickName = pickName;
         this.qty = qty;

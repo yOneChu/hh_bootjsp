@@ -106,4 +106,18 @@ public class SubaeController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    /**
+     * Block 기준정보 메일발송 테스트
+     * @return
+     */
+    @GetMapping("/subae/blockMailTest")
+    @ResponseBody
+    public String blockMailTest() {
+        System.out.println(" --- blockMailTest ");
+        blockHistoryService.blockMailTest();
+
+        return "ok";
+    }
+
 }

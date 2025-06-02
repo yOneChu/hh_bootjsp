@@ -42,7 +42,7 @@ public class PLMBlockUtil {
                        A.MODIFIYUSER AS MODUSER,--수정자
                        CODN(A.PART_TYPE) AS PART_TYPE, --자재유형
                        A.BLOCKUSER,
-                       CODN(A.PARTNAME_MANAGER) AS 부품명관리, --부품명 관리
+                       CODN(A.PARTNAME_MANAGER) AS PARTNAME_MANAGER, --부품명 관리
                        CODN(A.LEVEL1) AS LEVEL1, --신1레벨여부
                        CODN(A.FLOOR_PART) AS FLOOR_PART, -- 층별부품
                        A.COLOR_PID,
@@ -50,7 +50,7 @@ public class PLMBlockUtil {
                        CODN(A.UOM) AS UOM,
                        CODN(A.MATERIAL_CHECK) AS MATERIAL_CHECK, -- 재질관리
                        CODN(A.GC_PRODUCT) AS GC_PRODUCT, --제품군
-                       A.LOSSRATE AS 로스율, --로스율
+                       A.LOSSRATE AS LOSSRATE, --로스율
                        CODN(A.DRAWINGONLY) AS DRAWINGONLY,
                        CODN(A.BLOCK_OPT) AS BLOCK_OPT, --품목구분
                        A.QUALITYPERSON,
@@ -84,11 +84,17 @@ public class PLMBlockUtil {
                 String BLOCKNAME = rs.getString("BLOCKNAME") == null ? "" : rs.getString("BLOCKNAME");  //BLOCK 명
                 String GC_PRODUCT = rs.getString("GC_PRODUCT") == null ? "" : rs.getString("GC_PRODUCT"); //제품군
                 String UOM = rs.getString("UOM") == null ? "" : rs.getString("UOM"); //단위
-
+                String BLOCK_STATUS = rs.getString("BLOCK_STATUS") == null ? "" : rs.getString("BLOCK_STATUS");
 
                 String PART_TYPE = rs.getString("PART_TYPE") == null ? "" : rs.getString("PART_TYPE");  //자재유형 - 외주(ROH)
                 String BLOCK_OPT = rs.getString("BLOCK_OPT") == null ? "" : rs.getString("BLOCK_OPT");  //품목구분
                 String DRAWINGONLY = rs.getString("DRAWINGONLY") == null ? "" : rs.getString("DRAWINGONLY");  //자재번호 사용 불가
+                String PARTNAME_MANAGER = rs.getString("PARTNAME_MANAGER") == null ? "" : rs.getString("PARTNAME_MANAGER");
+                String MATERIAL_CHECK = rs.getString("MATERIAL_CHECK") == null ? "" : rs.getString("MATERIAL_CHECK");
+                String LEVEL1 = rs.getString("LEVEL1") == null ? "" : rs.getString("LEVEL1");
+                String FLOOR_PART = rs.getString("FLOOR_PART") == null ? "" : rs.getString("FLOOR_PART");
+
+
 
                 //PICK
                 String pickList = "";
@@ -161,10 +167,19 @@ public class PLMBlockUtil {
                 BlockHistoryDTO dto = new BlockHistoryDTO();
                 dto.setBlockNo(BLOCKNO);
                 dto.setBlockName(BLOCKNAME);
+                dto.setModUser(MODUSER);
                 dto.setPartType(PART_TYPE);
                 dto.setGc_product(GC_PRODUCT);
                 dto.setUom(UOM);
                 dto.setBlock_opt(BLOCK_OPT);
+                dto.setBlock_status(BLOCK_STATUS);
+                dto.setDrawingOnly(DRAWINGONLY);
+
+                dto.setPartManagement(PARTNAME_MANAGER);
+                dto.setMaterial_check(MATERIAL_CHECK);
+                dto.setLevel1(LEVEL1);
+                dto.setFloor_part(FLOOR_PART);
+
                 dto.setModDate(MOD_DAY);
                 dto.setPick(pickList);
                 dto.setPickName(pickNameList);
@@ -221,7 +236,7 @@ public class PLMBlockUtil {
                        A.MODIFIYUSER AS MODUSER,--수정자
                        CODN(A.PART_TYPE) AS PART_TYPE, --자재유형
                        A.BLOCKUSER,
-                       CODN(A.PARTNAME_MANAGER) AS 부품명관리, --부품명 관리
+                       CODN(A.PARTNAME_MANAGER) AS PARTNAME_MANAGER, --부품명 관리
                        CODN(A.LEVEL1) AS LEVEL1, --신1레벨여부
                        CODN(A.FLOOR_PART) AS FLOOR_PART, -- 층별부품
                        A.COLOR_PID,
@@ -229,7 +244,7 @@ public class PLMBlockUtil {
                        CODN(A.UOM) AS UOM,
                        CODN(A.MATERIAL_CHECK) AS MATERIAL_CHECK, -- 재질관리
                        CODN(A.GC_PRODUCT) AS GC_PRODUCT, --제품군
-                       A.LOSSRATE AS 로스율, --로스율
+                       A.LOSSRATE AS LOSSRATE, --로스율
                        CODN(A.DRAWINGONLY) AS DRAWINGONLY,
                        CODN(A.BLOCK_OPT) AS BLOCK_OPT, --품목구분
                        A.QUALITYPERSON,
@@ -265,11 +280,15 @@ public class PLMBlockUtil {
                 String BLOCKNAME = rs.getString("BLOCKNAME") == null ? "" : rs.getString("BLOCKNAME");  //BLOCK 명
                 String GC_PRODUCT = rs.getString("GC_PRODUCT") == null ? "" : rs.getString("GC_PRODUCT"); //제품군
                 String UOM = rs.getString("UOM") == null ? "" : rs.getString("UOM"); //단위
-
+                String BLOCK_STATUS = rs.getString("BLOCK_STATUS") == null ? "" : rs.getString("BLOCK_STATUS"); //활성상태
 
                 String PART_TYPE = rs.getString("PART_TYPE") == null ? "" : rs.getString("PART_TYPE");  //자재유형 - 외주(ROH)
                 String BLOCK_OPT = rs.getString("BLOCK_OPT") == null ? "" : rs.getString("BLOCK_OPT");  //품목구분
                 String DRAWINGONLY = rs.getString("DRAWINGONLY") == null ? "" : rs.getString("DRAWINGONLY");  //자재번호 사용 불가
+                String PARTNAME_MANAGER = rs.getString("PARTNAME_MANAGER") == null ? "" : rs.getString("PARTNAME_MANAGER");
+                String MATERIAL_CHECK = rs.getString("MATERIAL_CHECK") == null ? "" : rs.getString("MATERIAL_CHECK");
+                String LEVEL1 = rs.getString("LEVEL1") == null ? "" : rs.getString("LEVEL1");
+                String FLOOR_PART = rs.getString("FLOOR_PART") == null ? "" : rs.getString("FLOOR_PART");
 
                 //PICK
                 String pickList = "";
@@ -348,7 +367,12 @@ public class PLMBlockUtil {
                 dto.setGc_product(GC_PRODUCT);
                 dto.setUom(UOM);
                 dto.setBlock_opt(BLOCK_OPT);
-
+                dto.setBlock_status(BLOCK_STATUS);
+                dto.setDrawingOnly(DRAWINGONLY);
+                dto.setPartManagement(PARTNAME_MANAGER);
+                dto.setMaterial_check(MATERIAL_CHECK);
+                dto.setLevel1(LEVEL1);
+                dto.setFloor_part(FLOOR_PART);
 
                 dto.setPick(pickList);
                 dto.setPickName(pickNameList);

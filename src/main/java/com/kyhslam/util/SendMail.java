@@ -174,10 +174,11 @@ public class SendMail {
                     <h2 style="color: #2F5597;">Block 기준정보 변경 메일</h2>
                     <p>안녕하세요,</p>
                     <p>BlockNo 기준정보 변경 내용이 감지되어 메일 발송합니다.</p>
+                    <p>아래의 BlockNo 이력조회 화면에서 최신·이전 버전의 데이터를 비교하여 변경 내용을 확인해보시기 바랍니다.</p>
                     
                     <hr style="margin-top: 30px;"/>
                     <p style="font-size: 14px; color: #333;">
-                        🔗 <strong>기준정보 조회화면 링크:</strong> <a href="https://vault-in.hdel.co.kr:8070/subae/searchBlockStandardView" target="_blank">여기 클릭</a>
+                        🔗 <strong>기준정보 이력 조회화면 링크:</strong> <a href="https://vault-in.hdel.co.kr:8070/subae/searchBlockStandardView" target="_blank">여기 클릭</a>
                     </p>
                     
                     <hr style="margin-top: 30px;"/>

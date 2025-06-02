@@ -126,6 +126,7 @@
                                     <h5>2.	PLM에서 “B259B83” Block 정보가 변경 됨 -> “B259B83” 버전2로 데이터가 쌓임 </h5>
                                     <h5>3.	이력조회 화면에서 “B259B83” 버전1, 버전2 조회하여 데이터 비교하면 됨 </h5>
 
+                                    <h5 style="color: blue;"> 📌 참고사항 </h5>
                                     <h5 style="color: blue;">- PLM에서의 Block No 정보 변경 시, 별도의 DB에 이력관리되어 조회되는 화면 </h5>
                                     <h5>- PLM의 Block 기준정보 변경 시, 월~금 오전 8시에 변경 이력이 쌓이고 관련 담당자들에게 E-Mail 자동 발송 -> <button class="btn btn-success" onclick="viewPDF()">
                                         📄 프로세스 메뉴얼 열람
