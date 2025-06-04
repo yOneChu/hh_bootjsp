@@ -14,7 +14,13 @@ import java.util.Properties;
 
 public class SendMail {
 
+    /**
+     * 메일발송 API
+     * @param data
+     */
 
+    
+    
     //법인PDM-PLM 모니터링 결과 메일 발송
     public static void sendChinaPart(ArrayList<PartInfoDTO> data) {
         // SMTP 서버 설정
@@ -23,17 +29,11 @@ public class SendMail {
         String username = "SUBAEAdmin@hyundaielevator.com"; // 보내는 사람 이메일
         //String password = "1111"; // 이메일 비밀번호 또는 앱 비밀번호
 
+        //수신자
+        String toEmail = "jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, hh.park@hyundaielevator.com, sunwoo.jung@hyundaielevator.com, daehwan.ahn@hyundaielevator.com, jaehoon.yoo@hyundaielevator.com";
 
-        // 수신자 이메일
-        //서동기: dongki.seo@hyundaielevator.com
-        //박효현: hh.park@hyundaielevator.com
-        //안대환: daehwan.ahn@hyundaielevator.com
-        //정선우: sunwoo.jung@hyundaielevator.com
-        //이선욱: seonuk.lee@hyundaielevator.com
-        String toEmail = "jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, hh.park@hyundaielevator.com, sunwoo.jung@hyundaielevator.com, daehwan.ahn@hyundaielevator.com";
+        //참조자
         String ccEmail = "younghwan.kim@hyundaielevator.com, seonuk.lee@hyundaielevator.com";
-        //String toEmail = "seonuk.lee@hyundaielevator.com, younghwan.kim@hyundaielevator.com, jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, hh.park@hyundaielevator.com, sunwoo.jung@hyundaielevator.com, daehwan.ahn@hyundaielevator.com";
-        //String toEmail = "younghwan.kim@hyundaielevator.com";
 
         //String subject = "PLM-VAULT 연계 테스트 메일";
         String subject = """
@@ -156,11 +156,10 @@ public class SendMail {
         String username = "SUBAEAdmin@hyundaielevator.com"; // 보내는 사람 이메일
         //String password = "1111"; // 이메일 비밀번호 또는 앱 비밀번호
 
-        // 수신자 이메일
-        //서동기: dongki.seo@hyundaielevator.com
-        //안대환: daehwan.ahn@hyundaielevator.com
-        //이선욱: seonuk.lee@hyundaielevator.com
-        String toEmail = "jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, daehwan.ahn@hyundaielevator.com, younghwan.kim@hyundaielevator.com";
+        //수신자 이메일
+        String toEmail = "jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, daehwan.ahn@hyundaielevator.com, younghwan.kim@hyundaielevator.com, jaehoon.yoo@hyundaielevator.com";
+
+        //참조자
         String ccEmail = "younghwan.kim@hyundaielevator.com";
         //String toEmail = "younghwan.kim@hyundaielevator.com";
 
