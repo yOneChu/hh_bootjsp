@@ -291,15 +291,15 @@
      * Block 기준정보 상세화면
      * @param o
      */
-    function blockView(o) {
+    function blockView(blockNo, blockVer) {
         //console.log("1111")
-        console.log(o);
-        console.log(o.textContent);
-        console.log(o.innerText);
-        let blockNo = o.textContent;
+        //console.log(o);
+        //console.log(o.textContent);
+        //console.log(o.innerText);
+
 
         let urlValue = "/subae/searchBlockStandardInfo?";
-        urlValue += "blockNo=" + blockNo;
+        urlValue += "blockNo=" + blockNo + "&version=" + blockVer;
         window.open(urlValue,'_blank','width=1200, height=800, top=50, left=50, scrollbars=yes');
 
     }
@@ -351,12 +351,19 @@
                         //<a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202512');">
 
                         let blockNoVal = blockDto.blockNo;
+                        let blockVer = blockDto.version;
+
                         str += "<tr>";
                             str += "<td>" + (i+1) + "</td>";
-                            //str += "<td class='blockIn'><a href='#'>" + blockDto.blockNo + "</a></td>";
-                            str += "<td class='blockIn'><a href='javascript:void(0);' onclick='blockView(this)'>" + blockDto.blockNo + "</a></td>";
 
-                            str += "<td>" + blockDto.blockName + "</td>";
+                            //str += "<td class='blockIn'><a href='#'>" + blockDto.blockNo + "</a></td>";
+                            //str += "<td class='blockIn'><a href='javascript:void(0);' onclick='blockView(this)'>" + blockDto.blockNo + "</a></td>";
+                            //str += "<td class='blockIn'><a href='javascript:void(0);' onclick='blockView(\"" + blockNoVal + "\")'>" + blockDto.blockNo + "</a></td>";
+                            str += "<td class='blockIn'><a href='javascript:void(0);' onclick='blockView(\"" + blockNoVal + "\", \"" + blockVer + "\")'>" + blockDto.blockNo + "</a></td>";
+
+
+
+                        str += "<td>" + blockDto.blockName + "</td>";
                             str += "<td>" + blockDto.version + "</td>";
                             str += "<td>" + blockDto.block_opt + "</td>";
                             str += "<td>" + toSafeString(blockDto.modUser) + "</td>";

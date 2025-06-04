@@ -51,7 +51,11 @@ public class BlockHistoryService {
     //findOneByBlockNo
     public ArrayList<BlockHistoryDTO> findOneByBlockNo(String blockNo) {
         ArrayList<BlockHistoryDTO> dto = blockHistoryRepository.findOneByBlockNo(blockNo);
-        System.out.println("findOneByBlockNo : dto = " + dto);
+        return dto;
+    }
+
+    public ArrayList<BlockHistoryDTO> findOneByBlockNoVer(String blockNo, String version) {
+        ArrayList<BlockHistoryDTO> dto = blockHistoryRepository.findOneByBlockNoVer(blockNo, version);
         return dto;
     }
 

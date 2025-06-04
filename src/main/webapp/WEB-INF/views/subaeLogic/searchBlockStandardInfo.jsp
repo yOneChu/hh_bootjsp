@@ -19,14 +19,23 @@
     String blockName = request.getParameter("blockName");
     String version = request.getParameter("version");
 
-    System.out.println("searchBlockStandardInfo blockNo = " + blockNo);
+    //blockNo = "A103C";
+    //System.out.println("searchBlockStandardInfo blockNo = " + blockNo + ", " + version);
 
     WebApplicationContext context = WebApplicationContextUtils.getRequiredWebApplicationContext(application);
     // 원하는 Bean 가져오기
     BlockHistoryService blockHistoryService = (BlockHistoryService) context.getBean("BlockHistoryService");
 
+    ArrayList<BlockHistoryDTO> list = new ArrayList<>();
+
+    if(version != null && !"".equals(version)) {
+        list = blockHistoryService.findOneByBlockNoVer(blockNo, version);
+    } else {
+        list = blockHistoryService.findOneByBlockNo(blockNo);
+    }
+
     //ArrayList<BlockHistoryDTO> list = blockHistoryService.findByBlockNo(blockNo);
-    ArrayList<BlockHistoryDTO> list = blockHistoryService.findOneByBlockNo(blockNo);
+    //ArrayList<BlockHistoryDTO> list = blockHistoryService.findOneByBlockNo(blockNo);
     BlockHistoryDTO dto = list.get(0);
 %>
 <!DOCTYPE html>
@@ -93,6 +102,48 @@
                     <div class="col-12">
 
                         <div class="card card-primary">
+
+
+                            <table class="table">
+                                <tbody>
+                                <tr>
+                                    <th>Block No</th>
+                                    <td><%=dto.getBlockNo()%></td>
+
+                                    <th>Block No</th>
+                                    <td><%=dto.getBlockName()%></td>
+                                </tr>
+                                <tr>
+                                    <th>단위</th>
+                                    <td><%=dto.getUom()%></td>
+
+                                    <th>자재유형</th>
+                                    <td><%=dto.getPartType()%></td>
+                                </tr>
+                                <tr>
+                                    <th>활성상태</th>
+                                    <td><%=dto.getBlock_status()%></td>
+
+                                    <th>재질관리</th>
+                                    <td><%=dto.getMaterial_check()%></td>
+                                </tr>
+                                <tr>
+                                    <th>신1레벨여부</th>
+                                    <td><%=dto.getLevel1()%></td>
+
+                                    <th>층별부품</th>
+                                    <td><%=dto.getFloor_part()%></td>
+                                </tr>
+
+                                <tr>
+                                    <th>부품명 관리</th>
+                                    <td><%=dto.getPartManagement()%></td>
+
+                                    <th>자재번호 사용불가</th>
+                                    <td><%=dto.getDrawingOnly()%></td>
+                                </tr>
+                                </tbody>
+                            </table>
 
          <%--                   <div class="card-header">
                                 <h3 class="card-title">dto.getPick</h3>

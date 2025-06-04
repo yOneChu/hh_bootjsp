@@ -106,7 +106,7 @@ public class BlockHistoryRepository implements IFBlockHistory {
         String sql = """
             SELECT
             A.blockNo, A.blockName, A.version, A.gc_product,
-            A.partType, A.uom, A.block_opt, A.block_status,
+            A.partType, A.uom, A.block_opt, A.block_status, A.drawingOnly,
             A.pick, A.pickName, A.qty, A.modDate, A.modUser, A.material_check, A.level1, A.partManagement, A.floor_part,
             A.cmt, A.color
             FROM BLOCK_HISTORY A
@@ -114,7 +114,7 @@ public class BlockHistoryRepository implements IFBlockHistory {
             ORDER BY version DESC
         """;
 
-        System.out.println("sql.toString() = " + sql.toString());
+        //System.out.println("sql.toString() = " + sql.toString());
 
         SqlParameterSource param = new MapSqlParameterSource()
                 .addValue("blockNo", "%" + blockNo + "%");
@@ -128,7 +128,7 @@ public class BlockHistoryRepository implements IFBlockHistory {
         String sql = """
             SELECT
             A.blockNo, A.blockName, A.version, A.gc_product,
-            A.partType, A.uom, A.block_opt, A.block_status,
+            A.partType, A.uom, A.block_opt, A.block_status, A.drawingOnly,
             A.pick, A.pickName, A.qty, A.modDate, A.modUser, A.material_check, A.level1, A.partManagement, A.floor_part,
             A.cmt, A.color
             FROM BLOCK_HISTORY A
@@ -136,10 +136,33 @@ public class BlockHistoryRepository implements IFBlockHistory {
             ORDER BY version DESC
         """;
 
-        System.out.println("sql.toString() = " + sql.toString());
+        //System.out.println("sql.toString() = " + sql.toString());
 
         SqlParameterSource param = new MapSqlParameterSource()
                 .addValue("blockNo", blockNo);
+
+        //return jdbcTemplate.queryForObject(sql, param, blockHistoryRowMapper());
+        return (ArrayList<BlockHistoryDTO>) jdbcTemplate.query(sql, param, blockHistoryRowMapper());
+    }
+
+    public ArrayList<BlockHistoryDTO> findOneByBlockNoVer(String blockNo, String version) {
+
+        String sql = """
+            SELECT
+            A.blockNo, A.blockName, A.version, A.gc_product,
+            A.partType, A.uom, A.block_opt, A.block_status, A.drawingOnly,
+            A.pick, A.pickName, A.qty, A.modDate, A.modUser, A.material_check, A.level1, A.partManagement, A.floor_part,
+            A.cmt, A.color
+            FROM BLOCK_HISTORY A
+            WHERE A.blockNo = :blockNo AND A.VERSION = :version
+            ORDER BY version DESC
+        """;
+
+        //System.out.println("sql.toString() = " + sql.toString());
+
+        SqlParameterSource param = new MapSqlParameterSource()
+                .addValue("blockNo", blockNo)
+                .addValue("version", version);
 
         //return jdbcTemplate.queryForObject(sql, param, blockHistoryRowMapper());
         return (ArrayList<BlockHistoryDTO>) jdbcTemplate.query(sql, param, blockHistoryRowMapper());
@@ -154,13 +177,13 @@ public class BlockHistoryRepository implements IFBlockHistory {
         String sql = """
             SELECT
             A.blockNo, A.blockName, A.version, A.gc_product,
-            A.partType, A.uom, A.block_opt, A.block_status,
+            A.partType, A.uom, A.block_opt, A.block_status, A.drawingOnly,
             A.pick, A.pickName, A.qty, A.modDate, A.modUser, A.material_check, A.level1, A.partManagement, A.floor_part,
             A.cmt, A.color
             FROM BLOCK_HISTORY A
         """;
 
-        System.out.println("sql.toString() = " + sql.toString());
+        //System.out.println("sql.toString() = " + sql.toString());
         return jdbcTemplate.query(sql, blockHistoryRowMapper());
     }
 
