@@ -160,7 +160,7 @@ public class SendMail {
         String toEmail = "jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, daehwan.ahn@hyundaielevator.com, younghwan.kim@hyundaielevator.com, jaehoon.yoo@hyundaielevator.com";
 
         //참조자
-        String ccEmail = "younghwan.kim@hyundaielevator.com";
+        String ccEmail = "younghwan.kim@hyundaielevator.com, seonuk.lee@hyundaielevator.com";
         //String toEmail = "younghwan.kim@hyundaielevator.com";
 
         String subject = """
