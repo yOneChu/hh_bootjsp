@@ -31,6 +31,7 @@ public class SendMail {
 
         //수신자
         String toEmail = "jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, hh.park@hyundaielevator.com, sunwoo.jung@hyundaielevator.com, daehwan.ahn@hyundaielevator.com, jaehoon.yoo@hyundaielevator.com";
+        toEmail += ", je.lee@hyundaielevator.com";
 
         //참조자
         String ccEmail = "younghwan.kim@hyundaielevator.com, seonuk.lee@hyundaielevator.com";
@@ -158,10 +159,10 @@ public class SendMail {
 
         //수신자 이메일
         String toEmail = "jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, daehwan.ahn@hyundaielevator.com, younghwan.kim@hyundaielevator.com, jaehoon.yoo@hyundaielevator.com";
+        toEmail += ", je.lee@hyundaielevator.com";
 
         //참조자
-        String ccEmail = "younghwan.kim@hyundaielevator.com, seonuk.lee@hyundaielevator.com";
-        //String toEmail = "younghwan.kim@hyundaielevator.com";
+        String ccEmail = "kiseung.seong@hyundaielevator.com, hyunmi.lee@hyundaielevator.com, seongjip.kim@hyundaielevator.com, seonuk.lee@hyundaielevator.com";
 
         String subject = """
                 📢 BlockNo 기준정보 변경 모니터링 결과 메일
@@ -253,7 +254,7 @@ public class SendMail {
                     InternetAddress.parse(toEmail)
             ); //수신자
 
-            //message.setRecipients(Message.RecipientType.CC, InternetAddress.parse(ccEmail)); //참조자
+            message.setRecipients(Message.RecipientType.CC, InternetAddress.parse(ccEmail)); //참조자
             message.setSubject(subject);
             //message.setText(content);
             message.setContent(htmlContent, "text/html; charset=UTF-8");
