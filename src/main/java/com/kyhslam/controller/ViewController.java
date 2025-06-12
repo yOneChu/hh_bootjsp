@@ -19,7 +19,6 @@ public class ViewController {
     @GetMapping("/vault/designView")
     public String DesignView(String fileName) {
 
-        fileName = "C:\\200C0374.iam.dwf";
 
         return "/vault/designView";
     }

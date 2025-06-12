@@ -200,7 +200,7 @@
         <div class="float-right d-none d-sm-block">
             <b>Version</b> 1.0.0
         </div>
-        <strong>Copyright &copy; 2024 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
+        <strong>Copyright &copy; 2025 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
     </footer>
 
     <!-- Control Sidebar -->
@@ -259,7 +259,10 @@
         //C:\
         //let DWFFileName = 'c:/' + '200C0374.iam.dwf';
         //let DWFFileName = "C:\\200C0374.iam.dwf";
-        let DWFFileName = "<%=fileName%>";
+        let DWFFileName = "modelA/200C0374.iam.dwf";
+
+        //200C0374.iam.dwf
+
         console.log(DWFFileName);
 
         Autodesk.Viewing.Initializer({ env: 'Local' }, async function () {
@@ -279,14 +282,11 @@
             //ext.extendLocalization(locales);
             //viewer.extendLocalization(locales);
             //viewer.setTheme('light-theme');
+            console.log("111111111111");
             viewer.loadModel(DWFFileName);
 
+            console.log("22222222222222");
 
-            const toolbar = viewer.getToolbar();
-            console.log('toolbar --', toolbar);
-            //viewer.loadExtension('Autodesk.DWF').then(() => {
-            //  viewer.loadModel(DWFFileName);
-            //});
         })
     }
 
