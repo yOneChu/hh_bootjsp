@@ -156,7 +156,7 @@
 
 <!-- 상단 메뉴 -->
 <div class="top-nav">
-    <div class="logo">Hyundai 3D Viewer</div>
+    <div class="logo">Hyundai 3D Viewer 👀</div>
     <div class="menu">
         <a href="#">파일 열기</a>
         <a href="#">저장</a>
