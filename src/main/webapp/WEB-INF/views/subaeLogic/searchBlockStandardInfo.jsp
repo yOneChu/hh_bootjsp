@@ -176,12 +176,17 @@
                                     <%
 
                                         if (dto != null) {
-                                            List<String> pickList = Arrays.stream(dto.getPick().split("-")).collect(Collectors.toList());
-                                            List<String> pickNameList = Arrays.stream(dto.getPickName().split("-")).collect(Collectors.toList());
-                                            List<String> qtyList = Arrays.stream(dto.getQty().split("-")).collect(Collectors.toList());
-                                            List<String> cmtList = Arrays.stream(dto.getCmt().split("-")).collect(Collectors.toList());
-                                            List<String> colorList = Arrays.stream(dto.getColor().split("-")).collect(Collectors.toList());
+                                            List<String> pickList = Arrays.stream(dto.getPick().split("\\|")).collect(Collectors.toList());
+                                            List<String> pickNameList = Arrays.stream(dto.getPickName().split("\\|")).collect(Collectors.toList());
+                                            List<String> qtyList = Arrays.stream(dto.getQty().split("\\|")).collect(Collectors.toList());
+                                            List<String> cmtList = Arrays.stream(dto.getCmt().split("\\|")).collect(Collectors.toList());
+                                            List<String> colorList = Arrays.stream(dto.getColor().split("\\|")).collect(Collectors.toList());
+
+                                            //System.out.println("pickNameList = " + pickNameList);
+                                            //System.out.println("pickNameList = " + pickNameList.size());
+
                                             for (int i = 0; i < 33; i++) {
+                                                //System.out.println("i = " + i + " > " + pickNameList.get(i));
                                                 String pick = pickList.get(i).equals("X") ? "" : pickList.get(i);
                                                 String pickName = pickNameList.get(i).equals("X") ? "" : pickNameList.get(i);
                                                 String qty = qtyList.get(i).equals("X") ? "" : qtyList.get(i);

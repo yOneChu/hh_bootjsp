@@ -2257,31 +2257,31 @@
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;"> HPI(S700) </td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', 'total');"><font color="red"><%=HPI_S700.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', 'total');"><font color="red"><%=HPI_S700.getTotal() %> </font></a></td>
 
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '2024');"><font color="red"><%=HPI_S700.getTotal2024() %> </font></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202405');"><%= HPI_S700.getExport202405() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202406');"><%= HPI_S700.getExport202406() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202407');"><%= HPI_S700.getExport202407() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202408');"><%= HPI_S700.getExport202408() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202409');"><%= HPI_S700.getExport202409() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202410');"><%= HPI_S700.getExport202410() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202411');"><%= HPI_S700.getExport202411() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202412');"><%= HPI_S700.getExport202412() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '2025');"><font color="red"><%=HPI_S700.getTotal2025() %> </font></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202501');"><%= HPI_S700.getExport202501() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202502');"><%= HPI_S700.getExport202502() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202503');"><%= HPI_S700.getExport202503() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202504');"><%= HPI_S700.getExport202504() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202505');"><%= HPI_S700.getExport202505() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202506');"><%= HPI_S700.getExport202506() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202507');"><%= HPI_S700.getExport202507() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202508');"><%= HPI_S700.getExport202508() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202509');"><%= HPI_S700.getExport202509() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202510');"><%= HPI_S700.getExport202510() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202511');"><%= HPI_S700.getExport202511() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', '202512');"><%= HPI_S700.getExport202512() %></a></td>
-                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('opb_S521A', 'ETC');"><font color="red"><%= HPI_S700.getExport_etc() %></font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '2024');"><font color="red"><%=HPI_S700.getTotal2024() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202405');"><%= HPI_S700.getExport202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202406');"><%= HPI_S700.getExport202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202407');"><%= HPI_S700.getExport202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202408');"><%= HPI_S700.getExport202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202409');"><%= HPI_S700.getExport202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202410');"><%= HPI_S700.getExport202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202411');"><%= HPI_S700.getExport202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202412');"><%= HPI_S700.getExport202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '2025');"><font color="red"><%=HPI_S700.getTotal2025() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202501');"><%= HPI_S700.getExport202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202502');"><%= HPI_S700.getExport202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202503');"><%= HPI_S700.getExport202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202504');"><%= HPI_S700.getExport202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202505');"><%= HPI_S700.getExport202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202506');"><%= HPI_S700.getExport202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202507');"><%= HPI_S700.getExport202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202508');"><%= HPI_S700.getExport202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202509');"><%= HPI_S700.getExport202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202510');"><%= HPI_S700.getExport202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202511');"><%= HPI_S700.getExport202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', '202512');"><%= HPI_S700.getExport202512() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPI_S700', 'ETC');"><font color="red"><%= HPI_S700.getExport_etc() %></font></a></td>
                                     </tr>
 
 

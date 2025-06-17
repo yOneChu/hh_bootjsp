@@ -12,4 +12,6 @@ public interface IFBlockHistory {
     void saveBlockHistory(BlockHistoryDTO blockHistory, String version);
 
     ArrayList<BlockHistoryDTO> findByBlockNo(String blockNo);
+
+    void updateBlockHistory(BlockHistoryDTO blockHistory);
 }

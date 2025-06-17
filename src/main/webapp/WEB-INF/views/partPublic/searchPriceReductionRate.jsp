@@ -1270,6 +1270,7 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('HPB_K21A_MID', '202512');"><%= HPB_K21A_MID.getPrice202512() %></a></td>
                                     </tr>
 
+
                                     <%
                                         DashDto HPB_K21A_BOT = jdcbService.findById("HPB_K21A_BOT", todayVal);
                                     %>
