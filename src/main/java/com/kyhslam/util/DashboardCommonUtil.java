@@ -496,6 +496,14 @@ public class DashboardCommonUtil {
         tmBeltList.add("10111010G0800");
         tmBeltList.add("10111010G0500");
         tmBeltList.add("10111010G0600");
+        tmBeltList.add("10111010G010A"); //2025.06.17추가
+        tmBeltList.add("10111010G020A");
+        tmBeltList.add("10111010G030A");
+        tmBeltList.add("10111010G040A");
+        tmBeltList.add("10111010G050A");
+        tmBeltList.add("10111010G060A");
+        tmBeltList.add("10111010G070A");
+        tmBeltList.add("10111010G080A");
 
 
         //TM ROPE
