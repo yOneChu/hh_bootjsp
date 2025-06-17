@@ -44,6 +44,27 @@ public class BlockHistoryRepository implements IFBlockHistory {
         basicTemplate.update(sql);
     }
 
+    /**
+     * 수정
+     * @param blockHistory
+     */
+    @Override
+    public void updateBlockHistory(BlockHistoryDTO blockHistory) {
+        String sql = """
+            update BLOCK_HISTORY set PICK = ? , PICKNAME = ?, QTY = ?, CMT = ?, COLOR = ?
+             where blockNo = ? and VERSION = ?
+        """;
+
+        basicTemplate.update(sql,
+                blockHistory.getPick(),
+                blockHistory.getPickName(),
+                blockHistory.getQty(),
+                blockHistory.getCmt(),
+                blockHistory.getColor(),
+                blockHistory.getBlockNo(), //BlockNo
+                blockHistory.getVersion()
+        );
+    }
 
     /**
      * BlockNo 정보 저장
@@ -64,7 +85,6 @@ public class BlockHistoryRepository implements IFBlockHistory {
     String sql = """
                 INSERT INTO BLOCK_HISTORY(BLOCKNO, BLOCKNAME, VERSION, UOM, GC_PRODUCT, PARTTYPE, BLOCK_OPT, MODDATE, CREDATE, BLOCK_STATUS, MODUSER,DRAWINGONLY, PARTMANAGEMENT,MATERIAL_CHECK,LEVEL1,FLOOR_PART, PICK, PICKNAME, QTY, CMT, COLOR)
                 VALUES(?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,?,?,?,  ?,?,?,?,?)
-
             """;
 
         log.info("blockHistory = " + blockHistory.toString());
@@ -94,6 +114,33 @@ public class BlockHistoryRepository implements IFBlockHistory {
         );
     }
 
+    /**
+     * 버전으로 검색
+     * @param version
+     * @return
+     */
+    public ArrayList<BlockHistoryDTO> findByBlockNoVersion(String version) {
+
+        String sql = """
+            SELECT
+            A.blockNo, A.blockName, A.version, A.gc_product,
+            A.partType, A.uom, A.block_opt, A.block_status, A.drawingOnly,
+            A.pick, A.pickName, A.qty, A.modDate, A.modUser, A.material_check, A.level1, A.partManagement, A.floor_part,
+            A.cmt, A.color
+            FROM BLOCK_HISTORY A
+            WHERE A.VERSION = :version
+            ORDER BY version DESC
+        """;
+
+        //System.out.println("sql.toString() = " + sql.toString());
+
+        SqlParameterSource param = new MapSqlParameterSource()
+                //.addValue("blockNo", "%" + blockNo + "%");
+                .addValue("version", version);
+
+        //return jdbcTemplate.queryForObject(sql, param, blockHistoryRowMapper());
+        return (ArrayList<BlockHistoryDTO>) jdbcTemplate.query(sql, param, blockHistoryRowMapper());
+    }
 
     /**
      * BlockNo에 해당하는 이력 데이터 조회

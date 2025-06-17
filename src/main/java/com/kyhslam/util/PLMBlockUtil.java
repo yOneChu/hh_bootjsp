@@ -12,8 +12,6 @@ import java.util.ArrayList;
 
 public class PLMBlockUtil {
 
-    //초기화
-
     /**
      * PLM BlockNo 기준정보 히스토리 저장
      */
@@ -71,7 +69,6 @@ public class PLMBlockUtil {
                 FROM BLOCKNO$SF A
                 """;
 
-
             pstmt = con.prepareStatement(sql.toString());
             rs = pstmt.executeQuery();
 
@@ -101,11 +98,7 @@ public class PLMBlockUtil {
                 for (int i = 1; i < 34; i++) {
                     String colName = "PICK" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
-                    //pickList.add(val.trim());
-                    pickList += val.trim();
-                    if (i != 33) {
-                        pickList += "-";
-                    }
+                    pickList += val.trim() + "|";
                 }
 
                 //PICKNAME
@@ -114,36 +107,24 @@ public class PLMBlockUtil {
                 for (int i = 1; i < 34; i++) {
                     String colName = "PICKNAME" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
-                    pickNameList += val.trim();
-                    if (i != 33) {
-                        pickNameList += "-";
-                    }
+                    pickNameList += val.trim() + "|";
                 }
 
                 //QTY
-                //ArrayList<String> qtyList = new ArrayList<>();
                 String qtyList = "";
                 for (int i = 1; i < 34; i++) {
                     String colName = "QTY" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
-                    //qtyList.add(val.trim());
-                    qtyList += val.trim();
-                    if (i != 33) {
-                        qtyList += "-";
-                    }
+                    qtyList += val.trim() + "|";
                 }
 
                 //CMT
-                //ArrayList<String> cmtList = new ArrayList<>();
                 String cmtList = "";
                 for (int i = 1; i < 34; i++) {
                     String colName = "CMT" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
                     //cmtList.add(val.trim());
-                    cmtList += val.trim();
-                    if (i != 33) {
-                        cmtList += "-";
-                    }
+                    cmtList += val.trim() + "|";
                 }
 
                 //COLOR
@@ -153,10 +134,7 @@ public class PLMBlockUtil {
                     String colName = "COLOR" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
                     //colorList.add(val.trim());
-                    colorList += val.trim();
-                    if (i != 33) {
-                        colorList += "-";
-                    }
+                    colorList += val.trim() + "|";
                 }
 
                 if ("B259B83".equals(BLOCKNO)) {
@@ -197,7 +175,6 @@ public class PLMBlockUtil {
             PLMDBConnection.disconnect(con, pstmt, rs);
         }
         return list;
-
     }
 
 
@@ -215,8 +192,6 @@ public class PLMBlockUtil {
         LocalDate now = LocalDate.now().minusDays(1); // 하루 전 날짜
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         String todayValue = now.format(formatter);
-
-        //todayValue = "20250424";
 
         ArrayList<BlockHistoryDTO> list = new ArrayList<>();
         try {
@@ -295,67 +270,42 @@ public class PLMBlockUtil {
                 for (int i = 1; i < 34; i++) {
                     String colName = "PICK" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
-                    //pickList.add(val.trim());
-                    pickList += val.trim();
-                    if (i != 33) {
-                        pickList += "-";
-                    }
+                    pickList += val.trim() + "|";
                 }
 
                 //PICKNAME
-                //ArrayList<String> pickNameList = new ArrayList<>();
                 String pickNameList = "";
                 for (int i = 1; i < 34; i++) {
                     String colName = "PICKNAME" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
-                    pickNameList += val.trim();
-                    if (i != 33) {
-                        pickNameList += "-";
-                    }
+                    pickNameList += val.trim() + "|";
                 }
 
                 //QTY
-                //ArrayList<String> qtyList = new ArrayList<>();
                 String qtyList = "";
                 for (int i = 1; i < 34; i++) {
                     String colName = "QTY" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
-                    //qtyList.add(val.trim());
-                    qtyList += val.trim();
-                    if (i != 33) {
-                        qtyList += "-";
-                    }
+                    qtyList += val.trim() + "|";
                 }
 
                 //CMT
-                //ArrayList<String> cmtList = new ArrayList<>();
                 String cmtList = "";
                 for (int i = 1; i < 34; i++) {
                     String colName = "CMT" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
                     //cmtList.add(val.trim());
-                    cmtList += val.trim();
-                    if (i != 33) {
-                        cmtList += "-";
-                    }
+                    cmtList += val.trim() + "|";
                 }
 
                 //COLOR
-                //ArrayList<String> colorList = new ArrayList<>();
                 String colorList = "";
                 for (int i = 1; i < 34; i++) {
                     String colName = "COLOR" + String.valueOf(i);
                     String val = rs.getString(colName) == null ? "X" : rs.getString(colName);
                     //colorList.add(val.trim());
-                    colorList += val.trim();
-                    if (i != 33) {
-                        colorList += "-";
-                    }
+                    colorList += val.trim() + "|";
                 }
-
-                //if ("B259B83".equals(BLOCKNO)) {
-                //System.out.println((cnt++) + " :: " + BLOCKNO + " > " + BLOCKNAME + " > " + MOD_DAY + " > " + PART_TYPE);
-                //}
 
                 //BLOCKNO 정보 넣기
                 BlockHistoryDTO dto = new BlockHistoryDTO();
@@ -391,8 +341,5 @@ public class PLMBlockUtil {
         }
         return list;
     }
-
-
-
 
 }

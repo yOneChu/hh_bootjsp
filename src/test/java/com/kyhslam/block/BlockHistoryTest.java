@@ -15,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @SpringBootTest
 @Transactional
@@ -76,6 +78,78 @@ public class BlockHistoryTest {
         PLMBlockUtil.findByTodayBlockNo();
     }
 
+
+    /**
+     * 임시사용 데이터 구분자 "|"로 변경
+     */
+    @Test
+    @Commit
+    void findVersionAndUpdate() {
+        //findByBlockNoVersion
+
+        ArrayList<BlockHistoryDTO> list = blockHistoryRepository.findByBlockNoVersion("3");
+        for(int k=0;k<list.size();k++){
+            BlockHistoryDTO dto = list.get(k);
+            //System.out.println("dto = " + dto);
+
+            String blockNo = dto.getBlockNo();
+
+            List<String> pickList = Arrays.stream(dto.getPick().split("-")).collect(Collectors.toList());
+            List<String> pickNameList = Arrays.stream(dto.getPickName().split("-")).collect(Collectors.toList());
+            List<String> qtyList = Arrays.stream(dto.getQty().split("-")).collect(Collectors.toList());
+            List<String> cmtList = Arrays.stream(dto.getCmt().split("-")).collect(Collectors.toList());
+            List<String> colorList = Arrays.stream(dto.getColor().split("-")).collect(Collectors.toList());
+
+            //PICK
+            String pick = "";
+            for (int i = 0; i < pickList.size(); i++) {
+                String temp = pickList.get(i);
+                pick += temp + "|";
+            }
+            dto.setPick(pick);
+
+            //PICKNAME
+            String pickName = "";
+            for (int i = 0; i < pickNameList.size(); i++) {
+                String temp = pickNameList.get(i);
+                pickName += temp + "|";
+            }
+            dto.setPickName(pickName);
+
+
+            //QTY
+            String qty = "";
+            for (int i = 0; i < qtyList.size(); i++) {
+                String temp = qtyList.get(i);
+                qty += temp + "|";
+            }
+            dto.setQty(qty);
+
+            //CMT
+            String cmt = "";
+            for (int i = 0; i < cmtList.size(); i++) {
+                String temp = cmtList.get(i);
+                cmt += temp + "|";
+            }
+            dto.setCmt(cmt);
+
+            //COLOR
+            String color = "";
+            for (int i = 0; i < colorList.size(); i++) {
+                String temp = colorList.get(i);
+                color += temp + "|";
+            }
+            dto.setColor(color);
+
+
+
+            blockHistoryRepository.updateBlockHistory(dto);
+
+            System.out.println(blockNo + " :: pick = " + dto.getPick() + " ---- " + dto.getPickName());
+        } // end for
+        
+        
+    }
 
 
 }
