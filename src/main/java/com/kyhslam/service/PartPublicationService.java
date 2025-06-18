@@ -706,6 +706,7 @@ public class PartPublicationService {
                     continue;
                 }
 
+                
 
                 String exportDate = "";
                 String exportDateMod = "";
@@ -743,13 +744,6 @@ public class PartPublicationService {
                 }else {
                     //출하예정일 추출
                     exportDate = PartCommonUtil.findExportDate(hogi.trim(), blockNo);
-                    //String exportDateMod = "";
-                    /*if(exportDate == null || "".equals(exportDate.trim())) {
-                        exportDate = "";
-                        System.out.println(hogi + " > " + partNo + " > " + blockNo);
-                    } else {
-                        exportDateMod = exportDate.substring(0, 6);
-                    }*/
                 }
 
                 if(exportDate == null || "".equals(exportDate.trim())) {
@@ -758,7 +752,6 @@ public class PartPublicationService {
                 } else {
                     exportDateMod = exportDate.substring(0, 6);
                 }
-
 
 
                 //LAMP는 12/2이부터 출하

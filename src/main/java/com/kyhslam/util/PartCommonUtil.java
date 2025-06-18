@@ -14,7 +14,7 @@ public class PartCommonUtil {
     //호기의 출하예정일 추출
     public static String findExportDate(String hogi, String blockNo) {
 
-        System.out.println("PartCommonUtil findExportDate start ==-" + hogi + " > " + blockNo);
+        //System.out.println("PartCommonUtil findExportDate start ==-" + hogi + " > " + blockNo);
 
         Connection con = null;
         PreparedStatement stmt = null;
@@ -91,6 +91,10 @@ public class PartCommonUtil {
                         returnValue = SHIP_F;
                         break;
                 }
+            } // END WHILE
+
+            if (hogi.equals("N26399L03")) {
+                System.out.println(hogi + " > " + returnValue + " > " + blockNo);
             }
 
         } catch (Exception e) {

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.lang.reflect.Array;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -130,7 +131,7 @@ public class DashboardController {
             PARTNO += cpMRL_5.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "cpMRL_5", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "cpMRL_5", "20240501", "20251231");
 
         //cpMRL_5
         PARTNO = "";
@@ -138,7 +139,7 @@ public class DashboardController {
             PARTNO += cpMRL_9.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "cpMRL_9", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "cpMRL_9", "20240501", "20251231");
 
         //cpMRL_14
         PARTNO = "";
@@ -146,7 +147,7 @@ public class DashboardController {
             PARTNO += cpMRL_14.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "cpMRL_14", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "cpMRL_14", "20240501", "20251231");
 
         //cpMRL_17
         PARTNO = "";
@@ -154,7 +155,7 @@ public class DashboardController {
             PARTNO += cpMRL_17.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "cpMRL_17", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "cpMRL_17", "20240501", "20251231");
 
         //cpMR_5_5
         PARTNO = "";
@@ -162,7 +163,7 @@ public class DashboardController {
             PARTNO += cpMR_5_5.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "cpMR_5_5", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "cpMR_5_5", "20240501", "20251231");
 
         //cpMR_9
         PARTNO = "";
@@ -170,7 +171,7 @@ public class DashboardController {
             PARTNO += cpMR_9.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "cpMR_9", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "cpMR_9", "20240501", "20251231");
 
         //cpMR_14
         PARTNO = "";
@@ -178,7 +179,7 @@ public class DashboardController {
             PARTNO += cpMR_14.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "cpMR_14", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "cpMR_14", "20240501", "20251231");
 
         //cpMR_17_5
         PARTNO = "";
@@ -186,7 +187,7 @@ public class DashboardController {
             PARTNO += cpMR_17_5.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "cpMR_17_5", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "cpMR_17_5", "20240501", "20251231");
 
         //TM(Belt Type)
         PARTNO = "";
@@ -194,7 +195,7 @@ public class DashboardController {
             PARTNO += tmBeltList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "TM", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "TM", "20240501", "20251231");
 
         //TM(Rope)
         PARTNO = "";
@@ -202,7 +203,7 @@ public class DashboardController {
             PARTNO += tmRopeList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "TMRope", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "TMRope", "20240501", "20251231");
 
         //CAT TOP BOX
         PARTNO = "";
@@ -210,7 +211,7 @@ public class DashboardController {
             PARTNO += carboxList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "CARTOPBOX", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "CARTOPBOX", "20240501", "20251231");
 
         //GOV
         PARTNO = "";
@@ -218,7 +219,7 @@ public class DashboardController {
             PARTNO += govList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "GOV", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "GOV", "20240501", "20251231");
 
 
         //LAMP
@@ -227,14 +228,14 @@ public class DashboardController {
             PARTNO += lampOVERList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "LAMP_OVER", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "LAMP_OVER", "20240501", "20251231");
 
         PARTNO = "";
         for(int i=0; i < lampPITList.size(); i++) {
             PARTNO += lampPITList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "LAMP_PIT", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "LAMP_PIT", "20240501", "20251231");
 
 
         PARTNO = "";
@@ -242,7 +243,7 @@ public class DashboardController {
             PARTNO += lampCARTOPList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "LAMP_CARTOP", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "LAMP_CARTOP", "20240501", "20251231");
 
 
         PARTNO = "";
@@ -250,7 +251,7 @@ public class DashboardController {
             PARTNO += lampHOISTList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "LAMP_HOIST", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "LAMP_HOIST", "20240501", "20251231");
 
 
         //HPB
@@ -259,14 +260,14 @@ public class DashboardController {
             PARTNO += hpbTOPList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HPB_TOP", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HPB_TOP", "20240501", "20251231");
 
         PARTNO = "";
         for(int i=0; i < hpbMIDList.size(); i++) {
             PARTNO += hpbMIDList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HPB_MID", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HPB_MID", "20240501", "20251231");
 
 
         PARTNO = "";
@@ -274,7 +275,7 @@ public class DashboardController {
             PARTNO += hpbBOTList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HPB_BOT", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HPB_BOT", "20240501", "20251231");
 
         //HIP
         PARTNO = "";
@@ -282,21 +283,21 @@ public class DashboardController {
             PARTNO += hipSJ21TOPList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HIP_TOP", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HIP_TOP", "20240501", "20251231");
 
         PARTNO = "";
         for(int i=0; i < hipSJ21MIDList.size(); i++) {
             PARTNO += hipSJ21MIDList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HIP_MID", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HIP_MID", "20240501", "20251231");
 
         PARTNO = "";
         for(int i=0; i < hipSJ21BOTList.size(); i++) {
             PARTNO += hipSJ21BOTList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HIP_BOT", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HIP_BOT", "20240501", "20251231");
 
         //PIT
         PARTNO = "";
@@ -304,7 +305,7 @@ public class DashboardController {
             PARTNO += pitList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "PIT", "20241007", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "PIT", "20241007", "20251231");
 
         //HIP700
         PARTNO = "";
@@ -313,7 +314,7 @@ public class DashboardController {
             PARTNO += HPI_S700.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HPI_S700", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HPI_S700", "20240501", "20251231");
 
         //HPI_SC
         PARTNO = "";
@@ -322,7 +323,7 @@ public class DashboardController {
             PARTNO += HPI_SC.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HPI_SC", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HPI_SC", "20240501", "20251231");
 
 
         //OPB(D521AG)
@@ -331,7 +332,7 @@ public class DashboardController {
             PARTNO += opb_D521AG.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "OPB_D521AG", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "OPB_D521AG", "20240501", "20251231");
 
         //OPB(S521A)
         PARTNO = "";
@@ -339,7 +340,7 @@ public class DashboardController {
             PARTNO += opb_S521A.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "OPB_S521A", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "OPB_S521A", "20240501", "20251231");
 
 
         //HPB(K21,TOP)
@@ -349,7 +350,7 @@ public class DashboardController {
             PARTNO += HPB_K21_TOP.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HPB_K21_TOP", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HPB_K21_TOP", "20240501", "20251231");
 
         //HPB(K21,MID)
         ArrayList<String> HPB_K21_MID = (ArrayList<String>) initMap.get("HPB_K21_MID");
@@ -358,7 +359,7 @@ public class DashboardController {
             PARTNO += HPB_K21_MID.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HPB_K21_MID", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HPB_K21_MID", "20240501", "20251231");
 
         //HPB(K21,BOT)
         ArrayList<String> HPB_K21_BOT = (ArrayList<String>) initMap.get("HPB_K21_BOT");
@@ -367,7 +368,7 @@ public class DashboardController {
             PARTNO += HPB_K21_BOT.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HPB_K21_BOT", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HPB_K21_BOT", "20240501", "20251231");
 
         //HPB(K21A,TOP)
         ArrayList<String> HPB_K21A_TOP = (ArrayList<String>) initMap.get("HPB_K21A_TOP");
@@ -376,7 +377,7 @@ public class DashboardController {
             PARTNO += HPB_K21A_TOP.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HPB_K21A_TOP", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HPB_K21A_TOP", "20240501", "20251231");
 
         //HPB(K21A,MID)
         ArrayList<String> HPB_K21A_MID = (ArrayList<String>) initMap.get("HPB_K21A_MID");
@@ -385,7 +386,7 @@ public class DashboardController {
             PARTNO += HPB_K21A_MID.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HPB_K21A_MID", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HPB_K21A_MID", "20240501", "20251231");
 
 
         //HPB(K21A,BOT)
@@ -395,7 +396,7 @@ public class DashboardController {
             PARTNO += HPB_K21A_BOT.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        partPublicationService.savePartPublication(PARTNO, "HPB_K21A_BOT", "20240501", "20250531");
+        partPublicationService.savePartPublication(PARTNO, "HPB_K21A_BOT", "20240501", "20251231");
 
 
 

@@ -1,6 +1,7 @@
 package com.kyhslam.publicTest;
 
 import com.kyhslam.dto.HogiExportDTO;
+import com.kyhslam.service.PartPublicationService;
 import com.kyhslam.util.DashboardCommonUtil;
 import com.kyhslam.util.searchListBasedOnCondition;
 
@@ -38,50 +39,38 @@ public class searchTest01 {
         boolean isOnlyElv = false;
         boolean isGeneralElv = false;
 
-
+        specList = "";
+        specList += "EL_ATYP\n";   // 기종
+        specList += "ARKTX\n"; // 사양
 
         HashMap<String,Object> initMap = DashboardCommonUtil.initPartPublicData();
 
 
-        ArrayList<String> cpMRL_5 = (ArrayList<String>) initMap.get("cpMRL_5");
-        ArrayList<String> cpMRL_9 = (ArrayList<String>) initMap.get("cpMRL_9");
-        ArrayList<String> cpMRL_14 = (ArrayList<String>) initMap.get("cpMRL_14");
-        ArrayList<String> cpMRL_17 = (ArrayList<String>) initMap.get("cpMRL_17");
 
-        ArrayList<String> cpMR_5_5 = (ArrayList<String>) initMap.get("cpMR_5_5");
-        ArrayList<String> cpMR_9 = (ArrayList<String>) initMap.get("cpMR_9");
-        ArrayList<String> cpMR_14 = (ArrayList<String>) initMap.get("cpMR_14");
-        ArrayList<String> cpMR_17_5 = (ArrayList<String>) initMap.get("cpMR_17_5");
-
-
-        //2단계
-        ArrayList<String> cp2_MRL_General = (ArrayList<String>) initMap.get("cp2_MRL_General");
-        ArrayList<String> cp2_MRL_Revive = (ArrayList<String>) initMap.get("cp2_MRL_Revive");
-        ArrayList<String> cp2_MR_General = (ArrayList<String>) initMap.get("cp2_MR_General");
-        ArrayList<String> cp2_MR_Revive = (ArrayList<String>) initMap.get("cp2_MR_Revive");
-
-
-        ArrayList<String> carboxList = (ArrayList<String>) initMap.get("CARTOP"); //CAT TOP BOX
+        ArrayList<String> tmBeltList = (ArrayList<String>) initMap.get("TM"); //TM(BELT)
 
         PARTNO = "";
-        for(int i=0; i < carboxList.size(); i++) {
-            PARTNO += carboxList.get(i) + ",";
+        for(int i=0; i < tmBeltList.size(); i++) {
+            PARTNO += tmBeltList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        //savePartPublication(PARTNO, "cpMRL_5", "20240501", "20251231");
+        PartPublicationService.savePartPublication("TM", "cpMRL_5", "20240501", "20251231");
 
 
         String start_date_day = "20240501";
         String end_date_day = "20251231";
 
+/*
 
         try {
             HashMap resultHM = searchListBasedOnCondition.searchListBasedOnCondition(g_l_code, EL_ATYP, EL_ASPD_1, EL_ASPD_2, EL_AMAN_1, EL_AMAN_2, EL_ECSF, EL_ETM, EL_ECJJ_1, EL_ECJJ_2, PARTNO, BLOCKNO, start_date_day, end_date_day, specList, isOnlyElv, isGeneralElv);
             data = (ArrayList) resultHM.get("data");
             System.out.println("data.size == " + data.size());
+            System.out.println("data.size == " + data);
         } catch (Exception e) {
             e.printStackTrace();
         }
+*/
 
 
 
