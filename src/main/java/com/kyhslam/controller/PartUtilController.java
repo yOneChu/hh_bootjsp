@@ -19,6 +19,11 @@ import java.util.ArrayList;
 public class PartUtilController {
 
 
+    /**
+     * 제품의 최신 1레벨 조회
+     * @param productNo
+     * @return
+     */
     @GetMapping("/part/productLists")
     public ArrayList<ProductDto> findProductList(String productNo) {
         ArrayList<ProductDto> result = new ArrayList<>();
