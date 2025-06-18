@@ -7,6 +7,7 @@ import com.kyhslam.util.ProductCommonUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,8 +25,9 @@ public class PartUtilController {
      * @param productNo
      * @return
      */
-    @GetMapping("/part/productLists")
-    public ArrayList<ProductDto> findProductList(String productNo) {
+    @CrossOrigin
+    @GetMapping("/part/findProductBom")
+    public ArrayList<ProductDto> findProductBom(String productNo) {
         ArrayList<ProductDto> result = new ArrayList<>();
         result = ProductCommonUtil.findProductInfo(productNo);
 
