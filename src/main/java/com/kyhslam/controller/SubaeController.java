@@ -1,6 +1,7 @@
 package com.kyhslam.controller;
 
 import com.kyhslam.dto.BlockHistoryDTO;
+import com.kyhslam.dto.LogicDTO;
 import com.kyhslam.service.BlockHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 수배 or MLB 화면
@@ -63,7 +65,7 @@ public class SubaeController {
         System.out.println("blockNo = " + blockNo);
         ArrayList<BlockHistoryDTO> result = new ArrayList<>();
 
-        if(blockNo == null || blockNo.equals("")){
+        if (blockNo == null || blockNo.equals("")) {
             result = (ArrayList<BlockHistoryDTO>) blockHistoryService.findAll();
         } else {
             result = blockHistoryService.findByBlockNo(blockNo);
@@ -109,6 +111,7 @@ public class SubaeController {
 
     /**
      * Block 기준정보 메일발송 테스트
+     *
      * @return
      */
     @GetMapping("/subae/blockMailTest")
@@ -120,4 +123,31 @@ public class SubaeController {
         return "ok";
     }
 
+    @GetMapping("/subae/logicView")
+    public String logicView() {
+
+        log.info("========== subae logicView");
+
+
+        return "subaeLogic/logicView";
+    }
+
+    @PostMapping("/subae/logiceditor")
+    @ResponseBody
+    public List<LogicDTO> logiceditor() {
+
+        log.info("========== subae logiceditor");
+        List<LogicDTO> list = new ArrayList<>();
+
+        LogicDTO logic = new LogicDTO();
+        logic.setNo("0");
+        logic.setAddr("");
+        logic.setSpec1("EL_ETM \n aaa");
+        logic.setCon1(",?GT50?,?GT70?,?GT71?");
+
+        list.add(logic);
+        //list.add(new LogicDTO(2, "이영희", 34, "부산"));
+
+        return list;
+    }
 }
