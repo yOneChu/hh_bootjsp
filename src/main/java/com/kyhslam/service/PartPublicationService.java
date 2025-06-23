@@ -697,8 +697,11 @@ public class PartPublicationService {
                 String gongSa = (String) row.get(7); //StringUtil.NVL(row.get(7), "*");
                 String gisong = (String)row.get(8); // StringUtil.NVL(row.get(8), "*"); // 기종
                 String spec = (String)row.get(9); //StringUtil.NVL(row.get(9), "*"); // 스펙
-                String mUser = (String)row.get(10); //StringUtil.NVL(row.get(10), "*"); // 기계담당자
-                String eUser = (String)row.get(11); // StringUtil.NVL(row.get(11), "*"); // 전기담당자
+
+                String createNation = (String)row.get(10); // StringUtil.NVL(row.get(11), "*"); // 생산거점
+                String module = (String)row.get(11); // StringUtil.NVL(row.get(11), "*"); // 모듈러
+                String mUser = (String)row.get(12); //StringUtil.NVL(row.get(10), "*"); // 기계담당자
+                String eUser = (String)row.get(13); // StringUtil.NVL(row.get(11), "*"); // 전기담당자
 
                 if(hogi.startsWith("09999") || hogi.startsWith("N0999")
                         || hogi.startsWith("E0999") || hogi.startsWith("V")  || hogi.startsWith("Y") || hogi.startsWith("Q")) {
@@ -775,6 +778,8 @@ public class PartPublicationService {
                 dto.setEUser(eUser);
                 dto.setPartType(partType);
                 dto.setExportDate(exportDate);
+                dto.setCreateNation(createNation);
+                dto.setModule(module);
 
                 if ("202405".equals(sendDate)) {
                     insertFlag = true;

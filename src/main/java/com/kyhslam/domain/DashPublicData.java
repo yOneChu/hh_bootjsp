@@ -37,6 +37,9 @@ public class DashPublicData {
     private String ause; // 용도 : EL_AUSE
     private String floorCnt; //층수 : EL_AFQ
 
+    private String module; //모듈러: EL_AMDLR
+    private String createNation; //생산거점: EL_ASPSC
+
     private String mUser;
     private String eUser;
 }

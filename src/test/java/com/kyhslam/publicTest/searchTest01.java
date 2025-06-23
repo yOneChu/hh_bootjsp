@@ -42,6 +42,9 @@ public class searchTest01 {
         specList = "";
         specList += "EL_ATYP\n";   // 기종
         specList += "ARKTX\n"; // 사양
+        specList += "EL_ASPSC\n";  //생산거점
+        specList += "EL_AMDLR\n"; //모듈러
+        //EL_ASPSC
 
         HashMap<String,Object> initMap = DashboardCommonUtil.initPartPublicData();
 
@@ -54,23 +57,48 @@ public class searchTest01 {
             PARTNO += tmBeltList.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        PartPublicationService.savePartPublication("TM", "cpMRL_5", "20240501", "20251231");
-
 
         String start_date_day = "20240501";
         String end_date_day = "20251231";
 
-/*
 
         try {
             HashMap resultHM = searchListBasedOnCondition.searchListBasedOnCondition(g_l_code, EL_ATYP, EL_ASPD_1, EL_ASPD_2, EL_AMAN_1, EL_AMAN_2, EL_ECSF, EL_ETM, EL_ECJJ_1, EL_ECJJ_2, PARTNO, BLOCKNO, start_date_day, end_date_day, specList, isOnlyElv, isGeneralElv);
             data = (ArrayList) resultHM.get("data");
             System.out.println("data.size == " + data.size());
-            System.out.println("data.size == " + data);
+            //System.out.println("data.size == " + data);
+
+
+            for(int i=0;i<data.size();i++) {
+                ArrayList row = (ArrayList) data.get(i);
+
+
+                String erpSendDate = (String) row.get(0); //StringUtil.NVL(row.get(0), "*");
+                String hogi = (String) row.get(1); //StringUtil.NVL(row.get(1), "*");
+                String partNo = (String) row.get(3); // StringUtil.NVL(row.get(3), "*");
+                String qty = (String) row.get(4); // StringUtil.NVL(row.get(4), "*"); // 수량
+                String dwgNo = (String) row.get(5);  //StringUtil.NVL(row.get(5), "*"); // 도면번호
+                String blockNo = (String) row.get(6); // StringUtil.NVL(row.get(6), "*");
+                String gongSa = (String) row.get(7); //StringUtil.NVL(row.get(7), "*");
+                String gisong = (String)row.get(8); // StringUtil.NVL(row.get(8), "*"); // 기종
+                String spec = (String)row.get(9); //StringUtil.NVL(row.get(9), "*"); // 스펙
+
+                String createNation = (String)row.get(10); // StringUtil.NVL(row.get(11), "*"); // 생산거점
+                String module = (String)row.get(11); // StringUtil.NVL(row.get(11), "*"); // 모듈러
+                String mUser = (String)row.get(12); //StringUtil.NVL(row.get(10), "*"); // 기계담당자
+                String eUser = (String)row.get(13); // StringUtil.NVL(row.get(11), "*"); // 전기담당자
+
+
+
+
+                System.out.println(hogi + " > " + row);
+
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-*/
+
 
 
 
