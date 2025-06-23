@@ -569,6 +569,8 @@ public class PartPublicationService {
         specList = "";
         specList += "EL_ATYP\n";   // 기종
         specList += "ARKTX\n"; // 사양
+        specList += "EL_ASPSC\n";  //생산거점
+        specList += "EL_AMDLR\n"; //모듈러
 
         try {
 
