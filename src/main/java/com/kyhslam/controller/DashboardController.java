@@ -409,6 +409,13 @@ public class DashboardController {
         return "ok";
     }
 
+    //부품공용화 -> 상세화면
+    //dashboard/searchPriceReductionPopRev
+    @GetMapping("/searchPriceReductionPopRev")
+    public String searchPriceReductionPopRev() {
+
+        return "partPublic/searchPriceReductionPopRev";
+    }
 
     //http://localhost:8070/dashboard/batchvDelete
     //dashboard/batchvDelete

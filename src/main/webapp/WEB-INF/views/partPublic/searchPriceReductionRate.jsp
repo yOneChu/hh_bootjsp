@@ -2150,17 +2150,25 @@
     }); // end document ready
 
 
-
-
-
+    /**
+     * 대시보드 상세화면 리스트
+     * @param type
+     * @param viewDate
+     */
     function viewList(type, viewDate) {
 
         //console.log(type + " -- " + viewDate);
 
         let todayVal = '<%=todayVal %>'
 
-        let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionPopRev.jsp?";
-        //let urlValue = "http://localhost/jsp/searchLogic/searchPriceReductionPopRev.jsp?";
+        //PLM
+        //let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionPopRev.jsp?";
+
+        //VAULT-LOCAL
+        //let urlValue = "http://localhost:8070/dashboard/searchPriceReductionPopRev?";
+
+        //VAULT-운영
+        let urlValue = "https://vault-in.hdel.co.kr:8070/dashboard/searchPriceReductionPopRev?";
 
         urlValue += "viewType=" + type;
         urlValue += "&startDate=" + viewDate;

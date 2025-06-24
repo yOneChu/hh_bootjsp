@@ -44,6 +44,9 @@ public class searchTest01 {
         specList += "ARKTX\n"; // 사양
         specList += "EL_ASPSC\n";  //생산거점
         specList += "EL_AMDLR\n"; //모듈러
+        specList += "EL_ASPD\n"; //속도
+        specList += "EL_ACAPA\n"; //용량
+
         //EL_ASPSC
 
         HashMap<String,Object> initMap = DashboardCommonUtil.initPartPublicData();

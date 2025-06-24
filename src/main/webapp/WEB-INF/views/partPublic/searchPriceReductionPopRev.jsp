@@ -20,7 +20,7 @@
 <%
 
     //부품공용화 집계 - 대수
-    // searchPriceReductionRev.jsp
+    // searchPriceReductionPopRev.jsp
     // http://10.225.4.20/jsp/searchLogic/searchPriceReductionRev.jsp
     // http://localhost/jsp/searchLogic/searchPriceReductionRev.jsp
 
@@ -65,7 +65,7 @@
         sql.append(" A.batch_date, A.part_type, ");
         sql.append(" A.erp_send_date, A.erp_send_month, A.part_no,A.qty, A.dwg_no, A.export_date, ");
         sql.append(" A.gi_song, A.HOGI, A.BLOCK_NO, ");
-        sql.append(" A.gong_sa, A.SPEC, A.M_USER, A.E_USER ");
+        sql.append(" A.gong_sa, A.SPEC, A.M_USER, A.E_USER, A.CREATE_NATION, A.MODULE ");
         sql.append(" FROM dash_publicdata A ");
         //sql.append(" WHERE A.BATCH_DATE = ? ");
         sql.append(" WHERE A.BATCH_DATE = '" + todayVal + "'");
@@ -130,6 +130,8 @@
             String m_user = rs.getString("m_user") == null ? "" : rs.getString("m_user");
             String e_user = rs.getString("e_user") == null ? "" : rs.getString("e_user");
             String BLOCK_NO = rs.getString("BLOCK_NO") == null ? "" : rs.getString("BLOCK_NO");
+            String create_nation = rs.getString("CREATE_NATION") == null ? "" : rs.getString("CREATE_NATION");
+            String module = rs.getString("MODULE") == null ? "" : rs.getString("MODULE");
 
             HashMap<String, String> dMap = new HashMap<String, String>();
             dMap.put("part_name", part_name);
@@ -148,6 +150,9 @@
             dMap.put("spec", spec);
             dMap.put("m_user", m_user);
             dMap.put("e_user", e_user);
+
+            dMap.put("create_nation", create_nation);
+            dMap.put("module", module);
 
             dataList.add(dMap);
         }
@@ -303,6 +308,9 @@
                                     <tr class="bg-secondary">
                                         <th style="font-weight: bold; text-align: center;">전송일자</th>
                                         <th style="font-weight: bold; text-align: center;">호기</th>
+                                        <th style="font-weight: bold; text-align: center;">생산거점</th>
+                                        <th style="font-weight: bold; text-align: center;">모듈러</th>
+
                                         <th style="font-weight: bold; text-align: center;">출하예정일</th>
                                         <th style="font-weight: bold; text-align: center;">자재번호</th>
                                         <th style="font-weight: bold; text-align: center;">수량</th>
@@ -352,6 +360,8 @@
                                     <tr>
                                         <td> <%=strNewDtFormat %> </td>
                                         <td> <%=row.get("HOGI") %> </td>
+                                        <td> <%=row.get("create_nation") %> </td>
+                                        <td> <%=row.get("module") %> </td>
                                         <td style="font-weight: bold;"> <font color="red"> <%=strExportDate %> </font> </td>
                                         <td> <%=row.get("part_no") %> </td>
                                         <td> <%=row.get("qty") %> </td>
