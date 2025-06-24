@@ -205,8 +205,6 @@ public class searchDesignedList {
                 row.put("TYPE",rs.getString("TYPE"));
 
                 hm.put(rs.getString("NAME"), row);
-
-
             }
         }
         catch(Exception e)

@@ -4,8 +4,6 @@ import java.sql.*;
 
 public class VaultDBConnection {
 
-
-
     //VAULT DB Connection
     public static Connection getConnection() {
 
@@ -26,7 +24,6 @@ public class VaultDBConnection {
         }
         return con;
     }
-
 
     public static void disconnect(Connection con, PreparedStatement pstmt, ResultSet rs) {
 

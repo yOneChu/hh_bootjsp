@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kyhslam.repository.mybatis.PartUtilMapper">
+
+
+    <select id="findCOD" resultType="map">
+        select A.blockNo, A.blockName, A.version, A.gc_product,
+               A.partType, A.uom, A.block_opt,
+               A.pick, A.pickName, A.qty, A.UOM, A.MODDATE,
+               A.cmt, A.color
+        from BLOCK_HISTORY A
+        where A.module = #{blockNo}
+    </select>
+
+    <!--전체 삭제-->
+    <delete id="deleteAll">
+        delete from block_history where BLOCKNO != ''
+    </delete>
+
+    <!--    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+            insert into item(item_name, price, quantity)
+            values(#{itemName}, #{price}, #{quantity})
+        </insert>-->
+
+    <insert id="saveBlockHistory" >
+        INSERT INTO BLOCK_HISTORY(BLOCKNO, BLOCKNAME, VERSION, UOM, GC_PRODUCT, PARTTYPE, BLOCK_OPT, MODDATE, CREDATE, PICK, PICKNAME, QTY, CMT, COLOR)
+        VALUES(#{blockDto.blockNo}, #{blockDto.blockName}, #{blockDto.version}, #{blockDto.uom}, #{blockDto.gc_product},
+               #{blockDto.partType}, #{blockDto.block_opt}, #{blockDto.modDate}, #{blockDto.creDate},
+               #{blockDto.pick}, #{blockDto.pickName}, #{blockDto.qty}, #{blockDto.cmt}, #{blockDto.color})
+    </insert>
+
+    <!--    <update id="update">
+            update item
+            set item_name=#{updateParam.itemName},
+                price=#{updateParam.price},
+                quantity=#{updateParam.quantity}
+            where id = #{id}
+        </update>-->
+
+    <select id="findByBlockNo" resultType="BlockHistoryDTO">
+        select A.blockNo, A.blockName, A.version, A.gc_product,
+               A.partType, A.uom, A.block_opt,
+               A.pick, A.pickName, A.qty, A.UOM, A.MODDATE,
+               A.cmt, A.color
+        from BLOCK_HISTORY A
+        where A.blockNo = #{blockNo}
+    </select>
+
+
+    <!--
+        <select id="findAll" resultType="Item">
+            select id, item_name, price, quantity
+            from item
+            <where>
+                <if test="itemName != null and itemName != ''">
+                    and item_name like concat('%', #{itemName}, '%')
+                </if>
+                <if test="maxPrice != null">
+                    and price &lt;= #{maxPrice}
+                </if>
+            </where>
+        </select>-->
+</mapper>

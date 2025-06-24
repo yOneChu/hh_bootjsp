@@ -1250,8 +1250,18 @@
 
         //let urlValue = "http://localhost/jsp/searchLogic/searchPriceReductionPop.jsp?";
         //let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionPop.jsp?";
-        //let urlValue = "http://localhost/jsp/searchLogic/searchPriceReductionPopRev.jsp?";
-        let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionPopRev.jsp?";
+        //let urlValue = "http://localhost/jsp/searchLogic/searchPrniceReductionPopRev.jsp?";
+        //let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionPopRev.jsp?";
+
+        //PLM
+        //let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionPopRev.jsp?";
+
+        //VAULT-LOCAL
+        //let urlValue = "http://localhost:8070/dashboard/searchPriceReductionPopRev?";
+
+        //VAULT-운영
+        let urlValue = "https://vault-in.hdel.co.kr:8070/dashboard/searchPriceReductionPopRev?";
+
 
         urlValue += "viewType=" + type;
         urlValue += "&startDate=" + viewDate;

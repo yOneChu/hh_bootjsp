@@ -51,8 +51,6 @@ public class searchTest01 {
 
         HashMap<String,Object> initMap = DashboardCommonUtil.initPartPublicData();
 
-
-
         ArrayList<String> tmBeltList = (ArrayList<String>) initMap.get("TM"); //TM(BELT)
 
         PARTNO = "";
