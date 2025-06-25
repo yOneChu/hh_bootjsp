@@ -121,7 +121,7 @@
                             <div class="col-md-12">
                                 <div class="callout callout-danger">
                                     <h4><i class="fas fa-bullhorn"></i> 도움말</h4>
-                                    <h5 style="color: blue;"> ■ 사용 예시. </h5>
+                                    <h5 style="color: blue;"> ✅ 사용 예시. </h5>
                                     <h5>1.	2025.06.01 일자로 PLM에 있는 데이터를 백업해놓음 -> 해당 데이터가 이력조회 시, 버전 1에 해당 됨( 해당작업은 최초 1번 수행하고 수행되지 않음) </h5>
                                     <h5>2.	PLM에서 “B259B83” Block 정보가 변경 됨 -> “B259B83” 버전2로 데이터가 쌓임 </h5>
                                     <h5>3.	이력조회 화면에서 “B259B83” 버전1, 버전2 조회하여 데이터 비교하면 됨 </h5>

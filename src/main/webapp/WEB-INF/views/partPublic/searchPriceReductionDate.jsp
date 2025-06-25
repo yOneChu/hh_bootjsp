@@ -2725,10 +2725,17 @@
 
         //http://10.225.4.20/jsp/searchLogic/searchPriceReductionRate.jsp
 
-        //let urlValue = "http://10.225.4.20/jsp/searchLogic/searchPriceReductionDatePop.jsp?";
-
         //let urlValue = "http://localhost/jsp/searchLogic/searchPriceReductionDatePop.jsp?";
-        let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionDatePop.jsp?";
+        //let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionDatePop.jsp?";
+
+        //PLM
+        //let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionPopRev.jsp?";
+
+        //VAULT-LOCAL
+        //let urlValue = "http://localhost:8070/dashboard/searchPriceReductionPopRev?";
+
+        //VAULT-운영
+        let urlValue = "https://vault-in.hdel.co.kr:8070/dashboard/searchPriceReductionDatePop?";
 
         urlValue += "curDate=" + viewDate;
         urlValue += "&todayVal=" + todayVal;

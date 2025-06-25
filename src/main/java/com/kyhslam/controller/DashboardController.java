@@ -417,6 +417,13 @@ public class DashboardController {
         return "partPublic/searchPriceReductionPopRev";
     }
 
+    //출하예정일 -> 상세화면
+    @GetMapping("/searchPriceReductionDatePop")
+    public String searchPriceReductionDatePop() {
+        return "partPublic/searchPriceReductionDatePop";
+    }
+
+
     //http://localhost:8070/dashboard/batchvDelete
     //dashboard/batchvDelete
     @GetMapping("/batchvDelete")
