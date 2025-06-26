@@ -150,4 +150,11 @@ public class SubaeController {
 
         return list;
     }
+
+    //PLM에서 중국자재 조회
+    @GetMapping("/subae/searchCNPart")
+    public String searchCNPart() {
+
+        return "subaeLogic/searchCNPart";
+    }
 }
