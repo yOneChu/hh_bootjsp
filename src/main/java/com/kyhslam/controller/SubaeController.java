@@ -2,6 +2,7 @@ package com.kyhslam.controller;
 
 import com.kyhslam.dto.BlockHistoryDTO;
 import com.kyhslam.dto.LogicDTO;
+import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.service.BlockHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -151,10 +152,19 @@ public class SubaeController {
         return list;
     }
 
-    //PLM에서 중국자재 조회
+    //PLM에서 중국자재 조회화면
     @GetMapping("/subae/searchCNPart")
     public String searchCNPart() {
 
         return "subaeLogic/searchCNPart";
+    }
+
+    //PLM에서 중국자재 조회 로직
+    @PostMapping("/subae/searchCNPart")
+    @ResponseBody
+    public ArrayList<PartInfoDTO> searchCNPart(PartInfoDTO  partInfoDTO) {
+        ArrayList<PartInfoDTO> result = new ArrayList<>();
+
+        return result;
     }
 }
