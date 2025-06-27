@@ -63,8 +63,8 @@
 
 
     <!-- Main Sidebar Container -->
-    <jsp:include page="../layout/basicSideBar.jsp" flush="true" />
-
+    <%--<jsp:include page="../layout/basicSideBar.jsp" flush="true" />--%>
+    <jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true" />
 
     <!-- Content Wrapper. Contains page content -->
     <div class="content-wrapper">

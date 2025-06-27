@@ -651,7 +651,10 @@
 
     //ready
     $(document).ready(function() {
-
+        $("#subae").removeClass("menu-open");
+        $("#sap").removeClass("menu-open");
+        $("#mlb").removeClass("menu-open");
+        $("#vault").removeClass("menu-open");
 
     }); // end document ready
 

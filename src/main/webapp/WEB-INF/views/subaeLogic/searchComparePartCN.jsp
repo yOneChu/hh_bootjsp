@@ -310,6 +310,7 @@
     //ready
     $(document).ready(function() {
 
+        $("#dashboard").removeClass("menu-open");
 
         //엔터키 감지
         $(document).keyup(function(event) {

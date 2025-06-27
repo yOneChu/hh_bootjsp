@@ -366,6 +366,9 @@
 
     <!-- Main Sidebar Container -->
     <jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true" />
+<%--    <jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true">
+        <jsp:param name="menuType" value="dashboard" />
+    </jsp:include>--%>
 
 
     <!-- Content Wrapper. Contains page content -->
@@ -1755,6 +1758,13 @@
 
     //ready
     $(document).ready(function() {
+
+
+
+        $("#subae").removeClass("menu-open");
+        $("#sap").removeClass("menu-open");
+        $("#mlb").removeClass("menu-open");
+        $("#vault").removeClass("menu-open");
 
         console.log('highchart start');
 

@@ -8,6 +8,15 @@
     //대시보드 전용 Sidebar
     System.out.println("--- dashboardLayoutSideBar.jsp ---");
 
+    String menuType = request.getParameter("menuType");
+
+    String dashStyle = "";
+    if (menuType != null && !"".equals(menuType)) {
+        if (menuType.equals("dashboard")) {
+            dashStyle = "menu-open";
+        }
+    }
+    System.out.println("dashStyle = " + dashStyle);
 
 %>
 <!-- Main Sidebar Container -->
@@ -30,12 +39,27 @@
             </div>
         </div>
 
+
+
         <!-- Sidebar Menu -->
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
 
+
                 <!--<li class="nav-item menu-open">-->
-                <li class="nav-item menu-open">
+
+       <%--         <%
+                    if (menuType != null && !"".equals(menuType) && "dashboard".equals(menuType)) {
+                %>
+                <li id="dashboard" class="nav-item menu-open">
+                <%
+                    } else {
+                  %>
+                <li id="dashboard" class="nav-item">
+                  <%
+                    }
+                %>--%>
+                <li id="dashboard" class="nav-item menu-open">
                     <a href="#" class="nav-link">
                         <%--<i class="nav-icon fas fa-chart-pie"></i>--%>
                         <p>
@@ -82,7 +106,7 @@
                     </ul>
                 </li>
 
-                <li class="nav-item menu-open">
+                <li id="sap" class="nav-item menu-open">
                     <a href="#" class="nav-link">
                         <p>
                             🖥️ SAP
@@ -110,10 +134,10 @@
 
 
 
-                <li class="nav-item menu-open">
+                <li id="subae" class="nav-item menu-open">
                     <a href="#" class="nav-link">
                         <p>
-                            💡 수배로직
+                            🔍 수배로직
                             <i class="fas fa-angle-left right"></i>
                         </p>
                     </a>
@@ -155,6 +179,12 @@
                             </a>
                         </li>
 
+                        <li>
+                            <a href="/subae/searchCNPart" class="nav-link">
+                                <p>PLM중국자재조회테스트</p>
+                            </a>
+                        </li>
+
                         <%--<li>
                             <a href="/elvinfoDashboard" class="nav-link">
                                 <p>영업사양 등록 현황(2024년)</p>
@@ -164,10 +194,10 @@
                 </li>
 
 
-                <li class="nav-item menu-open">
+                <li id="mlb" class="nav-item menu-open">
                     <a href="#" class="nav-link">
                         <p>
-                            💡 MLB
+                            ✍️ MLB
                             <i class="fas fa-angle-left right"></i>
                         </p>
                     </a>
@@ -182,7 +212,7 @@
                     </ul>
                 </li>
 
-                <li class="nav-item menu-open">
+                <li id="vault" class="nav-item menu-open">
                     <a href="#" class="nav-link">
                         <p>
                             📡 3D
@@ -208,3 +238,11 @@
 </aside>
 
 
+<script>
+    $(document).ready(function() {
+
+
+        alert('side');
+
+    });
+</script>
