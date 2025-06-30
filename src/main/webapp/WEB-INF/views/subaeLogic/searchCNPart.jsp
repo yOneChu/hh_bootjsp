@@ -1,21 +1,7 @@
-<%@page import="java.sql.ResultSetMetaData"%>
-<%@page import="java.sql.ResultSet"%>
-<%@page import="java.sql.PreparedStatement"%>
-<%@page import="java.sql.Connection"%>
-<%@ page import="java.util.HashMap" %>
-<%@ page import="java.util.ArrayList" %>
-<%@ page import="org.springframework.web.context.WebApplicationContext" %>
-<%@ page import="org.springframework.web.context.support.WebApplicationContextUtils" %>
-<%@ page import="com.kyhslam.service.PartUtilService" %>
-
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
 
-<%
-//PLM에서 중국자재 조회
-
-%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -75,11 +61,7 @@
 
     <!-- Main Sidebar Container -->
     <jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true" />
-    <%--<jsp:include page="../layout/basicSideBar.jsp" flush="true" />--%>
 
-<%--    <jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true">
-        <jsp:param name="menuType" value="subae" />
-    </jsp:include>--%>
 
 
     <!-- Content Wrapper. Contains page content -->
@@ -134,14 +116,13 @@
                                     <h4> 📢 도움말</h4>
                                     <h5>- PLM에 등록된 Ownership이 중국법인인 자재들에 대해서만 조회하는 화면입니다.</h5>
                                     <h5>- 모든 검색 조건은 LIKE 기준으로 조회됩니다. </h5>
-
                                 </div>
                             </div>
 
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>Part No.</label>
-                                    <input type="search" id="partNo" class="form-control" placeholder="PID-01" value="">
+                                    <input type="search" id="partNo" class="form-control" placeholder="Part No.." value="">
                                     <div class="input-group-append">
                                     </div>
                                 </div>
@@ -149,7 +130,7 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>활성</label>
-                                    <select id="con-01" class="form-control select" style="width: 100%;">
+                                    <select id="status" class="form-control select" style="width: 100%;">
                                         <option selected="selected">활성</option>
                                         <option>비활성</option>
                                     </select>
@@ -157,11 +138,10 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label>-</label>
-                                    <select id="con-02" class="form-control select" style="width: 100%;">
-                                        <option selected="selected">LIKE</option>
-                                        <option>EQUAL</option>
-                                    </select>
+                                    <label>SPEC</label>
+                                    <input type="search" id="spec" class="form-control" placeholder="spec.." value="">
+                                    <div class="input-group-append">
+                                    </div>
                                 </div>
                             </div>
 
@@ -256,8 +236,6 @@
 
 </body>
 
-<!-- <script src="https://code.jquery.com/jquery-3.5.1.js"></script> -->
-
 <script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
 
 <!-- AdminLTE App -->
@@ -280,8 +258,6 @@
 <script src="/resources/dist/plugins/pdfmake/pdfmake.min.js"></script>
 <script src="/resources/dist/plugins/pdfmake/vfs_fonts.js"></script>
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
-<script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
-<script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 
 
 <script>
@@ -295,7 +271,7 @@
         "destroy": true, // 테이블 재생성
         //"scrollX": true, // 가로 스크롤
         //"buttons": ["csv", "excel", "pdf", "print"]
-        "buttons": ["csv", "excel", "copy"]
+        "buttons": [ "excel", "copy"]
     }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
 
 
@@ -317,89 +293,21 @@
     //검색
     function search()
     {
-        let partNo = $("#partNo").val(); // 제품번호
-
-
-        if(partNo == null || "" == partNo) {
-            console.log(partNo);
-            alert("부품번호를 입력하세요.");
-            return;
-        }
-
-        console.log("partNo == ", partNo);
+        let partNo = $("#partNo").val();
+        let spec = $("#spec").val();
+        let status = $("#status").val();
 
         $('#infoTable').DataTable().destroy();
         $("#contentTable").empty();
 
-        partNo = partNo.replaceAll(/^\s+|\s+$/g, "");
-        partNo = partNo.replaceAll(" ", "");
-        partNo = partNo.replaceAll("\n", "");
 
-        const partList = partNo.split(",");
-
-        console.log("partList == ", partList);
-
-        let dupCheck = new Array();
-
-        let koDataList = new Array();
-
-        if(partList != null && partList.length > 0) {
-
-            for(let i=0; i < partList.length; i++) {
-
-                let partNumber = partList[i].trim();
-
-                if(dupCheck.indexOf(partNumber) == -1) {
-                    dupCheck.push(partNumber);
-
-                } else {
-                    //종복된 것 있음
-                    console.log(" 중복 ------- ", partNumber);
-                    continue;
-                }
-
-                let koData = new Object();
-
-                //한국데이터 조회
-                $.ajax({
-                    type : "post",
-                    crossDomain: true,
-                    //url : "/plmetc/vault/getPartInfoWithKO",
-                    url : "/china/getPartInfoWithKO",
-                    data : {
-                        partNo : partNumber // partNo.trim()
-                    },
-                    success : function(data)
-                    {
-                        koData = data;
-
-                        if(data != null) {
-                            koDataList.push(koData);
-                        }
-
-                        console.log("한국 data - ", data);
-                        console.log("data.length - ", data.length);
-                    }
-                });
-
-
-
-            } // end for
-        }
-
-
-        console.log("koDataList - ", koDataList);
-
-
-        //중국조회
         $.ajax({
-            type : "get",
-            //crossDomain: true,
-            //url : "https://10.225.80.35:8070/part/getPartInfo",
-            url : "https://vault-in.hdel.co.kr:8070/part/getPartALLInfo",
-            //url : "/plmetc/vault/getPartInfoWithKO",
+            type : "post",
+            url : "/subae/searchCNPart",
             data : {
-                partNo : partNo.trim()
+                partNo : partNo.trim(),
+                spec : spec.trim(),
+                status : status.trim()
             },
             beforeSend: function() {
                 $("html").css("cursor", "wait");
@@ -409,93 +317,29 @@
             },
             success : function(data)
             {
-                console.log("cn data - ", data);
-                console.log("cn data.length - ", data.length);
+                console.log("data - ", data);
                 let str = "";
 
                 if(data != null ) {
 
                     for(let i=0; i < data.length; i++) {
-
-                        let cData = data[i];
-                        let koData = new Object();
-
-
-                        for(let k=0; k < koDataList.length; k++) {
-
-                            let koObj = koDataList[k];
-                            let koPartNo = koObj.PARTNO;
-
-                            //console.log(koPartNo + "  !!!!!!!!!!!!!!  " + cData.PARTNO);
-
-                            if(koPartNo == cData.PARTNO) {
-                                koData = koObj;
-                            }
-                        }
-
-                        let koGLCODE = koData.GLCODE;
-                        let cnGLCODE = cData.GLCODE;
-
-                        if(koData.PARTNO == null && cData.PARTNO == null) {
-                            continue;
-                        }
-
                         str += "<tr>";
-                        str += "<td>" + koData.PARTNO + "</td>";
-
-                        //한국
-                        str += "<td>" + koData.BLOCKNO + "</td>";
-                        str += "<td>" + koData.BLOCKNONAME + "</td>";
-                        str += "<td>" + koData.DESCVAL + "</td>"; // PARTNAME
-                        str += "<td>" + koData.SPEC + "</td>";
-                        str += "<td>" + koData.UOM + "</td>"; // 단위
-                        str += "<td>" + koData.PART_SIZE + "</td>"; // 단위
-                        //PART_SIZE
-
-                        if(koGLCODE != cnGLCODE) {
-                            str += "<td class='bg-maroon color-palette'>" + koData.GLCODE + "</td>";
-                        } else {
-                            str += "<td>" + koData.GLCODE + "</td>";
-                        }
-                        str += "<td>" + koData.STATUS + "</td>"; // 상태
-
-
-                        //중국
-                        str += "<td>" + cData.PARTNO + "</td>";
-                        str += "<td>" + cData.ENAME + "</td>";
-
-                        if(koGLCODE != cnGLCODE) {
-                            str += "<td class='bg-maroon color-palette'>" + cData.GLCODE + "</td>";
-                        } else {
-                            str += "<td>" + cData.GLCODE + "</td>";
-                        }
-
-                        str += "<td>" + cData.BLOCKNO + "</td>";
-                        str += "<td>" + cData.UOM + "</td>";
-
-                        //str += "<td>" + cData.DISAWAY + "</td>";
-                        if(cData.DISAWAY == "Y") {
-                            str += "<td class='bg-maroon color-palette'>" + cData.DISAWAY + "</td>";
-                        } else {
-                            str += "<td>" + cData.DISAWAY + "</td>";
-                        }
-
-
-                        str += "<td>" + cData.STATUS + "</td>"; // 상태
-
-                        str += "<td>" + cData.PART_VERSION + "</td>";
-                        str += "<td>" + cData.PART_SIZE + "</td>";
-                        str += "<td>" + cData.DIV + "</td>";
-                        str += "<td>" + cData.SPEC + "</td>";
-                        str += "</td>";
+                            str += "<td>" + data[i].partNo + "</td>";
+                            str += "<td>" + data[i].blockNo + "</td>";
+                            str += "<td>" + data[i].blockName + "</td>";
+                            str += "<td>" + data[i].partName + "</td>";
+                            str += "<td>" + data[i].spec + "</td>";
+                            str += "<td>" + data[i].uom + "</td>";
+                            str += "<td>" + data[i].partSize + "</td>";
+                            str += "<td>" + data[i].glCode + "</td>";
+                            str += "<td>" + data[i].status + "</td>";
                         str += "</tr>";
-
                     }
 
-                    //<td bgcolor="#e6f2ff">DD</td>
+                    console.log("--------------------");
+                    console.log(str);
 
                     $("#contentTable").append(str);
-
 
                     $("#infoTable").DataTable({
                         "responsive": true,
@@ -504,10 +348,6 @@
                         "autoWidth": false, // 가로자동
                         "processing": true,
                         "destroy": true, // 테이블 재생성
-                        "columnDefs" : [
-                            {target: 6, width: 100}, //주석
-                            {target: 7, width: 100}
-                        ],
                         "buttons": ["csv", "excel", "copy"]
                     }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
 

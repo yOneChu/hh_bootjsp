@@ -12,6 +12,6 @@ public interface PartUtilMapper {
 
     HashMap<String, String> findCOD(String module, String nation);
 
-
+    ArrayList<PartInfoDTO> findCNPart(PartInfoDTO partInfoDTO);
 
 }

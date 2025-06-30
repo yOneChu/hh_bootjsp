@@ -49,17 +49,47 @@
     </select>
 
 
-    <!--
-        <select id="findAll" resultType="Item">
-            select id, item_name, price, quantity
-            from item
-            <where>
-                <if test="itemName != null and itemName != ''">
-                    and item_name like concat('%', #{itemName}, '%')
-                </if>
-                <if test="maxPrice != null">
-                    and price &lt;= #{maxPrice}
-                </if>
-            </where>
-        </select>-->
+    <select id="findCNPart" resultType="PartInfoDTO">
+
+        SELECT A.md$number AS PARTNO,
+            A.md$desc AS PART_NAME,
+            A.BLOCKNO_NUMBER AS BLOCKNO, A.spec, A.g_l_code GL_CODE,
+            A.PART_SIZE,
+            A.nation,
+            CODN(A.NATION) AS NA, --Ownership
+            cod(A.uom) AS UOM,
+            CODN(A.origin_div) origin_div, --외주
+            cod(A.spt) spt,
+            A.PART_STATUS,
+            CODN(A.part_status) part_status,
+            A.old_code, A.old_code2, A.old_code3, old_code4
+        FROM normalpart$vf A, normalpart$id B
+        WHERE A.vf$ouid = B.id$last
+        AND LENGTH (A.md$number)=11 AND A.NATION = 2803457356
+        <where>
+            <if test="blockNo != null and blockNo != ''">
+                and A.BLOCKNO_NUMBER like concat('%', #{blockNo}, '%')
+            </if>
+            <if test="partNo != null and partNo != ''">
+                and A.md$number like concat('%', #{partNo}, '%')
+            </if>
+            <if test="partName != null and partName != ''">
+                and A.md$desc like concat('%', #{md$desc}, '%')
+            </if>
+            <if test="div != null and div != ''">
+                and CODN(A.origin_div) like concat('%', #{div}, '%')
+            </if>
+        </where>
+
+   <!--     select id, item_name, price, quantity
+        from item
+        <where>
+            <if test="itemName != null and itemName != ''">
+                and item_name like concat('%', #{itemName}, '%')
+            </if>
+            <if test="maxPrice != null">
+                and price &lt;= #{maxPrice}
+            </if>
+        </where>-->
+    </select>
 </mapper>

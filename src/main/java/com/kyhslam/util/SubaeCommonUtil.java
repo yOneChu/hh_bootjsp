@@ -29,7 +29,9 @@ public class SubaeCommonUtil {
             String sql = """
                     SELECT A.md$number AS PARTNO,
                            A.md$desc AS PARTNAME,
-                           A.BLOCKNO_NUMBER AS BLOCKNO, A.spec AS SPEC, A.g_l_code AS GL_CODE,
+                           A.BLOCKNO_NUMBER AS BLOCKNO, 
+                           A.spec AS SPEC, 
+                           A.g_l_code AS GL_CODE,
                            A.PART_SIZE,
                            A.nation,
                            CODN(A.NATION) AS NATION_KO, 
@@ -63,21 +65,25 @@ public class SubaeCommonUtil {
             }
 
             if (pBlockNo != null && !"".equals(pBlockNo)) {
-                sql += "AND A.BLOCKNO_NUMBER like '%" + pBlockNo + "%'";
+                sql += " AND A.BLOCKNO_NUMBER like '%" + pBlockNo + "%'";
                 paramFlag = true;
             }
 
             if (pPartName != null && !"".equals(pPartName)) {
-                sql += "AND A.md$desc like '%" + pPartName + "%'";
+                sql += " AND A.md$desc like '%" + pPartName + "%'";
                 paramFlag = true;
             }
 
             if (div != null && !"".equals(div)) {
-                sql += "AND CODN(A.origin_div) like '%" + div + "%'";
+                sql += " AND CODN(A.origin_div) like '%" + div + "%'";
             }
 
             if (status != null && !"".equals(status)) {
-                sql += "AND CODN(A.part_status) like '%" + status + "%'";
+                sql += " AND CODN(A.part_status) like '%" + status + "%'";
+            }
+
+            if (pSpec != null && !"".equals(pSpec)) {
+                sql += " AND A.SPEC like '%" + pSpec + "%'";
             }
 
 
@@ -110,6 +116,7 @@ public class SubaeCommonUtil {
                 dto.setPartSize(PART_SIZE);
                 dto.setUom(UOM);
                 dto.setBlockNo(BLOCKNO);
+                dto.setStatus(PART_STATUS);
 
                 result.add(dto);
 

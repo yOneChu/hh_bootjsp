@@ -4,6 +4,7 @@ import com.kyhslam.dto.BlockHistoryDTO;
 import com.kyhslam.dto.LogicDTO;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.service.BlockHistoryService;
+import com.kyhslam.service.SubaeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResource;
@@ -30,6 +31,9 @@ import java.util.List;
 public class SubaeController {
 
     private final BlockHistoryService blockHistoryService;
+
+    private final SubaeService subaeService;
+
 
     //본사-법인 자재비교
     @GetMapping("/subae/comparePartCN")
@@ -162,9 +166,15 @@ public class SubaeController {
     //PLM에서 중국자재 조회 로직
     @PostMapping("/subae/searchCNPart")
     @ResponseBody
-    public ArrayList<PartInfoDTO> searchCNPart(PartInfoDTO  partInfoDTO) {
+    public ArrayList<PartInfoDTO> searchCNPart(PartInfoDTO  param) {
         ArrayList<PartInfoDTO> result = new ArrayList<>();
 
+        System.out.println("param.toString() = " + param.toString());
+
+        System.out.println("param.getPartNo() = " + param.getPartNo());
+
+        result = subaeService.findOneFromPartNo(param);
+        System.out.println("result.size() = " + result.size());
         return result;
     }
 }
