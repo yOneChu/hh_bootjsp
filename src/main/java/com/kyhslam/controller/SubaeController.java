@@ -170,7 +170,6 @@ public class SubaeController {
         ArrayList<PartInfoDTO> result = new ArrayList<>();
 
         System.out.println("param.toString() = " + param.toString());
-
         System.out.println("param.getPartNo() = " + param.getPartNo());
 
         result = subaeService.findOneFromPartNo(param);

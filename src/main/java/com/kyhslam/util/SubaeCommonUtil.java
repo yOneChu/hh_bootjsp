@@ -30,24 +30,25 @@ public class SubaeCommonUtil {
                     SELECT A.md$number AS PARTNO,
                            A.md$desc AS PARTNAME,
                            A.BLOCKNO_NUMBER AS BLOCKNO, 
+                           NVL((SELECT BLOCKNO$SF.MD$DESC FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(A.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(A.BLOCKNO, 12))))), '-') AS BLOCKNO_NAME,
                            A.spec AS SPEC, 
                            A.g_l_code AS GL_CODE,
                            A.PART_SIZE,
                            A.nation,
+                           A.VF$VERSION AS VERSION,
                            CODN(A.NATION) AS NATION_KO, 
                            cod(A.uom) AS UOM,
                            CODN(A.origin_div) AS origin_div, --외주
                            cod(A.spt) AS spt,
+                           A.MD$STATUS AS PART_STATUS,
                            --A.PART_STATUS,
-                           --CODN(A.PART_STATUS) AS ,
-                           CODN(A.part_status) part_status,
+                           --CODN(A.PART_STATUS)  ,
+                           CODN(A.part_status) AS ACTIVE,
                            A.old_code, A.old_code2, A.old_code3, old_code4
                     FROM normalpart$vf A, normalpart$id B
                     WHERE A.vf$ouid = B.id$last
                       AND LENGTH (A.md$number)=11 AND A.NATION = 2803457356
                     """;
-
-            boolean paramFlag = false;
 
             String pPartNo = param.getPartNo();
             String pBlockNo = param.getBlockNo();
@@ -56,22 +57,16 @@ public class SubaeCommonUtil {
             String div = param.getDiv();
             String status = param.getStatus();
 
-
-            String whereXp = "";
-
             if (pPartNo != null && !"".equals(pPartNo)) {
                 sql += "AND A.md$number like '%" + pPartNo + "%'";
-                paramFlag = true;
             }
 
             if (pBlockNo != null && !"".equals(pBlockNo)) {
                 sql += " AND A.BLOCKNO_NUMBER like '%" + pBlockNo + "%'";
-                paramFlag = true;
             }
 
             if (pPartName != null && !"".equals(pPartName)) {
                 sql += " AND A.md$desc like '%" + pPartName + "%'";
-                paramFlag = true;
             }
 
             if (div != null && !"".equals(div)) {
@@ -85,8 +80,6 @@ public class SubaeCommonUtil {
             if (pSpec != null && !"".equals(pSpec)) {
                 sql += " AND A.SPEC like '%" + pSpec + "%'";
             }
-
-
 
             System.out.println("sql = " + sql);
 
@@ -105,8 +98,10 @@ public class SubaeCommonUtil {
                 String NATION_KO   = rs.getString("NATION_KO");
                 String PART_STATUS   = rs.getString("PART_STATUS");
                 String UOM   = rs.getString("UOM");
+                String ACTIVE   = rs.getString("ACTIVE");
 
                 String BLOCKNO   = rs.getString("BLOCKNO") == null ? "" : rs.getString("BLOCKNO");
+                String BLOCKNO_NAME   = rs.getString("BLOCKNO_NAME") == null ? "" : rs.getString("BLOCKNO_NAME");
 
                 PartInfoDTO dto = new PartInfoDTO();
                 dto.setPartNo(PARTNO);
@@ -116,11 +111,11 @@ public class SubaeCommonUtil {
                 dto.setPartSize(PART_SIZE);
                 dto.setUom(UOM);
                 dto.setBlockNo(BLOCKNO);
+                dto.setBlockName(BLOCKNO_NAME);
                 dto.setStatus(PART_STATUS);
+                dto.setActive(ACTIVE);
 
                 result.add(dto);
-
-
 
                 //System.out.println(PARTNO + " - " + BLOCKNO + " - " + DESCVAL + " , " + GLCODE);
             }

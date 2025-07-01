@@ -181,7 +181,7 @@
 
                         <li>
                             <a href="/subae/searchCNPart" class="nav-link">
-                                <p>PLM중국자재조회테스트</p>
+                                <p>법인자재 조회(PLM)</p>
                             </a>
                         </li>
 

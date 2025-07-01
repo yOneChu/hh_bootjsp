@@ -119,7 +119,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-4">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label>Part No.</label>
                                     <input type="search" id="partNo" class="form-control" placeholder="Part No.." value="">
@@ -127,7 +127,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label>활성</label>
                                     <select id="status" class="form-control select" style="width: 100%;">
@@ -136,7 +136,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label>SPEC</label>
                                     <input type="search" id="spec" class="form-control" placeholder="spec.." value="">
@@ -145,9 +145,14 @@
                                 </div>
                             </div>
 
-
-
-
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>Block No.</label>
+                                    <input type="search" id="blockNo" class="form-control" placeholder="blockNo.." value="">
+                                    <div class="input-group-append">
+                                    </div>
+                                </div>
+                            </div>
 
                             <!-- /.col -->
                         </div>
@@ -189,10 +194,11 @@
                                             <th style="font-weight: bold; text-align: center;">BLOCK명</th>
                                             <th style="font-weight: bold; text-align: center;">파트명</th>
                                             <th style="font-weight: bold; text-align: center;">SPEC</th>
+                                            <th style="font-weight: bold; text-align: center;">상태</th>
                                             <th style="font-weight: bold; text-align: center;">단위</th>
                                             <th style="font-weight: bold; text-align: center;">SIZE</th>
                                             <th style="font-weight: bold; text-align: center;">GL_CODE</th>
-                                            <th style="font-weight: bold; text-align: center;">상태</th>
+                                            <th style="font-weight: bold; text-align: center;">활성상태</th>
                                         </tr>
                                     </thead>
 
@@ -275,6 +281,7 @@
     }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
 
 
+
     //ready
     $(document).ready(function() {
 
@@ -295,6 +302,7 @@
     {
         let partNo = $("#partNo").val();
         let spec = $("#spec").val();
+        let blockNo = $("#blockNo").val();
         let status = $("#status").val();
 
         $('#infoTable').DataTable().destroy();
@@ -307,7 +315,8 @@
             data : {
                 partNo : partNo.trim(),
                 spec : spec.trim(),
-                status : status.trim()
+                blockNo : blockNo.trim(),
+                status: status.trim()
             },
             beforeSend: function() {
                 $("html").css("cursor", "wait");
@@ -329,10 +338,11 @@
                             str += "<td>" + data[i].blockName + "</td>";
                             str += "<td>" + data[i].partName + "</td>";
                             str += "<td>" + data[i].spec + "</td>";
+                            str += "<td>" + data[i].status + "</td>";
                             str += "<td>" + data[i].uom + "</td>";
                             str += "<td>" + data[i].partSize + "</td>";
                             str += "<td>" + data[i].glCode + "</td>";
-                            str += "<td>" + data[i].status + "</td>";
+                            str += "<td>" + data[i].active + "</td>";
                         str += "</tr>";
                     }
 

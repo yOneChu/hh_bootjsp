@@ -29,6 +29,7 @@ public class PartInfoDTO {
     private String blockNo;
     private String blockName;
     private String status;
+    private String active;
 
     private String div; // 최초구분
     private String disAway; //폐기여부
