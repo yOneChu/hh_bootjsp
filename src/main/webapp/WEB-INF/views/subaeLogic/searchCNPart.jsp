@@ -114,8 +114,8 @@
                                 <div class="callout callout-danger">
                                    <%-- <h4><i class="fas fa-bullhorn"></i> 📢 도움말</h4>--%>
                                     <h4> 📢 도움말</h4>
-                                    <h5>- PLM에 등록된 Ownership이 중국법인인 자재들에 대해서만 조회하는 화면입니다.</h5>
-                                    <h5>- 모든 검색 조건은 LIKE 기준으로 조회됩니다. </h5>
+                                       <h5>- PLM에 등록된 <font color="red">"자재코드Ownership이 중국법인"</font>인 자재들에 대해서만 조회하는 화면.</h5>
+                                    <h5>- 모든 검색 조건은 LIKE 기준으로 조회. </h5>
                                 </div>
                             </div>
 
@@ -131,6 +131,7 @@
                                 <div class="form-group">
                                     <label>활성</label>
                                     <select id="status" class="form-control select" style="width: 100%;">
+                                        <option>ALL</option>
                                         <option selected="selected">활성</option>
                                         <option>비활성</option>
                                     </select>
@@ -194,6 +195,7 @@
                                             <th style="font-weight: bold; text-align: center;">BLOCK명</th>
                                             <th style="font-weight: bold; text-align: center;">파트명</th>
                                             <th style="font-weight: bold; text-align: center;">SPEC</th>
+                                            <th style="font-weight: bold; text-align: center;">최초구분</th>
                                             <th style="font-weight: bold; text-align: center;">상태</th>
                                             <th style="font-weight: bold; text-align: center;">단위</th>
                                             <th style="font-weight: bold; text-align: center;">SIZE</th>
@@ -230,12 +232,6 @@
         </div>
         <strong>Copyright &copy; 2025 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
     </footer>
-
-    <!-- Control Sidebar -->
-    <aside class="control-sidebar control-sidebar-dark">
-        <!-- Control sidebar content goes here -->
-    </aside>
-    <!-- /.control-sidebar -->
 
 </div>
 
@@ -326,7 +322,7 @@
             },
             success : function(data)
             {
-                console.log("data - ", data);
+                //console.log("data - ", data);
                 let str = "";
 
                 if(data != null ) {
@@ -338,6 +334,7 @@
                             str += "<td>" + data[i].blockName + "</td>";
                             str += "<td>" + data[i].partName + "</td>";
                             str += "<td>" + data[i].spec + "</td>";
+                            str += "<td>" + data[i].div + "</td>";
                             str += "<td>" + data[i].status + "</td>";
                             str += "<td>" + data[i].uom + "</td>";
                             str += "<td>" + data[i].partSize + "</td>";
@@ -345,9 +342,6 @@
                             str += "<td>" + data[i].active + "</td>";
                         str += "</tr>";
                     }
-
-                    console.log("--------------------");
-                    console.log(str);
 
                     $("#contentTable").append(str);
 

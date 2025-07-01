@@ -73,12 +73,12 @@ public class SubaeCommonUtil {
                 sql += " AND CODN(A.origin_div) like '%" + div + "%'";
             }
 
-            if (status != null && !"".equals(status)) {
-                sql += " AND CODN(A.part_status) like '%" + status + "%'";
+            if (status != null && !"".equals(status) && !"ALL".equals(status)) {
+                sql += " AND CODN(A.part_status) = '" + status + "'";
             }
 
             if (pSpec != null && !"".equals(pSpec)) {
-                sql += " AND A.SPEC like '%" + pSpec + "%'";
+                sql += " AND A.SPEC like '%" + pSpec.trim() + "%'";
             }
 
             System.out.println("sql = " + sql);
@@ -94,6 +94,7 @@ public class SubaeCommonUtil {
                 String GLCODE = rs.getString("GL_CODE") == null ? "" : rs.getString("GL_CODE");
                 String SPEC = rs.getString("SPEC") == null ? "" : rs.getString("SPEC");
                 String PART_SIZE   = rs.getString("PART_SIZE") == null ? "" : rs.getString("PART_SIZE");
+                String origin_div = rs.getString("origin_div");
 
                 String NATION_KO   = rs.getString("NATION_KO");
                 String PART_STATUS   = rs.getString("PART_STATUS");
@@ -110,6 +111,7 @@ public class SubaeCommonUtil {
                 dto.setSpec(SPEC);
                 dto.setPartSize(PART_SIZE);
                 dto.setUom(UOM);
+                dto.setDiv(origin_div);
                 dto.setBlockNo(BLOCKNO);
                 dto.setBlockName(BLOCKNO_NAME);
                 dto.setStatus(PART_STATUS);
