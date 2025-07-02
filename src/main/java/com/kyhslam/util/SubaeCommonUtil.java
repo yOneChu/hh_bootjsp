@@ -134,14 +134,49 @@ public class SubaeCommonUtil {
     }
 
 
-    //2025년에 릴리즈된 제품 조회
+    // 1.2025년도 수배율 대상 제품번호 조회
+    public static ArrayList<String> findSubaeProductNo() {
 
-    /**
-     * BOM수배율 데이터 추출을 위한 -> 2025년에 릴리즈된 제품 조회
-     * @param year
-     * @return
-     */
-    public static ArrayList<ProductDto> findFirstProduct(String year) {
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<String> result = new ArrayList<String>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                    SELECT
+                      DISTINCT V.MD$NUMBER AS PRODUCTNO
+                      FROM product$vf V
+                      WHERE V.MD$STATUS = 'RLS'
+                      AND SUBSTR(V.MD$CDATE, 0,4) = '2025'
+                      AND SUBSTR(V.MD$NUMBER, 0, 1) NOT IN ('Q', 'V', '0', 'K', '1', 'H', 'T', 'M', 'C')
+                """;
+
+            System.out.println("sql = " + sql);
+
+            pstmt = con.prepareStatement(sql.toString());
+            //pstmt.setString(1, year);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String productNo = rs.getString("PRODUCTNO");
+                result.add(productNo);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
+    }
+
+
+
+    //2.제품번호로 모든 버전의 제품OID 조회
+    public static ArrayList<ProductDto> findProductOIDS(String productNo) {
 
         Connection con 			= null;
         PreparedStatement pstmt = null;
@@ -150,35 +185,33 @@ public class SubaeCommonUtil {
         ArrayList<ProductDto> result = new ArrayList<ProductDto>();
 
         try {
-
-            //con = DBconnectionInfo.getPDM_DBConnection();
             con = PLMDBConnection.getConnection();
-
             String sql = """
                     SELECT
-                        V.VF$OUID AS OID,
-                        V.MD$NUMBER AS PRODUCTNO,
-                        V.MD$DESC AS PRO_NAME,
-                        V.VF$VERSION AS VER,
-                        TO_CHAR(TO_DATE(V.MD$CDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS CREDATE,
-                        TO_CHAR(TO_DATE(V.MD$MDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS MODDATE,
-                        TO_CHAR(TO_DATE(V.APP_DATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS APPDATE,
-                        (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = V.MD$USER) AS USERNAME,
-                        V.MD$STATUS AS STATUS,
-                        V.E_BLOCK_F,
-                        V.M_BLOCK_F
-                        -- ,V.*
-                    FROM product$vf V
-                    WHERE V.MD$STATUS = 'RLS'
-                    AND SUBSTR(V.MD$CDATE, 0,4) = '2025'
-                    AND SUBSTR(V.MD$NUMBER, 0, 1) NOT IN ('Q', 'V', '0', 'K', '1', 'H', 'T', 'M')
-                    ORDER BY V.MD$NUMBER ASC, V.VF$VERSION ASC
-                    """;
+                            V.VF$OUID AS OID,
+                            V.MD$NUMBER AS PRODUCTNO,
+                            V.MD$DESC AS PRO_NAME,
+                            V.VF$VERSION AS VER,
+                            TO_CHAR(TO_DATE(V.MD$CDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS CREDATE,
+                            TO_CHAR(TO_DATE(V.MD$MDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS MODDATE,
+                            TO_CHAR(TO_DATE(V.APP_DATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS APPDATE,
+                            (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = V.MD$USER) USERNAME,
+                            V.MD$STATUS,
+                            V.E_BLOCK_F,
+                            V.M_BLOCK_F
+                           -- V.*
+                        FROM product$vf V
+                        WHERE V.MD$STATUS = 'RLS'
+                        AND SUBSTR(V.MD$CDATE, 0,4) = '2025'
+                        AND SUBSTR(V.MD$NUMBER, 0, 1) NOT IN ('Q', 'V', '0', 'K', '1', 'H', 'T', 'M')
+                        AND V.MD$NUMBER = ?
+                        ORDER BY V.VF$VERSION ASC
+                """;
 
-            System.out.println("sql = " + sql);
+            //System.out.println("sql = " + sql);
 
             pstmt = con.prepareStatement(sql.toString());
-            //pstmt.setString(1, year);
+            pstmt.setString(1, productNo);
 
             rs = pstmt.executeQuery();
 
@@ -190,9 +223,7 @@ public class SubaeCommonUtil {
                 String CREDATE   = rs.getString("CREDATE") == null ? "" : rs.getString("CREDATE");
                 String MODDATE   = rs.getString("MODDATE") == null ? "" : rs.getString("MODDATE");
                 String APPDATE   = rs.getString("APPDATE") == null ? "" : rs.getString("APPDATE");
-
-                String USERNAME   = rs.getString("USERNAME");
-                String STATUS   = rs.getString("STATUS");
+                //String STATUS   = rs.getString("STATUS");
 
                 ProductDto dto = new ProductDto();
                 dto.setProductOid(OID);
@@ -202,11 +233,161 @@ public class SubaeCommonUtil {
                 dto.setProductCreDate(CREDATE);
                 dto.setProductModDate(MODDATE);
                 dto.setProductAppdate(APPDATE);
-                dto.setProductStatus(STATUS);
+                //dto.setProductStatus(STATUS);
 
                 result.add(dto);
-                //System.out.println(PARTNO + " - " + BLOCKNO + " - " + DESCVAL + " , " + GLCODE);
             }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
+    }
+
+
+
+
+    //3.제품의 OID로 최초설계 BOM인지 검사
+    public static boolean checkDesignBOM(String productOID) {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        boolean result = false;
+
+        //ArrayList<ProductDto> result = new ArrayList<ProductDto>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                    SELECT
+                          PE.SEQ
+                         , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) AS PARENTNO
+                         , (SELECT PRODUCT.VF$VERSION FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PARENTNO_VER
+                         , (SELECT TO_CHAR(TO_DATE(PRODUCT.MD$MDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS PROD_MODDATE FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_MODDATE
+                         , (SELECT TO_CHAR(TO_DATE(PRODUCT.APP_DATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS PROD_MODDATE FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_APP_DATE
+                         , NP.VF$VERSION AS PART_VERSION
+                         , NP.MD$NUMBER AS PARTNO
+                         , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCKNO
+                         , (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCK_OPT
+                         , VP.UCHECK AS UCHECK  -- 수정여부
+                         , cod(NP.NATION) NATION
+                         , NP.MD$DESC PARTNAME
+                         , PE.QTY
+                         , VP.WORK_QTY
+                         , PE.CMT AS CMT
+                         , NVL(NP.G_L_CODE, '') AS GLCODE
+                         , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = NP.MD$USER) AS USERNAME
+                         , (   SELECT
+                             SUM(VVP.UCHECK)
+                            FROM
+                             PARTOFEBOM PPE
+                            INNER JOIN NORMALPART$VF NNP ON PPE.PARTOUID = NNP.VF$OUID
+                            LEFT OUTER JOIN VARIABLEPART_NEW VVP ON VVP.PRODUCTOUID = PPE.PRODUCTOUID AND VVP.ASSOOUID = PPE.ASSOOUID
+                            WHERE
+                            PPE.PRODUCTOUID = PE.PRODUCTOUID
+                            GROUP BY PPE.PRODUCTOUID
+                        ) AS MODIFY_CNT
+                         , (   SELECT
+                             SUM(PPE.QTY)
+                            FROM
+                             PARTOFEBOM PPE
+                            INNER JOIN NORMALPART$VF NNP ON PPE.PARTOUID = NNP.VF$OUID
+                            LEFT OUTER JOIN VARIABLEPART_NEW VVP ON VVP.PRODUCTOUID = PPE.PRODUCTOUID AND VVP.ASSOOUID = PPE.ASSOOUID
+                            WHERE
+                            PPE.PRODUCTOUID = PE.PRODUCTOUID
+                            AND (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NNP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NNP.BLOCKNO, 12))))) IN ('M','C')
+                            GROUP BY PPE.PRODUCTOUID
+                        ) AS MECH_CNT
+                         , (   SELECT
+                             SUM(PPE.QTY)
+                            FROM
+                             PARTOFEBOM PPE
+                            INNER JOIN NORMALPART$VF NNP ON PPE.PARTOUID = NNP.VF$OUID
+                            LEFT OUTER JOIN VARIABLEPART_NEW VVP ON VVP.PRODUCTOUID = PPE.PRODUCTOUID AND VVP.ASSOOUID = PPE.ASSOOUID
+                            WHERE
+                            PPE.PRODUCTOUID = PE.PRODUCTOUID
+                            AND (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NNP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NNP.BLOCKNO, 12))))) IN ('1','2','3')
+                            GROUP BY PPE.PRODUCTOUID
+                        ) AS ELE_CNT
+                        FROM
+                         PARTOFEBOM PE
+                        INNER JOIN NORMALPART$VF NP ON PE.PARTOUID = NP.VF$OUID
+                        LEFT OUTER JOIN VARIABLEPART_NEW VP ON VP.PRODUCTOUID = PE.PRODUCTOUID AND VP.ASSOOUID = PE.ASSOOUID
+                        WHERE
+                         -- PE.PRODUCTOUID = 제품의OID
+                        PE.PRODUCTOUID = ?
+                        ORDER BY TO_NUMBER(PE.SEQ)
+                """;
+
+            //System.out.println("sql = " + sql);
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, productOID);
+
+            rs = pstmt.executeQuery();
+
+            int modCnt = 0; //변경자재 건수
+            double mCnt = 0;
+            double eCnt = 0;
+            String PRODUCTNO = "";
+            String PARENTNO_VER = "";
+            String PROD_APP_DATE = "";
+
+            ArrayList<String> aaa = new ArrayList<>();
+            while(rs.next()) {
+                PRODUCTNO = rs.getString("PARENTNO"); //제품번호
+                PARENTNO_VER = rs.getString("PARENTNO_VER") == null ? "" : rs.getString("PARENTNO_VER"); //제품버전
+                String PROD_MODDATE = rs.getString("PROD_MODDATE") == null ? "" : rs.getString("PROD_MODDATE"); //제품 수정일
+                PROD_APP_DATE = rs.getString("PARENTNO_VER") == null ? "" : rs.getString("PROD_APP_DATE"); //제품 승인일
+                String BLOCK_OPT = rs.getString("BLOCK_OPT") == null ? "" : rs.getString("BLOCK_OPT");
+
+                
+                String PARTNO = rs.getString("PARTNO") == null ? "" : rs.getString("PARTNO");
+                String PART_VERSION = rs.getString("PART_VERSION") == null ? "" : rs.getString("PART_VERSION");
+                String CMT = rs.getString("CMT") == null ? "" : rs.getString("CMT");
+                String GLCODE = rs.getString("GLCODE") == null ? "" : rs.getString("GLCODE");
+
+                String UCHECK = rs.getString("UCHECK") == null ? "" : rs.getString("UCHECK");
+
+                String MODIFY_CNT = rs.getString("MODIFY_CNT") == null ? "" : rs.getString("MODIFY_CNT");
+                String MECH_CNT = rs.getString("MECH_CNT") == null ? "" : rs.getString("MECH_CNT");
+                String ELE_CNT = rs.getString("ELE_CNT") == null ? "" : rs.getString("ELE_CNT");
+
+
+                if(MECH_CNT != null && !"".equals(MECH_CNT)) {
+                    mCnt = Double.parseDouble(MECH_CNT);
+                }
+
+                if(ELE_CNT != null && !ELE_CNT.equals("")) {
+                    eCnt = Double.parseDouble(ELE_CNT);
+                }
+
+                if(MODIFY_CNT != null && !MODIFY_CNT.equals("")) {
+                    modCnt = Integer.parseInt(MODIFY_CNT);
+                }
+
+                if(mCnt > 0 && eCnt > 0) {
+
+                    result = true;
+                    //최초설계 제품이다.
+                    //DB에 저장
+                    //System.out.println(PRODUCTNO + " > " + PARENTNO_VER + "> " + PROD_APP_DATE + " > " + modCnt + " > " + mCnt + " > " + eCnt);
+                    //return true;
+                    aaa.add(PARTNO);
+                } else {
+                    //XXX
+                    result = false;
+                    System.out.println(PRODUCTNO + " > " + PARENTNO_VER + " xxxxxxxx");
+                    return false;
+                }
+
+            }
+
+            System.out.println(PRODUCTNO + " > " + aaa.size() + "> " + PROD_APP_DATE + " > " + modCnt + " > " + mCnt + " > " + eCnt);
 
         } catch (Exception e) {
             e.printStackTrace();

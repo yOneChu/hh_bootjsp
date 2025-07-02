@@ -10,18 +10,21 @@ public class findTest {
     public static void main(String[] args) {
 
         SubaeCommonUtil ss = new SubaeCommonUtil();
-        ArrayList<ProductDto> list = new ArrayList<>();
-        list = ss.findFirstProduct("");
+        ArrayList<ProductDto> oidList = new ArrayList<>();
+        String productNO = "207547L20";
+        oidList = ss.findProductOIDS(productNO);
 
+        for (int i = 0; i < oidList.size(); i++) {
+            ProductDto dto = oidList.get(i);
+            String oid = dto.getProductOid();
+            String ver = dto.getVersion();
+            String proNo = dto.getProductNo();
 
-        System.out.println("list.size() = " + list.size());
-        for (int i = 0; i < 100; i++) {
+            //System.out.println(proNo + ">" + ver + ">" + oid);
 
-            ProductDto d = list.get(i);
-            System.out.println(d.getProductNo() + " > " + d.getVersion());
+            ss.checkDesignBOM(oid);
 
         }
-
 
 
     }
