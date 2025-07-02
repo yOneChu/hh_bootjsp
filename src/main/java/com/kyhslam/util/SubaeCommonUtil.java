@@ -1,6 +1,7 @@
 package com.kyhslam.util;
 
 import com.kyhslam.dto.PartInfoDTO;
+import com.kyhslam.dto.ProductDto;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -10,9 +11,11 @@ import java.util.HashMap;
 
 public class SubaeCommonUtil {
 
-
-
-    //PLM에서 중국부품 조회
+    /**
+     * PLM에서 중국부품 조회
+     * @param param
+     * @return
+     */
     public static ArrayList<PartInfoDTO> findOneFromPartNo(PartInfoDTO param) {
 
         Connection con 			= null;
@@ -118,7 +121,6 @@ public class SubaeCommonUtil {
                 dto.setActive(ACTIVE);
 
                 result.add(dto);
-
                 //System.out.println(PARTNO + " - " + BLOCKNO + " - " + DESCVAL + " , " + GLCODE);
             }
 
@@ -130,4 +132,93 @@ public class SubaeCommonUtil {
 
         return result;
     }
+
+
+    //2025년에 릴리즈된 제품 조회
+
+    /**
+     * BOM수배율 데이터 추출을 위한 -> 2025년에 릴리즈된 제품 조회
+     * @param year
+     * @return
+     */
+    public static ArrayList<ProductDto> findFirstProduct(String year) {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<ProductDto> result = new ArrayList<ProductDto>();
+
+        try {
+
+            //con = DBconnectionInfo.getPDM_DBConnection();
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                    SELECT
+                        V.VF$OUID AS OID,
+                        V.MD$NUMBER AS PRODUCTNO,
+                        V.MD$DESC AS PRO_NAME,
+                        V.VF$VERSION AS VER,
+                        TO_CHAR(TO_DATE(V.MD$CDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS CREDATE,
+                        TO_CHAR(TO_DATE(V.MD$MDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS MODDATE,
+                        TO_CHAR(TO_DATE(V.APP_DATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS APPDATE,
+                        (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = V.MD$USER) USERNAME,
+                        V.MD$STATUS AS STATUS,
+                        V.E_BLOCK_F,
+                        V.M_BLOCK_F,
+                        V.*
+                    FROM product$vf V
+                    WHERE V.MD$STATUS = 'RLS'
+                    AND SUBSTR(V.MD$CDATE, 0,4) = '2025'
+                    AND SUBSTR(V.MD$NUMBER, 0, 1) NOT IN ('Q', 'V', '0', 'K', '1', 'H', 'T', 'M')
+                    ORDER BY V.VF$VERSION DESC
+                    """;
+
+            System.out.println("sql = " + sql);
+
+            pstmt = con.prepareStatement(sql.toString());
+            //pstmt.setString(1, year);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String OID = rs.getString("OID");
+                String PRODUCTNO = rs.getString("PRODUCTNO");
+                String PRO_NAME = rs.getString("PRO_NAME") == null ? "" : rs.getString("PRO_NAME");
+                String VER = rs.getString("VER") == null ? "" : rs.getString("VER");
+                String CREDATE   = rs.getString("CREDATE") == null ? "" : rs.getString("CREDATE");
+                String MODDATE   = rs.getString("MODDATE") == null ? "" : rs.getString("MODDATE");
+                String APPDATE   = rs.getString("APPDATE") == null ? "" : rs.getString("APPDATE");
+
+                String USERNAME   = rs.getString("USERNAME");
+                String STATUS   = rs.getString("STATUS");
+                String UOM   = rs.getString("UOM");
+
+                ProductDto dto = new ProductDto();
+                dto.setProductOid(OID);
+                dto.setProductNo(PRODUCTNO);
+                dto.setProductName(PRO_NAME);
+                dto.setVersion(VER);
+                dto.setProductCreDate(CREDATE);
+                dto.setProductModDate(MODDATE);
+                dto.setProductAppdate(APPDATE);
+                dto.setProductStatus(STATUS);
+
+                result.add(dto);
+                //System.out.println(PARTNO + " - " + BLOCKNO + " - " + DESCVAL + " , " + GLCODE);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
+    }
+
+
 }
+
+
+

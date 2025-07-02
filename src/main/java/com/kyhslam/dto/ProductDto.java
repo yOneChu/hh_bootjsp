@@ -8,6 +8,13 @@ public class ProductDto {
 
     private String productOid;
     private String productNo;
+    private String productName;
+    private String productCreDate;
+    private String productModDate;
+    private String productAppdate;
+    private String productStatus; //상태
+
+
     private String seq;
     private String parentNo;
     private String partNo;
