@@ -163,16 +163,16 @@ public class SubaeCommonUtil {
                         TO_CHAR(TO_DATE(V.MD$CDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS CREDATE,
                         TO_CHAR(TO_DATE(V.MD$MDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS MODDATE,
                         TO_CHAR(TO_DATE(V.APP_DATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS APPDATE,
-                        (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = V.MD$USER) USERNAME,
+                        (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = V.MD$USER) AS USERNAME,
                         V.MD$STATUS AS STATUS,
                         V.E_BLOCK_F,
-                        V.M_BLOCK_F,
-                        V.*
+                        V.M_BLOCK_F
+                        -- ,V.*
                     FROM product$vf V
                     WHERE V.MD$STATUS = 'RLS'
                     AND SUBSTR(V.MD$CDATE, 0,4) = '2025'
                     AND SUBSTR(V.MD$NUMBER, 0, 1) NOT IN ('Q', 'V', '0', 'K', '1', 'H', 'T', 'M')
-                    ORDER BY V.VF$VERSION DESC
+                    ORDER BY V.MD$NUMBER ASC, V.VF$VERSION ASC
                     """;
 
             System.out.println("sql = " + sql);
@@ -193,7 +193,6 @@ public class SubaeCommonUtil {
 
                 String USERNAME   = rs.getString("USERNAME");
                 String STATUS   = rs.getString("STATUS");
-                String UOM   = rs.getString("UOM");
 
                 ProductDto dto = new ProductDto();
                 dto.setProductOid(OID);
@@ -216,8 +215,6 @@ public class SubaeCommonUtil {
         }
         return result;
     }
-
-
 }
 
 
