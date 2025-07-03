@@ -66,13 +66,13 @@ public class BlockHistoryRepository implements IFBlockHistory {
         );
     }
 
+
     /**
      * BlockNo 정보 저장
      * @param blockHistory
      */
     @Override
     public void saveBlockHistory(BlockHistoryDTO blockHistory, String version) {
-
 
         //오늘날짜시간
         //LocalDateTime now = LocalDateTime.now();
@@ -113,6 +113,7 @@ public class BlockHistoryRepository implements IFBlockHistory {
                 blockHistory.getColor()
         );
     }
+
 
     /**
      * 버전으로 검색

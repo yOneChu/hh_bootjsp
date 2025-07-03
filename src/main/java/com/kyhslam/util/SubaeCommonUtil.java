@@ -3,11 +3,13 @@ package com.kyhslam.util;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 public class SubaeCommonUtil {
 
@@ -233,7 +235,6 @@ public class SubaeCommonUtil {
                 dto.setProductCreDate(CREDATE);
                 dto.setProductModDate(MODDATE);
                 dto.setProductAppdate(APPDATE);
-                //dto.setProductStatus(STATUS);
 
                 result.add(dto);
             }
@@ -250,13 +251,24 @@ public class SubaeCommonUtil {
 
 
     //3.제품의 OID로 최초설계 BOM인지 검사
-    public static boolean checkDesignBOM(String productOID) {
+
+    /**
+     * 3.제품의 OID로 최초설계 BOM인지 검사
+     * @param productOID
+     * @param map
+     * @return
+     */
+    public static boolean checkDesignBOM(String productOID, ArrayList<ProductDto> partList, HashMap<String,String> map, HashSet<String> dupCheck) {
 
         Connection con 			= null;
         PreparedStatement pstmt = null;
         ResultSet rs 			= null;
 
         boolean result = false;
+
+        if (map.containsKey("APP_DATE")) {
+            return true;
+        }
 
         //ArrayList<ProductDto> result = new ArrayList<ProductDto>();
 
@@ -271,12 +283,12 @@ public class SubaeCommonUtil {
                          , (SELECT TO_CHAR(TO_DATE(PRODUCT.APP_DATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS PROD_MODDATE FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_APP_DATE
                          , NP.VF$VERSION AS PART_VERSION
                          , NP.MD$NUMBER AS PARTNO
-                         , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCKNO
-                         , (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCK_OPT
+                         , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) AS BLOCKNO
+                         , (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) AS BLOCK_OPT
                          , VP.UCHECK AS UCHECK  -- 수정여부
                          , cod(NP.NATION) NATION
-                         , NP.MD$DESC PARTNAME
-                         , PE.QTY
+                         , NP.MD$DESC AS PARTNAME
+                         , PE.QTY AS PART_QTY
                          , VP.WORK_QTY
                          , PE.CMT AS CMT
                          , NVL(NP.G_L_CODE, '') AS GLCODE
@@ -290,29 +302,62 @@ public class SubaeCommonUtil {
                             WHERE
                             PPE.PRODUCTOUID = PE.PRODUCTOUID
                             GROUP BY PPE.PRODUCTOUID
-                        ) AS MODIFY_CNT
+                    ) AS MODIFY_CNT
                          , (   SELECT
-                             SUM(PPE.QTY)
-                            FROM
-                             PARTOFEBOM PPE
-                            INNER JOIN NORMALPART$VF NNP ON PPE.PARTOUID = NNP.VF$OUID
-                            LEFT OUTER JOIN VARIABLEPART_NEW VVP ON VVP.PRODUCTOUID = PPE.PRODUCTOUID AND VVP.ASSOOUID = PPE.ASSOOUID
-                            WHERE
-                            PPE.PRODUCTOUID = PE.PRODUCTOUID
-                            AND (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NNP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NNP.BLOCKNO, 12))))) IN ('M','C')
-                            GROUP BY PPE.PRODUCTOUID
-                        ) AS MECH_CNT
-                         , (   SELECT
-                             SUM(PPE.QTY)
-                            FROM
-                             PARTOFEBOM PPE
-                            INNER JOIN NORMALPART$VF NNP ON PPE.PARTOUID = NNP.VF$OUID
-                            LEFT OUTER JOIN VARIABLEPART_NEW VVP ON VVP.PRODUCTOUID = PPE.PRODUCTOUID AND VVP.ASSOOUID = PPE.ASSOOUID
-                            WHERE
-                            PPE.PRODUCTOUID = PE.PRODUCTOUID
-                            AND (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NNP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NNP.BLOCKNO, 12))))) IN ('1','2','3')
-                            GROUP BY PPE.PRODUCTOUID
-                        ) AS ELE_CNT
+                         SUM(PPE.QTY)
+                        FROM
+                         PARTOFEBOM PPE
+                        INNER JOIN NORMALPART$VF NNP ON PPE.PARTOUID = NNP.VF$OUID
+                        LEFT OUTER JOIN VARIABLEPART_NEW VVP ON VVP.PRODUCTOUID = PPE.PRODUCTOUID AND VVP.ASSOOUID = PPE.ASSOOUID
+                        WHERE
+                        PPE.PRODUCTOUID = PE.PRODUCTOUID
+                        AND (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NNP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NNP.BLOCKNO, 12))))) IN ('M')
+                        GROUP BY PPE.PRODUCTOUID
+                    ) AS M_CNT
+                    , (   SELECT
+                         SUM(PPE.QTY)
+                        FROM
+                         PARTOFEBOM PPE
+                        INNER JOIN NORMALPART$VF NNP ON PPE.PARTOUID = NNP.VF$OUID
+                        LEFT OUTER JOIN VARIABLEPART_NEW VVP ON VVP.PRODUCTOUID = PPE.PRODUCTOUID AND VVP.ASSOOUID = PPE.ASSOOUID
+                        WHERE
+                        PPE.PRODUCTOUID = PE.PRODUCTOUID
+                        AND (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NNP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NNP.BLOCKNO, 12))))) IN ('C')
+                        GROUP BY PPE.PRODUCTOUID
+                    ) AS C_CNT
+                     , (   SELECT
+                         SUM(PPE.QTY)
+                        FROM
+                         PARTOFEBOM PPE
+                        INNER JOIN NORMALPART$VF NNP ON PPE.PARTOUID = NNP.VF$OUID
+                        LEFT OUTER JOIN VARIABLEPART_NEW VVP ON VVP.PRODUCTOUID = PPE.PRODUCTOUID AND VVP.ASSOOUID = PPE.ASSOOUID
+                        WHERE
+                        PPE.PRODUCTOUID = PE.PRODUCTOUID
+                        AND (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NNP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NNP.BLOCKNO, 12))))) IN ('1')
+                        GROUP BY PPE.PRODUCTOUID
+                    ) AS ONE_CNT
+                    , (   SELECT
+                         SUM(PPE.QTY)
+                        FROM
+                         PARTOFEBOM PPE
+                        INNER JOIN NORMALPART$VF NNP ON PPE.PARTOUID = NNP.VF$OUID
+                        LEFT OUTER JOIN VARIABLEPART_NEW VVP ON VVP.PRODUCTOUID = PPE.PRODUCTOUID AND VVP.ASSOOUID = PPE.ASSOOUID
+                        WHERE
+                        PPE.PRODUCTOUID = PE.PRODUCTOUID
+                        AND (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NNP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NNP.BLOCKNO, 12))))) IN ('2')
+                        GROUP BY PPE.PRODUCTOUID
+                    ) AS TWO_CNT
+                    , (   SELECT
+                         SUM(PPE.QTY)
+                        FROM
+                         PARTOFEBOM PPE
+                        INNER JOIN NORMALPART$VF NNP ON PPE.PARTOUID = NNP.VF$OUID
+                        LEFT OUTER JOIN VARIABLEPART_NEW VVP ON VVP.PRODUCTOUID = PPE.PRODUCTOUID AND VVP.ASSOOUID = PPE.ASSOOUID
+                        WHERE
+                        PPE.PRODUCTOUID = PE.PRODUCTOUID
+                        AND (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NNP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NNP.BLOCKNO, 12))))) IN ('3')
+                        GROUP BY PPE.PRODUCTOUID
+                    ) AS THREE_CNT
                         FROM
                          PARTOFEBOM PE
                         INNER JOIN NORMALPART$VF NP ON PE.PARTOUID = NP.VF$OUID
@@ -330,64 +375,176 @@ public class SubaeCommonUtil {
 
             rs = pstmt.executeQuery();
 
+
+            HashMap<String, String> flagMap = new HashMap<>();
+
+            int m_ModCount = 0;
+            int c_ModCount = 0;
+            int one_ModCnt = 0;
+            int two_ModCnt = 0;
+            int three_ModCnt = 0;
+
             int modCnt = 0; //변경자재 건수
             double mCnt = 0;
-            double eCnt = 0;
-            String PRODUCTNO = "";
-            String PARENTNO_VER = "";
+            double cCnt = 0;
+            double oneCnt = 0;
+            double twoCnt = 0;
+            double threeCnt = 0;
+            String productNo = "";
+            String productVersion = "";
             String PROD_APP_DATE = "";
 
-            ArrayList<String> aaa = new ArrayList<>();
             while(rs.next()) {
-                PRODUCTNO = rs.getString("PARENTNO"); //제품번호
-                PARENTNO_VER = rs.getString("PARENTNO_VER") == null ? "" : rs.getString("PARENTNO_VER"); //제품버전
+                productNo = rs.getString("PARENTNO"); //제품번호
+                productVersion = rs.getString("PARENTNO_VER") == null ? "" : rs.getString("PARENTNO_VER"); //제품버전
                 String PROD_MODDATE = rs.getString("PROD_MODDATE") == null ? "" : rs.getString("PROD_MODDATE"); //제품 수정일
                 PROD_APP_DATE = rs.getString("PARENTNO_VER") == null ? "" : rs.getString("PROD_APP_DATE"); //제품 승인일
-                String BLOCK_OPT = rs.getString("BLOCK_OPT") == null ? "" : rs.getString("BLOCK_OPT");
 
-                
+
                 String PARTNO = rs.getString("PARTNO") == null ? "" : rs.getString("PARTNO");
+                String PARTNAME = rs.getString("PARTNAME") == null ? "" : rs.getString("PARTNAME");
                 String PART_VERSION = rs.getString("PART_VERSION") == null ? "" : rs.getString("PART_VERSION");
+                String BLOCKNO =  rs.getString("BLOCKNO") == null ? "" : rs.getString("BLOCKNO");
+                String partQTY =  rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
+                String BLOCK_OPT = rs.getString("BLOCK_OPT") == null ? "" : rs.getString("BLOCK_OPT");
                 String CMT = rs.getString("CMT") == null ? "" : rs.getString("CMT");
                 String GLCODE = rs.getString("GLCODE") == null ? "" : rs.getString("GLCODE");
-
                 String UCHECK = rs.getString("UCHECK") == null ? "" : rs.getString("UCHECK");
 
                 String MODIFY_CNT = rs.getString("MODIFY_CNT") == null ? "" : rs.getString("MODIFY_CNT");
-                String MECH_CNT = rs.getString("MECH_CNT") == null ? "" : rs.getString("MECH_CNT");
-                String ELE_CNT = rs.getString("ELE_CNT") == null ? "" : rs.getString("ELE_CNT");
+                String M_CNT = rs.getString("M_CNT") == null ? "" : rs.getString("M_CNT");
+                String C_CNT = rs.getString("C_CNT") == null ? "" : rs.getString("C_CNT");
+                String ONE_CNT = rs.getString("ONE_CNT") == null ? "" : rs.getString("ONE_CNT");
+                String TWO_CNT = rs.getString("TWO_CNT") == null ? "" : rs.getString("TWO_CNT");
+                String THREE_CNT = rs.getString("THREE_CNT") == null ? "" : rs.getString("THREE_CNT");
 
+                ProductDto dto = new ProductDto();
+                dto.setProductNo(productNo); //제품번호
+                //dto.setProductVersion(productVersion); //제품버전
+                //dto.setProductAppdate(PROD_APP_DATE); //제품승인일
 
-                if(MECH_CNT != null && !"".equals(MECH_CNT)) {
-                    mCnt = Double.parseDouble(MECH_CNT);
-                }
-
-                if(ELE_CNT != null && !ELE_CNT.equals("")) {
-                    eCnt = Double.parseDouble(ELE_CNT);
-                }
+                dto.setPartNo(PARTNO);
+                dto.setPartName(PARTNAME);
+                dto.setVersion(PART_VERSION);
+                dto.setBlockNo(BLOCKNO);
+                dto.setCmt(CMT);
+                dto.setGlCode(GLCODE);
+                dto.setUcheck(UCHECK);
+                dto.setQty(partQTY);
+                dto.setBlock_opt(BLOCK_OPT);
+                dto.setMCount(M_CNT); // M전체 수량
+                dto.setCCount(C_CNT); // C전체 수량
+                dto.setOneCount(ONE_CNT);
+                dto.setTwoCount(TWO_CNT);
+                dto.setThreeCount(THREE_CNT);
 
                 if(MODIFY_CNT != null && !MODIFY_CNT.equals("")) {
                     modCnt = Integer.parseInt(MODIFY_CNT);
                 }
 
-                if(mCnt > 0 && eCnt > 0) {
-
-                    result = true;
-                    //최초설계 제품이다.
-                    //DB에 저장
-                    //System.out.println(PRODUCTNO + " > " + PARENTNO_VER + "> " + PROD_APP_DATE + " > " + modCnt + " > " + mCnt + " > " + eCnt);
-                    //return true;
-                    aaa.add(PARTNO);
-                } else {
-                    //XXX
-                    result = false;
-                    System.out.println(PRODUCTNO + " > " + PARENTNO_VER + " xxxxxxxx");
-                    return false;
+                if(M_CNT != null && !"".equals(M_CNT)) {
+                    mCnt = Double.parseDouble(M_CNT);
                 }
 
+                if(C_CNT != null && !C_CNT.equals("")) {
+                    cCnt = Double.parseDouble(C_CNT);
+                }
+
+                if(ONE_CNT != null && !ONE_CNT.equals("")) {
+                    oneCnt = Double.parseDouble(ONE_CNT);
+                }
+
+                if(TWO_CNT != null && !TWO_CNT.equals("")) {
+                    twoCnt = Double.parseDouble(TWO_CNT);
+                }
+
+                if(THREE_CNT != null && !THREE_CNT.equals("")) {
+                    threeCnt = Double.parseDouble(THREE_CNT);
+                }
+
+                if (!dupCheck.contains(PARTNO)) {
+                    dupCheck.add(PARTNO);
+                    partList.add(dto);
+                }
+
+                //품목에 따라 데이터 담기
+                if (mCnt > 0) {
+                    if("M".equals(BLOCK_OPT) && !map.containsKey("m_ModCount")) {
+                        //partList.add(dto);
+                        if(dto.getUcheck().equals("1")) {
+                            m_ModCount++;
+                        }
+                    }
+                }
+
+                if (cCnt > 0) {
+                    if("C".equals(BLOCK_OPT) && !map.containsKey("c_ModCount")) {
+                        //partList.add(dto);
+                        if(dto.getUcheck().equals("1")) {
+                            c_ModCount++;
+                        }
+                    }
+                }
+
+                if (oneCnt > 0) {
+                    if("1".equals(BLOCK_OPT) && !map.containsKey("one_ModCnt")) {
+                        //partList.add(dto);
+                        if(dto.getUcheck().equals("1")) {
+                            one_ModCnt++;
+                        }
+                    }
+                }
+
+                if (twoCnt > 0) {
+                    if("2".equals(BLOCK_OPT) && !map.containsKey("two_ModCnt")) {
+                        //partList.add(dto);
+                        if(dto.getUcheck().equals("1")) {
+                            two_ModCnt++;
+                        }
+                    }
+                }
+
+                if (threeCnt > 0) {
+                    if("3".equals(BLOCK_OPT) && !map.containsKey("three_ModCnt")) {
+                        //partList.add(dto);
+                        if(dto.getUcheck().equals("1")) {
+                            three_ModCnt++;
+                        }
+                    }
+                }
+
+
+                if(mCnt > 0 && cCnt > 0 && oneCnt > 0 && twoCnt > 0 && threeCnt > 0) {
+                    //품목구분: M,C,1,2,3에 대한 수량 다있으면 최초설계
+                    map.put("APP_DATE", PROD_APP_DATE);
+                    map.put("PROD_VERSION", productVersion);
+                    result = true;
+                }
+
+            } //end while
+
+            String vv = mCnt +">"+cCnt+">"+oneCnt +">"+twoCnt +">"+threeCnt;
+            //System.out.println(productNo + "-" + productVersion + " > " + partList.size() + "> " + PROD_APP_DATE + " > " + modCnt + " ====== " + vv);
+
+            if(m_ModCount > 0  && !map.containsKey("m_ModCount")){
+                map.put("m_ModCount", String.valueOf(m_ModCount));
             }
 
-            System.out.println(PRODUCTNO + " > " + aaa.size() + "> " + PROD_APP_DATE + " > " + modCnt + " > " + mCnt + " > " + eCnt);
+            if(c_ModCount > 0 && !map.containsKey("c_ModCount")){
+                map.put("c_ModCount", String.valueOf(c_ModCount));
+            }
+
+            if(one_ModCnt > 0 && !map.containsKey("one_ModCnt")){
+                map.put("one_ModCnt", String.valueOf(one_ModCnt));
+            }
+
+            if(two_ModCnt > 0 && !map.containsKey("two_ModCnt")){
+                map.put("two_ModCnt", String.valueOf(two_ModCnt));
+            }
+
+            if(three_ModCnt > 0 && !map.containsKey("three_ModCnt")){
+                map.put("three_ModCnt", String.valueOf(three_ModCnt));
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -396,6 +553,7 @@ public class SubaeCommonUtil {
         }
         return result;
     }
+
 }
 
 

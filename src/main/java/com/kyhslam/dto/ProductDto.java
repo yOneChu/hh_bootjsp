@@ -9,6 +9,7 @@ public class ProductDto {
     private String productOid;
     private String productNo;
     private String productName;
+    private String productVersion;
     private String productCreDate;
     private String productModDate;
     private String productAppdate;
@@ -36,6 +37,18 @@ public class ProductDto {
     private String username;
     private String userId;
     private String modDate; //수정일자
+
+    //품목구분별 카운트
+    private String mCount;
+    private String m_ModCount;
+    private String cCount;
+    private String c_ModCount;
+    private String oneCount;
+    private String one_ModCount;
+    private String twoCount;
+    private String two_ModCount;
+    private String threeCount;
+    private String three_ModCount;
 
     private String ucheck; //수정여부
     private String HASCHILD; //하위BOM 존재여부

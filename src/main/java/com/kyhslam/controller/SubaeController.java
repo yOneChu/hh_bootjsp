@@ -166,14 +166,22 @@ public class SubaeController {
     //PLM에서 중국자재 조회 로직
     @PostMapping("/subae/searchCNPart")
     @ResponseBody
-    public ArrayList<PartInfoDTO> searchCNPart(PartInfoDTO  param) {
+    public ArrayList<PartInfoDTO> searchCNPart(PartInfoDTO param) {
         ArrayList<PartInfoDTO> result = new ArrayList<>();
 
         System.out.println("param.toString() = " + param.toString());
         System.out.println("param.getPartNo() = " + param.getPartNo());
 
+        //
         result = subaeService.findOneFromPartNo(param);
         System.out.println("result.size() = " + result.size());
         return result;
+    }
+
+    //수배율 계산 로직 수행
+    @GetMapping("/subae/subaeBatch")
+    @ResponseBody
+    public void findSubaeProductNo() {
+        subaeService.findSubaeProductNo();
     }
 }
