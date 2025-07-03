@@ -49,7 +49,7 @@ public class SubaeRepository {
                 VALUES(?,?,?,?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """;
 
-        log.info("productDto = " + param.toString());
+        log.info("productDto = " + param.getProductNo());
 
         basicTemplate.update(sql,
                 param.getProductNo(),

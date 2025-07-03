@@ -412,11 +412,11 @@ public class SubaeCommonUtil {
                 String UCHECK = rs.getString("UCHECK") == null ? "" : rs.getString("UCHECK");
 
                 String MODIFY_CNT = rs.getString("MODIFY_CNT") == null ? "" : rs.getString("MODIFY_CNT");
-                String M_CNT = rs.getString("M_CNT") == null ? "" : rs.getString("M_CNT");
-                String C_CNT = rs.getString("C_CNT") == null ? "" : rs.getString("C_CNT");
-                String ONE_CNT = rs.getString("ONE_CNT") == null ? "" : rs.getString("ONE_CNT");
-                String TWO_CNT = rs.getString("TWO_CNT") == null ? "" : rs.getString("TWO_CNT");
-                String THREE_CNT = rs.getString("THREE_CNT") == null ? "" : rs.getString("THREE_CNT");
+                String M_QTY = rs.getString("M_CNT") == null ? "" : rs.getString("M_CNT");
+                String C_QTY = rs.getString("C_CNT") == null ? "" : rs.getString("C_CNT");
+                String ONE_QTY = rs.getString("ONE_CNT") == null ? "" : rs.getString("ONE_CNT");
+                String TWO_QTY = rs.getString("TWO_CNT") == null ? "" : rs.getString("TWO_CNT");
+                String THREE_QTY = rs.getString("THREE_CNT") == null ? "" : rs.getString("THREE_CNT");
 
                 ProductDto dto = new ProductDto();
                 dto.setProductNo(productNo); //제품번호
@@ -432,86 +432,91 @@ public class SubaeCommonUtil {
                 dto.setUcheck(UCHECK);
                 dto.setQty(partQTY);
                 dto.setBlock_opt(BLOCK_OPT);
-                dto.setMCount(M_CNT); // M전체 수량
-                dto.setCCount(C_CNT); // C전체 수량
-                dto.setOneCount(ONE_CNT);
-                dto.setTwoCount(TWO_CNT);
-                dto.setThreeCount(THREE_CNT);
+                dto.setMCount(M_QTY); // M전체 수량
+                dto.setCCount(C_QTY); // C전체 수량
+                dto.setOneCount(ONE_QTY);
+                dto.setTwoCount(TWO_QTY);
+                dto.setThreeCount(THREE_QTY);
 
                 if(MODIFY_CNT != null && !MODIFY_CNT.equals("")) {
                     modCnt = Integer.parseInt(MODIFY_CNT);
                 }
 
-                if(M_CNT != null && !"".equals(M_CNT)) {
-                    mCnt = Double.parseDouble(M_CNT);
+                if(M_QTY != null && !"".equals(M_QTY)) {
+                    mCnt = Double.parseDouble(M_QTY);
                 }
 
-                if(C_CNT != null && !C_CNT.equals("")) {
-                    cCnt = Double.parseDouble(C_CNT);
+                if(C_QTY != null && !C_QTY.equals("")) {
+                    cCnt = Double.parseDouble(C_QTY);
                 }
 
-                if(ONE_CNT != null && !ONE_CNT.equals("")) {
-                    oneCnt = Double.parseDouble(ONE_CNT);
+                if(ONE_QTY != null && !ONE_QTY.equals("")) {
+                    oneCnt = Double.parseDouble(ONE_QTY);
                 }
 
-                if(TWO_CNT != null && !TWO_CNT.equals("")) {
-                    twoCnt = Double.parseDouble(TWO_CNT);
+                if(TWO_QTY != null && !TWO_QTY.equals("")) {
+                    twoCnt = Double.parseDouble(TWO_QTY);
                 }
 
-                if(THREE_CNT != null && !THREE_CNT.equals("")) {
-                    threeCnt = Double.parseDouble(THREE_CNT);
+                if(THREE_QTY != null && !THREE_QTY.equals("")) {
+                    threeCnt = Double.parseDouble(THREE_QTY);
                 }
 
                 if (!dupCheck.contains(PARTNO)) {
                     dupCheck.add(PARTNO);
-                    partList.add(dto);
-                }
+                    //partList.add(dto);
 
-                //품목에 따라 데이터 담기
-                if (mCnt > 0) {
                     if("M".equals(BLOCK_OPT) && !map.containsKey("m_ModCount")) {
-                        //partList.add(dto);
-                        if(dto.getUcheck().equals("1")) {
+                        partList.add(dto);
+                        if(UCHECK != null && !"".equals(UCHECK) && UCHECK.equals("1")) {
                             m_ModCount++;
+                            //System.out.println(productVersion + " > " + "MM--" + PARTNO + " > " + PARTNAME);
                         }
                     }
-                }
+                    //}
 
-                if (cCnt > 0) {
+                    //if (cCnt > 0) {
                     if("C".equals(BLOCK_OPT) && !map.containsKey("c_ModCount")) {
-                        //partList.add(dto);
-                        if(dto.getUcheck().equals("1")) {
+                        partList.add(dto);
+                        if(UCHECK != null && !"".equals(UCHECK) && dto.getUcheck().equals("1")) {
                             c_ModCount++;
+                           //System.out.println(productVersion +  "> CC--" + PARTNO + " > " + PARTNAME);
                         }
                     }
-                }
+                    //}
 
-                if (oneCnt > 0) {
+                    //if (oneCnt > 0) {
                     if("1".equals(BLOCK_OPT) && !map.containsKey("one_ModCnt")) {
-                        //partList.add(dto);
-                        if(dto.getUcheck().equals("1")) {
+                        partList.add(dto);
+                        if(UCHECK != null && !"".equals(UCHECK) && UCHECK.equals("1")) {
                             one_ModCnt++;
+                            //System.out.println("1111--" + PARTNO + " > " + PARTNAME);
                         }
                     }
-                }
+                    // }
 
-                if (twoCnt > 0) {
+                    //if (twoCnt > 0) {
                     if("2".equals(BLOCK_OPT) && !map.containsKey("two_ModCnt")) {
-                        //partList.add(dto);
-                        if(dto.getUcheck().equals("1")) {
+                        partList.add(dto);
+                        if(UCHECK != null && !"".equals(UCHECK) && UCHECK.equals("1")) {
                             two_ModCnt++;
+                            //System.out.println("2222--" + PARTNO + " > " + PARTNAME);
+                        }
+                    }
+                    //}
+
+                    //if (threeCnt > 0) {
+                    if("3".equals(BLOCK_OPT) && !map.containsKey("three_ModCnt")) {
+                        partList.add(dto);
+                        if(UCHECK != null && !"".equals(UCHECK) && UCHECK.equals("1")) {
+                            three_ModCnt++;
+                            //System.out.println("3333--" + PARTNO + " > " + PARTNAME);
                         }
                     }
                 }
 
-                if (threeCnt > 0) {
-                    if("3".equals(BLOCK_OPT) && !map.containsKey("three_ModCnt")) {
-                        //partList.add(dto);
-                        if(dto.getUcheck().equals("1")) {
-                            three_ModCnt++;
-                        }
-                    }
-                }
+
+
 
 
                 if(mCnt > 0 && cCnt > 0 && oneCnt > 0 && twoCnt > 0 && threeCnt > 0) {
@@ -523,7 +528,7 @@ public class SubaeCommonUtil {
 
             } //end while
 
-            String vv = mCnt +">"+cCnt+">"+oneCnt +">"+twoCnt +">"+threeCnt;
+            //String vv = mCnt +">"+cCnt+">"+oneCnt +">"+twoCnt +">"+threeCnt;
             //System.out.println(productNo + "-" + productVersion + " > " + partList.size() + "> " + PROD_APP_DATE + " > " + modCnt + " ====== " + vv);
 
             if(m_ModCount > 0  && !map.containsKey("m_ModCount")){
