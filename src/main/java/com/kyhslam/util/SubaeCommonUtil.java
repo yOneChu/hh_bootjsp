@@ -152,8 +152,19 @@ public class SubaeCommonUtil {
                       DISTINCT V.MD$NUMBER AS PRODUCTNO
                       FROM product$vf V
                       WHERE V.MD$STATUS = 'RLS'
-                      AND SUBSTR(V.MD$CDATE, 0,4) = '2025'
-                      AND SUBSTR(V.MD$NUMBER, 0, 1) NOT IN ('Q', 'V', '0', 'K', '1', 'H', 'T', 'M', 'C')
+                      --AND SUBSTR(V.MD$CDATE, 0,4) = '2025'
+                      AND SUBSTR(V.MD$CDATE, 0,6) = '202506'
+                      --AND SUBSTR(V.MD$NUMBER, 0, 1) NOT IN ('Q', 'V', '0', 'K', '1', 'H', 'T', 'M', 'C')
+                      AND V.MD$NUMBER NOT LIKE '%Q%'
+                      AND V.MD$NUMBER NOT LIKE '%V%'
+                      AND V.MD$NUMBER NOT LIKE '%NB%'
+                      AND V.MD$NUMBER NOT LIKE '%NC%'
+                      AND V.MD$NUMBER NOT LIKE '%NS%'
+                      AND V.MD$NUMBER NOT LIKE '%M%'
+                      AND V.MD$NUMBER NOT LIKE '%TEST%'
+                      AND V.MD$NUMBER NOT LIKE '%T%'
+                      AND V.MD$DESC NOT LIKE '%가설계%'
+                      AND LENGTH(V.MD$NUMBER) < 10
                 """;
 
             System.out.println("sql = " + sql);
@@ -204,16 +215,16 @@ public class SubaeCommonUtil {
                            -- V.*
                         FROM product$vf V
                         WHERE V.MD$STATUS = 'RLS'
-                        AND SUBSTR(V.MD$CDATE, 0,4) = '2025'
+                        --AND SUBSTR(V.MD$CDATE, 0,4) = '2025'
                         --AND SUBSTR(V.MD$NUMBER, 0, 1) NOT IN ('Q', 'V', '0', 'K', '1', 'H', 'T', 'M')
-                        AND V.PRODUCTNO NOT LIKE '%Q%'
-                        AND V.PRODUCTNO NOT LIKE '%V%'
-                        AND V.PRODUCTNO NOT LIKE '%NB%'
-                        AND V.PRODUCTNO NOT LIKE '%NC%'
-                        AND V.PRODUCTNO NOT LIKE '%NS%'
-                        AND V.PRODUCTNO NOT LIKE '%M%'
-                        AND V.PRODUCTNO NOT LIKE '%TEST%'
-                        AND V.PRODUCTNO NOT LIKE '%T%'
+                        AND V.MD$NUMBER NOT LIKE '%Q%'
+                        AND V.MD$NUMBER NOT LIKE '%V%'
+                        AND V.MD$NUMBER NOT LIKE '%NB%'
+                        AND V.MD$NUMBER NOT LIKE '%NC%'
+                        AND V.MD$NUMBER NOT LIKE '%NS%'
+                        AND V.MD$NUMBER NOT LIKE '%M%'
+                        AND V.MD$NUMBER NOT LIKE '%TEST%'
+                        AND V.MD$NUMBER NOT LIKE '%T%'
                         AND V.MD$DESC NOT LIKE '%가설계%'
                         AND V.MD$NUMBER = ?
                         ORDER BY V.VF$VERSION ASC
@@ -289,6 +300,7 @@ public class SubaeCommonUtil {
                           PE.SEQ
                          , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) AS PARENTNO
                          , (SELECT PRODUCT.VF$VERSION FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PARENTNO_VER
+                         , (SELECT TO_CHAR(TO_DATE(PRODUCT.MD$CDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS PROD_MODDATE FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_CREDATE
                          , (SELECT TO_CHAR(TO_DATE(PRODUCT.MD$MDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS PROD_MODDATE FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_MODDATE
                          , (SELECT TO_CHAR(TO_DATE(PRODUCT.APP_DATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS PROD_MODDATE FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_APP_DATE
                          , NP.VF$VERSION AS PART_VERSION
@@ -407,6 +419,7 @@ public class SubaeCommonUtil {
             while(rs.next()) {
                 productNo = rs.getString("PARENTNO"); //제품번호
                 productVersion = rs.getString("PARENTNO_VER") == null ? "" : rs.getString("PARENTNO_VER"); //제품버전
+                String PROD_CREDATE = rs.getString("PROD_CREDATE") == null ? "" : rs.getString("PROD_CREDATE"); //제품 등록일
                 String PROD_MODDATE = rs.getString("PROD_MODDATE") == null ? "" : rs.getString("PROD_MODDATE"); //제품 수정일
                 PROD_APP_DATE = rs.getString("PARENTNO_VER") == null ? "" : rs.getString("PROD_APP_DATE"); //제품 승인일
 
@@ -528,7 +541,8 @@ public class SubaeCommonUtil {
 
                 if(mCnt > 0 && cCnt > 0 && oneCnt > 0 && twoCnt > 0 && threeCnt > 0) {
                     //품목구분: M,C,1,2,3에 대한 수량 다있으면 최초설계
-                    map.put("APP_DATE", PROD_APP_DATE);
+                    //map.put("APP_DATE", PROD_APP_DATE);
+                    map.put("APP_DATE", PROD_CREDATE);
                     map.put("PROD_VERSION", productVersion);
                     result = true;
                 }

@@ -78,11 +78,7 @@ public class SubaeService {
                     subaeRepository.saveSubaeProduct(p);
                 }
             }
-
-
         } // END FOR
-
-
     }
 
 
@@ -90,8 +86,6 @@ public class SubaeService {
     public void subaeTest(String productNo) {
 
         //String productNo = "206504L05";
-
-
         ArrayList<ProductDto> productOIDS = SubaeCommonUtil.findProductOIDS(productNo);
 
         HashMap<String,String> map = new HashMap<>();
@@ -101,7 +95,6 @@ public class SubaeService {
 
         if(productOIDS != null && productOIDS.size() > 0){
 
-            //System.out.println(productNo + " = " + productOIDS.size());
             for (int j = 0; j < productOIDS.size(); j++) {
 
                 ProductDto d = productOIDS.get(j);
@@ -111,7 +104,6 @@ public class SubaeService {
                 if (flag == false) {
                     flag = SubaeCommonUtil.checkDesignBOM(oid, partList, map, dupCheck);
                 }
-                //System.out.println("j = " + j);
             }
 
             for (int j = 0; j < partList.size(); j++) {
@@ -123,6 +115,8 @@ public class SubaeService {
                 p.setThree_ModCount(map.get("three_ModCount"));
                 p.setProductAppdate(map.get("APP_DATE"));
                 p.setProductVersion(map.get("PROD_VERSION"));
+                //System.out.println("map = " + map);
+
                 subaeRepository.saveSubaeProduct(p);
             }
         }

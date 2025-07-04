@@ -20,7 +20,7 @@ public class findTest_02 {
         StopWatch sw = new StopWatch();
         sw.start();
 
-        subaeService.subaeTest("206504L01");
+        subaeService.subaeTest("211298L01");
         sw.stop();
 
         long millis = sw.getTotalTimeMillis();
