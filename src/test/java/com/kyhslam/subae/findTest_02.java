@@ -4,6 +4,7 @@ import com.kyhslam.service.SubaeService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Description;
 import org.springframework.util.StopWatch;
 
 @SpringBootTest
@@ -33,8 +34,12 @@ public class findTest_02 {
     }
 
 
+    @Description("BOM수배율 데이터 전체 테스트")
     @Test
     void subaeALLTest() {
+
+        //200639Y78로 제품의 버전 확인해보기
+
         StopWatch sw = new StopWatch();
         sw.start();
 

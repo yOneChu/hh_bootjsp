@@ -516,9 +516,6 @@ public class SubaeCommonUtil {
                 }
 
 
-
-
-
                 if(mCnt > 0 && cCnt > 0 && oneCnt > 0 && twoCnt > 0 && threeCnt > 0) {
                     //품목구분: M,C,1,2,3에 대한 수량 다있으면 최초설계
                     map.put("APP_DATE", PROD_APP_DATE);
@@ -528,8 +525,6 @@ public class SubaeCommonUtil {
 
             } //end while
 
-            //String vv = mCnt +">"+cCnt+">"+oneCnt +">"+twoCnt +">"+threeCnt;
-            //System.out.println(productNo + "-" + productVersion + " > " + partList.size() + "> " + PROD_APP_DATE + " > " + modCnt + " ====== " + vv);
 
             if(m_ModCount > 0  && !map.containsKey("m_ModCount")){
                 map.put("m_ModCount", String.valueOf(m_ModCount));
@@ -540,15 +535,15 @@ public class SubaeCommonUtil {
             }
 
             if(one_ModCnt > 0 && !map.containsKey("one_ModCnt")){
-                map.put("one_ModCnt", String.valueOf(one_ModCnt));
+                map.put("one_ModCount", String.valueOf(one_ModCnt));
             }
 
             if(two_ModCnt > 0 && !map.containsKey("two_ModCnt")){
-                map.put("two_ModCnt", String.valueOf(two_ModCnt));
+                map.put("two_ModCount", String.valueOf(two_ModCnt));
             }
 
             if(three_ModCnt > 0 && !map.containsKey("three_ModCnt")){
-                map.put("three_ModCnt", String.valueOf(three_ModCnt));
+                map.put("three_ModCount", String.valueOf(three_ModCnt));
             }
 
         } catch (Exception e) {
