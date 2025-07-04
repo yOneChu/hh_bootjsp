@@ -205,11 +205,21 @@ public class SubaeCommonUtil {
                         FROM product$vf V
                         WHERE V.MD$STATUS = 'RLS'
                         AND SUBSTR(V.MD$CDATE, 0,4) = '2025'
-                        AND SUBSTR(V.MD$NUMBER, 0, 1) NOT IN ('Q', 'V', '0', 'K', '1', 'H', 'T', 'M')
+                        --AND SUBSTR(V.MD$NUMBER, 0, 1) NOT IN ('Q', 'V', '0', 'K', '1', 'H', 'T', 'M')
+                        AND V.PRODUCTNO NOT LIKE '%Q%'
+                        AND V.PRODUCTNO NOT LIKE '%V%'
+                        AND V.PRODUCTNO NOT LIKE '%NB%'
+                        AND V.PRODUCTNO NOT LIKE '%NC%'
+                        AND V.PRODUCTNO NOT LIKE '%NS%'
+                        AND V.PRODUCTNO NOT LIKE '%M%'
+                        AND V.PRODUCTNO NOT LIKE '%TEST%'
+                        AND V.PRODUCTNO NOT LIKE '%T%'
+                        AND V.MD$DESC NOT LIKE '%가설계%'
                         AND V.MD$NUMBER = ?
                         ORDER BY V.VF$VERSION ASC
                 """;
 
+            //Q,V,NB,NC,NS,M,TEST, T
             //System.out.println("sql = " + sql);
 
             pstmt = con.prepareStatement(sql.toString());
