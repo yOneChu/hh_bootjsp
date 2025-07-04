@@ -56,7 +56,6 @@ public class SubaeService {
 
                 System.out.println(productNo + " = " + productOIDS.size());
                 for (int j = 0; j < productOIDS.size(); j++) {
-
                     ProductDto d = productOIDS.get(j);
                     String oid = d.getProductOid();
 
