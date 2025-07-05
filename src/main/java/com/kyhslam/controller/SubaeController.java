@@ -182,6 +182,6 @@ public class SubaeController {
     @GetMapping("/subae/subaeBatch")
     @ResponseBody
     public void findSubaeProductNo() {
-        subaeService.findSubaeProductNo();
+        subaeService.findSubaeProductNo("");
     }
 }

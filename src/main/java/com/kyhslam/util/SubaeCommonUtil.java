@@ -204,7 +204,7 @@ public class SubaeCommonUtil {
                             V.VF$OUID AS OID,
                             V.MD$NUMBER AS PRODUCTNO,
                             V.MD$DESC AS PRO_NAME,
-                            V.VF$VERSION AS VER,
+                            V.VF$VERSION AS PRO_VER,
                             TO_CHAR(TO_DATE(V.MD$CDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS CREDATE,
                             TO_CHAR(TO_DATE(V.MD$MDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS MODDATE,
                             TO_CHAR(TO_DATE(V.APP_DATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS APPDATE,
@@ -243,7 +243,7 @@ public class SubaeCommonUtil {
                 String OID = rs.getString("OID");
                 String PRODUCTNO = rs.getString("PRODUCTNO");
                 String PRO_NAME = rs.getString("PRO_NAME") == null ? "" : rs.getString("PRO_NAME");
-                String VER = rs.getString("VER") == null ? "" : rs.getString("VER");
+                String PRO_VER = rs.getString("PRO_VER") == null ? "" : rs.getString("PRO_VER");
                 String CREDATE   = rs.getString("CREDATE") == null ? "" : rs.getString("CREDATE");
                 String MODDATE   = rs.getString("MODDATE") == null ? "" : rs.getString("MODDATE");
                 String APPDATE   = rs.getString("APPDATE") == null ? "" : rs.getString("APPDATE");
@@ -253,7 +253,7 @@ public class SubaeCommonUtil {
                 dto.setProductOid(OID);
                 dto.setProductNo(PRODUCTNO);
                 dto.setProductName(PRO_NAME);
-                dto.setVersion(VER);
+                dto.setProductVersion(PRO_VER);
                 dto.setProductCreDate(CREDATE);
                 dto.setProductModDate(MODDATE);
                 dto.setProductAppdate(APPDATE);
@@ -563,7 +563,7 @@ public class SubaeCommonUtil {
             if(mCnt > 0 && cCnt > 0 && oneCnt > 0 && twoCnt > 0 && threeCnt > 0) {
                 //최초설계 대상 제품
                 result = true;
-                map.put("APP_DATE", PROD_CREDATE);
+                ///map.put("APP_DATE", PROD_CREDATE);
             }
 
             if(m_ModCount > 0  && !map.containsKey("m_ModCount")){

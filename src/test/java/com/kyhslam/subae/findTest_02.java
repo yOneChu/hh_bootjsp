@@ -20,7 +20,8 @@ public class findTest_02 {
         StopWatch sw = new StopWatch();
         sw.start();
 
-        subaeService.subaeTest("207034L13");
+        //subaeService.subaeTest("207034L13");
+
         sw.stop();
 
         long millis = sw.getTotalTimeMillis();
@@ -43,7 +44,7 @@ public class findTest_02 {
         StopWatch sw = new StopWatch();
         sw.start();
 
-        subaeService.findSubaeProductNo();
+        subaeService.findSubaeProductNo("210122L02");
 
         sw.stop();
 
