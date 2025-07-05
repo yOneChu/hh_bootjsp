@@ -55,13 +55,17 @@ public class SubaeService {
             if(productOIDS != null && productOIDS.size() > 0){
 
                 System.out.println(productNo + " = " + productOIDS.size());
+                String subaeVersion = "";
                 for (int j = 0; j < productOIDS.size(); j++) {
                     ProductDto d = productOIDS.get(j);
                     String oid = d.getProductOid();
 
                     //3.그 oid로 수배율 계산하기
                     if (flag == false) {
+                        subaeVersion = d.getProductVersion();
                         flag = SubaeCommonUtil.checkDesignBOM(oid, partList, map, dupCheck);
+                    } else {
+                        continue;
                     }
                     System.out.println("j = " + j);
                 }
@@ -89,11 +93,16 @@ public class SubaeService {
         ArrayList<ProductDto> productOIDS = SubaeCommonUtil.findProductOIDS(productNo);
 
         HashMap<String,String> map = new HashMap<>();
+
         HashSet<String> dupCheck = new HashSet<>();
         ArrayList<ProductDto> partList = new ArrayList<>();
+
         boolean flag = false;
 
         if(productOIDS != null && productOIDS.size() > 0){
+
+
+            String subaeVersion = "";
 
             for (int j = 0; j < productOIDS.size(); j++) {
 
@@ -101,8 +110,12 @@ public class SubaeService {
                 String oid = d.getProductOid();
 
                 //3.그 oid로 수배율 계산하기
-                if (flag == false) {
+                if(flag == false) {
+                    subaeVersion = d.getVersion();
                     flag = SubaeCommonUtil.checkDesignBOM(oid, partList, map, dupCheck);
+                    System.out.println(map + " > " + subaeVersion);
+                } else {
+                    continue;
                 }
             }
 
@@ -114,10 +127,11 @@ public class SubaeService {
                 p.setTwo_ModCount(map.get("two_ModCount"));
                 p.setThree_ModCount(map.get("three_ModCount"));
                 p.setProductAppdate(map.get("APP_DATE"));
-                p.setProductVersion(map.get("PROD_VERSION"));
-                //System.out.println("map = " + map);
+                p.setProductVersion(subaeVersion);
+                //p.setProductVersion(map.get("PROD_VERSION"));
+                //System.out.println("map = " + map + " == " + subaeVersion);
 
-                subaeRepository.saveSubaeProduct(p);
+                //subaeRepository.saveSubaeProduct(p);
             }
         }
     }

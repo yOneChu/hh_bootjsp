@@ -227,7 +227,8 @@ public class SubaeCommonUtil {
                         AND V.MD$NUMBER NOT LIKE '%T%'
                         AND V.MD$DESC NOT LIKE '%가설계%'
                         AND V.MD$NUMBER = ?
-                        ORDER BY V.VF$VERSION ASC
+                        --ORDER BY V.VF$VERSION ASC
+                        ORDER BY V.MD$CDATE ASC
                 """;
 
             //Q,V,NB,NC,NS,M,TEST, T
@@ -467,27 +468,44 @@ public class SubaeCommonUtil {
 
                 if(M_QTY != null && !"".equals(M_QTY)) {
                     mCnt = Double.parseDouble(M_QTY);
+                    //M수량이 1이상이면 해당 품목은 해당 버전에 최초설계이다.
+                    if (mCnt > 0 && !map.containsKey("M_FLAG")) {
+                        map.put("M_FLAG", "TRUE");
+                    }
                 }
 
                 if(C_QTY != null && !C_QTY.equals("")) {
                     cCnt = Double.parseDouble(C_QTY);
+                    if (cCnt > 0 && !map.containsKey("C_FLAG")) {
+                        map.put("C_FLAG", "TRUE");
+                    }
                 }
 
                 if(ONE_QTY != null && !ONE_QTY.equals("")) {
                     oneCnt = Double.parseDouble(ONE_QTY);
+                    if (oneCnt > 0 && !map.containsKey("ONE_FLAG")) {
+                        map.put("ONE_FLAG", "TRUE");
+                    }
                 }
 
                 if(TWO_QTY != null && !TWO_QTY.equals("")) {
                     twoCnt = Double.parseDouble(TWO_QTY);
+                    if (twoCnt > 0 && !map.containsKey("TWO_FLAG")) {
+                        map.put("TWO_FLAG", "TRUE");
+                    }
                 }
 
                 if(THREE_QTY != null && !THREE_QTY.equals("")) {
                     threeCnt = Double.parseDouble(THREE_QTY);
+                    if (threeCnt > 0 && !map.containsKey("THREE_FLAG")) {
+                        map.put("THREE_FLAG", "TRUE");
+                    }
                 }
+
+
 
                 if (!dupCheck.contains(PARTNO)) {
                     dupCheck.add(PARTNO);
-                    //partList.add(dto);
 
                     if("M".equals(BLOCK_OPT) && !map.containsKey("m_ModCount")) {
                         partList.add(dto);
@@ -539,15 +557,25 @@ public class SubaeCommonUtil {
                 }
 
 
-                if(mCnt > 0 && cCnt > 0 && oneCnt > 0 && twoCnt > 0 && threeCnt > 0) {
-                    //품목구분: M,C,1,2,3에 대한 수량 다있으면 최초설계
-                    //map.put("APP_DATE", PROD_APP_DATE);
+                if (map.containsKey("m_ModCount") && map.containsKey("c_ModCount") && map.containsKey("one_ModCnt")
+                        && map.containsKey("two_ModCnt") && map.containsKey("three_ModCnt")) {
+                    //품목구분: M,C,1,2,3에 대한 수량 각 버전에서 찾은 마지막 버전이 최초설계버전임
                     map.put("APP_DATE", PROD_CREDATE);
                     map.put("PROD_VERSION", productVersion);
-                    result = true;
+                    //result = true;
                 }
 
+
+
+
+
             } //end while
+
+
+            if(mCnt > 0 && cCnt > 0 && oneCnt > 0 && twoCnt > 0 && threeCnt > 0) {
+                result = true;
+            }
+
 
 
             if(m_ModCount > 0  && !map.containsKey("m_ModCount")){
