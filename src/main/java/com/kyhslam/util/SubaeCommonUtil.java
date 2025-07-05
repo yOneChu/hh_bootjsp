@@ -416,11 +416,12 @@ public class SubaeCommonUtil {
             String productNo = "";
             String productVersion = "";
             String PROD_APP_DATE = "";
+            String PROD_CREDATE = "";
 
             while(rs.next()) {
                 productNo = rs.getString("PARENTNO"); //제품번호
                 productVersion = rs.getString("PARENTNO_VER") == null ? "" : rs.getString("PARENTNO_VER"); //제품버전
-                String PROD_CREDATE = rs.getString("PROD_CREDATE") == null ? "" : rs.getString("PROD_CREDATE"); //제품 등록일
+                PROD_CREDATE = rs.getString("PROD_CREDATE") == null ? "" : rs.getString("PROD_CREDATE"); //제품 등록일
                 String PROD_MODDATE = rs.getString("PROD_MODDATE") == null ? "" : rs.getString("PROD_MODDATE"); //제품 수정일
                 PROD_APP_DATE = rs.getString("PARENTNO_VER") == null ? "" : rs.getString("PROD_APP_DATE"); //제품 승인일
 
@@ -556,27 +557,14 @@ public class SubaeCommonUtil {
                     }
                 }
 
-
-                if (map.containsKey("m_ModCount") && map.containsKey("c_ModCount") && map.containsKey("one_ModCnt")
-                        && map.containsKey("two_ModCnt") && map.containsKey("three_ModCnt")) {
-                    //품목구분: M,C,1,2,3에 대한 수량 각 버전에서 찾은 마지막 버전이 최초설계버전임
-                    map.put("APP_DATE", PROD_CREDATE);
-                    map.put("PROD_VERSION", productVersion);
-                    //result = true;
-                }
-
-
-
-
-
             } //end while
 
 
             if(mCnt > 0 && cCnt > 0 && oneCnt > 0 && twoCnt > 0 && threeCnt > 0) {
+                //최초설계 대상 제품
                 result = true;
+                map.put("APP_DATE", PROD_CREDATE);
             }
-
-
 
             if(m_ModCount > 0  && !map.containsKey("m_ModCount")){
                 map.put("m_ModCount", String.valueOf(m_ModCount));

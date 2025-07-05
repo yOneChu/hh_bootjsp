@@ -78,7 +78,8 @@ public class SubaeService {
                     p.setTwo_ModCount(map.get("two_ModCount"));
                     p.setThree_ModCount(map.get("three_ModCount"));
                     p.setProductAppdate(map.get("APP_DATE"));
-                    p.setProductVersion(map.get("PROD_VERSION"));
+                    //p.setProductVersion(map.get("PROD_VERSION"));
+                    p.setProductVersion(subaeVersion);
                     subaeRepository.saveSubaeProduct(p);
                 }
             }
@@ -100,7 +101,6 @@ public class SubaeService {
         boolean flag = false;
 
         if(productOIDS != null && productOIDS.size() > 0){
-
 
             String subaeVersion = "";
 
@@ -129,7 +129,7 @@ public class SubaeService {
                 p.setProductAppdate(map.get("APP_DATE"));
                 p.setProductVersion(subaeVersion);
                 //p.setProductVersion(map.get("PROD_VERSION"));
-                //System.out.println("map = " + map + " == " + subaeVersion);
+                System.out.println("map = " + map + " == " + subaeVersion);
 
                 //subaeRepository.saveSubaeProduct(p);
             }
