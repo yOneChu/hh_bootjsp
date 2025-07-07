@@ -184,4 +184,12 @@ public class SubaeController {
     public void findSubaeProductNo() {
         subaeService.findSubaeProductNo("");
     }
+
+    @GetMapping("/subae/partDashboard")
+    public String partDashboard() {
+        //subaeService.findSubaeProductNo("");
+
+        //partDashboard
+        return "dashboard/partDashboard";
+    }
 }

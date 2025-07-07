@@ -69,6 +69,17 @@
                     </a>
 
                     <ul class="nav nav-treeview">
+
+                        <%--<a href="#" class="nav-link" onclick="window.open('/public/searchPriceReductionRate', 'popup', 'width=800,height=600'); return false;">
+                            Open Popup
+                        </a>--%>
+
+                        <li>
+                            <a href="#" class="nav-link" onclick="window.open('/subae/partDashboard', 'popup', 'width=1200,height=800'); return false;">
+                            <%--<a href="/subae/partDashboard" class="nav-link">--%>
+                                <p>PLM 자재 현황</p>
+                            </a>
+                        </li>
                         <li>
                             <%--<a href="https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionRate.jsp" class="nav-link">--%>
                                 <a href="/public/searchPriceReductionRate" class="nav-link">

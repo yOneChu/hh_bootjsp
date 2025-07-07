@@ -86,21 +86,27 @@ public class SubaeService {
                     System.out.println("j = " + j);
                 }
 
-                for (int j = 0; j < partList.size(); j++) {
-                    ProductDto p = partList.get(j);
-                    p.setM_ModCount(map.get("m_ModCount"));
-                    p.setC_ModCount(map.get("c_ModCount"));
-                    p.setOne_ModCount(map.get("one_ModCount"));
-                    p.setTwo_ModCount(map.get("two_ModCount"));
-                    p.setThree_ModCount(map.get("three_ModCount"));
-                    //p.setProductAppdate(map.get("APP_DATE"));
-                    p.setProductCreDate(creDate);
-                    p.setProductAppdate(appDate);
-                    p.setProductModDate(modDate);
-                    //p.setProductVersion(map.get("PROD_VERSION"));
-                    p.setProductVersion(subaeVersion);
-                    subaeRepository.saveSubaeProduct(p);
+
+                if (flag == true) {
+                    for (int j = 0; j < partList.size(); j++) {
+                        ProductDto p = partList.get(j);
+                        p.setM_ModCount(map.get("m_ModCount"));
+                        p.setC_ModCount(map.get("c_ModCount"));
+                        p.setOne_ModCount(map.get("one_ModCount"));
+                        p.setTwo_ModCount(map.get("two_ModCount"));
+                        p.setThree_ModCount(map.get("three_ModCount"));
+                        //p.setProductAppdate(map.get("APP_DATE"));
+                        p.setProductCreDate(creDate);
+                        p.setProductAppdate(appDate);
+                        p.setProductModDate(modDate);
+                        //p.setProductVersion(map.get("PROD_VERSION"));
+                        p.setProductVersion(subaeVersion);
+
+                        subaeRepository.saveSubaeProduct(p);
+                    }
                 }
+
+
             }
         } // END FOR
     }

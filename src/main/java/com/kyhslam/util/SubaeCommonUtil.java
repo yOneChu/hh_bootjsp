@@ -242,8 +242,8 @@ public class SubaeCommonUtil {
             while(rs.next()) {
                 String OID = rs.getString("OID");
                 String PRODUCTNO = rs.getString("PRODUCTNO");
-                String PRO_NAME = rs.getString("PRO_NAME") == null ? "" : rs.getString("PRO_NAME");
-                String PRO_VER = rs.getString("PRO_VER") == null ? "" : rs.getString("PRO_VER");
+                String PRO_NAME  = rs.getString("PRO_NAME") == null ? "" : rs.getString("PRO_NAME");
+                String PRO_VER   = rs.getString("PRO_VER") == null ? "" : rs.getString("PRO_VER");
                 String CREDATE   = rs.getString("CREDATE") == null ? "" : rs.getString("CREDATE");
                 String MODDATE   = rs.getString("MODDATE") == null ? "" : rs.getString("MODDATE");
                 String APPDATE   = rs.getString("APPDATE") == null ? "" : rs.getString("APPDATE");
