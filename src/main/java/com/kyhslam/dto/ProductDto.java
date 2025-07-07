@@ -14,6 +14,7 @@ public class ProductDto {
     private String productModDate;
     private String productAppdate;
     private String productStatus; //상태
+    private String gisong;
 
 
     private String seq;

@@ -45,8 +45,8 @@ public class SubaeRepository {
 
         String sql = """
                 INSERT INTO subaeProduct(PRODUCTNO, BATCHDATE, PRODUCTVER, APPDATE, PARTNO, PARTNAME, BLOCK_OPT, BLOCKNO, QTY
-                , CMT, UCHECK, GLCODE, m_ModCount, c_ModCount, one_ModCnt, two_ModCnt, three_ModCnt, allPartCnt, CREDATE, MODDATE)
-                VALUES(?,?,?,?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?, ?)
+                , CMT, UCHECK, GLCODE, m_ModCount, c_ModCount, one_ModCnt, two_ModCnt, three_ModCnt, allPartCnt, CREDATE, MODDATE, GISONG)
+                VALUES(?,?,?,?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?, ?, ?, ?)
             """;
 
         log.info("productDto = " + param.getProductNo());
@@ -71,7 +71,8 @@ public class SubaeRepository {
                 param.getThree_ModCount(),
                 param.getPart_size(),
                 param.getProductCreDate(),
-                param.getProductModDate()
+                param.getProductModDate(),
+                param.getGisong()
         );
     }
 }

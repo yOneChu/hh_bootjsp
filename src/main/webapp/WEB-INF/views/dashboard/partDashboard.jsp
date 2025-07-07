@@ -332,7 +332,6 @@
     </style>
 </head>
 <body>
-<!-- Navigation -->
 <nav class="navbar navbar-expand-lg navbar-custom">
     <div class="container">
         <div class="navbar-brand text-white fw-bold fs-4">
@@ -344,7 +343,6 @@
     </div>
 </nav>
 
-<!-- Main Header -->
 <div class="main-header">
     <div class="container">
         <div class="header-content">
@@ -374,7 +372,6 @@
 </div>
 
 <div class="container mt-4">
-    <!-- Filter Section -->
     <div class="filter-section-hyundai">
         <div class="row g-3 align-items-center">
             <div class="col-md-3">
@@ -418,7 +415,6 @@
         </div>
     </div>
 
-    <!-- Statistics Cards -->
     <div class="row g-4 mb-4">
         <div class="col-xl-3 col-md-6">
             <div class="card stat-card-hyundai">
@@ -428,8 +424,8 @@
                             <p class="stat-label mb-1">총 자재 수</p>
                             <h3 class="stat-number-hyundai">2,847</h3>
                             <span class="trend-indicator trend-up">
-                                    <i class="bi bi-arrow-up-short"></i>12.5%
-                                </span>
+                                        <i class="bi bi-arrow-up-short"></i>12.5%
+                                    </span>
                         </div>
                         <div class="metric-circle blue">
                             <i class="bi bi-box-seam"></i>
@@ -446,8 +442,8 @@
                             <p class="stat-label mb-1">활성 자재</p>
                             <h3 class="stat-number-hyundai">1,924</h3>
                             <span class="trend-indicator trend-up">
-                                    <i class="bi bi-arrow-up-short"></i>8.3%
-                                </span>
+                                        <i class="bi bi-arrow-up-short"></i>8.3%
+                                    </span>
                         </div>
                         <div class="metric-circle light-blue">
                             <i class="bi bi-activity"></i>
@@ -464,8 +460,8 @@
                             <p class="stat-label mb-1">재고 부족</p>
                             <h3 class="stat-number-hyundai">47</h3>
                             <span class="trend-indicator trend-down">
-                                    <i class="bi bi-arrow-down-short"></i>15.3%
-                                </span>
+                                        <i class="bi bi-arrow-down-short"></i>15.3%
+                                    </span>
                         </div>
                         <div class="metric-circle warning">
                             <i class="bi bi-exclamation-triangle"></i>
@@ -482,8 +478,8 @@
                             <p class="stat-label mb-1">평균 활용률</p>
                             <h3 class="stat-number-hyundai">73.2%</h3>
                             <span class="trend-indicator trend-stable">
-                                    <i class="bi bi-dash"></i>0.8%
-                                </span>
+                                        <i class="bi bi-dash"></i>0.8%
+                                    </span>
                         </div>
                         <div class="metric-circle success">
                             <i class="bi bi-graph-up"></i>
@@ -494,7 +490,6 @@
         </div>
     </div>
 
-    <!-- Charts and Details -->
     <div class="row g-4 mb-4">
         <div class="col-lg-8">
             <div class="card card-hyundai">
@@ -503,11 +498,7 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="chart-container-hyundai">
-                        <div class="text-center">
-                            <i class="bi bi-graph-up text-muted" style="font-size: 4rem;"></i>
-                            <p class="text-muted mt-3 mb-3">차트 영역</p>
-                            <small class="text-muted">실제 구현 시 Chart.js 또는 D3.js를 활용하여 인터랙티브 차트를 표시합니다.</small>
-                        </div>
+                        <canvas id="monthlyUsageChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -611,7 +602,6 @@
         </div>
     </div>
 
-    <!-- Analysis Section -->
     <div class="row g-4 mb-4">
         <div class="col-md-6">
             <div class="card card-hyundai">
@@ -619,7 +609,8 @@
                     <h5><i class="bi bi-pie-chart me-2"></i>카테고리별 사용 현황</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row text-center">
+                    <canvas id="categoryUsageChart" style="max-height: 300px;"></canvas>
+                    <div class="row text-center mt-4">
                         <div class="col-6 mb-4">
                             <div class="metric-circle blue mx-auto mb-2" style="width: 60px; height: 60px; font-size: 1.2rem;">45%</div>
                             <h6 class="mb-1">전자부품</h6>
@@ -656,7 +647,7 @@
                             <span class="fw-bold text-primary">85.3%</span>
                         </div>
                         <div class="progress progress-hyundai">
-                            <div class="progress-bar progress-bar-hyundai" style="width: 85.3%"></div>
+                            <div class="progress-bar progress-bar-hyundai" role="progressbar" style="width: 85.3%" aria-valuenow="85.3" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                     </div>
                     <div class="mb-4">
@@ -665,17 +656,183 @@
                             <span class="fw-bold text-primary">72.8%</span>
                         </div>
                         <div class="progress progress-hyundai">
-                            <div class="progress-bar progress-bar-hyundai" style="width: 72.8%"></div>
+                            <div class="progress-bar progress-bar-hyundai" role="progressbar" style="width: 72.8%" aria-valuenow="72.8" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                     </div>
                     <div class="mb-4">
                         <div class="d-flex justify-content-between mb-2">
                             <span class="fw-medium">비용 효율성</span>
+                            <span class="fw-bold text-primary">91.2%</span>
+                        </div>
+                        <div class="progress progress-hyundai">
+                            <div class="progress-bar progress-bar-hyundai" role="progressbar" style="width: 91.2%" aria-valuenow="91.2" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                     </div>
-
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="fw-medium">공급망 안정성</span>
+                            <span class="fw-bold text-primary">88.7%</span>
+                        </div>
+                        <div class="progress progress-hyundai">
+                            <div class="progress-bar progress-bar-hyundai" role="progressbar" style="width: 88.7%" aria-valuenow="88.7" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <h4 class="section-title"><i class="bi bi-bell me-2"></i>알림 및 권장사항</h4>
+            <div class="alert alert-warning-hyundai d-flex align-items-center mb-3" role="alert">
+                <i class="bi bi-exclamation-circle-fill me-3 fs-4"></i>
+                <div>
+                    <h6 class="alert-heading fw-bold mb-1">재고 부족 경고: MTL-123 커패시터</h6>
+                    <p class="mb-0">MTL-123 (커패시터 100μF) 자재의 재고가 부족합니다. 즉시 재주문을 고려해주세요.</p>
+                </div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <div class="alert alert-info-hyundai d-flex align-items-center mb-3" role="alert">
+                <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+                <div>
+                    <h6 class="alert-heading fw-bold mb-1">비활성 자재 분석 필요</h6>
+                    <p class="mb-0">최근 6개월간 사용 이력이 없는 비활성 자재가 150개 발견되었습니다. 불용 처리 검토가 필요합니다.</p>
+                </div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <div class="alert alert-success-hyundai d-flex align-items-center" role="alert">
+                <i class="bi bi-check-circle-fill me-3 fs-4"></i>
+                <div>
+                    <h6 class="alert-heading fw-bold mb-1">성공적인 월간 보고서 생성</h6>
+                    <p class="mb-0">2025년 6월 월간 자재 사용빈도 보고서가 성공적으로 생성되었습니다. <a href="#" class="alert-link">여기서 확인</a></p>
+                </div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
 </div>
+
+<footer class="bg-dark text-white-50 py-4 mt-5">
+    <div class="container text-center">
+        <p class="mb-0">&copy; 2025 PLM Dashboard. All Rights Reserved.</p>
+        <p class="mb-0">Powered by Hyundai Motor Group</p>
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    // Monthly Usage Chart
+    const monthlyUsageCtx = document.getElementById('monthlyUsageChart').getContext('2d');
+    new Chart(monthlyUsageCtx, {
+        type: 'line',
+        data: {
+            labels: ['1월', '2월', '3월', '4월', '5월', '6월', '7월'],
+            datasets: [{
+                label: '자재 사용량',
+                data: [1200, 1500, 1300, 1800, 1600, 2000, 2200],
+                borderColor: 'var(--hyundai-light-blue)',
+                backgroundColor: 'rgba(0, 102, 204, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: 'var(--hyundai-blue)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'var(--hyundai-light-blue)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false,
+                },
+                title: {
+                    display: false,
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '사용량 (단위: 회)',
+                        color: 'var(--hyundai-gray)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Category Usage Chart (Pie Chart)
+    const categoryUsageCtx = document.getElementById('categoryUsageChart').getContext('2d');
+    new Chart(categoryUsageCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['전자부품', '기계부품', '원자재', '소모품'],
+            datasets: [{
+                data: [45, 28, 18, 9],
+                backgroundColor: [
+                    'var(--hyundai-blue)',
+                    'var(--hyundai-success)',
+                    'var(--hyundai-warning)',
+                    'var(--hyundai-light-blue)'
+                ],
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 8,
+                        padding: 20,
+                        color: 'var(--hyundai-dark-gray)',
+                        font: {
+                            size: 14,
+                            family: 'Noto Sans KR',
+                            weight: '500'
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed !== null) {
+                                label += context.parsed + '%';
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            cutout: '70%', // Make it a doughnut chart
+        }
+    });
+</script>
+</body>
+</html>

@@ -67,6 +67,8 @@ public class SubaeService {
                 String appDate = "";
                 String creDate = "";
                 String modDate = "";
+                String gisong = "";
+
 
 
                 for (int j = 0; j < productOIDS.size(); j++) {
@@ -79,6 +81,7 @@ public class SubaeService {
                         appDate = d.getProductAppdate();
                         creDate = d.getProductCreDate();
                         modDate = d.getProductModDate();
+                        gisong = d.getGisong();
                         flag = SubaeCommonUtil.checkDesignBOM(oid, partList, map, dupCheck);
                     } else {
                         continue;
@@ -101,6 +104,7 @@ public class SubaeService {
                         p.setProductModDate(modDate);
                         //p.setProductVersion(map.get("PROD_VERSION"));
                         p.setProductVersion(subaeVersion);
+                        p.setGisong(gisong);
 
                         subaeRepository.saveSubaeProduct(p);
                     }

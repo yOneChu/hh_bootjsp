@@ -164,8 +164,8 @@ public class SubaeCommonUtil {
                       AND V.MD$NUMBER NOT LIKE '%TEST%'
                       AND V.MD$NUMBER NOT LIKE '%T%'
                       AND V.MD$DESC NOT LIKE '%가설계%'
-                      AND V.PRODUCTNO NOT LIKE '%Y%'
-                      AND V.PRODUCTNO NOT LIKE 'J%'
+                      AND V.MD$NUMBER NOT LIKE '%Y%'
+                      AND V.MD$NUMBER NOT LIKE 'J%'
                       AND LENGTH(V.MD$NUMBER) < 10
                 """;
 
@@ -213,7 +213,10 @@ public class SubaeCommonUtil {
                             (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = V.MD$USER) USERNAME,
                             V.MD$STATUS,
                             V.E_BLOCK_F,
-                            V.M_BLOCK_F
+                            V.M_BLOCK_F,
+                            (SELECT COD(E.EL_ATYP) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                             WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip AND E.MD$STATUS = 'RLS'
+                             AND E.MD$NUMBER = V.MD$NUMBER) AS GISONG
                            -- V.*
                         FROM product$vf V
                         WHERE V.MD$STATUS = 'RLS'
@@ -228,8 +231,8 @@ public class SubaeCommonUtil {
                         AND V.MD$NUMBER NOT LIKE '%TEST%'
                         AND V.MD$NUMBER NOT LIKE '%T%'
                         AND V.MD$DESC NOT LIKE '%가설계%'
-                        AND V.PRODUCTNO NOT LIKE '%Y%'
-                        AND V.PRODUCTNO NOT LIKE 'J%'
+                        AND V.MD$NUMBER NOT LIKE '%Y%'
+                        AND V.MD$NUMBER NOT LIKE 'J%'
                         AND V.MD$NUMBER = ?
                         --ORDER BY V.VF$VERSION ASC
                         ORDER BY V.MD$CDATE ASC
@@ -251,6 +254,7 @@ public class SubaeCommonUtil {
                 String CREDATE   = rs.getString("CREDATE") == null ? "" : rs.getString("CREDATE");
                 String MODDATE   = rs.getString("MODDATE") == null ? "" : rs.getString("MODDATE");
                 String APPDATE   = rs.getString("APPDATE") == null ? "" : rs.getString("APPDATE");
+                String GISONG = rs.getString("GISONG") ==  null ? "" : rs.getString("GISONG");
                 //String STATUS   = rs.getString("STATUS");
 
                 ProductDto dto = new ProductDto();
@@ -261,6 +265,7 @@ public class SubaeCommonUtil {
                 dto.setProductCreDate(CREDATE);
                 dto.setProductModDate(MODDATE);
                 dto.setProductAppdate(APPDATE);
+                dto.setGisong(GISONG);
 
                 result.add(dto);
             }
