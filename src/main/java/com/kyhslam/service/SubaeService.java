@@ -114,4 +114,23 @@ public class SubaeService {
             }
         } // END FOR
     }
+
+    public void findMissPart(ArrayList<ProductDto> dataList, String partNo, String con01) {
+
+        ArrayList<String> productList = SubaeCommonUtil.findWipBom();
+
+        for (int i = 0; i < productList.size(); i++) {
+            String oid = productList.get(i);
+            System.out.println("oid = " + oid);
+            findPartOfProduct(oid, partNo, con01, dataList);
+        }
+
+        System.out.println("------ end -------");
+    }
+
+
+    public void findPartOfProduct(String productOID, String partNo, String con01, ArrayList<ProductDto> dataList) {
+        SubaeCommonUtil.findPartOfProduct(productOID, partNo.trim(), con01, dataList);
+
+    }
 }

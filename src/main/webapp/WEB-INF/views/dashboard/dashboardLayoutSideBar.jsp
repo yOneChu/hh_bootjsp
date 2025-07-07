@@ -165,6 +165,11 @@
                                 <p>(신)전산요청 현황</p>
                             </a>
                         </li>--%>
+                        <li>
+                            <a href="/subae/searchMissPartofProduct" class="nav-link">
+                                <p>자재 Finder(테스트)</p>
+                            </a>
+                        </li>
 
                         <li>
                             <a href="/pid/pidDashboard" class="nav-link">

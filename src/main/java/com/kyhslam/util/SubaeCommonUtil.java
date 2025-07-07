@@ -2,6 +2,7 @@ package com.kyhslam.util;
 
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
+import org.springframework.util.StringUtils;
 
 import java.sql.Array;
 import java.sql.Connection;
@@ -603,6 +604,171 @@ public class SubaeCommonUtil {
         return result;
     }
 
+
+
+    //자재 Finder
+    //1.빵구난거 찾기위해 가설계(wip) 상태 제품 전체 조회 ( 2025년 부터)
+    public static ArrayList<String> findWipBom() {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<String> result = new ArrayList<String>();
+
+        try {
+
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                with ouid as
+                		     ( select V.vf$ouid from product$vf V, product$id A
+                		      	where V.vf$identity = A.id$ouid and V.vf$ouid = A.id$wip
+                		      	--AND SUBSTR(V.MD$MDATE, 0,4) >= '2025'
+                		     )
+                			 SELECT	B.md$Number AS PRODUCTNO,
+                			        B.vf$ouid AS OID,
+                			        B.VF$VERSION AS PRODVERSION
+                			 FROM product$vf B
+                			 WHERE B.VF$OUID in (select * from ouid)
+                			 AND B.VF$VERSION = 'wip'
+                             AND SUBSTR(B.MD$MDATE, 0,8) = '20250102'
+                """;
+
+            System.out.println("sql = " + sql);
+
+            pstmt = con.prepareStatement(sql.toString());
+            //pstmt.setString(1, year);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String PRODUCTNO = rs.getString("PRODUCTNO");
+                String oid = rs.getString("OID");
+
+                result.add(oid);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
+    }
+
+
+    //2.제품 하위에 해당 자재가 있는지 검사
+    public static void findPartOfProduct(String productOID, String partNo, String con01, ArrayList<ProductDto> dataList) {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                    SELECT
+                          PE.SEQ
+                         , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) AS PARENTNO
+                         , (SELECT PRODUCT.VF$VERSION FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PARENTNO_VER
+                         , (SELECT TO_CHAR(TO_DATE(PRODUCT.MD$CDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS PROD_MODDATE FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_CREDATE
+                         , (SELECT TO_CHAR(TO_DATE(PRODUCT.MD$MDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS PROD_MODDATE FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_MODDATE
+                         , (SELECT TO_CHAR(TO_DATE(PRODUCT.APP_DATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS PROD_MODDATE FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_APP_DATE
+                         , NP.VF$VERSION AS PART_VERSION
+                         , NP.MD$NUMBER AS PARTNO
+                         , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) AS BLOCKNO
+                         , (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) AS BLOCK_OPT
+                         , VP.UCHECK AS UCHECK  -- 수정여부
+                         , cod(NP.NATION) NATION
+                         , NP.MD$DESC AS PARTNAME
+                         , PE.QTY AS PART_QTY
+                         , VP.WORK_QTY
+                         , PE.CMT AS CMT
+                         , NVL(NP.G_L_CODE, '') AS GLCODE
+                         , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = NP.MD$USER) AS USERNAME
+                        FROM
+                         PARTOFEBOM PE
+                        INNER JOIN NORMALPART$VF NP ON PE.PARTOUID = NP.VF$OUID
+                        LEFT OUTER JOIN VARIABLEPART_NEW VP ON VP.PRODUCTOUID = PE.PRODUCTOUID AND VP.ASSOOUID = PE.ASSOOUID
+                        WHERE
+                         -- PE.PRODUCTOUID = 제품의OID
+                        --PE.PRODUCTOUID = ?
+                        --AND NP.MD$NUMBER like concat('%',?,'%')
+                        --ORDER BY TO_NUMBER(PE.SEQ)
+                """;
+
+            //System.out.println("sql = " + sql);
+
+            if (productOID != null) {
+                sql += " PE.PRODUCTOUID = '" + productOID + "' ";
+            }
+
+
+            if ("LIKE".equals(con01)) {
+                sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
+            } else {
+                sql += " AND NP.MD$NUMBER = '" + partNo + "' ";
+            }
+
+            sql += " ORDER BY TO_NUMBER(PE.SEQ)";
+
+            pstmt = con.prepareStatement(sql.toString());
+            //pstmt.setString(1, productOID);
+            //pstmt.setString(2, partNo);
+
+            rs = pstmt.executeQuery();
+
+
+            HashMap<String, String> flagMap = new HashMap<>();
+
+
+            while(rs.next()) {
+                String productNo = rs.getString("PARENTNO"); //제품번호
+                String productVersion = rs.getString("PARENTNO_VER") == null ? "" : rs.getString("PARENTNO_VER"); //제품버전
+                String PROD_CREDATE = rs.getString("PROD_CREDATE") == null ? "" : rs.getString("PROD_CREDATE"); //제품 등록일
+                String PROD_MODDATE = rs.getString("PROD_MODDATE") == null ? "" : rs.getString("PROD_MODDATE"); //제품 수정일
+                String PROD_APP_DATE = rs.getString("PARENTNO_VER") == null ? "" : rs.getString("PROD_APP_DATE"); //제품 승인일
+
+
+                String PARTNO = rs.getString("PARTNO") == null ? "" : rs.getString("PARTNO");
+                String PARTNAME = rs.getString("PARTNAME") == null ? "" : rs.getString("PARTNAME");
+                String PART_VERSION = rs.getString("PART_VERSION") == null ? "" : rs.getString("PART_VERSION");
+                String BLOCKNO =  rs.getString("BLOCKNO") == null ? "" : rs.getString("BLOCKNO");
+                String partQTY =  rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
+                String BLOCK_OPT = rs.getString("BLOCK_OPT") == null ? "" : rs.getString("BLOCK_OPT");
+                String CMT = rs.getString("CMT") == null ? "" : rs.getString("CMT");
+                String GLCODE = rs.getString("GLCODE") == null ? "" : rs.getString("GLCODE");
+                String UCHECK = rs.getString("UCHECK") == null ? "" : rs.getString("UCHECK");
+
+
+                System.out.println(productNo +">" + productVersion + " >>> " + PARTNO + " > " + PARTNAME);
+
+
+                ProductDto dto = new ProductDto();
+                dto.setProductNo(productNo); //제품번호
+                dto.setProductVersion(productVersion); //제품버전
+                dto.setProductAppdate(PROD_APP_DATE); //제품승인일
+
+                dto.setPartNo(PARTNO);
+                dto.setPartName(PARTNAME);
+                dto.setVersion(PART_VERSION);
+                dto.setBlockNo(BLOCKNO);
+                dto.setCmt(CMT);
+                dto.setGlCode(GLCODE);
+                dto.setUcheck(UCHECK);
+                dto.setQty(partQTY);
+                dto.setBlock_opt(BLOCK_OPT);
+
+                dataList.add(dto);
+            } //end while
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+    }
 }
 
 

@@ -3,6 +3,7 @@ package com.kyhslam.controller;
 import com.kyhslam.dto.BlockHistoryDTO;
 import com.kyhslam.dto.LogicDTO;
 import com.kyhslam.dto.PartInfoDTO;
+import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.BlockHistoryService;
 import com.kyhslam.service.SubaeService;
 import lombok.RequiredArgsConstructor;
@@ -191,5 +192,21 @@ public class SubaeController {
 
         //partDashboard
         return "dashboard/partDashboard";
+    }
+
+
+    //자재 Finder
+    @GetMapping("/subae/searchMissPartofProduct")
+    public String searchMissPartofProduct() {
+        return "subaeLogic/searchMissPartofProduct";
+    }
+
+    @PostMapping("/subae/searchMissPartofProduct")
+    @ResponseBody
+    public ArrayList<ProductDto> searchMissPartofProduct(String partNo, String con01) {
+        ArrayList<ProductDto> result = new ArrayList<>();
+
+        subaeService.findMissPart(result, partNo, con01);
+        return result;
     }
 }

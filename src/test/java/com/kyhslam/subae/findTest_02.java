@@ -58,4 +58,23 @@ public class findTest_02 {
         System.out.printf("   - %.3f 분%n", minutes);
     }
 
+
+    @Test
+    void findPartOfProduct() {
+        StopWatch sw = new StopWatch();
+        sw.start();
+
+        //subaeService.findPartOfProduct("2837255897", "HX");
+
+        sw.stop();
+
+        long millis = sw.getTotalTimeMillis();
+
+        double seconds = millis / 1000.0;
+        double minutes = seconds / 60.0;
+
+        System.out.println("⏱ 수행 시간:");
+        System.out.printf("   - %.3f 초%n", seconds);
+        System.out.printf("   - %.3f 분%n", minutes);
+    }
 }
