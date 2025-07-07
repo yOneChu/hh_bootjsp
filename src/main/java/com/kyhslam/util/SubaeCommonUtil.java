@@ -164,6 +164,8 @@ public class SubaeCommonUtil {
                       AND V.MD$NUMBER NOT LIKE '%TEST%'
                       AND V.MD$NUMBER NOT LIKE '%T%'
                       AND V.MD$DESC NOT LIKE '%가설계%'
+                      AND V.PRODUCTNO NOT LIKE '%Y%'
+                      AND V.PRODUCTNO NOT LIKE 'J%'
                       AND LENGTH(V.MD$NUMBER) < 10
                 """;
 
@@ -226,6 +228,8 @@ public class SubaeCommonUtil {
                         AND V.MD$NUMBER NOT LIKE '%TEST%'
                         AND V.MD$NUMBER NOT LIKE '%T%'
                         AND V.MD$DESC NOT LIKE '%가설계%'
+                        AND V.PRODUCTNO NOT LIKE '%Y%'
+                        AND V.PRODUCTNO NOT LIKE 'J%'
                         AND V.MD$NUMBER = ?
                         --ORDER BY V.VF$VERSION ASC
                         ORDER BY V.MD$CDATE ASC
