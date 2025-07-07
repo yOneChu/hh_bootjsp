@@ -44,7 +44,7 @@ public class findTest_02 {
         StopWatch sw = new StopWatch();
         sw.start();
 
-        subaeService.findSubaeProductNo("210122L02");
+        subaeService.findSubaeProductNo("211386L01");
 
         sw.stop();
 
