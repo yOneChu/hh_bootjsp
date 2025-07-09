@@ -6,7 +6,7 @@
 
     <!--전체 삭제-->
     <delete id="deleteAll">
-        delete from block_history where BLOCKNO != ''
+        delete from PARTDASHBOARD where BLOCKNO != ''
     </delete>
 
 <!--    <insert id="save" useGeneratedKeys="true" keyProperty="id">
