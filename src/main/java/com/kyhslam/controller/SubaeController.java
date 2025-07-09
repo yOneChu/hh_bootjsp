@@ -201,12 +201,14 @@ public class SubaeController {
         return "subaeLogic/searchMissPartofProduct";
     }
 
+
     @PostMapping("/subae/searchMissPartofProduct")
     @ResponseBody
-    public ArrayList<ProductDto> searchMissPartofProduct(String partNo, String con01) {
+    public ArrayList<ProductDto> searchMissPartofProduct(String year, String partNo) {
         ArrayList<ProductDto> result = new ArrayList<>();
 
-        subaeService.findMissPart(result, partNo, con01);
+        //subaeService.findMissPart(result, partNo, con01);
+        result = subaeService.findPartOfProduct_v2(year, partNo);
         return result;
     }
 }

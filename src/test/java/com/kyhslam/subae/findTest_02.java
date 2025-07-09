@@ -59,12 +59,14 @@ public class findTest_02 {
     }
 
 
+    @Description("자재번호로 제품찾기")
     @Test
-    void findPartOfProduct() {
+    void findPartOfProduct_V2() {
         StopWatch sw = new StopWatch();
         sw.start();
 
         //subaeService.findPartOfProduct("2837255897", "HX");
+        subaeService.findPartOfProduct_v2("", "10311392G12*");
 
         sw.stop();
 

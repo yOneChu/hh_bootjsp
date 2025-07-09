@@ -123,7 +123,19 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-4">
+
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>년도</label>
+                                    <select id="year" class="form-control select" style="width: 100%;">
+                                        <option selected="selected">2025</option>
+                                        <option>2024</option>
+                                        <option>2023</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label>Part No.</label>
                                     <input type="search" id="partNo" class="form-control" placeholder="Part No." value="">
@@ -132,7 +144,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-4">
+                <%--            <div class="col-md-2">
                                 <div class="form-group">
                                     <label>-조건</label>
                                     <select id="con-01" class="form-control select" style="width: 100%;">
@@ -140,16 +152,16 @@
                                         <option>EQUAL</option>
                                     </select>
                                 </div>
-                            </div>
+                            </div>--%>
 
-                            <div class="col-md-4">
+                   <%--         <div class="col-md-4">
                                 <div class="form-group">
                                     <label>PID-01</label>
                                     <input type="search" id="pidVal" class="form-control" placeholder="PID-01" value="">
                                     <div class="input-group-append">
                                     </div>
                                 </div>
-                            </div>
+                            </div>--%>
 
                             <!-- /.col -->
                         </div>
@@ -181,7 +193,8 @@
                                     <!-- bg-primary -->
                                     <tr class="bg-secondary">
                                         <th>제품번호</th>
-                                        <th>버전</th>
+                                        <th>제품버전</th>
+                                        <th>기종</th>
                                         <th>품번</th>
                                         <th>품명</th>
 
@@ -292,17 +305,13 @@
     });
 
 
-
-
-
-
     //검색
     function searchPID()
     {
-        let con01 = $("#con-01").val(); // SPEC
+        let year = $("#year").val(); // SPEC
         let partNo = $("#partNo").val(); // LIKE
 
-        console.log(con01);
+        console.log(year);
         console.log(partNo);
 
      /*   if(pidVal == null || "" == pidVal) {
@@ -325,7 +334,7 @@
             url : "/subae/searchMissPartofProduct",
             data : {
                 partNo : partNo,
-                con01 : con01
+                year : year
             },
             beforeSend: function() {
                 $("html").css("cursor", "wait");
@@ -346,6 +355,7 @@
 
                         str += "<td>" + data[i].productNo + "</td>";
                         str += "<td>" + data[i].productVersion + "</td>";
+                        str += "<td>" + data[i].gisong + "</td>";
                         str += "<td>" + data[i].partNo + "</td>";
                         str += "<td>" + data[i].partName + "</td>";
 

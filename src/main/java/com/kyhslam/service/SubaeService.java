@@ -131,6 +131,10 @@ public class SubaeService {
 
     public void findPartOfProduct(String productOID, String partNo, String con01, ArrayList<ProductDto> dataList) {
         SubaeCommonUtil.findPartOfProduct(productOID, partNo.trim(), con01, dataList);
+    }
 
+    //findPartOfProduct_v2
+    public ArrayList<ProductDto> findPartOfProduct_v2(String year, String partNo) {
+        return SubaeCommonUtil.findPartOfProduct_v2(year, partNo.trim());
     }
 }

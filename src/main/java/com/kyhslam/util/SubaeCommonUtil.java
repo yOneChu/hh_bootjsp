@@ -769,6 +769,174 @@ public class SubaeCommonUtil {
             PLMDBConnection.disconnect(con, pstmt, rs);
         }
     }
+
+
+    //자재번호로
+    //해당 자재번호를 사용하고 있는 제품 검색
+    //2.제품 하위에 해당 자재가 있는지 검사
+    public static ArrayList<ProductDto> findPartOfProduct_v2(String year, String partNo) {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<ProductDto> dataList = new ArrayList<ProductDto>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                    with ouid as
+                         ( select A.vf$ouid AS VFOID from product$vf A, product$id B
+                          	where A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip
+            """;
+
+            if (year != null && !"".equals(year)) {
+                sql += " AND SUBSTR(A.MD$CDATE, 0, 4) = '" + year + "' ";
+            } else {
+                sql += " AND SUBSTR(A.MD$CDATE, 0, 4) = '2025' ";
+            }
+
+            sql += """        
+                         )
+                        SELECT
+                        			  PE.SEQ
+                        			 , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) AS PARENTNO
+                                     , (SELECT F.VF$VERSION FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) AS PARENT_VER
+                                     , (SELECT TO_CHAR(TO_DATE(PRODUCT.MD$CDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_CREDATE
+                                     , (SELECT TO_CHAR(TO_DATE(PRODUCT.MD$MDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_MODDATE
+                                     , (SELECT TO_CHAR(TO_DATE(PRODUCT.APP_DATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_APP_DATE
+                                     , (SELECT PRODUCT.MD$STATUS FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_STATUS
+                                     , (SELECT COD(E.EL_ATYP) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                                        WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS GISONG
+                        			 , NP.MD$NUMBER AS PARTNO
+                        			 , cod(NP.NATION) AS NATION
+                        			 , NP.compen_part AS COMPEN_PART
+                        			 , NP.MD$DESC AS PARTNAME
+                        			 , NP.VF$VERSION AS PART_VERSION
+                                     , PE.CMT AS CMT
+                        			 , NVL(NP.G_L_CODE, '') AS GLCODE
+                        			 , NVL(NP.SPEC, '') AS SPEC
+                        			 , NVL(NP.PART_SIZE, '') AS PART_SIZE
+                        			 , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) AS BLOCKNO
+                        			 , (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) AS BLOCK_OPT
+                        			 , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.UPPERBLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.UPPERBLOCKNO, 12))))) AS UPPERBLOCKNO
+                        			 , NVL(COD(NP.UOM), '') AS UOM
+                        			 , PE.QTY AS PART_QTY
+                        			 , VP.WORK_QTY
+                        			 , VP.WORK_CMT
+                        			 , PE.COLOR
+                        			 , VP.WORK_COLOR
+                        			 , NVL(COD(NP.ORIGIN_DIV), '') DIV
+                        			 , NVL(PE.MBOM, '') MBOM
+                        			 , NVL(COD(NP.PART_MBOM), '') PART_MBOM
+                        			 , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = NP.MD$USER) USERNAME
+                        			 , NP.MD$USER USERID
+                        			 , COD(NP.PARTMPCHECK) AS PARTMPCHECK
+                        			 , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = PE.CUSER) AS CUSERNAME
+                        			 , PE.CUSER AS CUSERID
+                        			 , 1 LEV
+                        			 , 'F' ISLEAF
+                        			 , VP.UCHECK AS UCHECK  -- 수정여부
+                        			 , VP.MCHECK
+                        			 , NVL(COD(NP.PART_DIVISION), '') AS PART_DIVISION
+                        			 , PE.CDATE
+                        			 , VP.MDATE
+                        			-- , DATEFORMAT(VP.MDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS 등록일
+                        			 , VP.user5
+                        			 , (SELECT COUNT(1) FROM PARTOFPART$AC WHERE AS$END1=NP.VF$OUID AND ROWNUM=1) HASCHILD -- 하위BOM 존재여부
+                        			FROM
+                        			 PARTOFEBOM PE
+                        			INNER JOIN NORMALPART$VF NP ON PE.PARTOUID = NP.VF$OUID
+                        			LEFT OUTER JOIN VARIABLEPART_NEW VP ON VP.PRODUCTOUID = PE.PRODUCTOUID AND VP.ASSOOUID = PE.ASSOOUID
+                        			WHERE
+                                    PE.PRODUCTOUID IN (SELECT VFOID FROM ouid)
+                        			--AND NP.MD$NUMBER LIKE '2300005%'
+                        			--AND NP.MD$NUMBER LIKE ''
+                        			--ORDER BY TO_NUMBER(PE.SEQ)
+                """;
+            
+
+            if(partNo != null && !"".equals(partNo)){
+
+                if (partNo.contains("*")) {
+
+                    partNo = partNo.replace("*", "%");
+
+                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
+                    sql += " AND NP.MD$NUMBER LIKE '" + partNo + "' ";
+                } else {
+                    sql += " AND NP.MD$NUMBER = '" + partNo + "' ";
+                }
+
+
+
+            }
+
+            System.out.println("sql = " + sql);
+
+            pstmt = con.prepareStatement(sql.toString());
+            //pstmt.setString(1, productOID);
+            //pstmt.setString(2, partNo);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String productNo = rs.getString("PARENTNO"); //제품번호
+                String productVersion = rs.getString("PARENT_VER") == null ? "" : rs.getString("PARENT_VER"); //제품버전
+                String PROD_STATUS = rs.getString("PROD_STATUS") == null ? "" : rs.getString("PROD_STATUS");
+                String PROD_CREDATE = rs.getString("PROD_CREDATE") == null ? "" : rs.getString("PROD_CREDATE"); //제품 등록일
+                String PROD_MODDATE = rs.getString("PROD_MODDATE") == null ? "" : rs.getString("PROD_MODDATE"); //제품 수정일
+                String PROD_APP_DATE = rs.getString("PROD_APP_DATE") == null ? "" : rs.getString("PROD_APP_DATE"); //제품 승인일
+                String GISONG = rs.getString("GISONG") == null ? "" : rs.getString("GISONG");
+
+
+                String PARTNO = rs.getString("PARTNO") == null ? "" : rs.getString("PARTNO");
+                String PARTNAME = rs.getString("PARTNAME") == null ? "" : rs.getString("PARTNAME");
+                String PART_VERSION = rs.getString("PART_VERSION") == null ? "" : rs.getString("PART_VERSION");
+                String BLOCKNO =  rs.getString("BLOCKNO") == null ? "" : rs.getString("BLOCKNO");
+                String partQTY =  rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
+                String BLOCK_OPT = rs.getString("BLOCK_OPT") == null ? "" : rs.getString("BLOCK_OPT");
+                String CMT = rs.getString("CMT") == null ? "" : rs.getString("CMT");
+                String GLCODE = rs.getString("GLCODE") == null ? "" : rs.getString("GLCODE");
+                String UCHECK = rs.getString("UCHECK") == null ? "" : rs.getString("UCHECK");
+
+
+                System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + PARTNAME);
+
+
+                ProductDto dto = new ProductDto();
+                dto.setProductNo(productNo); //제품번호
+                dto.setProductVersion(productVersion); //제품버전
+                dto.setProductStatus(PROD_STATUS);
+                dto.setProductCreDate(PROD_CREDATE);
+                dto.setProductModDate(PROD_MODDATE);
+                dto.setProductAppdate(PROD_APP_DATE); //제품승인일
+                dto.setGisong(GISONG);
+
+                dto.setPartNo(PARTNO);
+                dto.setPartName(PARTNAME);
+                dto.setVersion(PART_VERSION);
+                dto.setBlockNo(BLOCKNO);
+                dto.setCmt(CMT);
+                dto.setGlCode(GLCODE);
+                dto.setUcheck(UCHECK);
+                dto.setQty(partQTY);
+                dto.setBlock_opt(BLOCK_OPT);
+
+                dataList.add(dto);
+            } //end while
+
+            System.out.println("dataList.size() = " + dataList.size());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        
+        return dataList;
+    }
 }
 
 

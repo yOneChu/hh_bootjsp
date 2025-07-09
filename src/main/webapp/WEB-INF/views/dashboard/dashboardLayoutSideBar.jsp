@@ -179,7 +179,7 @@
 
                         <li>
                             <a href="/subae/comparePartCN" class="nav-link">
-                                <p>한국-중국 자재비교(CN)</p>
+                                <p>본사/법인 자재비교(CN)</p>
                             </a>
                         </li>
 
