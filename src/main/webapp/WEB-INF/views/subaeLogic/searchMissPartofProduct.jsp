@@ -181,9 +181,11 @@
 
                         <div class="card card-primary">
 
+<%--
                             <div class="card-header">
                                 <h3 class="card-title">검색 결과</h3>
                             </div>
+--%>
 
                             <!-- /.card-header -->
                             <div class="card-body" style="zoom:85%;">
@@ -191,20 +193,22 @@
                                 <table id="infoTable" class="table table-bordered table-hover" style="font-family: NotoSans; font-size:15px;">
                                     <thead>
                                     <!-- bg-primary -->
-                                    <tr class="bg-secondary">
-                                        <th>제품번호</th>
-                                        <th>제품버전</th>
-                                        <th>기종</th>
-                                        <th>품번</th>
-                                        <th>품명</th>
+                                        <tr class="bg-secondary">
+                                            <th>제품번호</th>
+                                            <th>제품버전</th>
+                                            <th>제품상태</th>
+                                            <th>제품등록일</th>
+                                            <th>기종</th>
+                                            <th>품번</th>
+                                            <th>품명</th>
 
-                                        <th>BlockNo.</th>
-                                        <th>품목</th>
-                                        <th>GL_CODE</th>
-                                        <th>버전</th>
-                                        <th>cmt</th>
+                                            <th>BlockNo.</th>
+                                            <th>품목</th>
+                                            <th>GL_CODE</th>
+                                            <th>버전</th>
+                                            <th>cmt</th>
 
-                                    </tr>
+                                        </tr>
                                     </thead>
 
                                     <tbody id="contentTable">
@@ -355,6 +359,8 @@
 
                         str += "<td>" + data[i].productNo + "</td>";
                         str += "<td>" + data[i].productVersion + "</td>";
+                        str += "<td>" + data[i].productStatus + "</td>";
+                        str += "<td>" + data[i].productCreDate + "</td>";
                         str += "<td>" + data[i].gisong + "</td>";
                         str += "<td>" + data[i].partNo + "</td>";
                         str += "<td>" + data[i].partName + "</td>";
@@ -377,7 +383,9 @@
                         "pageLength": 50,     //페이지 당 글 개수 설정
                         "autoWidth": false, // 가로자동
                         "processing": true,
-                        "scrollX" : true, //가로  스크롤
+                        "destroy": true, // 테이블 재생성
+
+                        //"scrollX" : true, //가로  스크롤
                         "destroy": true, // 테이블 재생성
                         //"scrollX": true, // 가로 스크롤
                         //"buttons": ["csv", "excel", "pdf", "print"]
@@ -400,7 +408,7 @@
                                 extend: "copy"
                             }
                         ]
-                    }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(1)');
+                    }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
 
                 } else {
                     alert("검색결과가 없습니다.");
