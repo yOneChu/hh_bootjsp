@@ -457,7 +457,7 @@
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center">
                         <div class="flex-grow-1">
-                            <p class="stat-label mb-1">재고 부족</p>
+                            <p class="stat-label mb-1">비활성</p>
                             <h3 class="stat-number-hyundai">47</h3>
                             <span class="trend-indicator trend-down">
                                         <i class="bi bi-arrow-down-short"></i>15.3%
@@ -470,6 +470,8 @@
                 </div>
             </div>
         </div>
+
+
         <div class="col-xl-3 col-md-6">
             <div class="card stat-card-hyundai">
                 <div class="card-body p-4">
