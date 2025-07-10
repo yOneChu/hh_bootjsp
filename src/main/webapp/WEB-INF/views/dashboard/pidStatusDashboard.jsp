@@ -95,8 +95,7 @@
 
 
     <!-- Main Sidebar Container -->
-    <%--<jsp:include page="./dashboardLayoutSideBar.jsp" flush="true" />--%>
-    <jsp:include page="../layout/basicSideBar.jsp" flush="true" />
+    <jsp:include page="./dashboardLayoutSideBar.jsp" flush="true" />
 
 
     <!-- Content Wrapper. Contains page content -->
@@ -416,7 +415,7 @@
 
     //ready
     $(document).ready(function() {
-
+        $("#dashboard").removeClass("menu-open");
 
         Highcharts.chart('cpContainer', {
 

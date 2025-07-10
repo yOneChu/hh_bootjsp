@@ -63,8 +63,7 @@
 
 
     <!-- Main Sidebar Container -->
-    <%--<jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true" />--%>
-    <jsp:include page="../layout/basicSideBar.jsp" flush="true" />
+    <jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true" />
 
 
     <!-- Content Wrapper. Contains page content -->
@@ -259,6 +258,7 @@
     //ready
     $(document).ready(function() {
 
+        $("#dashboard").removeClass("menu-open");
 
         //엔터키 감지
         $(document).keyup(function(event) {

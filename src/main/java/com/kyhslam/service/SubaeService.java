@@ -134,6 +134,13 @@ public class SubaeService {
     }
 
     //findPartOfProduct_v2
+
+    /**
+     * 자재번호가 사용되고 있는 모든 제품 찾기
+     * @param year
+     * @param partNo
+     * @return
+     */
     public ArrayList<ProductDto> findPartOfProduct_v2(String year, String partNo) {
         return SubaeCommonUtil.findPartOfProduct_v2(year, partNo.trim());
     }

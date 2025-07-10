@@ -172,6 +172,13 @@
                         </li>
 
                         <li>
+                            <a href="#" class="nav-link" onclick="window.open('/subae/logicView', 'popup', 'width=1200,height=1000'); return false;">
+                            <%--<a href="/subae/logicView" class="nav-link">--%>
+                                <p>로직 View</p>
+                            </a>
+                        </li>
+
+                        <li>
                             <a href="/pid/pidDashboard" class="nav-link">
                                 <p>PID 작업 현황</p>
                             </a>

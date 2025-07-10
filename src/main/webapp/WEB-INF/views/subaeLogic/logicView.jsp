@@ -1,5 +1,3 @@
-<%@ page import="com.kyhslam.service.PartUtilService" %>
-
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
@@ -12,332 +10,587 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <!-- <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"> -->
     <link rel="icon" type="image/png" href="/resources/favicon.ico" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
-    <title>한국v중국_자재비교</title>
 
+    <title>엑셀 어시스턴트</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/handsontable/12.4.0/handsontable.full.min.css" rel="stylesheet">
     <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-        /* Handsontable 컨테이너 스타일 */
-        #hot-container {
-            width: 800px;
-            height: 400px;
-            margin: 50px auto; /* 가운데 정렬을 위해 */
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        .navbar-brand {
+            font-weight: bold;
+            color: #198754 !important;
+        }
+
+        .toolbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn-toolbar-group {
+            margin-right: 15px;
+        }
+
+        .excel-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 20px;
+            overflow: hidden;
+        }
+
+        #handsontable-container {
+            height: 500px;
+            border: 2px solid #198754;
+            border-radius: 4px;
+        }
+
+        /* Handsontable 커스텀 스타일 */
+        .handsontable th {
+            background-color: #e9ecef !important;
+            color: #495057 !important;
+            font-weight: 600 !important;
+        }
+
+        .handsontable .currentRow {
+            background-color: #f8f9fa !important;
+        }
+
+        .handsontable .area {
+            background-color: rgba(25, 135, 84, 0.1) !important;
+        }
+
+        .handsontable .current {
+            background-color: #cfe2ff !important;
+            border: 2px solid #0d6efd !important;
+        }
+
+        .formula-bar {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px 15px;
+        }
+
+        .cell-reference {
+            width: 80px;
+            margin-right: 10px;
+        }
+
+        .formula-input { /* Renamed to search-input for clarity in context */
+            flex: 1;
+        }
+
+        .status-bar {
+            background-color: #e9ecef;
+            border-top: 1px solid #dee2e6;
+            padding: 5px 15px;
+            font-size: 0.875rem;
+        }
+
+        .assistant-panel {
+            background: linear-gradient(135deg, #198754, #20c997);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .assistant-suggestions {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .suggestion-item {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            margin: 5px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+
+        .suggestion-item:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .floating-toolbar {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .ai-btn {
+            background: linear-gradient(45deg, #6f42c1, #e83e8c);
+            border: none;
+            border-radius: 50px;
+            padding: 15px 25px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(111, 66, 193, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .ai-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(111, 66, 193, 0.6);
+            color: white;
         }
     </style>
 </head>
-
-
 <body>
+<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">
+            <i class="fas fa-table me-2"></i>로직에디터 어시스턴트
+        </a>
+        <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    <i class="fas fa-user-circle me-1"></i>개발자님
+                </span>
+            <button class="btn btn-outline-success btn-sm">
+                <i class="fas fa-save me-1"></i>저장
+            </button>
+        </div>
+    </div>
+</nav>
 
-<h1>Handsontable JSON 데이터 예제</h1>
-<p>아래 스프레드시트에서 데이터를 직접 편집해보세요.</p>
+<div class="toolbar">
+    <div class="d-flex align-items-center flex-wrap">
+        <div class="btn-toolbar-group">
+            <button class="btn btn-outline-secondary btn-sm me-1">
+                <i class="fas fa-undo"></i>
+            </button>
+            <button class="btn btn-outline-secondary btn-sm me-1">
+                <i class="fas fa-redo"></i>
+            </button>
+        </div>
 
-<div id="hot-container"></div>
+        <div class="btn-toolbar-group">
+            <button class="btn btn-outline-secondary btn-sm me-1">
+                <i class="fas fa-bold"></i>
+            </button>
+            <button class="btn btn-outline-secondary btn-sm me-1">
+                <i class="fas fa-italic"></i>
+            </button>
+            <button class="btn btn-outline-secondary btn-sm me-1">
+                <i class="fas fa-underline"></i>
+            </button>
+        </div>
 
+        <div class="btn-toolbar-group">
+            <button class="btn btn-outline-secondary btn-sm me-1" onclick="addRow()">
+                <i class="fas fa-plus"></i> 행 추가
+            </button>
+            <button class="btn btn-outline-secondary btn-sm me-1" onclick="addColumn()">
+                <i class="fas fa-plus"></i> 열 추가
+            </button>
+            <button class="btn btn-outline-danger btn-sm" onclick="deleteRowColumn()">
+                <i class="fas fa-trash"></i> 삭제
+            </button>
+        </div>
 
-</body>
+        <div class="btn-toolbar-group">
+            <button class="btn btn-outline-info btn-sm me-1" onclick="exportToCSV()">
+                <i class="fas fa-download"></i> CSV 내보내기
+            </button>
+            <button class="btn btn-outline-success btn-sm" onclick="insertChart()">
+                <i class="fas fa-chart-line"></i> 차트
+            </button>
+        </div>
+    </div>
+</div>
 
+<div class="formula-bar">
+    <div class="d-flex align-items-center">
+        <input type="text" class="form-control cell-reference" id="cellReference" value="A1" readonly>
+        <div class="me-2"><i class="fas fa-search"></i></div> <input type="text" class="form-control formula-input" id="searchInput" placeholder="검색 조건을 입력하세요...">
+        <button class="btn btn-primary ms-2" onclick="performSearch()">검색</button>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-9">
+            <div class="excel-container">
+                <div id="handsontable-container"></div>
+
+                <div class="status-bar">
+                    <div class="d-flex justify-content-between">
+                        <span id="statusText">준비</span>
+                        <span>행: <span id="rowCount">20</span> | 열: <span id="colCount">8</span> | 선택된 셀: <span id="selectedCell">A1</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="assistant-panel">
+                <h5><i class="fas fa-robot me-2"></i>AI 어시스턴트</h5>
+                <p class="mb-3">데이터 분석과 편집을 도와드리겠습니다!</p>
+
+                <div class="assistant-suggestions">
+                    <h6 class="mb-3">추천 기능</h6>
+                    <button class="btn suggestion-item">
+                        <i class="fas fa-chart-bar me-1"></i>차트 생성
+                    </button>
+                    <button class="btn suggestion-item">
+                        <i class="fas fa-calculator me-1"></i>합계 계산
+                    </button>
+                    <button class="btn suggestion-item">
+                        <i class="fas fa-filter me-1"></i>데이터 필터
+                    </button>
+                    <button class="btn suggestion-item">
+                        <i class="fas fa-sort me-1"></i>정렬하기
+                    </button>
+                    <button class="btn suggestion-item">
+                        <i class="fas fa-magic me-1"></i>자동 완성
+                    </button>
+                </div>
+
+                <div class="mt-4">
+                        <textarea class="form-control bg-transparent text-white"
+                                  placeholder="AI에게 질문하세요... (예: '이 데이터의 평균을 구해줘')"
+                                  rows="3" style="border: 1px solid rgba(255,255,255,0.3);"></textarea>
+                    <button class="btn btn-light mt-2 w-100">
+                        <i class="fas fa-paper-plane me-1"></i>전송
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="floating-toolbar">
+    <button class="btn ai-btn" data-bs-toggle="tooltip" title="AI 도움말">
+        <i class="fas fa-magic me-2"></i>AI 도우미
+    </button>
+</div>
 
 <script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
-
-<%--<script src="app_json.js"></script>--%>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/handsontable/12.4.0/handsontable.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperformula@2.2.0/dist/hyperformula.full.min.js"></script>
 <script>
+    // Handsontable 인스턴스
+    let hot;
 
-    /*document.addEventListener('DOMContentLoaded', function() {
-        const container = document.getElementById('hot-container');
+    // 샘플 데이터
+    const sampleData = [
+        ['제품명', '가격', '수량', '총액', '카테고리', '판매일', '상태', '비고', '9', '10', '11', '12', '13', '14', '15', '16', '17','18', '19', '20', '21','22','23','24','25','26','27','28','29','30'],
+        ['노트북', 1200000, 2, '=B2*C2', '전자제품', '2024-01-15', '판매완료', '우수고객','9','10', '11', '12', '13', '14', '15', '16', '17','18', '19', '20', '21','22','23','24','25','26','27','28','29','30'],
+        ['마우스', 50000, 5, '=B3*C3', '전자제품', '2024-01-16', '재고있음', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17','18', '19', '20', '21','22','23','24','25','26','27','28','29','30'],
+        ['키보드', 150000, 3, '=B4*C4', '전자제품', '2024-01-17', '판매완료', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17','18', '19', '20', '21','22','23','24','25','26','27','28','29','30'],
+        ['모니터', 300000, 1, '=B5*C5', '전자제품', '2024-01-18', '재고있음', '27인치', '9', '10', '11', '12', '13', '14', '15', '16', '17','18', '19', '20', '21','22','23','24','25','26','27','28','29','30'],
+        ['헤드셋', 80000, 4, '=B6*C6', '전자제품', '2024-01-19', '판매완료', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17','18', '19', '20', '21','22','23','24','25','26','27','28','29','30'],
+        ['웹캠', 120000, 2, '=B7*C7', '전자제품', '2024-01-20', '재고있음', '1080p', '9', '10', '11', '12', '13', '14', '15', '16', '17','18', '19', '20', '21','22','23','24','25','26','27','28','29','30'],
+    ];
 
-        // JSON 형식의 샘플 데이터 (객체들의 배열)
-        const jsonData = [
-            {id: 1, name: '김철수', age: 28, city: '서울'},
-            {id: 2, name: '이영희', age: 34, city: '부산'},
-            {id: 3, name: '박민준', age: 22, city: '대구'},
-            {id: 4, name: '최유리', age: 31, city: '인천'}
-        ];
+    // Handsontable 초기화
+    function initHandsontable() {
+        const container = document.getElementById('handsontable-container');
 
-        // Handsontable 초기화 옵션 설정
-        const hotSettings = {
-            data: jsonData,             // JSON 형식 데이터 지정
+        hot = new Handsontable(container, {
+            data: sampleData,
+            rowHeaders: true,
+            colHeaders: ['SPEC1', 'CON1', 'SPEC2', 'CON2', 'SPEC3', 'CON3', 'SPEC4', 'CON4', 'SPEC5', 'CON5',
+                'SPEC6', 'CON6', 'SPEC7', 'CON7', 'SPEC8', 'CON8', 'SPEC9', 'CON9', 'SPEC10', 'CON10', 'SPEC11', 'CON11',
+                'SPEC12', 'CON12', 'SPEC13', 'CON13', 'SPEC14', 'CON14', 'SPEC15', 'CON15'
+            ],
+            width: '100%',
+            height: 500,
+            licenseKey: 'non-commercial-and-evaluation',
 
-            // 열 헤더를 명시적으로 정의 (사용자에게 보여질 이름)
-            colHeaders: ['ID', '이름', '나이', '도시'],
+            // 기본 설정
+            stretchH: 'all',
+            manualRowResize: true,
+            manualColumnResize: true,
+            manualRowMove: true,
+            manualColumnMove: true,
 
-            // 데이터 객체의 속성과 열을 매핑
+            // 컨텍스트 메뉴
+            contextMenu: {
+                items: {
+                    'row_above': {
+                        name: '위에 행 삽입'
+                    },
+                    'row_below': {
+                        name: '아래에 행 삽입'
+                    },
+                    'col_left': {
+                        name: '왼쪽에 열 삽입'
+                    },
+                    'col_right': {
+                        name: '오른쪽에 열 삽입'
+                    },
+                    'separator1': Handsontable.plugins.ContextMenu.SEPARATOR,
+                    'remove_row': {
+                        name: '행 삭제'
+                    },
+                    'remove_col': {
+                        name: '열 삭제'
+                    },
+                    'separator2': Handsontable.plugins.ContextMenu.SEPARATOR,
+                    'copy': {
+                        name: '복사'
+                    },
+                    'cut': {
+                        name: '잘라내기'
+                    },
+                    'paste': {
+                        name: '붙여넣기'
+                    }
+                }
+            },
+
+            // 드롭다운 메뉴
+            dropdownMenu: true,
+
+            // 필터
+            filters: true,
+
+            // 수식 지원 (Still keep this if you want formula capabilities in the table itself)
+            formulas: {
+                engine: HyperFormula
+            },
+
+            // 열 타입 설정
             columns: [
-                {data: 'id', type: 'numeric', readOnly: true}, // ID는 숫자 타입, 읽기 전용
-                {data: 'name', type: 'text'},                  // 이름은 텍스트 타입
-                {data: 'age', type: 'numeric'},                 // 나이는 숫자 타입
-                {data: 'city', type: 'text'}                   // 도시는 텍스트 타입
+                { type: 'text' },      // A - 제품명
+                { type: 'text', numericFormat: { pattern: '0,0' } },  // B - 가격
+                { type: 'text' },   // C - 수량
+                { type: 'text', numericFormat: { pattern: '0,0' } },  // D - 총액
+                { type: 'text', source: ['전자제품', '의류', '식품', '도서', '기타'] },  // E - 카테고리
+                { type: 'text', dateFormat: 'YYYY-MM-DD' },  // F - 판매일
+                { type: 'text', source: ['판매완료', '재고있음', '품절', '대기중'] },  // G - 상태
+                { type: 'text' },       // H - 비고
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' },
+                { type: 'text' }
             ],
 
-            rowHeaders: true,           // 행 헤더 표시
-            contextMenu: true,          // 우클릭 컨텍스트 메뉴 활성화
-            filters: true,              // 필터링 기능 활성화
-            dropdownMenu: true,         // 드롭다운 메뉴 활성화
-            height: 'auto',             // 높이를 내용에 맞게 자동 조절
-            width: 'auto',              // 너비를 내용에 맞게 자동 조절
-            licenseKey: 'non-commercial-and-evaluation' // 비상업적 또는 평가용 라이선스 키
-        };
-
-        // Handsontable 인스턴스 생성 및 초기화
-        const hot = new Handsontable(container, hotSettings);
-
-        console.log('Handsontable (JSON 데이터)이 성공적으로 로드되었습니다.');
-    });*/
-
-
-    $(document).ready(function() {
-
-        //행 높이 고정을 위한 변수
-        let rowHeightFixed = false;
-
-        //test
-        $.ajax({
-            type : "post",
-            url : "/subae/logiceditor",
-            data : {
-                partNo : 'test'
+            // 이벤트 핸들러
+            afterSelectionEnd: function(row, col, row2, col2) {
+                updateCellReference(row, col);
+                // Removed updateFormulaBar as it's no longer a formula bar
             },
-            beforeSend: function() {
-                $("html").css("cursor", "wait");
+
+            afterChange: function(changes, source) {
+                if (changes) {
+                    updateStatusBar();
+                    document.getElementById('statusText').textContent = '수정됨';
+                }
             },
-            complete: function() {
-                $("html").css("cursor", "auto");
-            },
-            success : function(data)
-            {
-                console.log("cn data - ", data);
-                console.log("cn data.length - ", data.length);
 
-                let jsonData = data;
-
-                const container = document.getElementById('hot-container');
-                const hotSettings = {
-                    data: jsonData,             // JSON 형식 데이터 지정
-
-                    // 열 헤더를 명시적으로 정의 (사용자에게 보여질 이름)
-                    colHeaders: ['NO', 'ADDR',
-                        'SPEC1', 'CON1','SPEC2', 'CON2', 'SPEC3','CON3','SPEC4','CON4','SPEC5','CON5','SPEC6','CON6','SPEC7','CON7'
-                        ,'SPEC8','CON8','SPEC9','CON9','SPEC10','CON10','SPEC11','CON11','SPEC12','CON12','SPEC13','CON13','SPEC14','CON14','SPEC15','CON15',
-                        'SPEC16','CON16','SPEC17','CON17','SPEC18','CON18','SPEC19','CON19','SPEC20','CON20',
-                        'KEY1', 'VAL1','KEY2', 'VAL2', 'KEY3','VAL3','KEY4','VAL4','KEY5','VAL5','KEY6','VAL6','KEY7','VAL7'
-                        ,'KEY', 'VAL8','KEY9','VAL9','KEY10','VAL10','KEY11','VAL11','KEY12','VAL12','KEY13','VAL13','KEY14','VAL14','KEY15','VAL15',
-                        'KEY16','VAL16','KEY17','VAL17','KEY18','VAL18','KEY19','VAL19','KEY20','VAL20'
-                    ],
-
-                    columns: [
-                        {data: 'no', type: 'text', readOnly: true}, // ID는 숫자 타입, 읽기 전용
-                        {data: 'addr', type: 'text'},
-                        {data: 'spec1', type: 'text'}, {data: 'con1', type: 'text'},
-                        {data: 'spec2', type: 'text'}, {data: 'con2', type: 'text'},
-                        {data: 'spec3', type: 'text'}, {data: 'con3', type: 'text'},
-                        {data: 'spec4', type: 'text'}, {data: 'con4', type: 'text'},
-                        {data: 'spec5', type: 'text'}, {data: 'con5', type: 'text'},
-                        {data: 'spec6', type: 'text'}, {data: 'con6', type: 'text'},
-                        {data: 'spec7', type: 'text'}, {data: 'con7', type: 'text'},
-                        {data: 'spec8', type: 'text'}, {data: 'con8', type: 'text'},
-                        {data: 'spec9', type: 'text'}, {data: 'con9', type: 'text'},
-                        {data: 'spec10', type: 'text'}, {data: 'con10', type: 'text'},
-                        {data: 'spec11', type: 'text'}, {data: 'con11', type: 'text'},
-                        {data: 'spec12', type: 'text'}, {data: 'con12', type: 'text'},
-                        {data: 'spec13', type: 'text'}, {data: 'con13', type: 'text'},
-                        {data: 'spec14', type: 'text'}, {data: 'con14', type: 'text'},
-                        {data: 'spec15', type: 'text'}, {data: 'con15', type: 'text'},
-                        {data: 'spec16', type: 'text'}, {data: 'con16', type: 'text'},
-                        {data: 'spec17', type: 'text'}, {data: 'con17', type: 'text'},
-                        {data: 'spec18', type: 'text'}, {data: 'con18', type: 'text'},
-                        {data: 'spec19', type: 'text'}, {data: 'con19', type: 'text'},
-                        {data: 'spec20', type: 'text'}, {data: 'con20', type: 'text'}
-                    ],
-
-                    rowHeaders: true,           // 행 헤더 표시
-                    contextMenu: true,          // 우클릭 컨텍스트 메뉴 활성화
-                    filters: true,              // 필터링 기능 활성화
-                    dropdownMenu: true,         // 드롭다운 메뉴 활성화
-                    height: 'auto',             // 높이를 내용에 맞게 자동 조절
-                    width: 'auto',              // 너비를 내용에 맞게 자동 조절
-                    licenseKey: 'non-commercial-and-evaluation', // 비상업적 또는 평가용 라이선스 키
-
-
-                    afterLoadData: function(initialLoad) {
-                        if (initialLoad) {
-                            //minimizeEmptyColumns(this);
-                           hideEmptyColumns(this); //값 없는 열 숨기기
-
-                        }
-                    },
-
-                    afterRender: function(isForced) {
-                       /* const newHeights = getActualRowHeights(this);
-                        this.updateSettings({
-                            rowHeights: newHeights,
-                            autoRowSize: false // 고정으로 전환
-                        });*/
-                        if (!rowHeightFixed) {
-                            applyFixedRowHeightsOnce(this); // 행 높이 고정
-                            rowHeightFixed = true; // 다시 실행되지 않도록 차단
-                        }
-                    }
-                };
-
-
-                const hot = new Handsontable(container, hotSettings);
+            beforeKeyDown: function(event) {
+                // F2 키로 편집 모드 진입
+                if (event.keyCode === 113) { // F2
+                    hot.getActiveEditor().beginEditing();
+                    event.preventDefault();
+                }
             }
         });
 
+        updateStatusBar();
+    }
 
+    // 셀 참조 업데이트
+    function updateCellReference(row, col) {
+        const colLetter = ""; //String.fromCharCode(65 + col);
+        const cellRef = colLetter + (row + 1);
+        document.getElementById('cellReference').value = cellRef;
+        document.getElementById('selectedCell').textContent = cellRef;
+    }
 
+    // --- NEW: Function to perform search ---
+    function performSearch() {
+        const searchTerm = document.getElementById('searchInput').value.trim();
+        if (searchTerm) {
+            alert(`"${searchTerm}" (으)로 데이터베이스 검색을 수행합니다.\n\n실제 구현 시 이 검색어를 사용하여 데이터를 필터링하거나 서버에서 조회합니다.`);
 
+        } else {
+            alert('검색 조건을 입력해주세요.');
+        }
+    }
+    // --- END NEW ---
+
+    // Status bar update remains the same
+    function updateStatusBar() {
+        const data = hot.getData();
+        document.getElementById('rowCount').textContent = data.length;
+        document.getElementById('colCount').textContent = hot.countCols();
+    }
+
+    // --- MODIFIED: Search input handling ---
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+    // --- END MODIFIED ---
+
+    // Toolbar functions remain the same
+    function addRow() {
+        const selected = hot.getSelected();
+        const row = selected ? selected[0][0] : hot.countRows();
+        hot.alter('insert_row', row + 1);
+        updateStatusBar();
+    }
+
+    function addColumn() {
+        const selected = hot.getSelected();
+        const col = selected ? selected[0][1] : hot.countCols();
+        hot.alter('insert_col', col + 1);
+        updateStatusBar();
+    }
+
+    function deleteRowColumn() {
+        const selected = hot.getSelected();
+        if (selected) {
+            const [row, col, row2, col2] = selected[0];
+            if (confirm('선택된 영역을 삭제하시겠습니까?')) {
+                // If a single row is selected, delete the row
+                if (row === row2 && col === 0 && col2 === hot.countCols() -1) { // Check if entire row is selected (from column 0 to last column)
+                    hot.alter('remove_row', row);
+                } else if (col === col2 && row === 0 && row2 === hot.countRows() - 1) { // Check if entire column is selected (from row 0 to last row)
+                    hot.alter('remove_col', col);
+                } else if (row === row2) { // Just a single row selection somewhere within the table
+                    hot.alter('remove_row', row);
+                } else if (col === col2) { // Just a single column selection somewhere within the table
+                    hot.alter('remove_col', col);
+                } else {
+                    alert('선택된 영역이 단일 행 또는 열이 아니므로 삭제할 수 없습니다. 단일 행 또는 열을 선택해주세요.');
+                }
+                updateStatusBar();
+            }
+        } else {
+            alert('삭제할 행 또는 열을 선택해주세요.');
+        }
+    }
+
+    function exportToCSV() {
+        const exportPlugin = hot.getPlugin('exportFile');
+        exportPlugin.downloadFile('csv', {
+            bom: false,
+            columnDelimiter: ',',
+            columnHeaders: true,
+            exportHiddenColumns: true,
+            exportHiddenRows: true,
+            fileExtension: 'csv',
+            filename: 'ExcelAssistant_[YYYY]-[MM]-[DD]',
+            mimeType: 'text/csv',
+            rowDelimiter: '\r\n',
+            rowHeaders: true
+        });
+    }
+
+    function insertChart() {
+        alert('차트 기능은 AI 어시스턴트와 연동하여 구현됩니다.');
+    }
+
+    // Tooltip initialization remains the same
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 
+    // Page load initialization remains the same
+    document.addEventListener('DOMContentLoaded', function() {
+        initHandsontable();
+    });
 
-    //값 없는 열 간격 최소화
-    function minimizeEmptyColumns(hotInstance) {
-        const data = hotInstance.getData();
-        console.log(data[0]);
-        const columnCount = data[0]?.length || 0;
-        const newColWidths = [];
+    // AI Assistant functions remain the same
+    document.querySelectorAll('.suggestion-item').forEach(button => {
+        button.addEventListener('click', function() {
+            const feature = this.textContent.trim();
 
-        for (let col = 0; col < columnCount; col++) {
-            let allEmpty = true;
-            for (let row = 0; row < data.length; row++) {
-                const value = data[row][col];
-                if (value !== null && value !== '') {
-                    allEmpty = false;
+            switch(feature) {
+                case '차트 생성':
+                    insertChart();
                     break;
-                }
-
-            }
-
-            newColWidths[col] = allEmpty ? 5 : null;  // null은 auto size (또는 원하는 기본값)
-        }
-
-        // 열 너비 갱신
-        hotInstance.updateSettings({
-            colWidths: newColWidths
-        });
-    }
-
-    //높이 유지
-    function getActualRowHeightsaaa(hotInstance) {
-        const rowCount = hotInstance.countRows();
-        const rowHeights = [];
-
-        for (let row = 0; row < rowCount; row++) {
-            // 각 row의 DOM element를 찾음
-            const rowElem = hotInstance.view.wt.wtTable.getRow(row);
-            if (rowElem) {
-                const height = rowElem.getBoundingClientRect().height;
-                rowHeights.push(Math.ceil(height));
-            } else {
-                rowHeights.push(23); // 기본 높이 (Handsontable 기본값)
-            }
-        }
-
-        return rowHeights;
-    }
-
-    function getActualRowHeights(hotInstance) {
-        const rowCount = hotInstance.countRows();
-        const colCount = hotInstance.countCols();
-        const rowHeights = [];
-
-        for (let row = 0; row < rowCount; row++) {
-            let maxHeight = 0;
-
-            // 모든 셀 중 가장 높은 셀을 기준으로
-            for (let col = 0; col < colCount; col++) {
-                const cell = hotInstance.getCell(row, col);
-                if (cell) {
-                    const height = cell.getBoundingClientRect().height;
-                    console.log(cell);
-                    console.log(height);
-                    if (height > maxHeight) {
-                        maxHeight = height;
-                    }
-                }
-            }
-
-            // 최소값 설정 (예: 빈 줄일 경우 23)
-            rowHeights[row] = maxHeight || 23;
-        }
-
-        return rowHeights;
-    }
-
-
-    /**
-     * -행 높이 고정(행의 값중 높이가 높은 값을 기준 높이로 설정)
-     * -각 행에서 셀 값들 중 가장 높은 셀(예: 줄바꿈, 이미지, 긴 텍스트 등)의 높이를 기준으로 행의 높이를 고정하고 싶다
-     * @param hotInstance
-     */
-    function applyFixedRowHeightsOnce(hotInstance) {
-        // DOM이 완전히 렌더된 후 실행
-        setTimeout(() => {
-            const rowCount = hotInstance.countRows();
-            const colCount = hotInstance.countCols();
-            const rowHeights = [];
-
-            for (let row = 0; row < rowCount; row++) {
-                let maxHeight = 0;
-
-                for (let col = 0; col < colCount; col++) {
-                    const cell = hotInstance.getCell(row, col);
-                    if (cell) {
-                        const height = cell.getBoundingClientRect().height;
-                        if (height > maxHeight) {
-                            maxHeight = height;
+                case '합계 계산':
+                    const selected = hot.getSelected();
+                    if (selected) {
+                        const [row, col, row2, col2] = selected[0];
+                        // Get the current value in the sum cell, if any, to avoid overwriting formulas already there
+                        const currentSumCellContent = hot.getDataAtCell(row2 + 1, col);
+                        if (!currentSumCellContent || !currentSumCellContent.startsWith('=')) { // Only add if cell is empty or doesn't start with a formula
+                            const range = ""; //
+                            const sumFormula = `=SUM(${range})`;
+                            hot.setDataAtCell(row2 + 1, col, sumFormula);
+                            hot.selectCell(row2 + 1, col); // Select the cell where the sum is placed
+                        } else {
+                            alert('선택된 범위 바로 아래 셀에 이미 수식이 있거나 데이터가 있습니다.');
                         }
+                    } else {
+                        alert('합계를 계산할 셀 범위를 선택해주세요.');
                     }
-                }
-
-                rowHeights.push(maxHeight || 23); // 기본 높이 보정
-            }
-
-            hotInstance.updateSettings({
-                rowHeights: rowHeights,
-                autoRowSize: false  // 이후 자동 높이 제거
-            });
-        }, 0); // 렌더 완료 직후 한 번만 실행
-    }
-
-
-
-
-    //값 없는 셀 숨기기
-    function hideEmptyColumns(hotInstance) {
-        const data = hotInstance.getData();
-        const columnCount = data[0]?.length || 0;
-        const emptyColumns = [];
-
-        for (let col = 0; col < columnCount; col++) {
-            let allEmpty = true;
-            for (let row = 0; row < data.length; row++) {
-                const value = data[row][col];
-                if (value !== null && value !== '') {
-                    allEmpty = false;
                     break;
-                }
-            }
-            if (allEmpty) {
-                emptyColumns.push(col);
-            }
-        }
-
-        // 숨기기 반영
-        hotInstance.updateSettings({
-            hiddenColumns: {
-                columns: emptyColumns,
-                indicators: true
+                case '데이터 필터':
+                    const filtersPlugin = hot.getPlugin('filters');
+                    filtersPlugin.enablePlugin();
+                    alert('필터 기능이 활성화되었습니다. 열 헤더의 드롭다운 메뉴를 확인하세요.');
+                    break;
+                case '정렬하기':
+                    const columnSortingPlugin = hot.getPlugin('columnSorting');
+                    columnSortingPlugin.enablePlugin();
+                    alert('정렬 기능이 활성화되었습니다. 열 헤더를 클릭하여 정렬하세요.');
+                    break;
+                case '자동 완성':
+                    alert('자동 완성 기능이 실행됩니다. (실제 구현 시 해당 기능 로직 추가)');
+                    break;
+                default:
+                    alert(`${feature} 기능이 실행됩니다. (실제 구현 시 해당 기능 로직 추가)`);
             }
         });
-    }
+    });
+
+    // AI question submission remains the same
+    document.querySelector('.btn-light').addEventListener('click', function() {
+        const textarea = document.querySelector('textarea');
+        const question = textarea.value.trim();
+
+        if (question) {
+            // 여기에 실제 AI API 호출 로직 구현
+            alert(`AI에게 질문: "${question}"\n\n실제 구현 시 서버로 전송하여 AI 응답을 받아옵니다.`);
+            textarea.value = '';
+        } else {
+            alert('질문 내용을 입력해주세요.');
+        }
+    });
+
 </script>
-
-
+</body>
 </html>

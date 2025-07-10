@@ -6,6 +6,7 @@ import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.BlockHistoryService;
 import com.kyhslam.service.SubaeService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResource;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -129,12 +131,10 @@ public class SubaeController {
         return "ok";
     }
 
+    //로직뷰 화면
     @GetMapping("/subae/logicView")
-    public String logicView() {
-
+    public String logicView(HttpServletResponse response)  {
         log.info("========== subae logicView");
-
-
         return "subaeLogic/logicView";
     }
 
@@ -195,13 +195,22 @@ public class SubaeController {
     }
 
 
-    //자재 Finder
+    /**
+     * 자재 Finder 화면
+     * @return
+     */
     @GetMapping("/subae/searchMissPartofProduct")
     public String searchMissPartofProduct() {
         return "subaeLogic/searchMissPartofProduct";
     }
 
 
+    /**
+     * 자재번호가 사용되고 있는 모든 제품 찾기
+     * @param year
+     * @param partNo
+     * @return
+     */
     @PostMapping("/subae/searchMissPartofProduct")
     @ResponseBody
     public ArrayList<ProductDto> searchMissPartofProduct(String year, String partNo) {
