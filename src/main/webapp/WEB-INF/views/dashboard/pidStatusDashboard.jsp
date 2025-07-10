@@ -5,6 +5,9 @@
 <%@ page import="com.kyhslam.service.PIDService" %>
 <%@ page import="java.util.HashMap" %>
 <%@ page import="java.util.ArrayList" %>
+<%@ page import="java.time.LocalDate" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
+<%@ page import="java.util.Collections" %>
 
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
@@ -30,14 +33,48 @@
     ArrayList<HashMap<String, String>> data03 = service.findType03();
 
 
+
+    // 현재 날짜 가져오기
+    LocalDate today = LocalDate.now();
+
+    // 날짜 포맷 지정 (YYYY-MM-DD)
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    System.out.println("오늘부터 7일 전까지의 날짜:");
+
+
+    HashMap<String, String> grapMap = new HashMap<>();
+    ArrayList<String> dateKeyList = new ArrayList<>();
+
+    // 오늘부터 7일 전까지 반복하여 출력
+    for (int i = 1; i < 8; i++) {
+        LocalDate pastDate = today.minusDays(i); // i일 전의 날짜 계산
+        String a = pastDate.format(formatter);
+        System.out.println(pastDate.format(formatter)); // 포맷에 맞춰 출력
+
+        grapMap.put(a, "");
+        dateKeyList.add(a);
+    }
+
+
     for (int i = 0; i < data01.size(); i++) {
 
         HashMap<String, String> d = data01.get(i);
 
         String date = d.get("DATE");
         String pidCount = d.get("COUNT");
+
+        if (grapMap.containsKey(date)) {
+            grapMap.put(date, pidCount);
+        }
+
+        //System.out.println(date + " >> " + pidCount);
     }
 
+    System.out.println("grapMap = " + grapMap);
+    System.out.println("dateKeyList = " + dateKeyList);
+
+    Collections.sort(dateKeyList);
 
 %>
 <!DOCTYPE html>
@@ -46,7 +83,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <link rel="icon" type="image/png" href="/resources/favicon.ico" />
 
-    <title>[PP]출하예정일</title>
+    <title>PID 작업 현황</title>
 
     <!-- Google Font: Source Sans Pro -->
     <!--    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">-->
@@ -188,7 +225,8 @@
                             <div class="card-header">
                                 <h3 class="card-title">
                                     <i class="ion ion-clipboard mr-1"></i>
-                                    PID별 라인개수
+                                    <%--PID별 라인개수--%>
+                                    최신일 기준 PID별 상위 200건 추출 (라인수 많은 순)
                                 </h3>
                             </div>
 
@@ -284,6 +322,9 @@
                                             HashMap<String, String> d = data02.get(i);
 
                                             String date = d.get("DATE");
+
+
+
                                             String pidCount = d.get("COUNT");
                                     %>
                                     <tr>
@@ -375,7 +416,7 @@
         "processing": true,
         "paging": true,
         "searching": true,
-        "order": [[0, "desc"]],
+        "order": [[2, "desc"]],
         "destroy": true, // 테이블 재생성
         //"scrollX": true, // 가로 스크롤
         //"buttons": ["csv", "excel", "pdf", "print"]
@@ -417,6 +458,16 @@
     $(document).ready(function() {
         $("#dashboard").removeClass("menu-open");
 
+        let v01 = "<%=dateKeyList.get(0) %>";
+        let v02 = "<%=dateKeyList.get(1) %>";
+        let v03 = "<%=dateKeyList.get(2) %>";
+        let v04 = "<%=dateKeyList.get(3) %>";
+        let v05 = "<%=dateKeyList.get(4) %>";
+        let v06 = "<%=dateKeyList.get(5) %>";
+        let v07 = "<%=dateKeyList.get(6) %>";
+
+
+
         Highcharts.chart('cpContainer', {
 
 
@@ -444,7 +495,8 @@
                     rangeDescription: 'Range: 2010 to 2022'
                 }*/
                 categories: [
-                    '2.10', '11', '12', '13', '14'
+                    //'2.10', '11', '12', '13', '14'
+                    v01, v02, v03, v04, v05, v06, v07
                 ]
             },
 
@@ -467,7 +519,10 @@
                 //name: 'Installation & Developers',
                 showInLegend: false,
                 data: [
-                    260049, 261027, 267542, 268346, 268508
+                    <%=grapMap.get(dateKeyList.get(0))%>, <%=grapMap.get(dateKeyList.get(1))%>,
+                    <%=grapMap.get(dateKeyList.get(2))%>, <%=grapMap.get(dateKeyList.get(3))%>,
+                    <%=grapMap.get(dateKeyList.get(4))%>, <%=grapMap.get(dateKeyList.get(5))%>,
+                    <%=grapMap.get(dateKeyList.get(6))%>
                 ],
                 dataLabels: {
                     enabled: true

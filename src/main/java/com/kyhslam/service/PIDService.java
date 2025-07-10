@@ -141,10 +141,26 @@ public class PIDService {
 
             con = VaultDBConnection.getConnection();
 
-            StringBuffer sql = new StringBuffer();
-            sql.append(" SELECT BATCH_DATE, PID, PID_COUNT  ");
-            sql.append(" FROM PID_TYPE03 ");
-            sql.append(" order by BATCH_DATE ASC ");
+            //StringBuffer sql = new StringBuffer();
+            //sql.append(" SELECT BATCH_DATE, PID, PID_COUNT  ");
+            //sql.append(" FROM PID_TYPE03 ");
+            //sql.append(" order by BATCH_DATE ASC ");
+
+            String sql = """
+                    WITH RankedPID AS (
+                                SELECT
+                                BATCH_DATE,
+                                PID,
+                                PID_COUNT,
+                                ROW_NUMBER() OVER (PARTITION BY PID ORDER BY BATCH_DATE DESC) AS rn
+                                FROM PID_TYPE03
+                        )
+                        SELECT TOP 200 BATCH_DATE, PID, PID_COUNT
+                        FROM RankedPID
+                        WHERE rn = 1
+                        ORDER BY PID_COUNT DESC
+                    """;
+
 
             pstmt = con.prepareStatement(sql.toString());
 
