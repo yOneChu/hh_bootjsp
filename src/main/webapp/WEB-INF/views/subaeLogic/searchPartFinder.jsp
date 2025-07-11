@@ -117,10 +117,9 @@
                                 <div class="callout callout-danger">
                                     <%--<h4><i class="fas fa-bullhorn"></i> 도움말</h4>--%>
                                     <h4>🔊 도움말</h4>
-                                    <h5 style="color: blue;">- 자재번호를 입력하면, 그 자재가 실제 사용되고 있는 제품들 중 PLM에 등록된 최신 제품을 조회하는 기능  </h5>
-                                    <h5>- 입력한 자재번호를 사용중인 PLM에 등록된 제품의 최신버전을 조회하는 기능 </h5>
-                                    <h5>- ex. A 자재 조회한 결과는 A자재가 포함된 제품번호 들이 조회 됨. </h5>
-
+                                    <h5 style="color: blue;">- 자재번호를 입력하면, PLM에서 그 자재가 실제 사용되고 있는 최신 제품을 조회하는 기능  </h5>
+                                    <h5>- 사용방법: 26300551G0*  -> Like 검색 ('26300551G0' 문자 포함한 자재를 사용중인 제품 검색) </h5>
+                                    <h5>- '*' 없으면 EQUAL 검색 </h5>
                                 </div>
                             </div>
 
@@ -319,12 +318,12 @@
         console.log(year);
         console.log(partNo);
 
-     /*   if(pidVal == null || "" == pidVal) {
-            console.log(pidVal);
-            alert("PID값을 입력하세요.");
+        if(partNo == null || "" == partNo) {
+            console.log(partNo);
+            alert("partNo 을 입력하세요.");
             return;
         }
-*/
+
 
 
 
