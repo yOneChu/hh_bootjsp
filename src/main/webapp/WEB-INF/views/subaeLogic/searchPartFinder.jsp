@@ -4,7 +4,7 @@
 
 <%
 
-//searchMissPartofProduct.jsp
+//searchPartFinder.jsp
 %>
 <!DOCTYPE html>
 <html lang="en">
@@ -115,9 +115,10 @@
                             <!-- <div class="col-6"> -->
                             <div class="col-md-12">
                                 <div class="callout callout-danger">
-                                    <h4><i class="fas fa-bullhorn"></i> 도움말</h4>
-                                    <h5 style="color: blue;">- 가설계의 BOM 하위 자재 조회 </h5>
-                                    <h5>- 최신버전 wip 상태의 제품을 조회한 후, 하위 BOM에서 특정 자재 찾는 기능. </h5>
+                                    <%--<h4><i class="fas fa-bullhorn"></i> 도움말</h4>--%>
+                                    <h4>🔊 도움말</h4>
+                                    <h5 style="color: blue;">- 자재번호를 입력하면, 그 자재가 실제 사용되고 있는 제품들 중 PLM에 등록된 최신 제품을 조회하는 기능  </h5>
+                                    <h5>- 입력한 자재번호를 사용중인 PLM에 등록된 제품의 최신버전을 조회하는 기능 </h5>
                                     <h5>- ex. A 자재 조회한 결과는 A자재가 포함된 제품번호 들이 조회 됨. </h5>
 
                                 </div>

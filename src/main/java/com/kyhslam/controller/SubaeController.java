@@ -201,7 +201,7 @@ public class SubaeController {
      */
     @GetMapping("/subae/searchMissPartofProduct")
     public String searchMissPartofProduct() {
-        return "subaeLogic/searchMissPartofProduct";
+        return "subaeLogic/searchPartFinder";
     }
 
 
