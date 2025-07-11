@@ -167,7 +167,7 @@
                         </li>--%>
                         <li>
                             <a href="/subae/searchMissPartofProduct" class="nav-link">
-                                <p>자재 Finder(테스트)</p>
+                                <p>자재 실적 전체 조히(ERP 전송현장 포함)(테스트)</p>
                             </a>
                         </li>
 
