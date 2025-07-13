@@ -133,7 +133,7 @@ public class SubaeController {
 
     //로직뷰 화면
     @GetMapping("/subae/logicView")
-    public String logicView(HttpServletResponse response)  {
+    public String logicView(HttpServletResponse response) {
         log.info("========== subae logicView");
         return "subaeLogic/logicView";
     }
@@ -197,6 +197,7 @@ public class SubaeController {
 
     /**
      * 자재 Finder 화면
+     *
      * @return
      */
     @GetMapping("/subae/searchMissPartofProduct")
@@ -207,6 +208,7 @@ public class SubaeController {
 
     /**
      * 자재번호가 사용되고 있는 모든 제품 찾기
+     *
      * @param year
      * @param partNo
      * @return
@@ -219,5 +221,11 @@ public class SubaeController {
         //subaeService.findMissPart(result, partNo, con01);
         result = subaeService.findPartOfProduct_v2(year, partNo);
         return result;
+    }
+
+    //BOM수배율 화면
+    @GetMapping("/subae/bomDashboard")
+    public String bomDashboard() {
+        return "dashboard/bomSubaeDashboard";
     }
 }
