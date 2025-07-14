@@ -15,6 +15,8 @@ public class ProductDto {
     private String productAppdate;
     private String productStatus; //상태
     private String gisong;
+    private String m_manager;
+    private String e_manager;
 
 
     private String seq;

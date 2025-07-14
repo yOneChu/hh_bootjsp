@@ -308,6 +308,16 @@ public class SubaeCommonUtil {
                           PE.SEQ
                          , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) AS PARENTNO
                          , (SELECT PRODUCT.VF$VERSION FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PARENTNO_VER
+                         , (SELECT E.MANAGER_M
+                             FROM ELV_INFO$ID A, ELV_INFO$VF E
+                             WHERE A.ID$OUID = E.VF$IDENTITY
+                               AND E.vf$ouid = A.id$wip
+                               AND E.MD$NUMBER = (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID)) AS M_MANAGER
+                          , (SELECT E.MANAGER_E
+                             FROM ELV_INFO$ID A, ELV_INFO$VF E
+                             WHERE A.ID$OUID = E.VF$IDENTITY
+                               AND E.vf$ouid = A.id$wip
+                               AND E.MD$NUMBER = (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID)) AS E_MANAGER
                          , (SELECT TO_CHAR(TO_DATE(PRODUCT.MD$CDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS PROD_MODDATE FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_CREDATE
                          , (SELECT TO_CHAR(TO_DATE(PRODUCT.MD$MDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS PROD_MODDATE FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_MODDATE
                          , (SELECT TO_CHAR(TO_DATE(PRODUCT.APP_DATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS PROD_MODDATE FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_APP_DATE
@@ -442,6 +452,9 @@ public class SubaeCommonUtil {
                 String CMT = rs.getString("CMT") == null ? "" : rs.getString("CMT");
                 String GLCODE = rs.getString("GLCODE") == null ? "" : rs.getString("GLCODE");
                 String UCHECK = rs.getString("UCHECK") == null ? "" : rs.getString("UCHECK");
+                String M_MANAGER = rs.getString("M_MANAGER") == null ? "" : rs.getString("M_MANAGER");
+                String E_MANAGER =  rs.getString("E_MANAGER") == null ? "" : rs.getString("E_MANAGER");
+
 
                 String MODIFY_CNT = rs.getString("MODIFY_CNT") == null ? "" : rs.getString("MODIFY_CNT");
                 String M_QTY = rs.getString("M_CNT") == null ? "" : rs.getString("M_CNT");
@@ -452,6 +465,8 @@ public class SubaeCommonUtil {
 
                 ProductDto dto = new ProductDto();
                 dto.setProductNo(productNo); //제품번호
+                dto.setM_manager(M_MANAGER); //기계담당자
+                dto.setE_manager(E_MANAGER); //전기담당자
                 //dto.setProductVersion(productVersion); //제품버전
                 //dto.setProductAppdate(PROD_APP_DATE); //제품승인일
 
