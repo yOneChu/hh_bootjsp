@@ -1,5 +1,7 @@
 package com.kyhslam.subae;
 
+import com.kyhslam.dto.ProductDto;
+import com.kyhslam.repository.mybatis.SubaeMapper;
 import com.kyhslam.service.SubaeService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,12 +9,17 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Description;
 import org.springframework.util.StopWatch;
 
+import java.util.ArrayList;
+
 @SpringBootTest
 public class findTest_02 {
 
 
     @Autowired
     SubaeService subaeService;
+
+    @Autowired
+    SubaeMapper  subaeMapper;
 
 
     @Test
@@ -44,7 +51,7 @@ public class findTest_02 {
         StopWatch sw = new StopWatch();
         sw.start();
 
-        subaeService.findSubaeProductNo("209051L01");
+        subaeService.findSubaeProductNo("");
 
         sw.stop();
 
@@ -78,5 +85,19 @@ public class findTest_02 {
         System.out.println("⏱ 수행 시간:");
         System.out.printf("   - %.3f 초%n", seconds);
         System.out.printf("   - %.3f 분%n", minutes);
+    }
+
+    @Test
+    void usedProductNo() {
+
+        ArrayList<String> list = subaeMapper.findUsedProductNo();
+
+        System.out.println("list = " + list.size());
+
+        for (String a : list) {
+            System.out.println("a = " + a);
+        }
+
+
     }
 }

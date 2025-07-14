@@ -3,6 +3,7 @@ package com.kyhslam.service;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.repository.SubaeRepository;
+import com.kyhslam.repository.mybatis.SubaeMapper;
 import com.kyhslam.util.SubaeCommonUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ public class SubaeService {
 
     private final SubaeRepository subaeRepository;
 
+    private final SubaeMapper subaeMapper;
 
     /**
      * PLM에 등록된 법인자재 조회
@@ -39,6 +41,11 @@ public class SubaeService {
 
         ArrayList<String> productNoList = new ArrayList<>();
 
+        //이미 수배율 계산한 제품번호(호기) 조회
+        ArrayList<String> usedProductNoList = new ArrayList<>();
+        usedProductNoList = subaeMapper.findUsedProductNo();
+
+
         //1.2025년도 수배율 대상 제품번호 조회
         productNoList = SubaeCommonUtil.findSubaeProductNo();
         
@@ -52,6 +59,11 @@ public class SubaeService {
         
         for (int i = 0; i < productNoList.size(); i++) {
             String productNo = productNoList.get(i);
+
+            if(usedProductNoList.contains(productNo)){
+                continue;
+            }
+
             //2.제품의 모든 oid 조회
             ArrayList<ProductDto> productOIDS = SubaeCommonUtil.findProductOIDS(productNo);
 

@@ -4,6 +4,7 @@ import com.kyhslam.dto.BlockHistoryDTO;
 import com.kyhslam.dto.LogicDTO;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
+import com.kyhslam.repository.mybatis.SubaeMapper;
 import com.kyhslam.service.BlockHistoryService;
 import com.kyhslam.service.SubaeService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,7 +37,6 @@ public class SubaeController {
     private final BlockHistoryService blockHistoryService;
 
     private final SubaeService subaeService;
-
 
     //본사-법인 자재비교
     @GetMapping("/subae/comparePartCN")

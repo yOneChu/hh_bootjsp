@@ -14,7 +14,9 @@
 
 
 <%
- //bomSubaeDashboard.jsp
+
+    //bomSubaeDashboard.jsp
+    //BOM 수배율 현황
 
 
 %>

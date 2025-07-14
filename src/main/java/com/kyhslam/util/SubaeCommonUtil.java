@@ -279,9 +279,6 @@ public class SubaeCommonUtil {
         return result;
     }
 
-
-
-
     //3.제품의 OID로 최초설계 BOM인지 검사
 
     /**
