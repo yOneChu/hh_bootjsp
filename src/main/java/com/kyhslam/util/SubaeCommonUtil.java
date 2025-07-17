@@ -308,6 +308,7 @@ public class SubaeCommonUtil {
                           PE.SEQ
                          , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) AS PARENTNO
                          , (SELECT PRODUCT.VF$VERSION FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PARENTNO_VER
+                         , (SELECT PRODUCT.MD$DESC FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS SUJU
                          , (SELECT E.MANAGER_M
                              FROM ELV_INFO$ID A, ELV_INFO$VF E
                              WHERE A.ID$OUID = E.VF$IDENTITY
@@ -434,10 +435,12 @@ public class SubaeCommonUtil {
             String productVersion = "";
             String PROD_APP_DATE = "";
             String PROD_CREDATE = "";
+            String PROD_NAME = "";
 
             while(rs.next()) {
                 productNo = rs.getString("PARENTNO"); //제품번호
                 productVersion = rs.getString("PARENTNO_VER") == null ? "" : rs.getString("PARENTNO_VER"); //제품버전
+                PROD_NAME = rs.getString("SUJU") == null ? "" : rs.getString("SUJU");
                 PROD_CREDATE = rs.getString("PROD_CREDATE") == null ? "" : rs.getString("PROD_CREDATE"); //제품 등록일
                 String PROD_MODDATE = rs.getString("PROD_MODDATE") == null ? "" : rs.getString("PROD_MODDATE"); //제품 수정일
                 PROD_APP_DATE = rs.getString("PARENTNO_VER") == null ? "" : rs.getString("PROD_APP_DATE"); //제품 승인일
@@ -465,6 +468,7 @@ public class SubaeCommonUtil {
 
                 ProductDto dto = new ProductDto();
                 dto.setProductNo(productNo); //제품번호
+                dto.setProductStatus(PROD_NAME); //수주명
                 dto.setMmanager(M_MANAGER); //기계담당자
                 dto.setEmanager(E_MANAGER); //전기담당자
                 //dto.setProductVersion(productVersion); //제품버전

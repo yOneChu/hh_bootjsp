@@ -42,6 +42,7 @@
         SELECT DISTINCT A.PRODUCTNO AS productNo,
                         A.PRODUCTVER AS productVersion,
                         A.APPDATE AS productAppdate, A.M_MANAGER AS mmanager, A.E_MANAGER AS emanager,
+                        A.GISONG AS gisong,
                         (SELECT COUNT(B.PARTNO) FROM subaeProduct B WHERE B.PRODUCTNO = A.PRODUCTNO AND B.QTY != '0') AS qty,
                         A.m_ModCount AS mCount,
                         A.c_ModCount AS cCount,

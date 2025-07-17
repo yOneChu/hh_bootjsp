@@ -7,7 +7,7 @@
         "destroy": true, // 테이블 재생성
         //"scrollX": true, // 가로 스크롤
         //"buttons": ["csv", "excel", "pdf", "print"]
-        "buttons": ["csv", "excel", "copy"]
+        "buttons": ["excel", "copy"]
     }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
 
     // 초기화
@@ -96,12 +96,16 @@
                         let twoCount = Number(initIfEmpty(data[i].twoCount));
                         let threeCount = Number(initIfEmpty(data[i].threeCount));
 
+                        let allModCount = mCount + ccount + oneCount + twoCount + threeCount;
+
                         str += "<tr>";
                             str += "<td>" + data[i].productNo + "</td>";
                             str += "<td>" + data[i].productVersion + "</td>";
+                            str += "<td>" + data[i].productVersion + "</td>";
+                            str += "<td>" + data[i].gisong + "</td>";
                             str += "<td>" + data[i].productAppdate + "</td>";
                             str += "<td>" + qty + "</td>";
-
+                            str += "<td>" + allModCount + "</td>";
 
                             str +=
                             `
@@ -125,17 +129,19 @@
                             str += "</div></td>";*/
 
 
-                            str += "<td>" + initIfEmpty(data[i].ccount) + "</td>";
-                            str += "<td>" + initIfEmpty(data[i].oneCount) + "</td>";
+                            //str += "<td>" + initIfEmpty(data[i].ccount) + "</td>";
+                            //str += "<td>" + initIfEmpty(data[i].oneCount) + "</td>";
                             //str += "<td>" + data[i].twoCount + "</td>";
 
-                            let allModCount = mCount + ccount + oneCount + twoCount + threeCount;
+
 
                             //console.log("allModCount -- " + allModCount);
                             let percentage = ( (qty - allModCount) / qty ) * 100;
                             //console.log("percentage == " + percentage);
 
-                            let percentageVal = Math.round(parseFloat(percentage) * 10) / 10 // => 99.4
+                            //let percentageVal = Math.round(parseFloat(percentage) * 10) / 10; // => 99.4
+                            let percentageVal = Math.round(parseFloat(percentage) * 100) / 100;
+
                             //console.log(percentageVal);
 
                             str +=
@@ -148,6 +154,7 @@
                                 </td>
                                  <td>${data[i].mmanager} </td>
                                  <td>${data[i].emanager} </td>
+                                 <td>${data[i].cmt} </td>
                                 `;
 
 
@@ -167,7 +174,7 @@
                         "processing": true,
                         "destroy": true, // 테이블 재생성
                         //"dom": "Bfrtip",
-                        "buttons": ["csv", "excel", "copy"]
+                        "buttons": ["excel", "copy"]
                     }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
 
                 } else {

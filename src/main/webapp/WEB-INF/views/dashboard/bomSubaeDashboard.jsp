@@ -539,10 +539,10 @@
                         <h1>엘리베이터 제품별 BOM 현황 </h1>
                     </div>
                     <div class="col-sm-6">
-                        <ol class="breadcrumb float-sm-right">
+                        <%--<ol class="breadcrumb float-sm-right">
                             <li class="breadcrumb-item"><a href="#">Home</a></li>
                             <li class="breadcrumb-item active">DataTables</li>
-                        </ol>
+                        </ol>--%>
                     </div>
                 </div>
             </div><!-- /.container-fluid -->
@@ -569,9 +569,9 @@
                                 <%--<div class="table-container">--%>
                                     <div class="table-header">
 
-                                        <%--<div class="table-title">엘리베이터 제품별 BOM 현황</div>--%>
+                                        <div class="table-title">엘리베이터 제품별 BOM 현황</div>
 
-                                        <div class="header-controls float-right">
+                                        <div class="header-controls">
                                             <div class="month-selector">
                                                 <label for="monthSelect">분석 기간:</label>
                                                 <select id="monthSelect">
@@ -600,17 +600,20 @@
                                         <thead>
                                             <tr>
                                                 <th>호기번호</th>
+                                                <th>버전</th>
                                                 <th>수주명</th>
+                                                <th>기종</th>
                                                 <th>최종설계일</th>
-                                                <th>총 부품 수</th>
 
-                                                <th>수정 부품</th>
-                                                <th>자동수배율</th>
-                                                <th>진행률</th>
+                                                <th>총 수배 건수</th>
+                                                <th>변경 건수</th>
+
+                                                <th>수정 부품 (기계/전기) </th>
 
                                                 <th>진행률</th>
                                                 <th>기계</th>
                                                 <th>전기</th>
+                                                <th>CMT</th>
                                             </tr>
                                         </thead>
 
