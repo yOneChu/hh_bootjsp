@@ -880,9 +880,6 @@ public class SubaeCommonUtil {
                 } else {
                     sql += " AND NP.MD$NUMBER = '" + partNo + "' ";
                 }
-
-
-
             }
 
             System.out.println("sql = " + sql);
@@ -949,6 +946,10 @@ public class SubaeCommonUtil {
         
         return dataList;
     }
+
+
+
+
 }
 
 
