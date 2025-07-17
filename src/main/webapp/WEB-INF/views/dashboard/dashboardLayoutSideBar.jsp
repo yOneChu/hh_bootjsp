@@ -271,11 +271,3 @@
 </aside>
 
 
-<script>
-    $(document).ready(function() {
-
-
-        alert('side');
-
-    });
-</script>

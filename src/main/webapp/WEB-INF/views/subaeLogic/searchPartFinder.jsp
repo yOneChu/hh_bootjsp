@@ -190,7 +190,7 @@
                             <!-- /.card-header -->
                             <div class="card-body" style="zoom:85%;">
                                 <!-- <table id="infoTable" class="table table-bordered table-striped" style="height:400px;"> -->
-                                <table id="infoTable" class="table table-bordered table-hover" style="font-family: NotoSans; font-size:15px;">
+                                <table id="infoTable" class="table table-bordered table-hover" style=" font-family: NotoSans; font-size:15px;">
                                     <thead>
                                     <!-- bg-primary -->
                                         <tr class="bg-secondary">

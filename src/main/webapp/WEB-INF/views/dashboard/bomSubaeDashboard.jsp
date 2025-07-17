@@ -568,16 +568,18 @@
                             <div class="card-body" style="zoom:100%;">
                                 <%--<div class="table-container">--%>
                                     <div class="table-header">
-                                        <div class="table-title">엘리베이터 제품별 BOM 현황</div>
-                                        <div class="header-controls">
+
+                                        <%--<div class="table-title">엘리베이터 제품별 BOM 현황</div>--%>
+
+                                        <div class="header-controls float-right">
                                             <div class="month-selector">
                                                 <label for="monthSelect">분석 기간:</label>
                                                 <select id="monthSelect">
                                                     <option value="all">전체</option>
-                                                    <option value="2024-04">2024년 4월</option>
-                                                    <option value="2024-05">2024년 5월</option>
-                                                    <option value="2024-06">2024년 6월</option>
-                                                    <option value="2024-07" selected>2024년 7월</option>
+                                                    <option value="2025-04">2025년 4월</option>
+                                                    <option value="2025-05">2025년 5월</option>
+                                                    <option value="2025-06">2025년 6월</option>
+                                                    <option value="2025-07" selected>2025년 7월</option>
                                                 </select>
                                             </div>
                                             <div class="search-box">
@@ -586,53 +588,33 @@
                                         </div>
                                     </div>
 
-                                    <div class="filter-buttons">
+                                    <%--<div class="filter-buttons">
                                         <button class="filter-btn active" data-filter="all">전체</button>
                                         <button class="filter-btn" data-filter="excellent">우수</button>
                                         <button class="filter-btn" data-filter="good">양호</button>
                                         <button class="filter-btn" data-filter="normal">보통</button>
                                         <button class="filter-btn" data-filter="poor">개선필요</button>
                                     </div>
-
-                                    <table class="data-table">
+--%>
+                                    <table class="data-table" id="infoTable">
                                         <thead>
-                                        <tr>
-                                            <th>호기번호</th>
-                                            <th>제품명</th>
-                                            <th>최종설계일</th>
-                                            <th>총 부품 수</th>
-                                            <th>수정 부품</th>
-                                            <th>자동수배율</th>
-                                            <th>진행률</th>
-                                            <th>상태</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody id="tableBody">
-
                                             <tr>
-                                                <td><strong>$1212</strong></td>
-                                                <td>12222</td>
-                                                <td>333</td>
-                                                <td>toLocaleString()</td>
-                                                <td>
-                                                    <div class="modification-items">
-                                                        modifiedPartsHtml
-                                                    </div>
-                                                </td>
-                                                <td>tem.autoRate</td>
-                                                <td>
-                                                    <div>item.progress</div>
-                                                    <div class="progress-bar">
-                                                        <div class="progress-fill" style="width: 30%"></div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="status-badge 22">
-                                                        sss
-                                                    </span>
-                                                </td>
+                                                <th>호기번호</th>
+                                                <th>수주명</th>
+                                                <th>최종설계일</th>
+                                                <th>총 부품 수</th>
 
+                                                <th>수정 부품</th>
+                                                <th>자동수배율</th>
+                                                <th>진행률</th>
+
+                                                <th>진행률</th>
+                                                <th>기계</th>
+                                                <th>전기</th>
                                             </tr>
+                                        </thead>
+
+                                        <tbody id="contentTable">
 
                                         </tbody>
                                     </table>
@@ -703,6 +685,8 @@
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 
+
+<script src="/resources/javascript/bomSubaeDashboard.js"></script>
 
 <script>
     // 샘플 데이터 (더 많은 월별 데이터 추가)
@@ -938,17 +922,7 @@
         $('#completionRate').text(`${completionRate}%`);
     }
 
-    // 초기화
-    $(document).ready(function() {
-        $("#subae").removeClass("menu-open");
-        $("#sap").removeClass("menu-open");
-        $("#mlb").removeClass("menu-open");
-        $("#vault").removeClass("menu-open");
 
-
-        //renderTable();
-        //updateSummaryCards();
-    });
 
 
 

@@ -73,8 +73,8 @@ public class SubaeRepository {
                 param.getProductCreDate(),
                 param.getProductModDate(),
                 param.getGisong(),
-                param.getE_manager(),
-                param.getM_manager()
+                param.getEmanager(),
+                param.getMmanager()
         );
     }
 }

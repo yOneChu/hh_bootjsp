@@ -22,7 +22,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -227,5 +229,20 @@ public class SubaeController {
     @GetMapping("/subae/bomDashboard")
     public String bomDashboard() {
         return "dashboard/bomSubaeDashboard";
+    }
+
+
+    //BOM수배 데이터 조회
+    @PostMapping("/subae/bomDashboard")
+    @ResponseBody
+    public ArrayList<ProductDto> bomDashboard(String year, String month) {
+
+        ArrayList<ProductDto> result = new ArrayList<>();
+
+        ProductDto param = new ProductDto();
+        param.setProductAppdate(month);
+        result = subaeService.findSubaeProductList(param);
+
+        return result;
     }
 }

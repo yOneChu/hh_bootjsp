@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 @Mapper
 public interface SubaeMapper {
@@ -14,6 +15,8 @@ public interface SubaeMapper {
     void deleteAll(); //전체삭제
 
     ArrayList<String> findUsedProductNo();
+
+    ArrayList<ProductDto> findSubaeProductList(ProductDto param);
 
     //void saveBlockHistory(@Param("blockDto") BlockHistoryDTO blockDto, @Param("version") String version);
 }

@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Description;
 import org.springframework.util.StopWatch;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 @SpringBootTest
 public class findTest_02 {
@@ -45,8 +46,6 @@ public class findTest_02 {
     @Description("BOM수배율 데이터 전체 테스트")
     @Test
     void subaeALLTest() {
-
-        //200639Y78로 제품의 버전 확인해보기
 
         StopWatch sw = new StopWatch();
         sw.start();
@@ -87,8 +86,13 @@ public class findTest_02 {
         System.out.printf("   - %.3f 분%n", minutes);
     }
 
+
+
+
+    @Description("이미 수배율 계산한 제품번호 조회")
     @Test
     void usedProductNo() {
+
 
         ArrayList<String> list = subaeMapper.findUsedProductNo();
 
@@ -97,7 +101,20 @@ public class findTest_02 {
         for (String a : list) {
             System.out.println("a = " + a);
         }
+    }
 
+    @Description("계산환 수배율 조회")
+    @Test
+    void findSubaeProductList() {
+        ProductDto param = new ProductDto();
+        param.setProductAppdate("2025-07");
+        ArrayList<ProductDto> list = subaeService.findSubaeProductList(param);
 
+        for (int i = 0; i < list.size(); i++) {
+            ProductDto a = list.get(i);
+            System.out.println(a.getProductNo() + " > " + a.getQty() + ">"+ a.getMCount() +"," + a.getMmanager() +">"+ a.getEmanager());
+        }
+        //ArrayList<HashMap<String, String>> r = subaeService.findSubaeProductList(param);
+        //System.out.println("r = " + r);
     }
 }

@@ -8,6 +8,7 @@ import com.kyhslam.util.SubaeCommonUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -155,5 +156,23 @@ public class SubaeService {
      */
     public ArrayList<ProductDto> findPartOfProduct_v2(String year, String partNo) {
         return SubaeCommonUtil.findPartOfProduct_v2(year, partNo.trim());
+    }
+
+    public ArrayList<String> findUsedProductNo(ProductDto param) {
+        return subaeMapper.findUsedProductNo();
+    }
+
+    /**
+     * 2025-07 날짜로 수배율 계산한 제품번호 조회
+     * @param param
+     * @return
+     */
+    public ArrayList<ProductDto> findSubaeProductList(ProductDto param) {
+        ArrayList<ProductDto> result = new ArrayList<>();
+
+        ArrayList<ProductDto> r = subaeMapper.findSubaeProductList(param);
+        System.out.println("r = " + r);
+
+        return r;
     }
 }

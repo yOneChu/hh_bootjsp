@@ -465,8 +465,8 @@ public class SubaeCommonUtil {
 
                 ProductDto dto = new ProductDto();
                 dto.setProductNo(productNo); //제품번호
-                dto.setM_manager(M_MANAGER); //기계담당자
-                dto.setE_manager(E_MANAGER); //전기담당자
+                dto.setMmanager(M_MANAGER); //기계담당자
+                dto.setEmanager(E_MANAGER); //전기담당자
                 //dto.setProductVersion(productVersion); //제품버전
                 //dto.setProductAppdate(PROD_APP_DATE); //제품승인일
 

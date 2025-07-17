@@ -219,7 +219,7 @@
                                         <th style="font-weight: bold; text-align: center;">SIZE(CN)</th>
                                         <th style="font-weight: bold; text-align: center;">최초구분(CN)</th>
 
-                                        <th style="font-weight: bold; text-align: center;">SPEC</th>
+                                        <th style=" font-weight: bold; text-align: center;">SPEC</th>
 
                                     </tr>
                                     </thead>
