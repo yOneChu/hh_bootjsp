@@ -107,18 +107,30 @@
                             str += "<td>" + qty + "</td>";
                             str += "<td>" + allModCount + "</td>";
 
-                            str +=
-                            `
-                                <td>
-                                    <div class="modification-items">
-                                        <span class='mod-item modified'>M: ${mCount}</span>
-                                        <span class='mod-item modified'>C: ${ccount}</span>
-                                        <span class='mod-item modified'>1: ${oneCount}</span>
-                                        <span class='mod-item modified'>2: ${twoCount}</span>
-                                        <span class='mod-item modified'>3: ${threeCount}</span>
-                                    </div>
-                                </td>
-                            `;
+
+                        let mView = "";
+                        let cView = "";
+                        let dView = "";
+                        let eView = "";
+                        let fView = "";
+                        if (mCount != 0) mView = "modified";
+                        if (ccount != 0) cView = "modified";
+                        if (oneCount != 0) dView = "modified";
+                        if (twoCount != 0) eView = "modified";
+                        if (threeCount != 0) fView = "modified";
+
+                        str +=
+                        `
+                            <td>
+                                <div class="modification-items">
+                                    <span class='mod-item ${mView}'>M: ${mCount}</span>
+                                    <span class='mod-item ${cView}'>C: ${ccount}</span>
+                                    <span class='mod-item ${dView}'>1: ${oneCount}</span>
+                                    <span class='mod-item ${eView}'>2: ${twoCount}</span>
+                                    <span class='mod-item ${fView}'>3: ${threeCount}</span>
+                                </div>
+                            </td>
+                        `;
 
                             /*str += "<td> <div class=\"modification-items\">";
                                 str += "<span class='mod-item modified'>M:1</span>";
@@ -154,7 +166,6 @@
                                 </td>
                                  <td>${data[i].mmanager} </td>
                                  <td>${data[i].emanager} </td>
-                                 <td>${data[i].cmt} </td>
                                 `;
 
 

@@ -613,7 +613,6 @@
                                                 <th>진행률</th>
                                                 <th>기계</th>
                                                 <th>전기</th>
-                                                <th>CMT</th>
                                             </tr>
                                         </thead>
 
