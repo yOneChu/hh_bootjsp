@@ -77,6 +77,11 @@
                         <%--<a href="#" class="nav-link" onclick="window.open('/public/searchPriceReductionRate', 'popup', 'width=800,height=600'); return false;">
                             Open Popup
                         </a>--%>
+                        <li>
+                            <a href="/subae/bomDashboard" class="nav-link">
+                                <p>BOM 수배율 현황(월별)(개발중)</p>
+                            </a>
+                        </li>
 
                         <li>
                             <a href="#" class="nav-link" onclick="window.open('/subae/partDashboard', 'popup', 'width=1200,height=800'); return false;">
@@ -118,11 +123,7 @@
                             </a>
                         </li>
 
-                        <li>
-                            <a href="/subae/bomDashboard" class="nav-link">
-                                <p>BOM 수배율 </p>
-                            </a>
-                        </li>
+
 
                     </ul>
                 </li>

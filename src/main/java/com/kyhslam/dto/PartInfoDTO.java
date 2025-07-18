@@ -25,6 +25,9 @@ public class PartInfoDTO {
     private String uom; // 단위
     private String partSize;
 
+    private String design;
+    private String cost;
+    private String originDiv;
 
     private String blockNo;
     private String blockName;

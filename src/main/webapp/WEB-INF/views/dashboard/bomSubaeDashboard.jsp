@@ -1,14 +1,3 @@
-<%@page import="java.time.LocalDate"%>
-<%@page import="java.util.HashMap"%>
-<%@page import="java.util.ArrayList"%>
-<%@page import="java.sql.ResultSet"%>
-<%@page import="java.sql.PreparedStatement"%>
-<%@page import="java.sql.Connection"%>
-<%@ page import="com.kyhslam.util.VaultDBConnection" %>
-<%@ page import="org.springframework.web.context.WebApplicationContext" %>
-<%@ page import="com.kyhslam.service.JdbcTestService" %>
-<%@ page import="org.springframework.web.context.support.WebApplicationContextUtils" %>
-<%@ page import="com.kyhslam.dto.DashDtoV3" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
@@ -595,11 +584,11 @@
 
                                     <div class="filter-buttons float-right">
                                         <button class="filter-btn active" data-filter="all">전체</button>
-                                        <button class="filter-btn" data-filter="excellent" id="excel_part">자재전체</button>
+                                        <button class="filter-btn" data-filter="excellent" id="excel_part">자재전체 Excel</button>
 
-                                        <button class="filter-btn" data-filter="good" id="excelGo">제품</button>
-                                        <button class="filter-btn" data-filter="normal">변경자재</button>
-                                        <button class="filter-btn" data-filter="poor">개선필요</button>
+                                        <button class="filter-btn" data-filter="good" id="excelGo">제품 Excel</button>
+                                        <button class="filter-btn" data-filter="normal">변경자재 Excel</button>
+                                        <%--<button class="filter-btn" data-filter="poor">개선필요</button>--%>
 
                                         <%--<button class="filter-btn" data-filter="good">제품</button>
                                         <button class="filter-btn" data-filter="normal">보통</button>

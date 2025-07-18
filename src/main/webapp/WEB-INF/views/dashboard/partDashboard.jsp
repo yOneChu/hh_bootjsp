@@ -408,7 +408,7 @@
             </div>
             <div class="col-md-2 text-end">
                 <label class="form-label small text-muted d-block">&nbsp;</label>
-                <button class="btn btn-hyundai w-100">
+                <button class="btn btn-hyundai w-100" id="partExcel">
                     <i class="bi bi-search me-1"></i>조회
                 </button>
             </div>
@@ -724,6 +724,9 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+
+
 <script>
     // Monthly Usage Chart
     const monthlyUsageCtx = document.getElementById('monthlyUsageChart').getContext('2d');
@@ -835,6 +838,58 @@
             cutout: '70%', // Make it a doughnut chart
         }
     });
+
+
+    $(document).ready(function() {
+        $("#subae").removeClass("menu-open");
+        $("#sap").removeClass("menu-open");
+        $("#mlb").removeClass("menu-open");
+        $("#vault").removeClass("menu-open");
+
+
+        //자재전체 엑셀 다운로드
+        $('#partExcel').on('click', function () {
+
+            let month = ""; //$('#monthSelect').val();
+            let ucheck = "1";
+
+            //console.log(month);
+
+            $.ajax({
+                url: '/excel/searchPart',   // 요청 보낼 URL
+                type: 'POST',              // 메서드 (GET/POST 등)
+                data : {
+                    //month : month
+                    //ucheck: ucheck
+                },
+                xhrFields: {
+                    responseType: 'blob'    // 파일 다운로드용 응답 처리
+                },
+                success: function (data, status, xhr) {
+
+                    console.log(data);
+
+                    // 응답 헤더에서 파일명 추출
+                    const disposition = xhr.getResponseHeader('Content-Disposition');
+                    let filename = 'excel.xlsx';
+                    if (disposition && disposition.indexOf('filename=') !== -1) {
+                        filename = disposition.split('filename=')[1].replace(/"/g, '');
+                    }
+
+                    // Blob으로 파일 생성 및 다운로드
+                    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = filename;
+                    link.click();
+                },
+                error: function () {
+                    alert('엑셀 다운로드 중 오류가 발생했습니다.');
+                }
+            });
+        });
+    });
+
 </script>
 </body>
 </html>

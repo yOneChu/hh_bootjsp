@@ -71,7 +71,7 @@
         $('#excel_part').on('click', function () {
 
             let month = $('#monthSelect').val();
-            let ucheck = "";
+            let ucheck = "1";
 
             console.log(month);
 

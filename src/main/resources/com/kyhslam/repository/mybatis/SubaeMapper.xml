@@ -61,7 +61,7 @@
     <select id="findSubaePartNoList" resultType="ProductDto">
         SELECT
         A.PRODUCTNO
-        , A.PRODUCTVER
+        , A.PRODUCTVER AS productVersion
         , A.PRODUCTNAME
         , A.GISONG
         , A.APPDATE AS productAppdate
