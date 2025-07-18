@@ -216,8 +216,9 @@ public class SubaeCommonUtil {
                             V.E_BLOCK_F,
                             V.M_BLOCK_F,
                             (SELECT COD(E.EL_ATYP) FROM ELV_INFO$ID A, ELV_INFO$VF E
-                             WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip 
-                             --AND E.MD$STATUS = 'RLS'
+                             WHERE A.ID$OUID = E.VF$IDENTITY 
+                                AND E.vf$ouid = A.id$wip 
+                             -- AND E.MD$STATUS = 'RLS'
                              AND E.MD$NUMBER = V.MD$NUMBER) AS GISONG
                            -- V.*
                         FROM product$vf V
