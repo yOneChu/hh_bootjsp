@@ -84,7 +84,8 @@
                         </li>
 
                         <li>
-                            <a href="#" class="nav-link" onclick="window.open('/subae/partDashboard', 'popup', 'width=1200,height=800'); return false;">
+                            <%--<a href="#" class="nav-link" onclick="window.open('/subae/partDashboard', 'popup', 'width=1200,height=800'); return false;">--%>
+                                <a href="/subae/partDashboard" class="nav-link">
                             <%--<a href="/subae/partDashboard" class="nav-link">--%>
                                 <p>PLM 자재 현황</p>
                             </a>

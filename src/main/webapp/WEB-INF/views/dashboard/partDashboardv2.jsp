@@ -415,27 +415,28 @@
                 <div class="callout callout-danger">
                     <%--<i class="fas fa-bullhorn"></i> 🔊 도움말 <br>--%>
                          🔊 도움말 <br>
-                    - 자재번호 201153* 검색 시, '201153'이 포함된 모든 자재 조회
+                    - 자재번호 201153* 검색 시, 자재번호에 '201153'로 시작하는 모든 자재 조회 <br>
+                    - *100325G02* 입력 시, 자재번호에 '100325G02' 포함된 모든 자재 조회
                 </div>
             </div>
         </section>
 
 
 
-            <div class="container mt-4">
+            <div class="container mt-5">
                 <div class="filter-section-hyundai">
                     <div class="row g-3 align-items-center">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label small text-muted">자재번호</label>
                             <input type="text" id="partNo" class="form-control form-control-hyundai" placeholder="자재 코드 또는 명칭">
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label small text-muted">자재명</label>
                             <input type="text" id="partName" class="form-control form-control-hyundai" placeholder="자재 코드 또는 명칭">
                         </div>
 
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <label class="form-label small text-muted">카테고리</label>
                             <select class="form-select form-control-hyundai">
                                 <option>전체</option>
@@ -445,7 +446,7 @@
                                 <option>소모품</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-1">
                             <label class="form-label small text-muted">기간</label>
                             <select class="form-select form-control-hyundai">
                                 <option value="2025">2025년</option>
@@ -454,7 +455,7 @@
                                 <option value="2024">2022년</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label small text-muted">상태</label>
                             <select class="form-select form-control-hyundai">
                                 <option>전체 자재</option>

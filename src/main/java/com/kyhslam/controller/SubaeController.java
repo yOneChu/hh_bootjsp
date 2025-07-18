@@ -187,12 +187,14 @@ public class SubaeController {
         subaeService.findSubaeProductNo("");
     }
 
+
+    // 자재 대시보드 및 엑셀다운로드 화면
     @GetMapping("/subae/partDashboard")
     public String partDashboard() {
         //subaeService.findSubaeProductNo("");
 
         //partDashboard
-        return "dashboard/partDashboard";
+        return "dashboard/partDashboardv2";
     }
 
 
@@ -228,7 +230,7 @@ public class SubaeController {
     @GetMapping("/subae/bomDashboard")
     public String bomDashboard() {
         //return "dashboard/bomSubaeDashboard";
-        return "dashboard/partDashboardv2";
+        return "dashboard/bomSubaeDashboard";
     }
 
     //BOM수배 데이터 조회
