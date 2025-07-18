@@ -117,4 +117,20 @@ public class findTest_02 {
         //ArrayList<HashMap<String, String>> r = subaeService.findSubaeProductList(param);
         //System.out.println("r = " + r);
     }
+
+
+    @Description("계산환 수배율 조회")
+    @Test
+    void findNoList() {
+        ProductDto param = new ProductDto();
+        param.setProductAppdate("2025-07");
+        ArrayList<ProductDto> list = subaeService.findSubaePartNoList(param);
+
+        for (int i = 0; i < 1000; i++) {
+            ProductDto a = list.get(i);
+            System.out.println(a.getProductNo() + " > " + a.getUcheck() + ">"+ a.getBlockopt());
+        }
+        //ArrayList<HashMap<String, String>> r = subaeService.findSubaeProductList(param);
+        //System.out.println("r = " + r);
+    }
 }

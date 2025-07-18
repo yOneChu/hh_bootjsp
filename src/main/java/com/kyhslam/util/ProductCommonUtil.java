@@ -135,7 +135,7 @@ public class ProductCommonUtil {
                 dto.setPartName(PARTNAME);
                 dto.setVersion(VERSION);
                 dto.setBlockNo(BLOCKNO);
-                dto.setBlock_opt(BLOCK_OPT);
+                dto.setBlockopt(BLOCK_OPT);
                 dto.setGlCode(GLCODE);
 
                 dto.setNation(NATION);

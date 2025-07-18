@@ -517,10 +517,12 @@
                 </div>
 
                 <div class="chart-container">
-                    <div class="chart-title">월별 BOM 구성 현황</div>
-                    <div class="chart-placeholder">
-                        📊 차트 영역 (Chart.js 또는 다른 차트 라이브러리 연동)
-                    </div>
+                    <div class="chart-title">📊 월별 BOM 구성 현황</div>
+                    <figure class="highcharts-figure">
+                        <div class="chart-placeholder" id="cpContainer">
+                            <%--📊 차트 영역 (Chart.js 또는 다른 차트 라이브러리 연동)--%>
+                        </div>
+                    </figure>
                 </div>
             </div>
 
@@ -576,26 +578,34 @@
                                                 <label for="monthSelect">분석 기간:</label>
                                                 <select id="monthSelect">
                                                     <option value="all">전체</option>
+                                                    <option value="2025-01">2025년 1월</option>
+                                                    <option value="2025-02">2025년 2월</option>
+                                                    <option value="2025-03">2025년 3월</option>
                                                     <option value="2025-04">2025년 4월</option>
                                                     <option value="2025-05">2025년 5월</option>
                                                     <option value="2025-06">2025년 6월</option>
                                                     <option value="2025-07" selected>2025년 7월</option>
                                                 </select>
                                             </div>
-                                            <div class="search-box">
+                                            <%--<div class="search-box">
                                                 <input type="text" id="searchInput" placeholder="호기번호 또는 제품명 검색">
-                                            </div>
+                                            </div>--%>
                                         </div>
                                     </div>
 
-                                    <%--<div class="filter-buttons">
+                                    <div class="filter-buttons float-right">
                                         <button class="filter-btn active" data-filter="all">전체</button>
-                                        <button class="filter-btn" data-filter="excellent">우수</button>
-                                        <button class="filter-btn" data-filter="good">양호</button>
-                                        <button class="filter-btn" data-filter="normal">보통</button>
+                                        <button class="filter-btn" data-filter="excellent" id="excel_part">자재전체</button>
+
+                                        <button class="filter-btn" data-filter="good" id="excelGo">제품</button>
+                                        <button class="filter-btn" data-filter="normal">변경자재</button>
                                         <button class="filter-btn" data-filter="poor">개선필요</button>
+
+                                        <%--<button class="filter-btn" data-filter="good">제품</button>
+                                        <button class="filter-btn" data-filter="normal">보통</button>
+                                        <button class="filter-btn" data-filter="poor">개선필요</button>--%>
                                     </div>
---%>
+
                                     <table class="data-table" id="infoTable">
                                         <thead>
                                             <tr>
@@ -686,6 +696,12 @@
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
+
+<!-- Highhart -->
+<script src="/resources/dist/js/highcharts.js"></script>
+<script src="/resources/dist/js/exporting.js"></script>
+<script src="/resources/dist/js/export-data.js"></script>
+<script src="/resources/dist/js/accessibility.js"></script>
 
 
 <script src="/resources/javascript/bomSubaeDashboard.js"></script>

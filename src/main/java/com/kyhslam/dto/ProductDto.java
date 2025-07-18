@@ -35,7 +35,7 @@ public class ProductDto {
     private String blockNo;
     private String blockName;
 
-    private String block_opt; //품목구분(1,2,3,M,C)
+    private String blockopt; //품목구분(1,2,3,M,C)
     private String uom; //단위
     private String qty; //수량
     private String cmt; //주석

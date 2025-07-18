@@ -173,7 +173,16 @@ public class SubaeService {
         ArrayList<ProductDto> result = new ArrayList<>();
 
         ArrayList<ProductDto> r = subaeMapper.findSubaeProductList(param);
-        System.out.println("r = " + r);
+
+        return r;
+    }
+
+    // 2025-07 날짜로 수배율 계산한 PARTNO 전체 조회
+    public ArrayList<ProductDto> findSubaePartNoList(ProductDto param) {
+        ArrayList<ProductDto> result = new ArrayList<>();
+
+        //System.out.println("findSubaePartNoList param = " + param);
+        ArrayList<ProductDto> r = subaeMapper.findSubaePartNoList(param);
 
         return r;
     }

@@ -245,4 +245,19 @@ public class SubaeController {
 
         return result;
     }
+
+    // 2025-07 날짜로 수배율 계산한 PARTNO 전체 조회
+    @PostMapping("/subae/findSubaePartNoList")
+    @ResponseBody
+    public ArrayList<ProductDto> findSubaePartNoList(String ucheck, String month) {
+
+        ArrayList<ProductDto> result = new ArrayList<>();
+
+        ProductDto param = new ProductDto();
+        param.setProductAppdate(month);
+        param.setUcheck("1");
+        result = subaeService.findSubaePartNoList(param);
+
+        return result;
+    }
 }

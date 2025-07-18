@@ -41,7 +41,7 @@ public class findTest {
             System.out.println("000000000000000000000000000000");
             for (int k = 0; k < partList.size(); k++) {
                 ProductDto dto1 = partList.get(k);
-                System.out.println(dto1.getPartNo() + " > " + dto1.getBlock_opt());
+                System.out.println(dto1.getPartNo() + " > " + dto1.getBlockopt());
 
 
                 //DB에 저장

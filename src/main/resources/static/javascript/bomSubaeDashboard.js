@@ -1,7 +1,7 @@
     let dtTable = $("#infoTable").DataTable({
         "responsive": true,
         "lengthChange": true,
-        "pageLength": 50,     //페이지 당 글 개수 설정
+        "pageLength": 25,     //페이지 당 글 개수 설정
         "autoWidth": false, // 가로자동
         "processing": true,
         "destroy": true, // 테이블 재생성
@@ -20,6 +20,94 @@
         searchPID();
         //renderTable();
         //updateSummaryCards();
+
+
+        viewDashboard();
+
+
+
+        //제품만
+        $('#excelGo').on('click', function () {
+
+            let month = $('#monthSelect').val();
+
+
+            $.ajax({
+                url: '/excel/subaeDownload',   // 요청 보낼 URL
+                type: 'POST',              // 메서드 (GET/POST 등)
+                data : {
+                    month : month,
+                    ucheck: "N"
+                },
+                xhrFields: {
+                    responseType: 'blob'    // 파일 다운로드용 응답 처리
+                },
+                success: function (data, status, xhr) {
+
+                    console.log(data);
+
+                    // 응답 헤더에서 파일명 추출
+                    const disposition = xhr.getResponseHeader('Content-Disposition');
+                    let filename = 'excel.xlsx';
+                    if (disposition && disposition.indexOf('filename=') !== -1) {
+                        filename = disposition.split('filename=')[1].replace(/"/g, '');
+                    }
+
+                    // Blob으로 파일 생성 및 다운로드
+                    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = filename;
+                    link.click();
+                },
+                error: function () {
+                    alert('엑셀 다운로드 중 오류가 발생했습니다.');
+                }
+            });
+        });
+
+
+        //자재전체 엑셀 다운로드
+        $('#excel_part').on('click', function () {
+
+            let month = $('#monthSelect').val();
+            let ucheck = "";
+
+            console.log(month);
+
+            $.ajax({
+                url: '/excel/subaeDownloadV2',   // 요청 보낼 URL
+                type: 'POST',              // 메서드 (GET/POST 등)
+                data : {
+                    month : month,
+                    ucheck: ucheck
+                },
+                xhrFields: {
+                    responseType: 'blob'    // 파일 다운로드용 응답 처리
+                },
+                success: function (data, status, xhr) {
+
+                    console.log(data);
+
+                    // 응답 헤더에서 파일명 추출
+                    const disposition = xhr.getResponseHeader('Content-Disposition');
+                    let filename = 'excel.xlsx';
+                    if (disposition && disposition.indexOf('filename=') !== -1) {
+                        filename = disposition.split('filename=')[1].replace(/"/g, '');
+                    }
+
+                    // Blob으로 파일 생성 및 다운로드
+                    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = filename;
+                    link.click();
+                },
+                error: function () {
+                    alert('엑셀 다운로드 중 오류가 발생했습니다.');
+                }
+            });
+        });
     });
 
     function isStringAndNotEmptyOrWhitespace(value) {
@@ -43,24 +131,9 @@
     //검색
     function searchPID(year, month)
     {
-        //let month = $("#year").val(); // SPEC
         let partNo = $("#partNo").val(); // LIKE
-
         month = $('#monthSelect').val();
-
-
-        //console.log(year);
         console.log(month);
-
-  /*      if(partNo == null || "" == partNo) {
-            console.log(partNo);
-            alert("partNo 을 입력하세요.");
-            return;
-        }*/
-
-
-
-
 
         $('#infoTable').DataTable().destroy();
         $("#contentTable").empty();
@@ -82,7 +155,7 @@
             },
             success : function(data)
             {
-                console.log("data - ", data);
+                //console.log("data - ", data);
 
                 let str = "";
 
@@ -147,9 +220,7 @@
 
 
 
-                            //console.log("allModCount -- " + allModCount);
                             let percentage = ( (qty - allModCount) / qty ) * 100;
-                            //console.log("percentage == " + percentage);
 
                             //let percentageVal = Math.round(parseFloat(percentage) * 10) / 10; // => 99.4
                             let percentageVal = Math.round(parseFloat(percentage) * 100) / 100;
@@ -168,8 +239,6 @@
                                  <td>${data[i].emanager} </td>
                                 `;
 
-
-
                         str += "</tr>";
                     } // end for
 
@@ -180,7 +249,7 @@
                     $("#infoTable").DataTable({
                         "responsive": true,
                         "lengthChange": true,
-                        "pageLength": 50,     //페이지 당 글 개수 설정
+                        "pageLength": 25,     //페이지 당 글 개수 설정
                         "autoWidth": false, // 가로자동
                         "processing": true,
                         "destroy": true, // 테이블 재생성
@@ -193,5 +262,85 @@
 
                 }
             } // end success;
+        });
+    } // END SearchPID
+
+
+    function viewDashboard() {
+
+        console.log('view dashboard');
+
+        Highcharts.chart('cpContainer', {
+
+
+            title: {
+                text: '',
+                align: 'left'
+            },
+            yAxis: {
+                title: {
+                    text: '라인 수'
+                }
+            },
+
+            xAxis: {
+                /*accessibility: {
+                    rangeDescription: 'Range: 2010 to 2022'
+                }*/
+                categories: [
+                    //'2.10', '11', '12', '13', '14'
+                    '2025.01', '02', '03', '04', '05', '06', '07'
+                ]
+            },
+
+            legend: {
+                layout: 'vertical',
+                align: 'right',
+                verticalAlign: 'middle'
+            },
+
+            plotOptions: {
+                series: {
+                    label: {
+                        connectorAllowed: false
+                    },
+                    //pointStart: 2010
+                }
+            },
+
+            series: [{
+                //name: 'Installation & Developers',
+                showInLegend: false,
+                data: [
+                    50, 11, 22, 33, 44, 55, 88
+        ],
+            dataLabels: {
+                enabled: true
+            }
+        }],
+            tooltip: {
+                valueSuffix: ' (건)'
+            },
+            lagend: {
+                enabled: false
+            },
+            credits: {
+                enabled: false
+            },
+            responsive: {
+                rules: [{
+                    condition: {
+                        maxWidth: 500
+                    },
+                    chartOptions: {
+                        legend: {
+                            layout: 'horizontal',
+                            align: 'center',
+                            verticalAlign: 'bottom'
+                        }
+                    }
+                }]
+            }
+
         });
     }

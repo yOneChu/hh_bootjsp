@@ -482,7 +482,7 @@ public class SubaeCommonUtil {
                 dto.setGlCode(GLCODE);
                 dto.setUcheck(UCHECK);
                 dto.setQty(partQTY);
-                dto.setBlock_opt(BLOCK_OPT);
+                dto.setBlockopt(BLOCK_OPT);
                 dto.setMCount(M_QTY); // M전체 수량
                 dto.setCCount(C_QTY); // C전체 수량
                 dto.setOneCount(ONE_QTY);
@@ -773,7 +773,7 @@ public class SubaeCommonUtil {
                 dto.setGlCode(GLCODE);
                 dto.setUcheck(UCHECK);
                 dto.setQty(partQTY);
-                dto.setBlock_opt(BLOCK_OPT);
+                dto.setBlockopt(BLOCK_OPT);
 
                 dataList.add(dto);
             } //end while
@@ -935,7 +935,7 @@ public class SubaeCommonUtil {
                 dto.setGlCode(GLCODE);
                 dto.setUcheck(UCHECK);
                 dto.setQty(partQTY);
-                dto.setBlock_opt(BLOCK_OPT);
+                dto.setBlockopt(BLOCK_OPT);
 
                 dataList.add(dto);
             } //end while

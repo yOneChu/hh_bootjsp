@@ -4,6 +4,7 @@
 
 <mapper namespace="com.kyhslam.repository.mybatis.SubaeMapper">
 
+
     <!--이미 수배율 계산한 호기번호 조회-->
     <delete id="deleteAll">
         delete from subaeProduct
@@ -53,6 +54,33 @@
         <where>
             <if test="productAppdate != null and productAppdate != ''">
                 and LEFT(A.APPDATE,7) = #{productAppdate}
+            </if>
+        </where>
+    </select>
+
+    <select id="findSubaePartNoList" resultType="ProductDto">
+        SELECT
+        A.PRODUCTNO
+        , A.PRODUCTVER
+        , A.PRODUCTNAME
+        , A.GISONG
+        , A.APPDATE AS productAppdate
+        , A.PARTNO
+        , A.PARTNAME
+        , A.BLOCK_OPT AS blockopt
+        , A.BLOCKNO
+        , A.UCHECK AS ucheck
+        , A.GLCODE
+        , A.M_MANAGER AS mmanager
+        , A.E_MANAGER AS emanager
+        , A.CMT
+        FROM subaeProduct A
+        <where>
+            <if test="productAppdate != null and productAppdate != ''">
+                and LEFT(A.APPDATE,7) = #{productAppdate}
+            </if>
+            <if test="ucheck != null and ucheck != ''">
+                and A.UCHECK = #{ucheck}
             </if>
         </where>
     </select>

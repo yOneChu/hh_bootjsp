@@ -18,5 +18,7 @@ public interface SubaeMapper {
 
     ArrayList<ProductDto> findSubaeProductList(ProductDto param);
 
+    ArrayList<ProductDto> findSubaePartNoList(ProductDto param);
+
     //void saveBlockHistory(@Param("blockDto") BlockHistoryDTO blockDto, @Param("version") String version);
 }

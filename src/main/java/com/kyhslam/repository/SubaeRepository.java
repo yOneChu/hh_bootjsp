@@ -58,7 +58,7 @@ public class SubaeRepository {
                 param.getProductAppdate(),
                 param.getPartNo(),
                 param.getPartName(),
-                param.getBlock_opt(),
+                param.getBlockopt(),
                 param.getBlockNo(),
                 param.getQty(),
                 param.getCmt(),
