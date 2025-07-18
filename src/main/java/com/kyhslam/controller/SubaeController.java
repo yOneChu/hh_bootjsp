@@ -227,9 +227,9 @@ public class SubaeController {
     //BOM수배율 화면
     @GetMapping("/subae/bomDashboard")
     public String bomDashboard() {
-        return "dashboard/bomSubaeDashboard";
+        //return "dashboard/bomSubaeDashboard";
+        return "dashboard/partDashboardv2";
     }
-
 
     //BOM수배 데이터 조회
     @PostMapping("/subae/bomDashboard")

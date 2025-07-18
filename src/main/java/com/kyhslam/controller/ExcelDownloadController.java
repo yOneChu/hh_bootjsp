@@ -227,8 +227,10 @@ public class ExcelDownloadController {
     }
 
 
+    // 자재 대시보드
+    // 자재조회
     @PostMapping("/searchPart")
-    public void searchPart(HttpServletResponse response) throws IOException {
+    public void searchPart(HttpServletResponse response, String partNo) throws IOException {
 
         System.out.println("--------- searchPart -----------");
 
@@ -304,7 +306,7 @@ public class ExcelDownloadController {
         //List<MyDataDto> dataList = myDataService.getLargeData();
         ArrayList<PartInfoDTO> dataList = new ArrayList<>();
 
-        dataList = PartDashboardUtil.findPLMPartV1("2025", "10111175*", "ACTIVE");
+        dataList = PartDashboardUtil.findPLMPartV1("2025", partNo, "ACTIVE");
         System.out.println("dataList = " + dataList.size());
 
 
