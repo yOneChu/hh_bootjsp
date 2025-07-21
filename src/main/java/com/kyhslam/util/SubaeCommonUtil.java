@@ -152,8 +152,8 @@ public class SubaeCommonUtil {
                     SELECT
                       DISTINCT V.MD$NUMBER AS PRODUCTNO
                       FROM product$vf V
-                      WHERE SUBSTR(V.MD$CDATE, 0,4) = '2025' 
-                      --AND V.MD$STATUS = 'RLS'
+                      WHERE SUBSTR(V.MD$CDATE, 0,4) = '2025'
+                      AND V.MD$STATUS = 'RLS'
                       --AND SUBSTR(V.MD$CDATE, 0,6) = '202506'
                       AND SUBSTR(V.MD$NUMBER, 0, 1) NOT IN ('Q', 'V', '0', 'K', '1', 'H', 'T', 'M', 'C')
                       AND V.MD$NUMBER NOT LIKE '%Q%'
