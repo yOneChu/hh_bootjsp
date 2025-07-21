@@ -247,6 +247,13 @@ public class SubaeController {
         return result;
     }
 
+    //BOM수배율 팝업화면
+    @GetMapping("/subae/bomSubaeDashboardPop")
+    public String bomSubaeDashboardPop() {
+        return "dashboard/bomSubaeDashboardPop";
+    }
+
+
     // 2025-07 날짜로 수배율 계산한 PARTNO 전체 조회
     @PostMapping("/subae/findSubaePartNoList")
     @ResponseBody

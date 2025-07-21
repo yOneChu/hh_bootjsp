@@ -41,6 +41,7 @@
 
     <select id="findSubaeProductList" resultType="ProductDto">
         SELECT DISTINCT A.PRODUCTNO AS productNo,
+                        A.PRODUCTNAME,
                         A.PRODUCTVER AS productVersion,
                         A.APPDATE AS productAppdate, A.M_MANAGER AS mmanager, A.E_MANAGER AS emanager,
                         A.GISONG AS gisong,

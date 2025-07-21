@@ -155,7 +155,7 @@
             },
             success : function(data)
             {
-                //console.log("data - ", data);
+                console.log("data - ", data);
 
                 let str = "";
 
@@ -169,12 +169,14 @@
                         let twoCount = Number(initIfEmpty(data[i].twoCount));
                         let threeCount = Number(initIfEmpty(data[i].threeCount));
 
+                        let prodNo = data[i].productNo;
+
                         let allModCount = mCount + ccount + oneCount + twoCount + threeCount;
 
                         str += "<tr>";
                             str += "<td>" + data[i].productNo + "</td>";
                             str += "<td>" + data[i].productVersion + "</td>";
-                            str += "<td>" + data[i].productVersion + "</td>";
+                            str += "<td>" + data[i].productName + "</td>";
                             str += "<td>" + data[i].gisong + "</td>";
                             str += "<td>" + data[i].productAppdate + "</td>";
                             str += "<td>" + qty + "</td>";
@@ -194,7 +196,7 @@
 
                         str +=
                         `
-                            <td>
+                            <td onclick='viewpop("${prodNo}");'>
                                 <div class="modification-items">
                                     <span class='mod-item ${mView}'>M: ${mCount}</span>
                                     <span class='mod-item ${cView}'>C: ${ccount}</span>
@@ -305,6 +307,15 @@
                         connectorAllowed: false
                     },
                     //pointStart: 2010
+                    point: {
+                        events: {
+                            click: function(event) {
+                                // 클릭 시 실행될 함수
+                                ///showPopup(this); // this는 클릭된 point 객체를 가리킵니다.
+                                alert('good');
+                            }
+                        }
+                    }
                 }
             },
 
@@ -312,7 +323,7 @@
                 //name: 'Installation & Developers',
                 showInLegend: false,
                 data: [
-                    50, 11, 22, 33, 44, 55, 88
+                    818, 877, 853, 924, 619, 751, 766
         ],
             dataLabels: {
                 enabled: true
@@ -343,4 +354,14 @@
             }
 
         });
+    } // end viewDashboard
+
+    function viewpop(prodNo) {
+        console.log(prodNo);
+
+        //VAULT-운영
+        let urlValue = "https://vault-in.hdel.co.kr:8070/subae/bomSubaeDashboardPop?";
+
+        urlValue += "prodNo=" + prodNo;
+        window.open(urlValue,'_blank','width=1500, height=800, top=50, left=50, scrollbars=yes');
     }
