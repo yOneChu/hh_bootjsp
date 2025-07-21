@@ -276,7 +276,7 @@ public class ExcelDownloadController {
 
         // 헤더 작성
         Row header = sheet.createRow(0);
-        String[] titles = { "자재번호", "자재명", "버전"};
+        String[] titles = { "자재번호", "자재명", "버전", "설계사용", "견적사용", "BlockNo", "상태", "단위", "SPEC"};
         for (int i = 0; i < titles.length; i++) {
             Cell cell = header.createCell(i);
             cell.setCellValue(titles[i]);
@@ -316,13 +316,22 @@ public class ExcelDownloadController {
             row.createCell(0).setCellValue(dto.getPartNo());
             row.createCell(1).setCellValue(dto.getPartName());
             row.createCell(2).setCellValue(dto.getVersion());
-
+            row.createCell(3).setCellValue(dto.getDesign());
+            row.createCell(4).setCellValue(dto.getCost());
+            row.createCell(5).setCellValue(dto.getBlockNo());
+            row.createCell(6).setCellValue(dto.getStatus());
+            row.createCell(7).setCellValue(dto.getUom());
+            row.createCell(8).setCellValue(dto.getSpec());
 
             row.getCell(0).setCellStyle(bodyStyle);
             row.getCell(1).setCellStyle(bodyStyle);
             row.getCell(2).setCellStyle(bodyStyle);
-
-
+            row.getCell(3).setCellStyle(bodyStyle);
+            row.getCell(4).setCellStyle(bodyStyle);
+            row.getCell(5).setCellStyle(bodyStyle);
+            row.getCell(6).setCellStyle(bodyStyle);
+            row.getCell(7).setCellStyle(bodyStyle);
+            row.getCell(8).setCellStyle(bodyStyle);
         }
 
         // 엑셀 파일 작성 및 스트림으로 출력
