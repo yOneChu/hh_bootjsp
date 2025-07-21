@@ -28,11 +28,10 @@
 
             let month = $('#monthSelect').val();
 
-
+            showLoading(); // 로딩바 표시
             $.ajax({
                 url: '/excel/subaeDownload',   // 요청 보낼 URL
                 type: 'POST',              // 메서드 (GET/POST 등)
-                async: true,
                 data : {
                     month : month,
                     ucheck: "N"
@@ -57,6 +56,8 @@
                     link.href = window.URL.createObjectURL(blob);
                     link.download = filename;
                     link.click();
+
+                    hideLoading(); // 성공 시 로딩바 제거
                 },
                 error: function () {
                     alert('엑셀 다운로드 중 오류가 발생했습니다.');
@@ -72,6 +73,8 @@
             let ucheck = "1";
 
             console.log(month);
+            showLoading(); // 로딩바 표시
+
 
             $.ajax({
                 url: '/excel/subaeDownloadV2',   // 요청 보낼 URL
@@ -100,6 +103,8 @@
                     link.href = window.URL.createObjectURL(blob);
                     link.download = filename;
                     link.click();
+
+                    hideLoading(); // 성공 시 로딩바 제거
                 },
                 error: function () {
                     alert('엑셀 다운로드 중 오류가 발생했습니다.');
@@ -155,6 +160,7 @@
                 year : year,
                 month : month
             },
+            //async: true,
             beforeSend: function() {
                 $("html").css("cursor", "wait");
             },
@@ -378,6 +384,62 @@
 
         });
     } // end viewDashboard
+
+
+    // 로딩바 표시 함수
+    function showLoading() {
+        // 로딩바 HTML 생성
+        const loadingHtml = `
+        <div id="loadingOverlay" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        ">
+            <div style="
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            ">
+                <div style="
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #3498db;
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 15px;
+                "></div>
+                <p style="margin: 0; font-size: 16px; color: #333;">엑셀 파일을 다운로드 중입니다...</p>
+            </div>
+        </div>
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    `;
+
+        // 로딩바를 body에 추가
+        document.body.insertAdjacentHTML('beforeend', loadingHtml);
+    }
+
+    // 로딩바 제거 함수
+    function hideLoading() {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        if (loadingOverlay) {
+            loadingOverlay.remove();
+        }
+    }
 
     function viewpop(prodNo) {
         console.log(prodNo);
