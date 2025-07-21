@@ -522,7 +522,7 @@
 
 
         <!-- Content Header (Page header) -->
-        <section class="content-header">
+        <%--<section class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
@@ -530,14 +530,14 @@
                         <h1>엘리베이터 제품별 BOM 현황 </h1>
                     </div>
                     <div class="col-sm-6">
-                        <%--<ol class="breadcrumb float-sm-right">
+                        &lt;%&ndash;<ol class="breadcrumb float-sm-right">
                             <li class="breadcrumb-item"><a href="#">Home</a></li>
                             <li class="breadcrumb-item active">DataTables</li>
-                        </ol>--%>
+                        </ol>&ndash;%&gt;
                     </div>
                 </div>
-            </div><!-- /.container-fluid -->
-        </section>
+            </div><
+        </section>--%>
 
 
 
@@ -559,21 +559,22 @@
                             <div class="card-body" style="zoom:100%;">
                                 <%--<div class="table-container">--%>
                                     <div class="table-header">
-
-                                        <div class="table-title">엘리베이터 제품별 BOM 현황</div>
+                                        <div class="table-title">
+                                            <h3>월별 현황</h3>
+                                        </div>
 
                                         <div class="header-controls">
                                             <div class="month-selector">
                                                 <label for="monthSelect">분석 기간:</label>
                                                 <select id="monthSelect">
                                                     <option value="all">전체</option>
-                                                    <option value="2025-01">2025년 1월</option>
-                                                    <option value="2025-02">2025년 2월</option>
-                                                    <option value="2025-03">2025년 3월</option>
-                                                    <option value="2025-04">2025년 4월</option>
-                                                    <option value="2025-05">2025년 5월</option>
-                                                    <option value="2025-06">2025년 6월</option>
-                                                    <option value="2025-07" selected>2025년 7월</option>
+                                                    <option id="2025-01" value="2025-01">2025년 1월</option>
+                                                    <option id="2025-02" value="2025-02">2025년 2월</option>
+                                                    <option id="2025-03" value="2025-03">2025년 3월</option>
+                                                    <option id="2025-04" value="2025-04">2025년 4월</option>
+                                                    <option id="2025-05" value="2025-05">2025년 5월</option>
+                                                    <option id="2025-06" value="2025-06">2025년 6월</option>
+                                                    <option id="2025-07" value="2025-07" selected>2025년 7월</option>
                                                 </select>
                                             </div>
                                             <%--<div class="search-box">
@@ -608,8 +609,8 @@
                                                 <th>변경 건수</th>
 
                                                 <th>수정 부품 (기계/전기) </th>
-
-                                                <th>진행률</th>
+                                                <th>내용확인 </th>
+                                                <th>자동수배율</th>
                                                 <th>기계</th>
                                                 <th>전기</th>
                                             </tr>

@@ -21,12 +21,9 @@
         //renderTable();
         //updateSummaryCards();
 
-
         viewDashboard();
 
-
-
-        //제품만
+        // 제품만 EXCEL
         $('#excelGo').on('click', function () {
 
             let month = $('#monthSelect').val();
@@ -35,6 +32,7 @@
             $.ajax({
                 url: '/excel/subaeDownload',   // 요청 보낼 URL
                 type: 'POST',              // 메서드 (GET/POST 등)
+                async: true,
                 data : {
                     month : month,
                     ucheck: "N"
@@ -108,7 +106,17 @@
                 }
             });
         });
-    });
+
+        $('#monthSelect').on('change', function () {
+            const selectedValue = $(this).val(); // 선택된 값 (예: '2025-03' 또는 'all')
+
+            // 원하는 동작 수행
+            console.log("선택된 월:", selectedValue);
+            searchPID();
+        });
+
+
+    }); // END JQUERY
 
     function isStringAndNotEmptyOrWhitespace(value) {
         // 1. 문자열인지 확인
@@ -155,7 +163,7 @@
             },
             success : function(data)
             {
-                console.log("data - ", data);
+                //console.log("data - ", data);
 
                 let str = "";
 
@@ -204,6 +212,9 @@
                                     <span class='mod-item ${eView}'>2: ${twoCount}</span>
                                     <span class='mod-item ${fView}'>3: ${threeCount}</span>
                                 </div>
+                            </td>
+                            <td>
+                                <button class="filter-btn" data-filter="normal">View</button>
                             </td>
                         `;
 
@@ -291,7 +302,7 @@
                 }*/
                 categories: [
                     //'2.10', '11', '12', '13', '14'
-                    '2025.01', '02', '03', '04', '05', '06', '07'
+                    '2025-01', '2025-02', '03', '04', '05', '06', '07'
                 ]
             },
 
@@ -312,7 +323,19 @@
                             click: function(event) {
                                 // 클릭 시 실행될 함수
                                 ///showPopup(this); // this는 클릭된 point 객체를 가리킵니다.
-                                alert('good');
+                                //alert('good');
+                                console.log(this.category); //x값
+                                console.log(this.x);
+                                console.log(this.y);
+
+                                let xVal = this.category;
+                                if (!xVal.includes('-')) {
+                                    xVal = '2025-' + xVal;
+                                }
+
+
+                                //$('#monthSelect').val('2025-06').trigger('change');
+                                $('#monthSelect').val(xVal).trigger('change');
                             }
                         }
                     }

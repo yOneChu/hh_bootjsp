@@ -15,7 +15,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <link rel="icon" type="image/png" href="/resources/favicon.ico" />
 
-    <title>BOM 수배율 현황</title>
+    <title>PLM 자재 현황 및 Excel 다운로드(개발중)</title>
 
 
     <!-- Font Awesome -->
@@ -414,9 +414,10 @@
             <div class="col-md-12">
                 <div class="callout callout-danger">
                     <%--<i class="fas fa-bullhorn"></i> 🔊 도움말 <br>--%>
-                         🔊 도움말 <br>
-                    - 자재번호 201153* 검색 시, 자재번호에 '201153'로 시작하는 모든 자재 조회 <br>
-                    - *100325G02* 입력 시, 자재번호에 '100325G02' 포함된 모든 자재 조회
+                        📢 도움말 <br>
+                    - 자재번호 201153* 입력 시, 자재번호에 '201153'로 시작하는 모든 자재 조회하여 Excel 출력<br>
+                    - *100325G02* 입력 시, 자재번호에 '100325G02' 포함된 모든 자재 출력
+                    - *G*HB* 입력 시, 'G,HB' 포함된 모든 자재 출력
                 </div>
             </div>
         </section>
@@ -442,8 +443,6 @@
                                 <option>전체</option>
                                 <option>전자부품</option>
                                 <option>기계부품</option>
-                                <option>원자재</option>
-                                <option>소모품</option>
                             </select>
                         </div>
                         <div class="col-md-1">
@@ -661,7 +660,7 @@
                     </div>
                 </div>
 
-                <div class="row g-4 mb-4">
+                <%--<div class="row g-4 mb-4">
                     <div class="col-md-6">
                         <div class="card card-hyundai">
                             <div class="card-header-hyundai">
@@ -739,7 +738,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>--%>
 
 
             </div>
@@ -810,6 +809,27 @@
 
             let partNo = $('#partNo').val();
             //console.log(month);
+            let partName = $('#partName').val();
+
+            if (partNo.length >= 4) {
+                console.log("유효한 부품번호입니다.");
+                // 여기에 유효한 경우 실행할 코드 작성
+            } else {
+                alert("입력조건은 최소 4자리 이상 입력해야 합니다.");
+                // 필요 시 입력창 초기화 등 처리
+                $('#partNo').focus();
+            }
+
+            if (partName.length >= 4) {
+                console.log("유효한 부품번호입니다.");
+                // 여기에 유효한 경우 실행할 코드 작성
+            } else {
+                alert("입력조건은 최소 4자리 이상 입력해야 합니다.");
+                // 필요 시 입력창 초기화 등 처리
+                $('#partNo').focus();
+            }
+
+
             showLoading(); // 로딩바 표시
             $.ajax({
                 url: '/excel/searchPart',   // 요청 보낼 URL
