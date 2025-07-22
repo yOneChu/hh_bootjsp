@@ -1,3 +1,6 @@
+<%@ page import="com.kyhslam.util.PartDashboardUtil" %>
+<%@ page import="com.kyhslam.util.UtilCommonAPI" %>
+<%@ page import="org.springframework.util.StopWatch" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
@@ -7,6 +10,38 @@
     //partDashboardv2.jsp
     //BOM 수배율 현황
 
+    StopWatch sw = new StopWatch();
+    sw.start();
+
+
+
+
+    String allCnt = PartDashboardUtil.findPLMPartSum("");
+    String activeCnt = PartDashboardUtil.findPLMPartSum("ACTIVE");
+    String inactiveCnt = PartDashboardUtil.findPLMPartSum("INACTIVE");
+    String olsCnt = PartDashboardUtil.findPLMPartSum("OSL");
+
+    allCnt = UtilCommonAPI.formatNumberWithCommas(allCnt);
+    activeCnt = UtilCommonAPI.formatNumberWithCommas(activeCnt);
+    inactiveCnt = UtilCommonAPI.formatNumberWithCommas(inactiveCnt);
+    olsCnt = UtilCommonAPI.formatNumberWithCommas(olsCnt);
+
+
+    System.out.println("allCnt = " + allCnt);
+    System.out.println("activeCnt = " + activeCnt);
+    System.out.println("inactiveCnt = " + inactiveCnt);
+    System.out.println("olsCnt = " + olsCnt);
+
+    sw.stop();
+
+    long millis = sw.getTotalTimeMillis();
+
+    double seconds = millis / 1000.0;
+    double minutes = seconds / 60.0;
+
+    System.out.println("⏱ 수행 시간:");
+    System.out.printf("   - %.3f 초%n", seconds);
+    System.out.printf("   - %.3f 분%n", minutes);
 
 %>
 <!DOCTYPE html>
@@ -416,7 +451,7 @@
                     <%--<i class="fas fa-bullhorn"></i> 🔊 도움말 <br>--%>
                         📢 도움말 <br>
                     - 자재번호 201153* 입력 시, 자재번호에 '201153'로 시작하는 모든 자재 조회하여 Excel 출력<br>
-                    - *100325G02* 입력 시, 자재번호에 '100325G02' 포함된 모든 자재 출력
+                    - *100325G02* 입력 시, 자재번호에 '100325G02' 포함된 모든 자재 출력 <br>
                     - *G*HB* 입력 시, 'G,HB' 포함된 모든 자재 출력
                 </div>
             </div>
@@ -478,10 +513,11 @@
                                 <div class="d-flex align-items-center">
                                     <div class="flex-grow-1">
                                         <p class="stat-label mb-1">총 자재 수</p>
-                                        <h3 class="stat-number-hyundai">2,847</h3>
-                                        <span class="trend-indicator trend-up">
+                                        <h3 class="stat-number-hyundai"><%=allCnt%></h3>
+                                        <%--<span class="trend-indicator trend-up">
                                         <i class="bi bi-arrow-up-short"></i>12.5%
-                                    </span>
+                                        </span>--%>
+
                                     </div>
                                     <div class="metric-circle blue">
                                         <i class="bi bi-box-seam"></i>
@@ -496,10 +532,11 @@
                                 <div class="d-flex align-items-center">
                                     <div class="flex-grow-1">
                                         <p class="stat-label mb-1">활성 자재</p>
-                                        <h3 class="stat-number-hyundai">1,924</h3>
-                                        <span class="trend-indicator trend-up">
-                                        <i class="bi bi-arrow-up-short"></i>8.3%
-                                    </span>
+                                        <%--<h3 class="stat-number-hyundai">1,924</h3>--%>
+                                        <h3 class="stat-number-hyundai"><%=activeCnt%></h3>
+                                        <%--<span class="trend-indicator trend-up"><i class="bi bi-arrow-up-short"></i>8.3%
+                                        </span>--%>
+
                                     </div>
                                     <div class="metric-circle light-blue">
                                         <i class="bi bi-activity"></i>
@@ -514,10 +551,12 @@
                                 <div class="d-flex align-items-center">
                                     <div class="flex-grow-1">
                                         <p class="stat-label mb-1">비활성</p>
-                                        <h3 class="stat-number-hyundai">47</h3>
-                                        <span class="trend-indicator trend-down">
+                                        <%--<h3 class="stat-number-hyundai">47</h3>--%>
+                                        <h3 class="stat-number-hyundai"><%=inactiveCnt%></h3>
+                                        <%--<span class="trend-indicator trend-down">
                                         <i class="bi bi-arrow-down-short"></i>15.3%
-                                    </span>
+                                        </span>--%>
+
                                     </div>
                                     <div class="metric-circle warning">
                                         <i class="bi bi-exclamation-triangle"></i>
@@ -533,11 +572,12 @@
                             <div class="card-body p-4">
                                 <div class="d-flex align-items-center">
                                     <div class="flex-grow-1">
-                                        <p class="stat-label mb-1">평균 활용률</p>
-                                        <h3 class="stat-number-hyundai">73.2%</h3>
-                                        <span class="trend-indicator trend-stable">
+                                        <p class="stat-label mb-1">폐기</p>
+                                        <%--<h3 class="stat-number-hyundai">73.2%</h3>--%>
+                                        <h3 class="stat-number-hyundai"><%=olsCnt%></h3>
+                                        <%--<span class="trend-indicator trend-stable">
                                         <i class="bi bi-dash"></i>0.8%
-                                    </span>
+                                    </span>--%>
                                     </div>
                                     <div class="metric-circle success">
                                         <i class="bi bi-graph-up"></i>
