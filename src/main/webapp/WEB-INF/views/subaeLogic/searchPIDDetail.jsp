@@ -115,7 +115,7 @@
                             <div class="col-md-12">
                                 <div class="callout callout-danger">
                                     <h4><i class="fas fa-bullhorn"></i> 도움말</h4>
-                                    <h5 style="color: blue;">- 10,000건 이상의 경우 관리자에게 요청하시기 바랍니다 </h5>
+                                    <h5 style="color: blue;">- 10,000건 이상의 경우 "EXCEL Download"로 받으시기 바랍니다. </h5>
                                     <h5>- 현재 Excel 다운로드 시 숫자인식 관련 문제가 있어 Copy로 복사 후, EXCEL에 붙여넣기 하시기 바랍니다. </h5>
                                     <h5>- 조건1에 REMARKS로 검색 시, 조건2의 PID는 검색할 수 없습니다. </h5>
                                     <h5>- PID02 조건이 공백이라면 해당 조건은 포함되지 않고 조회된다. </h5>
@@ -238,6 +238,7 @@
 
 
                     <div class="card-footer">
+                        <button class="btn btn-secondary float-right" style="margin-right: 5px;" onclick="searchExcel()">EXCEL Download</button>
                         <button class="btn btn-primary float-right" style="margin-right: 5px;" onclick="searchPID()">검색</button>
                     </div>
 
@@ -432,9 +433,83 @@
             }
         });
 
-    });
+
+    }); // END JQUERY
 
 
+    function searchExcel() {
+        let con01 = $("#con-01").val(); // SPEC
+        let con02 = $("#con-02").val(); // LIKE
+        let pidVal = $("#pidVal").val();
+
+
+        let SPEC03 = $("#con-03").val(); // SPEC
+        let CON04 = $("#con-04").val(); // LIKE
+        let pidVal02 = $("#pidVal02").val(); // SPEC
+
+        //PID-GROUP
+        let CON05 = $("#con-05").val();
+        let pidVal03 = $("#pidVal03").val();
+        let pidVal04 = $("#pidVal04").val();
+        let pidVal05 = $("#pidVal05").val();
+
+
+        if(pidVal == null || "" == pidVal) {
+            console.log(pidVal);
+            alert("PID값을 입력하세요.");
+            return;
+        }
+
+
+        if(con01 == 'REMARKS' && pidVal02 != '') {
+            alert("조건1을 REMARKS로 검색 시, 조건2의 PID는 검색할 수 없습니다.");
+            return;
+        }
+
+        showLoading(); // 로딩바 표시
+        $.ajax({
+            url: '/excel/searchPIDExcel',   // 요청 보낼 URL
+            type: 'POST',              // 메서드 (GET/POST 등)
+            data : {
+                pid : pidVal,
+                FIELD : con01,
+                GUBUN : con02,
+                SPEC02 : SPEC03,
+                GUBUN02 : CON04,
+                PID02 : pidVal02,
+                CON05 : CON05,
+                PID03 : pidVal03,
+                PID04 : pidVal04,
+                PID05 : pidVal05
+            },
+            xhrFields: {
+                responseType: 'blob'    // 파일 다운로드용 응답 처리
+            },
+            success: function (data, status, xhr) {
+
+                console.log(data);
+
+                // 응답 헤더에서 파일명 추출
+                const disposition = xhr.getResponseHeader('Content-Disposition');
+                let filename = 'excel.xlsx';
+                if (disposition && disposition.indexOf('filename=') !== -1) {
+                    filename = disposition.split('filename=')[1].replace(/"/g, '');
+                }
+
+                // Blob으로 파일 생성 및 다운로드
+                const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = filename;
+                link.click();
+
+                hideLoading(); // 성공 시 로딩바 제거
+            },
+            error: function () {
+                alert('엑셀 다운로드 중 오류가 발생했습니다.');
+            }
+        });
+    }
 
 
 
@@ -628,6 +703,60 @@
         return false; // 문자열이 아님
     }
 
+    // 로딩바 표시 함수
+    function showLoading() {
+        // 로딩바 HTML 생성
+        const loadingHtml = `
+        <div id="loadingOverlay" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        ">
+            <div style="
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            ">
+                <div style="
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #3498db;
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 15px;
+                "></div>
+                <p style="margin: 0; font-size: 16px; color: #333;">엑셀 파일을 다운로드 중입니다...</p>
+            </div>
+        </div>
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    `;
+
+        // 로딩바를 body에 추가
+        document.body.insertAdjacentHTML('beforeend', loadingHtml);
+    }
+
+    // 로딩바 제거 함수
+    function hideLoading() {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        if (loadingOverlay) {
+            loadingOverlay.remove();
+        }
+    }
 </script>
 
 </html>

@@ -14,8 +14,6 @@
     sw.start();
 
 
-
-
     String allCnt = PartDashboardUtil.findPLMPartSum("");
     String activeCnt = PartDashboardUtil.findPLMPartSum("ACTIVE");
     String inactiveCnt = PartDashboardUtil.findPLMPartSum("INACTIVE");
@@ -449,10 +447,11 @@
             <div class="col-md-12">
                 <div class="callout callout-danger">
                     <%--<i class="fas fa-bullhorn"></i> 🔊 도움말 <br>--%>
-                        📢 도움말 <br>
+                    📢 도움말 <br>
                     - 자재번호 201153* 입력 시, 자재번호에 '201153'로 시작하는 모든 자재 조회하여 Excel 출력<br>
                     - *100325G02* 입력 시, 자재번호에 '100325G02' 포함된 모든 자재 출력 <br>
-                    - *G*HB* 입력 시, 'G,HB' 포함된 모든 자재 출력
+                    - *G*HB* 입력 시, 'G,HB' 포함된 모든 자재 출력 <br>
+                    - 집계는 중국법인 자재 제외 및 최신 릴리즈 기준.
                 </div>
             </div>
         </section>
@@ -476,14 +475,14 @@
                             <label class="form-label small text-muted">카테고리</label>
                             <select class="form-select form-control-hyundai">
                                 <option>전체</option>
-                                <option>전자부품</option>
-                                <option>기계부품</option>
+                                <option value="C">전자부품</option>
+                                <option value="M" selected>기계부품</option>
                             </select>
                         </div>
                         <div class="col-md-1">
                             <label class="form-label small text-muted">기간</label>
-                            <select class="form-select form-control-hyundai">
-                                <option value="2025">2025년</option>
+                            <select id="year" class="form-select form-control-hyundai">
+                                <option value="2025" selected>2025년</option>
                                 <option value="2024">2024년</option>
                                 <option value="2023">2023년</option>
                                 <option value="2024">2022년</option>
@@ -491,10 +490,11 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label small text-muted">상태</label>
-                            <select class="form-select form-control-hyundai">
+                            <select id="status" class="form-select form-control-hyundai">
                                 <option>전체 자재</option>
-                                <option value="ACTIVE">활성 자재</option>
+                                <option value="ACTIVE" selected>활성 자재</option>
                                 <option value="INACTIVE">비활성 자재</option>
+                                <option value="OSL">폐기 자재</option>
                             </select>
                         </div>
                         <div class="col-md-2 text-end">
@@ -842,16 +842,15 @@
         $("#vault").removeClass("menu-open");
 
 
-
-
         //자재전체 엑셀 다운로드
         $('#partExcel').on('click', function () {
 
             let partNo = $('#partNo').val();
-            //console.log(month);
             let partName = $('#partName').val();
+            let year = $('#year').val();
+            let status = $('#status').val();
 
-            if (partNo.length >= 4) {
+            /*if (partNo.length >= 4) {
                 console.log("유효한 부품번호입니다.");
                 // 여기에 유효한 경우 실행할 코드 작성
             } else {
@@ -867,7 +866,7 @@
                 alert("입력조건은 최소 4자리 이상 입력해야 합니다.");
                 // 필요 시 입력창 초기화 등 처리
                 $('#partNo').focus();
-            }
+            }*/
 
 
             showLoading(); // 로딩바 표시
@@ -875,7 +874,10 @@
                 url: '/excel/searchPart',   // 요청 보낼 URL
                 type: 'POST',              // 메서드 (GET/POST 등)
                 data : {
-                    partNo : partNo
+                    partNo : partNo,
+                    partName : partName,
+                    year : year,
+                    status : status
                     //ucheck: ucheck
                 },
                 xhrFields: {

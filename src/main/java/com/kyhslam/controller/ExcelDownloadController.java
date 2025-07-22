@@ -4,6 +4,7 @@ package com.kyhslam.controller;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.SubaeService;
+import com.kyhslam.util.PIDCommonUtil;
 import com.kyhslam.util.PartDashboardUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 
 @RestController
 @RequiredArgsConstructor
@@ -230,13 +234,20 @@ public class ExcelDownloadController {
     // 자재 대시보드
     // 자재조회
     @PostMapping("/searchPart")
-    public void searchPart(HttpServletResponse response, String partNo) throws IOException {
+    public void searchPart(HttpServletResponse response, String partNo, String partName, String year, String status) throws IOException {
 
         System.out.println("--------- searchPart -----------");
 
+        // 현재 시간을 기반으로 파일명 생성
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+        String timestamp = sdf.format(new Date());
+        String fileName = "부품리스트_" + timestamp + ".xlsx";
+
+
         // HTTP 응답 헤더 설정
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setHeader("Content-Disposition", "attachment; filename=\"PART_DATA.xlsx\"");
+        //response.setHeader("Content-Disposition", "attachment; filename=\"PART_DATA.xlsx\"");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
 
         //System.out.println("subaeDownloadV2 -- " + month);
         //System.out.println("subaeDownloadV2 -- " + ucheck);
@@ -306,7 +317,7 @@ public class ExcelDownloadController {
         //List<MyDataDto> dataList = myDataService.getLargeData();
         ArrayList<PartInfoDTO> dataList = new ArrayList<>();
 
-        dataList = PartDashboardUtil.findPLMPartV1("2025", partNo, "ACTIVE");
+        dataList = PartDashboardUtil.findPLMPartV1(year, partNo, partName, status);
         System.out.println("dataList = " + dataList.size());
 
 
@@ -340,7 +351,216 @@ public class ExcelDownloadController {
         // 메모리 정리
         workbook.dispose(); // 임시파일 삭제
         workbook.close();
+    }
+
+
+    @PostMapping("/searchPIDExcel")
+    public void searchPIDExcel(HttpServletResponse response,
+                               String pid, String FIELD, String GUBUN, String connectGubun
+            , String PID02, String SPEC02, String GUBUN02, String CON05, String PID03, String PID04, String PID05) throws IOException {
+
+        System.out.println("--------- searchPart -----------");
+
+        // 현재 시간을 기반으로 파일명 생성
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+        String timestamp = sdf.format(new Date());
+        String fileName = pid + "_" + timestamp + ".xlsx";
+
+
+        // HTTP 응답 헤더 설정
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        //response.setHeader("Content-Disposition", "attachment; filename=\"PART_DATA.xlsx\"");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+
+        //System.out.println("subaeDownloadV2 -- " + month);
+        //System.out.println("subaeDownloadV2 -- " + ucheck);
+
+        // SXSSF 워크북 생성 (스트리밍)
+        SXSSFWorkbook workbook = new SXSSFWorkbook(100);
+        Sheet sheet = workbook.createSheet("Sheet1");
+
+        //--스타일
+        CellStyle headerStyle = workbook.createCellStyle();
+
+        // 배경색 (연한 회색)
+        headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        // 테두리 설정
+        headerStyle.setBorderTop(BorderStyle.THIN);
+        headerStyle.setBorderBottom(BorderStyle.THIN);
+        headerStyle.setBorderLeft(BorderStyle.THIN);
+        headerStyle.setBorderRight(BorderStyle.THIN);
+
+        // 정렬 설정 (가운데 정렬)
+        headerStyle.setAlignment(HorizontalAlignment.CENTER);
+        headerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+
+        // 폰트 설정 (굵은 글씨 + 크기 조절)
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerFont.setFontHeightInPoints((short) 11);
+        headerFont.setFontName("맑은 고딕");
+        headerStyle.setFont(headerFont);
+
+        // 행 생성 및 스타일 적용
+        //Row header = sheet.createRow(0);
+
+
+
+        // 헤더 작성
+        Row header = sheet.createRow(0);
+        String[] titles = { "PID", "NO", "REMARKS", "ADDR",
+                "SPEC1", "CON1", "SPEC2", "CON2", "SPEC3", "CON3", "SPEC4", "CON4", "SPEC5", "CON5", "SPEC6", "CON6", "SPEC7", "CON7", "SPEC8", "CON8", "SPEC9", "CON9", "SPEC10", "CON10",
+                "SPEC11", "CON11", "SPEC12", "CON12", "SPEC13", "CON13", "SPEC14", "CON14", "SPEC15", "CON15", "SPEC16", "CON16", "SPEC17", "CON17", "SPEC18", "CON18", "SPEC19", "CON19", "SPEC20", "CON20",
+                "KEY1", "VAL1", "KEY2", "VAL2", "KEY3", "VAL3", "KEY4", "VAL4", "KEY5", "VAL5", "KEY6", "VAL6", "KEY7", "VAL7", "KEY8", "VAL8", "KEY9", "VAL9", "KEY10", "VAL10",
+                "KEY11", "VAL11", "KEY12", "VAL12", "KEY13", "VAL13", "KEY14", "VAL14", "KEY15", "VAL15", "KEY16", "VAL16", "KEY17", "VAL17", "KEY18", "VAL18", "KEY19", "VAL19", "KEY20", "VAL20"
+        };
+        for (int i = 0; i < titles.length; i++) {
+            Cell cell = header.createCell(i);
+            cell.setCellValue(titles[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        //CellRangeAddress(시작행, 끝행, 시작열, 끝열)
+        sheet.setAutoFilter(new CellRangeAddress(0, 0, 0, titles.length - 1));
+
+
+        // 본문 기본 텍스트 스타일
+        CellStyle bodyStyle = workbook.createCellStyle();
+        bodyStyle.setBorderTop(BorderStyle.THIN);
+        bodyStyle.setBorderBottom(BorderStyle.THIN);
+        bodyStyle.setBorderLeft(BorderStyle.THIN);
+        bodyStyle.setBorderRight(BorderStyle.THIN);
+        bodyStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        bodyStyle.setAlignment(HorizontalAlignment.LEFT);
+
+        Font bodyFont = workbook.createFont();
+        bodyFont.setFontHeightInPoints((short) 10);
+        bodyFont.setFontName("맑은 고딕");
+        bodyStyle.setFont(bodyFont);
+
+
+        // 데이터 가져오기
+        ArrayList<HashMap<String, String>> dataList = new ArrayList<>();
+        dataList = PIDCommonUtil.findPIDDetail(pid, FIELD, GUBUN, connectGubun, PID02, SPEC02, GUBUN02, CON05, PID03, PID04, PID05);
+
+
+
+
+        for (int i = 0; i < dataList.size(); i++) {
+            HashMap<String,String> dto = dataList.get(i);
+            Row row = sheet.createRow(i + 1);
+            String PID = dto.get("PID");
+            String NO = dto.get("NO");
+            String REMARKS = dto.get("REMARKS");
+            String ADDR = dto.get("ADDR");
+
+            String SPEC1 =  dto.get("SPEC1");     String CON1 =  dto.get("CON1");
+            String SPEC2 =  dto.get("SPEC2");     String CON2 =  dto.get("CON2");
+            String SPEC3 =  dto.get("SPEC3");     String CON3 =  dto.get("CON3");
+            String SPEC4 =  dto.get("SPEC4");     String CON4 =  dto.get("CON4");
+            String SPEC5 =  dto.get("SPEC5");     String CON5 =  dto.get("CON5");
+            String SPEC6 =  dto.get("SPEC6");     String CON6 =  dto.get("CON6");
+            String SPEC7 =  dto.get("SPEC7");     String CON7 =  dto.get("CON7");
+            String SPEC8 =  dto.get("SPEC8");     String CON8 =  dto.get("CON8");
+            String SPEC9 =  dto.get("SPEC9");     String CON9 =  dto.get("CON9");
+            String SPEC10 = dto.get("SPEC10");    String CON10 = dto.get("CON10");
+            String SPEC11 = dto.get("SPEC11");    String CON11 = dto.get("CON11");
+            String SPEC12 = dto.get("SPEC12");    String CON12 = dto.get("CON12");
+            String SPEC13 = dto.get("SPEC13");    String CON13 = dto.get("CON13");
+            String SPEC14 = dto.get("SPEC14");    String CON14 = dto.get("CON14");
+            String SPEC15 = dto.get("SPEC15");    String CON15 = dto.get("CON15");
+            String SPEC16 = dto.get("SPEC16");    String CON16 = dto.get("CON16");
+            String SPEC17 = dto.get("SPEC17");    String CON17 = dto.get("CON17");
+            String SPEC18 = dto.get("SPEC18");    String CON18 = dto.get("CON18");
+            String SPEC19 = dto.get("SPEC19");    String CON19 = dto.get("CON19");
+            String SPEC20 = dto.get("SPEC20");    String CON20 = dto.get("CON20");
+
+            String KEY1 =  dto.get("KEY1");     String VAL1 =  dto.get("VAL1");
+            String KEY2 =  dto.get("KEY2");     String VAL2 =  dto.get("VAL2");
+            String KEY3 =  dto.get("KEY3");     String VAL3 =  dto.get("VAL3");
+            String KEY4 =  dto.get("KEY4");     String VAL4 =  dto.get("VAL4");
+            String KEY5 =  dto.get("KEY5");     String VAL5 =  dto.get("VAL5");
+            String KEY6 =  dto.get("KEY6");     String VAL6 =  dto.get("VAL6");
+            String KEY7 =  dto.get("KEY7");     String VAL7 =  dto.get("VAL7");
+            String KEY8 =  dto.get("KEY8");     String VAL8 =  dto.get("VAL8");
+            String KEY9 =  dto.get("KEY9");     String VAL9 =  dto.get("VAL9");
+            String KEY10 = dto.get("KEY10");    String VAL10 = dto.get("VAL10");
+            String KEY11 = dto.get("KEY11");    String VAL11 = dto.get("VAL11");
+            String KEY12 = dto.get("KEY12");    String VAL12 = dto.get("VAL12");
+            String KEY13 = dto.get("KEY13");    String VAL13 = dto.get("VAL13");
+            String KEY14 = dto.get("KEY14");    String VAL14 = dto.get("VAL14");
+            String KEY15 = dto.get("KEY15");    String VAL15 = dto.get("VAL15");
+            String KEY16 = dto.get("KEY16");    String VAL16 = dto.get("VAL16");
+            String KEY17 = dto.get("KEY17");    String VAL17 = dto.get("VAL17");
+            String KEY18 = dto.get("KEY18");    String VAL18 = dto.get("VAL18");
+            String KEY19 = dto.get("KEY19");    String VAL19 = dto.get("VAL19");
+            String KEY20 = dto.get("KEY20");    String VAL20 = dto.get("VAL20");
+
+
+            row.createCell(0).setCellValue(PID);
+            row.createCell(1).setCellValue(NO);
+            row.createCell(2).setCellValue(REMARKS);
+            row.createCell(3).setCellValue(ADDR);
+
+            row.createCell(4).setCellValue(SPEC1); row.createCell(5).setCellValue(CON1);
+            row.createCell(6).setCellValue(SPEC2); row.createCell(7).setCellValue(CON2);
+            row.createCell(8).setCellValue(SPEC3); row.createCell(9).setCellValue(CON3);
+            row.createCell(10).setCellValue(SPEC4); row.createCell(11).setCellValue(CON4);
+            row.createCell(12).setCellValue(SPEC5); row.createCell(13).setCellValue(CON5);
+            row.createCell(14).setCellValue(SPEC6); row.createCell(15).setCellValue(CON6);
+            row.createCell(16).setCellValue(SPEC7); row.createCell(17).setCellValue(CON7);
+            row.createCell(18).setCellValue(SPEC8); row.createCell(19).setCellValue(CON8);
+            row.createCell(20).setCellValue(SPEC9); row.createCell(21).setCellValue(CON9);
+            row.createCell(22).setCellValue(SPEC10); row.createCell(23).setCellValue(CON10);
+            row.createCell(24).setCellValue(SPEC11); row.createCell(25).setCellValue(CON11);
+            row.createCell(26).setCellValue(SPEC12); row.createCell(27).setCellValue(CON12);
+            row.createCell(28).setCellValue(SPEC13); row.createCell(29).setCellValue(CON13);
+            row.createCell(30).setCellValue(SPEC14); row.createCell(31).setCellValue(CON14);
+            row.createCell(32).setCellValue(SPEC15); row.createCell(33).setCellValue(CON15);
+            row.createCell(34).setCellValue(SPEC16); row.createCell(35).setCellValue(CON16);
+            row.createCell(36).setCellValue(SPEC17); row.createCell(37).setCellValue(CON17);
+            row.createCell(38).setCellValue(SPEC18); row.createCell(39).setCellValue(CON18);
+            row.createCell(40).setCellValue(SPEC19); row.createCell(41).setCellValue(CON19);
+            row.createCell(42).setCellValue(SPEC20); row.createCell(43).setCellValue(CON20);
+
+
+            row.createCell(44).setCellValue(KEY1); row.createCell(45).setCellValue(VAL1);
+            row.createCell(46).setCellValue(KEY2); row.createCell(47).setCellValue(VAL2);
+            row.createCell(48).setCellValue(KEY3); row.createCell(49).setCellValue(VAL3);
+            row.createCell(50).setCellValue(KEY4); row.createCell(51).setCellValue(VAL4);
+            row.createCell(52).setCellValue(KEY5); row.createCell(53).setCellValue(VAL5);
+            row.createCell(54).setCellValue(KEY6); row.createCell(55).setCellValue(VAL6);
+            row.createCell(56).setCellValue(KEY7); row.createCell(57).setCellValue(VAL7);
+            row.createCell(58).setCellValue(KEY8); row.createCell(59).setCellValue(VAL8);
+            row.createCell(60).setCellValue(KEY9); row.createCell(61).setCellValue(VAL9);
+            row.createCell(62).setCellValue(KEY10); row.createCell(63).setCellValue(VAL10);
+            row.createCell(64).setCellValue(KEY11); row.createCell(65).setCellValue(VAL11);
+            row.createCell(66).setCellValue(KEY12); row.createCell(67).setCellValue(VAL12);
+            row.createCell(68).setCellValue(KEY13); row.createCell(69).setCellValue(VAL13);
+            row.createCell(70).setCellValue(KEY14); row.createCell(71).setCellValue(VAL14);
+            row.createCell(72).setCellValue(KEY15); row.createCell(73).setCellValue(VAL15);
+            row.createCell(74).setCellValue(KEY16); row.createCell(75).setCellValue(VAL16);
+            row.createCell(76).setCellValue(KEY17); row.createCell(77).setCellValue(VAL17);
+            row.createCell(78).setCellValue(KEY18); row.createCell(79).setCellValue(VAL18);
+            row.createCell(80).setCellValue(KEY19); row.createCell(81).setCellValue(VAL19);
+            row.createCell(82).setCellValue(KEY20); row.createCell(83).setCellValue(VAL20);
+
+            for (int m = 0; m < 80; m++) {
+                row.getCell(m).setCellStyle(bodyStyle);
+            }
+
+        }
+
+        // 엑셀 파일 작성 및 스트림으로 출력
+        workbook.write(response.getOutputStream());
+
+        // 메모리 정리
+        workbook.dispose(); // 임시파일 삭제
+        workbook.close();
 
     }
+
 
 }
