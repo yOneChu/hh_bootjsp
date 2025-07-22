@@ -451,7 +451,7 @@
                     - 자재번호 201153* 입력 시, 자재번호에 '201153'로 시작하는 모든 자재 조회하여 Excel 출력<br>
                     - *100325G02* 입력 시, 자재번호에 '100325G02' 포함된 모든 자재 출력 <br>
                     - *G*HB* 입력 시, 'G,HB' 포함된 모든 자재 출력 <br>
-                    - 집계는 중국법인 자재 제외 및 최신 릴리즈 기준.
+                    - 집계 기준:  중국법인 자재 제외, 최신 릴리즈, 엘리베이터 자재(BlockNo 1,2,3)
                 </div>
             </div>
         </section>
@@ -604,7 +604,7 @@
                     <div class="col-lg-4">
                         <div class="card card-hyundai">
                             <div class="card-header-hyundai">
-                                <h5><i class="bi bi-trophy me-2"></i>TOP 10 사용 자재</h5>
+                                <h5><i class="bi bi-trophy me-2"></i>TOP 10 Block 자재(2024~2025) </h5>
                             </div>
                             <div class="card-body">
                                 <div class="material-item-hyundai">

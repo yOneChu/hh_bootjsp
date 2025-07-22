@@ -77,7 +77,14 @@ public class PartDashboardUtil {
     }
 
 
-
+    /**
+     * @apiNote 자재 현황 - 자재조회(excel)
+     * @param year
+     * @param partNo
+     * @param partName
+     * @param active
+     * @return
+     */
     public static ArrayList<PartInfoDTO> findPLMPartV1(String year, String partNo, String partName, String active) {
         Connection con 			= null;
         PreparedStatement pstmt = null;
