@@ -24,7 +24,7 @@ public class findPartTest {
     @Test
     void findPart() {
         ArrayList<PartInfoDTO> result = new ArrayList<>();
-        result = PartDashboardUtil.findPLMPartV1("2025", "10111175G01*", "ACTIVE");
+        result = PartDashboardUtil.findPLMPartV1("2025", "10111175G01*", "","ACTIVE");
         System.out.println(result.size());
     }
 

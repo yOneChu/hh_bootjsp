@@ -78,7 +78,7 @@ public class PartDashboardUtil {
 
 
 
-    public static ArrayList<PartInfoDTO> findPLMPartV1(String year, String partNo, String active) {
+    public static ArrayList<PartInfoDTO> findPLMPartV1(String year, String partNo, String partName, String active) {
         Connection con 			= null;
         PreparedStatement pstmt = null;
         ResultSet rs 			= null;
@@ -141,6 +141,16 @@ public class PartDashboardUtil {
                     sql += " AND A.MD$NUMBER LIKE '" + partNo + "' ";
                 } else {
                     sql += " AND A.MD$NUMBER = '" + partNo + "' ";
+                }
+            }
+
+            if(partName != null && !"".equals(partName)){
+
+                if (partName.contains("*")) {
+                    partName = partName.replace("*", "%");
+                    sql += " AND A.MD$DESC LIKE '" + partName + "' ";
+                } else {
+                    sql += " AND A.MD$DESC = '" + partName + "' ";
                 }
             }
 
