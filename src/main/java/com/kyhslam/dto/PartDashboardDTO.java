@@ -6,12 +6,15 @@ import lombok.Data;
 public class PartDashboardDTO {
 
     //엘리베이터자재만 집계
-    //블럭번호, 5,6 제외
+    //블럭번호, 1,2,3만 집계
 
     private String partALL; // 총 자재
     private String partActive;
     private String partInactive;
+    private String ols;
 
     private String batchDate;
 
+    public PartDashboardDTO() {
+    }
 }

@@ -9,45 +9,30 @@
         delete from PARTDASHBOARD where BLOCKNO != ''
     </delete>
 
-    <!--    <insert id="save" useGeneratedKeys="true" keyProperty="id">
-            insert into item(item_name, price, quantity)
-            values(#{itemName}, #{price}, #{quantity})
-        </insert>-->
-
     <insert id="savePartDashboard" >
-        INSERT INTO PARTDASHBOARD(PARTALL, PARTACTIVE, PARTINACTIVE, BATCHDATE)
-        VALUES( #{partDto.partALL}, #{partDto.partActive}, #{partDto.partInactive}, #{partDto.batchDate} )
+        INSERT INTO PARTDASHBOARD(PARTALL, PARTACTIVE, PARTINACTIVE, BATCHDATE, OLS)
+        VALUES( #{partDto.partALL}, #{partDto.partActive}, #{partDto.partInactive}, #{partDto.batchDate}, #{partDto.ols} )
     </insert>
 
-    <!--    <update id="update">
-            update item
-            set item_name=#{updateParam.itemName},
-                price=#{updateParam.price},
-                quantity=#{updateParam.quantity}
-            where id = #{id}
-        </update>-->
-
-    <select id="findByBlockNo" resultType="BlockHistoryDTO">
-        select A.blockNo, A.blockName, A.version, A.gc_product,
-               A.partType, A.uom, A.block_opt,
-               A.pick, A.pickName, A.qty, A.UOM, A.MODDATE,
-               A.cmt, A.color
-        from BLOCK_HISTORY A
-        where A.blockNo = #{blockNo}
+    <!--2025-07-09-->
+    <select id="findPartDashboard" resultType="PartDashboardDTO">
+        select A.partALL, A.partActive, A.partInactive, A.ols, A.batchDate
+        from PARTDASHBOARD A
+        where A.batchDate = #{batchDate}
     </select>
 
+    <select id="findTopBlockPart" resultType="hashmap">
+        SELECT
+            A.BLOCKNO_NUMBER AS BLOCKNO, COUNT(A.BLOCKNO_NUMBER) AS BLOCKNO_COUNT
+        FROM normalpart$vf A JOIN normalpart$id B
+                                  ON A.vf$ouid = B.id$last
+        WHERE A.NATION != '2803457356' --중국법인 제외
+            AND A.PART_STATUS = '2466425004' --활성
+            AND A.MD$STATUS = 'RLS' --릴리즈
+            AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
+            AND SUBSTR(A.MD$MDATE, 0,4) IN('2025', '2024')
+        GROUP BY A.BLOCKNO_NUMBER
+        ORDER BY BLOCKNO_COUNT DESC
+    </select>
 
-    <!--
-        <select id="findAll" resultType="Item">
-            select id, item_name, price, quantity
-            from item
-            <where>
-                <if test="itemName != null and itemName != ''">
-                    and item_name like concat('%', #{itemName}, '%')
-                </if>
-                <if test="maxPrice != null">
-                    and price &lt;= #{maxPrice}
-                </if>
-            </where>
-        </select>-->
 </mapper>

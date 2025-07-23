@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class PartDashboardUtil {
 
@@ -197,6 +198,65 @@ public class PartDashboardUtil {
                 dto.setOriginDiv(ORIGIN_DIV);
 
                 result.add(dto);
+
+            } //end while
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
+    }
+
+
+    /**
+     * 많이 생성된 TOP10 자재 조회
+     * @return
+     */
+    public static ArrayList<HashMap<String,String>> findTopBlockPart() {
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                   SELECT
+                    A.BLOCKNO_NUMBER AS BLOCKNO,
+                    (SELECT S.MD$DESC FROM BLOCKNO$SF S WHERE S.MD$NUMBER = A.BLOCKNO_NUMBER ) AS BLOCKNAME, 
+                    COUNT(A.BLOCKNO_NUMBER) AS BLOCKNO_COUNT
+                    FROM normalpart$vf A JOIN normalpart$id B
+                    ON A.vf$ouid = B.id$last
+                    WHERE A.NATION != '2803457356' --중국법인 제외
+                        AND A.PART_STATUS = '2466425004' --활성
+                        AND A.MD$STATUS = 'RLS' --릴리즈
+                        AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
+                        AND SUBSTR(A.MD$MDATE, 0,4) IN('2025', '2024')
+                    GROUP BY A.BLOCKNO_NUMBER
+                    ORDER BY BLOCKNO_COUNT DESC
+                """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            //pstmt.setString(1, productOID);
+
+            System.out.println("sql.toString() = " + sql.toString());
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String BLOCKNO = rs.getString("BLOCKNO"); //제품번호
+                String BLOCKNO_COUNT = rs.getString("BLOCKNO_COUNT");
+                String BLOCKNAME = rs.getString("BLOCKNAME");
+
+                HashMap<String,String> oMap = new HashMap<>();
+                oMap.put("BLOCKNO", BLOCKNO);
+                oMap.put("BLOCKNO_COUNT", BLOCKNO_COUNT);
+                oMap.put("BLOCKNAME", BLOCKNAME);
+
+                result.add(oMap);
 
             } //end while
 

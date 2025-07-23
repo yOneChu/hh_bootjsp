@@ -1,6 +1,14 @@
 <%@ page import="com.kyhslam.util.PartDashboardUtil" %>
 <%@ page import="com.kyhslam.util.UtilCommonAPI" %>
 <%@ page import="org.springframework.util.StopWatch" %>
+<%@ page import="org.springframework.web.context.WebApplicationContext" %>
+<%@ page import="org.springframework.web.context.support.WebApplicationContextUtils" %>
+<%@ page import="com.kyhslam.service.PartDashService" %>
+<%@ page import="com.kyhslam.dto.PartDashboardDTO" %>
+<%@ page import="java.time.LocalDate" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
+<%@ page import="java.util.HashMap" %>
+<%@ page import="java.util.ArrayList" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
@@ -14,21 +22,44 @@
     sw.start();
 
 
-    String allCnt = PartDashboardUtil.findPLMPartSum("");
-    String activeCnt = PartDashboardUtil.findPLMPartSum("ACTIVE");
-    String inactiveCnt = PartDashboardUtil.findPLMPartSum("INACTIVE");
-    String olsCnt = PartDashboardUtil.findPLMPartSum("OSL");
+    WebApplicationContext context = WebApplicationContextUtils.getRequiredWebApplicationContext(application);
+    PartDashService service = (PartDashService) context.getBean("PartDashService");
+
+    LocalDate now = LocalDate.now();
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    String todayValue = now.format(formatter);
+
+    PartDashboardDTO dto = new PartDashboardDTO();
+    dto.setBatchDate(todayValue);
+    dto = service.findPartDashboard(dto);
+
+    String allCnt = ""; //PartDashboardUtil.findPLMPartSum("");
+    String activeCnt = ""; //PartDashboardUtil.findPLMPartSum("ACTIVE");
+    String inactiveCnt = ""; //PartDashboardUtil.findPLMPartSum("INACTIVE");
+    String olsCnt = ""; //PartDashboardUtil.findPLMPartSum("OSL");
+
+
+
+    allCnt = dto.getPartALL();
+    activeCnt = dto.getPartActive();
+    inactiveCnt = dto.getPartInactive();
+    olsCnt = dto.getOls();
 
     allCnt = UtilCommonAPI.formatNumberWithCommas(allCnt);
     activeCnt = UtilCommonAPI.formatNumberWithCommas(activeCnt);
     inactiveCnt = UtilCommonAPI.formatNumberWithCommas(inactiveCnt);
     olsCnt = UtilCommonAPI.formatNumberWithCommas(olsCnt);
 
-
     System.out.println("allCnt = " + allCnt);
     System.out.println("activeCnt = " + activeCnt);
     System.out.println("inactiveCnt = " + inactiveCnt);
     System.out.println("olsCnt = " + olsCnt);
+
+
+    //TOP 10
+    ArrayList<HashMap<String, String>> topMap = PartDashboardUtil.findTopBlockPart(); //partDashService.findTopBlockPart();
+
+
 
     sw.stop();
 
@@ -604,10 +635,63 @@
                     <div class="col-lg-4">
                         <div class="card card-hyundai">
                             <div class="card-header-hyundai">
-                                <h5><i class="bi bi-trophy me-2"></i>TOP 10 Block 자재(2024~2025) </h5>
+                                <h5><i class="bi bi-trophy me-2"></i>TOP 10 Block 자재 (2024~2025) </h5>
                             </div>
                             <div class="card-body">
-                                <div class="material-item-hyundai">
+
+                                <%
+                                    //topMap
+                                    int oCnt = 0;
+                                    for (HashMap<String, String> o : topMap) {
+                                        oCnt++;
+
+                                        if(oCnt > 10) break;
+
+                                        String blockNo = o.get("BLOCKNO");
+                                        String blockName = o.get("BLOCKNAME");
+                                        String blockCount = o.get("BLOCKNO_COUNT");
+
+                                        // Calculate percentage for progress bar (assuming max count is 1500)
+                                        int count = Integer.parseInt(blockCount);
+                                        int percentage = Math.min((count * 100) / 1500, 100);
+
+                                        // Determine status based on count
+                                        String statusClass = "status-active";
+                                        String statusText = "정상";
+
+                                        if (count < 500) {
+                                            statusClass = "status-inactive";
+                                            statusText = "대기";
+                                        } else if (count < 700) {
+                                            statusClass = "status-warning";
+                                            statusText = "부족";
+                                        }
+
+                                %>
+
+
+                               <div class="material-item-hyundai">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span class="material-code-hyundai"><%= blockNo %></span>
+                                            <div class="small text-muted mt-1"><%= blockName %></div>
+                                            <span class="status-indicator <%= statusClass %>"></span>
+                                            <small class="<%= statusClass.equals("status-active") ? "text-success" : (statusClass.equals("status-warning") ? "text-warning" : "text-muted") %>"><%= statusText %></small>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="fw-bold text-primary"><%= blockCount %>회</div>
+                                            <div class="progress progress-hyundai mt-2" style="width: 100px;">
+                                                <div class="progress-bar progress-bar-hyundai" style="width: <%= percentage %>%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <%
+                                    }
+                                %>
+
+                                <!-- Example of static item (can be removed) -->
+                                <%--<div class="material-item-hyundai">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
                                             <span class="material-code-hyundai">MTL-001</span>
@@ -691,10 +775,11 @@
                                         </div>
                                     </div>
                                 </div>
+                                --%>
 
-                                <div class="text-center mt-3">
+                                <%--<div class="text-center mt-3">
                                     <button class="btn btn-outline-hyundai btn-sm">전체 목록 보기</button>
-                                </div>
+                                </div>--%>
                             </div>
                         </div>
                     </div>
