@@ -140,6 +140,12 @@ public class PartDashboardUtil {
                 //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
             }
 
+            //폐기
+            if (active != null && "OSL".equals(active)) {
+                sql += " AND A.PART_STATUS = '2501081338' ";
+                //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
+            }
+
 
             //sql += " AND A.MD$NUMBER LIKE '10111175G010%' ";
             if(partNo != null && !"".equals(partNo)){

@@ -234,14 +234,14 @@ public class ExcelDownloadController {
     // 자재 대시보드
     // 자재조회
     @PostMapping("/searchPart")
-    public void searchPart(HttpServletResponse response, String partNo, String partName, String year, String status) throws IOException {
+    public void searchPart(HttpServletResponse response, String partNo, String partName, String year, String status, String qtyLogic) throws IOException {
 
         System.out.println("--------- searchPart -----------");
 
         // 현재 시간을 기반으로 파일명 생성
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
         String timestamp = sdf.format(new Date());
-        String fileName = "부품리스트_" + timestamp + ".xlsx";
+        String fileName = "PartList_" + timestamp + ".xlsx";
 
 
         // HTTP 응답 헤더 설정
@@ -359,7 +359,7 @@ public class ExcelDownloadController {
                                String pid, String FIELD, String GUBUN, String connectGubun
             , String PID02, String SPEC02, String GUBUN02, String CON05, String PID03, String PID04, String PID05) throws IOException {
 
-        System.out.println("--------- searchPart -----------");
+
 
         // 현재 시간을 기반으로 파일명 생성
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");

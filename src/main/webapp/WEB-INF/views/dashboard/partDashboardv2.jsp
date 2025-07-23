@@ -9,6 +9,10 @@
 <%@ page import="java.time.format.DateTimeFormatter" %>
 <%@ page import="java.util.HashMap" %>
 <%@ page import="java.util.ArrayList" %>
+<%@ page import="com.kyhslam.util.DateUtil" %>
+<%@ page import="java.util.List" %>
+<%@ page import="java.util.Collections" %>
+<%@ page import="java.util.Comparator" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
@@ -60,7 +64,44 @@
     ArrayList<HashMap<String, String>> topMap = PartDashboardUtil.findTopBlockPart(); //partDashService.findTopBlockPart();
 
 
+    // 7일 이내 날짜
+    // 현재 날짜 가져오기
+    LocalDate today = LocalDate.now();
 
+    // 날짜 포맷 지정 (YYYY-MM-DD)
+    //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    System.out.println("오늘부터 7일 전까지의 날짜:");
+
+
+    ArrayList<String> dateKeyList = new ArrayList<>();
+    ArrayList<String> countList = new ArrayList<>();
+
+    // 금일 기준 7일 이전 날짜 출력 (주말제외)
+    List<String> r = DateUtil.getLast7BusinessDays();
+    System.out.println("r = " + r);
+
+
+    //7일 이전 출력
+    for (int i = 0; i < r.size(); i++) {
+
+        String dateVal = r.get(i);
+
+        if (dateVal != null && !"".equals(dateVal)) {
+            PartDashboardDTO param = new PartDashboardDTO();
+            System.out.println("dateVal = " + dateVal);
+            param.setBatchDate(dateVal);
+            PartDashboardDTO vParam = service.findPartDashboard(param);
+            System.out.println("vParam = " + vParam);
+            if (vParam != null && vParam.getPartALL() != null) {
+                countList.add(vParam.getPartALL());
+                dateKeyList.add(r.get(i));
+            }
+        }
+    }
+
+
+    System.out.println("dateKeyList = " + dateKeyList);
+    System.out.println("countList = " + countList);
     sw.stop();
 
     long millis = sw.getTotalTimeMillis();
@@ -502,6 +543,11 @@
                             <input type="text" id="partName" class="form-control form-control-hyundai" placeholder="자재 코드 또는 명칭">
                         </div>
 
+                        <%--<div class="col-md-2">
+                            <label class="form-label small text-muted">수량로직</label>
+                            <input type="text" id="qtyLogic" class="form-control form-control-hyundai" placeholder="자재 코드 또는 명칭">
+                        </div>--%>
+
                         <%--<div class="col-md-1">
                             <label class="form-label small text-muted">카테고리</label>
                             <select class="form-select form-control-hyundai">
@@ -680,7 +726,7 @@
                                             <%--<small class="<%= statusClass.equals("status-active") ? "text-success" : (statusClass.equals("status-warning") ? "text-warning" : "text-muted") %>"><%= statusText %></small>--%>
                                         </div>
                                         <div class="text-end">
-                                            <div class="fw-bold text-primary"><%= blockCount %>회</div>
+                                            <div class="fw-bold text-primary"><%= UtilCommonAPI.formatNumberWithCommas(blockCount) %>개</div>
                                             <div class="progress progress-hyundai mt-2" style="width: 100px;">
                                                 <div class="progress-bar progress-bar-hyundai" style="width: <%= percentage %>%"></div>
                                             </div>
@@ -919,8 +965,86 @@
 <script src="/resources/dist/js/export-data.js"></script>
 <script src="/resources/dist/js/accessibility.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <script>
+
+    /*countList.add(b.getPartALL());
+    dateKeyList.add(r.get(i));
+*/
+
+    // 변수 선언
+    const countList = [
+        <% for(int i=countList.size()-1; i>=0; i--) { %>
+            <%= countList.get(i) %><%= i > 0 ? "," : "" %>
+        <% } %>
+    ];
+
+    const dateKeyList = [
+        <% for(int i=dateKeyList.size()-1; i>=0; i--) { %>
+            "<%= dateKeyList.get(i).replaceAll("-", ".") %>"<%= i > 0 ? "," : "" %>
+        <% } %>
+    ];
+
+
+    const monthlyUsageCtx = document.getElementById('monthlyUsageChart').getContext('2d');
+    new Chart(monthlyUsageCtx, {
+        type: 'line',
+        data: {
+            labels: dateKeyList,
+            datasets: [{
+                label: '자재 사용량',
+                data: countList,
+                borderColor: 'var(--hyundai-light-blue)',
+                backgroundColor: 'rgba(0, 102, 204, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: 'var(--hyundai-blue)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'var(--hyundai-light-blue)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false,
+                },
+                title: {
+                    display: false,
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '사용량 (단위: 회)',
+                        color: 'var(--hyundai-gray)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+
+
     $(document).ready(function() {
         $("#subae").removeClass("menu-open");
         $("#sap").removeClass("menu-open");
@@ -935,6 +1059,7 @@
             let partName = $('#partName').val();
             let year = $('#year').val();
             let status = $('#status').val();
+            let qtyLogic = $("#qtyLogic").val();
 
             /*if (partNo.length >= 4) {
                 console.log("유효한 부품번호입니다.");
@@ -963,7 +1088,8 @@
                     partNo : partNo,
                     partName : partName,
                     year : year,
-                    status : status
+                    status : status,
+                    qtyLogic : qtyLogic
                     //ucheck: ucheck
                 },
                 xhrFields: {
