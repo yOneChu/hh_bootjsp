@@ -235,10 +235,22 @@ public class ExcelDownloadController {
     }
 
 
-    // 자재 대시보드
-    // 자재조회
+    /**
+     * @apiNote 자재 대시보드 -> 자재조회 엑셀 다운로드
+     * @param response
+     * @param partNo
+     * @param partName
+     * @param year
+     * @param status
+     * @param qtyLogic
+     * @throws IOException
+     */
     @PostMapping("/searchPart")
     public void searchPart(HttpServletResponse response, String partNo, String partName, String year, String status, String qtyLogic) throws IOException {
+
+
+        if(partNo != null && !"".equals(partNo)) partNo = partNo.trim();
+        if(partName != null && !"".equals(partName)) partName = partName.trim();
 
         System.out.println("--------- searchPart -----------");
         StopWatch sw = new StopWatch();
