@@ -569,7 +569,7 @@
                         <div class="col-md-2">
                             <label class="form-label small text-muted">상태</label>
                             <select id="status" class="form-select form-control-hyundai">
-                                <option>전체 자재</option>
+                                <%--<option>전체 자재</option>--%>
                                 <option value="ACTIVE" selected>활성 자재</option>
                                 <option value="INACTIVE">비활성 자재</option>
                                 <option value="OSL">폐기 자재</option>

@@ -11,12 +11,15 @@ import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.springframework.util.StopWatch;
+import org.springframework.web.accept.MediaTypeFileExtensionResolver;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -28,6 +31,7 @@ import java.util.HashMap;
 public class ExcelDownloadController {
 
     private final SubaeService subaeService;
+    private final MediaTypeFileExtensionResolver mediaTypeFileExtensionResolver;
 
     @PostMapping("/subaeDownload")
     public void downloadExcel(HttpServletResponse response) throws IOException {
@@ -237,17 +241,31 @@ public class ExcelDownloadController {
     public void searchPart(HttpServletResponse response, String partNo, String partName, String year, String status, String qtyLogic) throws IOException {
 
         System.out.println("--------- searchPart -----------");
+        StopWatch sw = new StopWatch();
+        sw.start();
 
+
+        System.out.println("status = " + status);
+        
         // 현재 시간을 기반으로 파일명 생성
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
         String timestamp = sdf.format(new Date());
-        String fileName = "PartList_" + timestamp + ".xlsx";
+        String fileName = "PartList_" + timestamp;
 
+        if ("OSL".equals(status)) {
+            fileName += "_disuse";
+        } else {
+            fileName += "_" + status;
+        }
+        fileName += ".xlsx";
+        //fileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
 
+        System.out.println("fileName = " + fileName);
         // HTTP 응답 헤더 설정
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         //response.setHeader("Content-Disposition", "attachment; filename=\"PART_DATA.xlsx\"");
         response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+        //response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + fileName);
 
         //System.out.println("subaeDownloadV2 -- " + month);
         //System.out.println("subaeDownloadV2 -- " + ucheck);
@@ -344,6 +362,17 @@ public class ExcelDownloadController {
             row.getCell(7).setCellStyle(bodyStyle);
             row.getCell(8).setCellStyle(bodyStyle);
         }
+
+
+        sw.stop();
+        long millis = sw.getTotalTimeMillis();
+
+        double seconds = millis / 1000.0;
+        double minutes = seconds / 60.0;
+
+        System.out.println("⏱ 수행 시간:");
+        System.out.printf("   - %.3f 초%n", seconds);
+        System.out.printf("   - %.3f 분%n", minutes);
 
         // 엑셀 파일 작성 및 스트림으로 출력
         workbook.write(response.getOutputStream());
