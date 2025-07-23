@@ -170,21 +170,21 @@
             line-height: 1.6;
         }
 
-        .navbar-custom {
+  /*      .navbar-custom {
             background: linear-gradient(135deg, var(--hyundai-blue) 0%, var(--hyundai-light-blue) 100%);
             padding: 1rem 0;
             box-shadow: 0 2px 20px rgba(0, 60, 113, 0.15);
-        }
+        }*/
 
-        .main-header {
+      /*  .main-header {
             background: linear-gradient(135deg, var(--hyundai-blue) 0%, var(--hyundai-light-blue) 100%);
             color: white;
             padding: 3rem 0 2rem 0;
             position: relative;
             overflow: hidden;
-        }
+        }*/
 
-        .main-header::before {
+/*        .main-header::before {
             content: '';
             position: absolute;
             top: 0;
@@ -193,7 +193,7 @@
             height: 100%;
             background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
             opacity: 0.3;
-        }
+        }*/
 
         .header-content {
             position: relative;
