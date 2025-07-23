@@ -505,7 +505,7 @@
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
-                        <h1>BOM 수배율 현황 </h1>
+                        <h1>PLM 자재 현황 및 Excel 다운로드 </h1>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
