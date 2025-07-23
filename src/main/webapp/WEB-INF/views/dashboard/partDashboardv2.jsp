@@ -502,14 +502,15 @@
                             <input type="text" id="partName" class="form-control form-control-hyundai" placeholder="자재 코드 또는 명칭">
                         </div>
 
-                        <div class="col-md-1">
+                        <%--<div class="col-md-1">
                             <label class="form-label small text-muted">카테고리</label>
                             <select class="form-select form-control-hyundai">
                                 <option>전체</option>
                                 <option value="C">전자부품</option>
                                 <option value="M" selected>기계부품</option>
                             </select>
-                        </div>
+                        </div>--%>
+
                         <div class="col-md-1">
                             <label class="form-label small text-muted">기간</label>
                             <select id="year" class="form-select form-control-hyundai">
@@ -635,7 +636,7 @@
                     <div class="col-lg-4">
                         <div class="card card-hyundai">
                             <div class="card-header-hyundai">
-                                <h5><i class="bi bi-trophy me-2"></i>TOP 10 Block 자재 (2024~2025) </h5>
+                                <h5><i class="bi bi-trophy me-2"></i>TOP.10 Block 활성 자재 (2024~2025) </h5>
                             </div>
                             <div class="card-body">
 
@@ -675,8 +676,8 @@
                                         <div>
                                             <span class="material-code-hyundai"><%= blockNo %></span>
                                             <div class="small text-muted mt-1"><%= blockName %></div>
-                                            <span class="status-indicator <%= statusClass %>"></span>
-                                            <small class="<%= statusClass.equals("status-active") ? "text-success" : (statusClass.equals("status-warning") ? "text-warning" : "text-muted") %>"><%= statusText %></small>
+                                            <%--<span class="status-indicator <%= statusClass %>"></span>--%>
+                                            <%--<small class="<%= statusClass.equals("status-active") ? "text-success" : (statusClass.equals("status-warning") ? "text-warning" : "text-muted") %>"><%= statusText %></small>--%>
                                         </div>
                                         <div class="text-end">
                                             <div class="fw-bold text-primary"><%= blockCount %>회</div>
