@@ -585,10 +585,10 @@
 
                                     <div class="filter-buttons float-right">
                                         <button class="filter-btn active" data-filter="all">전체</button>
-                                        <button class="filter-btn" data-filter="excellent" id="excel_part">자재전체 Excel</button>
+                                        <button class="filter-btn" data-filter="excellent" id="excel_all">자재전체 Excel</button>
 
                                         <button class="filter-btn" data-filter="good" id="excelGo">제품 Excel</button>
-                                        <button class="filter-btn" data-filter="normal">변경자재 Excel</button>
+                                        <button class="filter-btn" data-filter="normal" id="excel_mod">변경자재 Excel</button>
                                         <%--<button class="filter-btn" data-filter="poor">개선필요</button>--%>
 
                                         <%--<button class="filter-btn" data-filter="good">제품</button>

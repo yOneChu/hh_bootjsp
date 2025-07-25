@@ -67,7 +67,7 @@
 
 
         //자재전체 엑셀 다운로드
-        $('#excel_part').on('click', function () {
+        $('#excel_all').on('click', function () {
 
             let month = $('#monthSelect').val();
             let ucheck = "1";
