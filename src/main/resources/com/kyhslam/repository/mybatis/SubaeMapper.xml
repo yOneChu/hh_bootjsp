@@ -35,6 +35,7 @@
     <select id="findUsedProductNo" resultType="java.lang.String">
         SELECT DISTINCT A.PRODUCTNO
         FROM subaeProduct A
+        WHERE A.GISONG != ''
     </select>
 
 
@@ -54,6 +55,9 @@
         <where>
             <if test="productAppdate != null and productAppdate != ''">
                 and LEFT(A.APPDATE,7) = #{productAppdate}
+            </if>
+            <if test="productAppdate != null and productAppdate != ''">
+                AND A.GISONG != ''
             </if>
         </where>
     </select>
@@ -76,6 +80,9 @@
         , A.CMT
         FROM subaeProduct A
         <where>
+            <if test="productAppdate != null and productAppdate != ''">
+                AND A.GISONG != ''
+            </if>
             <if test="productAppdate != null and productAppdate != ''">
                 and LEFT(A.APPDATE,7) = #{productAppdate}
             </if>
