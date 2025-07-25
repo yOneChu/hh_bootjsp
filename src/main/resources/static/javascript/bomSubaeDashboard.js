@@ -34,7 +34,7 @@
                 type: 'POST',              // 메서드 (GET/POST 등)
                 data : {
                     month : month,
-                    ucheck: "N"
+                    ucheck: ''
                 },
                 xhrFields: {
                     responseType: 'blob'    // 파일 다운로드용 응답 처리
@@ -370,7 +370,7 @@
                 //name: 'Installation & Developers',
                 showInLegend: false,
                 data: [
-                    794, 869, 837, 913, 605, 741, 788
+                    794, 869, 837, 913, 605, 741, 942
         ],
             dataLabels: {
                 enabled: true

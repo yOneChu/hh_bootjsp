@@ -34,7 +34,7 @@ public class ExcelDownloadController {
     private final MediaTypeFileExtensionResolver mediaTypeFileExtensionResolver;
 
     @PostMapping("/subaeDownload")
-    public void downloadExcel(HttpServletResponse response) throws IOException {
+    public void downloadExcel(HttpServletResponse response, String month) throws IOException {
         // HTTP 응답 헤더 설정
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=\"data.xlsx\"");
@@ -58,7 +58,7 @@ public class ExcelDownloadController {
         //List<MyDataDto> dataList = myDataService.getLargeData();
         ArrayList<ProductDto> dataList = new ArrayList<>();
         ProductDto param = new ProductDto();
-        param.setProductAppdate("2025-07");
+        param.setProductAppdate(month);
 
         dataList = subaeService.findSubaeProductList(param);
         for (int i = 0; i < dataList.size(); i++) {

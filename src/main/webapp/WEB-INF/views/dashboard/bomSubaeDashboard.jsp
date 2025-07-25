@@ -68,16 +68,16 @@
 
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #f4f6f9; /* AdminLTE light background */
+            background-color: #f4f6f9;
             min-height: 100vh;
             color: #333;
         }
 
         .header {
-            background-color: var(--dark); /* AdminLTE dark header */
+            background-color: var(--dark);
             color: white;
             padding: 20px 0;
-            box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2); /* AdminLTE shadow */
+            box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
         }
 
         .container {
@@ -87,8 +87,8 @@
         }
 
         .header h1 {
-            font-size: 2.2rem; /* Slightly smaller for AdminLTE feel */
-            font-weight: 400; /* AdminLTE font-weight */
+            font-size: 2.2rem;
+            font-weight: 400;
             text-align: center;
             margin-bottom: 5px;
         }
@@ -100,14 +100,14 @@
         }
 
         .main-content {
-            padding: 20px 0; /* Adjusted padding */
+            padding: 20px 0;
         }
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 20px; /* Adjusted gap */
-            margin-bottom: 20px; /* Adjusted margin */
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
         }
 
         .summary-cards {
@@ -118,34 +118,34 @@
 
         .card {
             background: white;
-            border-radius: 0.25rem; /* AdminLTE border-radius */
-            padding: 20px; /* Adjusted padding */
-            box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2); /* AdminLTE shadow */
-            transition: all 0.2s ease-in-out; /* AdminLTE transition for hover */
-            border-top: 3px solid var(--primary); /* Simulate AdminLTE card-primary */
+            border-radius: 0.25rem;
+            padding: 20px;
+            box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+            transition: all 0.2s ease-in-out;
+            border-top: 3px solid var(--primary);
         }
 
         .card:hover {
-            box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22); /* More pronounced hover shadow */
+            box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
             transform: translateY(-3px);
         }
 
         .card h3 {
-            color: #1f2d3d; /* AdminLTE default text color */
-            font-size: 1rem; /* Adjusted font size */
+            color: #1f2d3d;
+            font-size: 1rem;
             margin-bottom: 10px;
             font-weight: 600;
         }
 
         .card-value {
-            font-size: 1.8rem; /* Adjusted font size */
+            font-size: 1.8rem;
             font-weight: 700;
             color: #333;
             margin-bottom: 5px;
         }
 
         .card-label {
-            color: #6c757d; /* AdminLTE secondary text color */
+            color: #6c757d;
             font-size: 0.8rem;
         }
 
@@ -154,7 +154,7 @@
             border-radius: 0.25rem;
             padding: 20px;
             box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
-            border-top: 3px solid var(--info); /* Simulate AdminLTE card-info */
+            border-top: 3px solid var(--info);
         }
 
         .chart-title {
@@ -165,7 +165,7 @@
         }
 
         .chart-placeholder {
-            height: 280px; /* Adjusted height */
+            height: 280px;
             background: #e9ecef;
             border-radius: 0.25rem;
             display: flex;
@@ -173,7 +173,103 @@
             justify-content: center;
             color: #666;
             font-size: 1rem;
-            border: 1px dashed #d2d6de; /* AdminLTE border */
+            border: 1px dashed #d2d6de;
+        }
+
+        /* Top 10 변경자재 스타일 */
+        .top10-container {
+            background: white;
+            border-radius: 0.25rem;
+            padding: 20px;
+            box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+            border-top: 3px solid var(--warning);
+        }
+
+        .top10-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .top10-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .top10-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.85rem;
+        }
+
+        .top10-item:last-child {
+            border-bottom: none;
+        }
+
+        .top10-rank {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .top10-rank.rank-1 {
+            background: #FFD700;
+            color: #333;
+        }
+
+        .top10-rank.rank-2 {
+            background: #C0C0C0;
+            color: #333;
+        }
+
+        .top10-rank.rank-3 {
+            background: #CD7F32;
+            color: white;
+        }
+
+        .top10-part-info {
+            flex: 1;
+            margin: 0 10px;
+            overflow: hidden;
+        }
+
+        .top10-part-name {
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .top10-part-code {
+            color: #6c757d;
+            font-size: 0.75rem;
+            margin-top: 2px;
+        }
+
+        .top10-count {
+            font-weight: 600;
+            color: var(--danger);
+            background: rgba(220, 53, 69, 0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
         }
 
         .table-container {
@@ -182,7 +278,7 @@
             padding: 20px;
             box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
             overflow-x: auto;
-            border-top: 3px solid var(--success); /* Simulate AdminLTE card-success */
+            border-top: 3px solid var(--success);
         }
 
         .table-header {
@@ -218,19 +314,19 @@
 
         .month-selector select {
             padding: 8px 12px;
-            border: 1px solid #ced4da; /* AdminLTE form control border */
-            border-radius: 0.25rem; /* AdminLTE border-radius */
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
             font-size: 0.9rem;
             background: white;
-            color: #495057; /* AdminLTE form control text color */
+            color: #495057;
             cursor: pointer;
             transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
         }
 
         .month-selector select:focus {
             outline: none;
-            border-color: #80bdff; /* Bootstrap focus color */
-            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); /* Bootstrap focus shadow */
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
         }
 
         .search-box {
@@ -238,11 +334,11 @@
         }
 
         .search-box input {
-            padding: 8px 35px 8px 12px; /* Adjusted padding for icon */
+            padding: 8px 35px 8px 12px;
             border: 1px solid #ced4da;
-            border-radius: 0.25rem; /* AdminLTE border-radius */
+            border-radius: 0.25rem;
             font-size: 0.9rem;
-            width: 200px; /* Adjusted width */
+            width: 200px;
             transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
             color: #495057;
         }
@@ -254,8 +350,8 @@
         }
 
         .search-box::after {
-            content: '\f002'; /* Font Awesome search icon */
-            font-family: 'Font Awesome 5 Free'; /* Placeholder for Font Awesome */
+            content: '\f002';
+            font-family: 'Font Awesome 5 Free';
             font-weight: 900;
             position: absolute;
             right: 12px;
@@ -272,17 +368,17 @@
 
         .data-table th,
         .data-table td {
-            padding: 12px 10px; /* Adjusted padding */
+            padding: 12px 10px;
             text-align: left;
-            border-bottom: 1px solid #dee2e6; /* AdminLTE table border */
+            border-bottom: 1px solid #dee2e6;
         }
 
         .data-table th {
-            background-color: var(--secondary); /* AdminLTE table header background */
+            background-color: var(--secondary);
             color: white;
             font-weight: 600;
             font-size: 0.9rem;
-            white-space: nowrap; /* Prevent wrapping */
+            white-space: nowrap;
         }
 
         .data-table thead tr:first-child th:first-child {
@@ -294,68 +390,68 @@
         }
 
         .data-table tr:hover {
-            background-color: rgba(0, 0, 0, 0.03); /* AdminLTE hover effect */
+            background-color: rgba(0, 0, 0, 0.03);
         }
 
         .status-badge {
             display: inline-block;
-            padding: 0.35em 0.6em; /* AdminLTE badge padding */
-            font-size: 75%; /* AdminLTE badge font size */
+            padding: 0.35em 0.6em;
+            font-size: 75%;
             font-weight: 700;
             line-height: 1;
             text-align: center;
             white-space: nowrap;
             vertical-align: baseline;
-            border-radius: 0.25rem; /* AdminLTE badge border-radius */
+            border-radius: 0.25rem;
         }
 
         .status-excellent {
             color: #fff;
-            background-color: var(--success); /* AdminLTE success color */
+            background-color: var(--success);
         }
 
         .status-good {
             color: #fff;
-            background-color: var(--info); /* AdminLTE info color */
+            background-color: var(--info);
         }
 
         .status-normal {
-            color: #1f2d3d; /* AdminLTE warning text color */
-            background-color: var(--warning); /* AdminLTE warning color */
+            color: #1f2d3d;
+            background-color: var(--warning);
         }
 
         .status-poor {
             color: #fff;
-            background-color: var(--danger); /* AdminLTE danger color */
+            background-color: var(--danger);
         }
 
         .progress-bar {
             width: 100%;
-            height: 6px; /* Adjusted height */
+            height: 6px;
             background-color: #e9ecef;
-            border-radius: 0.25rem; /* AdminLTE border-radius */
+            border-radius: 0.25rem;
             overflow: hidden;
             margin-top: 3px;
         }
 
         .progress-fill {
             height: 100%;
-            background-color: var(--primary); /* AdminLTE primary color */
+            background-color: var(--primary);
             transition: width 0.3s ease;
         }
 
         .filter-buttons {
             display: flex;
-            gap: 8px; /* Adjusted gap */
+            gap: 8px;
             margin-bottom: 15px;
         }
 
         .filter-btn {
-            padding: 6px 12px; /* Adjusted padding */
+            padding: 6px 12px;
             border: 1px solid var(--primary);
             background: white;
             color: var(--primary);
-            border-radius: 0.25rem; /* AdminLTE button border-radius */
+            border-radius: 0.25rem;
             cursor: pointer;
             transition: all 0.15s ease-in-out;
             font-size: 0.85rem;
@@ -369,26 +465,37 @@
 
         .modification-items {
             display: flex;
-            gap: 6px; /* Adjusted gap */
+            gap: 6px;
             flex-wrap: wrap;
         }
 
         .mod-item {
             background: #f8f9fa;
-            padding: 2px 7px; /* Adjusted padding */
-            border-radius: 0.2rem; /* Smaller border-radius for tags */
-            font-size: 0.75rem; /* Smaller font size for tags */
+            padding: 2px 7px;
+            border-radius: 0.2rem;
+            font-size: 0.75rem;
             border: 1px solid #dee2e6;
             color: #495057;
         }
 
         .mod-item.modified {
-            background: #fdf7df; /* Softer warning color */
-            border-color: #ffeeba; /* Softer warning border */
-            color: #856404; /* Softer warning text */
+            background: #fdf7df;
+            border-color: #ffeeba;
+            color: #856404;
         }
 
         /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr 2fr;
+            }
+
+            .top10-container {
+                grid-column: 1 / -1;
+                margin-top: 20px;
+            }
+        }
+
         @media (max-width: 768px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
@@ -513,6 +620,98 @@
                         </div>
                     </figure>
                 </div>
+
+
+                <!-- Top 10 변경자재 영역 -->
+                <div class="top10-container">
+                    <div class="top10-title">
+                        🔧 Top 10 변경자재
+                    </div>
+                    <ul class="top10-list" id="top10List">
+                        <li class="top10-item">
+                            <div class="top10-rank rank-1">1</div>
+                            <div class="top10-part-info">
+                                <div class="top10-part-name">모터 커플링</div>
+                                <div class="top10-part-code">MC-4501A</div>
+                            </div>
+                            <div class="top10-count">23건</div>
+                        </li>
+                        <li class="top10-item">
+                            <div class="top10-rank rank-2">2</div>
+                            <div class="top10-part-info">
+                                <div class="top10-part-name">와이어 로프</div>
+                                <div class="top10-part-code">WR-8MM</div>
+                            </div>
+                            <div class="top10-count">19건</div>
+                        </li>
+                        <li class="top10-item">
+                            <div class="top10-rank rank-3">3</div>
+                            <div class="top10-part-info">
+                                <div class="top10-part-name">도어 센서</div>
+                                <div class="top10-part-code">DS-301B</div>
+                            </div>
+                            <div class="top10-count">17건</div>
+                        </li>
+                        <li class="top10-item">
+                            <div class="top10-rank">4</div>
+                            <div class="top10-part-info">
+                                <div class="top10-part-name">제어판넬</div>
+                                <div class="top10-part-code">CP-450</div>
+                            </div>
+                            <div class="top10-count">15건</div>
+                        </li>
+                        <li class="top10-item">
+                            <div class="top10-rank">5</div>
+                            <div class="top10-part-info">
+                                <div class="top10-part-name">가이드 레일</div>
+                                <div class="top10-part-code">GR-T16</div>
+                            </div>
+                            <div class="top10-count">12건</div>
+                        </li>
+                        <li class="top10-item">
+                            <div class="top10-rank">6</div>
+                            <div class="top10-part-info">
+                                <div class="top10-part-name">안전장치</div>
+                                <div class="top10-part-code">SF-203</div>
+                            </div>
+                            <div class="top10-count">11건</div>
+                        </li>
+                        <li class="top10-item">
+                            <div class="top10-rank">7</div>
+                            <div class="top10-part-info">
+                                <div class="top10-part-name">버튼 스위치</div>
+                                <div class="top10-part-code">BS-101</div>
+                            </div>
+                            <div class="top10-count">9건</div>
+                        </li>
+                        <li class="top10-item">
+                            <div class="top10-rank">8</div>
+                            <div class="top10-part-info">
+                                <div class="top10-part-name">브레이크 패드</div>
+                                <div class="top10-part-code">BP-450A</div>
+                            </div>
+                            <div class="top10-count">8건</div>
+                        </li>
+                        <li class="top10-item">
+                            <div class="top10-rank">9</div>
+                            <div class="top10-part-info">
+                                <div class="top10-part-name">전원 케이블</div>
+                                <div class="top10-part-code">PC-3X25</div>
+                            </div>
+                            <div class="top10-count">7건</div>
+                        </li>
+                        <li class="top10-item">
+                            <div class="top10-rank">10</div>
+                            <div class="top10-part-info">
+                                <div class="top10-part-name">LED 표시등</div>
+                                <div class="top10-part-code">LED-24V</div>
+                            </div>
+                            <div class="top10-count">6건</div>
+                        </li>
+                    </ul>
+                </div>
+
+
             </div>
 
                     </div>
@@ -560,7 +759,7 @@
                                 <%--<div class="table-container">--%>
                                     <div class="table-header">
                                         <div class="table-title">
-                                            <h3>월별 현황</h3>
+                                            <h3>엘리베이터 부품별 현황</h3>
                                         </div>
 
                                         <div class="header-controls">
