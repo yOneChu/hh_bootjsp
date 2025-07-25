@@ -7,10 +7,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Description;
+import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.springframework.util.StopWatch;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 @SpringBootTest
 public class findTest_02 {
@@ -132,5 +134,12 @@ public class findTest_02 {
         }
         //ArrayList<HashMap<String, String>> r = subaeService.findSubaeProductList(param);
         //System.out.println("r = " + r);
+    }
+
+    @Description("수배율 변경자재 TOP.10")
+    @Test
+    void topInfo() {
+        ArrayList<HashMap<String, String>> r = subaeService.findTopModPartNo();
+        System.out.println("r = " + r);
     }
 }

@@ -250,6 +250,7 @@ public class SubaeController {
     //BOM수배율 팝업화면
     @GetMapping("/subae/bomSubaeDashboardPop")
     public String bomSubaeDashboardPop() {
+        //System.out.println("prodNo = " + prodNo);
         return "dashboard/bomSubaeDashboardPop";
     }
 

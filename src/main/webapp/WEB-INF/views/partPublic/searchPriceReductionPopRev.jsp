@@ -1,16 +1,9 @@
-<%@page import="java.time.LocalDate"%>
-<%@page import="java.sql.DriverManager"%>
 <%@page import="java.util.HashMap"%>
 <%@page import="java.util.ArrayList"%>
-<%@page import="java.sql.ResultSetMetaData"%>
 <%@page import="java.sql.ResultSet"%>
 <%@page import="java.sql.PreparedStatement"%>
 <%@page import="java.sql.Connection"%>
 <%@ page import="com.kyhslam.util.VaultDBConnection" %>
-<%@ page import="org.springframework.web.context.support.WebApplicationContextUtils" %>
-<%@ page import="org.springframework.web.context.WebApplicationContext" %>
-<%@ page import="com.kyhslam.service.JdbcTestService" %>
-<%@ page import="com.kyhslam.dto.DashDtoV2" %>
 <%@ page import="java.text.SimpleDateFormat" %>
 <%@ page import="java.util.Date" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>

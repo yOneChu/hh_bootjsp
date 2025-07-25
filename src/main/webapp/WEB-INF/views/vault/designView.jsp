@@ -1,13 +1,3 @@
-<%@page import="java.sql.ResultSetMetaData"%>
-<%@page import="java.sql.ResultSet"%>
-<%@page import="java.sql.PreparedStatement"%>
-<%@page import="java.sql.Connection"%>
-<%@ page import="java.util.HashMap" %>
-<%@ page import="java.util.ArrayList" %>
-<%@ page import="org.springframework.web.context.WebApplicationContext" %>
-<%@ page import="org.springframework.web.context.support.WebApplicationContextUtils" %>
-<%@ page import="com.kyhslam.service.PartUtilService" %>
-
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 

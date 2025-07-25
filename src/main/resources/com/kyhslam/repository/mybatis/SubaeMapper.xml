@@ -30,12 +30,27 @@
         where id = #{id}
     </update>-->
 
-    <!--ArrayList<String>에 담아서 리턴되게하려면 그냥 java.lang.String로 설정해주면 된다.-->
 
+    <!--ArrayList<String>에 담아서 리턴되게하려면 그냥 java.lang.String로 설정해주면 된다.-->
     <select id="findUsedProductNo" resultType="java.lang.String">
         SELECT DISTINCT A.PRODUCTNO
         FROM subaeProduct A
         WHERE A.GISONG != ''
+    </select>
+
+    <!-- 변경자재 top. 10  -->
+    <select id="findTopModPartNo" resultType="java.util.HashMap">
+        SELECT TOP 10
+            A.PARTNO, A.PARTNAME, COUNT(A.PARTNO) AS PCOUNT
+        FROM
+            SUBAEPRODUCT A
+        WHERE
+          LEFT(APPDATE, 4) = '2025'
+          AND A.PARTNO NOT LIKE 'HX%' -- HX 규격품 제외
+        GROUP BY
+            A.PARTNO, A.PARTNAME
+        ORDER BY
+            PCOUNT DESC
     </select>
 
 
@@ -71,6 +86,7 @@
         , A.APPDATE AS productAppdate
         , A.PARTNO
         , A.PARTNAME
+        , A.QTY
         , A.BLOCK_OPT AS blockopt
         , A.BLOCKNO
         , A.UCHECK AS ucheck
@@ -88,6 +104,9 @@
             </if>
             <if test="ucheck != null and ucheck != ''">
                 and A.UCHECK = #{ucheck}
+            </if>
+            <if test="productNo != null and productNo != ''">
+                and A.PRODUCTNO = #{productNo}
             </if>
         </where>
     </select>

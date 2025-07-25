@@ -1,3 +1,9 @@
+<%@ page import="org.springframework.web.context.support.WebApplicationContextUtils" %>
+<%@ page import="com.kyhslam.service.SubaeService" %>
+<%@ page import="org.springframework.web.context.WebApplicationContext" %>
+<%@ page import="java.util.ArrayList" %>
+<%@ page import="java.util.HashMap" %>
+<%@ page import="java.util.Map" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
@@ -6,6 +12,15 @@
 
     //bomSubaeDashboard.jsp
     //BOM 수배율 현황
+
+    WebApplicationContext context = WebApplicationContextUtils.getRequiredWebApplicationContext(application);
+
+    // 원하는 Bean 가져오기
+    SubaeService subaeService = (SubaeService) context.getBean("SubaeService");
+
+    ArrayList<HashMap<String, String>> topInfoList = subaeService.findTopModPartNo();
+
+    //PCOUNT=5654, PARTNO=VC011636G010A, PARTNAME=RELEASE CABLE},
 
 
 %>
@@ -628,6 +643,34 @@
                         🔧 Top 10 변경자재
                     </div>
                     <ul class="top10-list" id="top10List">
+
+                        <%
+                            for (int i=0; i < topInfoList.size(); i++) {
+                                HashMap<String, String> o = topInfoList.get(i);
+
+                                String cssVal  ="";
+                                if(i == 0) cssVal = "rank-1";
+                                if(i == 1) cssVal = "rank-2";
+                                if(i == 2) cssVal = "rank-3";
+
+                        %>
+                        <li class="top10-item">
+                            <div class="top10-rank <%=cssVal%>"><%=(i+1)%></div>
+                            <div class="top10-part-info">
+                                <div class="top10-part-name"><%=o.get("PARTNAME")%></div>
+                                <div class="top10-part-code"><%=o.get("PARTNO")%></div>
+                            </div>
+                            <div class="top10-count"><%= String.valueOf(o.get("PCOUNT")) %>건</div>
+                        </li>
+
+                        <%
+
+                            }
+
+                        %>
+
+
+<%--
                         <li class="top10-item">
                             <div class="top10-rank rank-1">1</div>
                             <div class="top10-part-info">
@@ -707,7 +750,7 @@
                                 <div class="top10-part-code">LED-24V</div>
                             </div>
                             <div class="top10-count">6건</div>
-                        </li>
+                        </li>--%>
                     </ul>
                 </div>
 
@@ -784,10 +827,10 @@
 
                                     <div class="filter-buttons float-right">
                                         <button class="filter-btn active" data-filter="all">전체</button>
-                                        <button class="filter-btn" data-filter="excellent" id="excel_all">자재전체 Excel</button>
+                                        <button class="filter-btn" data-filter="excellent" id="excel_all">자재전체 Excel 출력</button>
 
-                                        <button class="filter-btn" data-filter="good" id="excelGo">제품 Excel</button>
-                                        <button class="filter-btn" data-filter="normal" id="excel_mod">변경자재 Excel</button>
+                                        <button class="filter-btn" data-filter="good" id="excelGo">제품 Excel 출력</button>
+                                        <button class="filter-btn" data-filter="normal" id="excel_mod">변경자재 Excel 출력</button>
                                         <%--<button class="filter-btn" data-filter="poor">개선필요</button>--%>
 
                                         <%--<button class="filter-btn" data-filter="good">제품</button>
@@ -802,7 +845,7 @@
                                                 <th>버전</th>
                                                 <th>수주명</th>
                                                 <th>기종</th>
-                                                <th>최종설계일</th>
+                                                <th>최종설계일<br>(승인일)</th>
 
                                                 <th>총 수배 건수</th>
                                                 <th>변경 건수</th>

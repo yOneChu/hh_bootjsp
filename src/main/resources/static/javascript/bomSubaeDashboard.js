@@ -228,7 +228,7 @@
 
                         str +=
                         `
-                            <td onclick='viewpop("${prodNo}");'>
+                            <td onclick='viewPop("${prodNo}");'>
                                 <div class="modification-items">
                                     <span class='mod-item ${mView}'>M: ${mCount}</span>
                                     <span class='mod-item ${cView}'>C: ${ccount}</span>
@@ -459,12 +459,23 @@
         }
     }
 
-    function viewpop(prodNo) {
-        console.log(prodNo);
+    function viewPop(prodNo) {
+        console.log('viewPop -- ' + prodNo);
 
+       /* <a href="#" class="nav-link" onclick="window.open('/public/searchPriceReductionRate', 'popup', 'width=800,height=600'); return false;">
+            Open Popup*/
         //VAULT-운영
-        let urlValue = "https://vault-in.hdel.co.kr:8070/subae/bomSubaeDashboardPop?";
+        //let urlValue = "https://vault-in.hdel.co.kr:8070/subae/bomSubaeDashboardPop?";
+        //const urlValue = "http://localhost:8070/subae/bomSubaeDashboardPop?";
 
-        urlValue += "prodNo=" + prodNo;
-        window.open(urlValue,'_blank','width=1500, height=800, top=50, left=50, scrollbars=yes');
+        let url = '/subae/bomSubaeDashboardPop?'; // Relative path is usually best
+        url += "prodNo=" + prodNo;
+        const features = 'width=800,height=600,top=100,left=100,resizable=yes,scrollbars=yes';
+
+        // Open the new window/tab
+        //window.open(url, '_blank', features);
+
+       // window.open('/subae/searchPriceReductionRate', 'popup', 'width=800,height=600')
+
+        window.open(url,'popup','width=1500, height=800, top=50, left=50, scrollbars=yes');
     }
