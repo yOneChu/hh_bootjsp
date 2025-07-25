@@ -238,7 +238,7 @@
                                 </div>
                             </td>
                             <td>
-                                <button class="filter-btn" data-filter="normal">View</button>
+                                <button class="filter-btn" data-filter="normal" onclick='viewPop("${prodNo}");'>View</button>
                             </td>
                         `;
 
@@ -462,18 +462,10 @@
     function viewPop(prodNo) {
         console.log('viewPop -- ' + prodNo);
 
-       /* <a href="#" class="nav-link" onclick="window.open('/public/searchPriceReductionRate', 'popup', 'width=800,height=600'); return false;">
-            Open Popup*/
-        //VAULT-운영
-        //let urlValue = "https://vault-in.hdel.co.kr:8070/subae/bomSubaeDashboardPop?";
-        //const urlValue = "http://localhost:8070/subae/bomSubaeDashboardPop?";
-
         let url = '/subae/bomSubaeDashboardPop?'; // Relative path is usually best
         url += "prodNo=" + prodNo;
         const features = 'width=800,height=600,top=100,left=100,resizable=yes,scrollbars=yes';
 
-        // Open the new window/tab
-        //window.open(url, '_blank', features);
 
        // window.open('/subae/searchPriceReductionRate', 'popup', 'width=800,height=600')
 
