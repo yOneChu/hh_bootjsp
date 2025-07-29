@@ -152,10 +152,11 @@
 
                                             <th style="font-weight: bold; text-align: center;">자재번호</th>
                                             <th style="font-weight: bold; text-align: center;">자재명</th>
+                                            <th style="font-weight: bold; text-align: center;">품목</th
                                             <th style="font-weight: bold; text-align: center;">수정여부</th>
                                             <th style="font-weight: bold; text-align: center;">수량</th>
                                             <th style="font-weight: bold; text-align: center;">BlockNo</th>
-                                            <th style="font-weight: bold; text-align: center;">품목</th>
+                                            >
                                             <th style="font-weight: bold; text-align: center;">CMT</th>
                                         </tr>
                                     </thead>
@@ -167,16 +168,18 @@
                                     %>
                                     <tr>
                                         <td style="text-align: center;"> <%=info.getProductNo() %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=info.getProductName() %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=info.getProductVersion() %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=info.getGisong() %> </td>
+                                        <td style="font-weight: bold; text-align: center;"> <%=info.getProductName() %> </td>
+                                        <td style="font-weight: bold; text-align: center;"> <%=info.getProductVersion() %> </td>
+                                        <%--<td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=info.getGisong() %> </td>--%>
+                                        <td style="font-weight: bold;  text-align: center;"> <%=info.getGisong() %> </td>
 
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=info.getPartNo() %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=info.getPartName() %> </td>
-                                        <td style="text-align: center;"> <%=info.getUcheck() %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <font color="red"> <%=info.getQty() %> </font> </td>
+                                        <td style="font-weight: bold; text-align: center;"> <%=info.getPartNo() %> </td>
+                                        <td style="font-weight: bold; text-align: center;"> <%=info.getPartName() %> </td>
+                                        <td style="font-weight: bold; text-align: center;"> <font color="red"><%=info.getBlockopt() %> </font> </td>
+                                        <td style="text-align: center;"> <font color="red"><%=info.getUcheck() %> </font></td>
+                                        <td style="font-weight: bold; text-align: center;"> <%=info.getQty() %> </td>
                                         <td style="text-align: center;"> <%=info.getBlockNo() %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <font color="red"><%=info.getBlockopt() %> </font> </td>
+
                                         <%--<td style="text-align: left;" class="truncate-text" title="이것은 매우매우 긴 텍스트입니다. 한 줄로 표시하기에는 너무 길어서 잘리고 ...으로 표시됩니다. 하지만 마우스를 올리면 이 전체 내용을 볼 수 있습니다!">
                                             <%=info.getCmt() %> </td>--%>
 

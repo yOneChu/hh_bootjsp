@@ -179,6 +179,7 @@
             margin-bottom: 15px;
         }
 
+        /*
         .chart-placeholder {
             height: 280px;
             background: #e9ecef;
@@ -190,6 +191,7 @@
             font-size: 1rem;
             border: 1px dashed #d2d6de;
         }
+        */
 
         /* Top 10 변경자재 스타일 */
         .top10-container {
@@ -629,11 +631,11 @@
 
                 <div class="chart-container">
                     <div class="chart-title">📊 월별 BOM 구성 현황</div>
-                    <figure class="highcharts-figure">
+                   <%-- <figure class="highcharts-figure">--%>
                         <div class="chart-placeholder" id="cpContainer">
                             <%--📊 차트 영역 (Chart.js 또는 다른 차트 라이브러리 연동)--%>
                         </div>
-                    </figure>
+                    <%--</figure>--%>
                 </div>
 
 
