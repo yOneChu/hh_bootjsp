@@ -1,6 +1,6 @@
 <%@page import="java.util.ArrayList"%>
 <%@ page import="com.kyhslam.service.JQPRService" %>
-<%@ page import="com.kyhslam.dto.JqplDTO" %>
+<%@ page import="com.kyhslam.dto.JqprDTO" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
@@ -159,7 +159,7 @@
                                     <%
 
                                         for (int i = 0; i < result.size(); i++) {
-                                            JqplDTO d = result.get(i);
+                                            JqprDTO d = result.get(i);
                                             String jqprNo = d.getJqprNo();
 
                                             String status = d.getStatus();

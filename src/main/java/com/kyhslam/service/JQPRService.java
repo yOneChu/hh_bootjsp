@@ -1,7 +1,7 @@
 package com.kyhslam.service;
 
 import com.kyhslam.domain.JQPR;
-import com.kyhslam.dto.JqplDTO;
+import com.kyhslam.dto.JqprDTO;
 import com.kyhslam.repository.JQPRRepository;
 import com.kyhslam.util.VaultDBConnection;
 import lombok.RequiredArgsConstructor;
@@ -28,11 +28,11 @@ public class JQPRService {
     private final JQPRRepository jqprRepository;
 
 
-    public ArrayList<JqplDTO> getJqplDashbard() {
+    public ArrayList<JqprDTO> getJqplDashbard() {
         LocalDate now = LocalDate.now();
         String todayValue = now.toString();
 
-        ArrayList<JqplDTO> result = new ArrayList<>();
+        ArrayList<JqprDTO> result = new ArrayList<>();
 
         PreparedStatement pstmt = null;
         ResultSet rs 			= null;
@@ -97,7 +97,7 @@ public class JQPRService {
 
                 String TYPE_CODE = rs.getString("TYPE_CODE") == null ? "" : rs.getString("TYPE_CODE");
 
-                JqplDTO dto = new JqplDTO();
+                JqprDTO dto = new JqprDTO();
                 dto.setJqprNo(JQPR_NO);
                 dto.setManageNo(MANAGE_NO);
                 dto.setStatus(STATUS);
