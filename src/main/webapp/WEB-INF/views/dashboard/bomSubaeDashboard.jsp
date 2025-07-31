@@ -4,6 +4,7 @@
 <%@ page import="java.util.ArrayList" %>
 <%@ page import="java.util.HashMap" %>
 <%@ page import="java.util.Map" %>
+<%@ page import="com.kyhslam.util.UtilCommonAPI" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
@@ -642,7 +643,7 @@
                 <!-- Top 10 변경자재 영역 -->
                 <div class="top10-container">
                     <div class="top10-title">
-                        🔧 Top 10 변경자재
+                        🔧 Top 10 변경자재 (2025년)
                     </div>
                     <ul class="top10-list" id="top10List">
 
@@ -655,6 +656,8 @@
                                 if(i == 1) cssVal = "rank-2";
                                 if(i == 2) cssVal = "rank-3";
 
+                                String valCount = UtilCommonAPI.formatNumberWithCommas(String.valueOf(o.get("PCOUNT")));
+
                         %>
                         <li class="top10-item">
                             <div class="top10-rank <%=cssVal%>"><%=(i+1)%></div>
@@ -662,7 +665,7 @@
                                 <div class="top10-part-name"><%=o.get("PARTNAME")%></div>
                                 <div class="top10-part-code"><%=o.get("PARTNO")%></div>
                             </div>
-                            <div class="top10-count"><%= String.valueOf(o.get("PCOUNT")) %>건</div>
+                            <div class="top10-count"><%= valCount %>건</div>
                         </li>
 
                         <%

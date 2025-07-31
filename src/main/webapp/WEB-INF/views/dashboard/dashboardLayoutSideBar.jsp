@@ -33,13 +33,16 @@
     <!-- Sidebar -->
     <div class="sidebar" style="zoom:95%;">
 
-        <div class="text-center user-panel mt-3 pb-3 mb-3">
+        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+            <div class="image">
+                <%--<img src="dist/img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image">--%>
+                <img src="/resources/favicon.ico" class="img-circle elevation-2" alt="icon" width="16" height="16">
+            </div>
             <div class="info">
                 <%--<h4><a href="#">수배로직설계팀</a></h4>--%>
                 <%--<h4>🏢 <a href="#">수배로직설계팀</a></h4>--%>
-                    <h4><img src="/resources/favicon.ico" alt="icon" width="16" height="16"> <a href="#">수배로직설계팀</a></h4>
-
-
+                    <%--<h4><img src="/resources/favicon.ico" alt="icon" width="16" height="16"> <a href="#">수배로직설계팀</a></h4>--%>
+                    <h4><a href="#">수배로직설계팀</a></h4>
             </div>
         </div>
 
@@ -66,8 +69,9 @@
                 <li id="dashboard" class="nav-item menu-open">
                     <a href="#" class="nav-link">
                         <%--<i class="nav-icon fas fa-chart-pie"></i>--%>
+                            <i class="nav-icon fas">📊</i>
                         <p>
-                            📊 Dashboard
+                            Dashboard
                             <i class="fas fa-angle-left right"></i>
                         </p>
                     </a>
@@ -131,8 +135,9 @@
 
                 <li id="sap" class="nav-item menu-open">
                     <a href="#" class="nav-link">
+                        <i class="nav-icon fas">🖥️</i>
                         <p>
-                            🖥️ SAP
+                             SAP
                             <i class="fas fa-angle-left right"></i>
                         </p>
                     </a>
@@ -159,8 +164,9 @@
 
                 <li id="subae" class="nav-item menu-open">
                     <a href="#" class="nav-link">
+                        <i class="nav-icon fas">🔍</i>
                         <p>
-                            🔍 수배로직
+                            수배로직
                             <i class="fas fa-angle-left right"></i>
                         </p>
                     </a>
@@ -231,8 +237,9 @@
 
                 <li id="mlb" class="nav-item menu-open">
                     <a href="#" class="nav-link">
+                        <i class="nav-icon fas">✍️</i>
                         <p>
-                            ✍️ MLB
+                             MLB
                             <i class="fas fa-angle-left right"></i>
                         </p>
                     </a>
@@ -249,8 +256,9 @@
 
                 <li id="vault" class="nav-item menu-open">
                     <a href="#" class="nav-link">
+                        <i class="nav-icon fas">📡️</i>
                         <p>
-                            📡 3D
+                             3D
                             <i class="fas fa-angle-left right"></i>
                         </p>
                     </a>
