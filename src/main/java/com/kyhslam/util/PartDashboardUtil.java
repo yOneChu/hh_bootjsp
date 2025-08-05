@@ -119,7 +119,7 @@ public class PartDashboardUtil {
                          CODN(A.ORIGIN_DIV) AS ORIGIN_DIV,
                          A.BLOCKNO_NUMBER,
                          A.SPEC,
-                         A.PART_SIZE
+                         A.PART_SIZE AS PARTSIZE
                   FROM NORMALPART$VF A JOIN AUTOCAD_FILE$VF CAD ON CAD.VF$OUID = GETID(A.DRAWING_NO)
                   WHERE A.VF$OUID IN (SELECT * FROM OUID)
                   --AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) != '6'
@@ -149,6 +149,7 @@ public class PartDashboardUtil {
 
             //sql += " AND A.MD$NUMBER LIKE '10111175G010%' ";
             if(partNo != null && !"".equals(partNo)){
+                partNo = partNo.toUpperCase();
 
                 if (partNo.contains("*")) {
                     partNo = partNo.replace("*", "%");
@@ -159,6 +160,7 @@ public class PartDashboardUtil {
             }
 
             if(partName != null && !"".equals(partName)){
+                partName = partName.toUpperCase();
 
                 if (partName.contains("*")) {
                     partName = partName.replace("*", "%");
@@ -189,6 +191,7 @@ public class PartDashboardUtil {
                 String BLOCKNO_NUMBER = rs.getString("BLOCKNO_NUMBER");
                 String SPEC = rs.getString("SPEC");
                 String UOM = rs.getString("UOM");
+                String PARTSIZE = rs.getString("PARTSIZE");
 
                 PartInfoDTO dto = new PartInfoDTO();
                 dto.setPartNo(PARTNO);
@@ -201,6 +204,8 @@ public class PartDashboardUtil {
                 dto.setBlockNo(BLOCKNO_NUMBER);
                 dto.setSpec(SPEC);
                 dto.setUom(UOM);
+                dto.setOriginDiv(ORIGIN_DIV);
+                dto.setPartSize(PARTSIZE);
                 dto.setOriginDiv(ORIGIN_DIV);
 
                 result.add(dto);

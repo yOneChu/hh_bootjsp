@@ -520,10 +520,14 @@
                 <div class="callout callout-danger">
                     <%--<i class="fas fa-bullhorn"></i> 🔊 도움말 <br>--%>
                     📢 도움말 <br>
+                    <font color="red">- 집계 기준:  중국법인 자재 제외, 최신 릴리즈, 엘리베이터 자재(BlockNo 1,2,3) </font><br>
+
+                    📝 사용 예시 <br>
                     - 자재번호 201153* 입력 시, 자재번호에 '201153'로 시작하는 모든 자재 조회하여 Excel 출력<br>
                     - *100325G02* 입력 시, 자재번호에 '100325G02' 포함된 모든 자재 출력 <br>
                     - *G*HB* 입력 시, 'G,HB' 포함된 모든 자재 출력 <br>
-                    - 집계 기준:  중국법인 자재 제외, 최신 릴리즈, 엘리베이터 자재(BlockNo 1,2,3)
+                    - HATCH DOOR ASSY 입력 시, 자재명이 'HATCH DOOR ASSY'인 모든 자재 출력 <br>
+                    - HATCH* 입력 시, 자재명이 'HATCH'로 시작하는 모든 자재 출력 <br>
                 </div>
             </div>
         </section>
@@ -670,7 +674,7 @@
                     <div class="col-lg-8">
                         <div class="card card-hyundai">
                             <div class="card-header-hyundai">
-                                <h5><i class="bi bi-bar-chart-line me-2"></i>월별 자재 사용 추이</h5>
+                                <h5><i class="bi bi-bar-chart-line me-2"></i>일별 총 자재 현황</h5>
                             </div>
                             <div class="card-body p-0">
                                 <div class="chart-container-hyundai">
