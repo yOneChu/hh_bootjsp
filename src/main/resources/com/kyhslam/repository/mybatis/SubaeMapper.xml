@@ -35,7 +35,7 @@
     <select id="findUsedProductNo" resultType="java.lang.String">
         SELECT DISTINCT A.PRODUCTNO
         FROM subaeProduct A
-        WHERE A.GISONG != ''
+        WHERE A.GISONG != '' AND A.GISONG != ''
     </select>
 
     <!-- 변경자재 top. 10  -->
@@ -52,7 +52,6 @@
         ORDER BY
             PCOUNT DESC
     </select>
-
 
     <select id="findSubaeProductList" resultType="ProductDto">
         SELECT DISTINCT A.PRODUCTNO AS productNo,
@@ -72,7 +71,7 @@
                 and LEFT(A.APPDATE,7) = #{productAppdate}
             </if>
             <if test="productAppdate != null and productAppdate != ''">
-                AND A.GISONG != ''
+                AND A.GISONG != '' AND A.GISONG != ''
             </if>
         </where>
     </select>
@@ -97,7 +96,7 @@
         FROM subaeProduct A
         <where>
             <if test="productAppdate != null and productAppdate != ''">
-                AND A.GISONG != ''
+                AND A.GISONG != '' AND A.GISONG != ''
             </if>
             <if test="productAppdate != null and productAppdate != ''">
                 and LEFT(A.APPDATE,7) = #{productAppdate}

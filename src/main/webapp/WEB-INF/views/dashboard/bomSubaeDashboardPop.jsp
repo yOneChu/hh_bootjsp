@@ -152,11 +152,11 @@
 
                                             <th style="font-weight: bold; text-align: center;">자재번호</th>
                                             <th style="font-weight: bold; text-align: center;">자재명</th>
-                                            <th style="font-weight: bold; text-align: center;">품목</th
+                                            <th style="font-weight: bold; text-align: center;">품목</th>
                                             <th style="font-weight: bold; text-align: center;">수정여부</th>
                                             <th style="font-weight: bold; text-align: center;">수량</th>
                                             <th style="font-weight: bold; text-align: center;">BlockNo</th>
-                                            >
+
                                             <th style="font-weight: bold; text-align: center;">CMT</th>
                                         </tr>
                                     </thead>
