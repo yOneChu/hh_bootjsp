@@ -174,7 +174,7 @@ public class PartDashboardUtil {
             pstmt.setString(1, year);
             //pstmt.setString(1, productOID);
 
-            //System.out.println("sql.toString() = " + sql.toString());
+            System.out.println("sql.toString() = " + sql.toString());
             
             rs = pstmt.executeQuery();
 
