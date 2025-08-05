@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class JqplDTO {
+public class JqprDTO {
 
     private String jqprNo;
     private String manageNo;

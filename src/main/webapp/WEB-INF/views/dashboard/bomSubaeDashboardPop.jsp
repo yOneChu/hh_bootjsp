@@ -1,16 +1,8 @@
-<%@page import="java.util.HashSet"%>
-<%@page import="java.util.Date"%>
-<%@page import="java.text.SimpleDateFormat"%>
-<%@page import="java.time.LocalDate"%>
-<%@page import="java.sql.DriverManager"%>
-<%@page import="java.util.Map"%>
-<%@page import="java.util.HashMap"%>
 <%@page import="java.util.ArrayList"%>
-<%@page import="java.sql.ResultSetMetaData"%>
-<%@page import="java.sql.ResultSet"%>
-<%@page import="java.sql.PreparedStatement"%>
-<%@page import="java.sql.Connection"%>
-<%@ page import="com.kyhslam.util.VaultDBConnection" %>
+<%@ page import="org.springframework.web.context.WebApplicationContext" %>
+<%@ page import="com.kyhslam.service.SubaeService" %>
+<%@ page import="org.springframework.web.context.support.WebApplicationContextUtils" %>
+<%@ page import="com.kyhslam.dto.ProductDto" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
@@ -18,167 +10,25 @@
 <%
 
     // BOM수배 대시보드 BOM 리스트 팝업화면
-    // bomSubaeDashboardPop.jsp.jsp
-    //
-
-
+    // bomSubaeDashboardPop.jsp
     String contextPath = request.getContextPath();
-    System.out.println("--- searchPriceReductionDatePop.jsp ---");
+    System.out.println("--- bomSubaeDashboardPop.jsp ---");
 
 
-    String curDate = (String)request.getParameter("curDate"); // 202411/2024/2025/total
-    String partType = (String)request.getParameter("partType"); // 월date or total
-    String todayVal = (String)request.getParameter("todayVal");
+    String prodNo = (String)request.getParameter("prodNo");
+    System.out.println("prodNo == " + prodNo);
 
 
+    WebApplicationContext context = WebApplicationContextUtils.getRequiredWebApplicationContext(application);
 
-    System.out.println("curDate == " + curDate);
-    System.out.println("partType == " + partType);
-    System.out.println("todayVal == " + todayVal);
+    // 원하는 Bean 가져오기
+    SubaeService subaeService = (SubaeService) context.getBean("SubaeService");
 
-    ArrayList<HashMap<String, String>> dataList = new ArrayList<HashMap<String, String>>();
+    ProductDto param = new ProductDto();
+    param.setProductNo(prodNo);
+    ArrayList<ProductDto> list = subaeService.findSubaePartNoList(param);
 
-    HashSet<String> duplicatedCheck = new HashSet<String>();
-    String title = partType;
-
-    Connection con 			= null;
-    PreparedStatement pstmt = null;
-    ResultSet rs 			= null;
-
-    try
-    {
-
-
-        String url = "jdbc:sqlserver://;serverName=10.225.80.35;port=1433;databaseName=PLMPRDIF;encrypt=false;";
-        String id = "SA";
-        String pw = "AutodeskVault@26200"; // "qwe123!@#"
-        //Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver").newInstance();
-        //con = DriverManager.getConnection(url,id,pw);
-        con = VaultDBConnection.getConnection();
-
-
-        StringBuffer sql = new StringBuffer();
-        sql.append(" SELECT ");
-        sql.append(" A.HOGI, A.batch_date, A.part_type, ");
-        sql.append(" A.erp_send_date, A.erp_send_month, A.part_no,A.qty, A.dwg_no, A.export_date, ");
-        sql.append(" A.gi_song, A.BLOCK_NO, ");
-        sql.append(" A.gong_sa, A.SPEC, A.M_USER, A.E_USER ");
-        sql.append(" FROM dash_publicdata A ");
-
-        sql.append(" WHERE A.BATCH_DATE = ? ");
-
-
-        if("total".equals(curDate)) {
-            //sql.append(" AND SUBSTRING(A.export_date, 1, 6) = ? ");
-
-
-        } else if("2024".equals(curDate)) {
-            sql.append(" AND SUBSTRING(A.export_date, 1, 4) = '" + curDate + "'");
-        } else if("2025".equals(curDate)) {
-            sql.append(" AND SUBSTRING(A.export_date, 1, 4) = '" + curDate + "'");
-        } else if("ETC".equals(curDate)) {
-            sql.append(" AND SUBSTRING(A.export_date, 1, 4) != '2024' AND SUBSTRING(A.export_date, 1, 4) != '2025' ");
-        } else {
-            sql.append(" AND SUBSTRING(A.export_date, 1, 6) = '" + curDate + "'");
-        }
-
-
-
-        //sql.append(" AND A.part_type = ? ");
-        //sql.append(" AND A.part_type = ? ");
-
-        if("LAMP".equals(partType)) {
-            //sql.append(" AND A.part_type LIKE '" + partType + "%'");
-            sql.append(" AND A.part_type IN ('LAMP_CARTOP', 'LAMP_HOIST', 'LAMP_OVER', 'LAMP_PIT') ");
-
-        } else if("HIP".equals(partType)) {
-            sql.append(" AND A.part_type IN ('HIP_BOT', 'HIP_MID', 'HIP_TOP' ) ");
-
-        } else if("HPB".equals(partType)) {
-            sql.append(" AND A.part_type IN ('HPB_BOT', 'HPB_MID', 'HPB_TOP' ) ");
-
-        } else {
-            sql.append(" AND A.part_type ='" + partType + "'");
-        }
-
-
-
-        System.out.println("sql.tostring == " + sql.toString());
-        pstmt = con.prepareStatement(sql.toString());
-        pstmt.setString(1, todayVal);
-        //pstmt.setString(2, curDate);
-        //pstmt.setString(3, partType);
-
-        rs = pstmt.executeQuery();
-
-        while(rs.next())
-        {
-            String part_name = rs.getString("part_type") == null ? "" : rs.getString("part_type");
-            String batch_date = rs.getString("batch_date") == null ? "" : rs.getString("batch_date");
-            String erp_send_date = rs.getString("erp_send_date") == null ? "" : rs.getString("erp_send_date");
-            String erp_send_month = rs.getString("erp_send_month") == null ? "" : rs.getString("erp_send_month");
-
-            String hogi = rs.getString("HOGI") == null ? "" : rs.getString("HOGI");
-            String export_date = rs.getString("export_date") == null ? "" : rs.getString("export_date");
-            String part_no = rs.getString("part_no") == null ? "" : rs.getString("part_no");
-            String qty = rs.getString("qty") == null ? "" : rs.getString("qty");
-            String dwg_no = rs.getString("dwg_no") == null ? "" : rs.getString("dwg_no");
-            String gi_song = rs.getString("gi_song") == null ? "" : rs.getString("gi_song");
-            String gong_sa = rs.getString("gong_sa") == null ? "" : rs.getString("gong_sa");
-            String spec = rs.getString("spec") == null ? "" : rs.getString("spec");
-            String m_user = rs.getString("m_user") == null ? "" : rs.getString("m_user");
-            String e_user = rs.getString("e_user") == null ? "" : rs.getString("e_user");
-            String BLOCK_NO = rs.getString("BLOCK_NO") == null ? "" : rs.getString("BLOCK_NO");
-
-            HashMap<String, String> dMap = new HashMap<String, String>();
-            dMap.put("part_name", part_name);
-            dMap.put("batch_date", batch_date);
-            dMap.put("erp_send_date", erp_send_date);
-            dMap.put("erp_send_month", erp_send_month);
-
-            dMap.put("BLOCK_NO", BLOCK_NO);
-            dMap.put("HOGI", hogi);
-            dMap.put("export_date", export_date);
-            dMap.put("part_no", part_no);
-            dMap.put("qty", qty);
-            dMap.put("dwg_no", dwg_no);
-            dMap.put("gi_song", gi_song);
-            dMap.put("gong_sa", gong_sa);
-            dMap.put("spec", spec);
-            dMap.put("m_user", m_user);
-            dMap.put("e_user", e_user);
-
-            dataList.add(dMap);
-
-
-            if(!duplicatedCheck.contains(hogi.trim())) {
-                //dataList.add(dMap);
-                //duplicatedCheck.add(hogi.trim());
-            }
-
-        }
-
-    } catch (Exception e) {
-        e.printStackTrace();
-    } finally {
-        //DynaUtils.close(rs,pstmt,con);
-        VaultDBConnection.disconnect(con, pstmt, rs);
-
-    }
-
-    if(partType.contains("CP")) {
-        title = "CP";
-    } else if(partType.contains("TM")) {
-        title = "TM(Belt Type)";
-    } else if(partType.contains("CAR")) {
-        //title = "Car Top Box";
-    } else if(partType.contains("CAR")) {
-        //title = "Car Top Box";
-    } else if(partType.contains("CAR")) {
-        //title = "Car Top Box";
-    } else if(partType.contains("CAR")) {
-        //title = "Car Top Box";
-    }
+    ProductDto productnfo = list.get(0);
 
 
 %>
@@ -210,6 +60,35 @@
     <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
 </head>
 
+<style>
+    .truncate-text {
+        white-space: nowrap;        /* 텍스트를 한 줄로 만듭니다. */
+        overflow: hidden;           /* 넘치는 내용을 숨깁니다. */
+        text-overflow: ellipsis;    /* 숨겨진 내용을 "..."으로 표시합니다. */
+        max-width: 200px;           /* (선택 사항) td의 최대 너비를 지정하여 텍스트가 잘릴 기준을 명확히 합니다. */
+        /* display: block; or inline-block; for max-width to work correctly on td content */
+    }
+    /* td 자체에 적용하거나, td 안에 div/span을 넣고 적용 */
+    td.truncated {
+        /* max-width는 td 자체에 적용하기 어려울 수 있으므로, 내부 요소에 적용하는 것이 좋음 */
+    }
+
+    /* 커스텀 툴팁을 위한 CSS */
+    #custom-tooltip {
+        position: absolute;       /* 절대 위치 */
+        background-color: #333;   /* 배경색 */
+        color: white;             /* 글자색 */
+        padding: 8px 12px;        /* 패딩 */
+        border-radius: 4px;       /* 모서리 둥글게 */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3); /* 그림자 */
+        display: none;            /* 초기에는 숨김 */
+        z-index: 9999;            /* 다른 요소 위에 표시되도록 높은 z-index */
+        max-width: 400px;         /* 툴팁 최대 너비 */
+        word-wrap: break-word;    /* 긴 텍스트 줄바꿈 허용 */
+        font-size: 14px;
+        line-height: 1.4;
+    }
+</style>
 
 <body>
 
@@ -224,20 +103,12 @@
                 <div class="row mb-2">
                     <div class="col-sm-6">
 
-                        <%
-                            if("total".equals(curDate)){
-                        %>
-                        <h1><%= title  + " 전체, 출하(예정) 자재" %> <font color="red"> (<%=todayVal %>, 06:00기준)</font></h1>
 
-                        <h4><font color="blue"> (2024.05 이후 출하예정일 모든 자재 포함) </font></h4>
+                        <h1> <%=productnfo.getProductNo()%> - <%=productnfo.getProductName()%> (<%=productnfo.getVersion() %>, 06:00기준)</font></h1>
 
-                        <%
-                        } else {
-                        %>
-                        <%-- <h1><%= curDate.substring(0,4) + "-" + curDate.substring(4,6) + ", " + partType  + " 출하(예정) 자재" %> <font color="red"> (<%=todayVal %>, 06:00기준)</font></h1> --%>
-                        <%
-                            }
-                        %>
+                        <h4><font color="blue"> 최초설계 승인일 (<%=productnfo.getProductAppdate()%>) </font></h4>
+
+
 
 
                     </div>
@@ -273,46 +144,54 @@
                             <div class="card-body" style="zoom:90%;">
                                 <table id="infoTable" class="table table-bordered table-hover" style="font-family: NotoSans; font-size:15px;">
                                     <thead>
-                                    <tr class="bg-secondary">
-                                        <th style="font-weight: bold; text-align: center;">제품번호</th>
-                                        <th style="font-weight: bold; text-align: center;">기종</th>
-                                        <th style="font-weight: bold; text-align: center;">파트번호</th>
-                                        <th style="font-weight: bold; text-align: center;">파트명</th>
-                                        <th style="font-weight: bold; text-align: center;">BlockNo</th>
-                                        <th style="font-weight: bold; text-align: center;">수량</th>
-                                        <th style="font-weight: bold; text-align: center;">품목</th>
-                                        <th style="font-weight: bold; text-align: center;">수정여부</th>
-                                        <th style="font-weight: bold; text-align: center;">CMT</th>
+                                        <tr class="bg-secondary">
+                                            <th style="font-weight: bold; text-align: center;">호기</th>
+                                            <th style="font-weight: bold; text-align: center;">수주명</th>
+                                            <th style="font-weight: bold; text-align: center;">버전</th>
+                                            <th style="font-weight: bold; text-align: center;">기종</th>
 
-                                    </tr>
+                                            <th style="font-weight: bold; text-align: center;">자재번호</th>
+                                            <th style="font-weight: bold; text-align: center;">자재명</th>
+                                            <th style="font-weight: bold; text-align: center;">품목</th
+                                            <th style="font-weight: bold; text-align: center;">수정여부</th>
+                                            <th style="font-weight: bold; text-align: center;">수량</th>
+                                            <th style="font-weight: bold; text-align: center;">BlockNo</th>
+                                            >
+                                            <th style="font-weight: bold; text-align: center;">CMT</th>
+                                        </tr>
                                     </thead>
 
                                     <tbody id="contentTable">
-
                                     <%
-
-
+                                        for (int i = 0; i < list.size(); i++) {
+                                            ProductDto info = list.get(i);
                                     %>
-
                                     <tr>
-                                        <td style="text-align: center;"> <%=strNewDtFormat %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=row.get("HOGI") %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=row.get("gi_song") %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=row.get("part_no") %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=getPartType %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <font color="red"> <%=strExportDate %> </font> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <font color="red"><%=row.get("qty") %> </font> </td>
-                                        <td style="text-align: center;"> <%=row.get("dwg_no") %> </td>
-                                        <td style="text-align: center;"> <%=row.get("BLOCK_NO") %> </td>
-                                        <td> <%=row.get("gong_sa") %> </td>
-                                        <td> <%=row.get("spec") %> </td>
-                                        <td style="text-align: center;"> <%=row.get("m_user") %> </td>
-                                        <td style="text-align: center;"> <%=row.get("e_user")  %> </td>
+                                        <td style="text-align: center;"> <%=info.getProductNo() %> </td>
+                                        <td style="font-weight: bold; text-align: center;"> <%=info.getProductName() %> </td>
+                                        <td style="font-weight: bold; text-align: center;"> <%=info.getProductVersion() %> </td>
+                                        <%--<td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=info.getGisong() %> </td>--%>
+                                        <td style="font-weight: bold;  text-align: center;"> <%=info.getGisong() %> </td>
+
+                                        <td style="font-weight: bold; text-align: center;"> <%=info.getPartNo() %> </td>
+                                        <td style="font-weight: bold; text-align: center;"> <%=info.getPartName() %> </td>
+                                        <td style="font-weight: bold; text-align: center;"> <font color="red"><%=info.getBlockopt() %> </font> </td>
+                                        <td style="text-align: center;"> <font color="red"><%=info.getUcheck() %> </font></td>
+                                        <td style="font-weight: bold; text-align: center;"> <%=info.getQty() %> </td>
+                                        <td style="text-align: center;"> <%=info.getBlockNo() %> </td>
+
+                                        <%--<td style="text-align: left;" class="truncate-text" title="이것은 매우매우 긴 텍스트입니다. 한 줄로 표시하기에는 너무 길어서 잘리고 ...으로 표시됩니다. 하지만 마우스를 올리면 이 전체 내용을 볼 수 있습니다!">
+                                            <%=info.getCmt() %> </td>--%>
+
+                                        <td style="text-align: left;" class="has-custom-tooltip">
+                                            <div class="truncate-text" data-full-text="<%=info.getCmt() %>">
+                                                <%=info.getCmt() %>
+                                            </div>
+                                        </td>
+
                                     </tr>
                                     <%
-
                                         } // end for
-
                                     %>
 
                                     </tbody>
@@ -350,6 +229,7 @@
 
 </div>
 
+<div id="custom-tooltip"></div>
 
 </body>
 
@@ -410,6 +290,62 @@
 
         console.log('start');
 
+
+
+        const $customTooltip = $('#custom-tooltip');
+
+        // .has-custom-tooltip 클래스를 가진 td 요소에 이벤트 바인딩
+        // 정확히는 잘리는 텍스트를 포함하는 div에 이벤트를 걸어도 좋습니다.
+        $('.has-custom-tooltip .truncate-text').on({
+            mouseenter: function(e) {
+                // 마우스를 올렸을 때
+                const fullText = $(this).data('full-text'); // data-full-text 속성 값 가져오기
+
+                // 툴팁에 내용 설정
+                $customTooltip.text(fullText);
+
+                // 툴팁 위치 계산 (마우스 커서 위치에 따라 조절)
+                // e.pageX, e.pageY는 마우스 커서의 현재 위치입니다.
+                // 툴팁이 화면 밖으로 나가지 않도록 조정하는 로직을 추가할 수 있습니다.
+                let tooltipX = e.pageX + 15; // 마우스 커서에서 오른쪽으로 15px
+                let tooltipY = e.pageY + 15; // 마우스 커서에서 아래쪽으로 15px
+
+                // 화면 오른쪽 경계를 넘어가는지 확인하고 조정 (간단한 예시)
+                if (tooltipX + $customTooltip.outerWidth() > $(window).width()) {
+                    tooltipX = e.pageX - $customTooltip.outerWidth() - 15;
+                }
+                // 화면 아래쪽 경계를 넘어가는지 확인하고 조정
+                if (tooltipY + $customTooltip.outerHeight() > $(window).height() + $(window).scrollTop()) {
+                    tooltipY = e.pageY - $customTooltip.outerHeight() - 15;
+                }
+
+
+                $customTooltip.css({
+                    left: tooltipX,
+                    top: tooltipY
+                }).show(); // 툴팁 보이기
+            },
+            mouseleave: function() {
+                // 마우스가 벗어났을 때
+                $customTooltip.hide(); // 툴팁 숨기기
+            },
+            mousemove: function(e) {
+                // 마우스 이동 시 툴팁 위치 업데이트 (선택 사항, 툴팁이 마우스 따라다니게 하려면)
+                // 위에 mouseenter에서 위치 계산한 로직을 여기에 복사하여 사용
+                let tooltipX = e.pageX + 15;
+                let tooltipY = e.pageY + 15;
+                if (tooltipX + $customTooltip.outerWidth() > $(window).width()) {
+                    tooltipX = e.pageX - $customTooltip.outerWidth() - 15;
+                }
+                if (tooltipY + $customTooltip.outerHeight() > $(window).height() + $(window).scrollTop()) {
+                    tooltipY = e.pageY - $customTooltip.outerHeight() - 15;
+                }
+                $customTooltip.css({
+                    left: tooltipX,
+                    top: tooltipY
+                });
+            }
+        });
     }); // end document ready
 
 </script>

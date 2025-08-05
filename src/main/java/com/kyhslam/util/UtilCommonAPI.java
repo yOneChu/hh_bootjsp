@@ -5,7 +5,7 @@ import java.text.DecimalFormat;
 public class UtilCommonAPI {
 
     /**
-     * 숫자 문자열에 천 단위 구분 콤마를 추가합니다.
+     * @apiNote 숫자 문자열에 천 단위 구분 콤마를 추가합니다.
      * 예: "1234567" -> "1,234,567"
      *
      * @param numberString 콤마를 추가할 숫자 문자열

@@ -34,7 +34,7 @@ public class ExcelDownloadController {
     private final MediaTypeFileExtensionResolver mediaTypeFileExtensionResolver;
 
     @PostMapping("/subaeDownload")
-    public void downloadExcel(HttpServletResponse response) throws IOException {
+    public void downloadExcel(HttpServletResponse response, String month) throws IOException {
         // HTTP 응답 헤더 설정
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=\"data.xlsx\"");
@@ -45,15 +45,20 @@ public class ExcelDownloadController {
 
         // 헤더 작성
         Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue("ID");
-        header.createCell(1).setCellValue("이름");
-        header.createCell(2).setCellValue("이메일");
+        header.createCell(0).setCellValue("호기번호");
+        header.createCell(1).setCellValue("버전");
+        header.createCell(2).setCellValue("수주명");
+        header.createCell(3).setCellValue("최종설계일");
+
+        header.createCell(4).setCellValue("기종");
+        header.createCell(5).setCellValue("기계");
+        header.createCell(6).setCellValue("전기");
 
         // 데이터 가져오기
         //List<MyDataDto> dataList = myDataService.getLargeData();
         ArrayList<ProductDto> dataList = new ArrayList<>();
         ProductDto param = new ProductDto();
-        param.setProductAppdate("2025-07");
+        param.setProductAppdate(month);
 
         dataList = subaeService.findSubaeProductList(param);
         for (int i = 0; i < dataList.size(); i++) {
@@ -62,14 +67,11 @@ public class ExcelDownloadController {
             row.createCell(0).setCellValue(dto.getProductNo());
             row.createCell(1).setCellValue(dto.getProductVersion());
             row.createCell(2).setCellValue(dto.getProductName());
-            row.createCell(2).setCellValue(dto.getProductAppdate());
+            row.createCell(3).setCellValue(dto.getProductAppdate());
 
-            row.createCell(2).setCellValue(dto.getPartNo());
-            row.createCell(2).setCellValue(dto.getPartName());
-            row.createCell(2).setCellValue(dto.getQty());
-            row.createCell(2).setCellValue(dto.getCmt());
-            row.createCell(2).setCellValue(dto.getProductName());
-            row.createCell(2).setCellValue(dto.getProductName());
+            row.createCell(4).setCellValue(dto.getGisong());
+            row.createCell(5).setCellValue(dto.getMmanager());
+            row.createCell(6).setCellValue(dto.getEmanager());
 
         }
 
@@ -181,6 +183,7 @@ public class ExcelDownloadController {
 
         System.out.println(param.getUcheck());
 
+        // 수배율 데이터 조회
         dataList = subaeService.findSubaePartNoList(param);
         System.out.println("dataList = " + dataList.size());
 

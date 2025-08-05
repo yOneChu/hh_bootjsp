@@ -12,6 +12,7 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
 @Service("SubaeService")
 @RequiredArgsConstructor
@@ -185,5 +186,13 @@ public class SubaeService {
         ArrayList<ProductDto> r = subaeMapper.findSubaePartNoList(param);
 
         return r;
+    }
+
+    /**
+     * 변경자재 Top.10 (HX규격품 제외)
+     * @return
+     */
+    public ArrayList<HashMap<String, String>> findTopModPartNo() {
+        return subaeMapper.findTopModPartNo();
     }
 }

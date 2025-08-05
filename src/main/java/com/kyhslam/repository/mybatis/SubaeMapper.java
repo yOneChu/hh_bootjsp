@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 @Mapper
 public interface SubaeMapper {
@@ -17,6 +18,8 @@ public interface SubaeMapper {
     ArrayList<ProductDto> findSubaeProductList(ProductDto param);
 
     ArrayList<ProductDto> findSubaePartNoList(ProductDto param);
+
+    ArrayList<HashMap<String, String>> findTopModPartNo();
 
     //void saveBlockHistory(@Param("blockDto") BlockHistoryDTO blockDto, @Param("version") String version);
 }

@@ -7,12 +7,12 @@ import lombok.Setter;
 //@Entity
 @Setter
 @Getter
-@Table(name = "jqpr_data")
+@Table(name = "jqprData")
 public class JQPR {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "dash_publicdata_id")
+    @Column(name = "jqpr_id")
     private Long id;
 
     private String jqprNo;
