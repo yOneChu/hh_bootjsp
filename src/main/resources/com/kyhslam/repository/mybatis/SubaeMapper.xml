@@ -84,7 +84,7 @@
                         A.PRODUCTVER AS productVersion,
                         A.APPDATE AS productAppdate, A.M_MANAGER AS mmanager, A.E_MANAGER AS emanager,
                         A.GISONG AS gisong,
-                        (SELECT COUNT(B.PARTNO) FROM subaeProduct B WHERE B.PRODUCTNO = A.PRODUCTNO AND B.QTY != '0') AS qty,
+                        (SELECT COUNT(B.PARTNO) FROM subaeProduct B WHERE B.PRODUCTNO = A.PRODUCTNO AND (B.QTY != '0' OR B.UCHECK = '1') ) AS qty,
                         A.m_ModCount AS mCount,
                         A.c_ModCount AS cCount,
                         A.one_ModCnt AS oneCount,
@@ -122,6 +122,7 @@
         <where>
             <if test="productAppdate != null and productAppdate != ''">
                 AND A.GISONG != '' AND A.GISONG != ''
+                AND (A.QTY != '0' OR A.UCHECK = '1' )
             </if>
             <if test="productAppdate != null and productAppdate != ''">
                 and LEFT(A.APPDATE,7) = #{productAppdate}
