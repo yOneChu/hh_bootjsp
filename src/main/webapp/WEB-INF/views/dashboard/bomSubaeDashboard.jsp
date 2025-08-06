@@ -584,7 +584,7 @@
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
-                        <h1>BOM 수배율 현황 </h1>
+                        <h1>BOM 수배율 현황 (2025년) </h1>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
@@ -821,7 +821,8 @@
                                                     <option id="2025-04" value="2025-04">2025년 4월</option>
                                                     <option id="2025-05" value="2025-05">2025년 5월</option>
                                                     <option id="2025-06" value="2025-06">2025년 6월</option>
-                                                    <option id="2025-07" value="2025-07" selected>2025년 7월</option>
+                                                    <option id="2025-07" value="2025-07">2025년 7월</option>
+                                                    <option id="2025-07" value="2025-08" selected>2025년 8월</option>
                                                 </select>
                                             </div>
                                             <%--<div class="search-box">
