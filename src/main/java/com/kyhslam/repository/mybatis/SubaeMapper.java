@@ -15,6 +15,10 @@ public interface SubaeMapper {
 
     ArrayList<String> findUsedProductNo();
 
+    String findALLProductCount();
+    String findALLPartCount();
+    String findALLPartModCount();
+
     ArrayList<ProductDto> findSubaeProductList(ProductDto param);
 
     ArrayList<ProductDto> findSubaePartNoList(ProductDto param);

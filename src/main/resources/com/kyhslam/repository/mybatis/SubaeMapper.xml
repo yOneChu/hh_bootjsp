@@ -10,6 +10,31 @@
         delete from subaeProduct
     </delete>
 
+    <!--총 제품수-->
+    <select id="findALLProductCount" resultType="java.lang.String">
+        SELECT COUNT(DISTINCT A.PRODUCTNO) AS CNT
+        FROM subaeProduct A
+        WHERE LEFT(A.APPDATE, 4) = '2025'
+          AND A.GISONG IS NOT NULL and A.GISONG != '';
+    </select>
+
+    <!--총 수배건수-->
+    <select id="findALLPartCount" resultType="java.lang.String">
+        SELECT COUNT(A.PARTNO) AS CNT
+        FROM subaeProduct A
+        WHERE LEFT(A.APPDATE, 4) = '2025'
+          AND A.GISONG IS NOT NULL and A.GISONG != '';
+    </select>
+
+    <!--총 변경 자재건수-->
+    <select id="findALLPartModCount" resultType="java.lang.String">
+        SELECT COUNT(A.PARTNO) AS CNT
+        FROM subaeProduct A
+        WHERE LEFT(A.APPDATE, 4) = '2025'
+          AND A.UCHECK = '1'
+          AND A.GISONG IS NOT NULL and A.GISONG != '';
+    </select>
+
 <!--    <insert id="save" useGeneratedKeys="true" keyProperty="id">
         insert into item(item_name, price, quantity)
         values(#{itemName}, #{price}, #{quantity})

@@ -101,7 +101,9 @@
 
 
     function excelPrint(ucheck) {
-        console.log(month);
+        //console.log(month);
+        let month = $('#monthSelect').val();
+
         showLoading(); // 로딩바 표시
 
         $.ajax({
@@ -316,7 +318,7 @@
             },
             yAxis: {
                 title: {
-                    text: '라인 수'
+                    text: '호기'
                 }
             },
 

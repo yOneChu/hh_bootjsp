@@ -87,9 +87,14 @@ public class ExcelDownloadController {
     // 2025-07 날짜로 수배율 계산한 PARTNO 전체 조회 -> EXCEL
     @PostMapping("/subaeDownloadV2")
     public void subaeDownloadV2(HttpServletResponse response, String month, String ucheck) throws IOException {
+
+        String fileName = "";
+        fileName = "ALL_PARTLIST_" + month + ".xlsx";
+
         // HTTP 응답 헤더 설정
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setHeader("Content-Disposition", "attachment; filename=\"SUBAE_PART_DATA.xlsx\"");
+        //response.setHeader("Content-Disposition", "attachment; filename=\"SUBAE_PART_DATA.xlsx\"");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
 
         System.out.println("subaeDownloadV2 -- " + month);
         System.out.println("subaeDownloadV2 -- " + ucheck);

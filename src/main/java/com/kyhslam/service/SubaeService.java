@@ -195,4 +195,28 @@ public class SubaeService {
     public ArrayList<HashMap<String, String>> findTopModPartNo() {
         return subaeMapper.findTopModPartNo();
     }
+
+
+    /**
+     * 2025년 제품 개수
+     * @return
+     */
+    public String findALLProductCount() { return subaeMapper.findALLProductCount(); }
+
+    /**
+     * 2025년 전체 자재 수 (선박제외)
+     * @return
+     */
+    public String findALLPartCount() {
+        return subaeMapper.findALLPartCount();
+    }
+
+    /**
+     * 2025년 전체 수정 자재 수 (선박제외)
+     * @return
+     */
+    public String findALLPartModCount() {
+        return subaeMapper.findALLPartModCount();
+    }
+
 }

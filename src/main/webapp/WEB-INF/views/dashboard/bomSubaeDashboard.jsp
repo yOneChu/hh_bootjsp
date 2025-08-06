@@ -21,6 +21,10 @@
 
     ArrayList<HashMap<String, String>> topInfoList = subaeService.findTopModPartNo();
 
+    String allProductCnt = subaeService.findALLProductCount();
+    String allPartCnt = subaeService.findALLPartCount();
+    String allPartModCnt = subaeService.findALLPartModCount();
+
     //PCOUNT=5654, PARTNO=VC011636G010A, PARTNAME=RELEASE CABLE},
 
 
@@ -610,28 +614,29 @@
                 <div class="summary-cards">
                     <div class="card">
                         <h3>총 제품 수</h3>
-                        <div class="card-value" id="totalProducts">24</div>
+                        <div class="card-value" id="totalProducts"><%=UtilCommonAPI.formatNumberWithCommas(allProductCnt) %></div>
                         <div class="card-label">호기</div>
                     </div>
                     <div class="card">
-                        <h3>평균 수배율</h3>
-                        <div class="card-value" id="avgRate">87.5%</div>
-                        <div class="card-label">자동수배</div>
+                        <h3>총 수배 자재</h3>
+                        <div class="card-value" id="avgRate"><%= UtilCommonAPI.formatNumberWithCommas(allPartCnt) %></div>
+                        <div class="card-label">개</div>
                     </div>
+                    <%--평균수배율, 완료율--%>
                     <div class="card">
-                        <h3>수정 대상 부품</h3>
-                        <div class="card-value" id="modifiedParts">156</div>
+                        <h3>총 수정 자재</h3>
+                        <div class="card-value" id="modifiedParts"><%=UtilCommonAPI.formatNumberWithCommas(allPartModCnt) %></div>
                         <div class="card-label">개</div>
                     </div>
                     <div class="card">
                         <h3>완료율</h3>
-                        <div class="card-value" id="completionRate">92.3%</div>
+                        <div class="card-value" id="completionRate">00%</div>
                         <div class="card-label">BOM 구성</div>
                     </div>
                 </div>
 
                 <div class="chart-container">
-                    <div class="chart-title">📊 월별 BOM 구성 현황</div>
+                    <div class="chart-title">📊 월별 호기 현황</div>
                    <%-- <figure class="highcharts-figure">--%>
                         <div class="chart-placeholder" id="cpContainer">
                             <%--📊 차트 영역 (Chart.js 또는 다른 차트 라이브러리 연동)--%>
@@ -832,7 +837,7 @@
                                     </div>
 
                                     <div class="filter-buttons float-right">
-                                        <button class="filter-btn active" data-filter="all">전체</button>
+                                        <%--<button class="filter-btn active" data-filter="all">전체</button>--%>
                                         <button class="filter-btn" data-filter="excellent" id="excel_all">자재전체 Excel 출력</button>
 
                                         <button class="filter-btn" data-filter="good" id="excelGo">제품 Excel 출력</button>
