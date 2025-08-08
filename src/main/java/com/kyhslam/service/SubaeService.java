@@ -4,6 +4,7 @@ import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.repository.SubaeRepository;
 import com.kyhslam.repository.mybatis.SubaeMapper;
+import com.kyhslam.util.PIDCommonUtil;
 import com.kyhslam.util.SubaeCommonUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -217,6 +218,17 @@ public class SubaeService {
      */
     public String findALLPartModCount() {
         return subaeMapper.findALLPartModCount();
+    }
+
+
+    /**
+     * @apiNote PID코드의 라인 출력
+     * @param pidName
+     * @return
+     */
+    public ArrayList<ArrayList<String>> findPIDLineView(String pidName) {
+        ArrayList<ArrayList<String>> result = PIDCommonUtil.findPIDLineView(pidName);
+        return result;
     }
 
 }

@@ -269,4 +269,14 @@ public class SubaeController {
 
         return result;
     }
+
+    //PID조회
+    @PostMapping("/subae/findPIDLineView")
+    @ResponseBody
+    public ArrayList<ArrayList<String>> findPIDLineView(String pid) {
+
+        ArrayList<ArrayList<String>> result = subaeService.findPIDLineView(pid);
+
+        return result;
+    }
 }
