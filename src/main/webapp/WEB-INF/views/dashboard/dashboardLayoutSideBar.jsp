@@ -83,7 +83,7 @@
                         </a>--%>
                         <li>
                             <a href="/subae/bomDashboard" class="nav-link">
-                                <p>BOM 수배율 현황(월별)(개발중)</p>
+                                <p>BOM 수배율 부품 현황(월별)</p>
                             </a>
                         </li>
 

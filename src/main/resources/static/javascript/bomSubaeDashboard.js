@@ -372,7 +372,7 @@
                 //name: 'Installation & Developers',
                 showInLegend: false,
                 data: [
-                    794, 869, 837, 913, 605, 741, 975, 60
+                    794, 869, 837, 913, 605, 741, 975, 148
         ],
             dataLabels: {
                 enabled: true

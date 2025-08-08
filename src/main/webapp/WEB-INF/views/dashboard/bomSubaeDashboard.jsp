@@ -613,7 +613,7 @@
             <div class="dashboard-grid">
                 <div class="summary-cards">
                     <div class="card">
-                        <h3>총 제품 수</h3>
+                        <h3>총 호기 수</h3>
                         <div class="card-value" id="totalProducts"><%=UtilCommonAPI.formatNumberWithCommas(allProductCnt) %></div>
                         <div class="card-label">호기</div>
                     </div>
@@ -629,21 +629,20 @@
                         <div class="card-label">개</div>
                     </div>
                     <div class="card">
-                        <h3>완료율</h3>
-                        <div class="card-value" id="completionRate">00%</div>
-                        <div class="card-label">BOM 구성</div>
+                        <h3>-</h3>
+                        <div class="card-value" id="completionRate">-</div>
+                        <div class="card-label">-</div>
                     </div>
                 </div>
 
                 <div class="chart-container">
-                    <div class="chart-title">📊 월별 호기 현황</div>
+                    <div class="chart-title">📊 월별 집계 호기</div>
                    <%-- <figure class="highcharts-figure">--%>
                         <div class="chart-placeholder" id="cpContainer">
                             <%--📊 차트 영역 (Chart.js 또는 다른 차트 라이브러리 연동)--%>
                         </div>
                     <%--</figure>--%>
                 </div>
-
 
                 <!-- Top 10 변경자재 영역 -->
                 <div class="top10-container">
@@ -827,7 +826,7 @@
                                                     <option id="2025-05" value="2025-05">2025년 5월</option>
                                                     <option id="2025-06" value="2025-06">2025년 6월</option>
                                                     <option id="2025-07" value="2025-07">2025년 7월</option>
-                                                    <option id="2025-07" value="2025-08" selected>2025년 8월</option>
+                                                    <option id="2025-08" value="2025-08" selected>2025년 8월</option>
                                                 </select>
                                             </div>
                                             <%--<div class="search-box">
