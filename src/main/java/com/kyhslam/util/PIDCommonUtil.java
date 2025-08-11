@@ -326,7 +326,7 @@ public class PIDCommonUtil {
             sql.append(" NVL(D.KEY19, '-') AS KEY19 , NVL(D.VAL19, '-') AS VAL19 ,      ");
             sql.append(" NVL(D.KEY20, '-') AS KEY20 , NVL(D.VAL20, '-') AS VAL20       ");
 
-            System.out.println("FIELD = " + FIELD);
+            //System.out.println("FIELD = " + FIELD);
 
             if(pid02 != null && !"".equals(pid02.trim()) && !FIELD.equals("REMARKS")) {
 
@@ -349,11 +349,11 @@ public class PIDCommonUtil {
 
 
             if( !"".equals(PID03.trim()) || !"".equals(PID04.trim()) || !"".equals(PID05.trim()) ) {
-                System.out.println("PID-GROUP==============");
+                //System.out.println("PID-GROUP==============");
                 //CON05 : PID-GROUP -> NOT EQUAL/EQUAL/LIKE/NOT LIKE
 
-                System.out.println("CON05 = " + CON05);
-                System.out.println("PID03 = " + PID03);
+                //System.out.println("CON05 = " + CON05);
+                //System.out.println("PID03 = " + PID03);
 
 
                 //NOT이 포함되면 AND 조건으로 연결한다.
@@ -436,7 +436,7 @@ public class PIDCommonUtil {
 
             con = PLMDBConnection.getConnection();
 
-            System.out.println("888888888888 sql.toString() = " + sql.toString());
+            //System.out.println("888888888888 sql.toString() = " + sql.toString());
             pstmt = con.prepareStatement(sql.toString());
 
             //pstmt2.setString(1, projrctNo);
@@ -714,7 +714,7 @@ public class PIDCommonUtil {
         String param1 = "";
         if(gubun01 != null && !"".equals(gubun01)) {
             if(gubun01.equals("LIKE")) {
-                param1 = "'%" + pid01 + "%'";
+                param1 = "'%" + pid01.trim() + "%'";
             } else {
                 gubun01 = "=";
                 param1 = "'" + pid01.trim() + "'";
@@ -724,7 +724,7 @@ public class PIDCommonUtil {
         String param2 = "";
         if(gubun02 != null && !"".equals(gubun02)) {
             if(gubun02.equals("LIKE") || gubun02.equals("NOT LIKE")) {
-                param2 = "'%" + pid02 + "%'";
+                param2 = "'%" + pid02.trim() + "%'";
 
             } else if(gubun02.equals("NOT_EQUAL")) {
                 gubun02 = "!=";
@@ -736,11 +736,9 @@ public class PIDCommonUtil {
             }
         }
 
-
         temSql.append(" FROM variant_d d, variant_h h, variant_id id ");
         temSql.append(" WHERE h.HOUID = id.LAST_HOUID  ");
         temSql.append(" AND h.HOUID =d.HOUID  ");
-
 
         temSql.append(" AND (  ");
 

@@ -535,6 +535,7 @@
 
         if(pidVal == null || "" == pidVal) {
             console.log(pidVal);
+            pidVal = pidVal.trim();
             alert("PID값을 입력하세요.");
             return;
         }
