@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kyhslam.repository.mybatis.ElevatorInstallationMapper">
+
+
+
+
+
+    <insert id="saveElvInstall" >
+        INSERT INTO ElevatorInstallation(elevatorNo, elvtrAsignNo, bdmgtSn, address1, address2, buldNm, buldPrposLclas, buldPrposSclas,
+                                  companyNm, elvtrDetailForm, elvtrDiv, elvtrForm, elvtrKindNm, frstInstallationDe, installationDe, installationPlace,
+                                  liveLoad, ratedCap, ratedSpeed, shuttleFloorCnt, sido, sigungu)
+        VALUES(#{elvDto.elevatorNo}, #{elvDto.elvtrAsignNo}, #{elvDto.bdmgtSn}, #{elvDto.address1}, #{elvDto.address2},
+               #{elvDto.buldNm}, #{elvDto.buldPrposLclas}, #{elvDto.buldPrposSclas}, #{elvDto.companyNm}, #{elvDto.elvtrDetailForm}, #{elvDto.elvtrDiv},
+               #{elvDto.elvtrForm}, #{elvDto.elvtrKindNm}, #{elvDto.frstInstallationDe}, #{elvDto.installationDe}, #{elvDto.installationPlace}, #{elvDto.liveLoad}, #{elvDto.ratedCap},
+               #{elvDto.ratedSpeed}, #{elvDto.shuttleFloorCnt}, #{elvDto.sido}, #{elvDto.sigungu}
+               )
+    </insert>
+
+
+</mapper>
