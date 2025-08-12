@@ -36,4 +36,20 @@ public class ViewController {
         return "/vault/designView";
     }
 
+
+    //3D뷰어 메인 화면
+    @GetMapping("/vault/eduViewMain")
+    public String eduViewMain() throws IOException {
+
+        return "/vault/eduMain";
+    }
+
+    //3D뷰어 메인 화면
+    @GetMapping("/vault/eduView")
+    public String eduView() throws IOException {
+
+        return "/vault/eduView";
+    }
+
+
 }
