@@ -104,7 +104,9 @@
                     <div class="col-sm-6">
 
 
-                        <h1> <%=productnfo.getProductNo()%> - <%=productnfo.getProductName()%> (<%=productnfo.getProductVersion() %>, 금일 06:00기준)</font></h1>
+                        <%--<h1> <%=productnfo.getProductNo()%> - <%=productnfo.getProductName()%> (<%=productnfo.getProductVersion() %>, 금일 06:00기준)</font></h1>--%>
+
+                            <h1> <%=productnfo.getProductNo()%> - <%=productnfo.getProductName()%>)</font></h1>
 
                         <h4><font color="blue"> 최초설계 승인일 (<%=productnfo.getProductAppdate()%>) </font></h4>
 
