@@ -604,9 +604,14 @@
             // body에 fade-out 클래스 추가
             document.body.classList.add('fade-out');
 
+            let url = '/vault/eduView?'; // Relative path is usually best
+            url += "filename=10101310";
+
             // transition이 끝난 뒤 페이지 이동
             setTimeout(() => {
-                window.location.href = 'eduView.html?filename=10101310';
+                //window.location.href = 'eduView.html?filename=10101310';
+                window.location.href = url;
+
             }, 800); // transition 시간과 동일
         });
     });

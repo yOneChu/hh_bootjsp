@@ -1,11 +1,19 @@
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
+
+<%
+    String filename = request.getParameter("filename");
+
+    System.out.println("filename = " + filename);
+
+%>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8" />
     <%--<meta name="viewport" content="width=device-width, initial-scale=1.0" />--%>
     <title>EduVision 3D - Viewer</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -58,7 +66,6 @@
         .viewer-pane { background: #0a0c12; position: relative; }
         .viewer-toolbar { display: flex; gap: .5rem; align-items: center; padding: .6rem .8rem; border-bottom: 1px solid var(--line); background: rgba(0,0,0,.25); position: sticky; top: 0; z-index: 2; }
         .viewer-stage { position: absolute; inset: 42px 0 28px 0; }
-        #viewerCanvas { width: 100%; height: 100%; display: block; background: repeating-conic-gradient(from 45deg, #0e1118 0 25%, #0b0e14 0 50%) 50% / 24px 24px; }
 
         .statusbar { height: 28px; display: flex; align-items: center; gap: 1rem; padding: 0 .8rem; background: rgba(0,0,0,.35); border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
 
@@ -176,6 +183,9 @@
             letter-spacing: 0.2px;
         }
 
+        .tree li.active { background: rgba(0,212,255,.08); border: 1px solid var(--line); }
+
+
         /* Responsive tweak */
         @media (max-width: 960px) {
             .work-area { grid-template-columns: 260px 6px 1fr; }
@@ -257,7 +267,7 @@
         <!-- Viewer pane -->
         <section class="viewer-pane">
             <div id="other-system-container" style="width:100%; height:100%;">
-                <iframe src="http://10.225.80.35/vaultview/viewdesign.html?filename=10101310"
+                <iframe src="http://10.225.80.35/vaultview/viewdesign.html?filename=<%=filename%>"
                         style="width:100%; height:100%; border:none;"></iframe>
             </div>
         </section>
@@ -270,11 +280,12 @@
      </div>-->
 </div>
 
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
 <script>
 
-    var $folderTree
+    /*var $folderTree
 
     $(document).ready(function (){
 
@@ -312,7 +323,7 @@
         }
 
 
-    }); //ready
+    }); // END Jquery
 
 
     function view3D(fileName) {
@@ -358,8 +369,7 @@
 
             viewer.loadModel(DWFFileName);
         })
-    }
-
+    }*/
 
 
     // ===== Left/Right resizable splitter =====
@@ -375,6 +385,9 @@
             const w = Math.min(max, Math.max(min, e.clientX));
             sidebar.style.width = w + 'px';
         });
+
+
+
     })();
 
     // ===== Tree expand/collapse & search =====
@@ -402,47 +415,21 @@
     });
 
 
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('li[data-value]').forEach(function (li) {
+            li.addEventListener('click', function () {
+                const filename = this.getAttribute('data-value');
+                console.log('filename ---- ', filename);
+                //alert(filename);
+                // 화면 자체를 새로고침하면서 filename 파라미터 포함
+                //window.location.href = `/vault/eduView?filename=${filename}`;
+                window.location.href = "http://localhost:8070/vault/eduView?filename=" + filename;
 
-
-    // ===== Drag & Drop overlay (파일 처리 로직은 사용자 구현) =====
-    (function() {
-        const stage = document.querySelector('.viewer-stage');
-        const drop = document.getElementById('dropOverlay');
-        const fileInput = document.getElementById('fileInput');
-
-        const show = () => drop.style.display = 'flex';
-        const hide = () => drop.style.display = 'none';
-
-        ;['dragenter','dragover'].forEach(type => stage.addEventListener(type, (e) => { e.preventDefault(); e.stopPropagation(); show(); }));
-        ;['dragleave','drop'].forEach(type => stage.addEventListener(type, (e) => { e.preventDefault(); e.stopPropagation(); hide(); }));
-        stage.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            setStatus(`${files.length}개 파일 입력됨 (파싱 로직 연결 필요)`);
-            // TODO: 실제 파서 연결 (STEP/OBJ/GLTF 등)
+            });
         });
-
-        fileInput.addEventListener('change', (e) => {
-            const files = e.target.files;
-            if (files && files.length) setStatus(`${files.length}개 파일 선택됨 (파싱 로직 연결 필요)`);
-        });
-    })();
+    });
 
 
-
-    // ===== Canvas resize helper =====
-    const canvas = document.getElementById('viewerCanvas');
-    const resizeCanvas = () => {
-        const rect = canvas.getBoundingClientRect();
-        if (canvas.width !== rect.width || canvas.height !== rect.height) {
-            canvas.width = rect.width * window.devicePixelRatio;
-            canvas.height = rect.height * window.devicePixelRatio;
-            // TODO: renderer.setSize(rect.width, rect.height) etc.
-        }
-    };
-    const ro = new ResizeObserver(resizeCanvas);
-    ro.observe(document.querySelector('.viewer-stage'));
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
 </script>
 </body>
 </html>

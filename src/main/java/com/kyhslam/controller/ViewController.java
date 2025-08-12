@@ -46,7 +46,7 @@ public class ViewController {
 
     //3D뷰어 메인 화면
     @GetMapping("/vault/eduView")
-    public String eduView() throws IOException {
+    public String eduView(String filename) throws IOException {
 
         return "/vault/eduView";
     }
