@@ -217,8 +217,9 @@
 <div class="formula-bar">
     <div class="d-flex align-items-center">
         <input type="text" class="form-control cell-reference" id="cellReference" value="A1" readonly>
-        <div class="me-2"><i class="fas fa-search"></i></div> <input type="text" class="form-control formula-input" id="searchInput" placeholder="검색 조건을 입력하세요...">
-        <button class="btn btn-primary ms-2" onclick="performSearch()">검색</button>
+        <div class="me-2"><i class="fas fa-search"></i></div> <input type="text" class="form-control formula-input" id="searchInput" placeholder="PID를 입력하세요...">
+        <%--<button class="btn btn-primary ms-2" onclick="performSearch()">검색</button>--%>
+        <button class="btn btn-primary ms-2" onclick="searchPID()">검색</button>
     </div>
 </div>
 

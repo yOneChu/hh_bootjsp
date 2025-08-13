@@ -279,4 +279,11 @@ public class SubaeController {
 
         return result;
     }
+
+    //마인드맵
+    @GetMapping("/subae/logicViewMapify")
+    public String logicViewMapify(String pid) {
+        log.info("========== subae logicViewMapify");
+        return "subaeLogic/logicViewMapify";
+    }
 }

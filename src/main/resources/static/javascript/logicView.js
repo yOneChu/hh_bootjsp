@@ -1,15 +1,15 @@
 
 
-
+let pidVal;
 let sampleData;
 
 $(document).ready(async function() {
 
 
-    let rr = searchPID("EL_PD162A06");
+    //let rr = searchPID("EL_PD162A06");
 
     console.log("1111111");
-    //initHandsontable(rr);
+    //initHandsontable(rr);AUTO_EL_ZERR_M3
 
 }); // END JQUERY
 
@@ -48,9 +48,10 @@ function hideEmptyColumns() {
 
 
 
-function searchPID(pid)
+function searchPID()
 {
 
+    let pid = document.getElementById('searchInput').value.trim();
     console.log("---searchPID---");
 
     $.ajax({
@@ -317,7 +318,7 @@ function updateCellReference(row, col) {
 }
 
 // --- NEW: Function to perform search ---
-function performSearch() {
+/*function performSearch() {
     const searchTerm = document.getElementById('searchInput').value.trim();
     if (searchTerm) {
         alert(`"${searchTerm}" (으)로 데이터베이스 검색을 수행합니다.\n\n실제 구현 시 이 검색어를 사용하여 데이터를 필터링하거나 서버에서 조회합니다.`);
@@ -325,7 +326,7 @@ function performSearch() {
     } else {
         alert('검색 조건을 입력해주세요.');
     }
-}
+}*/
 // --- END NEW ---
 
 // Status bar update remains the same
@@ -338,7 +339,8 @@ function updateStatusBar() {
 // --- MODIFIED: Search input handling ---
 document.getElementById('searchInput').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
-        performSearch();
+        //performSearch();
+        searchPID();
     }
 });
 // --- END MODIFIED ---
@@ -400,8 +402,23 @@ function exportToCSV() {
 
 }
 
+
+//마인드맵
 function insertChart() {
-    alert('차트 기능은 AI 어시스턴트와 연동하여 구현됩니다.');
+    //alert('차트 기능은 AI 어시스턴트와 연동하여 구현됩니다.');
+
+    //logicViewMapify.jsp
+    //EL_PB126A01
+
+    let pid = document.getElementById('searchInput').value.trim();
+    //팝업
+    let url = '/subae/logicViewMapify?'; // Relative path is usually best
+    url += "pid=" + pid;
+
+    const features = 'width=800,height=600,top=100,left=100,resizable=yes,scrollbars=yes';
+
+    window.open(url,'popup','width=1500, height=800, top=50, left=50, scrollbars=yes');
+
 }
 
 // Tooltip initialization remains the same

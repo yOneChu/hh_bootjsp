@@ -892,6 +892,12 @@ public class PIDCommonUtil {
                 String REMARKS = rs.getString("REMARKS") == null ? "" : rs.getString("REMARKS");
                 String GOTO = rs.getString("GOTO") == null ? "" : rs.getString("GOTO");
 
+                if(REMARKS != null && !"".equals(REMARKS)) {
+                    REMARKS = REMARKS.trim();
+                    REMARKS = REMARKS.replace("-", "");
+                }
+
+
                 row.add(PID);
                 row.add(NO);
                 row.add(ADDR);
@@ -911,8 +917,13 @@ public class PIDCommonUtil {
                         } else {
                             //없으면
                             String val = SubaeCommonUtil.findCodeName(s); // 영업사양 코드 값 조회
-                            codeMap.put(s.trim(), val.trim());
-                            s += " \n" + "(" + val + ")";
+
+                            if(val != null && !"".equals(val)) {
+                                codeMap.put(s.trim(), val.trim());
+                                s += " \n" + "(" + val + ")";
+                            }
+
+
                         }
                     }
 
@@ -948,7 +959,7 @@ public class PIDCommonUtil {
 
                 result.add(row);
             }
-            System.out.println(result);
+            //System.out.println(result);
 
         } catch (Exception e) {
             e.printStackTrace();

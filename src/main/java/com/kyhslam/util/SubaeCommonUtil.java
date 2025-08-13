@@ -991,8 +991,6 @@ public class SubaeCommonUtil {
 
 
             } //end while
-
-
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
