@@ -823,6 +823,9 @@ public class PIDCommonUtil {
 
         ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
 
+
+        HashMap<String, String> codeMap = new HashMap<>();
+
         try {
 
             con = PLMDBConnection.getConnection();
@@ -896,6 +899,24 @@ public class PIDCommonUtil {
 
                 for (int i = 1; i <= 20; i++) {
                     String s = rs.getString("SPEC" + i);
+
+                    //spec이 특성값이면 \n + (속성값) 넣기
+                    if(s != null && !"".equals(s)) {
+
+                        if (codeMap.containsKey(s)) {
+                            //이미 있으면
+                            s += " \n" + "(" + codeMap.get(s.trim()) + ")";
+
+                        } else {
+                            //없으면
+                            String val = SubaeCommonUtil.findCodeName(s);
+                            codeMap.put(s.trim(), val.trim());
+
+                            s += " \n" + "(" + val + ")";
+                        }
+
+                    }
+
                     String c = rs.getString("CON" + i);
                     row.add(s);
                     row.add(c);

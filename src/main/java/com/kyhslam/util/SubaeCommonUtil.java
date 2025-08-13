@@ -953,8 +953,53 @@ public class SubaeCommonUtil {
         return dataList;
     }
 
+    /**
+     * @apiNote 특성값 한글명 조회
+     * @param code
+     * @return
+     */
+    public static String findCodeName(String code) {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        String val = "";
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                SELECT A.NAME AS CODE, A.TIT AS VAL
+                FROM HDEL_SYSTEM.DOSFLD A
+                WHERE A.NAME = ?
+                """;
+
+            //WHERE A.NAME = 'EL_ZORINO'
+
+            System.out.println("sql = " + sql);
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, code);
+            //pstmt.setString(2, partNo);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                //String code = rs.getString("CODE"); //제품번호
+                val = rs.getString("VAL") == null ? "" : rs.getString("VAL");
 
 
+            } //end while
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        return val;
+    }
 
 }
 
