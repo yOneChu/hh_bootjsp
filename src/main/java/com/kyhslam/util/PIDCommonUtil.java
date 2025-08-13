@@ -909,7 +909,7 @@ public class PIDCommonUtil {
 
                         } else {
                             //없으면
-                            String val = SubaeCommonUtil.findCodeName(s);
+                            String val = SubaeCommonUtil.findCodeName(s); // 영업사양 코드 값 조회
                             codeMap.put(s.trim(), val.trim());
 
                             s += " \n" + "(" + val + ")";

@@ -971,7 +971,8 @@ public class SubaeCommonUtil {
             String sql = """
                 SELECT A.NAME AS CODE, A.TIT AS VAL
                 FROM HDEL_SYSTEM.DOSFLD A
-                WHERE A.NAME = ?
+                WHERE A.DOSCLAS = '2248993771'
+                AND A.NAME = ?
                 """;
 
             //WHERE A.NAME = 'EL_ZORINO'
