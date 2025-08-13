@@ -14,6 +14,40 @@ $(document).ready(async function() {
 }); // END JQUERY
 
 
+function hideEmptyColumns() {
+    if (!hot) return;
+
+    const data = hot.getData();
+    const colCount = hot.countCols();
+    const hiddenCols = [];
+
+    for (let col = 0; col < colCount; col++) {
+        let hasValue = false;
+        for (let row = 0; row < data.length; row++) {
+            const cellValue = data[row][col];
+            if (cellValue !== null && cellValue !== undefined && cellValue.toString().trim() !== '') {
+                hasValue = true;
+                break;
+            }
+        }
+        if (!hasValue) {
+            hiddenCols.push(col);
+        }
+    }
+
+    // hiddenColumns 플러그인 사용해서 숨기기
+    hot.updateSettings({
+        hiddenColumns: {
+            columns: hiddenCols,
+            indicators: true // 숨겨진 위치에 표시 여부
+        }
+    });
+
+    console.log("숨긴 열 인덱스:", hiddenCols);
+}
+
+
+
 function searchPID(pid)
 {
 
@@ -42,6 +76,9 @@ function searchPID(pid)
 
                 initHandsontable(rr);
 
+                //공백 인 열 제외
+                hideEmptyColumns();
+
                 //return rr;
             } else {
                 alert("검색결과가 없습니다.");
@@ -49,6 +86,10 @@ function searchPID(pid)
             }
         } // end success;
     });
+
+
+
+
 } // END SearchPID
 
 
@@ -85,7 +126,8 @@ function initHandsontable(rr) {
             'SPEC12', 'CON12', 'SPEC13', 'CON13', 'SPEC14', 'CON14', 'SPEC15', 'CON15', 'SPEC16', 'CON16', 'SPEC17', 'CON17' ,'SPEC18', 'CON18', 'SPEC19', 'CON19', 'SPEC20', 'CON20',
             'KEY1', 'VAL1', 'KEY2', 'VAL2', 'KEY3', 'VAL3', 'KEY4', 'VAL4', 'KEY5', 'VAL5',
             'KEY6', 'VAL6', 'KEY7', 'VAL7', 'KEY8', 'VAL8', 'KEY9', 'VAL9', 'KEY10', 'VAL10', 'KEY11', 'VAL11',
-            'KEY12', 'VAL12', 'KEY13', 'VAL13', 'KEY14', 'VAL14', 'KEY15', 'VAL15', 'KEY16', 'VAL16', 'KEY17', 'VAL17' ,'KEY18', 'VAL18', 'KEY19', 'VAL19', 'KEY20', 'VAL20'
+            'KEY12', 'VAL12', 'KEY13', 'VAL13', 'KEY14', 'VAL14', 'KEY15', 'VAL15', 'KEY16', 'VAL16', 'KEY17', 'VAL17' ,'KEY18', 'VAL18', 'KEY19', 'VAL19', 'KEY20', 'VAL20',
+            'GOTO', 'REMARKS'
         ],
         width: '100%',
         height: 500,
@@ -97,6 +139,10 @@ function initHandsontable(rr) {
         manualColumnResize: true,
         manualRowMove: true,
         manualColumnMove: true,
+        hiddenColumns: {       // 🔹 플러그인 활성화
+            columns: [],
+            indicators: true
+        },
 
         // 컨텍스트 메뉴
         contextMenu: {
@@ -170,6 +216,7 @@ function initHandsontable(rr) {
             { type: 'text' }, //9
             { type: 'text' },
             { type: 'text' }, //10
+
             { type: 'text' },  // SPEC1
             { type: 'text' },  // CON1
             { type: 'text' },  //
@@ -230,7 +277,10 @@ function initHandsontable(rr) {
             { type: 'text' },
             { type: 'text' }, //9
             { type: 'text' },
-            { type: 'text' } //10
+            { type: 'text' },
+
+            { type: 'text' }, // GOT
+            { type: 'text' } // REMARKS
         ],
 
         // 이벤트 핸들러
@@ -333,6 +383,7 @@ function deleteRowColumn() {
 }
 
 function exportToCSV() {
+    console.log("exportToCSV");
     const exportPlugin = hot.getPlugin('exportFile');
     exportPlugin.downloadFile('csv', {
         bom: false,
@@ -346,6 +397,7 @@ function exportToCSV() {
         rowDelimiter: '\r\n',
         rowHeaders: true
     });
+
 }
 
 function insertChart() {
@@ -423,3 +475,33 @@ document.querySelector('.btn-light').addEventListener('click', function() {
         alert('질문 내용을 입력해주세요.');
     }
 });
+
+
+//테스트해야됨
+function emptyCellDelete() {
+    if (!hot) return;
+
+    const data = hot.getData();
+    const colCount = hot.countCols();
+    const hiddenCols = [];
+
+    for (let col = 0; col < colCount; col++) {
+        let hasValue = false;
+
+        for (let row = 0; row < data.length; row++) {
+            const cellValue = data[row][col];
+            if (cellValue !== null && cellValue !== undefined && cellValue.toString().trim() !== '') {
+                hasValue = true;
+                break;
+            }
+        }
+
+        if (!hasValue) hiddenCols.push(col);
+    }
+
+    const hiddenPlugin = hot.getPlugin('hiddenColumns');
+    hiddenPlugin.hideColumns(hiddenCols);
+    hot.render();
+
+    console.log("숨긴 열 인덱스:", hiddenCols);
+}

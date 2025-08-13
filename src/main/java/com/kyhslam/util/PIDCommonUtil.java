@@ -823,9 +823,7 @@ public class PIDCommonUtil {
 
         ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
 
-
         HashMap<String, String> codeMap = new HashMap<>();
-
         try {
 
             con = PLMDBConnection.getConnection();
@@ -843,26 +841,26 @@ public class PIDCommonUtil {
                             NVL(D.SPEC7, '-') AS SPEC7, NVL(D.CON7, '-') AS CON7,
                             NVL(D.SPEC8, '-') AS SPEC8, NVL(D.CON8, '-') AS CON8,
                             NVL(D.SPEC9, '-') AS SPEC9, NVL(D.CON9, '-') AS CON9,
-                            NVL(D.SPEC10, '-') AS SPEC10, NVL(D.CON1, '-') AS CON10,
-                            NVL(D.SPEC11, '-') AS SPEC11, NVL(D.CON1, '-') AS CON11,
-                            NVL(D.SPEC12, '-') AS SPEC12, NVL(D.CON1, '-') AS CON12,
-                            NVL(D.SPEC13, '-') AS SPEC13, NVL(D.CON1, '-') AS CON13,
-                            NVL(D.SPEC14, '-') AS SPEC14, NVL(D.CON1, '-') AS CON14,
-                            NVL(D.SPEC15, '-') AS SPEC15, NVL(D.CON1, '-') AS CON15,
-                            NVL(D.SPEC16, '-') AS SPEC16, NVL(D.CON1, '-') AS CON16,
-                            NVL(D.SPEC17, '-') AS SPEC17, NVL(D.CON1, '-') AS CON17,
-                            NVL(D.SPEC18, '-') AS SPEC18, NVL(D.CON1, '-') AS CON18,
-                            NVL(D.SPEC19, '-') AS SPEC19, NVL(D.CON1, '-') AS CON19,
-                            NVL(D.SPEC20, '-') AS SPEC20, NVL(D.CON1, '-') AS CON20,
+                            NVL(D.SPEC10, '-') AS SPEC10, NVL(D.CON10, '-') AS CON10,
+                            NVL(D.SPEC11, '-') AS SPEC11, NVL(D.CON11, '-') AS CON11,
+                            NVL(D.SPEC12, '-') AS SPEC12, NVL(D.CON12, '-') AS CON12,
+                            NVL(D.SPEC13, '-') AS SPEC13, NVL(D.CON13, '-') AS CON13,
+                            NVL(D.SPEC14, '-') AS SPEC14, NVL(D.CON14, '-') AS CON14,
+                            NVL(D.SPEC15, '-') AS SPEC15, NVL(D.CON15, '-') AS CON15,
+                            NVL(D.SPEC16, '-') AS SPEC16, NVL(D.CON16, '-') AS CON16,
+                            NVL(D.SPEC17, '-') AS SPEC17, NVL(D.CON17, '-') AS CON17,
+                            NVL(D.SPEC18, '-') AS SPEC18, NVL(D.CON18, '-') AS CON18,
+                            NVL(D.SPEC19, '-') AS SPEC19, NVL(D.CON19, '-') AS CON19,
+                            NVL(D.SPEC20, '-') AS SPEC20, NVL(D.CON20, '-') AS CON20,
                             NVL(D.KEY1, '-') AS KEY1, NVL(D.VAL1, '-') AS VAL1,
-                            NVL(D.KEY2, '-') AS KEY2, NVL(D.VAL1, '-') AS VAL2,
-                            NVL(D.KEY3, '-') AS KEY3, NVL(D.VAL1, '-') AS VAL3,
-                            NVL(D.KEY4, '-') AS KEY4, NVL(D.VAL1, '-') AS VAL4,
-                            NVL(D.KEY5, '-') AS KEY5, NVL(D.VAL1, '-') AS VAL5,
-                            NVL(D.KEY6, '-') AS KEY6, NVL(D.VAL1, '-') AS VAL6,
-                            NVL(D.KEY7, '-') AS KEY7, NVL(D.VAL1, '-') AS VAL7,
-                            NVL(D.KEY8, '-') AS KEY8, NVL(D.VAL1, '-') AS VAL8,
-                            NVL(D.KEY9, '-') AS KEY9, NVL(D.VAL1, '-') AS VAL9,
+                            NVL(D.KEY2, '-') AS KEY2, NVL(D.VAL2, '-') AS VAL2,
+                            NVL(D.KEY3, '-') AS KEY3, NVL(D.VAL3, '-') AS VAL3,
+                            NVL(D.KEY4, '-') AS KEY4, NVL(D.VAL4, '-') AS VAL4,
+                            NVL(D.KEY5, '-') AS KEY5, NVL(D.VAL5, '-') AS VAL5,
+                            NVL(D.KEY6, '-') AS KEY6, NVL(D.VAL6, '-') AS VAL6,
+                            NVL(D.KEY7, '-') AS KEY7, NVL(D.VAL7, '-') AS VAL7,
+                            NVL(D.KEY8, '-') AS KEY8, NVL(D.VAL8, '-') AS VAL8,
+                            NVL(D.KEY9, '-') AS KEY9, NVL(D.VAL9, '-') AS VAL9,
                             NVL(D.KEY10, '-') AS KEY10, NVL(D.VAL10, '-') AS VAL10,
                             NVL(D.KEY11, '-') AS KEY11, NVL(D.VAL11, '-') AS VAL11,
                             NVL(D.KEY12, '-') AS KEY12, NVL(D.VAL12, '-') AS VAL12,
@@ -874,7 +872,7 @@ public class PIDCommonUtil {
                             NVL(D.KEY18, '-') AS KEY18, NVL(D.VAL18, '-') AS VAL18,
                             NVL(D.KEY19, '-') AS KEY19, NVL(D.VAL19, '-') AS VAL19,
                             NVL(D.KEY20, '-') AS KEY20, NVL(D.VAL20, '-') AS VAL20,
-                            NVL(D.REMARKS, '-') AS REMARKS
+                            NVL(D.REMARKS, '-') AS REMARKS, D.GOTO AS GOTO
                      FROM variant_d d, variant_h h, variant_id id
                      WHERE h.HOUID = id.LAST_HOUID AND h.HOUID =d.HOUID
                      AND H.PID = ?
@@ -885,13 +883,14 @@ public class PIDCommonUtil {
 
             rs = pstmt.executeQuery();
 
-
             while(rs.next()) {
                 ArrayList<String> row = new ArrayList<>();
 
                 String PID = rs.getString("PID"); //제품번호
                 String NO = rs.getString("NO") == null ? "" : rs.getString("NO");
                 String ADDR = rs.getString("ADDR") == null ? "" : rs.getString("ADDR");
+                String REMARKS = rs.getString("REMARKS") == null ? "" : rs.getString("REMARKS");
+                String GOTO = rs.getString("GOTO") == null ? "" : rs.getString("GOTO");
 
                 row.add(PID);
                 row.add(NO);
@@ -900,24 +899,28 @@ public class PIDCommonUtil {
                 for (int i = 1; i <= 20; i++) {
                     String s = rs.getString("SPEC" + i);
 
-                    //spec이 특성값이면 \n + (속성값) 넣기
                     if(s != null && !"".equals(s)) {
+                        s = s.trim();
+                        s = s.replace("-", "");
+                    }
 
+                    if(!"".equals(s)) {
                         if (codeMap.containsKey(s)) {
                             //이미 있으면
                             s += " \n" + "(" + codeMap.get(s.trim()) + ")";
-
                         } else {
                             //없으면
                             String val = SubaeCommonUtil.findCodeName(s); // 영업사양 코드 값 조회
                             codeMap.put(s.trim(), val.trim());
-
                             s += " \n" + "(" + val + ")";
                         }
-
                     }
 
                     String c = rs.getString("CON" + i);
+                    if(c != null && !"".equals(c)) {
+                        c = c.trim();
+                        c = c.replace("-", "");
+                    }
                     row.add(s);
                     row.add(c);
                 }
@@ -925,9 +928,23 @@ public class PIDCommonUtil {
                 for (int i = 1; i <= 20; i++) {
                     String k = rs.getString("KEY" + i);
                     String v = rs.getString("VAL" + i);
+
+                    if(k != null && !"".equals(k)) {
+                        k = k.trim();
+                        k = k.replace("-", "");
+                    }
+
+                    if(v != null && !"".equals(v)) {
+                        v = v.trim();
+                        v = v.replace("-", "");
+                    }
+
                     row.add(k);
                     row.add(v);
                 }
+
+                row.add(GOTO);
+                row.add(REMARKS);
 
                 result.add(row);
             }
