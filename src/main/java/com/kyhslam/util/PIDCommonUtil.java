@@ -922,8 +922,6 @@ public class PIDCommonUtil {
                                 codeMap.put(s.trim(), val.trim());
                                 s += " \n" + "(" + val + ")";
                             }
-
-
                         }
                     }
 

@@ -3,12 +3,14 @@ package com.kyhslam.util;
 import com.kyhslam.dto.BlockHistoryDTO;
 import com.kyhslam.repository.BlockHistoryRepository;
 
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class PLMBlockUtil {
 
@@ -340,6 +342,102 @@ public class PLMBlockUtil {
             PLMDBConnection.disconnect(con, pstmt, rs);
         }
         return list;
+    }
+
+
+    /**
+     * @apiNote BlockNo의 속성정보 조회
+     * @param
+     * @return
+     */
+    public static HashMap<String,String> findBlockInfo() {
+
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+        Connection con          = null;
+
+        //ArrayList<HashMap<String, String>> result = new ArrayList<>();
+        HashMap<String, String> result = new  HashMap<>();
+
+        BlockHistoryDTO dto = new BlockHistoryDTO();
+        try {
+
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                SELECT
+                       A.MD$NUMBER AS BLOCKNO,
+                       A.MD$CDATE, --등록일
+                       A.MD$MDATE, --수정일
+                       DATEFORMAT(A.MD$MDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS MOD_DATE, --수정일2
+                       SUBSTR(A.MD$MDATE, 0, 8) AS MOD_DAY,
+                       A.MD$DESC AS BLOCKNAME,
+                       A.MD$STATUS,
+                       A.MD$USER AS CUSER,--등록자
+                       A.MODIFIYUSER AS MODUSER,--수정자
+                       CODN(A.PART_TYPE) AS PART_TYPE, --자재유형
+                       A.BLOCKUSER,
+                       CODN(A.PARTNAME_MANAGER) AS PARTNAME_MANAGER, --부품명 관리
+                       CODN(A.LEVEL1) AS LEVEL1, --신1레벨여부
+                       CODN(A.FLOOR_PART) AS FLOOR_PART, -- 층별부품
+                       A.COLOR_PID,
+                       CODN(A.BLOCK_STATUS) AS BLOCK_STATUS, -- 활성상태
+                       CODN(A.UOM) AS UOM,
+                       CODN(A.MATERIAL_CHECK) AS MATERIAL_CHECK, -- 재질관리
+                       CODN(A.GC_PRODUCT) AS GC_PRODUCT, --제품군
+                       A.LOSSRATE AS LOSSRATE, --로스율
+                       CODN(A.DRAWINGONLY) AS DRAWINGONLY,
+                       CODN(A.BLOCK_OPT) AS BLOCK_OPT, --품목구분
+                       A.QUALITYPERSON
+                FROM BLOCKNO$SF A
+                WHERE A.BLOCK_STATUS = '2466425004' -- 활성
+                -- A.MD$NUMBER = ?
+                """;
+
+
+            pstmt = con.prepareStatement(sql.toString());
+            //pstmt.setString(1, blockNo);
+            rs = pstmt.executeQuery();
+
+            int cnt = 1;
+
+            while(rs.next()) {
+                String BLOCKNO = rs.getString("BLOCKNO") == null ? "" : rs.getString("BLOCKNO");
+                String MOD_DAY = rs.getString("MOD_DAY") == null ? "" : rs.getString("MOD_DAY");
+                String MODUSER = rs.getString("MODUSER") == null ? "" : rs.getString("MODUSER");  //BLOCK 명
+                String BLOCKNAME = rs.getString("BLOCKNAME") == null ? "" : rs.getString("BLOCKNAME");  //BLOCK 명
+                String GC_PRODUCT = rs.getString("GC_PRODUCT") == null ? "" : rs.getString("GC_PRODUCT"); //제품군
+                String UOM = rs.getString("UOM") == null ? "" : rs.getString("UOM"); //단위
+                String BLOCK_STATUS = rs.getString("BLOCK_STATUS") == null ? "" : rs.getString("BLOCK_STATUS"); //활성상태
+
+                String PART_TYPE = rs.getString("PART_TYPE") == null ? "" : rs.getString("PART_TYPE");  //자재유형 - 외주(ROH)
+                String BLOCK_OPT = rs.getString("BLOCK_OPT") == null ? "" : rs.getString("BLOCK_OPT");  //품목구분
+
+
+                //BLOCKNO 정보 넣기
+                //BlockHistoryDTO dto = new BlockHistoryDTO();
+                dto.setBlockNo(BLOCKNO);
+                dto.setBlockName(BLOCKNAME);
+                dto.setModDate(MOD_DAY); //수정일
+                dto.setModUser(MODUSER);
+                dto.setPartType(PART_TYPE);
+                dto.setGc_product(GC_PRODUCT);
+                dto.setUom(UOM);
+                dto.setBlock_opt(BLOCK_OPT);
+                dto.setBlock_status(BLOCK_STATUS);
+
+
+                result.put(BLOCKNO, BLOCKNAME);
+                //System.out.println(dto.toString());
+                //list.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
     }
 
 }

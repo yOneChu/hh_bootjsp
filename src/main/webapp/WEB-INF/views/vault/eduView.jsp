@@ -1,3 +1,6 @@
+<%@ page import="com.kyhslam.util.VaultCommonUtil" %>
+<%@ page import="java.util.HashMap" %>
+<%@ page import="java.util.ArrayList" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
@@ -5,6 +8,9 @@
     String filename = request.getParameter("filename");
 
     System.out.println("filename = " + filename);
+
+    ArrayList<HashMap<String, String>> treeList =  VaultCommonUtil.findVaultAssyFileList();
+
 
 %>
 <!DOCTYPE html>
@@ -39,6 +45,10 @@
             --accent: #00d4ff;
             --accent-2: #6c5ce7;
             --shadow: 0 10px 30px rgba(0, 212, 255, 0.08);
+
+            /* 추가/수정 */
+            --topbar-h: 48px;        /* 상단바 높이(필요시 조정) */
+            --sidebar-w: 440px;      /* 왼쪽 사이드바 폭(원하면 420~520px로 조정) */
         }
 
         * { box-sizing: border-box; }
@@ -55,12 +65,39 @@
 
         /* Layout */
         .viewer-app { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
-        .topbar { backdrop-filter: blur(10px); background: rgba(0,0,0,.35); border-bottom: 1px solid var(--line); }
+        /*.topbar { backdrop-filter: blur(10px); background: rgba(0,0,0,.35); border-bottom: 1px solid var(--line); }*/
+        /* 상단바 높이 고정 */
+        .topbar {
+            height: var(--topbar-h);
+            display: flex;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,.35);
+            border-bottom: 1px solid var(--line);
+        }
         .topbar .brand { font-weight: 700; letter-spacing: .2px; background: linear-gradient(45deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 
-        .work-area { display: grid; grid-template-columns: 320px 6px 1fr; min-height: 0; }
-        .sidebar { background: linear-gradient(180deg, var(--panel), var(--panel-2)); border-right: 1px solid var(--line); min-width: 220px; max-width: 600px; overflow: hidden; }
-        .resizer { background: linear-gradient(180deg, #00d4ff22, #6c5ce722); cursor: col-resize; transition: background .2s; }
+        /*.work-area { display: grid; grid-template-columns: 320px 6px 1fr; min-height: 0; }*/
+        .work-area {
+            display: grid;
+            grid-template-columns: var(--sidebar-w) 6px 1fr;  /* 사이드바 폭 고정 */
+            min-height: 0;
+        }
+        /*.sidebar { background: linear-gradient(180deg, var(--panel), var(--panel-2)); border-right: 1px solid var(--line); min-width: 220px; max-width: 600px; overflow: hidden; }*/
+        .sidebar {
+            background: linear-gradient(180deg, var(--panel), var(--panel-2));
+            border-right: 1px solid var(--line);
+            width: var(--sidebar-w);
+            min-width: var(--sidebar-w);      /* 폭 고정 */
+            max-width: var(--sidebar-w);      /* 폭 고정 */
+            position: sticky;                 /* 상단에 고정 */
+            top: 0;                           /* work-area 상단에 붙게 */
+            align-self: start;                /* sticky가 제대로 동작하도록 */
+            height: calc(100vh - var(--topbar-h)); /* 화면 높이 - 상단바 */
+            overflow-y: auto;                 /* 트리 스크롤 */
+            font-size: 0.9rem;
+        }
+        /*.resizer { background: linear-gradient(180deg, #00d4ff22, #6c5ce722); cursor: col-resize; transition: background .2s; }*/
         .resizer:hover { background: linear-gradient(180deg, #00d4ff55, #6c5ce755); }
 
         .viewer-pane { background: #0a0c12; position: relative; }
@@ -226,17 +263,45 @@
                     <summary><span class="twisty"></span><i class="fa-solid fa-boxes-stacked"></i> Elevator_Assembly <span class="badge-muted ms-auto">ASM</span></summary>
                     <ul>
                         <li>
+                            <%--<details class="tree">--%>
+                                <ul>
+                                    <%
+                                        for (int i = 0; i < treeList.size(); i++) {
+                                            HashMap<String, String> data = treeList.get(i);
+                                            String fileName = data.get("fileName");
+                                            String dwgNo = fileName.substring(0, 8);
+                                            String blockNo = data.get("blockNo");
+                                            String blockName = data.get("blockName");
+                                    %>
+                                    <li data-value="<%=dwgNo%>">
+                                        <i class="fa-regular fa-circle"></i> <%=dwgNo + " :: " + blockName%>
+                                        <%--<span class="badge-muted ms-auto">ASM</span>--%>
+                                        <span class="badge-muted ms-auto"><%=blockNo%>></span>
+
+                                    </li>
+                                    <%
+                                        }
+                                    %>
+                                </ul>
+                            <%--</details>--%>
+                        </li>
+
+
+                        <%--<li>
                             <details class="tree">
                                 <summary><span class="twisty"></span><i class="fa-solid fa-gear"></i> Machine_Room <span class="badge-muted ms-auto">SUB-ASM</span></summary>
                                 <ul>
-                                    <li data-value="10101187"><i class="fa-regular fa-circle"></i> TM HANDLE WHEEL <span class="badge-muted ms-auto">PART</span></li>
+                                    &lt;%&ndash;<li data-value="10101187"><i class="fa-regular fa-circle"></i> TM HANDLE WHEEL <span class="badge-muted ms-auto">PART</span></li>
                                     <li data-value="10101305"><i class="fa-regular fa-circle"></i> TM HANDLE ASSY <span class="badge-muted ms-auto">PART</span></li>
                                     <li data-value="10101478"><i class="fa-regular fa-circle"></i> BRAKE LEVER ASSY <span class="badge-muted ms-auto">PART</span></li>
-                                    <li data-value="10101325"><i class="fa-regular fa-circle"></i> SHEAVE COVER ASSY <span class="badge-muted ms-auto">PART</span></li>
+                                    <li data-value="10101325"><i class="fa-regular fa-circle"></i> SHEAVE COVER ASSY <span class="badge-muted ms-auto">PART</span></li>&ndash;%&gt;
+
+
                                 </ul>
                             </details>
                         </li>
-                        <li>
+--%>
+                        <%--<li>
                             <details class="tree">
                                 <summary><span class="twisty"></span><i class="fa-solid fa-elevator"></i> Car_Assembly <span class="badge-muted ms-auto">SUB-ASM</span></summary>
                                 <ul>
@@ -256,6 +321,8 @@
                                 </ul>
                             </details>
                         </li>
+                        --%>
+
                     </ul>
                 </details>
             </div>

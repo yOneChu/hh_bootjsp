@@ -1,5 +1,6 @@
 package com.kyhslam.util;
 
+import com.kyhslam.dto.BlockHistoryDTO;
 import com.kyhslam.dto.PartInfoDTO;
 
 import java.sql.*;
@@ -522,5 +523,208 @@ public class VaultCommonUtil {
         return result;
 
     }
+
+
+    //sdf
+    public static ArrayList<HashMap<String, String>> findVaultAssyFileList() {
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        String url = "jdbc:sqlserver://;serverName=10.225.80.35;port=1433;databaseName=HDEL;encrypt=false;";
+        String id  = "SA";
+        String pw  = "AutodeskVault@26200"; // "qwe123!@#"
+
+        ArrayList<HashMap<String, String>> list = new ArrayList<>();
+
+        //HashMap<String, String> blockMap = new HashMap<>();
+
+        HashMap<String, String> blockMap = PLMBlockUtil.findBlockInfo();
+
+        System.out.println("blockMap = " + blockMap);
+
+        try {
+
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver").newInstance();
+            con = DriverManager.getConnection(url,id,pw);
+            //con = VaultDBConnection.getConnection();
+
+            String sql = """
+                    SELECT fm.TipFileBaseName AS FILENAMEEE,
+                     (SELECT VFF.FILENAME FROM vw_File VFF WHERE VFF.FILEITERATIONID = LI.IterationId) AS FILENAME,
+                     (SELECT MAX(FF.VERSION) FROM FileResource FF WHERE FF.FileMasterId = fm.FileMasterID) AS FILEVERSION,
+                     vf.CreateUserName AS CREATOR,  -- 작성자
+                     vf.CategoryName AS CATEGO,  -- 조립품
+                     F.FolderName AS FOLDERNAME ,  --  -- 폴더명
+                     F.VaultPath AS FPATH,   -- 파일경로
+                     (SELECT FI.LIFECYCLESTATENAME FROM FileIteration FI WHERE FI.FILEITERATIONID = LI.IterationId) AS FSTATUS,   -- 0: 작업진행중
+                     vf.ResourceId AS RESOURCEID,
+                     FM.Hidden AS FHIDDEN
+                     FROM FileMaster fm, Folder f, vw_LastIteration LI
+                     ,vw_File vf
+                     where F.FolderID = fm.FolderId
+                     AND FM.FileMasterID = LI.MasterId
+                     AND vf.FileIterationId = LI.IterationId
+                     AND f.vaultpath not like '%ko-KR%'
+                     AND f.vaultpath not like '%Materials%'
+                     AND F.VaultPath LIKE '%Component%'
+                    AND F.VaultPath NOT LIKE '%HX%'
+                    AND fm.TipFileBaseName NOT LIKE 'L%'
+                    AND fm.TipFileBaseName LIKE '%.iam'
+                    """;
+
+            System.out.println(sql.toString());
+            pstmt = con.prepareStatement(sql.toString());
+            //pstmt.setString(1, productNo);
+
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                String fileName = rs.getString("FILENAMEEE");
+                String dwgNo = fileName.substring(0, 8);
+
+                String FILENAME = rs.getString("FILENAME");
+                String blockNo = rs.getString("FOLDERNAME") == null ? "" : rs.getString("FOLDERNAME");
+                //String RESOURCEID = rs.getString("RESOURCEID");
+
+                //HashMap<String,String> partInfo = findFileBasicInfo(RESOURCEID);
+                //System.out.println(FILENAMEEE + " > " + RESOURCEID + " > " + partInfo);
+
+                //System.out.println(fileName + " " + blockNo);
+
+                //HashMap<String,String> dwgInfo = getAutoCADInfo(dwgNo);
+
+
+
+
+
+                /*
+                String APPAR = rs.getString("APPAR") == null ? "" : rs.getString("APPAR");
+                String PARTNAME = rs.getString("PARTNAME") == null ? "" : rs.getString("PARTNAME");
+                String BLOCKNO_NO = rs.getString("BLOCKNO_NO") == null ? "" : rs.getString("BLOCKNO_NO");
+                String BLOCKNO_NAME = rs.getString("BLOCKNO_NAME") == null ? "" : rs.getString("BLOCKNO_NAME");
+                String MAXVERSION = rs.getString("MAXVERSION") == null ? "" : rs.getString("MAXVERSION"); //WIP 제외한 마지막 버전
+                String DWGTYPE = rs.getString("DWGTYPE") == null ? "" : rs.getString("DWGTYPE");
+                */
+
+                HashMap<String, String> map = new HashMap<>();
+                map.put("fileName", fileName);
+                map.put("blockNo", blockNo);
+                map.put("blockName", blockMap.get(blockNo));
+
+                list.add(map);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            VaultDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        return list;
+    }
+
+
+    //
+    public static void saveViewInfo() {
+
+        try {
+
+            ArrayList<HashMap<String, String>> list = findVaultAssyFileList();
+
+            ArrayList<HashMap<String, String>> migList = new ArrayList<>();
+
+            for(int i=0;i<list.size();i++){
+
+                HashMap<String, String> blockMap = list.get(i);
+
+                String fileName = blockMap.get("fileName");
+                String blockNo =  blockMap.get("blockNo");
+
+                String dwgNo = fileName.substring(0, 8);
+
+                HashMap<String,String> dwgInfo = getAutoCADInfo(dwgNo);
+
+                String appar = dwgInfo.get("APPAR");
+                String BLOCKNO_NAME = dwgInfo.get("BLOCKNO_NAME");
+                String PARTNAME = dwgInfo.get("PARTNAME");
+
+
+
+               /* PARTNAME") == null ? "" : rs.getString("PARTNAME");
+                String BLOCKNO_NO = rs.getString("BLOCKNO_NO") == null ? "" : rs.getString("BLOCKNO_NO");
+                String BLOCKNO_NAME = rs.getString("BLOCKNO_NAME*/
+
+                HashMap<String, String> migration = new HashMap<>();
+                migration.put("fileName", fileName);
+                migration.put("dwgNo", dwgNo);
+                migration.put("blockNo", blockNo);
+                migration.put("appar", appar);
+                migration.put("blockName", BLOCKNO_NAME);
+                migration.put("partName", PARTNAME);
+
+                migList.add(migration);
+                System.out.println(fileName + ", " + BLOCKNO_NAME + " ," + PARTNAME + " > " + appar);
+
+            }
+
+
+            migration(migList);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+    }
+
+    public static void migration(ArrayList<HashMap<String, String>> migList) {
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        for(int i=0;i<migList.size();i++){
+
+            HashMap<String, String> map = migList.get(i);
+
+            try {
+
+                con = VaultDBConnection.getConnection();
+
+
+                StringBuffer sql = new StringBuffer();
+                sql.append(" INSERT INTO VIEWER_IF(fileName, dwgNo, dwgName, appar, blockNo, blockName) ");
+                sql.append(" VALUES(?, ?, ?, ?, ?, ?) ");
+
+
+                /*migration.put("fileName", fileName);
+                migration.put("dwgNo", dwgNo);
+                migration.put("blockNo", blockNo);
+                migration.put("appar", appar);
+                migration.put("blockName", BLOCKNO_NAME);
+                migration.put("partName", PARTNAME);*/
+
+                //pstmt = con.prepareStatement(sql.toString());
+                pstmt = con.prepareStatement(sql.toString());
+                pstmt.setString(1, map.get("fileName"));
+                pstmt.setString(2, map.get("dwgNo"));
+                pstmt.setString(3, map.get("partName"));
+                pstmt.setString(4, map.get("appar"));
+                pstmt.setString(5, map.get("blockNo"));
+                pstmt.setString(6, map.get("blockName"));
+
+                //rs = pstmt.executeQuery();
+                pstmt.executeUpdate();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                VaultDBConnection.disconnect(con, pstmt, rs);
+            }
+        }
+
+
+    }
+
 
 }
