@@ -150,8 +150,8 @@
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item"><a class="nav-link" href="#home">홈</a></li>
                 <li class="nav-item"><a class="nav-link" href="#features">기능</a></li>
-                <li class="nav-item"><a class="nav-link" href="#gallery">갤러리</a></li>
-                <li class="nav-item"><a class="nav-link" href="#contact">문의</a></li>
+                <%--<li class="nav-item"><a class="nav-link" href="#gallery">갤러리</a></li>
+                <li class="nav-item"><a class="nav-link" href="#contact">문의</a></li>--%>
             </ul>
         </div>
     </div>
