@@ -50,8 +50,8 @@ public class TEST02 {
                 urlBuilder.append("?" + URLEncoder.encode("serviceKey","UTF-8") + "=CWpHb1J7vmgbyEfLaUd0Ns1%2BLf6G7uQR5XDYRcI9muuFVS%2F5y7TaLvX8wdugeqSFlCk6r182ifKtK1ON%2FnitPg%3D%3D"); /*Service Key*/
                 urlBuilder.append("&" + URLEncoder.encode("pageNo","UTF-8") + "=" + URLEncoder.encode(pageNo, "UTF-8")); /*페이지번호*/
                 urlBuilder.append("&" + URLEncoder.encode("numOfRows","UTF-8") + "=" + URLEncoder.encode("100", "UTF-8")); /*한 페이지 결과 수*/
-                urlBuilder.append("&" + URLEncoder.encode("Installation_sdt","UTF-8") + "=" + URLEncoder.encode("20240101", "UTF-8")); /*자료생성일자(시작일)*/
-                urlBuilder.append("&" + URLEncoder.encode("Installation_edt","UTF-8") + "=" + URLEncoder.encode("20241231", "UTF-8")); /*자료생성일자(종료일)*/
+                urlBuilder.append("&" + URLEncoder.encode("Installation_sdt","UTF-8") + "=" + URLEncoder.encode("20100101", "UTF-8")); /*자료생성일자(시작일)*/
+                urlBuilder.append("&" + URLEncoder.encode("Installation_edt","UTF-8") + "=" + URLEncoder.encode("20101231", "UTF-8")); /*자료생성일자(종료일)*/
                 //urlBuilder.append("&" + URLEncoder.encode("elevator_no","UTF-8") + "=" + URLEncoder.encode("2118325", "UTF-8")); /*승강기고유번호*/
                 URL url = new URL(urlBuilder.toString());
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();

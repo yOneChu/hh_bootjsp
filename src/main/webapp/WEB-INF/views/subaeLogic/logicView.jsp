@@ -44,10 +44,13 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin: 20px;
             overflow: hidden;
+            height: calc(100vh - 200px); /* 화면에 꽉 차게, 필요에 맞게 조정 */
         }
 
         #handsontable-container {
-            height: 500px;
+            /*height: 500px;*/
+            flex: 1;               /* 남은 공간 전부 차지 */
+            width: 100%;           /* 가로 전체 */
             border: 2px solid #198754;
             border-radius: 4px;
         }
@@ -149,6 +152,13 @@
             box-shadow: 0 6px 20px rgba(111, 66, 193, 0.6);
             color: white;
         }
+
+
+        .col-lg {
+            height: 100%;       /* 상위 grid 계층 모두 높이 채우기 */
+        }
+
+
     </style>
 </head>
 <body>
@@ -157,58 +167,17 @@
         <a class="navbar-brand" href="#">
             <i class="fas fa-table me-2"></i>로직에디터 어시스턴트
         </a>
-        <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3">
-                    <i class="fas fa-user-circle me-1"></i>개발자님
-                </span>
-            <button class="btn btn-outline-success btn-sm">
-                <i class="fas fa-save me-1"></i>저장
-            </button>
-        </div>
     </div>
 </nav>
 
 <div class="toolbar">
     <div class="d-flex align-items-center flex-wrap">
         <div class="btn-toolbar-group">
-            <button class="btn btn-outline-secondary btn-sm me-1">
-                <i class="fas fa-undo"></i>
-            </button>
-            <button class="btn btn-outline-secondary btn-sm me-1">
-                <i class="fas fa-redo"></i>
-            </button>
-        </div>
-
-        <div class="btn-toolbar-group">
-            <button class="btn btn-outline-secondary btn-sm me-1">
-                <i class="fas fa-bold"></i>
-            </button>
-            <button class="btn btn-outline-secondary btn-sm me-1">
-                <i class="fas fa-italic"></i>
-            </button>
-            <button class="btn btn-outline-secondary btn-sm me-1">
-                <i class="fas fa-underline"></i>
-            </button>
-        </div>
-
-        <div class="btn-toolbar-group">
-            <button class="btn btn-outline-secondary btn-sm me-1" onclick="addRow()">
-                <i class="fas fa-plus"></i> 행 추가
-            </button>
-            <button class="btn btn-outline-secondary btn-sm me-1" onclick="addColumn()">
-                <i class="fas fa-plus"></i> 열 추가
-            </button>
-            <button class="btn btn-outline-danger btn-sm" onclick="deleteRowColumn()">
-                <i class="fas fa-trash"></i> 삭제
-            </button>
-        </div>
-
-        <div class="btn-toolbar-group">
             <button class="btn btn-outline-info btn-sm me-1" onclick="exportToCSV()">
                 <i class="fas fa-download"></i> CSV 내보내기
             </button>
             <button class="btn btn-outline-success btn-sm" onclick="insertChart()">
-                <i class="fas fa-chart-line"></i> 차트
+                <i class="fas fa-chart-line"></i> Maptify
             </button>
         </div>
     </div>
@@ -225,7 +194,7 @@
 
 <div class="container-fluid">
     <div class="row">
-        <div class="col-lg-9">
+        <div class="col-lg">
             <div class="excel-container">
                 <div id="handsontable-container"></div>
 
@@ -237,49 +206,10 @@
                 </div>
             </div>
         </div>
-
-        <div class="col-lg-3">
-            <div class="assistant-panel">
-                <h5><i class="fas fa-robot me-2"></i>AI 어시스턴트</h5>
-                <p class="mb-3">데이터 분석과 편집을 도와드리겠습니다!</p>
-
-                <div class="assistant-suggestions">
-                    <h6 class="mb-3">추천 기능</h6>
-                    <button class="btn suggestion-item">
-                        <i class="fas fa-chart-bar me-1"></i>차트 생성
-                    </button>
-                    <button class="btn suggestion-item">
-                        <i class="fas fa-calculator me-1"></i>합계 계산
-                    </button>
-                    <button class="btn suggestion-item">
-                        <i class="fas fa-filter me-1"></i>데이터 필터
-                    </button>
-                    <button class="btn suggestion-item">
-                        <i class="fas fa-sort me-1"></i>정렬하기
-                    </button>
-                    <button class="btn suggestion-item">
-                        <i class="fas fa-magic me-1"></i>자동 완성
-                    </button>
-                </div>
-
-                <div class="mt-4">
-                        <textarea class="form-control bg-transparent text-white"
-                                  placeholder="AI에게 질문하세요... (예: '이 데이터의 평균을 구해줘')"
-                                  rows="3" style="border: 1px solid rgba(255,255,255,0.3);"></textarea>
-                    <button class="btn btn-light mt-2 w-100">
-                        <i class="fas fa-paper-plane me-1"></i>전송
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
-<div class="floating-toolbar">
-    <button class="btn ai-btn" data-bs-toggle="tooltip" title="AI 도움말">
-        <i class="fas fa-magic me-2"></i>AI 도우미
-    </button>
-</div>
+
 
 <script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
