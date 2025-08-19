@@ -117,6 +117,30 @@
         .handsontable thead th.pink-col-header {
             background-color: #fdedea !important;
         }
+
+        /* FOOTER 기본 스타일 (고정X, 자연스럽게 아래 배치) */
+        .main-footer {
+            background: #ffffff;       /* 화이트 배경 */
+            color: #6c757d;            /* 은은한 회색 텍스트 */
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            border-top: 1px solid #eaeaea; /* 얇은 경계선 */
+            margin-top: 20px;          /* 본문과 간격 */
+        }
+
+        .main-footer .footer-link {
+            color: #6c757d;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .main-footer .footer-link:hover {
+            color: #212529; /* hover 시 살짝 진해짐 */
+        }
+
     </style>
 </head>
 <body>
@@ -173,7 +197,20 @@
     </div>
 </div>
 
-
+<!-- Footer 추가 -->
+<!-- Footer -->
+<footer class="main-footer">
+    <div class="footer-left">
+        <i class="fas fa-code-branch me-1"></i><b>Version</b> 1.0.0
+    </div>
+    <div class="footer-right">
+        <strong>
+            Copyright &copy; 2025
+            <a href="#" class="footer-link">수배로직설계팀-김영환 M</a>
+        </strong>
+        <span>All rights reserved.</span>
+    </div>
+</footer>
 
 <script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
