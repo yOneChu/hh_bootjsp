@@ -230,4 +230,12 @@ public class SubaeService {
         return result;
     }
 
+
+    //findPIDLineMaptify
+    public ArrayList<String> findPIDLineMaptify(String pidName) {
+        ArrayList<String> result = PIDCommonUtil.findPIDLineMaptify(pidName);
+        return result;
+    }
+
+
 }

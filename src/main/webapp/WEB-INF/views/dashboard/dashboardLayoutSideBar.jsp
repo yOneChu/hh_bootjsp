@@ -192,7 +192,7 @@
                         <li>
                             <a href="#" class="nav-link" onclick="window.open('/subae/logicView', 'popup', 'width=1200,height=1000'); return false;">
                             <%--<a href="/subae/logicView" class="nav-link">--%>
-                                <p>로직 View</p>
+                                <p>로직 특성값 View</p>
                             </a>
                         </li>
 

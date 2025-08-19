@@ -1,11 +1,13 @@
 package com.kyhslam.util;
 
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 public class PIDCommonUtil {
 
@@ -823,6 +825,8 @@ public class PIDCommonUtil {
 
         ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
 
+        HashSet<String> dupCheck = new HashSet<>();
+
         HashMap<String, String> codeMap = new HashMap<>();
         try {
 
@@ -898,8 +902,8 @@ public class PIDCommonUtil {
                 }
 
 
-                row.add(PID);
-                row.add(NO);
+                //row.add(PID);
+                //row.add(NO);
                 row.add(ADDR);
 
                 for (int i = 1; i <= 20; i++) {
@@ -910,20 +914,47 @@ public class PIDCommonUtil {
                         s = s.replace("-", "");
                     }
 
-                    if(!"".equals(s)) {
-                        if (codeMap.containsKey(s)) {
-                            //이미 있으면
-                            s += " \n" + "(" + codeMap.get(s.trim()) + ")";
-                        } else {
-                            //없으면
-                            String val = SubaeCommonUtil.findCodeName(s); // 영업사양 코드 값 조회
-
-                            if(val != null && !"".equals(val)) {
-                                codeMap.put(s.trim(), val.trim());
-                                s += " \n" + "(" + val + ")";
+                    if (dupCheck.contains(s)) {
+                        if(!"".equals(s)) {
+                            String temp = codeMap.get(s.trim());
+                            if(temp != null && !"".equals(temp) && !"null".equals(temp)) {
+                                s += " \n" + "(" + codeMap.get(s.trim()) + ")";
                             }
                         }
+
+                    } else {
+
+                        if(!"".equals(s)) {
+
+
+                            //System.out.println("s = " + s);
+                            if (codeMap.containsKey(s.trim())) {
+                                String temp = codeMap.get(s.trim());
+
+                                //이미 있으면
+                                if(temp != null && !"null".equals(temp) && !"".equals(temp)) {
+                                    //System.out.println(s + "  111 codeMap = " + temp);
+                                    s += " \n" + "(" + temp + ")";
+
+                                }
+
+                            } else {
+                                //없으면
+                                String val = SubaeCommonUtil.findCodeName(s); // 영업사양 코드 값 조회
+                                codeMap.put(s.trim(), val.trim());
+
+                                if(val != null && !"null".equals(val) && !"".equals(val)) {
+                                    //System.out.println(s + "  2222 = " + val);
+                                    s += " \n" + "(" + val + ")";
+                                }
+
+                            }
+                        }
+
+                        dupCheck.add(s.trim());
+                        //System.out.println("codeMap = " + codeMap);
                     }
+
 
                     String c = rs.getString("CON" + i);
                     if(c != null && !"".equals(c)) {
@@ -969,6 +1000,102 @@ public class PIDCommonUtil {
     }
 
 
+    public static ArrayList<String> findPIDLineMaptify(String paramPid) {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+
+        ArrayList<String> result = new ArrayList<String>();
+
+        //ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
+
+        HashSet<String> codeMap = new HashSet<>();
+        try {
+
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                    SELECT h.pid AS PID,
+                            D.NO AS NO,
+                            D.ADDR AS ADDR,
+                            NVL(D.SPEC1, '-') AS SPEC1, NVL(D.CON1, '-') AS CON1,
+                            NVL(D.SPEC2, '-') AS SPEC2, NVL(D.CON2, '-') AS CON2,
+                            NVL(D.SPEC3, '-') AS SPEC3, NVL(D.CON3, '-') AS CON3,
+                            NVL(D.SPEC4, '-') AS SPEC4, NVL(D.CON4, '-') AS CON4,
+                            NVL(D.SPEC5, '-') AS SPEC5, NVL(D.CON5, '-') AS CON5,
+                            NVL(D.SPEC6, '-') AS SPEC6, NVL(D.CON6, '-') AS CON6,
+                            NVL(D.SPEC7, '-') AS SPEC7, NVL(D.CON7, '-') AS CON7,
+                            NVL(D.SPEC8, '-') AS SPEC8, NVL(D.CON8, '-') AS CON8,
+                            NVL(D.SPEC9, '-') AS SPEC9, NVL(D.CON9, '-') AS CON9,
+                            NVL(D.SPEC10, '-') AS SPEC10, NVL(D.CON10, '-') AS CON10,
+                            NVL(D.SPEC11, '-') AS SPEC11, NVL(D.CON11, '-') AS CON11,
+                            NVL(D.SPEC12, '-') AS SPEC12, NVL(D.CON12, '-') AS CON12,
+                            NVL(D.SPEC13, '-') AS SPEC13, NVL(D.CON13, '-') AS CON13,
+                            NVL(D.SPEC14, '-') AS SPEC14, NVL(D.CON14, '-') AS CON14,
+                            NVL(D.SPEC15, '-') AS SPEC15, NVL(D.CON15, '-') AS CON15,
+                            NVL(D.SPEC16, '-') AS SPEC16, NVL(D.CON16, '-') AS CON16,
+                            NVL(D.SPEC17, '-') AS SPEC17, NVL(D.CON17, '-') AS CON17,
+                            NVL(D.SPEC18, '-') AS SPEC18, NVL(D.CON18, '-') AS CON18,
+                            NVL(D.SPEC19, '-') AS SPEC19, NVL(D.CON19, '-') AS CON19,
+                            NVL(D.SPEC20, '-') AS SPEC20, NVL(D.CON20, '-') AS CON20
+                     FROM variant_d d, variant_h h, variant_id id
+                     WHERE h.HOUID = id.LAST_HOUID AND h.HOUID =d.HOUID
+                     AND H.PID = ?
+                    """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, paramPid);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+
+                String PID = rs.getString("PID"); //제품번호
+
+                for (int i = 1; i <= 20; i++) {
+                    String s = rs.getString("SPEC" + i);
+
+                    if (codeMap.contains(s)) {
+
+                    } else {
+                        codeMap.add(s);
+                        if(s != null && !"".equals(s)) {
+                            s = s.trim();
+                            s = s.replace("-", "");
+                        }
+
+                        if(!"".equals(s)) {
+                            String val = SubaeCommonUtil.findCodeName(s); // 영업사양 코드 값 조회
+
+                            if(val != null && !"".equals(val)) {
+
+                                s += "(" + val + ")";
+
+                                result.add(s);
+
+                            }
+                        }
+                    }
+
+
+
+
+
+                }
+
+            }
+            //System.out.println(result);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        return result;
+    }
 }
 
 

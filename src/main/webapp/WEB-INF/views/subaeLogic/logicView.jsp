@@ -22,6 +22,10 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
+        .container-fluid, .row, .col-lg, .excel-container {
+            height: 100%;
+        }
+
         .navbar-brand {
             font-weight: bold;
             color: #198754 !important;
@@ -39,12 +43,18 @@
         }
 
         .excel-container {
-            background-color: white;
+            /*background-color: white;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin: 20px;
             overflow: hidden;
-            height: calc(100vh - 200px); /* 화면에 꽉 차게, 필요에 맞게 조정 */
+            height: calc(100vh - 200px); !* 화면에 꽉 차게, 필요에 맞게 조정 *!*/
+            display: flex;
+            flex-direction: column;
+            margin: 0;              /* 불필요한 margin 제거 */
+            border-radius: 0;
+            box-shadow: none;
+            height: calc(100vh - 160px); /* 상단 navbar, toolbar, formula-bar 높이 제외 */
         }
 
         #handsontable-container {
@@ -53,6 +63,7 @@
             width: 100%;           /* 가로 전체 */
             border: 2px solid #198754;
             border-radius: 4px;
+            overflow: hidden;        /* 스크롤/넘침 방지 */
         }
 
         /* Handsontable 커스텀 스타일 */
@@ -97,68 +108,15 @@
             font-size: 0.875rem;
         }
 
-        .assistant-panel {
-            background: linear-gradient(135deg, #198754, #20c997);
-            color: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+             /* 데이터 셀 */
+         .htCore td.pink-col {
+             /*background-color: #ffe0f0 !important;*/
+             background-color: #fdedea !important;
+         }
+        /* 컬럼 헤더 */
+        .handsontable thead th.pink-col-header {
+            background-color: #fdedea !important;
         }
-
-        .assistant-suggestions {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-
-        .suggestion-item {
-            background-color: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            padding: 8px 15px;
-            margin: 5px;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            transition: all 0.3s ease;
-        }
-
-        .suggestion-item:hover {
-            background-color: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .floating-toolbar {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 1000;
-        }
-
-        .ai-btn {
-            background: linear-gradient(45deg, #6f42c1, #e83e8c);
-            border: none;
-            border-radius: 50px;
-            padding: 15px 25px;
-            color: white;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(111, 66, 193, 0.4);
-            transition: all 0.3s ease;
-        }
-
-        .ai-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(111, 66, 193, 0.6);
-            color: white;
-        }
-
-
-        .col-lg {
-            height: 100%;       /* 상위 grid 계층 모두 높이 채우기 */
-        }
-
-
     </style>
 </head>
 <body>
@@ -173,9 +131,9 @@
 <div class="toolbar">
     <div class="d-flex align-items-center flex-wrap">
         <div class="btn-toolbar-group">
-            <button class="btn btn-outline-info btn-sm me-1" onclick="exportToCSV()">
+            <%--<button class="btn btn-outline-info btn-sm me-1" onclick="exportToCSV()">
                 <i class="fas fa-download"></i> CSV 내보내기
-            </button>
+            </button>--%>
             <button class="btn btn-outline-success btn-sm" onclick="insertChart()">
                 <i class="fas fa-chart-line"></i> Maptify
             </button>
@@ -186,9 +144,15 @@
 <div class="formula-bar">
     <div class="d-flex align-items-center">
         <input type="text" class="form-control cell-reference" id="cellReference" value="A1" readonly>
-        <div class="me-2"><i class="fas fa-search"></i></div> <input type="text" class="form-control formula-input" id="searchInput" placeholder="PID를 입력하세요...">
+        <div class="me-2"><i class="fas fa-search"></i></div>
+        <%--<input type="text" class="form-control formula-input" id="searchInput" placeholder="PID를 입력하세요...">--%>
+        <input type="text" class="form-control formula-input" id="searchInput" placeholder="PID를 입력하세요..." style="max-width:250px;">
         <%--<button class="btn btn-primary ms-2" onclick="performSearch()">검색</button>--%>
-        <button class="btn btn-primary ms-2" onclick="searchPID()">검색</button>
+
+        <%--<button class="btn btn-primary ms-2" onclick="searchPID()">--%>
+        <button class="btn btn-primary ms-2" onclick="searchPID()" style="width:120px;">
+            검색
+        </button>
     </div>
 </div>
 

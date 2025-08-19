@@ -75,6 +75,7 @@ function searchPID()
 
                 sampleData = rr;
 
+                //값 셋팅
                 initHandsontable(rr);
 
                 //공백 인 열 제외
@@ -122,7 +123,9 @@ function initHandsontable(rr) {
     hot = new Handsontable(container, {
         data: sampleData,
         rowHeaders: true,
-        colHeaders: ['PID', 'NO', 'ADDR', 'SPEC1', 'CON1', 'SPEC2', 'CON2', 'SPEC3', 'CON3', 'SPEC4', 'CON4', 'SPEC5', 'CON5',
+        colHeaders: [
+            //'PID', 'NO',
+            'ADDR', 'SPEC1', 'CON1', 'SPEC2', 'CON2', 'SPEC3', 'CON3', 'SPEC4', 'CON4', 'SPEC5', 'CON5',
             'SPEC6', 'CON6', 'SPEC7', 'CON7', 'SPEC8', 'CON8', 'SPEC9', 'CON9', 'SPEC10', 'CON10', 'SPEC11', 'CON11',
             'SPEC12', 'CON12', 'SPEC13', 'CON13', 'SPEC14', 'CON14', 'SPEC15', 'CON15', 'SPEC16', 'CON16', 'SPEC17', 'CON17' ,'SPEC18', 'CON18', 'SPEC19', 'CON19', 'SPEC20', 'CON20',
             'KEY1', 'VAL1', 'KEY2', 'VAL2', 'KEY3', 'VAL3', 'KEY4', 'VAL4', 'KEY5', 'VAL5',
@@ -193,8 +196,8 @@ function initHandsontable(rr) {
 
         // 열 타입 설정
         columns: [
-            { type: 'text' },  // PID
-            { type: 'text' },  // NO
+            //{ type: 'text' },  // PID
+            //{ type: 'text' },  // NO
             { type: 'text' },  // ADDR
 
             { type: 'text' },  // SPEC1
@@ -307,6 +310,33 @@ function initHandsontable(rr) {
     });
 
     updateStatusBar();
+
+
+    ///
+    const headers = hot.getColHeader(); // 전체 헤더 배열
+    const key1Index = headers.findIndex(h => String(h).toUpperCase() === 'KEY1');
+
+// 데이터 셀 색상
+    hot.updateSettings({
+        cells: function (row, col) {
+            const props = {};
+            // 현재 col의 헤더명이 KEY1인지 확인
+            if (hot.getColHeader(col) === 'KEY1') {
+                props.className = (props.className ? props.className + ' ' : '') + 'pink-col';
+            }
+            return props;
+        }
+    });
+
+// 헤더 색상
+    hot.addHook('afterGetColHeader', function (col, TH) {
+        if (hot.getColHeader(col) === 'KEY1') {
+            TH.classList.add('pink-col-header');
+        }
+    });
+
+// 수동/자동 숨김, 컬럼 이동 후에도 유지되도록 렌더링
+    hot.render();
 }
 
 // 셀 참조 업데이트
@@ -407,17 +437,17 @@ function exportToCSV() {
 function insertChart() {
     //alert('차트 기능은 AI 어시스턴트와 연동하여 구현됩니다.');
 
-    //logicViewMapify.jsp
+    //logicViewMaptify.jsp
     //EL_PB126A01
 
     let pid = document.getElementById('searchInput').value.trim();
     //팝업
-    let url = '/subae/logicViewMapify?'; // Relative path is usually best
+    let url = '/subae/logicViewMaptify?'; // Relative path is usually best
     url += "pid=" + pid;
 
-    const features = 'width=800,height=600,top=100,left=100,resizable=yes,scrollbars=yes';
+    //const features = 'width=800,height=600,top=100,left=100,resizable=yes,scrollbars=yes';
 
-    window.open(url,'popup','width=1500, height=800, top=50, left=50, scrollbars=yes');
+    window.open(url,'popup','width=700, height=700, top=50, left=50, scrollbars=yes');
 
 }
 
