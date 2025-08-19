@@ -447,7 +447,7 @@ function insertChart() {
 
     //const features = 'width=800,height=600,top=100,left=100,resizable=yes,scrollbars=yes';
 
-    window.open(url,'popup','width=700, height=700, top=50, left=50, scrollbars=yes');
+    window.open(url,'secondPopup','width=700, height=700, top=50, left=50');
 
 }
 
