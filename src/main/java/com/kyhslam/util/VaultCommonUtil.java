@@ -583,7 +583,7 @@ public class VaultCommonUtil {
                 String fileName = rs.getString("FILENAMEEE");
                 String dwgNo = fileName.substring(0, 8);
 
-                String FILENAME = rs.getString("FILENAME");
+                //String FILENAME = rs.getString("FILENAME");
                 String blockNo = rs.getString("FOLDERNAME") == null ? "" : rs.getString("FOLDERNAME");
                 //String RESOURCEID = rs.getString("RESOURCEID");
 

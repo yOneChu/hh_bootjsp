@@ -141,11 +141,6 @@ public class PIDService {
 
             con = VaultDBConnection.getConnection();
 
-            //StringBuffer sql = new StringBuffer();
-            //sql.append(" SELECT BATCH_DATE, PID, PID_COUNT  ");
-            //sql.append(" FROM PID_TYPE03 ");
-            //sql.append(" order by BATCH_DATE ASC ");
-
             String sql = """
                     WITH RankedPID AS (
                                 SELECT
