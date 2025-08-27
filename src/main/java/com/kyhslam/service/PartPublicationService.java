@@ -90,6 +90,7 @@ public class PartPublicationService {
         cp2_MR_General = (ArrayList<String>) initMap.get("cp2_MR_General");
         cp2_MR_Revive = (ArrayList<String>) initMap.get("cp2_MR_Revive");
 
+        //1.5단계
         cp1_5_MRL_Revive = (ArrayList<String>) initMap.get("cp1_5_MRL_Revive");
         cp1_5_MRL_General = (ArrayList<String>) initMap.get("cp1_5_MRL_General");
 
@@ -104,14 +105,14 @@ public class PartPublicationService {
             PARTNO += cp1_5_MRL_Revive.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        savePartPublication(PARTNO, "cp1_5_MRL_Revive", "20250827", "20251231");
+        savePartPublication(PARTNO, "cp1_5_MRL_Revive", "20250801", "20251231");
 
         PARTNO = "";
         for(int i=0; i < cp1_5_MRL_General.size(); i++) {
             PARTNO += cp1_5_MRL_General.get(i) + ",";
         }
         PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-        savePartPublication(PARTNO, "cp1_5_MRL_General", "20250827", "20251231");
+        savePartPublication(PARTNO, "cp1_5_MRL_General", "20250801", "20251231");
 
 
         //cpMRL_5
