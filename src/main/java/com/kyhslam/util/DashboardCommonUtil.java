@@ -949,6 +949,110 @@ public class DashboardCommonUtil {
         cp2_MR_Revive.add("20411583G3900");
         cp2_MR_Revive.add("20411583G4000");
 
+
+        //1.5단계 CP(MRL_일반) - 2025-08-27
+        ArrayList<String>  cp1_5_MRL_General = new ArrayList<String>();
+        cp1_5_MRL_General.add("20411855G0400");
+        cp1_5_MRL_General.add("20411855G0500");
+        cp1_5_MRL_General.add("20411855G0800");
+        cp1_5_MRL_General.add("20411855G0900");
+        cp1_5_MRL_General.add("20411855G1000");
+        cp1_5_MRL_General.add("20411855G1100");
+        cp1_5_MRL_General.add("20411855G1400");
+        cp1_5_MRL_General.add("20411855G1500");
+        cp1_5_MRL_General.add("20411855G1600");
+        cp1_5_MRL_General.add("20411855G1700");
+        cp1_5_MRL_General.add("20411855G1800");
+        cp1_5_MRL_General.add("20411855G2000");
+        cp1_5_MRL_General.add("20411855G2100");
+        cp1_5_MRL_General.add("20411855G2200");
+        cp1_5_MRL_General.add("20411856G0400");
+        cp1_5_MRL_General.add("20411856G0500");
+        cp1_5_MRL_General.add("20411856G0800");
+        cp1_5_MRL_General.add("20411856G0900");
+        cp1_5_MRL_General.add("20411856G1000");
+        cp1_5_MRL_General.add("20411856G1100");
+        cp1_5_MRL_General.add("20411856G1400");
+        cp1_5_MRL_General.add("20411856G1500");
+        cp1_5_MRL_General.add("20411856G1600");
+        cp1_5_MRL_General.add("20411856G1700");
+        cp1_5_MRL_General.add("20411856G1800");
+        cp1_5_MRL_General.add("20411856G2000");
+        cp1_5_MRL_General.add("20411856G2100");
+        cp1_5_MRL_General.add("20411856G2200");
+        cp1_5_MRL_General.add("20411857G0400");
+        cp1_5_MRL_General.add("20411857G0500");
+        cp1_5_MRL_General.add("20411857G0800");
+        cp1_5_MRL_General.add("20411857G0900");
+        cp1_5_MRL_General.add("20411857G1000");
+        cp1_5_MRL_General.add("20411857G1100");
+        cp1_5_MRL_General.add("20411857G1400");
+        cp1_5_MRL_General.add("20411857G1500");
+        cp1_5_MRL_General.add("20411857G1600");
+        cp1_5_MRL_General.add("20411857G1700");
+        cp1_5_MRL_General.add("20411857G1800");
+        cp1_5_MRL_General.add("20411857G2000");
+        cp1_5_MRL_General.add("20411857G2100");
+        cp1_5_MRL_General.add("20411857G2200");
+
+
+        //1.5단계 CP(MRL_회생)
+        ArrayList<String>  cp1_5_MRL_Revive = new ArrayList<String>();
+        cp1_5_MRL_Revive.add("20411858G0400");
+        cp1_5_MRL_Revive.add("20411858G0800");
+        cp1_5_MRL_Revive.add("20411858G1000");
+        cp1_5_MRL_Revive.add("20411858G1500");
+        cp1_5_MRL_Revive.add("20411858G1600");
+        cp1_5_MRL_Revive.add("20411858G1700");
+        cp1_5_MRL_Revive.add("20411858G1800");
+        cp1_5_MRL_Revive.add("20411858G1900");
+        cp1_5_MRL_Revive.add("20411858G2200");
+        cp1_5_MRL_Revive.add("20411858G2500");
+        cp1_5_MRL_Revive.add("20411859G0400");
+        cp1_5_MRL_Revive.add("20411859G0800");
+        cp1_5_MRL_Revive.add("20411859G1000");
+        cp1_5_MRL_Revive.add("20411859G1500");
+        cp1_5_MRL_Revive.add("20411859G1600");
+        cp1_5_MRL_Revive.add("20411859G1700");
+        cp1_5_MRL_Revive.add("20411859G1800");
+        cp1_5_MRL_Revive.add("20411859G1900");
+        cp1_5_MRL_Revive.add("20411859G2200");
+        cp1_5_MRL_Revive.add("20411859G2500");
+        cp1_5_MRL_Revive.add("20411860G0400");
+        cp1_5_MRL_Revive.add("20411860G0800");
+        cp1_5_MRL_Revive.add("20411860G1000");
+        cp1_5_MRL_Revive.add("20411860G1500");
+        cp1_5_MRL_Revive.add("20411860G1600");
+        cp1_5_MRL_Revive.add("20411860G1700");
+        cp1_5_MRL_Revive.add("20411860G1800");
+        cp1_5_MRL_Revive.add("20411860G1900");
+        cp1_5_MRL_Revive.add("20411860G2200");
+        cp1_5_MRL_Revive.add("20411860G2500");
+        cp1_5_MRL_Revive.add("20411861G0400");
+        cp1_5_MRL_Revive.add("20411861G0500");
+        cp1_5_MRL_Revive.add("20411861G0800");
+        cp1_5_MRL_Revive.add("20411861G0900");
+        cp1_5_MRL_Revive.add("20411861G1000");
+        cp1_5_MRL_Revive.add("20411861G1100");
+        cp1_5_MRL_Revive.add("20411861G1500");
+        cp1_5_MRL_Revive.add("20411861G1600");
+        cp1_5_MRL_Revive.add("20411861G1700");
+        cp1_5_MRL_Revive.add("20411861G1800");
+        cp1_5_MRL_Revive.add("20411861G1900");
+        cp1_5_MRL_Revive.add("20411861G2100");
+        cp1_5_MRL_Revive.add("20411861G2200");
+        cp1_5_MRL_Revive.add("20411861G2300");
+        cp1_5_MRL_Revive.add("20411862G0400");
+        cp1_5_MRL_Revive.add("20411862G0600");
+        cp1_5_MRL_Revive.add("20411862G0700");
+        cp1_5_MRL_Revive.add("20411862G0800");
+        cp1_5_MRL_Revive.add("20411862G1400");
+        cp1_5_MRL_Revive.add("20411862G1500");
+        cp1_5_MRL_Revive.add("20411862G1700");
+        cp1_5_MRL_Revive.add("20411862G1800");
+        cp1_5_MRL_Revive.add("20411862G2200");
+        cp1_5_MRL_Revive.add("20411862G2300");
+
         //HPB(K21,TOP)
         ArrayList<String>  HPB_K21_TOP = new ArrayList<String>();
         HPB_K21_TOP = DashboardHPB.getHPB_K21_TOP();
@@ -991,6 +1095,10 @@ public class DashboardCommonUtil {
         returnMap.put("cp2_MRL_Revive", cp2_MRL_Revive);
         returnMap.put("cp2_MR_General", cp2_MR_General);
         returnMap.put("cp2_MR_Revive", cp2_MR_Revive);
+
+        //cp1_5_MRL_General
+        returnMap.put("cp1_5_MRL_General", cp1_5_MRL_General);
+        returnMap.put("cp1_5_MRL_Revive", cp1_5_MRL_Revive);
 
 
         returnMap.put("cpMRL_5", cpMRL_5);

@@ -60,12 +60,15 @@ public class PartPublicationService {
         ArrayList<String> cpMR_17_5 = new ArrayList<String>();
 
 
-        //2단게
+        //2단계
         ArrayList<String> cp2_MRL_General = new ArrayList<String>();
         ArrayList<String> cp2_MRL_Revive = new ArrayList<String>();
         ArrayList<String> cp2_MR_General = new ArrayList<String>();
         ArrayList<String> cp2_MR_Revive = new ArrayList<String>();
 
+        // 1.5단계
+        ArrayList<String> cp1_5_MRL_General = new ArrayList<String>();
+        ArrayList<String> cp1_5_MRL_Revive = new ArrayList<String>();
 
         HashMap<String,Object> initMap = DashboardCommonUtil.initPartPublicData();
 
@@ -87,8 +90,29 @@ public class PartPublicationService {
         cp2_MR_General = (ArrayList<String>) initMap.get("cp2_MR_General");
         cp2_MR_Revive = (ArrayList<String>) initMap.get("cp2_MR_Revive");
 
+        cp1_5_MRL_Revive = (ArrayList<String>) initMap.get("cp1_5_MRL_Revive");
+        cp1_5_MRL_General = (ArrayList<String>) initMap.get("cp1_5_MRL_General");
 
+
+
+        //
         String PARTNO = "";
+
+        //1.5 단계 2025.08.27에 추가
+        PARTNO = "";
+        for(int i=0; i < cp1_5_MRL_Revive.size(); i++) {
+            PARTNO += cp1_5_MRL_Revive.get(i) + ",";
+        }
+        PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
+        savePartPublication(PARTNO, "cp1_5_MRL_Revive", "20250827", "20251231");
+
+        PARTNO = "";
+        for(int i=0; i < cp1_5_MRL_General.size(); i++) {
+            PARTNO += cp1_5_MRL_General.get(i) + ",";
+        }
+        PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
+        savePartPublication(PARTNO, "cp1_5_MRL_General", "20250827", "20251231");
+
 
         //cpMRL_5
         PARTNO = "";
