@@ -220,8 +220,8 @@
         //let DWFFileName = 'c:/' + '200C0374.iam.dwf';
         //let DWFFileName = "C:\\200C0374.iam.dwf";
         //let DWFFileName = "modelA/200C0374.iam.dwf";
-        let DWFFileName = "static/modelA/200C0374.iam.dwf";
-
+        //let DWFFileName = "static/modelA/200C0374.iam.dwf";
+        let DWFFileName = '';
         //200C0374.iam.dwf
 
         console.log(DWFFileName);

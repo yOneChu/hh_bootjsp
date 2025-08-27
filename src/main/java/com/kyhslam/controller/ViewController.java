@@ -25,14 +25,14 @@ public class ViewController {
 
         //해당 폴더에 파일 있는지 찾기
 
-        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+        /*PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
         Resource[] resources = resolver.getResources("classpath:/static/modelA/*");
 
         System.out.println("📁 static/model 폴더 내 파일 목록:");
         for (Resource resource : resources) {
             System.out.println("- " + resource.getFilename());
         }
-
+*/
         return "/vault/designView";
     }
 
