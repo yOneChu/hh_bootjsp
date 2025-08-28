@@ -359,7 +359,7 @@ public class ChinaCommonUtil {
                 dto.setDiv(rs.getString("DIV") == null ? "" : rs.getString("DIV")); // 최초구분
                 dto.setDisAway(rs.getString("DISAWAY") == null ? "" : rs.getString("DISAWAY")); // 폐기여부
 
-                //System.out.println(dto.getPartNo() + " > " + dto.getVersion());
+                System.out.println(dto.getPartNo() + " > " + dto.getVersion());
 
                 list.add(dto);
             }
