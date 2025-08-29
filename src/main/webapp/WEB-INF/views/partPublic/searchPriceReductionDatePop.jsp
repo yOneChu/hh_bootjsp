@@ -361,6 +361,12 @@
 
                                             } else if("cpMR_14".equals(getPartType)) {
                                                 getPartType = "CP(MR_14kW_회생)";
+
+                                            } else if("cp1_5_MRL_General".equals(getPartType)) {
+                                                getPartType = "1.5단계 CP(MRL_일반)";
+
+                                            } else if("cp1_5_MRL_Revive".equals(getPartType)) {
+                                                getPartType = "1.5단계 CP(MRL_회생)";
                                             }
 
                                     %>

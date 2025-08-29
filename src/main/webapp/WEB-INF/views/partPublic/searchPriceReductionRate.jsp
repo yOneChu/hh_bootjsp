@@ -207,21 +207,6 @@
             String DIS202511 = rs.getString("price202511") == null ? "" : rs.getString("price202511");
             String DIS202512 = rs.getString("price202512") == null ? "" : rs.getString("price202512");
 
-
-           /* export05 = rs.getString("export05") == null ? "" : rs.getString("export05");
-            export06 = rs.getString("export06") == null ? "" : rs.getString("export06");
-            export07 = rs.getString("export07") == null ? "" : rs.getString("export07");
-            export08 = rs.getString("export08") == null ? "" : rs.getString("export08");
-            export09 = rs.getString("export09") == null ? "" : rs.getString("export09");
-            export10 = rs.getString("export10") == null ? "" : rs.getString("export10");
-            export11 = rs.getString("export11") == null ? "" : rs.getString("export11");
-            export12 = rs.getString("export12") == null ? "" : rs.getString("export12");
-            export13 = rs.getString("export13") == null ? "" : rs.getString("export13");
-            export14 = rs.getString("export14") == null ? "" : rs.getString("export14");
-            export15 = rs.getString("export15") == null ? "" : rs.getString("export15");
-            export16 = rs.getString("export16") == null ? "" : rs.getString("export16");
-            export17 = rs.getString("export17") == null ? "" : rs.getString("export17");*/
-
             int totalCnt = 0;
 
             totalCnt = Integer.parseInt(DIS202405) + Integer.parseInt(DIS202406) + Integer.parseInt(DIS202407) + Integer.parseInt(DIS202408) + Integer.parseInt(DIS202409) + Integer.parseInt(DIS202410)
@@ -706,6 +691,68 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202511');"><%= cpMR_17_dto.getPrice202511() %></a></td>
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', '202512');"><%= cpMR_17_dto.getPrice202512() %></a></td>
                                     </tr>
+
+
+                                    <%
+                                        DashDto cp1_5_MRL_General_dto = jdcbService.findById("cp1_5_MRL_General", todayVal);
+                                    %>
+                                    <tr>
+                                        <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
+                                        <td style="font-weight: bold; text-align: center;">1.5단계 CP(MRL_일반)</td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', 'total');"><font color="red"> <%=cp1_5_MRL_General_dto.getTotal() %> </font> </a> </td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202405');"><%= cp1_5_MRL_General_dto.getPrice202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202406');"><%= cp1_5_MRL_General_dto.getPrice202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202407');"><%= cp1_5_MRL_General_dto.getPrice202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202408');"><%= cp1_5_MRL_General_dto.getPrice202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202409');"><%= cp1_5_MRL_General_dto.getPrice202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202410');"><%= cp1_5_MRL_General_dto.getPrice202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202411');"><%= cp1_5_MRL_General_dto.getPrice202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202412');"><%= cp1_5_MRL_General_dto.getPrice202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202501');"><%= cp1_5_MRL_General_dto.getPrice202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202502');"><%= cp1_5_MRL_General_dto.getPrice202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202503');"><%= cp1_5_MRL_General_dto.getPrice202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202504');"><%= cp1_5_MRL_General_dto.getPrice202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202505');"><%= cp1_5_MRL_General_dto.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202506');"><%= cp1_5_MRL_General_dto.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202507');"><%= cp1_5_MRL_General_dto.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202508');"><%= cp1_5_MRL_General_dto.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202509');"><%= cp1_5_MRL_General_dto.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202510');"><%= cp1_5_MRL_General_dto.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202511');"><%= cp1_5_MRL_General_dto.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202512');"><%= cp1_5_MRL_General_dto.getPrice202512() %></a></td>
+                                    </tr>
+
+
+
+                                    <%
+                                        DashDto cp1_5_MRL_Revive_dto = jdcbService.findById("cp1_5_MRL_Revive", todayVal);
+                                    %>
+                                    <tr>
+                                        <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
+                                        <td style="font-weight: bold; text-align: center;">1.5단계 CP(MRL_회생)</td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', 'total');"><font color="red"> <%=cp1_5_MRL_Revive_dto.getTotal() %> </font> </a> </td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202405');"><%= cp1_5_MRL_Revive_dto.getPrice202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202406');"><%= cp1_5_MRL_Revive_dto.getPrice202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202407');"><%= cp1_5_MRL_Revive_dto.getPrice202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202408');"><%= cp1_5_MRL_Revive_dto.getPrice202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202409');"><%= cp1_5_MRL_Revive_dto.getPrice202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202410');"><%= cp1_5_MRL_Revive_dto.getPrice202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202411');"><%= cp1_5_MRL_Revive_dto.getPrice202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202412');"><%= cp1_5_MRL_Revive_dto.getPrice202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202501');"><%= cp1_5_MRL_Revive_dto.getPrice202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202502');"><%= cp1_5_MRL_Revive_dto.getPrice202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202503');"><%= cp1_5_MRL_Revive_dto.getPrice202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202504');"><%= cp1_5_MRL_Revive_dto.getPrice202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202505');"><%= cp1_5_MRL_Revive_dto.getPrice202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202506');"><%= cp1_5_MRL_Revive_dto.getPrice202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202507');"><%= cp1_5_MRL_Revive_dto.getPrice202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202508');"><%= cp1_5_MRL_Revive_dto.getPrice202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202509');"><%= cp1_5_MRL_Revive_dto.getPrice202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202510');"><%= cp1_5_MRL_Revive_dto.getPrice202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202511');"><%= cp1_5_MRL_Revive_dto.getPrice202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202512');"><%= cp1_5_MRL_Revive_dto.getPrice202512() %></a></td>
+                                    </tr>
+
 
                                     <%
                                         DashDto cp2_MRL_General_dto = jdcbService.findById("cp2_MRL_General", todayVal);

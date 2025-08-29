@@ -207,6 +207,12 @@
 
     } else if("HIP700".equals(viewType)) {
         viewType = "HPI(S700)";
+
+    } else if("cp1_5_MRL_General".equals(viewType)) {
+        viewType = "1.5단계 CP(MRL_일반)";
+
+    } else if("cp1_5_MRL_Revive".equals(viewType)) {
+        viewType = "1.5단계 CP(MRL_회생)";
     }
 
 

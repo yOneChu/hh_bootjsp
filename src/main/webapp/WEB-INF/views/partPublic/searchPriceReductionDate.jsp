@@ -1823,6 +1823,73 @@
                                         <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMR_17_5', 'ETC');"><font color="red"><%= cpMR_17_ETC %></font></a></td>
                                     </tr>
 
+
+                                    <%
+                                        DashDtoV3 cp1_5_MRL_General_dto = jdcbService.findByIdV3(todayVal, "cp1_5_MRL_General");
+                                    %>
+                                    <tr>
+                                        <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
+                                        <td style="font-weight: bold; text-align: center;">1.5단계 CP(MRL_일반)</td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', 'total');"><font color="red"><%=cp1_5_MRL_General_dto.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '2024');"><font color="red"><%=cp1_5_MRL_General_dto.getTotal2024() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202405');"><%= cp1_5_MRL_General_dto.getExport202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202406');"><%= cp1_5_MRL_General_dto.getExport202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202407');"><%= cp1_5_MRL_General_dto.getExport202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202408');"><%= cp1_5_MRL_General_dto.getExport202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202409');"><%= cp1_5_MRL_General_dto.getExport202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202410');"><%= cp1_5_MRL_General_dto.getExport202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202411');"><%= cp1_5_MRL_General_dto.getExport202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202412');"><%= cp1_5_MRL_General_dto.getExport202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '2025');"><font color="red"><%=cp1_5_MRL_General_dto.getTotal2025() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202501');"><%= cp1_5_MRL_General_dto.getExport202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202502');"><%= cp1_5_MRL_General_dto.getExport202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202503');"><%= cp1_5_MRL_General_dto.getExport202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202504');"><%= cp1_5_MRL_General_dto.getExport202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202505');"><%= cp1_5_MRL_General_dto.getExport202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202506');"><%= cp1_5_MRL_General_dto.getExport202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202507');"><%= cp1_5_MRL_General_dto.getExport202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202508');"><%= cp1_5_MRL_General_dto.getExport202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202509');"><%= cp1_5_MRL_General_dto.getExport202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202510');"><%= cp1_5_MRL_General_dto.getExport202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202511');"><%= cp1_5_MRL_General_dto.getExport202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', '202512');"><%= cp1_5_MRL_General_dto.getExport202512() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_General', 'ETC');"><font color="red"><%= cp1_5_MRL_General_dto.getExport_etc() %></font></a></td>
+                                    </tr>
+
+                                    <%
+                                        DashDtoV3 cp1_5_MRL_Revive_dto = jdcbService.findByIdV3(todayVal, "cp1_5_MRL_Revive");
+                                    %>
+                                    <tr>
+                                        <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
+                                        <td style="font-weight: bold; text-align: center;">1.5단계 CP(MRL_회생)</td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', 'total');"><font color="red"><%=cp1_5_MRL_Revive_dto.getTotal() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '2024');"><font color="red"><%=cp1_5_MRL_Revive_dto.getTotal2024() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202405');"><%= cp1_5_MRL_Revive_dto.getExport202405() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202406');"><%= cp1_5_MRL_Revive_dto.getExport202406() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202407');"><%= cp1_5_MRL_Revive_dto.getExport202407() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202408');"><%= cp1_5_MRL_Revive_dto.getExport202408() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202409');"><%= cp1_5_MRL_Revive_dto.getExport202409() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202410');"><%= cp1_5_MRL_Revive_dto.getExport202410() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202411');"><%= cp1_5_MRL_Revive_dto.getExport202411() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202412');"><%= cp1_5_MRL_Revive_dto.getExport202412() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '2025');"><font color="red"><%=cp1_5_MRL_Revive_dto.getTotal2025() %> </font></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202501');"><%= cp1_5_MRL_Revive_dto.getExport202501() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202502');"><%= cp1_5_MRL_Revive_dto.getExport202502() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202503');"><%= cp1_5_MRL_Revive_dto.getExport202503() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202504');"><%= cp1_5_MRL_Revive_dto.getExport202504() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202505');"><%= cp1_5_MRL_Revive_dto.getExport202505() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202506');"><%= cp1_5_MRL_Revive_dto.getExport202506() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202507');"><%= cp1_5_MRL_Revive_dto.getExport202507() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202508');"><%= cp1_5_MRL_Revive_dto.getExport202508() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202509');"><%= cp1_5_MRL_Revive_dto.getExport202509() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202510');"><%= cp1_5_MRL_Revive_dto.getExport202510() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202511');"><%= cp1_5_MRL_Revive_dto.getExport202511() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', '202512');"><%= cp1_5_MRL_Revive_dto.getExport202512() %></a></td>
+                                        <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cp1_5_MRL_Revive', 'ETC');"><font color="red"><%= cp1_5_MRL_Revive_dto.getExport_etc() %></font></a></td>
+                                    </tr>
+
+
+
                                     <tr>
                                         <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
                                         <td style="font-weight: bold; text-align: center;">2단계 CP(MRL_일반)</td>
