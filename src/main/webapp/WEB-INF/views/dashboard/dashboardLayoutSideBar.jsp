@@ -53,22 +53,8 @@
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
 
 
-                <!--<li class="nav-item menu-open">-->
-
-       <%--         <%
-                    if (menuType != null && !"".equals(menuType) && "dashboard".equals(menuType)) {
-                %>
-                <li id="dashboard" class="nav-item menu-open">
-                <%
-                    } else {
-                  %>
-                <li id="dashboard" class="nav-item">
-                  <%
-                    }
-                %>--%>
                 <li id="dashboard" class="nav-item menu-open">
                     <a href="#" class="nav-link">
-                        <%--<i class="nav-icon fas fa-chart-pie"></i>--%>
                             <i class="nav-icon fas">📊</i>
                         <p>
                             Dashboard
@@ -77,10 +63,6 @@
                     </a>
 
                     <ul class="nav nav-treeview">
-
-                        <%--<a href="#" class="nav-link" onclick="window.open('/public/searchPriceReductionRate', 'popup', 'width=800,height=600'); return false;">
-                            Open Popup
-                        </a>--%>
                         <li>
                             <a href="/subae/bomDashboard" class="nav-link">
                                 <p>BOM 수배율 부품 현황(월별)</p>
@@ -88,9 +70,7 @@
                         </li>
 
                         <li>
-                            <%--<a href="#" class="nav-link" onclick="window.open('/subae/partDashboard', 'popup', 'width=1200,height=800'); return false;">--%>
                                 <a href="/subae/partDashboard" class="nav-link">
-                            <%--<a href="/subae/partDashboard" class="nav-link">--%>
                                 <p>PLM 자재 현황 및 Excel 다운로드</p>
                             </a>
                         </li>
@@ -196,9 +176,9 @@
                             </a>
                         </li>
                         <li>
-                            <a href="#" class="nav-link" onclick="window.open('/subae/elevatorSpecDiff', 'firstPopup', 'width=1200,height=1000'); return false;">
+                            <a href="#" class="nav-link" onclick="window.open('/subae/elevatorSpecDiff', 'firstPopup', 'width=1000,height=1000'); return false;">
                                 <%--<a href="/subae/logicView" class="nav-link">--%>
-                                <p>영업사양 비교</p>
+                                <p>호기 영업사양 비교</p>
                             </a>
                         </li>
 

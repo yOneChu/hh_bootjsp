@@ -306,9 +306,9 @@ public class ElvInfoCommonUtil {
 
 
             // 결과 출력
-            for (HashMap<String, String> map : resultList) {
+            /*for (HashMap<String, String> map : resultList) {
                 System.out.println(map);
-            }
+            }*/
 
 
         } catch (Exception e) {

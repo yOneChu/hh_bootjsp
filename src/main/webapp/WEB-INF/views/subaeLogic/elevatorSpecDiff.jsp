@@ -1,84 +1,200 @@
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
+
+<%
+
+//elevatorSpecDiff.jsp
+%>
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>영업사양 비교</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="icon" type="image/png" href="/resources/favicon.ico" />
 
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>수배로직</title>
 
-    <!-- jQuery & DataTables CDN -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Google Font: Source Sans Pro -->
+    <!--    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">-->
+    <link rel="stylesheet" href="/resources/dist/googleFont.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+
+    <!-- DataTables -->
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+
+    <link rel="stylesheet" href="/resources/dist/plugins/select2/css/select2.min.css">
+
+    <!-- Theme style -->
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
 
     <style>
         body {
-            background-color: #f5f7fa;
-            padding-top: 50px;
-        }
-        .highlight {
-            background-color: #fff3cd !important; /* 노란 배경 */
-        }
-        .spec-table th {
-            background-color: #006a44;
-            color: white;
-        }
-        .card-header {
-            background-color: #00563f;
-            color: white;
+            font-family: 'Cascadia Code', sans-serif;
         }
     </style>
+
 </head>
+
+
 <body>
-<div class="container">
-    <h3 class="text-center mb-4">🚀 두 엘리베이터 영업사양 비교</h3>
 
-    <!-- Input Card -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header">호기번호 입력</div>
-        <div class="card-body row g-3">
-            <div class="col-md-5">
-                <input type="text" id="ho1" class="form-control" placeholder="호기번호 1">
-            </div>
-            <div class="col-md-5">
-                <input type="text" id="ho2" class="form-control" placeholder="호기번호 2">
-            </div>
-            <div class="col-md-2 d-grid">
-                <button class="btn btn-primary" onclick="search()">비교하기</button>
-            </div>
-        </div>
-    </div>
+<div class="wrapper">
 
-    <!-- Result Card -->
-    <div class="card shadow-sm">
-        <div class="card-header">공통 영업사양 비교 결과</div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table id="specTable" class="table table-bordered table-hover spec-table">
-                    <thead>
-                    <tr>
-                        <th>TAB명</th>
-                        <th>특성명</th>
-                        <th>특성코드</th>
-                        <th>호기 1</th>
-                        <th>호기 2</th>
-                    </tr>
-                    </thead>
-                    <tbody id="result-body">
-                    <!-- 결과 행 자동 생성 -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <!-- Content Wrapper. Contains page content -->
+    <div class="content">
+
+
+        <!-- Content Header (Page header) -->
+        <section class="content-header">
+
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1>🚀 영업사양 비교</h1>
+                    </div>
+
+
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="#">Home</a></li>
+                            <li class="breadcrumb-item active">DataTables</li>
+                        </ol>
+                    </div>
+                </div>
+            </div><!-- /.container-fluid -->
+
+        </section>
+
+
+
+        <!-- Main content -->
+        <section class="content" style="zoom:100%;">
+
+            <div class="container-fluid"> <!-- start - container-fluid -->
+
+                <!-- 검색조건 -->
+                <!-- <div class="card card-default"> -->
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title"> 검색 조건</h3>
+
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <button type="button" class="btn btn-tool" data-card-widget="remove">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- /.card-header -->
+                    <div class="card-body" style="zoom:85%;">
+                        <div class="row">
+
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>호기-01</label>
+                                    <input type="search" id="hogi-01" class="form-control" placeholder="호기-01" value="">
+                                    <div class="input-group-append">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>호기-02</label>
+                                    <input type="search" id="hogi-02" class="form-control" placeholder="호기-02" value="">
+                                    <div class="input-group-append">
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+                            <!-- /.col -->
+                        </div>
+                        <!-- /.row -->
+                    </div>
+
+
+                    <div class="card-footer">
+                        <%--<button class="btn btn-secondary float-right" style="margin-right: 5px;" onclick="searchExcel()">EXCEL Download</button>--%>
+                        <button class="btn btn-primary float-right" style="margin-right: 5px;" onclick="searchPID()">검색</button>
+                    </div>
+
+                </div>
+
+
+                <div class="row">
+                    <div class="col-12">
+
+                        <div class="card card-primary">
+
+                            <div class="card-header">
+                                <h3 class="card-title">검색 결과</h3>
+                            </div>
+
+                            <!-- /.card-header -->
+                            <div class="card-body" style="zoom:85%;">
+                                <table id="infoTable" class="table table-bordered table-hover" style="font-family: NotoSans; font-size:15px;">
+                                    <thead>
+                                    <!-- bg-primary -->
+                                    <tr class="bg-secondary">
+                                        <th>TAB명</th>
+                                        <th>특성명</th>
+                                        <th>특성코드</th>
+                                        <th>호기 1</th>
+                                        <th>호기 2</th>
+                                    </tr>
+                                    </thead>
+
+                                    <tbody id="contentTable">
+
+                                    </tbody>
+
+                                </table>
+                            </div>
+                            <!-- /.card-body -->
+                        </div>
+                        <!-- /.card -->
+                    </div>
+                    <!-- /.col -->
+                </div>
+                <!-- /.row -->
+
+            </div> <!-- /.container-fluid -->
+
+        </section>
+        <!-- /.content -->
     </div>
+    <!-- /.content-wrapper -->
+
+
+    <footer class="main-footer">
+        <div class="float-right d-none d-sm-block">
+            <b>Version</b> 1.0.0
+        </div>
+        <strong>Copyright &copy; 2025 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
+    </footer>
+
+    <!-- Control Sidebar -->
+    <aside class="control-sidebar control-sidebar-dark">
+        <!-- Control sidebar content goes here -->
+    </aside>
+    <!-- /.control-sidebar -->
+
 </div>
 
+
+</body>
+
+
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
 
 <!-- AdminLTE App -->
 <script src="/resources/dist/js/adminlte.min.js"></script>
@@ -102,52 +218,7 @@
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
+
 <script src="/resources/javascript/elevatorSpecDiff.js"></script>
 
-<script>
-    const dummyData = {
-        "H001": { ho1: "1050kg", ho2: "1050kg" },
-        "H002": { ho1: "1.75m/s", ho2: "1.75m/s" },
-        "H003": { ho1: "M2 도어", ho2: "M3 도어" },
-        "H004": { ho1: "지진감지센서", ho2: "지진감지센서" },
-        "H005": { ho1: "현장조립", ho2: "공장조립" },
-    };
-
-    let table;
-
-    /*function compareSpecs() {
-        const tbody = document.getElementById("result-body");
-        tbody.innerHTML = "";
-
-        for (const code in dummyData) {
-            const val1 = dummyData[code].ho1;
-            const val2 = dummyData[code].ho2;
-
-            const tr = document.createElement("tr");
-            if (val1 !== val2) tr.classList.add("highlight");
-
-            tr.innerHTML = `
-        <td>${code}</td>
-        <td>${val1}</td>
-        <td>${val2}</td>
-        <td>${val2}</td>
-        <td>${val2}</td>
-      `;
-            tbody.appendChild(tr);
-        }
-
-        // DataTable 재초기화
-        if ($.fn.DataTable.isDataTable('#specTable')) {
-            table.destroy();
-        }
-
-        table = $('#specTable').DataTable({
-            paging: true,
-            searching: true,
-            info: false,
-            lengthChange: false
-        });
-    }*/
-</script>
-</body>
 </html>

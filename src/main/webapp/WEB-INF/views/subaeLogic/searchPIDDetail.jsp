@@ -550,6 +550,8 @@
         $('#infoTable').DataTable().destroy();
         $("#contentTable").empty();
 
+        showLoading(); // 로딩바 표시
+
         $.ajax({
             type : "post",
             //url : "searchPID.jsp",
@@ -567,12 +569,12 @@
                 PID04 : pidVal04,
                 PID05 : pidVal05
             },
-            beforeSend: function() {
+           /* beforeSend: function() {
                 $("html").css("cursor", "wait");
             },
             complete: function() {
                 $("html").css("cursor", "auto");
-            },
+            },*/
             success : function(data)
             {
                 console.log("data - ", data);
@@ -652,6 +654,9 @@
 
                     $("#contentTable").append(str);
 
+
+
+                    hideLoading(); // 성공 시 로딩바 제거
 
                     $("#infoTable").DataTable({
                         "responsive": true,
@@ -736,7 +741,7 @@
                     animation: spin 1s linear infinite;
                     margin: 0 auto 15px;
                 "></div>
-                <p style="margin: 0; font-size: 16px; color: #333;">엑셀 파일을 다운로드 중입니다...</p>
+                <p style="margin: 0; font-size: 16px; color: #333;">데이터 분석 중...</p>
             </div>
         </div>
         <style>

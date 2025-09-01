@@ -8,6 +8,7 @@ import com.kyhslam.util.ElvInfoCommonUtil;
 import com.kyhslam.util.PIDCommonUtil;
 import com.kyhslam.util.SubaeCommonUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Array;
@@ -17,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 
 @Service("SubaeService")
+@Slf4j
 @RequiredArgsConstructor
 public class SubaeService {
 
@@ -241,11 +243,13 @@ public class SubaeService {
 
     /**
      * @apiNote 호기의 영업사양 값 추출
-     * @param ho1
+     * @param ho1, ho2
      * @return
      */
     public ArrayList<HashMap<String, String>> getSalesInfo(String ho1, String ho2) {
         ArrayList<HashMap<String, String>> result = new ArrayList<>();
+
+        System.out.println(ho1 + " " + ho2);
 
         ArrayList<HashMap<String, String>> v01 = new ArrayList<>();
         ArrayList<HashMap<String, String>> v02 = new ArrayList<>();

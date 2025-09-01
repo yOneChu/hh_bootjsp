@@ -299,7 +299,7 @@ public class SubaeController {
     public ArrayList<HashMap<String, String>> elevatorSpecDiff(String ho1, String ho2) {
         log.info("========== subae elevatorSpecDiff");
         ArrayList<HashMap<String, String>> result = new  ArrayList<>();
-        if(ho1 != null && !"".equals(ho1)) {
+        if(ho1 != null && !"".equals(ho1) && ho2 != null && !"".equals(ho2)) {
             result = subaeService.getSalesInfo(ho1, ho2);
         }
         return result;
