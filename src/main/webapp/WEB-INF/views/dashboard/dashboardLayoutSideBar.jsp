@@ -185,7 +185,7 @@
                         </li>--%>
                         <li>
                             <a href="/subae/searchMissPartofProduct" class="nav-link">
-                                <p>자재 실적 전체 조히(ERP 전송현장 포함)(테스트)</p>
+                                <p>자재 실적 전체 조회(ERP 전송현장 포함)(테스트)</p>
                             </a>
                         </li>
 
@@ -193,6 +193,12 @@
                             <a href="#" class="nav-link" onclick="window.open('/subae/logicView', 'firstPopup', 'width=1200,height=1000'); return false;">
                             <%--<a href="/subae/logicView" class="nav-link">--%>
                                 <p>로직 특성값 View</p>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="nav-link" onclick="window.open('/subae/elevatorSpecDiff', 'firstPopup', 'width=1200,height=1000'); return false;">
+                                <%--<a href="/subae/logicView" class="nav-link">--%>
+                                <p>영업사양 비교</p>
                             </a>
                         </li>
 

@@ -211,7 +211,6 @@ public class SubaeController {
 
     /**
      * 자재번호가 사용되고 있는 모든 제품 찾기
-     *
      * @param year
      * @param partNo
      * @return
@@ -274,9 +273,7 @@ public class SubaeController {
     @PostMapping("/subae/findPIDLineView")
     @ResponseBody
     public ArrayList<ArrayList<String>> findPIDLineView(String pid) {
-
         ArrayList<ArrayList<String>> result = subaeService.findPIDLineView(pid);
-
         return result;
     }
 
@@ -286,4 +283,26 @@ public class SubaeController {
         log.info("========== subae logicViewMapify");
         return "subaeLogic/logicViewMaptify";
     }
+
+    /**
+     * @apiNote 2개의 호기에 대한 영업사양 값 비교
+     * @return
+     */
+    @GetMapping("/subae/elevatorSpecDiff")
+    public String elevatorSpecDiff() {
+        log.info("========== subae elevatorSpecDiff");
+        return "subaeLogic/elevatorSpecDiff";
+    }
+
+    @PostMapping("/subae/elevatorSpecDiff")
+    @ResponseBody
+    public ArrayList<HashMap<String, String>> elevatorSpecDiff(String ho1, String ho2) {
+        log.info("========== subae elevatorSpecDiff");
+        ArrayList<HashMap<String, String>> result = new  ArrayList<>();
+        if(ho1 != null && !"".equals(ho1)) {
+            result = subaeService.getSalesInfo(ho1, ho2);
+        }
+        return result;
+    }
+
 }

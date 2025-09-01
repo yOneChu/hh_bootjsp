@@ -118,6 +118,13 @@
             <version>2.3.0</version>
         </dependency>
 
+        <!--JSON 설정-->
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20210307</version>
+        </dependency>
+
     </dependencies>
 
     <build>

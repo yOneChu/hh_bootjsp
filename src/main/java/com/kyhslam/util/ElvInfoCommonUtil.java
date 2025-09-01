@@ -1,12 +1,19 @@
 package com.kyhslam.util;
 
-import com.kyhslam.dto.DesignRequestDTO;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import com.kyhslam.dto.ELVInfoDashDTO;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+
 
 public class ElvInfoCommonUtil {
 
@@ -229,4 +236,86 @@ public class ElvInfoCommonUtil {
 
         return data;
     }
+
+    /**
+     * 특정호기의 영업사양 값 추출
+     * @param hogi
+     * @return
+     */
+    public static ArrayList<HashMap<String, String>> getSalesInfo(String hogi) {
+
+        ArrayList<HashMap<String, String>> resultList = new ArrayList<>();
+
+        String apiUrl = "https://plmpro.hdel.co.kr/jsp/help/salesInfoFromProductViewJson.jsp?productNumber=";
+        apiUrl +=  hogi;
+
+
+        try {
+            // URL 객체 생성
+            URL url = new URL(apiUrl);
+
+            // HttpURLConnection 객체 생성
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+            // GET 방식 설정
+            conn.setRequestMethod("GET");
+
+            // 응답 타입 설정 (JSON, XML 등 필요에 맞게 변경 가능)
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+            // 응답 코드 확인
+            int responseCode = conn.getResponseCode();
+            System.out.println("Response Code : " + responseCode);
+
+            StringBuilder response = new StringBuilder();
+
+            // 응답 데이터 읽기
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+
+                String line;
+                while ((line = br.readLine()) != null) {
+                    response.append(line);
+                }
+            }
+
+            // 연결 종료
+            conn.disconnect();
+
+            // JSON 파싱 및 ArrayList<HashMap<String, String>> 변환
+            //ArrayList<HashMap<String, String>> resultList = new ArrayList<>();
+
+            JSONArray jsonArray = new JSONArray(response.toString());
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject obj = jsonArray.getJSONObject(i);
+
+                HashMap<String, String> map = new HashMap<>();
+                map.put("SPEC_VALUE", obj.optString("SPEC_VALUE")); // 특성명
+                map.put("SPEC_CODE", obj.optString("SPEC_CODE")); // 특성코드
+                map.put("VALUE", obj.optString("VALUE")); // 특성값
+                map.put("TYPE", obj.optString("TYPE")); // tab명
+
+                String vType =  obj.optString("TYPE");
+
+
+                if( !"3D_MODEL".equals(vType) ) {
+                    resultList.add(map);
+                }
+
+            }
+
+
+            // 결과 출력
+            for (HashMap<String, String> map : resultList) {
+                System.out.println(map);
+            }
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return resultList;
+    }
+
 }

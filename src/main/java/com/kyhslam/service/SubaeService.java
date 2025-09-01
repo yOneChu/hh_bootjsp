@@ -4,6 +4,7 @@ import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.repository.SubaeRepository;
 import com.kyhslam.repository.mybatis.SubaeMapper;
+import com.kyhslam.util.ElvInfoCommonUtil;
 import com.kyhslam.util.PIDCommonUtil;
 import com.kyhslam.util.SubaeCommonUtil;
 import lombok.RequiredArgsConstructor;
@@ -237,5 +238,48 @@ public class SubaeService {
         return result;
     }
 
+
+    /**
+     * @apiNote 호기의 영업사양 값 추출
+     * @param ho1
+     * @return
+     */
+    public ArrayList<HashMap<String, String>> getSalesInfo(String ho1, String ho2) {
+        ArrayList<HashMap<String, String>> result = new ArrayList<>();
+
+        ArrayList<HashMap<String, String>> v01 = new ArrayList<>();
+        ArrayList<HashMap<String, String>> v02 = new ArrayList<>();
+
+        if(ho1 != null && !"".equals(ho1)) {
+            //result = ElvInfoCommonUtil.getSalesInfo(ho1);
+            v01 = ElvInfoCommonUtil.getSalesInfo(ho1.trim());
+        }
+
+        if(ho2 != null && !"".equals(ho2)) {
+            //result = ElvInfoCommonUtil.getSalesInfo(ho2);
+            v02 = ElvInfoCommonUtil.getSalesInfo(ho2.trim());
+        }
+
+        if(v01 != null && v02 != null) {
+            diffSum(v01, v02, result);
+        }
+
+        return result;
+    }
+
+    public void diffSum(ArrayList<HashMap<String, String>> v01, ArrayList<HashMap<String, String>> v02
+                        , ArrayList<HashMap<String, String>> result) {
+
+        for(int i=0; i < v01.size(); i++) {
+
+            HashMap<String, String> temp01 = v01.get(i);
+            HashMap<String, String> temp02 = v02.get(i);
+
+            temp01.put("VALUE2", temp02.get("VALUE"));
+
+            result.add(temp01);
+        }
+
+    }
 
 }
