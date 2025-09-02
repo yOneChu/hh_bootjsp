@@ -8,10 +8,20 @@ import java.net.URL;
 public class getFloorInfo_API {
 
 
+    /**
+     * 층별 로직 정보
+     * 모든 층의 사양값 가져옴
+     * @param args
+     */
     public static void main(String[] args) {
 
+        String apiUrl = "";
 
-        String apiUrl = "http://localhost/plmetc/vault/getFloorInfo?prodNum=208618L17";
+        //로컬
+        //apiUrl = "http://localhost/plmetc/vault/getFloorInfo?prodNum=208618L17";
+
+        //운영
+        apiUrl = "https://plmpro.hdel.co.kr/plmetc/vault/getFloorInfo?prodNum=208618L17";
 
         try {
             // URL 객체 생성
