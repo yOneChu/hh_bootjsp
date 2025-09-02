@@ -690,8 +690,8 @@
                     }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(1)');
 
                 } else {
+                    hideLoading(); // 성공 시 로딩바 제거
                     alert("검색결과가 없습니다.");
-
                 }
             } // end success;
         });
