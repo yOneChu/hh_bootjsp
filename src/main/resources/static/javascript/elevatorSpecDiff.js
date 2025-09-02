@@ -47,8 +47,8 @@ function searchPID()
     $('#infoTable').DataTable().destroy();
     $("#contentTable").empty();
 
-
     showLoading(); // 로딩바 표시
+
     $.ajax({
         type : "post",
         //url : "searchPID.jsp",
@@ -107,7 +107,8 @@ function searchPID()
 
                     $("#infoTable").DataTable({
 
-                        responsive: true,
+                        responsive: false, // 폭을 ‘진짜’ 고정하고 싶으면 off 권장
+                        autoWidth: false,   // 자동 폭 계산 끔
                         lengthChange: false,// "n개 보기" 드롭다운 숨김
                         scrollX: true,      // 가로 스크롤 유지
                         destroy: true,      // 재생성 허용
@@ -122,6 +123,10 @@ function searchPID()
                         dom: "Bfrt",
                         // 행이 많을 때 렌더링 최적화(옵션)
                         deferRender: true,
+                        columnDefs: [
+                            { targets: 3, width: "220px", className: "dt-nowrap" }, // 3열(호기 1)
+                            { targets: 4, width: "220px", className: "dt-nowrap" }  // 4열(호기 2)
+                        ],
                         buttons: [
                         {
                             extend: "csv",
