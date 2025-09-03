@@ -10,6 +10,73 @@ import java.util.ArrayList;
 public class MLBCommonUtil {
 
 
+    /**
+     * @apiNote 년도로 등록된 활성 부품 oid 조회
+     * @param year
+     * @return
+     */
+    public static ArrayList<String> findPartWithYear(String year) {
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<String> result = new ArrayList<>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                  with ouid as
+                     ( select A.vf$ouid from NORMALPART$vf A, NORMALPART$id B
+                       where A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip
+                       --and ( md$number in ( '18900360G0700') )
+                        AND SUBSTR(A.MD$CDATE, 0, 8) IN( ? )
+                     )
+                SELECT
+                A.VF$OUID AS OID,
+                A.MD$NUMBER AS PARTNO,
+                A.MD$DESC AS PARTNAME,
+                A.G_L_CODE AS GL_CODE,
+                --A.MD$CDATE,
+                --DATEFORMAT(A.MD$CDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS CREATE_DATE,
+                CODN(A.PART_STATUS) AS PART_STATUS,
+                COD(A.UOM) AS UOM,
+                A.VF$VERSION AS VERSION,
+                CODN(A.NATION) AS NATION,
+                COD(A.DESIGN_USE) AS DESIGN_USE,
+                COD(A.COST_USE) AS COST_USE,
+                CODN(A.ORIGIN_DIV) AS ORIGIN_DIV,
+                A.BLOCKNO_NUMBER,
+                A.SPEC,
+                A.PART_SIZE AS PARTSIZE
+                --A.*
+                FROM NORMALPART$VF A
+                WHERE A.VF$OUID IN (SELECT * FROM OUID)
+                AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
+                AND A.PART_STATUS = '2466425004'
+                """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, year);
+            //pstmt.setString(2, partName);
+            //pstmt.setString(1, productOID);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String OID = rs.getString("OID");
+
+                result.add(OID);
+            } //end while
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
+    }
+
+
     //최신 부품 OID 조회
     public static ArrayList<String> searchPartOids(String year, String partName) {
         Connection con 			= null;
@@ -37,7 +104,7 @@ public class MLBCommonUtil {
             rs = pstmt.executeQuery();
 
             while(rs.next()) {
-                String OID = rs.getString("OID"); //제품번호
+                String OID = rs.getString("OID");
 
                 result.add(OID);
             } //end while
@@ -125,8 +192,10 @@ public class MLBCommonUtil {
                 String PARTNO =  rs.getString("PARTNO");
                 String qty = rs.getString("QTY");
 
-                if (qty.equals("E321A_39")) {
-                    data.add(PARTNO);
+                //D375A_LPSIZE
+                //E331A_CE_002
+                if (qty.equals("D375A_LPSIZE")) {
+                    //data.add(PARTNO);
                     System.out.println(PARTNO);
                 }
 
