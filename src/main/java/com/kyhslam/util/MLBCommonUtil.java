@@ -45,8 +45,8 @@ public class MLBCommonUtil {
                 COD(A.DESIGN_USE) AS DESIGN_USE,
                 COD(A.COST_USE) AS COST_USE,
                 CODN(A.ORIGIN_DIV) AS ORIGIN_DIV,
-                A.BLOCKNO_NUMBER,
-                A.SPEC,
+                A.BLOCKNO_NUMBER AS BLOCKNO,
+                A.SPEC AS SPEC,
                 A.PART_SIZE AS PARTSIZE
                 --A.*
                 FROM NORMALPART$VF A
@@ -67,12 +67,17 @@ public class MLBCommonUtil {
                 String OID = rs.getString("OID");
                 String PARTNO = rs.getString("PARTNO");
                 String PARTNAME = rs.getString("PARTNAME");
+                String BLOCKNO = rs.getString("BLOCKNO");
+                String SPEC = rs.getString("SPEC");
+                String PARTSIZE = rs.getString("PARTSIZE");
 
                 PartInfoDTO dto  = new PartInfoDTO();
                 dto.setOid(OID);
                 dto.setPartNo(PARTNO);
                 dto.setPartName(PARTNAME);
-
+                dto.setDesign(PARTSIZE);
+                dto.setBlockNo(BLOCKNO);
+                dto.setSpec(SPEC);
 
                 result.add(dto);
             } //end while
@@ -196,12 +201,21 @@ public class MLBCommonUtil {
 
 
     //하위 조회
-    public static void findDownLevel(String oid, ArrayList<PartInfoDTO> downPartList) {
+    public static void findDownLevel(String oid, ArrayList<PartInfoDTO> downPartList, PartInfoDTO parentDto) {
         Connection con 			= null;
         PreparedStatement pstmt = null;
         ResultSet rs 			= null;
 
         ArrayList<String> result = new ArrayList<>();
+
+
+        String parentNo = parentDto.getPartNo();
+        String parentPartName =  parentDto.getPartName();
+        String parentSpec = parentDto.getSpec();
+        String parentBlockNo = parentDto.getBlockNo();
+        String parentGLCode = parentDto.getGlCode();
+
+
 
         try {
             con = PLMDBConnection.getConnection();
@@ -219,8 +233,8 @@ public class MLBCommonUtil {
                     , BOM.MD$SEQUENCE
                     , CODN(NP.UOM) UOM -- 단위
                     , CODN(NP.CLASSIFICATION_01)
-                    , BLOCKNO_NUMBER
-                    , NP.MD$DESC
+                    , BLOCKNO_NUMBER AS BLOCKNO
+                    , NP.MD$DESC AS PARTNAME
                     , NP.VF$VERSION 
                     , NP.G_L_CODE  
                     , NP.PART_SIZE AS PART_SIZE
@@ -233,7 +247,7 @@ public class MLBCommonUtil {
                     , NP.MD$STATUS
                        , DATEFORMAT(BOM.MD$CDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS CREATE_DATE
                     , DATEFORMAT(BOM.MD$MDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS UPDATE_DATE
-                    , DECODE(B1.MD$NUMBER, NULL, NULL, B1.MD$NUMBER || ' ' || B1.MD$DESC) AS PARTNAME
+                    , DECODE(B1.MD$NUMBER, NULL, NULL, B1.MD$NUMBER || ' ' || B1.MD$DESC) AS PARTNAMEV2
                     , DECODE(B2.MD$NUMBER, NULL, NULL, B2.MD$NUMBER || ' ' || B2.MD$DESC)
                     , DECODE(CAD.MD$NUMBER, NULL, NULL, CAD.MD$NUMBER || ' ' || CAD.MD$DESC)
                     , DECODE(NAME.MD$NUMBER, NULL, NULL, NAME.MD$NUMBER || ' ' || NAME.MD$DESC)
@@ -270,14 +284,23 @@ public class MLBCommonUtil {
                 String SPEC = rs.getString("SPEC");
                 String PART_SIZE = rs.getString("PART_SIZE");
                 String qty = rs.getString("QTY");
+                String BLOCKNO = rs.getString("BLOCKNO");
 
                 PartInfoDTO dto =  new PartInfoDTO();
 
                 dto.setPartNo(PARTNO);
                 dto.setPartName(PARTNAME);
+                dto.setBlockNo(BLOCKNO);
                 dto.setSpec(SPEC);
                 dto.setPartSize(PART_SIZE);
                 dto.setQty(qty);
+
+                // BLOCKNO
+                dto.setParentPartNo(parentNo);
+                dto.setParentPartName(parentPartName);
+                dto.setParentGLCode(parentGLCode);
+                dto.setParentSpec(parentSpec);
+                dto.setParentBlockNo(parentBlockNo);
 
                 //D375A_LPSIZE
                 //E331A_CE_002

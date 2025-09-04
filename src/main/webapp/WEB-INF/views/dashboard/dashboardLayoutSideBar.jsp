@@ -229,7 +229,13 @@
                             <i class="fas fa-angle-left right"></i>
                         </p>
                     </a>
-
+                    <ul class="nav nav-treeview">
+                        <li>
+                            <a href="/subae/searchByBlockNo" class="nav-link">
+                                <p>부품 하위 추출</p>
+                            </a>
+                        </li>
+                    </ul>
 
                     <ul class="nav nav-treeview">
                         <li>

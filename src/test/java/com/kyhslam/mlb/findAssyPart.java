@@ -24,7 +24,7 @@ public class findAssyPart {
         for (int i = 0; i < oids.size(); i++) {
             System.out.println(i + " = " + oids.get(i));
             String oid = oids.get(i);
-            MLBCommonUtil.findDownLevel(oid, data);
+            //MLBCommonUtil.findDownLevel(oid, data);
         }
 
         sw.stop();

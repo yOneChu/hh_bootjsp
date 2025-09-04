@@ -7,6 +7,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.util.StopWatch;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -23,10 +24,8 @@ public class findAssyPart_02 {
     
     public static void main(String[] args) {
 
-
         StopWatch sw = new StopWatch();
         sw.start();
-
 
         String filePath = "C:\\Users\\Administrator\\Downloads\\강판류 도어 전수 조사(비방화).xlsx"; // 읽을 파일 경로
 
@@ -54,7 +53,6 @@ public class findAssyPart_02 {
             e.printStackTrace();
         }
 
-
         ArrayList<PartInfoDTO> dtoList = new ArrayList<>();
 
         // 1레벨 부품 OID 조회
@@ -69,46 +67,24 @@ public class findAssyPart_02 {
             }
         }
 
+        ArrayList<PartInfoDTO> resultList = new ArrayList<>();
+
         // 부품하위 애들 검사
         for(int i=0; i < dtoList.size(); i++){
-            PartInfoDTO dto = dtoList.get(i);
-            String oid = dto.getOid();
-            String parentPartNo = dto.getPartNo();
-            String parentPartName = dto.getPartName();
+            PartInfoDTO parentDto = dtoList.get(i);
+            String oid = parentDto.getOid();
 
-            ArrayList<PartInfoDTO> data = new  ArrayList<>();
-
-            MLBCommonUtil.findDownLevel(oid, data);
-
-            if (data.size() > 0) {
-                for (PartInfoDTO datum : data) {
-                    System.out.println(parentPartNo + " > " + datum.getPartNo() + " > " +  datum.getPartName());
-                }
-            }
-
+            // 하위레벨 조회
+            MLBCommonUtil.findDownLevel(oid, resultList, parentDto);
 
         }
 
+        System.out.println("---- writeExcel Run -----");
+
+        writeExcelFile(resultList);
 
 
-/*
-
-        // partNo로 부품 oid 조회
-        ArrayList<String> oids = MLBCommonUtil.findPartWithPartNo("20250903");
-
-        System.out.println("oids = " + oids.size());
-
-
-        ArrayList<String> data =  new ArrayList<>();
-
-        for (int i = 0; i < oids.size(); i++) {
-            System.out.println(i + " = " + oids.get(i));
-            String oid = oids.get(i);
-            MLBCommonUtil.findDownLevel(oid, data);
-        }
-*/
-
-            sw.stop();
+        sw.stop();
 
 
         long millis = sw.getTotalTimeMillis();
@@ -126,4 +102,57 @@ public class findAssyPart_02 {
         DataFormatter formatter = new DataFormatter();
         return formatter.formatCellValue(cell);
     }
+
+    //엑셀 추출
+    private static void writeExcelFile(ArrayList<PartInfoDTO> dataList) {
+        Workbook workbook = new XSSFWorkbook();
+
+        // 시트 생성
+        Sheet sheet = workbook.createSheet("결과");
+
+        for(int i=0; i < dataList.size(); i++){
+            PartInfoDTO dto = dataList.get(i);
+
+            Row headerRow = sheet.createRow(i);
+
+            headerRow.createCell(0).setCellValue(dto.getParentPartNo());
+            headerRow.createCell(1).setCellValue(dto.getParentPartName());
+            headerRow.createCell(2).setCellValue(dto.getParentBlockNo());
+
+            headerRow.createCell(3).setCellValue(dto.getPartNo());
+            headerRow.createCell(4).setCellValue(dto.getBlockNo());
+            headerRow.createCell(5).setCellValue(dto.getPartName());
+            headerRow.createCell(6).setCellValue(dto.getSpec());
+            headerRow.createCell(7).setCellValue(dto.getPartSize());
+        }
+
+
+
+        // 자동 열 너비 조정
+        for (int i = 0; i < 8; i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        // 파일 저장
+        try (FileOutputStream fileOut = new FileOutputStream("C:\\excel\\AssyFile_20250904.xlsx")) {
+            workbook.write(fileOut);
+            System.out.println("Excel 파일 생성 완료!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // 리소스 해제
+        try {
+            workbook.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println(" ---------- end ----------- ");
+
+    }
+
+
+
+
 }
