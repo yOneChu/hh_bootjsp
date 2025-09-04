@@ -25,6 +25,7 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 수배 or MLB 화면
@@ -38,6 +39,8 @@ public class SubaeController {
     private final BlockHistoryService blockHistoryService;
 
     private final SubaeService subaeService;
+
+
 
     //본사-법인 자재비교
     @GetMapping("/subae/comparePartCN")
@@ -301,6 +304,26 @@ public class SubaeController {
         ArrayList<HashMap<String, String>> result = new  ArrayList<>();
         if(ho1 != null && !"".equals(ho1) && ho2 != null && !"".equals(ho2)) {
             result = subaeService.getSalesInfo(ho1, ho2);
+        }
+        return result;
+    }
+
+
+    /**
+     * 층별로직
+     * @apiNote 특정호기의 전체 층 검사하여 사양값 추출
+     * @param hogi
+     * @return
+     */
+    @GetMapping("/subae/getFloorInfoJson")
+    @ResponseBody
+    public List<Map<String, Object>> getFloorInfoJson(String hogi) {
+        //http://localhost:8070/subae/getFloorInfoJson?hogi=208618L17
+
+        log.info("========== subae getFloorInfoJson");
+        List<Map<String, Object>> result = null;
+        if(hogi != null && !"".equals(hogi)) {
+            result = subaeService.getFloorInfoJson(hogi);
         }
         return result;
     }
