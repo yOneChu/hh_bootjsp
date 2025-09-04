@@ -11,6 +11,82 @@ public class MLBCommonUtil {
 
 
     /**
+     * PartNo로 부품 OID 조회
+     * @param partNo
+     * @return
+     */
+    public static ArrayList<PartInfoDTO> findPartWithPartNo(String partNo) {
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<PartInfoDTO> result = new ArrayList<>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                  with ouid as
+                     ( select A.vf$ouid from NORMALPART$vf A, NORMALPART$id B
+                       where A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip
+                       --and ( md$number in ( '18900360G0700') )
+                        --AND SUBSTR(A.MD$CDATE, 0, 8) IN( ? )
+                     )
+                SELECT
+                A.VF$OUID AS OID,
+                A.MD$NUMBER AS PARTNO,
+                A.MD$DESC AS PARTNAME,
+                A.G_L_CODE AS GL_CODE,
+                --A.MD$CDATE,
+                --DATEFORMAT(A.MD$CDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS CREATE_DATE,
+                CODN(A.PART_STATUS) AS PART_STATUS,
+                COD(A.UOM) AS UOM,
+                A.VF$VERSION AS VERSION,
+                CODN(A.NATION) AS NATION,
+                COD(A.DESIGN_USE) AS DESIGN_USE,
+                COD(A.COST_USE) AS COST_USE,
+                CODN(A.ORIGIN_DIV) AS ORIGIN_DIV,
+                A.BLOCKNO_NUMBER,
+                A.SPEC,
+                A.PART_SIZE AS PARTSIZE
+                --A.*
+                FROM NORMALPART$VF A
+                WHERE A.VF$OUID IN (SELECT * FROM OUID)
+                AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
+                AND A.PART_STATUS = '2466425004'
+                AND A.MD$NUMBER = ?
+                """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, partNo);
+            //pstmt.setString(2, partName);
+            //pstmt.setString(1, productOID);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String OID = rs.getString("OID");
+                String PARTNO = rs.getString("PARTNO");
+                String PARTNAME = rs.getString("PARTNAME");
+
+                PartInfoDTO dto  = new PartInfoDTO();
+                dto.setOid(OID);
+                dto.setPartNo(PARTNO);
+                dto.setPartName(PARTNAME);
+
+
+                result.add(dto);
+            } //end while
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
+    }
+
+
+    /**
      * @apiNote 년도로 등록된 활성 부품 oid 조회
      * @param year
      * @return
@@ -120,7 +196,7 @@ public class MLBCommonUtil {
 
 
     //하위 조회
-    public static void findDownLevel(String oid, ArrayList<String> data) {
+    public static void findDownLevel(String oid, ArrayList<PartInfoDTO> downPartList) {
         Connection con 			= null;
         PreparedStatement pstmt = null;
         ResultSet rs 			= null;
@@ -147,8 +223,8 @@ public class MLBCommonUtil {
                     , NP.MD$DESC
                     , NP.VF$VERSION 
                     , NP.G_L_CODE  
-                    , NP.PART_SIZE
-                    , NP.SPEC
+                    , NP.PART_SIZE AS PART_SIZE
+                    , NP.SPEC AS SPEC
                     , CODN(NP.SPT)
                     , CODN(NP.ORIGIN_DIV) -- 내작외작
                     , CODN(NP.REVISION)
@@ -157,7 +233,7 @@ public class MLBCommonUtil {
                     , NP.MD$STATUS
                        , DATEFORMAT(BOM.MD$CDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS CREATE_DATE
                     , DATEFORMAT(BOM.MD$MDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS UPDATE_DATE
-                    , DECODE(B1.MD$NUMBER, NULL, NULL, B1.MD$NUMBER || ' ' || B1.MD$DESC)
+                    , DECODE(B1.MD$NUMBER, NULL, NULL, B1.MD$NUMBER || ' ' || B1.MD$DESC) AS PARTNAME
                     , DECODE(B2.MD$NUMBER, NULL, NULL, B2.MD$NUMBER || ' ' || B2.MD$DESC)
                     , DECODE(CAD.MD$NUMBER, NULL, NULL, CAD.MD$NUMBER || ' ' || CAD.MD$DESC)
                     , DECODE(NAME.MD$NUMBER, NULL, NULL, NAME.MD$NUMBER || ' ' || NAME.MD$DESC)
@@ -190,15 +266,27 @@ public class MLBCommonUtil {
                 //String OID = rs.getString("OID"); //제품번호
 
                 String PARTNO =  rs.getString("PARTNO");
+                String PARTNAME = rs.getString("PARTNAME");
+                String SPEC = rs.getString("SPEC");
+                String PART_SIZE = rs.getString("PART_SIZE");
                 String qty = rs.getString("QTY");
+
+                PartInfoDTO dto =  new PartInfoDTO();
+
+                dto.setPartNo(PARTNO);
+                dto.setPartName(PARTNAME);
+                dto.setSpec(SPEC);
+                dto.setPartSize(PART_SIZE);
+                dto.setQty(qty);
 
                 //D375A_LPSIZE
                 //E331A_CE_002
                 if (qty.equals("D375A_LPSIZE")) {
                     //data.add(PARTNO);
-                    System.out.println(PARTNO);
+                    //System.out.println(PARTNO);
                 }
 
+                downPartList.add(dto);
 
                 //result.add(OID);
             } //end while

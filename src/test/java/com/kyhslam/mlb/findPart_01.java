@@ -19,7 +19,7 @@ public class findPart_01 {
         for (int i=0; i < oids.size(); i++) {
             String oid = oids.get(i);
 
-            MLBCommonUtil.findDownLevel(oid, data);
+            //MLBCommonUtil.findDownLevel(oid, data);
 
             if (i == 100) {
                 break;

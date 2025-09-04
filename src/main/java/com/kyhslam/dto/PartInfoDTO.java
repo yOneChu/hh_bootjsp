@@ -7,6 +7,7 @@ import lombok.Setter;
 @Getter
 public class PartInfoDTO {
 
+    private String oid;
     private String partNo;
     private String partName;
     private String version;

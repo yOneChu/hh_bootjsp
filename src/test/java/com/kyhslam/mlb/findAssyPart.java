@@ -1,5 +1,6 @@
 package com.kyhslam.mlb;
 
+import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.util.MLBCommonUtil;
 import org.springframework.util.StopWatch;
 
@@ -18,7 +19,7 @@ public class findAssyPart {
         System.out.println("oids = " + oids.size());
 
 
-        ArrayList<String> data =  new ArrayList<>();
+        ArrayList<PartInfoDTO> data =  new ArrayList<>();
 
         for (int i = 0; i < oids.size(); i++) {
             System.out.println(i + " = " + oids.get(i));
