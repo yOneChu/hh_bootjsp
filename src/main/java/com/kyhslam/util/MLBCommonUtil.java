@@ -75,7 +75,7 @@ public class MLBCommonUtil {
                 dto.setOid(OID);
                 dto.setPartNo(PARTNO);
                 dto.setPartName(PARTNAME);
-                dto.setDesign(PARTSIZE);
+                dto.setPartSize(PARTSIZE);
                 dto.setBlockNo(BLOCKNO);
                 dto.setSpec(SPEC);
 
@@ -201,6 +201,20 @@ public class MLBCommonUtil {
 
 
     //하위 조회
+
+    /**
+     * 하위 추출
+     * MLB 일괄 추출 방식으로 추출
+     * A-B
+     * B-C
+     * B-D
+     * A-F
+     * 자-하위
+     * 모-자
+     * @param oid
+     * @param downPartList
+     * @param parentDto
+     */
     public static void findDownLevel(String oid, ArrayList<PartInfoDTO> downPartList, PartInfoDTO parentDto) {
         Connection con 			= null;
         PreparedStatement pstmt = null;
@@ -208,14 +222,12 @@ public class MLBCommonUtil {
 
         ArrayList<String> result = new ArrayList<>();
 
-
         String parentNo = parentDto.getPartNo();
         String parentPartName =  parentDto.getPartName();
         String parentSpec = parentDto.getSpec();
         String parentBlockNo = parentDto.getBlockNo();
         String parentGLCode = parentDto.getGlCode();
-
-
+        String parentSize = parentDto.getPartSize();
 
         try {
             con = PLMDBConnection.getConnection();
@@ -225,7 +237,7 @@ public class MLBCommonUtil {
                        'partofpart$ac@' || lower(dectohex(BOM.SF$OUID)) AS OOID,
                        NP.MD$NUMBER AS PARTNO
                     , BOM.QTY AS QTY
-                    , BOM.CMT
+                    , BOM.CMT AS CMT
                     , BOM.PART_SPT
                     , CODN(NP.NATION)
                     , NP.COMPEN_PART
@@ -276,8 +288,10 @@ public class MLBCommonUtil {
 
             rs = pstmt.executeQuery();
 
+            PartInfoDTO tempDto = new PartInfoDTO();
+
             while(rs.next()) {
-                //String OID = rs.getString("OID"); //제품번호
+                String P_LEVEL = rs.getString("P_LEVEL");
 
                 String PARTNO =  rs.getString("PARTNO");
                 String PARTNAME = rs.getString("PARTNAME");
@@ -285,6 +299,7 @@ public class MLBCommonUtil {
                 String PART_SIZE = rs.getString("PART_SIZE");
                 String qty = rs.getString("QTY");
                 String BLOCKNO = rs.getString("BLOCKNO");
+                String CMT = rs.getString("CMT");
 
                 PartInfoDTO dto =  new PartInfoDTO();
 
@@ -294,24 +309,27 @@ public class MLBCommonUtil {
                 dto.setSpec(SPEC);
                 dto.setPartSize(PART_SIZE);
                 dto.setQty(qty);
+                dto.setCmt(CMT);
 
-                // BLOCKNO
-                dto.setParentPartNo(parentNo);
-                dto.setParentPartName(parentPartName);
-                dto.setParentGLCode(parentGLCode);
-                dto.setParentSpec(parentSpec);
-                dto.setParentBlockNo(parentBlockNo);
 
-                //D375A_LPSIZE
-                //E331A_CE_002
-                if (qty.equals("D375A_LPSIZE")) {
-                    //data.add(PARTNO);
-                    //System.out.println(PARTNO);
+                if ("2".equals(P_LEVEL)) {
+                    dto.setParentPartNo(tempDto.getPartNo());
+                    dto.setParentPartName(tempDto.getPartName());
+                    dto.setParentGLCode(tempDto.getGlCode());
+                    dto.setParentSpec(tempDto.getSpec());
+                    dto.setParentBlockNo(tempDto.getBlockNo());
+                    dto.setParentSize(tempDto.getPartSize());
+                } else {
+                    dto.setParentPartNo(parentNo);
+                    dto.setParentPartName(parentPartName);
+                    dto.setParentGLCode(parentGLCode);
+                    dto.setParentSpec(parentSpec);
+                    dto.setParentBlockNo(parentBlockNo);
+                    dto.setParentSize(parentSize);
+                    tempDto = dto;
                 }
 
                 downPartList.add(dto);
-
-                //result.add(OID);
             } //end while
 
         } catch (Exception e) {
@@ -319,6 +337,6 @@ public class MLBCommonUtil {
         } finally {
             PLMDBConnection.disconnect(con, pstmt, rs);
         }
-//        return result;
+
     }
 }

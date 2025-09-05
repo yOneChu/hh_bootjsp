@@ -17,6 +17,10 @@ import java.util.List;
 @SpringBootTest
 public class findTest_02 {
 
+    /**
+     * BOM 수배율 관련
+     */
+
 
     @Autowired
     SubaeService subaeService;

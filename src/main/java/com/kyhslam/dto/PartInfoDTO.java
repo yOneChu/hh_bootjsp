@@ -7,6 +7,7 @@ import lombok.Setter;
 @Getter
 public class PartInfoDTO {
 
+    private String level;
 
     private String parentOid;
     private String parentPartNo;
@@ -14,6 +15,7 @@ public class PartInfoDTO {
     private String parentBlockNo;
     private String parentGLCode;
     private String parentSpec;
+    private String parentSize;
 
     private String oid;
     private String partNo;

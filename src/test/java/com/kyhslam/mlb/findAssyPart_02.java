@@ -3,6 +3,7 @@ package com.kyhslam.mlb;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.util.MLBCommonUtil;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.util.StopWatch;
 
@@ -27,7 +28,8 @@ public class findAssyPart_02 {
         StopWatch sw = new StopWatch();
         sw.start();
 
-        String filePath = "C:\\Users\\Administrator\\Downloads\\강판류 도어 전수 조사(비방화).xlsx"; // 읽을 파일 경로
+        //String filePath = "C:\\Users\\Administrator\\Downloads\\강판류 도어 전수 조사(비방화).xlsx"; // 읽을 파일 경로
+        String filePath = "D:\\Downloads\\강판류 도어 전수 조사(비방화).xlsx";
 
         ArrayList<String> partNoList = new ArrayList<>();
 
@@ -53,16 +55,17 @@ public class findAssyPart_02 {
             e.printStackTrace();
         }
 
+        System.out.println("partNoList = " + partNoList.size());
+
         ArrayList<PartInfoDTO> dtoList = new ArrayList<>();
 
         // 1레벨 부품 OID 조회
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < partNoList.size(); i++) {
             String partNo = partNoList.get(i);
 
             ArrayList<PartInfoDTO> rList = MLBCommonUtil.findPartWithPartNo(partNo.trim());
 
             for (PartInfoDTO dd : rList) {
-                //System.out.println(dd);
                 dtoList.add(dd);
             }
         }
@@ -110,20 +113,62 @@ public class findAssyPart_02 {
         // 시트 생성
         Sheet sheet = workbook.createSheet("결과");
 
+
+        // 스타일
+        CellStyle headerStyle = workbook.createCellStyle();
+
+        // 배경색 (연한 회색)
+        headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        // 테두리 설정
+        headerStyle.setBorderTop(BorderStyle.THIN);
+        headerStyle.setBorderBottom(BorderStyle.THIN);
+        headerStyle.setBorderLeft(BorderStyle.THIN);
+        headerStyle.setBorderRight(BorderStyle.THIN);
+
+        // 정렬 설정 (가운데 정렬)
+        headerStyle.setAlignment(HorizontalAlignment.CENTER);
+        headerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+
+        // 폰트 설정 (굵은 글씨 + 크기 조절)
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerFont.setFontHeightInPoints((short) 11);
+        headerFont.setFontName("맑은 고딕");
+        headerStyle.setFont(headerFont);
+
+        Row header = sheet.createRow(0);
+        String[] titles = { "모 자재번호", "BlockNo", "자재명", "SIZE", "자 자재번호", "BlockNo", "자재명", "SPEC", "SIZE", "QTY", "CMT"
+        };
+        for (int i = 0; i < titles.length; i++) {
+            Cell cell = header.createCell(i);
+            cell.setCellValue(titles[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        //CellRangeAddress(시작행, 끝행, 시작열, 끝열)
+        sheet.setAutoFilter(new CellRangeAddress(0, 0, 0, titles.length - 1));
+
+
         for(int i=0; i < dataList.size(); i++){
             PartInfoDTO dto = dataList.get(i);
 
-            Row headerRow = sheet.createRow(i);
+            Row headerRow = sheet.createRow((i+1));
 
             headerRow.createCell(0).setCellValue(dto.getParentPartNo());
-            headerRow.createCell(1).setCellValue(dto.getParentPartName());
-            headerRow.createCell(2).setCellValue(dto.getParentBlockNo());
+            headerRow.createCell(1).setCellValue(dto.getParentBlockNo());
+            headerRow.createCell(2).setCellValue(dto.getParentPartName());
+            headerRow.createCell(3).setCellValue(dto.getParentSize());
 
-            headerRow.createCell(3).setCellValue(dto.getPartNo());
-            headerRow.createCell(4).setCellValue(dto.getBlockNo());
-            headerRow.createCell(5).setCellValue(dto.getPartName());
-            headerRow.createCell(6).setCellValue(dto.getSpec());
-            headerRow.createCell(7).setCellValue(dto.getPartSize());
+
+            headerRow.createCell(4).setCellValue(dto.getPartNo());
+            headerRow.createCell(5).setCellValue(dto.getBlockNo());
+            headerRow.createCell(6).setCellValue(dto.getPartName());
+            headerRow.createCell(7).setCellValue(dto.getSpec());
+            headerRow.createCell(8).setCellValue(dto.getPartSize());
+            headerRow.createCell(9).setCellValue(dto.getQty());
+            headerRow.createCell(10).setCellValue(dto.getCmt());
         }
 
 
@@ -134,7 +179,7 @@ public class findAssyPart_02 {
         }
 
         // 파일 저장
-        try (FileOutputStream fileOut = new FileOutputStream("C:\\excel\\AssyFile_20250904.xlsx")) {
+        try (FileOutputStream fileOut = new FileOutputStream("C:\\excel\\AssyFile_20250905.xlsx")) {
             workbook.write(fileOut);
             System.out.println("Excel 파일 생성 완료!");
         } catch (IOException e) {
