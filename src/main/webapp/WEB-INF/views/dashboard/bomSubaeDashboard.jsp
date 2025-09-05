@@ -826,7 +826,8 @@
                                                     <option id="2025-05" value="2025-05">2025년 5월</option>
                                                     <option id="2025-06" value="2025-06">2025년 6월</option>
                                                     <option id="2025-07" value="2025-07">2025년 7월</option>
-                                                    <option id="2025-08" value="2025-08" selected>2025년 8월</option>
+                                                    <option id="2025-08" value="2025-08">2025년 8월</option>
+                                                    <option id="2025-09" value="2025-09" selected>2025년 9월</option>
                                                 </select>
                                             </div>
                                             <%--<div class="search-box">
