@@ -336,6 +336,7 @@ public class SubaeController {
     }
 
     //층별 로직 결과 화면
+    //logicEachFloorView.jsp
 
 
     // 시물레이터 결과만 추출
@@ -355,4 +356,7 @@ public class SubaeController {
         return  result;
     }
 
+
+    //시뮬레이터 전체 태그
+    //https://plmpro.hdel.co.kr/plmetc/vault/pidExecuteLineData?hogi=208223L01&PID=EL_PB186A01&testVersion=on&isfloor&floor=
 }
