@@ -318,7 +318,12 @@ public class SubaeController {
     @GetMapping("/subae/getFloorInfoJson")
     @ResponseBody
     public List<Map<String, Object>> getFloorInfoJson(String hogi, String key) {
-        //http://localhost:8070/subae/getFloorInfoJson?hogi=208618L17
+        //http://localhost:8070/subae/getFloorInfoJson?hogi=208618L17&key=electUser
+        //https://plmpro.hdel.co.kr/subae/getFloorInfoJson?hogi=208618L17&key=electUser
+
+        //https://plmpro.hdel.co.kr/plmetc/vault/findProductInfo?productNo=N26185L01
+        //https://plmpro.hdel.co.kr/plmetc/vault/pidExecute?hogi=208223L01&PID=EL_PB186A01&testVersion&isfloor&floor=
+
         log.info("========== subae getFloorInfoJson");
 
         List<Map<String, Object>> result = null;
@@ -328,6 +333,23 @@ public class SubaeController {
             }
         }
         return result;
+    }
+
+    // 시물레이터 결과만 추출
+    @GetMapping("/subae/pidExecute")
+    @ResponseBody
+    public HashMap<String, String> pidExecute(String pid, String hogi, String testVersion, String floor, String isfloor) {
+
+        //testVersion = on
+        //https://plmpro.hdel.co.kr/plmetc/vault/pidExecute?hogi=208223L01&PID=EL_PB186A01&testVersion=on&isfloor&floor=
+
+        //http://localhost:8070/subae/pidExecute?hogi=208223L01&pid=EL_PB186A01&testVersion=on&isfloor&floor=
+
+        HashMap<String, String> result = new HashMap<>();
+
+        result = subaeService.pidExecute(hogi, pid, testVersion, floor, isfloor);
+
+        return  result;
     }
 
 }

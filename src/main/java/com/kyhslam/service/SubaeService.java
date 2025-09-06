@@ -1,5 +1,6 @@
 package com.kyhslam.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
@@ -288,6 +289,11 @@ public class SubaeService {
 
     }
 
+    /**
+     * @apiNote 특정호기의 전체 층 검사하여 사양값 추출
+     * @param hogi
+     * @return
+     */
     public List<Map<String, Object>> getFloorInfoJson(String hogi) {
 
         List<Map<String, Object>> list = null; //mapper.readValue(jsonString, List.class);
@@ -352,4 +358,91 @@ public class SubaeService {
         return list;
     }
 
+
+    /**
+     * @apiNote PID 시뮬레이터 결과만 출력
+     * @param hogi
+     * @param pid
+     * @param testVersion
+     * @param floor
+     * @return
+     */
+    public HashMap<String, String> pidExecute(String hogi, String pid, String testVersion, String floor, String isfloor) {
+
+        System.out.println("pidExecute ==============");
+        HashMap<String, String> resultMap = new HashMap<>(); //mapper.readValue(jsonString, List.class);
+
+        //https://plmpro.hdel.co.kr/plmetc/vault/pidExecute?hogi=208223L01&PID=EL_PB186A01&testVersion=on&isfloor&floor=
+
+        String apiUrl = "https://plmpro.hdel.co.kr/plmetc/vault/pidExecute?";
+        apiUrl += "hogi=" + hogi;
+        apiUrl += "&PID=" + pid;
+        apiUrl += "&testVersion=" + testVersion;
+        apiUrl += "&isfloor=" + isfloor;
+        apiUrl += "&floor=" + floor;
+
+
+        try {
+            // URL 객체 생성
+            URL url = new URL(apiUrl);
+
+            // HttpURLConnection 객체 생성
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+            // GET 방식 설정
+            conn.setRequestMethod("GET");
+
+            // 응답 타입 설정 (JSON, XML 등 필요에 맞게 변경 가능)
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+            // 응답 코드 확인
+            int responseCode = conn.getResponseCode();
+            System.out.println("Response Code : " + responseCode);
+
+            // 응답 데이터 읽기
+            try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        response.append(line);
+                    }
+
+                    // response.toString() → JSON 문자열
+                    String jsonString = response.toString();
+
+                    System.out.println(jsonString.toString());
+                    // ObjectMapper 생성
+                    ObjectMapper mapper = new ObjectMapper();
+
+
+                // JSON → HashMap<String, String>
+                /*HashMap<String, String> resultMap = mapper.readValue(
+                        jsonString, new TypeReference<HashMap<String, String>>() {}
+                );*/
+
+                resultMap = mapper.readValue(
+                        jsonString, new TypeReference<HashMap<String, String>>() {}
+                );
+
+
+                // HashMap 출력 예시
+                for (Map.Entry<String, String> entry : resultMap.entrySet()) {
+                    System.out.println(entry.getKey() + " : " + entry.getValue());
+                }
+
+                // 결과 출력
+                //System.out.println("Response Data: " + response.toString());
+            }
+
+            // 연결 종료
+            conn.disconnect();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return resultMap;
+    }
 }
