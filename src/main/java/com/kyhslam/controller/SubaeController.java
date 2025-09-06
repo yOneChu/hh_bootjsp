@@ -317,13 +317,15 @@ public class SubaeController {
      */
     @GetMapping("/subae/getFloorInfoJson")
     @ResponseBody
-    public List<Map<String, Object>> getFloorInfoJson(String hogi) {
+    public List<Map<String, Object>> getFloorInfoJson(String hogi, String key) {
         //http://localhost:8070/subae/getFloorInfoJson?hogi=208618L17
-
         log.info("========== subae getFloorInfoJson");
+
         List<Map<String, Object>> result = null;
-        if(hogi != null && !"".equals(hogi)) {
-            result = subaeService.getFloorInfoJson(hogi);
+        if (key.equals("electUser")) {
+            if(hogi != null && !"".equals(hogi)) {
+                result = subaeService.getFloorInfoJson(hogi);
+            }
         }
         return result;
     }
