@@ -335,6 +335,9 @@ public class SubaeController {
         return result;
     }
 
+    //층별 로직 결과 화면
+
+
     // 시물레이터 결과만 추출
     @GetMapping("/subae/pidExecute")
     @ResponseBody
