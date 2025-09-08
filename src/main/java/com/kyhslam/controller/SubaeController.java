@@ -319,10 +319,9 @@ public class SubaeController {
     @ResponseBody
     public List<Map<String, Object>> getFloorInfoJson(String hogi, String key) {
         //http://localhost:8070/subae/getFloorInfoJson?hogi=208618L17&key=electUser
-        //https://plmpro.hdel.co.kr/subae/getFloorInfoJson?hogi=208618L17&key=electUser
+        //https://vault-in.hdel.co.kr:8070/getFloorInfoJson?hogi=208618L17&key=electUser
 
         //https://plmpro.hdel.co.kr/plmetc/vault/findProductInfo?productNo=N26185L01
-        //https://plmpro.hdel.co.kr/plmetc/vault/pidExecute?hogi=208223L01&PID=EL_PB186A01&testVersion&isfloor&floor=
 
         log.info("========== subae getFloorInfoJson");
 
