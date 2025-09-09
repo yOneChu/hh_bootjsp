@@ -280,7 +280,8 @@ public class PIDCommonUtil {
 
             if(FIELD != null && !"".equals(FIELD)) FIELD = FIELD.toUpperCase();
             if(CON05 != null && !"".equals(CON05)) CON05 = CON05.trim();
-
+            if(pid != null && !"".equals(pid)) pid = pid.trim();
+            if(pid02 != null && !"".equals(pid02)) pid02 = pid02.trim();
 
             //SPEC, CON
             sql.append(" SELECT h.pid, D.NO, NVL(D.REMARKS, '-') AS REMARKS, D.ADDR AS ADDR,  ");
