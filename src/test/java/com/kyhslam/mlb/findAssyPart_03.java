@@ -16,7 +16,7 @@ public class findAssyPart_03 {
 
 
     /**
-     * 재훈이꺼
+     * 효현, 재훈이꺼
      * 1. 엑셀의 partno 읽기
      * 2. partNo로 oid 찾기
      * 3. oid로 하위 자재 챚아서 모 > 자 로 출력
@@ -32,7 +32,9 @@ public class findAssyPart_03 {
 
         // 1레벨 부품 OID 조회
         // 조건에 AND A.BLOCKNO_NUMBER = 'D375A' 추가해야됨
-        ArrayList<PartInfoDTO> dtoList = MLBCommonUtil.findPartWithYear_V2("2025");
+        // 2025년 5000개 -> 20분
+        // 2024년 22430개 ->
+        ArrayList<PartInfoDTO> dtoList = MLBCommonUtil.findPartWithYear_V2("2024");
 
         System.out.println("dtoList.size() -------- " + dtoList.size());
 
@@ -43,15 +45,17 @@ public class findAssyPart_03 {
             PartInfoDTO parentDto = dtoList.get(i);
             String oid = parentDto.getOid();
 
+            System.out.println((i+1) + " > " + parentDto.getPartNo());
+
             // 하위레벨 조회
             //MLBCommonUtil.findDownLevel(oid, resultList, parentDto);
-            //MLBCommonUtil.findDownLevelQTY_CE(oid, resultList, parentDto);
+            MLBCommonUtil.findDownLevelQTY_CE(oid, resultList, parentDto);
 
         }
 
         System.out.println("---- writeExcel Run -----");
 
-        //writeExcelFile(resultList);
+        writeExcelFile(resultList);
 
 
         sw.stop();
@@ -106,7 +110,7 @@ public class findAssyPart_03 {
         headerStyle.setFont(headerFont);
 
         Row header = sheet.createRow(0);
-        String[] titles = { "모 자재번호", "BlockNo", "자재명", "SIZE", "자 자재번호", "BlockNo", "자재명", "SPEC", "SIZE", "QTY", "CMT"
+        String[] titles = { "모 자재번호", "BlockNo", "모 자재명", "모 버전", "자 LEVEL", "자 자재번호", "자 버전", "BlockNo", "자재명", "SPEC", "SIZE", "QTY", "CMT"
         };
         for (int i = 0; i < titles.length; i++) {
             Cell cell = header.createCell(i);
@@ -123,22 +127,24 @@ public class findAssyPart_03 {
 
             Row headerRow = sheet.createRow((i+1));
 
+            //headerRow.createCell(0).setCellValue(dto.getParentLevel());
             headerRow.createCell(0).setCellValue(dto.getParentPartNo());
             headerRow.createCell(1).setCellValue(dto.getParentBlockNo());
             headerRow.createCell(2).setCellValue(dto.getParentPartName());
-            headerRow.createCell(3).setCellValue(dto.getParentSize());
+            headerRow.createCell(3).setCellValue(dto.getParentVersion());
+            //headerRow.createCell(5).setCellValue(dto.getParentSize());
 
 
-            headerRow.createCell(4).setCellValue(dto.getPartNo());
-            headerRow.createCell(5).setCellValue(dto.getBlockNo());
-            headerRow.createCell(6).setCellValue(dto.getPartName());
-            headerRow.createCell(7).setCellValue(dto.getSpec());
-            headerRow.createCell(8).setCellValue(dto.getPartSize());
-            headerRow.createCell(9).setCellValue(dto.getQty());
-            headerRow.createCell(10).setCellValue(dto.getCmt());
+            headerRow.createCell(4).setCellValue(dto.getLevel());
+            headerRow.createCell(5).setCellValue(dto.getPartNo());
+            headerRow.createCell(6).setCellValue(dto.getVersion());
+            headerRow.createCell(7).setCellValue(dto.getBlockNo());
+            headerRow.createCell(8).setCellValue(dto.getPartName());
+            headerRow.createCell(9).setCellValue(dto.getSpec());
+            headerRow.createCell(10).setCellValue(dto.getPartSize());
+            headerRow.createCell(11).setCellValue(dto.getQty());
+            headerRow.createCell(12).setCellValue(dto.getCmt());
         }
-
-
 
         // 자동 열 너비 조정
         for (int i = 0; i < 8; i++) {
@@ -146,7 +152,7 @@ public class findAssyPart_03 {
         }
 
         // 파일 저장
-        try (FileOutputStream fileOut = new FileOutputStream("C:\\excel\\AssyFile_20250909.xlsx")) {
+        try (FileOutputStream fileOut = new FileOutputStream("C:\\excel\\D375A_QTY_2025.xlsx")) {
             workbook.write(fileOut);
             System.out.println("Excel 파일 생성 완료!");
         } catch (IOException e) {

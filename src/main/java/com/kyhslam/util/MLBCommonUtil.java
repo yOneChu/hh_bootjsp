@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public class MLBCommonUtil {
 
@@ -177,7 +178,6 @@ public class MLBCommonUtil {
                   with ouid as
                      ( select A.vf$ouid from NORMALPART$vf A, NORMALPART$id B
                        where A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip
-                       --and ( md$number in ( '18900360G0700') )
                         AND SUBSTR(A.MD$CDATE, 0, 4) IN( ? )
                      )
                 SELECT
@@ -200,9 +200,12 @@ public class MLBCommonUtil {
                 --A.*
                 FROM NORMALPART$VF A
                 WHERE A.VF$OUID IN (SELECT * FROM OUID)
+                --WHERE 1=1
                 AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
                 AND A.PART_STATUS = '2466425004'
+                AND A.ORIGIN_DIV = '2248978165' --내작, (외주:2248978166)
                 AND A.BLOCKNO_NUMBER = 'D375A'
+                --AND SUBSTR(A.MD$CDATE, 0, 4) IN( ? )
                 """;
 
             pstmt = con.prepareStatement(sql.toString());
@@ -218,6 +221,7 @@ public class MLBCommonUtil {
                 String PARTNO = rs.getString("PARTNO");
                 String GL_CODE = rs.getString("GL_CODE");
                 String BLOCKNO = rs.getString("BLOCKNO");
+                String VERSION = rs.getString("VERSION");
 
                 PartInfoDTO dto = new PartInfoDTO();
                 dto.setOid(OID);
@@ -225,6 +229,7 @@ public class MLBCommonUtil {
                 dto.setPartName(PARTNAME);
                 dto.setGlCode(GL_CODE);
                 dto.setBlockNo(BLOCKNO);
+                dto.setVersion(VERSION);
 
                 result.add(dto);
             } //end while
@@ -427,14 +432,17 @@ public class MLBCommonUtil {
         PreparedStatement pstmt = null;
         ResultSet rs 			= null;
 
+        HashSet<String> dupCheck = new HashSet<>();
         ArrayList<String> result = new ArrayList<>();
 
+        String parentLevel = parentDto.getParentLevel();
         String parentNo = parentDto.getPartNo();
         String parentPartName =  parentDto.getPartName();
         String parentSpec = parentDto.getSpec();
         String parentBlockNo = parentDto.getBlockNo();
         String parentGLCode = parentDto.getGlCode();
         String parentSize = parentDto.getPartSize();
+        String parentVersion = parentDto.getVersion();
         String parentQty = parentDto.getQty();
 
         try {
@@ -445,7 +453,7 @@ public class MLBCommonUtil {
                        'partofpart$ac@' || lower(dectohex(BOM.SF$OUID)) AS OOID,
                        NP.MD$NUMBER AS PARTNO
                     , BOM.QTY AS QTY
-                    , BOM.CMT AS CMT
+                    , BOM.CMT AS CMT --공사주석
                     , BOM.PART_SPT
                     , CODN(NP.NATION)
                     , NP.COMPEN_PART
@@ -455,7 +463,7 @@ public class MLBCommonUtil {
                     , CODN(NP.CLASSIFICATION_01)
                     , BLOCKNO_NUMBER AS BLOCKNO
                     , NP.MD$DESC AS PARTNAME
-                    , NP.VF$VERSION 
+                    , NP.VF$VERSION AS VERSION
                     , NP.G_L_CODE  
                     , NP.PART_SIZE AS PART_SIZE
                     , NP.SPEC AS SPEC
@@ -482,6 +490,7 @@ public class MLBCommonUtil {
                  LEFT OUTER JOIN FUSER$SF U ON U.MD$NUMBER = BOM.CUSER
                  LEFT OUTER JOIN FUSER$SF U2 ON U2.MD$NUMBER = NP.MD$USER
                  LEFT OUTER JOIN PARTNAME$SF NAME ON NAME.SF$OUID = GETID(NP.PARTNAME)
+                -- WHERE BOM.QTY LIKE '%CE_0%'
                  START WITH AS$END1 = ? -- 부품OID(VF$OUID)
                  CONNECT BY
                     PRIOR AS$END2 = AS$END1
@@ -508,9 +517,17 @@ public class MLBCommonUtil {
                 String qty = rs.getString("QTY");
                 String BLOCKNO = rs.getString("BLOCKNO");
                 String CMT = rs.getString("CMT");
+                String VERSION = rs.getString("VERSION");
+
+                if (dupCheck.contains(PARTNO.trim())) {
+                    continue;
+                } else {
+                    dupCheck.add(PARTNO.trim());
+                }
 
                 PartInfoDTO dto =  new PartInfoDTO();
 
+                dto.setLevel(P_LEVEL);
                 dto.setPartNo(PARTNO);
                 dto.setPartName(PARTNAME);
                 dto.setBlockNo(BLOCKNO);
@@ -518,25 +535,42 @@ public class MLBCommonUtil {
                 dto.setPartSize(PART_SIZE);
                 dto.setQty(qty);
                 dto.setCmt(CMT);
+                dto.setVersion(VERSION);
 
-                if ("2".equals(P_LEVEL)) {
-                    dto.setParentPartNo(tempDto.getPartNo());
-                    dto.setParentPartName(tempDto.getPartName());
-                    dto.setParentGLCode(tempDto.getGlCode());
-                    dto.setParentSpec(tempDto.getSpec());
-                    dto.setParentBlockNo(tempDto.getBlockNo());
-                    dto.setParentBlockNo(tempDto.getQty());
-                    dto.setParentSize(tempDto.getPartSize());
-                } else {
+
+                dto.setParentLevel(parentLevel);
+                dto.setParentPartNo(parentNo);
+                dto.setParentPartName(parentPartName);
+                dto.setParentGLCode(parentGLCode);
+                dto.setParentSpec(parentSpec);
+                dto.setParentBlockNo(parentBlockNo);
+                dto.setParentSize(parentSize);
+                dto.setParentVersion(parentVersion);
+                dto.setParentQty(parentQty);
+
+                /*if ("1".equals(P_LEVEL)) {
+                    dto.setParentLevel(parentLevel);
                     dto.setParentPartNo(parentNo);
                     dto.setParentPartName(parentPartName);
                     dto.setParentGLCode(parentGLCode);
                     dto.setParentSpec(parentSpec);
                     dto.setParentBlockNo(parentBlockNo);
                     dto.setParentSize(parentSize);
-                    //dto.setparent
+                    dto.setParentVersion(parentVersion);
+                    dto.setParentQty(parentQty);
                     tempDto = dto;
-                }
+
+                } else {
+                    dto.setParentLevel(tempDto.getLevel());
+                    dto.setParentPartNo(tempDto.getPartNo());
+                    dto.setParentPartName(tempDto.getPartName());
+                    dto.setParentGLCode(tempDto.getGlCode());
+                    dto.setParentSpec(tempDto.getSpec());
+                    dto.setParentBlockNo(tempDto.getBlockNo());
+                    dto.setParentQty(tempDto.getQty());
+                    dto.setParentSize(tempDto.getPartSize());
+                    dto.setParentVersion(tempDto.getVersion());
+                }*/
 
                 if (qty.contains("CE")) {
                     downPartList.add(dto);

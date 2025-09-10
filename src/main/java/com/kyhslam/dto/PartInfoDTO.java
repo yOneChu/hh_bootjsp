@@ -9,6 +9,7 @@ public class PartInfoDTO {
 
     private String level;
 
+    private String parentLevel;
     private String parentOid;
     private String parentPartNo;
     private String parentPartName;
@@ -16,6 +17,8 @@ public class PartInfoDTO {
     private String parentGLCode;
     private String parentSpec;
     private String parentSize;
+    private String parentQty;
+    private String parentVersion;
 
     private String oid;
     private String partNo;

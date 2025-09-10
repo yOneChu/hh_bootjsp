@@ -328,11 +328,19 @@ function initHandsontable(rr) {
         }
     });
 
-// 헤더 색상
+
+
+    // 헤더 색상
     hot.addHook('afterGetColHeader', function (col, TH) {
-        if (hot.getColHeader(col) === 'KEY1') {
+        //if (hot.getColHeader(col) === 'KEY1') {
+        if (['KEY1', 'KEY2', 'KEY3', 'KEY4', 'KEY5', 'KEY6', 'KEY7', 'KEY8', 'KEY9', 'KEY10'].includes(hot.getColHeader(col))) {
             TH.classList.add('pink-col-header');
         }
+
+        if (['SPEC1', 'SPEC2', 'SPEC3', 'SPEC4', 'SPEC5', 'SPEC6', 'SPEC7', 'SPEC8', 'SPEC9', 'SPEC10', 'SPEC11', 'SPEC12', 'SPEC13'].includes(hot.getColHeader(col))) {
+            TH.classList.add('gery-col-header');
+        }
+
     });
 
 // 수동/자동 숨김, 컬럼 이동 후에도 유지되도록 렌더링
