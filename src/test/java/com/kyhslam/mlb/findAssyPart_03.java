@@ -22,21 +22,47 @@ public class findAssyPart_03 {
      * 3. oid로 하위 자재 챚아서 모 > 자 로 출력
      * @param args
      */
-    
+
+
     public static void main(String[] args) {
+
+
+
+        //ArrayList<PartInfoDTO> dtoList = new ArrayList<>();
+
+        // A101A
+        // B120A
+        // 1레벨 부품 OID 조회
+        // 조건에 AND A.BLOCKNO_NUMBER = 'D375A' 추가해야됨
+        // 2025년 5000개 -> 20분
+        // 2024년 22430개 -> 95분
+
+        // D375A, E331A, A101A, B120A
+        ArrayList<String> yearList = new ArrayList<>();
+        yearList.add("2025");
+        yearList.add("2024");
+        yearList.add("2023");
+        yearList.add("2022");
+        yearList.add("2021");
+        yearList.add("2020");
+
+        for(int i=0; i < yearList.size(); i++){
+            processGo(yearList.get(i));
+        }
+
+
+
+    }
+
+
+    private static void processGo(String year) {
 
         StopWatch sw = new StopWatch();
         sw.start();
 
-        //ArrayList<PartInfoDTO> dtoList = new ArrayList<>();
+        ArrayList<PartInfoDTO> dtoList = MLBCommonUtil.findPartWithYear_V2(year);
 
-        // 1레벨 부품 OID 조회
-        // 조건에 AND A.BLOCKNO_NUMBER = 'D375A' 추가해야됨
-        // 2025년 5000개 -> 20분
-        // 2024년 22430개 ->
-        ArrayList<PartInfoDTO> dtoList = MLBCommonUtil.findPartWithYear_V2("2024");
-
-        System.out.println("dtoList.size() -------- " + dtoList.size());
+        System.out.println(year + " >>> " +  dtoList.size());
 
         ArrayList<PartInfoDTO> resultList = new ArrayList<>();
 
@@ -55,7 +81,7 @@ public class findAssyPart_03 {
 
         System.out.println("---- writeExcel Run -----");
 
-        writeExcelFile(resultList);
+        writeExcelFile(resultList, year);
 
 
         sw.stop();
@@ -72,13 +98,15 @@ public class findAssyPart_03 {
     }
 
 
+
+
     private static String getCellValueAsString(Cell cell) {
         DataFormatter formatter = new DataFormatter();
         return formatter.formatCellValue(cell);
     }
 
     //엑셀 추출
-    private static void writeExcelFile(ArrayList<PartInfoDTO> dataList) {
+    private static void writeExcelFile(ArrayList<PartInfoDTO> dataList, String year) {
         Workbook workbook = new XSSFWorkbook();
 
         // 시트 생성
@@ -147,17 +175,27 @@ public class findAssyPart_03 {
         }
 
         // 자동 열 너비 조정
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 12; i++) {
             sheet.autoSizeColumn(i);
         }
 
+        String filePath = "C:\\excel\\D375A_QTY_";
+        filePath += year + ".xlsx";
+
+
         // 파일 저장
-        try (FileOutputStream fileOut = new FileOutputStream("C:\\excel\\D375A_QTY_2025.xlsx")) {
+        try (FileOutputStream fileOut = new FileOutputStream(filePath)) {
             workbook.write(fileOut);
             System.out.println("Excel 파일 생성 완료!");
         } catch (IOException e) {
             e.printStackTrace();
         }
+       /* try (FileOutputStream fileOut = new FileOutputStream("C:\\excel\\B120A_QTY_2025.xlsx")) {
+            workbook.write(fileOut);
+            System.out.println("Excel 파일 생성 완료!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }*/
 
         // 리소스 해제
         try {
