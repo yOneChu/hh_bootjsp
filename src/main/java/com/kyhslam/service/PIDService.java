@@ -37,14 +37,15 @@ public class PIDService {
 
     }
 
+    // 쿼리수정해서 PLM에서 실시간 조회로 수정
     //금 18시40분 수행
-    @Scheduled(cron = "0 40 18 * * 5")
+    //@Scheduled(cron = "0 40 18 * * 5")
     public void scheduleProcessV2() {
 
         PIDCommonUtil p = new PIDCommonUtil();
 
         //PID에 연결된 각각의 라인 수 저장
-        p.insert_Type03();
+        //p.insert_Type03();
 
         System.out.println(" ------- end -------");
     }
