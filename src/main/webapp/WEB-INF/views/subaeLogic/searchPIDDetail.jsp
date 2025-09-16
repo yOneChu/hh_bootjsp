@@ -12,7 +12,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <link rel="icon" type="image/png" href="/resources/favicon.ico" />
 
-    <title>수배로직</title>
+    <title>PID 상세조회</title>
 
     <!-- Google Font: Source Sans Pro -->
     <!--    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">-->
@@ -122,7 +122,7 @@
                             <div class="col-md-12">
                                 <div class="callout callout-danger">
                                     <h4><i class="fas fa-bullhorn"></i> 도움말</h4>
-                                    <h5 style="color: blue;">- 10,000건 이상의 경우 "EXCEL Download"로 받으시기 바랍니다. </h5>
+                                    <h5 style="color: #60A5FA;">- 10,000건 이상의 경우 "EXCEL Download"로 받으시기 바랍니다. </h5>
                                     <h5>- 현재 Excel 다운로드 시 숫자인식 관련 문제가 있어 Copy로 복사 후, EXCEL에 붙여넣기 하시기 바랍니다. </h5>
                                     <h5>- 조건1에 REMARKS로 검색 시, 조건2의 PID는 검색할 수 없습니다. </h5>
                                     <h5>- PID02 조건이 공백이라면 해당 조건은 포함되지 않고 조회된다. </h5>

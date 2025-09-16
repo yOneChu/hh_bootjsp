@@ -123,8 +123,9 @@
                             <div class="col-md-12">
                                 <div class="callout callout-danger">
                                     <%--<h4><i class="fas fa-bullhorn"></i> 도움말</h4>--%>
+                                    <%--blue--%>
                                     <h4>🔊 도움말</h4>
-                                    <h5 style="color: blue;">- 자재번호를 입력하면, PLM에서 그 자재가 실제 사용되고 있는 최신 제품을 조회하는 기능  </h5>
+                                    <h5 style="color: #60A5FA;">- 자재번호를 입력하면, PLM에서 그 자재가 실제 사용되고 있는 최신 제품을 조회하는 기능  </h5>
                                     <h5>- 사용방법: 26300551G0*  -> Like 검색 ('26300551G0' 문자 포함한 자재를 사용중인 제품 검색) </h5>
                                     <h5>- '*' 없으면 EQUAL 검색 </h5>
                                 </div>

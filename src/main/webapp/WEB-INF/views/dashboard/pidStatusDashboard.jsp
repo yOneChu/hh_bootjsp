@@ -146,8 +146,16 @@
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
-                            <li class="breadcrumb-item"><a href="#">Home</a></li>
-                            <li class="breadcrumb-item active">DataTables</li>
+                            <%--<li class="breadcrumb-item"><a href="#">Home</a></li>
+                            <li class="breadcrumb-item active">DataTables</li>--%>
+                                <li class="breadcrumb-item">
+                                    <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
+                                        <input type="checkbox" class="custom-control-input" id="darkModeToggle">
+                                        <label class="custom-control-label" for="darkModeToggle">🌓 다크모드</label>
+                                    </div>
+                                </li>
+
+
                         </ol>
                     </div>
                 </div>
@@ -165,7 +173,7 @@
                         <div class="col-12">
                             <div class="callout callout-info">
                                 <h4><i class="fas fa-bullhorn"></i> 도움말</h4>
-                                <h5 style="color: blue">- PID 개발 및 수정 현황 </h5>
+                                <h5 style="color: #60A5FA">- PID 개발 및 수정 현황 </h5>
                                 <h5>- PID 별 라인 개수 : 각 PID(최신버전)에 연결된 라인 총 수 (1주 회 집계)</h5>
                                 <h5>- PID 전체 라인 수 : 작업한 전체 라인 수 (매일)</h5>
                                 <h5>- PID 개수 : 등록된 PID 개수 (매일)</h5>
@@ -226,7 +234,7 @@
                                 <h3 class="card-title">
                                     <i class="ion ion-clipboard mr-1"></i>
                                     <%--PID별 라인개수--%>
-                                    최신일 기준 PID별 상위 200건 추출 (라인수 많은 순)
+                                    최신일 기준 PID별 상위 50 추출 (라인수 많은 순)
                                 </h3>
                             </div>
 
@@ -456,6 +464,43 @@
 
     //ready
     $(document).ready(function() {
+
+        // 다크모드: 저장된 테마 적용
+        const savedTheme = localStorage.getItem('theme');
+        const $themeLabel = $('label[for="darkModeToggle"]');
+
+        const updateThemeLabel = function(isDark) {
+            if (isDark) {
+                $themeLabel.text('🌙 다크모드');
+            } else {
+                $themeLabel.text('☀️ 라이트모드');
+            }
+        };
+
+        if (savedTheme === 'dark') {
+            $('body').addClass('dark-mode');
+            $('#darkModeToggle').prop('checked', true);
+            updateThemeLabel(true);
+        } else {
+            $('#darkModeToggle').prop('checked', false);
+            updateThemeLabel(false);
+        }
+
+        // 다크모드 토글 스위치 핸들러
+        $('#darkModeToggle').on('change', function() {
+            const willBeDark = $(this).is(':checked');
+            if (willBeDark) {
+                $('body').addClass('dark-mode');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                $('body').removeClass('dark-mode');
+                localStorage.setItem('theme', 'light');
+            }
+            updateThemeLabel(willBeDark);
+        });
+
+
+
         $("#dashboard").removeClass("menu-open");
 
         let v01 = "<%=dateKeyList.get(0) %>";
