@@ -83,8 +83,14 @@
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
-                            <li class="breadcrumb-item"><a href="#">Home</a></li>
-                            <li class="breadcrumb-item active">DataTables</li>
+                            <%--<li class="breadcrumb-item"><a href="#">Home</a></li>
+                            <li class="breadcrumb-item active">DataTables</li>--%>
+                            <li class="breadcrumb-item">
+                                <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
+                                    <input type="checkbox" class="custom-control-input" id="darkModeToggle">
+                                    <label class="custom-control-label" for="darkModeToggle">🌓 다크모드</label>
+                                </div>
+                            </li>
                         </ol>
                     </div>
                 </div>
@@ -121,17 +127,17 @@
                             <div class="col-md-12">
                                 <div class="callout callout-danger">
                                     <h4><i class="fas fa-bullhorn"></i> 도움말</h4>
-                                    <h5 style="color: blue;"> ✅ 사용 예시. </h5>
+                                    <h5 style="color: #60A5FA;"> ✅ 사용 예시. </h5>
                                     <h5>1.	2025.06.01 일자로 PLM에 있는 데이터를 백업해놓음 -> 해당 데이터가 이력조회 시, 버전 1에 해당 됨( 해당작업은 최초 1번 수행하고 수행되지 않음) </h5>
                                     <h5>2.	PLM에서 “B259B83” Block 정보가 변경 됨 -> “B259B83” 버전2로 데이터가 쌓임 </h5>
                                     <h5>3.	이력조회 화면에서 “B259B83” 버전1, 버전2 조회하여 데이터 비교하면 됨 </h5>
 
-                                    <h5 style="color: blue;"> 📌 참고사항 </h5>
-                                    <h5 style="color: blue;">- PLM에서의 Block No 정보 변경 시, 별도의 DB에 이력관리되어 조회되는 화면 </h5>
+                                    <h5 style="color: #60A5FA;"> 📌 참고사항 </h5>
+                                    <h5 style="color: #60A5FA;">- PLM에서의 Block No 정보 변경 시, 별도의 DB에 이력관리되어 조회되는 화면 </h5>
                                     <h5>- PLM의 Block 기준정보 변경 시, 월~금 오전 8시에 변경 이력이 쌓이고 관련 담당자들에게 E-Mail 자동 발송 -> <button class="btn btn-success" onclick="viewPDF()">
                                         📄 프로세스 메뉴얼 열람
                                     </button></h5>
-                                    <h5 style="color: blue;">- 조회 시, 마지막 버전의 데이터가 PLM에서 조회되는 데이터 임 </h5>
+                                    <h5 style="color: #60A5FA;">- 조회 시, 마지막 버전의 데이터가 PLM에서 조회되는 데이터 임 </h5>
                                 </div>
                             </div>
 
@@ -257,6 +263,8 @@
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 
+
+<script src="/resources/javascript/commonUtil.js"></script>
 
 <script>
 
