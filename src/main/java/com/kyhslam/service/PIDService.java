@@ -1,6 +1,7 @@
 package com.kyhslam.service;
 
 import com.kyhslam.util.PIDCommonUtil;
+import com.kyhslam.util.PLMDBConnection;
 import com.kyhslam.util.VaultDBConnection;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -139,9 +141,10 @@ public class PIDService {
         Connection con          = null;
         try {
 
-            con = VaultDBConnection.getConnection();
+            //con = VaultDBConnection.getConnection();
+            con = PLMDBConnection.getConnection();
 
-            String sql = """
+            /*String sql = """
                     WITH RankedPID AS (
                                 SELECT
                                 BATCH_DATE,
@@ -154,6 +157,28 @@ public class PIDService {
                         FROM RankedPID
                         WHERE rn = 1
                         ORDER BY PID_COUNT DESC
+                    """;*/
+
+            String sql = """
+                    SELECT
+                        PID,
+                        line_count AS PID_COUNT
+                    FROM (
+                        SELECT
+                            h.PID,
+                            COUNT(*) AS line_count
+                        FROM
+                            variant_d d
+                        JOIN
+                            variant_h h ON h.HOUID = d.HOUID
+                        JOIN
+                            variant_id id ON h.HOUID = id.LAST_HOUID
+                        GROUP BY
+                            h.PID
+                        ORDER BY
+                            COUNT(*) DESC
+                    )
+                    WHERE ROWNUM <= 50
                     """;
 
 
@@ -161,13 +186,19 @@ public class PIDService {
 
             rs = pstmt.executeQuery();
 
+            LocalDate now = LocalDate.now();
+            String todayValue = now.toString();
+
             while(rs.next()) {
-                String BATCH_DATE = rs.getString("BATCH_DATE") == null ? "" : rs.getString("BATCH_DATE");
+                //String BATCH_DATE = rs.getString("BATCH_DATE") == null ? "" : rs.getString("BATCH_DATE");
                 String PID = rs.getString("PID") == null ? "" : rs.getString("PID");
                 String PID_COUNT = rs.getString("PID_COUNT") == null ? "" : rs.getString("PID_COUNT");
 
                 HashMap<String, String> d = new HashMap<>();
-                d.put("DATE", BATCH_DATE);
+
+
+                //d.put("DATE", BATCH_DATE);
+                d.put("DATE", todayValue);
                 d.put("PID", PID);
                 d.put("COUNT", PID_COUNT);
 
@@ -176,7 +207,7 @@ public class PIDService {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            VaultDBConnection.disconnect(con, pstmt, rs);
+            PLMDBConnection.disconnect(con, pstmt, rs);
         }
         return result;
     }
