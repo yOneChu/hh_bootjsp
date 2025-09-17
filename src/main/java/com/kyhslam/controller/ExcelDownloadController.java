@@ -253,7 +253,8 @@ public class ExcelDownloadController {
      * @param qtyLogic
      * @throws IOException
      */
-    @PostMapping("/searchPart")
+    @PostMapping("/" +
+            "")
     public void searchPart(HttpServletResponse response, String partNo, String partName, String year, String status, String qtyLogic) throws IOException {
 
 
