@@ -272,9 +272,6 @@ public class find_PM_Request_v2 {
         }
 
 
-
-
-
         // 자동 열 너비 조정
         for (int i = 0; i < 12; i++) {
             sheet.autoSizeColumn(i);
