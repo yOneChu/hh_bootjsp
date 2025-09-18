@@ -71,6 +71,7 @@ public class MLBCommonUtil {
                 String BLOCKNO = rs.getString("BLOCKNO");
                 String SPEC = rs.getString("SPEC");
                 String PARTSIZE = rs.getString("PARTSIZE");
+                String GLCODE = rs.getString("GL_CODE");
 
                 PartInfoDTO dto  = new PartInfoDTO();
                 dto.setOid(OID);
@@ -79,6 +80,7 @@ public class MLBCommonUtil {
                 dto.setPartSize(PARTSIZE);
                 dto.setBlockNo(BLOCKNO);
                 dto.setSpec(SPEC);
+                dto.setGlCode(GLCODE);
 
                 result.add(dto);
             } //end while

@@ -6,6 +6,9 @@
 <%@ page import="java.util.ArrayList" %>
 <%@ page import="com.kyhslam.util.PLMDBConnection" %>
 <%@ page import="java.util.Iterator" %>
+<%@ page import="com.kyhslam.util.PartCommonUtil" %>
+<%@ page import="com.kyhslam.util.MLBCommonUtil" %>
+<%@ page import="com.kyhslam.dto.PartInfoDTO" %>
 
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
@@ -366,6 +369,7 @@
                                     <tr class="bg-secondary">
                                         <th style="font-weight: bold; text-align: center;">PID</th>
                                         <th style="font-weight: bold; text-align: center;">자재명</th>
+                                        <%--<th style="font-weight: bold; text-align: center;">GL_Code</th>--%>
                                     </tr>
                                     </thead>
 
@@ -384,15 +388,27 @@
 
                                                 for(int i=0; i < rList.size(); i++) {
                                                     String a = rList.get(i);
+
+                                                    //ArrayList<PartInfoDTO> partList = MLBCommonUtil.findPartWithPartNo(a);
+
+                                                    //String glCode = ""; //oMap.get("GLCODE");
+                                                    //glCode = oMap.get("GLCODE");
+                                                    //PartInfoDTO dto = partList.get(0);
+
+
+
                                     %>
                                     <tr>
                                         <td> <%=key %> </td>
                                         <td> <%=a %></td>
+                                        <%--<td> <%=dto.getGlCode() %></td>--%>
                                     </tr>
                                     <%
                                                 }
                                             }
                                         }
+
+                                        System.out.println("end===============");
                                     %>
 
 
@@ -485,7 +501,7 @@
         //엔터키 감지
         $(document).keyup(function(event) {
             if(event.which === 13) {
-                search();
+                //search();
                 return false; // 추가 이벤트 방지위해 false 리턴
             }
         })
@@ -493,7 +509,7 @@
     });
 
     //검색
-    function search()
+    /*function search()
     {
         let partNo = $("#partNo").val(); // 제품번호
 
@@ -693,7 +709,7 @@
                 }
             }
         });
-    }
+    }*/
 
 </script>
 
