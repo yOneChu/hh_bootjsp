@@ -3,6 +3,7 @@ package com.kyhslam.mlb;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.util.PLMDBConnection;
+import com.kyhslam.util.PartCommonUtil;
 import com.kyhslam.util.ProductCommonUtil;
 import com.kyhslam.util.SubaeCommonUtil;
 import org.apache.poi.ss.usermodel.*;
@@ -61,13 +62,15 @@ public class find_PM_Request_v3 {
 
 
         try (FileInputStream fis = new FileInputStream(filePath);
-             Workbook workbook = new XSSFWorkbook(fis)) {
+            Workbook workbook = new XSSFWorkbook(fis)) {
+
 
             Sheet sheet = workbook.getSheetAt(0); // 첫 번째 시트 읽기
 
             // 첫 번째 행(헤더)은 건너뛴다고 가정 (row 0은 헤더)
             //for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
-                for (int rowIndex = 1; rowIndex <= 2; rowIndex++) {
+            for (int rowIndex = 1; rowIndex <= 2; rowIndex++) {
+
                 Row row = sheet.getRow(rowIndex);
                 if (row == null) continue;
 
@@ -86,7 +89,16 @@ public class find_PM_Request_v3 {
                 String modDate = getCellValue(row.getCell(10)); // 변경 등록일
                 String lastVal = getCellValue(row.getCell(11)); // 최종
                 String modCount = getCellValue(row.getCell(12)); // 변경 수
-                String export = getCellValue(row.getCell(13)); // 출하일
+                String exportDate = getCellValue(row.getCell(13)); // 출하일
+
+
+                //출하예정일
+                ArrayList<HashMap<String, String>> exportList = PartCommonUtil.getExportDate(productNo);
+                if(exportList != null && exportList.size()>0){
+                    HashMap<String, String> exportMap = exportList.get(0);
+                    exportDate = exportMap.get("SHIP_B");
+
+                }
 
 
                 /*ProductDto dto = new ProductDto();
@@ -144,13 +156,15 @@ public class find_PM_Request_v3 {
                         }
                     }
 
+
                 }
 
 
                 // 8
                 //row.createCell(8).setCellValue(getProdAppDate);
-                    Cell cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                    cell.setCellValue(getProdAppDate);
+                Cell cell = row.getCell(8, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                cell.setCellValue(getProdAppDate);
+
 
 
                 // 출력 (또는 DTO에 매핑 가능)
