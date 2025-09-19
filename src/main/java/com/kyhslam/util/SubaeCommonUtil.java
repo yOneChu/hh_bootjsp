@@ -191,7 +191,14 @@ public class SubaeCommonUtil {
 
 
 
-    //2.제품번호로 모든 버전의 제품OID 조회
+    // 2.제품번호로 모든 버전의 제품OID 조회
+
+    /**
+     * 제품번호로 모든 버전의 제품OID 조회
+     * Q,V,NB, TEST, Y 등 제외
+     * @param productNo
+     * @return
+     */
     public static ArrayList<ProductDto> findProductOIDS(String productNo) {
 
         Connection con 			= null;
@@ -789,9 +796,9 @@ public class SubaeCommonUtil {
     }
 
 
-    //자재번호로
-    //해당 자재번호를 사용하고 있는 제품 검색
-    //2.제품 하위에 해당 자재가 있는지 검사
+    // 자재번호로
+    // 해당 자재번호를 사용하고 있는 제품 검색
+    // 2.제품 하위에 해당 자재가 있는지 검사
     public static ArrayList<ProductDto> findPartOfProduct_v2(String year, String partNo) {
 
         Connection con 			= null;
@@ -998,6 +1005,89 @@ public class SubaeCommonUtil {
         }
 
         return val;
+    }
+
+    /**
+     * 제품번호로 모든 버전의 제품OID 조회
+     * @param productNo
+     * @return
+     */
+    public static ArrayList<ProductDto> findProductALLInfo(String productNo) {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<ProductDto> result = new ArrayList<ProductDto>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                    SELECT
+                            V.VF$OUID AS OID,
+                            V.MD$NUMBER AS PRODUCTNO,
+                            V.MD$DESC AS PRO_NAME,
+                            V.VF$VERSION AS PRO_VER,
+                            TO_CHAR(TO_DATE(V.MD$CDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS CREDATE,
+                            TO_CHAR(TO_DATE(V.MD$MDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS MODDATE,
+                            TO_CHAR(TO_DATE(V.APP_DATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS APPDATE,
+                            (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = V.MD$USER) USERNAME,
+                            V.MD$STATUS,
+                            V.E_BLOCK_F,
+                            V.M_BLOCK_F,
+                            (SELECT COD(E.EL_ATYP) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                             WHERE A.ID$OUID = E.VF$IDENTITY 
+                                AND E.vf$ouid = A.id$wip 
+                             -- AND E.MD$STATUS = 'RLS'
+                             AND E.MD$NUMBER = V.MD$NUMBER) AS GISONG
+                           -- V.*
+                        FROM product$vf V
+                        WHERE V.MD$STATUS = 'RLS'
+                        --AND SUBSTR(V.MD$CDATE, 0,4) = '2025'
+                        --AND SUBSTR(V.MD$NUMBER, 0, 1) NOT IN ('Q', 'V', '0', 'K', '1', 'H', 'T', 'M')
+                        AND V.MD$NUMBER = ?
+                        --ORDER BY V.VF$VERSION ASC
+                        ORDER BY V.MD$CDATE ASC
+                """;
+
+            //Q,V,NB,NC,NS,M,TEST, T
+            //System.out.println("sql = " + sql);
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, productNo);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String OID = rs.getString("OID");
+                String PRODUCTNO = rs.getString("PRODUCTNO");
+                String PRO_NAME  = rs.getString("PRO_NAME") == null ? "" : rs.getString("PRO_NAME");
+                String PRO_VER   = rs.getString("PRO_VER") == null ? "" : rs.getString("PRO_VER");
+                String CREDATE   = rs.getString("CREDATE") == null ? "" : rs.getString("CREDATE");
+                String MODDATE   = rs.getString("MODDATE") == null ? "" : rs.getString("MODDATE");
+                String APPDATE   = rs.getString("APPDATE") == null ? "" : rs.getString("APPDATE");
+                String GISONG = rs.getString("GISONG") ==  null ? "" : rs.getString("GISONG");
+                //String STATUS   = rs.getString("STATUS");
+
+                ProductDto dto = new ProductDto();
+                dto.setProductOid(OID);
+                dto.setProductNo(PRODUCTNO);
+                dto.setProductName(PRO_NAME);
+                dto.setProductVersion(PRO_VER);
+                dto.setProductCreDate(CREDATE);
+                dto.setProductModDate(MODDATE);
+                dto.setProductAppdate(APPDATE);
+                dto.setGisong(GISONG);
+
+                result.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
     }
 
 }
