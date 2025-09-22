@@ -27,6 +27,19 @@ public class DateUtil {
         return today.format(formatter);
     }
 
+    public static String formatDate(String yyyymmdd) {
+        // 입력 검증: 길이가 8자리인지 확인
+        if (yyyymmdd == null || yyyymmdd.length() != 8) {
+            throw new IllegalArgumentException("입력은 반드시 'yyyymmdd' 형식이어야 합니다.");
+        }
+
+        String year = yyyymmdd.substring(0, 4);
+        String month = yyyymmdd.substring(4, 6);
+        String day = yyyymmdd.substring(6, 8);
+
+        return year + "-" + month + "-" + day;
+    }
+
     /**
      * 오늘 날짜를 "yyyyMMdd" 형식으로 반환
      * Returns today's date in "yyyyMMdd" format

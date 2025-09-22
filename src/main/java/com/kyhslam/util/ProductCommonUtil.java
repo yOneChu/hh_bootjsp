@@ -166,7 +166,7 @@ public class ProductCommonUtil {
      * @return
      */
     public static ArrayList<ProductDto> findProductBOMWithOID(String productOID) {
-        System.out.println("PartCommonUtil findProductBOMWithOID start ==-" + productOID );
+        //System.out.println("PartCommonUtil findProductBOMWithOID start ==-" + productOID );
 
         ArrayList<ProductDto> list = new ArrayList<>();
 

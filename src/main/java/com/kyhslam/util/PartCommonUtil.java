@@ -652,7 +652,7 @@ public class PartCommonUtil {
 
 
 
-            System.out.println("sql==" + sql.toString());
+            //System.out.println("sql==" + sql.toString());
 
             pstmt = con.prepareStatement(sql.toString());
             //pstmt.setString(1, startDate);
