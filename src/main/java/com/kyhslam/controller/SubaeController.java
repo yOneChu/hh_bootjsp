@@ -276,6 +276,11 @@ public class SubaeController {
     @PostMapping("/subae/findPIDLineView")
     @ResponseBody
     public ArrayList<ArrayList<String>> findPIDLineView(String pid) {
+
+        if(pid != null && !pid.equals("")) {
+            pid = pid.toUpperCase();
+        }
+
         ArrayList<ArrayList<String>> result = subaeService.findPIDLineView(pid);
         return result;
     }

@@ -110,7 +110,7 @@
             <div class="toolbar d-flex gap-2">
                 <button id="btnExpandAll" class="btn btn-light btn-sm"><i class="bi bi-arrows-angle-expand me-1"></i>전체 펼치기</button>
                 <button id="btnCollapseAll" class="btn btn-light btn-sm"><i class="bi bi-arrows-angle-contract me-1"></i>전체 접기</button>
-                <button id="btnExport" class="btn btn-outline-light btn-sm"><i class="bi bi-download me-1"></i>JSON 내보내기</button>
+                <%--<button id="btnExport" class="btn btn-outline-light btn-sm"><i class="bi bi-download me-1"></i>JSON 내보내기</button>--%>
             </div>
         </div>
     </div>
@@ -124,11 +124,11 @@
             <div class="card h-100">
                 <div class="card-body sidebar">
                     <div class="d-flex gap-2 mb-3">
-                        <div class="input-group">
+                        <%--<div class="input-group">
                             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                             <input id="searchInput" type="text" class="form-control" placeholder="코드/명 검색 (Enter)">
                             <button id="btnClear" class="btn btn-outline-secondary">초기화</button>
-                        </div>
+                        </div>--%>
                     </div>
                     <ul id="treeRoot" class="tree"></ul>
                     <div id="emptyHint" class="text-center mt-4 d-none">
@@ -163,7 +163,7 @@
     ];
 
     $(document).ready(function() {
-
+        expandAll();
     });
 
 

@@ -54,13 +54,15 @@ function searchPID()
     let pid = document.getElementById('searchInput').value.trim();
     console.log("---searchPID---");
 
+
+    showLoading(); // 로딩바 표시
     $.ajax({
         type : "post",
         crossDomain : true,
         url : "/subae/findPIDLineView",
         //sync: false,
         data : {
-            pid : pid
+            pid : pid.toUpperCase()
         },
         beforeSend: function() {
             $("html").css("cursor", "wait");
@@ -71,8 +73,7 @@ function searchPID()
         success : function(rr)
         {
             if(rr != null && rr.length > 0) {
-                console.log("rrrrr========== ", rr);
-
+                //console.log("rrrrr========== ", rr);
                 sampleData = rr;
 
                 //값 셋팅
@@ -81,15 +82,20 @@ function searchPID()
                 //공백 인 열 제외
                 hideEmptyColumns();
 
+
+                hideLoading(); // 성공 시 로딩바 제거
                 //return rr;
             } else {
+                hideLoading(); // 성공 시 로딩바 제거
                 alert("검색결과가 없습니다.");
 
             }
-        } // end success;
+        }, // end success;
+        error: function () {
+            hideLoading(); // 성공 시 로딩바 제거
+            alert('오류 발생하였습니다. 김영환M 문의하세요.😅');
+        }
     });
-
-
 
 
 } // END SearchPID
@@ -316,14 +322,29 @@ function initHandsontable(rr) {
     const headers = hot.getColHeader(); // 전체 헤더 배열
     const key1Index = headers.findIndex(h => String(h).toUpperCase() === 'KEY1');
 
-// 데이터 셀 색상
+
+
+    // 데이터 셀 색상
     hot.updateSettings({
         cells: function (row, col) {
             const props = {};
             // 현재 col의 헤더명이 KEY1인지 확인
-            if (hot.getColHeader(col) === 'KEY1') {
+           /* if (hot.getColHeader(col) === 'KEY1') {
                 props.className = (props.className ? props.className + ' ' : '') + 'pink-col';
+            }*/
+
+            if (['KEY1', 'KEY2', 'KEY3', 'KEY4', 'KEY5', 'KEY6', 'KEY7', 'KEY8', 'KEY9', 'KEY10'].includes(hot.getColHeader(col))) {
+                //props.classList.add('pink-col-header');
+                props.className = (props.className ? props.className + ' ' : '') + 'pink-col';
+                //col.classList.add('pink-col');
             }
+
+            if (['SPEC1', 'SPEC2', 'SPEC3', 'SPEC4', 'SPEC5', 'SPEC6', 'SPEC7', 'SPEC8', 'SPEC9', 'SPEC10', 'SPEC11', 'SPEC12', 'SPEC13'].includes(hot.getColHeader(col))) {
+                //TH.classList.add('gery-col-header');
+                col.className = (props.className ? props.className + ' ' : '') + 'gery-col';
+                //col.classList.add('gery-col');
+            }
+
             return props;
         }
     });
@@ -518,6 +539,7 @@ document.querySelectorAll('.suggestion-item').forEach(button => {
 });
 
 // AI question submission remains the same
+/*
 document.querySelector('.btn-light').addEventListener('click', function() {
     const textarea = document.querySelector('textarea');
     const question = textarea.value.trim();
@@ -530,7 +552,7 @@ document.querySelector('.btn-light').addEventListener('click', function() {
         alert('질문 내용을 입력해주세요.');
     }
 });
-
+*/
 
 //테스트해야됨
 function emptyCellDelete() {
@@ -559,4 +581,60 @@ function emptyCellDelete() {
     hot.render();
 
     console.log("숨긴 열 인덱스:", hiddenCols);
+}
+
+
+// 로딩바 표시 함수
+function showLoading() {
+    // 로딩바 HTML 생성
+    const loadingHtml = `
+        <div id="loadingOverlay" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        ">
+            <div style="
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            ">
+                <div style="
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #3498db;
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 15px;
+                "></div>
+                <p style="margin: 0; font-size: 16px; color: #333;">로직 분석 중입니다...</p>
+            </div>
+        </div>
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    `;
+
+    // 로딩바를 body에 추가
+    document.body.insertAdjacentHTML('beforeend', loadingHtml);
+}
+
+// 로딩바 제거 함수
+function hideLoading() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+        loadingOverlay.remove();
+    }
 }
