@@ -120,7 +120,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <link rel="icon" type="image/png" href="/resources/favicon.ico" />
 
-    <title>PLM 자재 현황 및 Excel 다운로드(개발중)</title>
+    <title>PLM 자재 현황 및 Excel 다운로드</title>
 
 
     <!-- Font Awesome -->
