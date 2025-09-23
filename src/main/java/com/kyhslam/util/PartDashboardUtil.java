@@ -107,9 +107,9 @@ public class PartDashboardUtil {
                          A.G_L_CODE AS GL_CODE,
                          --A.MD$CDATE,
                          DATEFORMAT(A.MD$CDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS CREATE_DATE,
-                         CAD.MD$NUMBER AS CADNO,
-                         CAD.MD$DESC AS CADNAME,
-                         DECODE(CAD.MD$NUMBER, NULL, NULL, CAD.MD$NUMBER || ' ' || CAD.MD$DESC) AS CADDESC,
+                         --CAD.MD$NUMBER AS CADNO,
+                         --CAD.MD$DESC AS CADNAME,
+                         --DECODE(CAD.MD$NUMBER, NULL, NULL, CAD.MD$NUMBER || ' ' || CAD.MD$DESC) AS CADDESC,
                          CODN(A.PART_STATUS) AS PART_STATUS,
                          COD(A.UOM) AS UOM,
                          A.VF$VERSION AS VERSION,
@@ -120,7 +120,8 @@ public class PartDashboardUtil {
                          A.BLOCKNO_NUMBER,
                          A.SPEC,
                          A.PART_SIZE AS PARTSIZE
-                  FROM NORMALPART$VF A JOIN AUTOCAD_FILE$VF CAD ON CAD.VF$OUID = GETID(A.DRAWING_NO)
+                  FROM NORMALPART$VF A
+                  --JOIN AUTOCAD_FILE$VF CAD ON CAD.VF$OUID = GETID(A.DRAWING_NO)
                   WHERE A.VF$OUID IN (SELECT * FROM OUID)
                   --AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) != '6'
                   --AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) != '5'
