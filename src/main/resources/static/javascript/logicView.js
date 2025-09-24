@@ -47,6 +47,14 @@ function hideEmptyColumns() {
 }
 
 
+// pid 값 공백 체크 함수
+function isEmptyPid(pid) {
+    // null, undefined, 빈 문자열, 공백만 있는 문자열 모두 체크
+    if (pid === null || pid === undefined || pid.trim() === "") {
+        return true;
+    }
+    return false;
+}
 
 function searchPID()
 {
@@ -54,6 +62,11 @@ function searchPID()
     let pid = document.getElementById('searchInput').value.trim();
     console.log("---searchPID---");
 
+    if (isEmptyPid(pid)) {
+        return "PID를 입력하세요.";
+    }
+
+    showLoading(); // 로딩바 표시
     $.ajax({
         type : "post",
         crossDomain : true,
@@ -78,19 +91,22 @@ function searchPID()
                 //값 셋팅
                 initHandsontable(rr);
 
+                hideLoading(); // 성공 시 로딩바 제거
                 //공백 인 열 제외
                 hideEmptyColumns();
 
                 //return rr;
             } else {
+                hideLoading(); // 성공 시 로딩바 제거
                 alert("검색결과가 없습니다.");
 
             }
-        } // end success;
+        }, // end success;
+        error: function () {
+            hideLoading(); // 성공 시 로딩바 제거
+            alert('엑셀 다운로드 중 오류가 발생했습니다.');
+        }
     });
-
-
-
 
 } // END SearchPID
 
@@ -559,4 +575,63 @@ function emptyCellDelete() {
     hot.render();
 
     console.log("숨긴 열 인덱스:", hiddenCols);
+}
+
+// 로딩바 표시 함수
+function showLoading() {
+    // 로딩바 HTML 생성
+    const loadingHtml = `
+        <div id="loadingOverlay" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        ">
+            <div style="
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            ">
+                <div style="
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #3498db;
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 15px;
+                "></div>
+                <p style="margin: 0; font-size: 16px; color: #333;">데이터 분석 중...</p>
+            </div>
+        </div>
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    `;
+
+    // 로딩바를 body에 추가
+    document.body.insertAdjacentHTML('beforeend', loadingHtml);
+}
+
+// 로딩바 제거 함수
+function hideLoading() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+        loadingOverlay.remove();
+    }
+}
+
+function excelDownload() {
+
 }
