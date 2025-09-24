@@ -372,7 +372,7 @@
                 //name: 'Installation & Developers',
                 showInLegend: false,
                 data: [
-                    794, 869, 837, 913, 605, 741, 975, 995, 327
+                    794, 869, 837, 913, 605, 741, 975, 995, 1102
         ],
             dataLabels: {
                 enabled: true
@@ -473,3 +473,145 @@
 
         window.open(url,'popup','width=1500, height=800, top=50, left=50, scrollbars=yes');
     }
+
+
+    function darkMode() {
+        try {
+            const body = document.body;
+            const wasDark = body.classList.toggle('dark-mode'); // AdminLTE dark mode class
+            // Update icon
+            updateDarkIcon(wasDark);
+
+            // Persist preference
+            try {
+                localStorage.setItem('dashboard_dark_mode', wasDark ? '1' : '0');
+            } catch (e) {
+                // ignore storage errors
+            }
+
+            // DataTables styling adjustments (toggle a class on wrapper)
+            const wrapper = document.getElementById('infoTable_wrapper');
+            if (wrapper) {
+                wrapper.classList.toggle('dt-dark', wasDark);
+            }
+
+            // Adjust chart theme colors for Highcharts instance if exists
+            if (typeof Highcharts !== 'undefined') {
+                const container = document.getElementById('cpContainer');
+                if (container) {
+                    // Rebuild the chart with neutral colors that adapt to CSS or set explicit dark palette
+                    const isDark = wasDark;
+                    Highcharts.setOptions({
+                        chart: {
+                            backgroundColor: 'transparent',
+                            style: { fontFamily: 'Arial, sans-serif' }
+                        },
+                        title: { style: { color: isDark ? '#e0e0e0' : '#333' } },
+                        xAxis: {
+                            labels: { style: { color: isDark ? '#cfcfcf' : '#666' } },
+                            gridLineColor: isDark ? '#444' : '#e6e6e6',
+                            lineColor: isDark ? '#666' : '#ccd6eb'
+                        },
+                        yAxis: {
+                            title: { style: { color: isDark ? '#cfcfcf' : '#666' } },
+                            labels: { style: { color: isDark ? '#cfcfcf' : '#666' } },
+                            gridLineColor: isDark ? '#444' : '#e6e6e6'
+                        },
+                        legend: {
+                            itemStyle: { color: isDark ? '#e0e0e0' : '#333' }
+                        },
+                        credits: { enabled: false }
+                    });
+
+                    // Re-render dashboard chart to apply theme
+                    if (typeof viewDashboard === 'function') {
+                        viewDashboard();
+                    }
+                }
+            }
+
+            // Apply simple dark styles via CSS variables fallback by toggling helper class on html
+            document.documentElement.classList.toggle('dark-root', wasDark);
+        } catch (err) {
+            console.error('darkMode() error:', err);
+        }
+    }
+
+    // Update icon helper
+    function updateDarkIcon(isDark) {
+        try {
+            var el = document.getElementById('darkModeIcon');
+            if (!el) return;
+            el.textContent = isDark ? '🌙' : '☀️';
+            el.title = isDark ? '다크모드' : '라이트모드';
+        } catch (e) {
+            // no-op
+        }
+    }
+
+    // Auto-apply saved dark mode on load
+    (function applySavedDarkMode(){
+        try {
+            const saved = localStorage.getItem('dashboard_dark_mode');
+            if (saved === '1') {
+                // Ensure class is present without flipping state unexpectedly
+                if (!document.body.classList.contains('dark-mode')) {
+                    document.body.classList.add('dark-mode');
+                }
+                const wrapper = document.getElementById('infoTable_wrapper');
+                if (wrapper) wrapper.classList.add('dt-dark');
+                document.documentElement.classList.add('dark-root');
+                // Update icon if present
+                updateDarkIcon(true);
+                if (typeof Highcharts !== 'undefined' && typeof viewDashboard === 'function') {
+                    // Apply chart theme for dark on initial load
+                    Highcharts.setOptions({
+                        chart: { backgroundColor: 'transparent' },
+                        title: { style: { color: '#e0e0e0' } },
+                        xAxis: { labels: { style: { color: '#cfcfcf' } }, gridLineColor: '#444', lineColor: '#666' },
+                        yAxis: { labels: { style: { color: '#cfcfcf' } }, title: { style: { color: '#cfcfcf' } }, gridLineColor: '#444' },
+                        legend: { itemStyle: { color: '#e0e0e0' } },
+                        credits: { enabled: false }
+                    });
+                    // defer render to allow DOM ready
+                    setTimeout(() => { try { viewDashboard(); } catch(e){} }, 0);
+                }
+            } else {
+                updateDarkIcon(false);
+            }
+        } catch (e) {
+            // ignore
+        }
+    })();
+
+    // Bind the toggle switch to darkMode and sync initial state
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            var toggle = document.getElementById('darkModeToggle');
+            if (!toggle) return;
+
+            // Initialize checked state from storage used by this page
+            var saved = localStorage.getItem('dashboard_dark_mode');
+            if (saved === '1') {
+                toggle.checked = true;
+            } else if (saved === '0') {
+                toggle.checked = false;
+            } else {
+                // If another global theme key was used, respect it once
+                var global = localStorage.getItem('theme');
+                if (global === 'dark') toggle.checked = true;
+            }
+
+            // Sync icon with current body class at init (in case applySavedDarkMode ran earlier)
+            updateDarkIcon(document.body.classList.contains('dark-mode'));
+
+            toggle.addEventListener('change', function() {
+                // Call the central toggle function
+                darkMode();
+                // Ensure the saved key stays in sync with the checkbox
+                try { localStorage.setItem('dashboard_dark_mode', this.checked ? '1' : '0'); } catch(e){}
+            });
+        } catch (e) {
+            console.warn('Failed to bind dark mode toggle:', e);
+        }
+    });

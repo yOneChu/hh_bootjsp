@@ -80,12 +80,10 @@
                             <%--<li class="breadcrumb-item"><a href="#">Home</a></li>
                             <li class="breadcrumb-item active">DataTables</li>--%>
 
-                            <li class="breadcrumb-item">
                                 <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
                                     <input type="checkbox" class="custom-control-input" id="darkModeToggle">
                                     <label class="custom-control-label" for="darkModeToggle">🌓 다크모드</label>
                                 </div>
-                            </li>
                         </ol>
                     </div>
                 </div>

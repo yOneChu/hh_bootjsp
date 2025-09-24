@@ -548,6 +548,56 @@
                 padding: 5px 10px;
             }
         }
+
+        /* Dark mode adjustments */
+        body.dark-mode {
+            background-color: #15171a;
+            color: #d0d0d0;
+        }
+        body.dark-mode .header {
+            background-color: #0f1113;
+            color: #e0e0e0;
+        }
+        body.dark-mode .card,
+        body.dark-mode .chart-container,
+        body.dark-mode .top10-container,
+        body.dark-mode .table-container {
+            background: #1e2227;
+            color: #d0d0d0;
+            box-shadow: 0 0 1px rgba(255,255,255,.06), 0 1px 3px rgba(0,0,0,.4);
+        }
+        body.dark-mode .card h3,
+        body.dark-mode .chart-title,
+        body.dark-mode .top10-title,
+        body.dark-mode .table-title {
+            color: #e6e6e6;
+        }
+        body.dark-mode .card-value,
+        body.dark-mode .card-label,
+        body.dark-mode .top10-part-name,
+        body.dark-mode .top10-part-code {
+            color: #cfcfcf;
+        }
+        body.dark-mode .data-table th {
+            background-color: #2a2f36;
+            color: #e6e6e6;
+        }
+        body.dark-mode .data-table td,
+        body.dark-mode .data-table th {
+            border-bottom: 1px solid #343b44;
+        }
+        body.dark-mode .data-table tr:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+        body.dark-mode .mod-item { background: #23282f; border-color: #3a414b; color: #c7cbd1; }
+        body.dark-mode .mod-item.modified { background: #3a3322; border-color: #5a4b22; color: #e0c078; }
+        body.dark-mode .search-box input, body.dark-mode .month-selector select {
+            background: #1e2227; color: #e6e6e6; border-color: #3a414b;
+        }
+        /* DataTables wrapper helper */
+        .dt-dark .dataTables_info, .dt-dark .dataTables_paginate .paginate_button {
+            color: #cfcfcf !important;
+        }
     </style>
 
 </head>
@@ -591,10 +641,24 @@
                         <h1>BOM 수배율 현황 (2025년) </h1>
                     </div>
                     <div class="col-sm-6">
-                        <ol class="breadcrumb float-sm-right">
+                        <%--<ol class="breadcrumb float-sm-right">
                             <li class="breadcrumb-item"><a href="#">Home</a></li>
                             <li class="breadcrumb-item active">DataTables</li>
-                        </ol>
+                        </ol>--%>
+
+                            <ol class="breadcrumb float-sm-right">
+                                <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
+                                    <input type="checkbox" class="custom-control-input" id="darkModeToggle">
+                                    <label class="custom-control-label" for="darkModeToggle"><span id="darkModeIcon" aria-hidden="true">☀️</span> 다크모드</label>
+                                </div>
+                            </ol>
+
+                        <%--<li class="breadcrumb-item">
+                            <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
+                                <input type="checkbox" class="custom-control-input" id="darkModeToggle">
+                                <label class="custom-control-label" for="darkModeToggle">🌓 다크모드</label>
+                            </div>
+                        </li>--%>
                     </div>
                 </div>
             </div><!-- /.container-fluid -->
