@@ -49,6 +49,9 @@ public class findTest_02 {
     }
 
 
+    /**
+     * 전체율 계산
+     */
     @Description("BOM수배율 데이터 전체 테스트")
     @Test
     void subaeALLTest() {

@@ -940,9 +940,14 @@ public class PIDCommonUtil {
                                 }
 
                             } else {
+
                                 //없으면
-                                String val = SubaeCommonUtil.findCodeName(s); // 영업사양 코드 값 조회
-                                codeMap.put(s.trim(), val.trim());
+                                String val = "";
+                                if (s.startsWith("EL_")) {
+                                    val = SubaeCommonUtil.findCodeName(s); // 영업사양 코드 값 조회
+                                    codeMap.put(s.trim(), val.trim());
+                                }
+
 
                                 if(val != null && !"null".equals(val) && !"".equals(val)) {
                                     //System.out.println(s + "  2222 = " + val);
