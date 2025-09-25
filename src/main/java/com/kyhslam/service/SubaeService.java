@@ -298,6 +298,9 @@ public class SubaeService {
 
         List<Map<String, Object>> list = null; //mapper.readValue(jsonString, List.class);
 
+        //N26143L01 층 몇개없는거
+        //208618L17 층 많은거
+        //https://plmpro.hdel.co.kr/plmetc/vault/getFloorInfo?prodNum=208618L17
         //String apiUrl = "https://plmpro.hdel.co.kr/plmetc/vault/getFloorInfo?prodNum=208618L17";
         String apiUrl = "https://plmpro.hdel.co.kr/plmetc/vault/getFloorInfo?prodNum=";
         apiUrl += hogi;
