@@ -922,10 +922,14 @@ public class SubaeCommonUtil {
                 String CMT = rs.getString("CMT") == null ? "" : rs.getString("CMT");
                 String GLCODE = rs.getString("GLCODE") == null ? "" : rs.getString("GLCODE");
                 String UCHECK = rs.getString("UCHECK") == null ? "" : rs.getString("UCHECK");
+                String PART_QTY = rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
+
+                System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + BLOCK_OPT);
 
 
-                System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + PARTNAME);
-
+                if (!PART_QTY.contains("$")) {
+                    continue;
+                }
 
                 ProductDto dto = new ProductDto();
                 dto.setProductNo(productNo); //제품번호
@@ -945,6 +949,7 @@ public class SubaeCommonUtil {
                 dto.setUcheck(UCHECK);
                 dto.setQty(partQTY);
                 dto.setBlockopt(BLOCK_OPT);
+                dto.setQty(PART_QTY);
 
                 dataList.add(dto);
             } //end while

@@ -210,6 +210,7 @@
                                             <th>품번</th>
                                             <th>품명</th>
 
+                                            <th>QTY</th>
                                             <th>BlockNo.</th>
                                             <th>품목</th>
                                             <th>GL_CODE</th>
@@ -374,8 +375,9 @@
                         str += "<td>" + data[i].partNo + "</td>";
                         str += "<td>" + data[i].partName + "</td>";
 
+                        str += "<td>" + data[i].qty + "</td>";
                         str += "<td>" + data[i].blockNo + "</td>";
-                        str += "<td>" + data[i].block_opt + "</td>";
+                        str += "<td>" + data[i].blockopt + "</td>";
                         str += "<td>" + data[i].glCode + "</td>";
                         str += "<td>" + data[i].version + "</td>";
                         str += "<td>" + data[i].cmt + "</td>";
