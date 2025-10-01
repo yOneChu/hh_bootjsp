@@ -29,14 +29,14 @@ public class findAssyPart_02 {
         sw.start();
 
         //String filePath = "C:\\Users\\Administrator\\Downloads\\강판류 도어 전수 조사(비방화).xlsx"; // 읽을 파일 경로
-        String filePath = "D:\\Downloads\\강판류 도어 전수 조사(비방화).xlsx";
+        String filePath = "D:\\Downloads\\H-DOOR MLB 추출 요청의 건.xlsx";
 
         ArrayList<String> partNoList = new ArrayList<>();
 
         try (FileInputStream fis = new FileInputStream(filePath);
              Workbook workbook = new XSSFWorkbook(fis)) {
 
-            Sheet sheet = workbook.getSheetAt(7); // 첫 번째 시트
+            Sheet sheet = workbook.getSheetAt(0); // 첫 번째 시트
 
             int rowCnt = sheet.getPhysicalNumberOfRows();
 
@@ -62,6 +62,7 @@ public class findAssyPart_02 {
         // 1레벨 부품 OID 조회
         for (int i = 0; i < partNoList.size(); i++) {
             String partNo = partNoList.get(i);
+            System.out.println((i) + " >> partNo = " + partNo);
 
             ArrayList<PartInfoDTO> rList = MLBCommonUtil.findPartWithPartNo(partNo.trim());
 
@@ -77,6 +78,7 @@ public class findAssyPart_02 {
             PartInfoDTO parentDto = dtoList.get(i);
             String oid = parentDto.getOid();
 
+            System.out.println((i) + " >>  " + parentDto.getPartNo());
             // 하위레벨 조회
             MLBCommonUtil.findDownLevel(oid, resultList, parentDto);
 
@@ -119,6 +121,7 @@ public class findAssyPart_02 {
 
         // 배경색 (연한 회색)
         headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        //headerStyle.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
         headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
         // 테두리 설정
@@ -179,7 +182,7 @@ public class findAssyPart_02 {
         }
 
         // 파일 저장
-        try (FileOutputStream fileOut = new FileOutputStream("C:\\excel\\AssyFile_20250905.xlsx")) {
+        try (FileOutputStream fileOut = new FileOutputStream("C:\\excel\\AssyFile_20250930.xlsx")) {
             workbook.write(fileOut);
             System.out.println("Excel 파일 생성 완료!");
         } catch (IOException e) {

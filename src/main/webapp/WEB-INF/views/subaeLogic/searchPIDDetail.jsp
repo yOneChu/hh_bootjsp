@@ -30,11 +30,12 @@
 
     <!-- Theme style -->
     <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
-
+    <link rel="stylesheet" href="/resources/dashboard/tweak.css">
     <style>
         body {
             font-family: 'Cascadia Code', sans-serif;
         }
+
     </style>
 
 </head>
