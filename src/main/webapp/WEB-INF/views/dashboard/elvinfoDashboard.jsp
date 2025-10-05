@@ -28,7 +28,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <!-- <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"> -->
-    <meta http-equiv="Cache-Control" content="no-cache"/>
+    <%--<meta http-equiv="Cache-Control" content="no-cache"/>--%>
     <!-- <script data-jsfiddle="common" src="/js/jquery-1.11.0.min.js"></script> -->
 
     <title>법인자재 1LV 표준수배자재리스트</title>

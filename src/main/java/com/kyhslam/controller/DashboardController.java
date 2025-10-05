@@ -473,4 +473,20 @@ public class DashboardController {
 
         return "ok";
     }
+
+
+    //설치현황
+    @GetMapping("/installDashboard")
+    public String installDashboard() {
+
+        return "installDashboard";
+    }
+
+    //층별자재현황
+    @GetMapping("/floorDashboard")
+    public String floorDashboard() {
+
+        return "floorDashboard";
+    }
+
 }

@@ -927,9 +927,9 @@ public class SubaeCommonUtil {
                 System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + BLOCK_OPT);
 
 
-                if (!PART_QTY.contains("$")) {
+                /*if (!PART_QTY.contains("$")) {
                     continue;
-                }
+                }*/
 
                 ProductDto dto = new ProductDto();
                 dto.setProductNo(productNo); //제품번호

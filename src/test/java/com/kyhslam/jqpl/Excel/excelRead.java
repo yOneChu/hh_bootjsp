@@ -27,10 +27,10 @@ public class excelRead {
             for (int i = 1; i < rowCnt; i++) {
                 Row row = sheet.getRow(i);
 
-                Cell cell05 = row.getCell(5);
+                Cell cell05 = row.getCell(5); // 기계설계
                 String mUser = cell05.getStringCellValue();
 
-                Cell cell06 = row.getCell(6);
+                Cell cell06 = row.getCell(6); // 전기설계
                 String eUser = cell06.getStringCellValue();
 
                 Cell cell08 = row.getCell(8); //JQPR NO
@@ -47,28 +47,40 @@ public class excelRead {
                     receptDate =new SimpleDateFormat("yyyy-MM-dd").format(cell09Date);
                 }
 
-                Cell cell10 = row.getCell(10); //관리번호
-                String manageNo = cell10.getStringCellValue();
 
-                Cell cell11 = row.getCell(11); //프로젝트명
-                String pjtName = cell11.getStringCellValue();
 
-                Cell cell12 = row.getCell(12); //문제자재명
-                String problemPart = cell12.getStringCellValue();
+                Cell cell10 = row.getCell(10); //글로벌
+                String globalVal = cell10.getStringCellValue();
 
-                Cell cell13 = row.getCell(13); //호기
-                String hogi = cell13.getStringCellValue();
+                Cell cell11 = row.getCell(11); // 관리번호
+                String manageNo = cell11.getStringCellValue();
 
-                Cell cell15 = row.getCell(15); //작성자
-                String creator = cell15.getStringCellValue();
+                Cell cell12 = row.getCell(12); // 프로젝트명
+                String pjtName = cell12.getStringCellValue();
 
-                Cell cell26 = row.getCell(26); //JQPR 유형
-                String jqprtType = cell26.getStringCellValue();
+                Cell cell13 = row.getCell(13); // 문제자재명
+                String problemPartName = cell13.getStringCellValue();
 
-                Cell cell31 = row.getCell(31); //고장현상
-                String problemStatus = cell31.getStringCellValue();
+                Cell cell14 = row.getCell(14); // 호기
+                String hogi = cell14.getStringCellValue();
 
-                Cell cell32 = row.getCell(32); //고장원인
+                Cell cell16 = row.getCell(16); // 작성자
+                String creator = cell16.getStringCellValue();
+
+                Cell cell24 = row.getCell(24); // 작성일
+                String creDate = cell24.getStringCellValue();
+
+
+                Cell cell27 = row.getCell(27); //JQPR 유형
+                String jqprtType = cell27.getStringCellValue();
+
+                Cell cell31 = row.getCell(31); // 종결완료일
+                String finishDate = cell31.getStringCellValue();
+
+                Cell cell32 = row.getCell(32); // 고장현상
+                String problemCause = cell32.getStringCellValue();
+
+                Cell cell32 = row.getCell(33); // 고장원인
                 String problemCause = cell32.getStringCellValue();
 
                 Cell cell33 = row.getCell(33); //분류코드

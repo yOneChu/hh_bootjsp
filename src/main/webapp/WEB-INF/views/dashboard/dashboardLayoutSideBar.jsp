@@ -74,6 +74,19 @@
                                 <p>PLM 자재 현황 및 Excel 다운로드</p>
                             </a>
                         </li>
+
+                        <li>
+                            <a href="/subae/partDashboard" class="nav-link">
+                                <p>설치현황</p>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="/subae/partDashboard" class="nav-link">
+                                <p>층별 자재수배현황</p>
+                            </a>
+                        </li>
+
                         <li>
                             <%--<a href="https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionRate.jsp" class="nav-link">--%>
                             <a href="/public/searchPriceReductionRate" class="nav-link">
