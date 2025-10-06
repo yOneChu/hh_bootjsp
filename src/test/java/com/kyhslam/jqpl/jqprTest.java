@@ -1,20 +1,33 @@
-package com.kyhslam.jqpl.Excel;
+package com.kyhslam.jqpl;
 
+import com.kyhslam.domain.JQPR;
+import com.kyhslam.repository.JQPRRepository;
 import org.apache.poi.ss.usermodel.*;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Commit;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class excelRead {
+@SpringBootTest
+@Transactional
+public class jqprTest {
 
-    public static void main(String[] args) {
+
+    @Autowired
+    JQPRRepository jqprRepository;
 
 
+    @Test
+    @Commit
+    void save() {
 
         try {
-
             String filePath = "C:\\Users\\Administrator\\Documents\\sap_script\\JQPL-20251005.xlsx";
             //C:\Users\Administrator\Documents\sap_script
             //FileInputStream file = new FileInputStream(new File("JQPL-20250131.XLSX"));
@@ -47,13 +60,10 @@ public class excelRead {
 
 
                 Cell cell09 = row.getCell(9); //접수일
-                //String receptDate = cell09.getStringCellValue();
                 Date cell09Date = cell09.getDateCellValue();
-                //String a = new SimpleDateFormat("yyyy-mm-dd").format(receptDate);
-
                 String receptDate = "";
                 if (cell09Date != null) {
-                    //receptDate =new SimpleDateFormat("yyyy-MM-dd").format(cell09Date);
+                    receptDate =new SimpleDateFormat("yyyy-MM-dd").format(cell09Date);
                 }
 
 
@@ -65,7 +75,7 @@ public class excelRead {
                 String manageNo = cell11.getStringCellValue();
 
                 Cell cell12 = row.getCell(12); // 프로젝트명
-                String pjtName = cell12.getStringCellValue();
+                String projectName = cell12.getStringCellValue();
 
                 Cell cell13 = row.getCell(13); // 문제자재명
                 String problemPartName = cell13.getStringCellValue();
@@ -78,6 +88,10 @@ public class excelRead {
 
                 Cell cell24 = row.getCell(24); // 작성일
                 Date creDate = cell24.getDateCellValue();
+                String creDateVal = "";
+                if (creDate != null) {
+                    creDateVal =new SimpleDateFormat("yyyy-MM-dd").format(creDate);
+                }
 
 
                 Cell cell27 = row.getCell(27); //JQPR 유형
@@ -85,6 +99,12 @@ public class excelRead {
 
                 Cell cell31 = row.getCell(31); // 종결완료일
                 Date finishDate = cell31.getDateCellValue();
+                String finishDateVal = "";
+                if (finishDate != null) {
+                    finishDateVal =new SimpleDateFormat("yyyy-MM-dd").format(finishDate);
+                }
+
+
 
                 Cell cell32 = row.getCell(32); // 고장현상
                 String problemStatus = cell32.getStringCellValue();
@@ -120,19 +140,57 @@ public class excelRead {
                 Cell cell44 = row.getCell(44); // 내부부서비용2
                 String inNameCost02 = Integer.toString((int)cell42.getNumericCellValue());
 
+                Cell cell45 = row.getCell(45); // 내부부서명3
+                String inName03 = cell45.getStringCellValue();
+
+                Cell cell46 = row.getCell(46); // 내부부서비용3
+                String inNameCost03 = Integer.toString((int)cell46.getNumericCellValue());
+
+                JQPR  jqpr = new JQPR();
+                jqpr.setStatus(jqprState);
+                jqpr.setEUser(eUser);
+                jqpr.setMUser(mUser);
+                jqpr.setJqprNo(jqprNo);
+                jqpr.setReceptDate(receptDate);
+
+                jqpr.setGlobal(globalVal);
+                jqpr.setManageNo(manageNo);
+
+                jqpr.setProjectName(projectName);
+                jqpr.setProblemPart(problemPartName);
+                jqpr.setHogi(hogi);
+                jqpr.setCreator(creator);
+                jqpr.setCreDate(creDateVal);
+
+                jqpr.setJqprType(jqprtType);
+                jqpr.setFinishDate(finishDateVal);
+                jqpr.setProblemStatus(problemStatus);
+                jqpr.setProblemCause(problemCause);
+                jqpr.setTypeCode(typeCode);
+                jqpr.setItemType(itemType);
+                jqpr.setJajeCost(jajeCost);
+                jqpr.setNomoCost(nomoCost);
+                jqpr.setFailCost(failCost);
+                jqpr.setTeam01(inName01);
+                jqpr.setTeam01Cost(inNameCost01);
+
+                jqpr.setTeam02(inName02);
+                jqpr.setTeam02Cost(inNameCost02);
 
 
-
+                jqprRepository.save(jqpr);
 
                 System.out.println(jqprNo + " > " + receptDate + " + " + problemCause + " - " + failCost);
             }
-
-            file.close();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
 
         }
+
+
+        System.out.println("--------- end -----------");
+
 
     }
 }
