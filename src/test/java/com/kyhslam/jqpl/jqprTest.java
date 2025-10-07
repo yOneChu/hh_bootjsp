@@ -135,10 +135,10 @@ public class jqprTest {
                 String inNameCost01 = Integer.toString((int)cell42.getNumericCellValue());
 
                 Cell cell43 = row.getCell(43); // 내부부서명2
-                String inName02 = cell41.getStringCellValue();
+                String inName02 = cell43.getStringCellValue();
 
                 Cell cell44 = row.getCell(44); // 내부부서비용2
-                String inNameCost02 = Integer.toString((int)cell42.getNumericCellValue());
+                String inNameCost02 = Integer.toString((int)cell44.getNumericCellValue());
 
                 Cell cell45 = row.getCell(45); // 내부부서명3
                 String inName03 = cell45.getStringCellValue();

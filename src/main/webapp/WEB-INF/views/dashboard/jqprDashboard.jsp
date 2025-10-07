@@ -1,29 +1,38 @@
-<%@page import="java.util.ArrayList"%>
-<%@ page import="com.kyhslam.service.JQPRService" %>
-<%@ page import="com.kyhslam.dto.JqprDTO" %>
+<%@ page import="com.kyhslam.util.UtilCommonAPI" %>
+<%@ page import="org.springframework.util.StopWatch" %>
+<%@ page import="java.util.HashMap" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
+
 <%
 
-    //JQPRService jqprService = new JQPRService();
-    //ArrayList<JqplDTO> result = jqprService.getJqplDashbard();
+    //partDashboardv2.jsp
+    //BOM 수배율 현황
 
+    StopWatch sw = new StopWatch();
+    sw.start();
+
+    sw.stop();
+
+    long millis = sw.getTotalTimeMillis();
+
+    double seconds = millis / 1000.0;
+    double minutes = seconds / 60.0;
+
+    System.out.println("⏱ 수행 시간:");
+    System.out.printf("   - %.3f 초%n", seconds);
+    System.out.printf("   - %.3f 분%n", minutes);
 
 %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <!-- <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"> -->
-    <meta http-equiv="Cache-Control" content="no-cache"/>
-    <!-- <script data-jsfiddle="common" src="/js/jquery-1.11.0.min.js"></script> -->
+    <link rel="icon" type="image/png" href="/resources/favicon.ico" />
 
-    <title>법인자재 1LV 표준수배자재리스트</title>
+    <title>JQPR 현황</title>
 
-    <!-- Google Font: Source Sans Pro -->
-    <!--    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">-->
-    <%--<link rel="stylesheet" href="/resources/dist/googleFont.css">--%>
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
@@ -34,16 +43,168 @@
     <link rel="stylesheet" href="/resources/dist/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
 
     <link rel="stylesheet" href="/resources/dist/plugins/select2/css/select2.min.css">
-
     <!-- Theme style -->
     <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+
+
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
+    <%--<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">--%>
+
+
+    <style>
+        :root {
+            --hyundai-blue: #003876;
+            --hyundai-light-blue: #0066cc;
+            --hyundai-gray: #f8f9fa;
+            --hyundai-dark-gray: #6c757d;
+            --hyundai-red: #dc3545;
+            --hyundai-green: #28a745;
+        }
+
+        body {
+            background-color: var(--hyundai-gray);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--hyundai-blue) 0%, var(--hyundai-light-blue) 100%);
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 2rem;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--hyundai-light-blue);
+            transition: transform 0.3s ease;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--hyundai-blue);
+            margin: 0;
+        }
+
+        .stats-label {
+            color: var(--hyundai-dark-gray);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .data-table {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: var(--hyundai-blue);
+            color: white;
+            padding: 1rem;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .table th {
+            background: var(--hyundai-light-blue);
+            color: white;
+            border: none;
+            font-weight: 600;
+            padding: 1rem 0.75rem;
+        }
+
+        .table td {
+            padding: 1rem 0.75rem;
+            vertical-align: middle;
+            border-color: #e9ecef;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8f9ff;
+        }
+
+        .btn-hyundai {
+            background: var(--hyundai-blue);
+            border-color: var(--hyundai-blue);
+            color: white;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+        }
+
+        .btn-hyundai:hover {
+            background: var(--hyundai-light-blue);
+            border-color: var(--hyundai-light-blue);
+            color: white;
+        }
+
+        .cost-high {
+            color: var(--hyundai-red);
+            font-weight: 600;
+        }
+
+        .cost-medium {
+            color: #ffc107;
+            font-weight: 600;
+        }
+
+        .cost-low {
+            color: var(--hyundai-green);
+            font-weight: 600;
+        }
+
+        .search-box {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .modal-header {
+            background: var(--hyundai-blue);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .form-control:focus {
+            border-color: var(--hyundai-light-blue);
+            box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.25);
+        }
+
+        .pagination .page-link {
+            color: var(--hyundai-blue);
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: var(--hyundai-blue);
+            border-color: var(--hyundai-blue);
+        }
+    </style>
 
 </head>
 
 
-<body class="hold-transition sidebar-mini dark-mode text-sm" style="zoom:100%;">
+<body class="hold-transition sidebar-mini text-sm" style="zoom:100%;">
 
 <div class="wrapper">
+
     <!-- Navbar -->
     <!-- <nav class="main-header navbar navbar-expand navbar-white navbar-light"> -->
     <nav class="main-header navbar navbar-expand">
@@ -63,228 +224,220 @@
     <!-- /.navbar -->
 
 
-    <!-- Main Sidebar Container -->
-    <jsp:include page="./dashboardLayoutSideBar.jsp" flush="true" />
+    <jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true">
+        <jsp:param name="menuType" value="dashboard" />
+    </jsp:include>
 
 
     <!-- Content Wrapper. Contains page content -->
     <div class="content-wrapper">
-        <!-- Content Header (Page header) -->
+
         <section class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
-                        <h1>2025년 JQPR 현황 (SAP-ZQMAL4020D) </h1>
+                        <h1><i class="fas fa-building me-3"></i>JQPR 시스템</h1>
+                        <p class="mb-0">엘리베이터 설치 현장 비용 관리 시스템</p>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
-                            <li class="breadcrumb-item"><a href="#">Home</a></li>
-                            <li class="breadcrumb-item active">DataTables</li>
+                            <%--<li class="breadcrumb-item"><a href="#">Home</a></li>
+                            <li class="breadcrumb-item active">DataTables</li>--%>
+
+                            <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
+                                <input type="checkbox" class="custom-control-input" id="darkModeToggle">
+                                <label class="custom-control-label" for="darkModeToggle">🌓 다크모드</label>
+                            </div>
                         </ol>
                     </div>
                 </div>
             </div><!-- /.container-fluid -->
-        </section>
 
+            <div class="col-md-12">
+                <div class="callout callout-danger">
+                    <%--<i class="fas fa-bullhorn"></i> 🔊 도움말 <br>--%>
+                    📢 도움말 <br>
+                    <font color="red">- 집계 기준:  중국법인 자재 제외, 최신 릴리즈, 엘리베이터 자재(BlockNo 1,2,3) </font><br>
 
-
-        <!-- Main content -->
-        <section class="content" style="zoom:90%;">
-
-            <div class="container-fluid"> <!-- start - container-fluid -->
-
-
-
-                <div class="row">
-                     <div class="col-12">
-                         <!--<div class="col-lg-7"> -->
-
-                        <div class="card card-primary">
-
-                            <div class="card-header">
-                                <h3 class="card-title">검색 결과</h3>
-                            </div>
-
-                            <!-- /.card-header -->
-                            <div class="card-body" style="zoom:85%;">
-
-                                <div class="col-md-12">
-                                    <div class="callout callout-info">
-                                        <h4><i class="fas fa-bullhorn"></i> 도움말</h4>
-                                        <%--<ul>
-                                            <li>2024년에 PLM에 등록된 영업사양 현황 </li>
-                                            <li>기종 별 기준으로 1~12월에 '릴리즈'된 데이터 기준으로 집계</li>
-                                        </ul>--%>
-                                        <h5>- SAP (ZQMAL4020D) 데이터 기반 </h5>
-                                        <h5>- 반려 건 제외 </h5>
-                                    </div>
-                                </div>
-
-                                <!-- <table id="infoTable" class="table table-bordered table-striped" style="height:400px;"> -->
-                                <table id="infoTable" class="table table-bordered table-hover" style="font-family: Segoe UI; font-size:15px;">
-                                    <thead>
-
-                                    <!-- bg-primary -->
-                                    <tr class="bg-secondary">
-                                        <%--<th style="font-weight: bold; text-align: center;" rowspan="3">NO</th>--%>
-                                        <th style="font-weight: bold; text-align: center;">JQPR.NO</th>
-                                        <th style="font-weight: bold; text-align: center;">상태</th>
-                                        <th style="font-weight: bold; text-align: center;">호기</th>
-                                        <th style="font-weight: bold; text-align: center;">접수일</th>
-                                        <th style="font-weight: bold; text-align: center;">작성자</th>
-                                        <th style="font-weight: bold; text-align: center;">프로젝트명</th>
-                                        <th style="font-weight: bold; text-align: center;">고장현상</th>
-                                        <th style="font-weight: bold; text-align: center;">고장원인</th>
-                                        <th style="font-weight: bold; text-align: center;">문제자재명</th>
-                                        <th style="font-weight: bold; text-align: center;">기계설계</th>
-                                        <th style="font-weight: bold; text-align: center;">전기설계</th>
-
-                                        <th style="font-weight: bold; text-align: center;">자재비</th>
-                                        <th style="font-weight: bold; text-align: center;">노무비</th>
-                                        <th style="font-weight: bold; text-align: center;">실패비용</th>
-
-                                        <th style="font-weight: bold; text-align: center;">내부부서1</th>
-                                        <th style="font-weight: bold; text-align: center;">내부비용1</th>
-                                        <th style="font-weight: bold; text-align: center;">내부부서2</th>
-                                        <th style="font-weight: bold; text-align: center;">내부비용2</th>
-                                        <%--<th style="font-weight: bold; text-align: center;">내부부서3</th>
-                                        <th style="font-weight: bold; text-align: center;">내부비용3</th>--%>
-
-                                    </tr>
-
-
-                                    </thead>
-
-                                    <tbody id="contentTable">
-                                    <%
-
-                                        for (int i = 0; i < result.size(); i++) {
-                                            JqprDTO d = result.get(i);
-                                            String jqprNo = d.getJqprNo();
-
-                                            String status = d.getStatus();
-
-                                            if ("반려".equals(status)) {
-                                                continue;
-                                            }
-
-                                            String receiptDate = d.getReceptDate();
-                                            String eUser = d.getEUser();
-                                            String mUser = d.getMUser();
-
-                                            String projectName = d.getProjectName();
-                                            String problemPart = d.getProblemPart();
-                                            String hogi = d.getHogi();
-                                            String creator = d.getCreator();
-                                            String createDate = d.getCreDate();
-                                            String jqprType = d.getJqprType();
-
-                                            String problemStatus = d.getProblemStatus();
-                                            String problemCause = d.getProblemCause();
-                                            String typeCode = d.getTypeCode();
-                                            String itemType = d.getItemType();
-
-                                            String jajeCost = d.getJajeCost();
-
-                                            if (jajeCost != null && !"".equals(jajeCost)) {
-                                                jajeCost = String.format("%,d", Integer.parseInt(jajeCost));
-                                            }
-
-                                            String nomoCost = d.getNomoCost();
-                                            if (nomoCost != null && !"".equals(nomoCost)) {
-                                                nomoCost = String.format("%,d", Integer.parseInt(nomoCost));
-                                            }
-
-                                            String failCost = d.getFailCost();
-                                            if (failCost != null && !"".equals(failCost)) {
-                                                failCost = String.format("%,d", Integer.parseInt(failCost));
-                                            }
-
-                                            String team01 = d.getTeam01();
-                                            String team01Cost = d.getTeam01Cost();
-                                            if (team01Cost != null && !"".equals(team01Cost)) {
-                                                team01Cost = String.format("%,d", Integer.parseInt(team01Cost));
-                                            }
-
-                                            String team02 = d.getTeam02();
-                                            String team02Cost = d.getTeam02Cost();
-                                            if (team02Cost != null && !"".equals(team02Cost)) {
-                                                team02Cost = String.format("%,d", Integer.parseInt(team02Cost));
-                                            }
-                                            //String team03 = d.getTeam03();
-                                            //String team03Cost = d.getTeam03Cost();
-
-                                            String fCompany = d.getFCompany();
-                                            String fCompanyCost = d.getFCompanyCost();
-                                            if (fCompanyCost != null && !"".equals(fCompanyCost)) {
-                                                fCompanyCost = String.format("%,d", Integer.parseInt(fCompanyCost));
-                                            }
-
-                                            String etcTeam = d.getEtcTeam();
-                                            String etcTeamCost = d.getEtcTeamCost();
-                                            if (etcTeamCost != null && !"".equals(etcTeamCost)) {
-                                                etcTeamCost = String.format("%,d", Integer.parseInt(etcTeamCost));
-                                            }
-
-                                            String completeStatus = d.getCompleteStatus();
-
-                                    %>
-
-                                    <tr>
-                                        <td style="text-align: center; "><%=jqprNo%></td>
-                                        <td style="text-align: center; "><%=status%></td>
-                                        <td style="text-align: center; "><%=hogi%></td>
-
-                                        <td style="text-align: center;"><%=receiptDate %></td>
-                                        <td style="text-align: center;"><%=creator%></td>
-                                        <td><%=projectName%></td>
-                                        <td style="text-align: center;"><%=problemStatus%></td>
-                                        <td><%=problemCause%></td>
-
-                                        <td><%=problemPart%></td>
-                                        <td style="text-align: center;"><%=mUser%></td>
-                                        <td style="text-align: center;"><%=eUser%></td>
-
-                                        <td style="text-align: center;"><%=jajeCost%></td>
-                                        <td style="text-align: center;"><%=nomoCost%></td>
-                                        <td style="text-align: center;"><%=failCost%></td>
-
-                                        <td style="text-align: center;"><%=team01%></td>
-                                        <td><%=team01Cost%></td>
-                                        <td style="text-align: center;"><%=team02%></td>
-                                        <td><%=team02Cost%></td>
-                                        <%--<td><%=team03%></td>
-                                        <td><%=team03Cost%></td>--%>
-
-                                       <%-- <td><%=fCompany%></td>
-                                        <td><%=fCompanyCost%></td>
-
-                                        <td><%=etcTeam%></td>
-                                        <td><%=etcTeamCost%></td>
-                                        <td><%=completeStatus%></td>
-                                        --%>
-                                    </tr>
-
-                                    <%
-
-                                        }  // end for
-                                    %>
-                                    </tbody>
-
-                                </table>
-                            </div>
-                            <!-- /.card-body -->
-                        </div>
-                        <!-- /.card -->
-                    </div>
-                    <!-- /.col -->
+                    📝 사용 예시 <br>
+                    - 자재번호 201153* 입력 시, 자재번호에 '201153'로 시작하는 모든 자재 조회하여 Excel 출력<br>
+                    - *100325G02* 입력 시, 자재번호에 '100325G02' 포함된 모든 자재 출력 <br>
+                    - *G*HB* 입력 시, 'G,HB' 포함된 모든 자재 출력 <br>
+                    - HATCH DOOR ASSY 입력 시, 자재명이 'HATCH DOOR ASSY'인 모든 자재 출력 <br>
+                    - HATCH* 입력 시, 자재명이 'HATCH'로 시작하는 모든 자재 출력 <br>
                 </div>
-                <!-- /.row -->
-
-            </div> <!-- /.container-fluid -->
-
+            </div>
         </section>
-        <!-- /.content -->
+
+
+        <%--<div class="container mt-4">--%>
+        <div class="container-fluid">
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="stats-number" id="totalCases">0</p>
+                                <p class="stats-label">총 사례 수</p>
+                            </div>
+                            <i class="fas fa-clipboard-list fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="stats-number" id="totalCost">₩0</p>
+                                <p class="stats-label">총 비용</p>
+                            </div>
+                            <i class="fas fa-won-sign fa-2x text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="stats-number" id="avgCost">₩0</p>
+                                <p class="stats-label">평균 비용</p>
+                            </div>
+                            <i class="fas fa-chart-bar fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="stats-number" id="thisMonthCases">0</p>
+                                <p class="stats-label">이번 달 사례</p>
+                            </div>
+                            <i class="fas fa-calendar-alt fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <div class="stats-card">
+                        <h5 class="mb-3"><i class="fas fa-chart-line me-2"></i>월별 비용 추이</h5>
+                        <canvas id="monthlyChart" height="100"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stats-card">
+                        <h5 class="mb-3"><i class="fas fa-calendar me-2"></i>월별 분석 필터</h5>
+                        <div class="mb-3">
+                            <label class="form-label">분석 연도</label>
+                            <select class="form-control" id="analysisYear" onchange="updateMonthlyAnalysis()">
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">분석 월</label>
+                            <select class="form-control" id="analysisMonth" onchange="updateMonthlyAnalysis()">
+                                <option value="">전체 월</option>
+                                <option value="1">1월</option>
+                                <option value="2">2월</option>
+                                <option value="3">3월</option>
+                                <option value="4">4월</option>
+                                <option value="5">5월</option>
+                                <option value="6">6월</option>
+                                <option value="7">7월</option>
+                                <option value="8">8월</option>
+                                <option value="9">9월</option>
+                                <option value="10">10월</option>
+                                <option value="11">11월</option>
+                                <option value="12">12월</option>
+                            </select>
+                        </div>
+                        <div class="alert alert-info">
+                            <strong id="monthlyStats"></strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="search-box">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">현장명 검색</label>
+                        <input type="text" class="form-control" id="searchSite" placeholder="현장명을 입력하세요">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">비용 범위</label>
+                        <select class="form-control" id="costFilter">
+                            <option value="">전체</option>
+                            <option value="low">100만원 미만</option>
+                            <option value="medium">100만원 - 200만원</option>
+                            <option value="high">200만원 이상</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">발생자</label>
+                        <input type="text" class="form-control" id="searchPerson" placeholder="발생자명">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">발생일자</label>
+                        <input type="date" class="form-control" id="dateFilter">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">기간 설정</label>
+                        <select class="form-control" id="periodFilter" onchange="setDateFilterByPeriod()">
+                            <option value="">전체 기간</option>
+                            <option value="thisMonth">이번 달</option>
+                            <option value="lastMonth">지난 달</option>
+                            <option value="last3Months">최근 3개월</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-hyundai w-100" onclick="filterData()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="data-table">
+                <div class="table-header">
+                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>JQPR 데이터 목록</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="infoTable">
+                        <thead>
+                        <tr>
+                            <th>JQPR번호</th>
+                            <th>프로젝트명</th>
+                            <th>작성자</th>
+                            <th>작성일</th>
+
+                            <th>부서명1</th>
+                            <th>부서명1</th>
+                            <th>부서명2</th>
+                            <th>부서명2</th>
+
+                            <th>발생비용</th>
+                            <th>고장현상</th>
+                            <th>고장원인</th>
+                            <th>문제자재명</th>
+                            <th>관리</th>
+                        </tr>
+                        </thead>
+                        <tbody id="contentTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center" id="pagination">
+                </ul>
+            </nav>
+        </div>
+
     </div>
     <!-- /.content-wrapper -->
 
@@ -293,7 +446,7 @@
         <div class="float-right d-none d-sm-block">
             <b>Version</b> 1.0.0
         </div>
-        <strong>Copyright &copy; 2024 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
+        <strong>Copyright &copy; 2025 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
     </footer>
 
     <!-- Control Sidebar -->
@@ -307,56 +460,33 @@
 
 </body>
 
-<script src="resources/dist/js/jquery-3.7.1.min.js"></script>
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="/resources/javascript/jqpr.js"></script>
 
-<!-- AdminLTE App -->
-<script src="resources/dist/js/adminlte.min.js"></script>
 
 <!-- Bootstrap 4 -->
-<script src="resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <!-- DataTables  & Plugins -->
-<script src="resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
-<script src="resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
-<script src="resources/dist/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
-<script src="resources/dist/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
 
 
-<script src="resources/dist/plugins/select2/js/select2.full.min.js"></script>
+<script src="/resources/dist/plugins/select2/js/select2.full.min.js"></script>
 
-<script src="resources/dist/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
-<script src="resources/dist/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
-<script src="resources/dist/plugins/jszip/jszip.min.js"></script>
-<script src="resources/dist/plugins/pdfmake/pdfmake.min.js"></script>
-<script src="resources/dist/plugins/pdfmake/vfs_fonts.js"></script>
-<script src="resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
-<script src="resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
-<script src="resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
-
+<script src="/resources/dist/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/jszip/jszip.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/pdfmake.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/vfs_fonts.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 
 <script>
-
-    let dtTable = $("#infoTable").DataTable({
-        "responsive": true,
-        "lengthChange": true,
-        "pageLength": 30,     //페이지 당 글 개수 설정
-        "autoWidth": false, // 가로자동
-        "processing": true,
-        "destroy": true, // 테이블 재생성
-        "paging": false,
-        "searching": false,
-        "order" : [[ 0, "desc" ]],
-        //"scrollX": true, // 가로 스크롤
-        //"buttons": ["csv", "excel", "pdf", "print"]
-        "buttons": ["excel", "copy"]
-    }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
-
-
-    //ready
-    $(document).ready(function() {
-
-    });
-
-
 
 </script>
 

@@ -3,6 +3,7 @@ package com.kyhslam.service;
 import com.kyhslam.domain.JQPR;
 import com.kyhslam.dto.JqprDTO;
 import com.kyhslam.repository.JQPRRepository;
+import com.kyhslam.repository.JqprSearchCond;
 import com.kyhslam.util.VaultDBConnection;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
@@ -20,6 +21,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -433,6 +435,13 @@ public class JQPRService {
                 return "";
         }
 
+    }
+
+
+    //조회
+    public List<JQPR> findAll(JqprSearchCond cond) {
+
+        return jqprRepository.findAll(cond);
     }
 
 }
