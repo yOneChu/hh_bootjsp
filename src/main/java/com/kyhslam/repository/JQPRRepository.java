@@ -1,6 +1,7 @@
 package com.kyhslam.repository;
 
 import com.kyhslam.domain.JQPR;
+import com.kyhslam.dto.JqprDTO;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,17 @@ public class JQPRRepository {
 
     public void save(JQPR jqpr) {
         em.persist(jqpr);
+    }
+
+    public void update(Long id, JqprDTO updateParam) {
+        JQPR jqpr = em.find(JQPR.class, id);
+        jqpr.setJqprType(updateParam.getJqprType());
+        jqpr.setTeam01(updateParam.getTeam01());
+        jqpr.setTeam02(updateParam.getTeam02());
+        jqpr.setTeam03(updateParam.getTeam03());
+        jqpr.setTeam01Cost(updateParam.getTeam01Cost());
+        jqpr.setTeam02Cost(updateParam.getTeam02Cost());
+        jqpr.setTeam03Cost(updateParam.getTeam03Cost());
     }
 
     public List<JQPR> findAll(JqprSearchCond cond) {
@@ -60,6 +72,7 @@ public class JQPRRepository {
         }
 
         log.info("jpql={}", jpql);
+
 
         TypedQuery<JQPR> query = em.createQuery(jpql, JQPR.class);
         if (StringUtils.hasText(year)) {

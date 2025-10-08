@@ -51,4 +51,44 @@ public class JqprDTO {
     private String etcTeam; //기타부서명
     private String etcTeamCost; //기타부서비용
     private String completeStatus; //조치상태
+
+    public JqprDTO() {
+    }
+
+    public JqprDTO(String status, String status02, String bomStatus, String eUser, String mUser, String jqprNo, String global, String manageNo, String projectName, String problemPart, String hogi, String creator, String creDate, String jqprType, String receptDate, String finishDate, String problemStatus, String problemCause, String typeCode, String itemType, String jajeCost, String nomoCost, String failCost, String team01, String team01Cost, String team02, String team02Cost, String team03, String team03Cost, String fCompany, String fCompanyCost, String etcTeam, String etcTeamCost, String completeStatus) {
+        this.status = status;
+        this.status02 = status02;
+        this.bomStatus = bomStatus;
+        this.eUser = eUser;
+        this.mUser = mUser;
+        this.jqprNo = jqprNo;
+        this.global = global;
+        this.manageNo = manageNo;
+        this.projectName = projectName;
+        this.problemPart = problemPart;
+        this.hogi = hogi;
+        this.creator = creator;
+        this.creDate = creDate;
+        this.jqprType = jqprType;
+        this.receptDate = receptDate;
+        this.finishDate = finishDate;
+        this.problemStatus = problemStatus;
+        this.problemCause = problemCause;
+        this.typeCode = typeCode;
+        this.itemType = itemType;
+        this.jajeCost = jajeCost;
+        this.nomoCost = nomoCost;
+        this.failCost = failCost;
+        this.team01 = team01;
+        this.team01Cost = team01Cost;
+        this.team02 = team02;
+        this.team02Cost = team02Cost;
+        this.team03 = team03;
+        this.team03Cost = team03Cost;
+        this.fCompany = fCompany;
+        this.fCompanyCost = fCompanyCost;
+        this.etcTeam = etcTeam;
+        this.etcTeamCost = etcTeamCost;
+        this.completeStatus = completeStatus;
+    }
 }
