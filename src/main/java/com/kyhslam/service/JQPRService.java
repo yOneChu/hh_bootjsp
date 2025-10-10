@@ -1,9 +1,11 @@
 package com.kyhslam.service;
 
 import com.kyhslam.domain.JQPR;
+import com.kyhslam.dto.HogiExportDTO;
 import com.kyhslam.dto.JqprDTO;
 import com.kyhslam.repository.JQPRRepository;
 import com.kyhslam.repository.JqprSearchCond;
+import com.kyhslam.util.CommonDBConnection;
 import com.kyhslam.util.VaultDBConnection;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
@@ -21,6 +23,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 @Service
@@ -444,4 +447,191 @@ public class JQPRService {
         return jqprRepository.findAll(cond);
     }
 
+
+    // 공통DB에서 조회
+    public HashMap<String, String> findJQPRDetailAsSAP(String jqprNo) {
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        HashMap<String, String> r = new HashMap<>();
+        //HashMap<String, HogiExportDTO> resultMap = new HashMap<>();
+        try {
+
+
+            con = CommonDBConnection.getConnection();
+            //con = DriverManager.getConnection(url,id,pass);
+
+            String sql = """
+                    SELECT
+                           B.JQPRNUM, -- 관리번호
+                           B.JQPRNO,
+                           B.HOGI,
+                           B.GUBUN,
+                           B.STATUS, -- 상태 > 9:종결완료, 2:접수완료, 1:반려, Z:반려, 3:대책완료
+                           B.BOM_STAT, -- BOM상태 > C:BOM완료, A:품질BOM, B-1:기계설계BOM, D:BOM불필요
+                           B.CREDT, --작성일
+                           B.CRENM, --작성자명
+                           B.POST1, -- 프로젝트명
+                           B.SPEC A, -- 사양
+                           B.MANDT,
+                           B.ATYPE AS ATYPE, -- 기종/전기
+                           --B.MATCOST AS 자재비, --재료비
+                           --B.IWBTR AS 노무비, -- 노무비
+                           B.TEMNO,
+                           B.IMPKTL, -- 내부부서1 코드
+                           B.IMPKTL_P,
+                           B.IMPKTL2,
+                           B.IMPKTL2_P,
+                           B.IMPKTL3,
+                           B.IMPKTL3_P, -- 내부비용 퍼센테이지
+                           B.IMPLFN,
+                           B.IMPLFN_P,
+                           B.REJTXT AS REJTXT, -- 문제점 제목
+                           B.REJLT AS REJLT, -- 문제점 상세
+                           B.REQLT AS REQLT, -- 요청사항
+                           B.CAUSEGRP,
+                           B.CAUSECOD,
+                           B.CAUSETXT AS CAUSETXT, -- 고장원인
+                           B.PHENOTXT AS PHENOTXT, -- 고장현상
+                           B.CORLT AS CORLT, -- 조치확인
+                           B.CLODT AS CLODT, --종결처리일
+                           B.CLOID,
+                           B.WRKLFN AS 사업자등록번호, --사업자등록번호
+                           B.CATCODE -- 품목번호
+                           , B.ZPROFCHK AS 귀책증빙, -- 귀책증빙
+                           B.PROG_STAT AS 진행현황
+                    --, B.*
+                    FROM ZQMT007 B
+                    WHERE
+                      B.JQPRNUM IS NOT NULL
+                      AND B.JQPRNO = ?
+                      --and SUBSTR(b.CREDT, 1, 4)  = '2025'
+                    AND B.ZPROFCHK IS NOT NULL
+                    """;
+
+
+            stmt = con.prepareStatement(sql.toString());
+            stmt.setString(1, jqprNo);
+
+            rs = stmt.executeQuery();
+
+            while(rs.next()) {
+
+                String REJLT = rs.getString("REJLT"); //호기
+                String REQLT = rs.getString("REQLT");
+
+                r.put("problemDetail", REJLT);
+                r.put("requestDetail", REQLT);
+
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            CommonDBConnection.disconnect(con, stmt, rs);
+        }
+        return r;
+    }
+
+    // 여러건 조회 - 문제점상세
+    public HashMap<String, JqprDTO> findJQPRDetailAsSAP_V2(ArrayList<String> noList) {
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        HashMap<String, JqprDTO> result = new HashMap<>();
+        
+        try {
+
+
+            con = CommonDBConnection.getConnection();
+            //con = DriverManager.getConnection(url,id,pass);
+
+            String sql = """
+                    SELECT
+                           B.JQPRNUM, -- 관리번호
+                           B.JQPRNO,
+                           B.HOGI,
+                           B.GUBUN,
+                           B.STATUS, -- 상태 > 9:종결완료, 2:접수완료, 1:반려, Z:반려, 3:대책완료
+                           B.BOM_STAT, -- BOM상태 > C:BOM완료, A:품질BOM, B-1:기계설계BOM, D:BOM불필요
+                           B.CREDT, --작성일
+                           B.CRENM, --작성자명
+                           B.POST1, -- 프로젝트명
+                           B.SPEC, -- 사양
+                           B.MANDT,
+                           B.ATYPE AS ATYPE, -- 기종/전기
+                           --B.MATCOST AS 자재비, --재료비
+                           --B.IWBTR AS 노무비, -- 노무비
+                           B.TEMNO,
+                           B.IMPKTL, -- 내부부서1 코드
+                           B.IMPKTL_P,
+                           B.IMPKTL2,
+                           B.IMPKTL2_P,
+                           B.IMPKTL3,
+                           B.IMPKTL3_P, -- 내부비용 퍼센테이지
+                           B.IMPLFN,
+                           B.IMPLFN_P,
+                           B.REJTXT AS REJTXT, -- 문제점 제목
+                           B.REJLT AS REJLT, -- 문제점 상세
+                           B.REQLT AS REQLT, -- 요청사항
+                           B.CAUSEGRP,
+                           B.CAUSECOD,
+                           B.CAUSETXT AS CAUSETXT, -- 고장원인
+                           B.PHENOTXT AS PHENOTXT, -- 고장현상
+                           B.CORLT AS CORLT, -- 조치확인
+                           B.CLODT AS CLODT, --종결처리일
+                           B.CLOID,
+                           B.WRKLFN AS 사업자등록번호, --사업자등록번호
+                           B.CATCODE -- 품목번호
+                           , B.ZPROFCHK AS 귀책증빙, -- 귀책증빙
+                           B.PROG_STAT AS 진행현황
+                    --, B.*
+                    FROM ZQMT007 B
+                    WHERE
+                      B.JQPRNO IS NOT NULL
+                      AND B.ZPROFCHK IS NOT NULL
+                    """;
+
+            sql += "AND B.JQPRNO IN ( ";
+
+
+
+            String whereXp = "";
+            for (int i = 0; i < noList.size(); i++) {
+                if (i == 0) {
+                    sql += "'" + noList.get(i) + "'";
+                } else {
+                    sql += ", '" + noList.get(i) + "'";
+                }
+            }
+            sql += " )";
+
+            System.out.println("sql = " + sql.toString());
+
+            stmt = con.prepareStatement(sql.toString());
+            rs = stmt.executeQuery();
+
+            while(rs.next()) {
+                String JQPRNO = rs.getString("JQPRNO");
+                String REJTXT = rs.getString("REJTXT"); // 문제점 제목
+                String REJLT = rs.getString("REJLT"); // 호기
+                String REQLT = rs.getString("REQLT");
+
+                JqprDTO dto =  new JqprDTO();
+                dto.setJqprNo(JQPRNO);
+                dto.setProblemDetail(REJLT);
+                dto.setRequestDetail(REQLT);
+                dto.setProblemName(REJTXT);
+
+                result.put(JQPRNO, dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            CommonDBConnection.disconnect(con, stmt, rs);
+        }
+        return result;
+    }
 }

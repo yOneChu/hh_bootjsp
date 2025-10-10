@@ -13,6 +13,7 @@
 <%@ page import="java.util.List" %>
 <%@ page import="java.util.Collections" %>
 <%@ page import="java.util.Comparator" %>
+<%@ page import="java.time.DayOfWeek" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
@@ -30,8 +31,22 @@
     PartDashService service = (PartDashService) context.getBean("PartDashService");
 
     LocalDate now = LocalDate.now();
+    //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    //String todayValue = now.format(formatter);
+
+    // 오늘이 토요일이면 -1일(금요일), 일요일이면 -2일(금요일) 처리
+    if (now.getDayOfWeek() == DayOfWeek.SATURDAY) {
+        now = now.minusDays(1);
+    } else if (now.getDayOfWeek() == DayOfWeek.SUNDAY) {
+        now = now.minusDays(2);
+    }
+
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     String todayValue = now.format(formatter);
+
+    System.out.println("금요일 기준 날짜: " + todayValue);
+
+
 
     PartDashboardDTO dto = new PartDashboardDTO();
     dto.setBatchDate(todayValue);
@@ -41,6 +56,8 @@
     String activeCnt = ""; //PartDashboardUtil.findPLMPartSum("ACTIVE");
     String inactiveCnt = ""; //PartDashboardUtil.findPLMPartSum("INACTIVE");
     String olsCnt = ""; //PartDashboardUtil.findPLMPartSum("OSL");
+
+
 
 
 

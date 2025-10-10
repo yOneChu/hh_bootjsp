@@ -38,6 +38,7 @@ public class JQPRRepository {
 
         String year = cond.getYear();
         String month = cond.getMonth();
+        String status = cond.getState();
 
         /*if (StringUtils.hasText(year) || StringUtils.hasText(month) || StringUtils.hasText(cond.getJqprNo())) {
             jpql += " where";
@@ -52,6 +53,11 @@ public class JQPRRepository {
             jpql += " and";
             jpql += " i.creDate like concat('%',:year,'%')";
             //andFlag = true;
+        }
+
+        if(StringUtils.hasText(cond.getState())){
+            jpql += " and";
+            jpql += " i.status = :status ";
         }
 
         if (StringUtils.hasText(month)) {
@@ -84,6 +90,9 @@ public class JQPRRepository {
         }
         if (StringUtils.hasText(cond.getJqprNo())) {
             query.setParameter("jqprNo", cond.getJqprNo());
+        }
+        if (StringUtils.hasText(cond.getState())) {
+            query.setParameter("status", cond.getState());
         }
         return query.getResultList();
     }

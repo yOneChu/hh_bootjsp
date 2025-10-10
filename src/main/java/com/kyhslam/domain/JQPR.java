@@ -59,4 +59,13 @@ public class JQPR {
     private String etcTeam; //기타부서명
     private String etcTeamCost; //기타부서비용
     private String completeStatus; //조치상태
+
+    @Lob
+    private String problemName; // 문제점 제목
+
+    @Lob
+    private String problemDetail; // 문제점상세
+
+    @Lob
+    private String requestDetail; // 요청사항
 }

@@ -1,7 +1,9 @@
 package com.kyhslam.jqpl;
 
 import com.kyhslam.domain.JQPR;
+import com.kyhslam.dto.JqprDTO;
 import com.kyhslam.repository.JQPRRepository;
+import com.kyhslam.service.JQPRService;
 import org.apache.poi.ss.usermodel.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.File;
 import java.io.FileInputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 
 @SpringBootTest
 @Transactional
@@ -22,12 +26,14 @@ public class jqprTest {
     @Autowired
     JQPRRepository jqprRepository;
 
+    @Autowired
+    JQPRService jqprService;
+
 
     @Test
-    @Commit
-    void save() {
-
+    void findSAP() {
         try {
+
             String filePath = "C:\\Users\\Administrator\\Documents\\sap_script\\JQPL-20251005.xlsx";
             //C:\Users\Administrator\Documents\sap_script
             //FileInputStream file = new FileInputStream(new File("JQPL-20250131.XLSX"));
@@ -40,11 +46,113 @@ public class jqprTest {
 
             System.out.println("rowCnt = " + rowCnt);
 
+            ArrayList<String> noList = new ArrayList<>();
+
             for (int i = 1; i < rowCnt; i++) {
                 Row row = sheet.getRow(i);
 
                 Cell cell = row.getCell(0); // JQPR 상태
                 String jqprState = cell.getStringCellValue();
+
+
+
+                if ("반려".equals(jqprState)) {
+                    continue;
+                }
+
+                Cell cell08 = row.getCell(8); //JQPR NO
+                String jqprNo = cell08.getStringCellValue();
+
+                if(jqprNo == null || "".equals(jqprNo)){
+                    continue;
+                }
+
+
+                if (noList.size() > 600) {
+                    continue;
+                } else {
+
+                    noList.add(jqprNo);
+                }
+
+
+            }
+
+            System.out.println(noList);
+
+            // 조회
+            HashMap<String, JqprDTO> detailMap = jqprService.findJQPRDetailAsSAP_V2(noList);
+
+            System.out.println("detailMap == "  + detailMap);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        System.out.println(" --------- end ----------");
+    }
+
+    @Test
+    @Commit
+    void save() {
+
+        try {
+            //String filePath = "C:\\Users\\Administrator\\Documents\\sap_script\\JQPL-20251005.xlsx";
+            String filePath = "C:\\Users\\Administrator\\Documents\\sap_script\\JQPL-2025-08.xlsx";
+
+            //C:\Users\Administrator\Documents\sap_script
+            //FileInputStream file = new FileInputStream(new File("JQPL-20250131.XLSX"));
+            FileInputStream file = new FileInputStream(new File(filePath));
+
+            Workbook workbook = WorkbookFactory.create(file);
+            Sheet sheet = workbook.getSheetAt(0);
+
+            int rowCnt = sheet.getPhysicalNumberOfRows();
+
+            System.out.println("rowCnt = " + rowCnt);
+
+            ArrayList<String> noList = new ArrayList<>();
+            ArrayList<String> noList2 = new ArrayList<>();
+            for (int i = 1; i < rowCnt; i++) {
+                Row row = sheet.getRow(i);
+
+                Cell cell = row.getCell(0); // JQPR 상태
+                String jqprState = cell.getStringCellValue();
+
+                if ("반려".equals(jqprState)) {
+                    continue;
+                }
+
+                Cell cell08 = row.getCell(8); //JQPR NO
+                String jqprNo = cell08.getStringCellValue();
+
+
+                if(jqprNo == null || "".equals(jqprNo)){
+                    continue;
+                }
+
+                if (noList.size() > 600) {
+                    noList2.add(jqprNo);
+                } else {
+                    noList.add(jqprNo);
+                }
+            }
+
+            // 조회
+            HashMap<String, JqprDTO> detailMap = jqprService.findJQPRDetailAsSAP_V2(noList);
+
+            System.out.println("detailMap == "  + detailMap);
+
+
+            for (int i = 1; i < 1000; i++) {
+                Row row = sheet.getRow(i);
+
+                Cell cell = row.getCell(0); // JQPR 상태
+                String jqprState = cell.getStringCellValue();
+
+                if ("반려".equals(jqprState)) {
+                    continue;
+                }
 
                 Cell cell05 = row.getCell(5); // 기계설계
                 String mUser = cell05.getStringCellValue();
@@ -57,6 +165,11 @@ public class jqprTest {
 
                 Cell cell08 = row.getCell(8); //JQPR NO
                 String jqprNo = cell08.getStringCellValue();
+
+                if(jqprNo == null || "".equals(jqprNo)){
+                    continue;
+                }
+
 
 
                 Cell cell09 = row.getCell(9); //접수일
@@ -146,6 +259,15 @@ public class jqprTest {
                 Cell cell46 = row.getCell(46); // 내부부서비용3
                 String inNameCost03 = Integer.toString((int)cell46.getNumericCellValue());
 
+                Cell cell47 = row.getCell(47); // 외부업체
+                String fcompany = cell47.getStringCellValue();
+
+                Cell cell48 = row.getCell(48); // 외부업체 비용
+                String fcompanyCost = Integer.toString((int)cell48.getNumericCellValue());
+
+                Cell cell51 = row.getCell(51); // 기타부서명
+                String etcName = cell51.getStringCellValue();
+
                 JQPR  jqpr = new JQPR();
                 jqpr.setStatus(jqprState);
                 jqpr.setEUser(eUser);
@@ -177,6 +299,35 @@ public class jqprTest {
                 jqpr.setTeam02(inName02);
                 jqpr.setTeam02Cost(inNameCost02);
 
+                jqpr.setTeam03(inName03);
+                jqpr.setTeam03Cost(inNameCost03);
+
+                jqpr.setFCompany(fcompany);
+                jqpr.setFCompanyCost(fcompanyCost);
+
+                jqpr.setEtcTeam(etcName);
+
+                if (jqprNo != null) {
+                    if (detailMap.containsKey(jqprNo)) {
+                        JqprDTO jqprDTO = detailMap.get(jqprNo);
+                        jqpr.setProblemDetail(jqprDTO.getProblemDetail());
+                        jqpr.setRequestDetail(jqprDTO.getRequestDetail());
+                        jqpr.setProblemName(jqprDTO.getProblemName());
+
+                        System.out.println("r.get(\"problemDetail\") = " + jqprDTO.getProblemDetail());
+                        System.out.println("r.get(\"requestDetail\") = " + jqprDTO.getRequestDetail());
+
+                    } else {
+                        HashMap<String,String> r = jqprService.findJQPRDetailAsSAP(jqprNo);
+                        if (r != null) {
+                            System.out.println("r.get(\"problemDetail\") = " + r.get("problemDetail"));
+                            System.out.println("r.get(\"requestDetail\") = " + r.get("requestDetail"));
+                            jqpr.setProblemDetail(r.get("problemDetail"));
+                            jqpr.setRequestDetail(r.get("requestDetail"));
+                            jqpr.setProblemName(r.get("problemName"));
+                        }
+                    }
+                }
 
                 jqprRepository.save(jqpr);
 
@@ -188,9 +339,6 @@ public class jqprTest {
 
         }
 
-
         System.out.println("--------- end -----------");
-
-
     }
 }

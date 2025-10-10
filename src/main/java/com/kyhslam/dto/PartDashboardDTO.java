@@ -17,4 +17,12 @@ public class PartDashboardDTO {
 
     public PartDashboardDTO() {
     }
+
+    public PartDashboardDTO(String partALL, String partActive, String partInactive, String ols, String batchDate) {
+        this.partALL = partALL;
+        this.partActive = partActive;
+        this.partInactive = partInactive;
+        this.ols = ols;
+        this.batchDate = batchDate;
+    }
 }

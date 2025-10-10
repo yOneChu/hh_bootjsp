@@ -300,6 +300,9 @@
         // 정확히는 잘리는 텍스트를 포함하는 div에 이벤트를 걸어도 좋습니다.
         $('.has-custom-tooltip .truncate-text').on({
             mouseenter: function(e) {
+
+
+                console.log("dsdsd");
                 // 마우스를 올렸을 때
                 const fullText = $(this).data('full-text'); // data-full-text 속성 값 가져오기
 

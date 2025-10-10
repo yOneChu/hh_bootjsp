@@ -40,6 +40,26 @@ public class JqprController {
         log.info("excelWriteProcess END ----------------");
     }
 
+    @PostMapping("/getSearchFinish")
+    @ResponseBody
+    public List<JQPR> getSearchFinish(JqprSearchCond condition) {
+
+        log.info("getSearch  ----------------" + condition);
+
+        List<HashMap<String, String>> result = new ArrayList<>();
+
+        condition.setState("종결완료");
+
+        List<JQPR> list = jqprService.findAll(condition);
+        for (JQPR jqpr : list) {
+            //System.out.println(jqpr.getJqprNo());
+        }
+
+        //System.out.println(list);
+        return list;
+        //return result;
+    }
+
     @PostMapping("/getSearch")
     @ResponseBody
     public List<JQPR> getSearch(JqprSearchCond condition) {

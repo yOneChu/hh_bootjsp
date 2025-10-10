@@ -196,6 +196,37 @@
             background-color: var(--hyundai-blue);
             border-color: var(--hyundai-blue);
         }
+
+
+        .truncate-text {
+            display: block;
+            max-width: 300px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+
+
+        /* td 자체에 적용하거나, td 안에 div/span을 넣고 적용 */
+        td.truncated {
+            /* max-width는 td 자체에 적용하기 어려울 수 있으므로, 내부 요소에 적용하는 것이 좋음 */
+        }
+
+        /* 커스텀 툴팁을 위한 CSS */
+        .custom-tooltip {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.4;
+            max-width: 300px;
+            white-space: pre-wrap; /* 줄바꿈(\n) 유지 */
+            z-index: 1000;
+            display: none;
+        }
     </style>
 
 </head>
@@ -262,9 +293,6 @@
                     📝 사용 예시 <br>
                     - 자재번호 201153* 입력 시, 자재번호에 '201153'로 시작하는 모든 자재 조회하여 Excel 출력<br>
                     - *100325G02* 입력 시, 자재번호에 '100325G02' 포함된 모든 자재 출력 <br>
-                    - *G*HB* 입력 시, 'G,HB' 포함된 모든 자재 출력 <br>
-                    - HATCH DOOR ASSY 입력 시, 자재명이 'HATCH DOOR ASSY'인 모든 자재 출력 <br>
-                    - HATCH* 입력 시, 자재명이 'HATCH'로 시작하는 모든 자재 출력 <br>
                 </div>
             </div>
         </section>
@@ -320,13 +348,7 @@
             </div>
 
             <div class="row mb-4">
-                <div class="col-md-8">
-                    <div class="stats-card">
-                        <h5 class="mb-3"><i class="fas fa-chart-line me-2"></i>월별 비용 추이</h5>
-                        <canvas id="monthlyChart" height="100"></canvas>
-                    </div>
-                </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="stats-card">
                         <h5 class="mb-3"><i class="fas fa-calendar me-2"></i>월별 분석 필터</h5>
                         <div class="mb-3">
@@ -357,6 +379,14 @@
                         </div>
                     </div>
                 </div>
+                <%--<div class="col-md-8">--%>
+                <div class="col-md-6">
+                    <div class="stats-card">
+                        <h5 class="mb-3"><i class="fas fa-chart-line me-2"></i>월별 비용 추이</h5>
+                        <canvas id="monthlyChart" height="100"></canvas>
+                    </div>
+                </div>
+
             </div>
 
             <div class="search-box">
@@ -366,13 +396,35 @@
                         <input type="text" class="form-control" id="searchSite" placeholder="현장명을 입력하세요">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">비용 범위</label>
+                        <label class="form-label">부서명</label>
                         <select class="form-control" id="costFilter">
-                            <option value="">전체</option>
-                            <option value="low">100만원 미만</option>
-                            <option value="medium">100만원 - 200만원</option>
-                            <option value="high">200만원 이상</option>
-                        </select>
+                            <option>강남지사(설치)</option>
+                            <option>고속설계팀</option>
+                            <option>고속SI팀</option>
+                            <option>글로벌출하팀</option>
+                            <option>기술영업1팀</option>
+                            <option>기술영업2팀</option>
+                            <option>대구지사(설치)</option>
+                            <option>대구지사(영업)</option>
+                            <option>대전·충청지사(영업)</option>
+                            <option>리모델링영업2팀</option>
+                            <option>부산지사(영업)</option>
+                            <option>생산팀</option>
+                            <option>서비스기술영업팀</option>
+                            <option>인증팀</option>
+                            <option>제어팀</option>
+                            <option>중부지사(설치)</option>
+                            <option>중저속설계팀</option>
+                            <option>중저속SI팀</option>
+                            <option>천정조립반</option>
+                            <option>케이지개발팀</option>
+                            <option>품질보증팀</option>
+                            <option>MAJOR영업1팀</option>
+                            <option>MP설치팀</option>
+                            <option>RM-STO팀</option>
+                            <option>STO영업1팀</option>
+                            <option>STO영업2팀</option>
+                         </select>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">발생자</label>
@@ -406,27 +458,31 @@
                     <h5 class="mb-0"><i class="fas fa-table me-2"></i>JQPR 데이터 목록</h5>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0" id="infoTable">
+                    <table class="table table-hover mb-0" id="infoTable" style="zoom:95%;">
                         <thead>
-                        <tr>
-                            <th>JQPR번호</th>
-                            <th>프로젝트명</th>
-                            <th>작성자</th>
-                            <th>작성일</th>
+                            <tr>
+                                <th>JQPR번호</th>
+                                <th>상태</th>
+                                <th>프로젝트명</th>
+                                <th>작성자</th>
+                                <th>호기</th>
+                                <th>작성일</th>
 
-                            <th>부서명1</th>
-                            <th>부서명1</th>
-                            <th>부서명2</th>
-                            <th>부서명2</th>
+                                <th>문제점 제목</th>
+                                <th>고장원인</th>
+                                <th>상세</th>
 
-                            <th>발생비용</th>
-                            <th>고장현상</th>
-                            <th>고장원인</th>
-                            <th>문제자재명</th>
-                            <th>관리</th>
-                        </tr>
+                                <th>부서명1</th>
+                                <th>부서명2</th>
+                                <th>부서명3</th>
+
+                                <th>실패비용</th>
+
+                                <th>ITEM분류명</th>
+                            </tr>
                         </thead>
                         <tbody id="contentTable">
+
                         </tbody>
                     </table>
                 </div>
@@ -458,16 +514,42 @@
 </div>
 
 
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-info-circle me-2"></i>JQPR 상세 정보</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detailContent">
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="custom-tooltip"></div>
+
+<!-- 툴팁 엘리먼트 (공용) -->
+<div id="tooltip" class="custom-tooltip"></div>
+
+
 </body>
 
 <script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="/resources/javascript/commonUtil.js"></script>
 <script src="/resources/javascript/jqpr.js"></script>
+<script src="/resources/javascript/StringUtil.js"></script>
+
+
+<!-- AdminLTE App -->
+<script src="/resources/dist/js/adminlte.min.js"></script>
 
 
 <!-- Bootstrap 4 -->
-<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<%--<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>--%>
 <!-- DataTables  & Plugins -->
 <script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
 <script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
@@ -487,7 +569,31 @@
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 
 <script>
+    $(document).ready(function() {
 
+
+        document.querySelectorAll(".has-custom-tooltip .truncate-text").forEach(el => {
+            el.addEventListener("mouseenter", (e) => {
+                const fullText = e.target.getAttribute("data-full-text");
+                tooltip.textContent = fullText;
+                tooltip.style.display = "block";
+                tooltip.style.left = (e.pageX + 10) + "px";
+                tooltip.style.top = (e.pageY + 10) + "px";
+            });
+
+            el.addEventListener("mousemove", (e) => {
+                tooltip.style.left = (e.pageX + 10) + "px";
+                tooltip.style.top = (e.pageY + 10) + "px";
+            });
+
+            el.addEventListener("mouseleave", () => {
+                tooltip.style.display = "none";
+            });
+        });
+
+
+
+    }) // end document ready
 </script>
 
 </html>
