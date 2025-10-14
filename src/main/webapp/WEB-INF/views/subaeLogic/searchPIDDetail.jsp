@@ -195,6 +195,17 @@
                                 </div>
                             </div>
 
+                            <!-- AND / OR Join Operator -->
+                            <div class="col-md-12">
+                                <div class="form-group text-center my-2">
+                                    <span class="badge badge-light border px-2 py-1 mr-2">(조건-01)</span>
+                                    <select id="joinOp" class="custom-select w-auto d-inline-block">
+                                        <option value="AND" selected>AND</option>
+                                        <option value="OR">OR</option>
+                                    </select>
+                                    <span class="badge badge-light border px-2 py-1 ml-2">(조건-02)</span>
+                                </div>
+                            </div>
 
                             <%--PID-GROUP--%>
                             <div class="col-md-4">
@@ -384,10 +395,11 @@
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 
+<script src="/resources/javascript/searchPIDDetail.js"></script>
 
 <script>
 
-    let dtTable = $("#infoTable").DataTable({
+    /*let dtTable = $("#infoTable").DataTable({
         "responsive": true,
         "lengthChange": true,
         "pageLength": 50,     //페이지 당 글 개수 설정
@@ -609,12 +621,12 @@
                 PID04 : pidVal04,
                 PID05 : pidVal05
             },
-           /* beforeSend: function() {
+           /!* beforeSend: function() {
                 $("html").css("cursor", "wait");
             },
             complete: function() {
                 $("html").css("cursor", "auto");
-            },*/
+            },*!/
             success : function(data)
             {
                 console.log("data - ", data);
@@ -802,7 +814,7 @@
         if (loadingOverlay) {
             loadingOverlay.remove();
         }
-    }
+    }*/
 </script>
 
 </html>

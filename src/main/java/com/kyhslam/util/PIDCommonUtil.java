@@ -333,6 +333,16 @@ public class PIDCommonUtil {
 
             if(pid02 != null && !"".equals(pid02.trim()) && !FIELD.equals("REMARKS")) {
 
+                //GUBUN : 조건1의 LIKE, EQUAL
+                //GUBUN02 : 조건2의 LIKE, EQUAL
+                System.out.println("pid == " + pid);
+                System.out.println("pid02 == " + pid02);
+                System.out.println("FIELD == " + FIELD);
+                System.out.println("SPEC02 == " + SPEC02);
+                System.out.println("GUBUN == " + GUBUN);
+                System.out.println("GUBUN02 == " + GUBUN02);
+
+
                 sql = makeConnectQuery(sql, pid, pid02, FIELD, SPEC02, GUBUN, GUBUN02);
 
             } else {
@@ -712,7 +722,18 @@ public class PIDCommonUtil {
 
         //makeConnectQuery(sql, pid01, pid02, field, SPEC02, GUBUN, GUBUN02);
 
+        System.out.println("makeConnectQuery ============================= ");
+        System.out.println("pid01 == " + pid01);
+        System.out.println("pid02 == " + pid02);
+        System.out.println("field == " + field);
+        System.out.println("field02 == " + field02);
+        System.out.println("gubun01 == " + gubun01);
+        System.out.println("gubun02 == " + gubun02);
+
         //NOT_LIKE
+
+        StringBuffer testsql = new StringBuffer();
+
 
         String param1 = "";
         if(gubun01 != null && !"".equals(gubun01)) {
@@ -742,8 +763,12 @@ public class PIDCommonUtil {
         temSql.append(" FROM variant_d d, variant_h h, variant_id id ");
         temSql.append(" WHERE h.HOUID = id.LAST_HOUID  ");
         temSql.append(" AND h.HOUID =d.HOUID  ");
-
         temSql.append(" AND (  ");
+
+        testsql.append(" FROM variant_d d, variant_h h, variant_id id ");
+        testsql.append(" WHERE h.HOUID = id.LAST_HOUID  ");
+        testsql.append(" AND h.HOUID =d.HOUID  ");
+        testsql.append(" AND (  ");
 
         for(int i=1; i <= 20; i++) {
             if (i == 20) {
@@ -752,9 +777,17 @@ public class PIDCommonUtil {
 
                 temSql.append(" (d." + field + String.valueOf(i) + " " + gubun01 + " " + param1 );
                 temSql.append(" AND d." + field02 + String.valueOf(i) + " " + gubun02 + " " + param2 + ")" );
+
+                testsql.append(" (d." + field + String.valueOf(i) + " " + gubun01 + " " + param1 );
+                testsql.append(" AND d." + field02 + String.valueOf(i) + " " + gubun02 + " " + param2 + ")" );
+
+
             } else {
                 temSql.append(" (d." + field + String.valueOf(i) + " " + gubun01 + " " + param1 );
                 temSql.append(" AND d." + field02 + String.valueOf(i) + " " + gubun02 + " " + param2 + ") OR" );
+
+                testsql.append(" (d." + field + String.valueOf(i) + " " + gubun01 + " " + param1 );
+                testsql.append(" AND d." + field02 + String.valueOf(i) + " " + gubun02 + " " + param2 + ") OR \n" );
             }
         }
 
@@ -763,7 +796,7 @@ public class PIDCommonUtil {
 
 
         //System.out.println("makeQueryKey == " + temSql.toString());
-
+        System.out.println("makeQueryKey testsql== " + testsql.toString());
         return temSql;
     }
 
