@@ -55,12 +55,12 @@ public class PIDController {
     @PostMapping("/pid/searchPIDSpecViewJson")
     @ResponseBody
     public ArrayList<HashMap<String, String>> searchPIDDetail(String pid, String FIELD, String GUBUN, String connectGubun
-                                , String PID02, String SPEC02, String GUBUN02, String CON05, String PID03, String PID04, String PID05) {
+                                , String PID02, String SPEC02, String GUBUN02, String CON05, String PID03, String PID04, String PID05, String join) {
 
         log.info("searchPIDDetail pid:{}", pid);
 
         ArrayList<HashMap<String, String>> result = new ArrayList<>();
-        result = PIDCommonUtil.findPIDDetail(pid, FIELD, GUBUN, connectGubun, PID02, SPEC02, GUBUN02, CON05, PID03, PID04, PID05);
+        result = PIDCommonUtil.findPIDDetail(pid, FIELD, GUBUN, connectGubun, PID02, SPEC02, GUBUN02, CON05, PID03, PID04, PID05, join);
 
         return result;
     }

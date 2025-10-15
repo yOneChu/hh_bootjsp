@@ -133,7 +133,7 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>조건-01</label>
-                                    <select id="con-01" class="form-control select" style="width: 100%;">
+                                    <select id="spec-01" class="form-control select" style="width: 100%;">
                                         <option selected="selected">SPEC</option>
                                         <option>CON</option>
                                         <option>KEY</option>
@@ -145,7 +145,7 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>-</label>
-                                    <select id="con-02" class="form-control select" style="width: 100%;">
+                                    <select id="link-01" class="form-control select" style="width: 100%;">
                                         <option selected="selected">LIKE</option>
                                         <option>EQUAL</option>
                                     </select>
@@ -165,7 +165,7 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>조건-02</label>
-                                    <select id="con-03" class="form-control select" style="width: 100%;">
+                                    <select id="spec-02" class="form-control select" style="width: 100%;">
                                         <option selected="selected">SPEC</option>
                                         <option>CON</option>
                                         <option>KEY</option>
@@ -177,7 +177,7 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>-</label>
-                                    <select id="con-04" class="form-control select" style="width: 100%;">
+                                    <select id="link-02" class="form-control select" style="width: 100%;">
                                         <option selected="selected">LIKE</option>
                                         <option>NOT LIKE</option>
                                         <option>EQUAL</option>
@@ -200,7 +200,8 @@
                                 <div class="form-group text-center my-2">
                                     <span class="badge badge-light border px-2 py-1 mr-2">(조건-01)</span>
                                     <select id="joinOp" class="custom-select w-auto d-inline-block">
-                                        <option value="AND" selected>AND</option>
+                                        <option value="F" selected>-</option>
+                                        <option value="AND" >AND</option>
                                         <option value="OR">OR</option>
                                     </select>
                                     <span class="badge badge-light border px-2 py-1 ml-2">(조건-02)</span>

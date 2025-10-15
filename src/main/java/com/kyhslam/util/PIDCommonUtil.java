@@ -267,7 +267,7 @@ public class PIDCommonUtil {
      * @return
      */
     public static ArrayList<HashMap<String, String>> findPIDDetail(String pid, String FIELD, String GUBUN, String connectGubun
-            , String pid02, String SPEC02, String GUBUN02, String CON05, String PID03, String PID04, String PID05) {
+            , String pid02, String SPEC02, String GUBUN02, String CON05, String PID03, String PID04, String PID05, String join) {
         ArrayList<HashMap<String, String>> result = new ArrayList<>();
 
         PreparedStatement pstmt = null;
@@ -330,17 +330,22 @@ public class PIDCommonUtil {
             sql.append(" NVL(D.KEY20, '-') AS KEY20 , NVL(D.VAL20, '-') AS VAL20       ");
 
             //System.out.println("FIELD = " + FIELD);
+            System.out.println("join = " + join);
 
-            if(pid02 != null && !"".equals(pid02.trim()) && !FIELD.equals("REMARKS")) {
+            if(join != null && (join.contains("AND") || join.contains("OR")) ) {
+
+                sql = makeConnectQueryV2(sql, pid, pid02, FIELD, SPEC02, GUBUN, GUBUN02, join);
+
+            } else if( pid02 != null && !"".equals(pid02.trim()) && !FIELD.equals("REMARKS")) {
 
                 //GUBUN : 조건1의 LIKE, EQUAL
                 //GUBUN02 : 조건2의 LIKE, EQUAL
-                System.out.println("pid == " + pid);
-                System.out.println("pid02 == " + pid02);
-                System.out.println("FIELD == " + FIELD);
-                System.out.println("SPEC02 == " + SPEC02);
-                System.out.println("GUBUN == " + GUBUN);
-                System.out.println("GUBUN02 == " + GUBUN02);
+                System.out.println("pid == " + pid); // PID01
+                System.out.println("pid02 == " + pid02); //
+                System.out.println("FIELD == " + FIELD); // 조건1
+                System.out.println("SPEC02 == " + SPEC02); //조건2
+                System.out.println("GUBUN == " + GUBUN); // LINK-01 (LIKE, EQUAL ..)
+                System.out.println("GUBUN02 == " + GUBUN02); // LINK-02 (LIKE, EQUAL ..)
 
 
                 sql = makeConnectQuery(sql, pid, pid02, FIELD, SPEC02, GUBUN, GUBUN02);
@@ -797,6 +802,81 @@ public class PIDCommonUtil {
 
         //System.out.println("makeQueryKey == " + temSql.toString());
         System.out.println("makeQueryKey testsql== " + testsql.toString());
+        return temSql;
+    }
+
+    public static StringBuffer makeConnectQueryV2(StringBuffer temSql, String pid01, String pid02, String spec01, String spec02,
+                                                String link01, String link02, String join) {
+
+
+        System.out.println("makeConnectQueryV2 2222============================= ");
+        System.out.println("pid01 == " + pid01);
+        System.out.println("pid02 == " + pid02);
+        System.out.println("spec01 == " + spec01);
+        System.out.println("spec02 == " + spec02);
+        System.out.println("link01 == " + link01);
+        System.out.println("link02 == " + link02);
+
+
+        StringBuffer testsql = new StringBuffer();
+
+
+        String param1 = "";
+        if(link01 != null && !"".equals(link01)) {
+            if(link01.equals("LIKE")) {
+                param1 = "'%" + pid01.trim() + "%'";
+            } else {
+                link01 = "=";
+                param1 = "'" + pid01.trim() + "'";
+            }
+        }
+
+        String param2 = "";
+        if(link02 != null && !"".equals(link02)) {
+            if(link02.equals("LIKE") || link02.equals("NOT LIKE")) {
+                param2 = "'%" + pid02.trim() + "%'";
+
+            } else if(link02.equals("NOT_EQUAL")) {
+                link02 = "!=";
+                param2 = "'" + pid02.trim() + "'";
+
+            } else {
+                link02 = "=";
+                param2 = "'" + pid02.trim() + "'";
+            }
+        }
+
+        temSql.append(" FROM variant_d d, variant_h h, variant_id id ");
+        temSql.append(" WHERE h.HOUID = id.LAST_HOUID  ");
+        temSql.append(" AND h.HOUID =d.HOUID  ");
+        temSql.append(" AND (  ");
+
+        for(int i=1; i <= 20; i++) {
+            if (i == 20) {
+                //temSql.append(" (d." + spec01 + String.valueOf(i) + " " + gubun01 + " " + param1);
+                //temSql.append(" AND d." + spec02 + String.valueOf(i) + " " + gubun02 + " " + param2 + ")");
+                temSql.append(" d." + spec01 + String.valueOf(i) + " " + link01 + " " + param1);
+
+            } else {
+                temSql.append(" d." + spec01 + String.valueOf(i) + " " + link01 + " " + param1 + " OR ");
+            }
+        }
+
+        temSql.append(" ) " + join + " (");
+
+        for(int i=1; i <= 20; i++) {
+            if (i == 20) {
+                temSql.append(" d." + spec02 + String.valueOf(i) + " " + link02 + " " + param2 );
+
+            } else {
+                temSql.append(" d." + spec02 + String.valueOf(i) + " " + link02 + " " + param2 + " OR ");
+            }
+        }
+        temSql.append(" ) ");
+
+
+        //System.out.println("makeQueryKey == " + temSql.toString());
+        System.out.println("makeQueryKeyV2 temSql== " + temSql.toString());
         return temSql;
     }
 

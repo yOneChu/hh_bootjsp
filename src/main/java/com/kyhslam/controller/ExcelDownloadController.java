@@ -410,7 +410,7 @@ public class ExcelDownloadController {
     @PostMapping("/searchPIDExcel")
     public void searchPIDExcel(HttpServletResponse response,
                                String pid, String FIELD, String GUBUN, String connectGubun
-            , String PID02, String SPEC02, String GUBUN02, String CON05, String PID03, String PID04, String PID05) throws IOException {
+            , String PID02, String SPEC02, String GUBUN02, String CON05, String PID03, String PID04, String PID05, String join) throws IOException {
 
 
 
@@ -496,7 +496,7 @@ public class ExcelDownloadController {
 
         // 데이터 가져오기
         ArrayList<HashMap<String, String>> dataList = new ArrayList<>();
-        dataList = PIDCommonUtil.findPIDDetail(pid, FIELD, GUBUN, connectGubun, PID02, SPEC02, GUBUN02, CON05, PID03, PID04, PID05);
+        dataList = PIDCommonUtil.findPIDDetail(pid, FIELD, GUBUN, connectGubun, PID02, SPEC02, GUBUN02, CON05, PID03, PID04, PID05, join);
 
 
 
