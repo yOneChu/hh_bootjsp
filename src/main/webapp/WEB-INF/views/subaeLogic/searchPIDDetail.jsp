@@ -154,7 +154,8 @@
 
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label>PID-01</label>
+                                    <label>-</label>
+                                    <%--<label>PID-01</label>--%>
                                     <input type="search" id="pidVal" class="form-control" placeholder="PID-01" value="">
                                     <div class="input-group-append">
                                     </div>
@@ -164,7 +165,8 @@
 
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label>조건-02</label>
+                                    <%--<label class="btn btn-default text-center">조건-02</label>--%>
+                                        <label>조건-02</label>
                                     <select id="spec-02" class="form-control select" style="width: 100%;">
                                         <option selected="selected">SPEC</option>
                                         <option>CON</option>
@@ -188,7 +190,8 @@
 
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label>PID-02</label>
+                                    <%--<label>PID-02</label>--%>
+                                    <label>-</label>
                                     <input type="search" id="pidVal02" class="form-control" placeholder="PID-02" value="">
                                     <div class="input-group-append">
                                     </div>
@@ -202,9 +205,12 @@
                                     <select id="joinOp" class="custom-select w-auto d-inline-block">
                                         <option value="F" selected>-</option>
                                         <option value="AND" >AND</option>
-                                        <option value="OR">OR</option>
+                                        <%--<option value="OR">OR</option>--%>
                                     </select>
-                                    <span class="badge badge-light border px-2 py-1 ml-2">(조건-02)</span>
+                                    <span class="badge badge-light border px-2 py-1 ml-2">
+                                        (조건-02)
+                                    </span>
+                                    -> 조건1, 2를 and 조건으로 둘 다 만족하는 행 조회 시 사용
                                 </div>
                             </div>
 

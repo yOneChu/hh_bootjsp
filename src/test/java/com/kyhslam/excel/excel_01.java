@@ -71,7 +71,7 @@ public class excel_01 {
 
 
             ArrayList<HashMap<String, String>> result = new ArrayList<>();
-            result = PIDCommonUtil.findPIDDetail(pid, FIELD, "LIKE", "", "", "", "", "", "", "", "");
+            //result = PIDCommonUtil.findPIDDetail(pid, FIELD, "LIKE", "", "", "", "", "", "", "", "");
 
             if (result.size() > 0) {
                 System.out.println(pid + " > " + result.size());

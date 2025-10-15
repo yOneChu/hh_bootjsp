@@ -454,7 +454,7 @@ public class PIDCommonUtil {
 
             con = PLMDBConnection.getConnection();
 
-            //System.out.println("888888888888 sql.toString() = " + sql.toString());
+            System.out.println("888888888888 sql.toString() = " + sql.toString());
             pstmt = con.prepareStatement(sql.toString());
 
             //pstmt2.setString(1, projrctNo);
@@ -816,9 +816,14 @@ public class PIDCommonUtil {
         System.out.println("spec02 == " + spec02);
         System.out.println("link01 == " + link01);
         System.out.println("link02 == " + link02);
+        /*pid01 == 914
+        pid02 == 32200452G01XB
+        spec01 == CON
+        spec02 == VAL
+        link01 == LIKE
+        link02 == EQUAL*/
 
-
-        StringBuffer testsql = new StringBuffer();
+        //StringBuffer testsql = new StringBuffer();
 
 
         String param1 = "";
@@ -872,11 +877,11 @@ public class PIDCommonUtil {
                 temSql.append(" d." + spec02 + String.valueOf(i) + " " + link02 + " " + param2 + " OR ");
             }
         }
-        temSql.append(" ) ");
+        //temSql.append(" ) ");
 
 
         //System.out.println("makeQueryKey == " + temSql.toString());
-        System.out.println("makeQueryKeyV2 temSql== " + temSql.toString());
+        //System.out.println("makeQueryKeyV2 temSql== " + temSql.toString());
         return temSql;
     }
 
