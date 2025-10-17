@@ -411,13 +411,18 @@
                     <div class="col-md-2">
                         <label class="form-label">부서명</label>
                         <select class="form-control" id="searchTeam">
-                            <option>수배로직설계팀</option>
-                            <option>중저속설계팀</option>
-                            <option>고속설계팀</option>
-                            <option>양산개발PM팀</option>
-                            <option>중저속SI팀</option>
-                            <option>고속SI팀</option>
-                         </select>
+                            <option>-</option>
+                            <option value="수배로직설계팀">수배로직설계팀</option>
+                            <option value="중저속설계팀">중저속설계팀</option>
+                            <option value="고속설계팀">고속설계팀</option>
+                            <option value="양산개발PM팀">양산개발PM팀</option>
+                            <option value="중저속SI팀">중저속SI팀</option>
+                            <option value="고속SI팀">고속SI팀</option>
+
+                            <option value="권상시스템개발팀">권상시스템개발팀</option>
+                            <option value="글로벌소싱팀">글로벌소싱팀</option>
+                            <option value="글로벌출하팀">글로벌출하팀</option>
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">발생자</label>

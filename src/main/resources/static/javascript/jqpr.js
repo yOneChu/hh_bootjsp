@@ -1,6 +1,7 @@
 //$(document).ready(function()
 
 let jqprData = [];
+let detailData = [];
 
 $(document).ready(function() {
 
@@ -19,7 +20,7 @@ $(document).ready(function() {
 }) // end document ready
 
 
-function search(year, month, jqprNo, team)
+function initSearch(year, month, jqprNo, team)
 {
     //let year = $("#year").val(); // LIKE
     //month = $('#monthSelect').val();
@@ -38,7 +39,6 @@ function search(year, month, jqprNo, team)
     showLoading(); // 로딩바 표시
     $.ajax({
         type : "post",
-        //url : "searchPID.jsp",
         crossDomain : true,
         url : "/jqpr/getSearchFinish",
         data : {
@@ -48,13 +48,7 @@ function search(year, month, jqprNo, team)
             state: stuats,
             team: team
         },
-        async: false,
-        beforeSend: function() {
-            $("html").css("cursor", "wait");
-        },
-        complete: function() {
-            $("html").css("cursor", "auto");
-        },
+        //async: false,
         success : function(data)
         {
             console.log("data - ", data);
@@ -96,6 +90,7 @@ function search(year, month, jqprNo, team)
                     else if (Number(failCost) >= 1000000) costClass = 'cost-medium';
 
                     jqprData.push(data[i]);
+                    detailData.push(data[i]);
 
                     str +=
                         `
@@ -164,17 +159,156 @@ function search(year, month, jqprNo, team)
 } // end search
 
 
+function search(year, month, jqprNo, team)
+{
+    //let year = $("#year").val(); // LIKE
+    //month = $('#monthSelect').val();
+    //console.log("search -------------" + month);
 
-let filteredData = [];
+    let stuats = "";
+    console.log("1111");
+
+    $('#infoTable').DataTable().destroy();
+
+    console.log("2222");
+    $("#contentTable").empty();
+
+    console.log("33333");
+
+    detailData = [];
+
+    showLoading(); // 로딩바 표시
+    $.ajax({
+        type : "post",
+        crossDomain : true,
+        url : "/jqpr/getSearchFinish",
+        data : {
+            year : year,
+            month : month,
+            jqprNo: jqprNo,
+            state: stuats,
+            team: team
+        },
+        //async: false,
+        success : function(data)
+        {
+            console.log("data - ", data);
+
+            let str = "";
+
+            if(data != null && data.length > 0) {
+
+                for(let i=0; i < data.length; i++) {
+
+                    let jqprNo = data[i].jqprNo;
+                    let jqprStatus = data[i].status;
+                    let hogi = data[i].hogi;
+                    let projectName = data[i].projectName;
+                    let creator = data[i].creator;
+                    let creDate = data[i].creDate;
+                    let failCost = data[i].failCost;
+                    let problemCause = data[i].problemCause;
+                    let problemPart = data[i].problemPart;
+                    let problemStatus = data[i].problemStatus;
+                    let team01 = data[i].team01;
+                    let team01Cost = data[i].team01Cost;
+                    let team02 = data[i].team02;
+                    let team02Cost = data[i].team02Cost;
+                    let team03 = data[i].team03;
+                    let team03Cost = data[i].team03Cost;
+
+                    //let problemDetail = data[i].problemDetail;
+                    let problemName = data[i].problemName;
+
+                    problemName = emptyIfBlank(problemName);
+                    team01 = emptyIfBlank(team01);
+                    team02 = emptyIfBlank(team02);
+                    team03 = emptyIfBlank(team03);
+
+
+                    let costClass = 'cost-low';
+                    if (Number(failCost) >= 2000000) costClass = 'cost-high';
+                    else if (Number(failCost) >= 1000000) costClass = 'cost-medium';
+
+                    detailData.push(data[i]);
+
+                    str +=
+                        `
+                        <tr>
+                            <td><strong>${jqprNo}</strong></td>
+                            <td>${jqprStatus}</td>
+                            <td>${projectName}</td>
+                            <td>${creator}</td>
+                            <td>${hogi}</td>
+                            <td>${creDate}</td>
+                            
+                            <td style="text-align: left" class="has-custom-tooltip">
+                                <div class="truncate-text" data-full-text="${problemName}">
+                                    ${problemName}
+                                </div>
+                            </td>
+                            <td>${problemCause}</td>
+                            
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary me-1" onClick="viewDetail('${jqprNo}')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                            <td style="text-align: center">${team01} <br> ₩${Number(team01Cost).toLocaleString()}</td>
+                            <td style="text-align: center">${team02} <br> ₩${Number(team02Cost).toLocaleString()}</td>
+                            <td style="text-align: center">${team03} <br> ₩${Number(team03Cost).toLocaleString()}</td>
+                            <td><span class="${costClass}">₩${Number(failCost).toLocaleString()}</span></td>
+                            
+                            <td>${problemPart}</td>
+                        </tr>
+                        `;
+
+
+                } // end for
+
+                //console.log("jqprData === ", jqprData.length);
+                //hideLoading(); // 성공 시 로딩바 제거
+                //console.log(str)
+
+                $("#contentTable").append(str);
+
+                $("#infoTable").DataTable({
+                    "responsive": true,
+                    "lengthChange": true,
+                    "pageLength": 25,     //페이지 당 글 개수 설정
+                    "autoWidth": false, // 가로자동
+                    "processing": true,
+                    "destroy": true, // 테이블 재생성
+                    "buttons": ["excel", "copy"]
+                }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
+            } else {
+                //hideLoading(); // 성공 시 로딩바 제거
+                alert("검색결과가 없습니다.");
+            }
+
+            hideLoading(); // 성공 시 로딩바 제거
+
+        }, // end success;
+        error: function () {
+            alert('오류 발생하였습니다. 김영환M 문의하세요.😅');
+            hideLoading();
+        }
+    });
+
+
+} // end search
+
+
+//let filteredData = [];
 let monthlyChart = null;
-let currentPage = 1;
-const rowsPerPage = 5; // 한 페이지에 표시할 데이터 수
+//let currentPage = 1;
+//const rowsPerPage = 5; // 한 페이지에 표시할 데이터 수
 
 
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', function() {
     console.log("add event===========");
-    search("2025", "", "", "design");
+    initSearch("2025", "", "", "design");
 
     //populateAnalysisYears();
     //renderTable(currentPage);
@@ -223,6 +357,11 @@ function updateStats() {
 // 검색 및 필터
 function filterData() {
     const searchSite = document.getElementById('searchSite').value.toLowerCase();
+    const searchTeam = document.getElementById('searchTeam').value;
+    const searchYear = document.getElementById('searchYear').value;
+    const searchMonth = document.getElementById('searchMonth').value;
+
+    search(searchYear, searchMonth, '', searchTeam);
     //const costFilter = document.getElementById('costFilter').value;
     //const searchPerson = document.getElementById('searchPerson').value.toLowerCase();
     //const dateFilter = document.getElementById('dateFilter').value;
@@ -279,7 +418,7 @@ function filterData() {
 // 상세보기
 function viewDetail(jqprNo) {
     console.log("viewDetail =====================", jqprNo);
-    const item = jqprData.find(data => data.jqprNo === jqprNo);
+    const item = detailData.find(data => data.jqprNo === jqprNo);
     if (!item) return;
 
     console.log(item.jqprNo);
@@ -311,9 +450,13 @@ function viewDetail(jqprNo) {
                         </table>
                     </div>
                     <div class="col-md-6">
-                        <h6 class="text-primary">비용 상세 정보</h6>
-                        <table class="table table-sm">
+                        <h6 class="text-primary">실패 비용</h6>
+                         <table class="table table-sm">
                             <tr><td><strong>실패 비용:</strong></td><td class="cost-high">₩${Number(item.failCost).toLocaleString()}</td></tr>
+                        </table>
+                        
+                         <h6 class="text-primary">실패 비용-세분화</h6>
+                        <table class="table table-sm">
                             <tr><td><strong>자재비:</strong></td><td class="${costClass}"> ₩${Number(item.jajeCost).toLocaleString()}</td></tr>
                             <tr><td><strong>노무비:</strong></td><td class="${costClass}">₩${Number(item.nomoCost).toLocaleString()}</td></tr>
                             <tr><td><strong>부서1:</strong></td><td class="${costClass}">${item.team01} <br> ₩${Number(item.team01Cost).toLocaleString()}</td></tr>
