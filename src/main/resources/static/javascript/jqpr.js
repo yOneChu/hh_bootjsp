@@ -19,7 +19,7 @@ $(document).ready(function() {
 }) // end document ready
 
 
-function search(year, month, jqprNo)
+function search(year, month, jqprNo, team)
 {
     //let year = $("#year").val(); // LIKE
     //month = $('#monthSelect').val();
@@ -45,7 +45,8 @@ function search(year, month, jqprNo)
             year : year,
             month : month,
             jqprNo: jqprNo,
-            state: stuats
+            state: stuats,
+            team: team
         },
         async: false,
         beforeSend: function() {
@@ -95,17 +96,6 @@ function search(year, month, jqprNo)
                     else if (Number(failCost) >= 1000000) costClass = 'cost-medium';
 
                     jqprData.push(data[i]);
-                    //<td>${problemDetail}</td>
-
-                    //<td><span class="">₩${Number(team01Cost).toLocaleString()}</span></td>
-                    //<td><span className="">${Number(team02Cost).toLocaleString()}</span></td>
-
-                    /*<button className="btn btn-sm btn-outline-danger" onClick="deleteItem('${jqprNo}')">
-                        <i className="fas fa-trash"></i>
-                    </button>*/
-
-
-
 
                     str +=
                         `
@@ -184,7 +174,7 @@ const rowsPerPage = 5; // 한 페이지에 표시할 데이터 수
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', function() {
     console.log("add event===========");
-    search("2025", "", "");
+    search("2025", "", "", "design");
 
     //populateAnalysisYears();
     //renderTable(currentPage);
@@ -202,7 +192,7 @@ function updateStats() {
     const totalCost = jqprData.reduce((sum, item) => Number(sum) + Number(item.failCost), 0);
     const avgCost = totalCases > 0 ? totalCost / totalCases : 0;
 
-    console.log('jqprData - ', jqprData);
+    //console.log('jqprData - ', jqprData);
     console.log('totalCases - ', totalCases);
     console.log('totalCost - ', totalCost);
     console.log('avgCost - ', avgCost);
@@ -215,7 +205,7 @@ function updateStats() {
         return itemDate.getMonth() + 1 === currentMonth && itemDate.getFullYear() === currentYear;
     }).length;*/
 
-    //const currentMonth = new Date().getMonth() + 1;
+    const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
     const thisMonthCases = jqprData.filter(item => {
         const itemDate = new Date(item.creDate);
@@ -233,12 +223,13 @@ function updateStats() {
 // 검색 및 필터
 function filterData() {
     const searchSite = document.getElementById('searchSite').value.toLowerCase();
-    const costFilter = document.getElementById('costFilter').value;
-    const searchPerson = document.getElementById('searchPerson').value.toLowerCase();
-    const dateFilter = document.getElementById('dateFilter').value;
-    const periodFilter = document.getElementById('periodFilter').value;
+    //const costFilter = document.getElementById('costFilter').value;
+    //const searchPerson = document.getElementById('searchPerson').value.toLowerCase();
+    //const dateFilter = document.getElementById('dateFilter').value;
+    //const periodFilter = document.getElementById('periodFilter').value;
 
-    filteredData = jqprData.filter(item => {
+
+    /*filteredData = jqprData.filter(item => {
         const siteMatch = item.projectName.toLowerCase().includes(searchSite);
         const personMatch = item.creator.toLowerCase().includes(searchPerson);
 
@@ -249,7 +240,7 @@ function filterData() {
 
         let dateMatch = true;
         if (dateFilter) {
-            dateMatch = item.creDate === dateFilter;
+            //dateMatch = item.creDate === dateFilter;
         }
 
         if (periodFilter) {
@@ -273,17 +264,17 @@ function filterData() {
         return siteMatch && personMatch && costMatch && dateMatch;
     });
     currentPage = 1; // 필터링 시 첫 페이지로 이동
-    renderTable(currentPage);
+    renderTable(currentPage);*/
 }
 
 // 기간 설정에 따라 날짜 필터 자동 설정
-function setDateFilterByPeriod() {
+/*function setDateFilterByPeriod() {
     const periodFilter = document.getElementById('periodFilter').value;
     const dateFilterInput = document.getElementById('dateFilter');
     dateFilterInput.value = ''; // 기간 필터 선택 시 날짜 필터 초기화
 
     filterData(); // 기간 필터 적용
-}
+}*/
 
 // 상세보기
 function viewDetail(jqprNo) {
@@ -419,9 +410,11 @@ function updateMonthlyAnalysis() {
     console.log("====== updateMonthlyAnalysis ======");
     const selectedYear = document.getElementById('analysisYear').value;
     const selectedMonth = document.getElementById('analysisMonth').value;
+    const selectedTeam = document.getElementById('analysisTeam').value;
 
     console.log('selectedYear - ', selectedYear);
     console.log('selectedMonth - ', selectedMonth);
+    console.log('selectedTeam - ', selectedTeam);
 
     const monthlyCosts = new Array(12).fill(0); // 1월부터 12월까지
     let casesInSelectedPeriod = 0;
@@ -431,13 +424,31 @@ function updateMonthlyAnalysis() {
         const itemDate = new Date(item.creDate);
         const itemYear = itemDate.getFullYear();
         const itemMonth = itemDate.getMonth() + 1; // 월은 0부터 시작하므로 +1
+        const itemTeam = item.team01;
+        const itemTeam2 = item.team02;
+        const itemTeam3 = item.team03;
+
+        console.log('item --- ', item);
+        //console.log('itemTeam --- ', itemTeam);
 
         if (itemYear == selectedYear) {
             monthlyCosts[itemMonth - 1] += Number(item.failCost);
 
-            if (selectedMonth === "" || itemMonth == selectedMonth) {
-                casesInSelectedPeriod++;
-                totalCostInSelectedPeriod += Number(item.failCost);
+            if(selectedTeam === "") {
+
+                if (selectedMonth === "" || itemMonth == selectedMonth) {
+                    casesInSelectedPeriod++;
+                    totalCostInSelectedPeriod += Number(item.failCost);
+                }
+            } else {
+
+                if(selectedTeam == itemTeam || selectedTeam == itemTeam2 || selectedTeam == itemTeam3)
+                {
+                    if (selectedMonth === "" || itemMonth == selectedMonth) {
+                        casesInSelectedPeriod++;
+                        totalCostInSelectedPeriod += Number(item.failCost);
+                    }
+                }
             }
         }
     });
@@ -449,10 +460,11 @@ function updateMonthlyAnalysis() {
     // 월별 통계 텍스트 업데이트
     const monthlyStatsElement = document.getElementById('monthlyStats');
     if (selectedMonth === "") {
-        monthlyStatsElement.textContent = `${selectedYear}년 전체: ${casesInSelectedPeriod}건, ₩${totalCostInSelectedPeriod.toLocaleString()}`;
+        monthlyStatsElement.textContent = `${selectedYear}년 ${selectedTeam} 전체: ${casesInSelectedPeriod}건, ₩${totalCostInSelectedPeriod.toLocaleString()}`;
     } else {
-        monthlyStatsElement.textContent = `${selectedYear}년 ${selectedMonth}월: ${casesInSelectedPeriod}건, ₩${totalCostInSelectedPeriod.toLocaleString()}`;
+        monthlyStatsElement.textContent = `${selectedYear}년 ${selectedTeam} ${selectedMonth}월: ${casesInSelectedPeriod}건, ₩${totalCostInSelectedPeriod.toLocaleString()}`;
     }
+    console.log(" --------- updateMonthlyAnalysis end ----------");
 }
 
 // 분석 연도 옵션 동적으로 추가
@@ -461,7 +473,7 @@ function populateAnalysisYears() {
     const currentYear = new Date().getFullYear();
 
     // 최근 5년까지 옵션 추가
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 2; i++) {
         const year = currentYear - i;
         const option = document.createElement('option');
         option.value = year;
@@ -472,7 +484,7 @@ function populateAnalysisYears() {
 }
 
 // 페이지네이션 렌더링
-function renderPagination() {
+/*function renderPagination() {
     const paginationUl = document.getElementById('pagination');
     paginationUl.innerHTML = '';
 
@@ -484,9 +496,10 @@ function renderPagination() {
         li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
         paginationUl.appendChild(li);
     }
-}
+}*/
 
 // 페이지 변경
+/*
 function changePage(page) {
     currentPage = page;
     renderTable(currentPage);
@@ -498,3 +511,4 @@ document.addEventListener('keypress', function(e) {
         filterData();
     }
 });
+*/

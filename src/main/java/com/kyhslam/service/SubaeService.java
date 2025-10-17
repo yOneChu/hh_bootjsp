@@ -25,7 +25,6 @@ import java.util.*;
 @RequiredArgsConstructor
 public class SubaeService {
 
-
     private final SubaeRepository subaeRepository;
 
     private final SubaeMapper subaeMapper;

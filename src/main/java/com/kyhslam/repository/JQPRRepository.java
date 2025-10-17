@@ -77,6 +77,17 @@ public class JQPRRepository {
             jpql += " i.jqprNo = :jqprNo ";
         }
 
+        if(StringUtils.hasText(cond.getTeam())){
+            
+            // 양산개발담당
+            if("design".equals(cond.getTeam())){
+                jpql += " and (";
+                jpql += " i.team01 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') OR ";
+                jpql += " i.team02 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') OR";
+                jpql += " i.team03 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') ";
+                jpql += " )";
+            }
+        }
         log.info("jpql={}", jpql);
 
 

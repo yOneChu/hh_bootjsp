@@ -444,6 +444,7 @@ public class JQPRService {
     //조회
     public List<JQPR> findAll(JqprSearchCond cond) {
 
+
         return jqprRepository.findAll(cond);
     }
 

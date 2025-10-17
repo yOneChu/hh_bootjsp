@@ -45,6 +45,7 @@ public class JqprController {
     public List<JQPR> getSearchFinish(JqprSearchCond condition) {
 
         log.info("getSearch  ----------------" + condition);
+        System.out.println("getSearch  ----------------" + condition);
 
         List<HashMap<String, String>> result = new ArrayList<>();
 

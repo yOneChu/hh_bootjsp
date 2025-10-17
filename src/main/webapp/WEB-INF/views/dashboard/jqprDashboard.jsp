@@ -357,6 +357,19 @@
                             </select>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label">분석 부서</label>
+                            <select class="form-control" id="analysisTeam" onchange="updateMonthlyAnalysis()">
+                                <option value="">전체</option>
+                                <option value="수배로직설계팀">수배로직설계팀</option>
+                                <option value="중저속설계팀">중저속설계팀</option>
+                                <option value="중저속설계팀">고속설계팀</option>
+                                <option value="양산개발PM팀">양산개발PM팀</option>
+                                <option value="중저속SI팀">중저속SI팀</option>
+                                <option value="고속SI팀">고속SI팀</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
                             <label class="form-label">분석 월</label>
                             <select class="form-control" id="analysisMonth" onchange="updateMonthlyAnalysis()">
                                 <option value="">전체 월</option>
@@ -397,44 +410,50 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">부서명</label>
-                        <select class="form-control" id="costFilter">
-                            <option>강남지사(설치)</option>
-                            <option>고속설계팀</option>
-                            <option>고속SI팀</option>
-                            <option>글로벌출하팀</option>
-                            <option>기술영업1팀</option>
-                            <option>기술영업2팀</option>
-                            <option>대구지사(설치)</option>
-                            <option>대구지사(영업)</option>
-                            <option>대전·충청지사(영업)</option>
-                            <option>리모델링영업2팀</option>
-                            <option>부산지사(영업)</option>
-                            <option>생산팀</option>
-                            <option>서비스기술영업팀</option>
-                            <option>인증팀</option>
-                            <option>제어팀</option>
-                            <option>중부지사(설치)</option>
+                        <select class="form-control" id="searchTeam">
+                            <option>수배로직설계팀</option>
                             <option>중저속설계팀</option>
+                            <option>고속설계팀</option>
+                            <option>양산개발PM팀</option>
                             <option>중저속SI팀</option>
-                            <option>천정조립반</option>
-                            <option>케이지개발팀</option>
-                            <option>품질보증팀</option>
-                            <option>MAJOR영업1팀</option>
-                            <option>MP설치팀</option>
-                            <option>RM-STO팀</option>
-                            <option>STO영업1팀</option>
-                            <option>STO영업2팀</option>
+                            <option>고속SI팀</option>
                          </select>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">발생자</label>
                         <input type="text" class="form-control" id="searchPerson" placeholder="발생자명">
                     </div>
-                    <div class="col-md-2">
+                    <%--<div class="col-md-2">
                         <label class="form-label">발생일자</label>
                         <input type="date" class="form-control" id="dateFilter">
+                    </div>--%>
+                    <div class="col-md-2">
+                        <label class="form-label">검색 연도</label>
+                        <select class="form-control" id="searchYear">
+                            <option value="2025">2025</option>
+                            <option value="2024">2024</option>
+                        </select>
                     </div>
                     <div class="col-md-2">
+                        <label class="form-label">검색 월</label>
+                        <select class="form-control" id="searchMonth">
+                            <option value="">전체 월</option>
+                            <option value="1">1월</option>
+                            <option value="2">2월</option>
+                            <option value="3">3월</option>
+                            <option value="4">4월</option>
+                            <option value="5">5월</option>
+                            <option value="6">6월</option>
+                            <option value="7">7월</option>
+                            <option value="8">8월</option>
+                            <option value="9">9월</option>
+                            <option value="10">10월</option>
+                            <option value="11">11월</option>
+                            <option value="12">12월</option>
+                        </select>
+                    </div>
+
+                    <%--<div class="col-md-2">
                         <label class="form-label">기간 설정</label>
                         <select class="form-control" id="periodFilter" onchange="setDateFilterByPeriod()">
                             <option value="">전체 기간</option>
@@ -442,7 +461,7 @@
                             <option value="lastMonth">지난 달</option>
                             <option value="last3Months">최근 3개월</option>
                         </select>
-                    </div>
+                    </div>--%>
                     <div class="col-md-1">
                         <label class="form-label">&nbsp;</label>
                         <button class="btn btn-hyundai w-100" onclick="filterData()">

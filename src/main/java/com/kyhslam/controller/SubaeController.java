@@ -14,14 +14,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -171,6 +166,7 @@ public class SubaeController {
     //PLM에서 중국자재 조회 로직
     @PostMapping("/subae/searchCNPart")
     @ResponseBody
+    @CrossOrigin
     public ArrayList<PartInfoDTO> searchCNPart(PartInfoDTO param) {
         ArrayList<PartInfoDTO> result = new ArrayList<>();
 
@@ -260,6 +256,7 @@ public class SubaeController {
     // 2025-07 날짜로 수배율 계산한 PARTNO 전체 조회
     @PostMapping("/subae/findSubaePartNoList")
     @ResponseBody
+    @CrossOrigin
     public ArrayList<ProductDto> findSubaePartNoList(String ucheck, String month) {
 
         ArrayList<ProductDto> result = new ArrayList<>();
@@ -275,6 +272,7 @@ public class SubaeController {
     //PID조회
     @PostMapping("/subae/findPIDLineView")
     @ResponseBody
+    @CrossOrigin
     public ArrayList<ArrayList<String>> findPIDLineView(String pid) {
 
         if(pid != null && !pid.equals("")) {
@@ -304,6 +302,7 @@ public class SubaeController {
 
     @PostMapping("/subae/elevatorSpecDiff")
     @ResponseBody
+    @CrossOrigin
     public ArrayList<HashMap<String, String>> elevatorSpecDiff(String ho1, String ho2) {
         log.info("========== subae elevatorSpecDiff");
         ArrayList<HashMap<String, String>> result = new  ArrayList<>();
@@ -322,6 +321,7 @@ public class SubaeController {
      */
     @GetMapping("/subae/getFloorInfoJson")
     @ResponseBody
+    @CrossOrigin
     public List<Map<String, Object>> getFloorInfoJson(String hogi, String key) {
         //http://localhost:8070/subae/getFloorInfoJson?hogi=208618L17&key=electUser
         //https://vault-in.hdel.co.kr:8070/getFloorInfoJson?hogi=208618L17&key=electUser
@@ -346,6 +346,7 @@ public class SubaeController {
     // 시물레이터 결과만 추출
     @GetMapping("/subae/pidExecute")
     @ResponseBody
+    @CrossOrigin
     public HashMap<String, String> pidExecute(String pid, String hogi, String testVersion, String floor, String isfloor) {
 
         //testVersion = on
