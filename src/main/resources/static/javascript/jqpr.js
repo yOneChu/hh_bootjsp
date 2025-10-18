@@ -5,7 +5,7 @@ let detailData = [];
 
 $(document).ready(function() {
 
-    console.log("------ jquery start ---");
+    //console.log("------ jquery start ---");
     populateAnalysisYears();
     //renderTable(currentPage);
 
@@ -16,14 +16,14 @@ $(document).ready(function() {
 
     //updateStats();
     //updateMonthlyAnalysis();
-    console.log("------ jquery End ---");
+    //console.log("------ jquery End ---");
 }) // end document ready
 
 
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("add event===========");
-    initSearch("2025", "", "", "design");
+    //console.log("add event===========");
+    initSearch("2025", "", "", "design", '종결완료');
 
     //populateAnalysisYears();
     //renderTable(currentPage);
@@ -33,22 +33,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-function initSearch(year, month, jqprNo, team)
+function initSearch(year, month, jqprNo, team, stuats)
 {
-    console.log("------ initSearch start ---");
+    //console.log("------ initSearch start ---");
     //let year = $("#year").val(); // LIKE
     //month = $('#monthSelect').val();
     //console.log("search -------------" + month);
 
-    let stuats = "";
-    console.log("1111");
+    //let stuats = "";
+    //console.log("1111");
 
     $('#infoTable').DataTable().destroy();
 
-    console.log("2222");
+    //console.log("2222");
     $("#contentTable").empty();
 
-    console.log("33333");
+    //console.log("33333");
 
     showLoading(); // 로딩바 표시
     $.ajax({
@@ -78,6 +78,8 @@ function initSearch(year, month, jqprNo, team)
                     let hogi = data[i].hogi;
                     let projectName = data[i].projectName;
                     let creator = data[i].creator;
+                    let euser = data[i].euser;
+                    let muser = data[i].muser;
                     let creDate = data[i].creDate;
                     let failCost = data[i].failCost;
                     let problemCause = data[i].problemCause;
@@ -113,8 +115,11 @@ function initSearch(year, month, jqprNo, team)
                             <td>${jqprStatus}</td>
                             <td>${projectName}</td>
                             <td>${creator}</td>
+                            <td>${muser}</td>
+                            <td>${euser}</td>
                             <td>${hogi}</td>
                             <td>${creDate}</td>
+                            
                             
                             <td style="text-align: left" class="has-custom-tooltip">
                                 <div class="truncate-text" data-full-text="${problemName}">
@@ -171,7 +176,7 @@ function initSearch(year, month, jqprNo, team)
             hideLoading();
         }
     });
-    console.log("------ initSearch End ---");
+    //console.log("------ initSearch End ---");
 
 } // end search
 
@@ -180,7 +185,7 @@ function search(year, month, jqprNo, team, stuats)
 {
     //let year = $("#year").val(); // LIKE
     //month = $('#monthSelect').val();
-    console.log("search -------------" + month);
+    //console.log("search -------------" + month);
     $('#infoTable').DataTable().destroy();
     $("#contentTable").empty();
 
@@ -215,6 +220,8 @@ function search(year, month, jqprNo, team, stuats)
                     let projectName = data[i].projectName;
                     let creator = data[i].creator;
                     let creDate = data[i].creDate;
+                    let euser = data[i].euser;
+                    let muser = data[i].muser;
                     let failCost = data[i].failCost;
                     let problemCause = data[i].problemCause;
                     let problemPart = data[i].problemPart;
@@ -239,6 +246,8 @@ function search(year, month, jqprNo, team, stuats)
                     if (Number(failCost) >= 2000000) costClass = 'cost-high';
                     else if (Number(failCost) >= 1000000) costClass = 'cost-medium';
 
+                    //console.log(data[i]);
+
                     detailData.push(data[i]);
 
                     str +=
@@ -248,8 +257,11 @@ function search(year, month, jqprNo, team, stuats)
                             <td>${jqprStatus}</td>
                             <td>${projectName}</td>
                             <td>${creator}</td>
+                            <td>${muser}</td>
+                            <td>${euser}</td>
                             <td>${hogi}</td>
                             <td>${creDate}</td>
+                            
                             
                             <td style="text-align: left" class="has-custom-tooltip">
                                 <div class="truncate-text" data-full-text="${problemName}">
@@ -367,6 +379,10 @@ function filterData() {
     const searchYear = document.getElementById('searchYear').value;
     const searchMonth = document.getElementById('searchMonth').value;
     const searchState = document.getElementById('searchState').value;
+
+    //console.log('searchTeam : ', searchTeam);
+    //console.log('searchState : ', searchState);
+
 
     search(searchYear, searchMonth, '', searchTeam, searchState);
     //const costFilter = document.getElementById('costFilter').value;
@@ -576,7 +592,7 @@ function createMonthlyChart() {
 
 // 월별 분석 업데이트 (차트 및 통계)
 function updateMonthlyAnalysis() {
-    console.log("====== updateMonthlyAnalysis ======");
+    //console.log("====== updateMonthlyAnalysis ======");
     const selectedYear = document.getElementById('analysisYear').value;
     const selectedMonth = document.getElementById('analysisMonth').value;
     const selectedTeam = document.getElementById('analysisTeam').value;
@@ -585,10 +601,10 @@ function updateMonthlyAnalysis() {
     let casesInSelectedPeriod = 0;
     let totalCostInSelectedPeriod = 0;
 
-    console.log('selectedYear - ', selectedYear);
-    console.log('selectedMonth - ', selectedMonth);
-    console.log('selectedTeam - ', selectedTeam);
-    console.log('monthlyCosts - ', monthlyCosts);
+    //console.log('selectedYear - ', selectedYear);
+    //console.log('selectedMonth - ', selectedMonth);
+    //console.log('selectedTeam - ', selectedTeam);
+    //console.log('monthlyCosts - ', monthlyCosts);
 
     jqprData.forEach(item => {
         const itemDate = new Date(item.creDate);
@@ -604,7 +620,7 @@ function updateMonthlyAnalysis() {
         if (itemYear == selectedYear) {
             //monthlyCosts[itemMonth - 1] += Number(item.failCost);
 
-            if(selectedTeam === "") {
+            if(selectedTeam === "design") {
                 monthlyCosts[itemMonth - 1] += Number(item.failCost);
                 if (selectedMonth === "" || itemMonth == selectedMonth) {
                     casesInSelectedPeriod++;

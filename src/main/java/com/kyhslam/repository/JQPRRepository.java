@@ -89,8 +89,6 @@ public class JQPRRepository {
                     jpql += " i.team01 = '" +  cond.getTeam() + "' OR ";
                     jpql += " i.team02 = '" +  cond.getTeam() + "' OR ";
                     jpql += " i.team03 = '" +  cond.getTeam() + "' ";
-                    //jpql += " i.team02 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') OR";
-                    //jpql += " i.team03 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') ";
                     jpql += " )";
                 }
             }
@@ -106,15 +104,11 @@ public class JQPRRepository {
             }
             query.setParameter("year", year);
         }
-        /*if (StringUtils.hasText(month)) {
-            month = year + "-" + month;
-            query.setParameter("month", month);
-        }*/
         if (StringUtils.hasText(cond.getJqprNo())) {
             query.setParameter("jqprNo", cond.getJqprNo());
         }
         if (StringUtils.hasText(cond.getState())) {
-            System.out.println("sssss");
+            System.out.println("sssss -- " + cond.getState());
             query.setParameter("status", cond.getState());
         }
         return query.getResultList();

@@ -49,7 +49,7 @@ public class JqprController {
 
         List<HashMap<String, String>> result = new ArrayList<>();
 
-        condition.setState("종결완료");
+        //condition.setState("종결완료");
 
         List<JQPR> list = jqprService.findAll(condition);
         for (JQPR jqpr : list) {

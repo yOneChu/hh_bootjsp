@@ -359,10 +359,10 @@
                         <div class="mb-3">
                             <label class="form-label">분석 부서</label>
                             <select class="form-control" id="analysisTeam" onchange="updateMonthlyAnalysis()">
-                                <option value="">전체</option>
+                                <option value="design">전체</option>
                                 <option value="수배로직설계팀">수배로직설계팀</option>
                                 <option value="중저속설계팀">중저속설계팀</option>
-                                <option value="중저속설계팀">고속설계팀</option>
+                                <option value="고속설계팀">고속설계팀</option>
                                 <option value="양산개발PM팀">양산개발PM팀</option>
                                 <option value="중저속SI팀">중저속SI팀</option>
                                 <option value="고속SI팀">고속SI팀</option>
@@ -411,7 +411,7 @@
                     <div class="col-md-2">
                         <label class="form-label">부서명</label>
                         <select class="form-control" id="searchTeam">
-                            <option>-</option>
+                            <option value="">전체</option>
                             <option value="수배로직설계팀">수배로직설계팀</option>
                             <option value="중저속설계팀">중저속설계팀</option>
                             <option value="고속설계팀">고속설계팀</option>
@@ -422,6 +422,7 @@
                             <option value="권상시스템개발팀">권상시스템개발팀</option>
                             <option value="글로벌소싱팀">글로벌소싱팀</option>
                             <option value="글로벌출하팀">글로벌출하팀</option>
+                            <option value="정보기술팀">정보기술팀</option>
                         </select>
                     </div>
                     <%--<div class="col-md-2">
@@ -431,6 +432,7 @@
                     <div class="col-md-2">
                         <label class="form-label">상태</label>
                         <select class="form-control" id="searchState">
+                            <option value="">전체</option>
                             <option value="종결완료">종결완료</option>
                             <option value="대책완료">대책완료</option>
                             <option value="접수완료">접수완료</option>
@@ -499,6 +501,8 @@
                                 <th>상태</th>
                                 <th>프로젝트명</th>
                                 <th>작성자</th>
+                                <th>기계</th>
+                                <th>전기</th>
                                 <th>호기</th>
                                 <th>작성일</th>
 
