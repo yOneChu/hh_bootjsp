@@ -424,11 +424,21 @@
                             <option value="글로벌출하팀">글로벌출하팀</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <%--<div class="col-md-2">
                         <label class="form-label">발생자</label>
                         <input type="text" class="form-control" id="searchPerson" placeholder="발생자명">
+                    </div>--%>
+                    <div class="col-md-2">
+                        <label class="form-label">상태</label>
+                        <select class="form-control" id="searchState">
+                            <option value="종결완료">종결완료</option>
+                            <option value="대책완료">대책완료</option>
+                            <option value="접수완료">접수완료</option>
+                            <option value="변상합의 발행">변상합의 발행</option>
+                        </select>
                     </div>
-                    <%--<div class="col-md-2">
+
+                <%--<div class="col-md-2">
                         <label class="form-label">발생일자</label>
                         <input type="date" class="form-control" id="dateFilter">
                     </div>--%>
@@ -443,15 +453,15 @@
                         <label class="form-label">검색 월</label>
                         <select class="form-control" id="searchMonth">
                             <option value="">전체 월</option>
-                            <option value="1">1월</option>
-                            <option value="2">2월</option>
-                            <option value="3">3월</option>
-                            <option value="4">4월</option>
-                            <option value="5">5월</option>
-                            <option value="6">6월</option>
-                            <option value="7">7월</option>
-                            <option value="8">8월</option>
-                            <option value="9">9월</option>
+                            <option value="01">1월</option>
+                            <option value="02">2월</option>
+                            <option value="03">3월</option>
+                            <option value="04">4월</option>
+                            <option value="05">5월</option>
+                            <option value="06">6월</option>
+                            <option value="07">7월</option>
+                            <option value="08">8월</option>
+                            <option value="09">9월</option>
                             <option value="10">10월</option>
                             <option value="11">11월</option>
                             <option value="12">12월</option>

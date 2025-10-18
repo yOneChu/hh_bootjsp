@@ -61,12 +61,9 @@ public class JQPRRepository {
         }
 
         if (StringUtils.hasText(month)) {
-           /* if (andFlag) {
-                jpql += " and";
-            }*/
-            jpql += " and";
+            //jpql += " and";
             //jpql += " i.price <= :maxPrice";
-            jpql += " i.creDate like concat('%',:month,'%')";
+            //jpql += " i.creDate like concat('%',:month,'%')";
         }
 
         if(StringUtils.hasText(cond.getJqprNo())){
@@ -77,42 +74,47 @@ public class JQPRRepository {
             jpql += " i.jqprNo = :jqprNo ";
         }
 
-        if(StringUtils.hasText(cond.getTeam())){
-            
-            // 양산개발담당
-            if("design".equals(cond.getTeam())){
-                jpql += " and (";
-                jpql += " i.team01 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') OR ";
-                jpql += " i.team02 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') OR";
-                jpql += " i.team03 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') ";
-                jpql += " )";
-            } else {
-                jpql += " and (";
-                jpql += " i.team01 = '" +  cond.getTeam() + "' OR ";
-                jpql += " i.team02 = '" +  cond.getTeam() + "' OR ";
-                jpql += " i.team03 = '" +  cond.getTeam() + "' ";
-                //jpql += " i.team02 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') OR";
-                //jpql += " i.team03 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') ";
-                jpql += " )";
+        if(StringUtils.hasText(cond.getTeam()) ){
+
+            if ( !cond.getTeam().equals("-") ) {
+                // 양산개발담당
+                if("design".equals(cond.getTeam())){
+                    jpql += " and (";
+                    jpql += " i.team01 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') OR ";
+                    jpql += " i.team02 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') OR";
+                    jpql += " i.team03 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') ";
+                    jpql += " )";
+                } else {
+                    jpql += " and (";
+                    jpql += " i.team01 = '" +  cond.getTeam() + "' OR ";
+                    jpql += " i.team02 = '" +  cond.getTeam() + "' OR ";
+                    jpql += " i.team03 = '" +  cond.getTeam() + "' ";
+                    //jpql += " i.team02 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') OR";
+                    //jpql += " i.team03 IN ( '수배로직설계팀', '중저속설계팀', '고속설계팀', '양산개발PM팀', '중저속SI팀', '고속SI팀') ";
+                    jpql += " )";
+                }
             }
-
-
         }
         log.info("jpql={}", jpql);
 
 
         TypedQuery<JQPR> query = em.createQuery(jpql, JQPR.class);
         if (StringUtils.hasText(year)) {
+            if (StringUtils.hasText(month)) {
+                year += "-"  + month;
+
+            }
             query.setParameter("year", year);
         }
-        if (StringUtils.hasText(month)) {
+        /*if (StringUtils.hasText(month)) {
             month = year + "-" + month;
             query.setParameter("month", month);
-        }
+        }*/
         if (StringUtils.hasText(cond.getJqprNo())) {
             query.setParameter("jqprNo", cond.getJqprNo());
         }
         if (StringUtils.hasText(cond.getState())) {
+            System.out.println("sssss");
             query.setParameter("status", cond.getState());
         }
         return query.getResultList();

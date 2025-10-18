@@ -5,7 +5,7 @@ let detailData = [];
 
 $(document).ready(function() {
 
-    console.log("------ jquery ===========");
+    console.log("------ jquery start ---");
     populateAnalysisYears();
     //renderTable(currentPage);
 
@@ -14,14 +14,28 @@ $(document).ready(function() {
     //updateMonthlyAnalysis();
     //search("2025", "", "");
 
-    updateMonthlyAnalysis();
-
-
+    //updateStats();
+    //updateMonthlyAnalysis();
+    console.log("------ jquery End ---");
 }) // end document ready
+
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("add event===========");
+    initSearch("2025", "", "", "design");
+
+    //populateAnalysisYears();
+    //renderTable(currentPage);
+    //updateStats();
+    createMonthlyChart();
+    //updateMonthlyAnalysis();
+});
 
 
 function initSearch(year, month, jqprNo, team)
 {
+    console.log("------ initSearch start ---");
     //let year = $("#year").val(); // LIKE
     //month = $('#monthSelect').val();
     //console.log("search -------------" + month);
@@ -51,7 +65,7 @@ function initSearch(year, month, jqprNo, team)
         //async: false,
         success : function(data)
         {
-            console.log("data - ", data);
+            //console.log("data - ", data);
 
             let str = "";
 
@@ -126,7 +140,7 @@ function initSearch(year, month, jqprNo, team)
 
                 } // end for
 
-                console.log("jqprData === ", jqprData.length);
+                console.log("init jqprData: ", jqprData.length);
                 //hideLoading(); // 성공 시 로딩바 제거
                 //console.log(str)
 
@@ -148,32 +162,27 @@ function initSearch(year, month, jqprNo, team)
 
             hideLoading(); // 성공 시 로딩바 제거
 
+            updateStats();
+            updateMonthlyAnalysis();
+
         }, // end success;
         error: function () {
             alert('오류 발생하였습니다. 김영환M 문의하세요.😅');
             hideLoading();
         }
     });
-
+    console.log("------ initSearch End ---");
 
 } // end search
 
 
-function search(year, month, jqprNo, team)
+function search(year, month, jqprNo, team, stuats)
 {
     //let year = $("#year").val(); // LIKE
     //month = $('#monthSelect').val();
-    //console.log("search -------------" + month);
-
-    let stuats = "";
-    console.log("1111");
-
+    console.log("search -------------" + month);
     $('#infoTable').DataTable().destroy();
-
-    console.log("2222");
     $("#contentTable").empty();
-
-    console.log("33333");
 
     detailData = [];
 
@@ -296,6 +305,10 @@ function search(year, month, jqprNo, team)
     });
 
 
+    // 통계 업데이트
+    updateMonthlyAnalysis();
+
+
 } // end search
 
 
@@ -305,31 +318,24 @@ let monthlyChart = null;
 //const rowsPerPage = 5; // 한 페이지에 표시할 데이터 수
 
 
-// 페이지 로드 시 초기화
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("add event===========");
-    initSearch("2025", "", "", "design");
-
-    //populateAnalysisYears();
-    //renderTable(currentPage);
-    updateStats();
-    createMonthlyChart();
-    //updateMonthlyAnalysis();
-});
-
 
 
 // 통계 업데이트
 function updateStats() {
     console.log(" --------- updateStats -------");
+    const searchTeam = document.getElementById('searchTeam').value;
+    const searchYear = document.getElementById('searchYear').value;
+    const searchMonth = document.getElementById('searchMonth').value;
+
     const totalCases = jqprData.length;
     const totalCost = jqprData.reduce((sum, item) => Number(sum) + Number(item.failCost), 0);
     const avgCost = totalCases > 0 ? totalCost / totalCases : 0;
 
+
     //console.log('jqprData - ', jqprData);
-    console.log('totalCases - ', totalCases);
-    console.log('totalCost - ', totalCost);
-    console.log('avgCost - ', avgCost);
+    //console.log('totalCases - ', totalCases);
+    //console.log('totalCost - ', totalCost);
+    //console.log('avgCost - ', avgCost);
 
     // 이번 달 사례 계산
     /*const currentMonth = new Date().getMonth() + 1;
@@ -360,8 +366,9 @@ function filterData() {
     const searchTeam = document.getElementById('searchTeam').value;
     const searchYear = document.getElementById('searchYear').value;
     const searchMonth = document.getElementById('searchMonth').value;
+    const searchState = document.getElementById('searchState').value;
 
-    search(searchYear, searchMonth, '', searchTeam);
+    search(searchYear, searchMonth, '', searchTeam, searchState);
     //const costFilter = document.getElementById('costFilter').value;
     //const searchPerson = document.getElementById('searchPerson').value.toLowerCase();
     //const dateFilter = document.getElementById('dateFilter').value;
@@ -417,13 +424,13 @@ function filterData() {
 
 // 상세보기
 function viewDetail(jqprNo) {
-    console.log("viewDetail =====================", jqprNo);
+    //console.log("viewDetail =====================", jqprNo);
     const item = detailData.find(data => data.jqprNo === jqprNo);
     if (!item) return;
 
-    console.log(item.jqprNo);
-    console.log(item);
-    console.log(item.failCost);
+    //console.log(item.jqprNo);
+    //console.log(item);
+    //console.log(item.failCost);
 
 
 
@@ -507,7 +514,7 @@ function createMonthlyChart() {
     monthlyChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+            labels: ['01월', '02월', '03월', '04월', '05월', '06월', '07월', '08월', '09월', '10월', '11월', '12월'],
             datasets: [{
                 label: '월별 총 비용 (원)',
                 data: [], // 데이터는 updateMonthlyAnalysis에서 채워짐
@@ -518,6 +525,25 @@ function createMonthlyChart() {
         },
         options: {
             responsive: true,
+            onClick: function(evt, activeElements) { // ✅ 클릭 이벤트 추가
+                if (activeElements.length > 0) {
+                    // 클릭된 막대의 인덱스 가져오기
+                    const index = activeElements[0].index;
+                    const label = this.data.labels[index];     // '1월', '2월' ...
+                    const value = this.data.datasets[0].data[index]; // 해당 막대 값
+
+
+                    //console.log('label --- ', label);
+                    //console.log('value --- ', value);
+                    const analysisYear = document.getElementById('analysisYear').value;
+                    const analysisTeam = document.getElementById('analysisTeam').value;
+
+                    let searchMonth = label.replace("월", "");
+
+                    // ✅ 원하는 함수 호출
+                    search(analysisYear, searchMonth, '', analysisTeam, '종결완료');
+                }
+            },
             scales: {
                 y: {
                     beginAtZero: true,
@@ -555,13 +581,14 @@ function updateMonthlyAnalysis() {
     const selectedMonth = document.getElementById('analysisMonth').value;
     const selectedTeam = document.getElementById('analysisTeam').value;
 
-    console.log('selectedYear - ', selectedYear);
-    console.log('selectedMonth - ', selectedMonth);
-    console.log('selectedTeam - ', selectedTeam);
-
     const monthlyCosts = new Array(12).fill(0); // 1월부터 12월까지
     let casesInSelectedPeriod = 0;
     let totalCostInSelectedPeriod = 0;
+
+    console.log('selectedYear - ', selectedYear);
+    console.log('selectedMonth - ', selectedMonth);
+    console.log('selectedTeam - ', selectedTeam);
+    console.log('monthlyCosts - ', monthlyCosts);
 
     jqprData.forEach(item => {
         const itemDate = new Date(item.creDate);
@@ -571,14 +598,14 @@ function updateMonthlyAnalysis() {
         const itemTeam2 = item.team02;
         const itemTeam3 = item.team03;
 
-        console.log('item --- ', item);
+        //console.log('item --- ', item);
         //console.log('itemTeam --- ', itemTeam);
 
         if (itemYear == selectedYear) {
-            monthlyCosts[itemMonth - 1] += Number(item.failCost);
+            //monthlyCosts[itemMonth - 1] += Number(item.failCost);
 
             if(selectedTeam === "") {
-
+                monthlyCosts[itemMonth - 1] += Number(item.failCost);
                 if (selectedMonth === "" || itemMonth == selectedMonth) {
                     casesInSelectedPeriod++;
                     totalCostInSelectedPeriod += Number(item.failCost);
@@ -587,6 +614,7 @@ function updateMonthlyAnalysis() {
 
                 if(selectedTeam == itemTeam || selectedTeam == itemTeam2 || selectedTeam == itemTeam3)
                 {
+                    monthlyCosts[itemMonth - 1] += Number(item.failCost);
                     if (selectedMonth === "" || itemMonth == selectedMonth) {
                         casesInSelectedPeriod++;
                         totalCostInSelectedPeriod += Number(item.failCost);
@@ -596,6 +624,7 @@ function updateMonthlyAnalysis() {
         }
     });
 
+    //console.log('monthyCosts: ', monthlyCosts);
     // 차트 데이터 업데이트
     monthlyChart.data.datasets[0].data = monthlyCosts;
     monthlyChart.update();
@@ -607,7 +636,7 @@ function updateMonthlyAnalysis() {
     } else {
         monthlyStatsElement.textContent = `${selectedYear}년 ${selectedTeam} ${selectedMonth}월: ${casesInSelectedPeriod}건, ₩${totalCostInSelectedPeriod.toLocaleString()}`;
     }
-    console.log(" --------- updateMonthlyAnalysis end ----------");
+    //console.log(" --------- updateMonthlyAnalysis end ----------");
 }
 
 // 분석 연도 옵션 동적으로 추가
