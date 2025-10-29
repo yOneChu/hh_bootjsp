@@ -51,8 +51,6 @@
         <!-- Sidebar Menu -->
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-
-
                 <li id="dashboard" class="nav-item menu-open">
                     <a href="#" class="nav-link">
                             <i class="nav-icon fas">📊</i>
@@ -63,6 +61,11 @@
                     </a>
 
                     <ul class="nav nav-treeview">
+                        <li>
+                            <a href="/jqpr/dashboard" class="nav-link">
+                                <p>JQPR 현황 및 검색</p>
+                            </a>
+                        </li>
                         <li>
                             <a href="/subae/bomDashboard" class="nav-link">
                                 <p>BOM 수배율 부품 현황(월별)</p>
@@ -111,16 +114,13 @@
                                 <!-- <p>부품공용화 집계 <small> (출하예정일) </small></p> -->
                             </a>
                         </li>
-
+                        <%--
                         <li>
-                            <%--<a href="https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionDatePrice.jsp" class="nav-link">--%>
                             <a href="/public/searchPriceReductionDatePrice" class="nav-link">
-                                <%--<i class="far fa-circle nav-icon"></i>--%>
                                 <p>부품공용화 집계 (금액) </p>
-                                <!-- <p>부품공용화 집계 <small> (출하예정일) </small></p> -->
                             </a>
                         </li>
-
+--%>
 
 
                     </ul>

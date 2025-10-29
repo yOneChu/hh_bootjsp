@@ -163,6 +163,91 @@ public class MLBCommonUtil {
     }
 
     /**
+     * @apiNote 년도, blockNo로 부품 조회 (내작, 활성)
+     * @param year
+     * @param blockNo
+     * @return
+     */
+    public static ArrayList<PartInfoDTO> findPartWithYearBlockNo(String year, String blockNo) {
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<PartInfoDTO> result = new ArrayList<>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                  with ouid as
+                     ( select A.vf$ouid from NORMALPART$vf A, NORMALPART$id B
+                       where A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip
+                       --and ( md$number in ( '18900360G0700') )
+                        AND SUBSTR(A.MD$CDATE, 0, 8) IN( ? )
+                     )
+                SELECT
+                A.VF$OUID AS OID,
+                A.MD$NUMBER AS PARTNO,
+                A.MD$DESC AS PARTNAME,
+                A.G_L_CODE AS GL_CODE,
+                --A.MD$CDATE,
+                --DATEFORMAT(A.MD$CDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS CREATE_DATE,
+                CODN(A.PART_STATUS) AS PART_STATUS,
+                COD(A.UOM) AS UOM,
+                A.VF$VERSION AS VERSION,
+                CODN(A.NATION) AS NATION,
+                COD(A.DESIGN_USE) AS DESIGN_USE,
+                COD(A.COST_USE) AS COST_USE,
+                CODN(A.ORIGIN_DIV) AS ORIGIN_DIV,
+                DECODE(COD(CHILD.PART_DIVISION), 'P', '일반', 'T', '타사보수', 'G', 'GHOST', '일반') AS DIVISION2,
+                A.BLOCKNO_NUMBER,
+                A.SPEC,
+                A.PART_SIZE AS PARTSIZE
+                --A.*
+                FROM NORMALPART$VF A
+                
+                WHERE A.VF$OUID IN (SELECT * FROM OUID)
+                AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
+                AND A.PART_STATUS = '2466425004'
+                AND A.ORIGIN_DIV = '2248978165' -- 내작
+                AND A.BLOCKNO_NUMBER = ?
+                """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, year);
+            pstmt.setString(2, blockNo);
+            //pstmt.setString(1, productOID);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String OID = rs.getString("OID");
+                String PARTNAME = rs.getString("PARTNAME");
+                String PARTNO = rs.getString("PARTNO");
+                String GL_CODE = rs.getString("GL_CODE");
+                String BLOCKNO = rs.getString("BLOCKNO");
+                String VERSION = rs.getString("VERSION");
+                String DIVISION2 =  rs.getString("DIVISION2");
+
+                PartInfoDTO dto = new PartInfoDTO();
+                dto.setOid(OID);
+                dto.setPartNo(PARTNO);
+                dto.setPartName(PARTNAME);
+                dto.setGlCode(GL_CODE);
+                dto.setBlockNo(BLOCKNO);
+                dto.setVersion(VERSION);
+
+                result.add(dto);
+            } //end while
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
+    }
+
+    /**
      *
      * @param year
      * @return
@@ -207,7 +292,6 @@ public class MLBCommonUtil {
                 AND A.PART_STATUS = '2466425004'
                 AND A.ORIGIN_DIV = '2248978165' --내작, (외주:2248978166)
                 AND A.BLOCKNO_NUMBER = 'D375A'
-                --AND SUBSTR(A.MD$CDATE, 0, 4) IN( ? )
                 """;
 
             pstmt = con.prepareStatement(sql.toString());

@@ -26,7 +26,6 @@
     StopWatch sw = new StopWatch();
     sw.start();
 
-
     WebApplicationContext context = WebApplicationContextUtils.getRequiredWebApplicationContext(application);
     PartDashService service = (PartDashService) context.getBean("PartDashService");
 
@@ -56,9 +55,6 @@
     String activeCnt = ""; //PartDashboardUtil.findPLMPartSum("ACTIVE");
     String inactiveCnt = ""; //PartDashboardUtil.findPLMPartSum("INACTIVE");
     String olsCnt = ""; //PartDashboardUtil.findPLMPartSum("OSL");
-
-
-
 
 
     allCnt = dto.getPartALL();
