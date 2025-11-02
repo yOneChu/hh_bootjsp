@@ -1,5 +1,7 @@
 package com.kyhslam.controller;
 
+import com.kyhslam.dto.PartInfoDTO;
+import com.kyhslam.util.MLBCommonUtil;
 import com.kyhslam.util.PIDCommonUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +33,15 @@ public class MLBController {
         return "";
     }
 
+
+    @Description("품번으로 속성정보 조회")
+    @PostMapping("/findPartOneWithPartNo")
+    @ResponseBody
+    public PartInfoDTO findPartOneWithPartNo(String partNo) {
+        PartInfoDTO result = MLBCommonUtil.findPartOneWithPartNo(partNo);
+
+        return result;
+    }
 
     //thymeleaf test
     @GetMapping("/thyTest")
