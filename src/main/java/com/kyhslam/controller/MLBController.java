@@ -33,7 +33,7 @@ public class MLBController {
 
     @Description("품번으로 속성정보 조회")
     @CrossOrigin
-    @PostMapping("/findPartOneWithPartNo")
+    @GetMapping("/findPartOneWithPartNo")
     @ResponseBody
     public PartInfoDTO findPartOneWithPartNo(String partNo) {
         PartInfoDTO result = MLBCommonUtil.findPartOneWithPartNo(partNo);
