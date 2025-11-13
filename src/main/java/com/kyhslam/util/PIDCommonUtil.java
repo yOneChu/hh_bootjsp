@@ -330,7 +330,7 @@ public class PIDCommonUtil {
             sql.append(" NVL(D.KEY20, '-') AS KEY20 , NVL(D.VAL20, '-') AS VAL20       ");
 
             //System.out.println("FIELD = " + FIELD);
-            System.out.println("join = " + join);
+            //System.out.println("join = " + join);
 
             if(join != null && (join.contains("AND") || join.contains("OR")) ) {
 
@@ -398,7 +398,7 @@ public class PIDCommonUtil {
                     //String connectWhere = "OR";
 
 
-                    System.out.println("connectWhere = " + connectWhere);
+                    //System.out.println("connectWhere = " + connectWhere);
 
                     if(PID04 != null && !"".equals(PID04.trim())) {
 
@@ -447,7 +447,7 @@ public class PIDCommonUtil {
 
             con = PLMDBConnection.getConnection();
 
-            System.out.println("PID_Search sql.toString() = " + sql.toString());
+            //System.out.println("PID_Search sql.toString() = " + sql.toString());
             pstmt = con.prepareStatement(sql.toString());
 
             //pstmt2.setString(1, projrctNo);

@@ -126,10 +126,8 @@
             String VAL19 = rs.getString("VAL19") == null ? "" : rs.getString("VAL19");
             String VAL20 = rs.getString("VAL20") == null ? "" : rs.getString("VAL20");
 
-
             //boolean flag1 = false;
             //boolean flag2 = false;
-
 
             ArrayList<String> rList = new ArrayList<String>();
 
@@ -394,7 +392,6 @@
                                                     //String glCode = ""; //oMap.get("GLCODE");
                                                     //glCode = oMap.get("GLCODE");
                                                     //PartInfoDTO dto = partList.get(0);
-
 
 
                                     %>

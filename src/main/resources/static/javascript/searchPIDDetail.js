@@ -200,7 +200,6 @@ function searchPID()
         return;
     }
 
-
     $('#infoTable').DataTable().destroy();
     $("#contentTable").empty();
 

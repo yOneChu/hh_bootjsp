@@ -29,7 +29,8 @@ public class findAssyPart_02 {
         sw.start();
 
         //String filePath = "C:\\Users\\Administrator\\Downloads\\강판류 도어 전수 조사(비방화).xlsx"; // 읽을 파일 경로
-        String filePath = "D:\\Downloads\\H-DOOR MLB 추출 요청의 건.xlsx";
+        //String filePath = "D:\\Downloads\\H-DOOR MLB 추출 요청의 건.xlsx";
+        String filePath = "D:\\Downloads\\ISOLATION ASSY 추가 현장 LIST 1.xlsx";
 
         ArrayList<String> partNoList = new ArrayList<>();
 
@@ -182,7 +183,7 @@ public class findAssyPart_02 {
         }
 
         // 파일 저장
-        try (FileOutputStream fileOut = new FileOutputStream("C:\\excel\\AssyFile_20250930.xlsx")) {
+        try (FileOutputStream fileOut = new FileOutputStream("C:\\excel\\AssyFile_20251105.xlsx")) {
             workbook.write(fileOut);
             System.out.println("Excel 파일 생성 완료!");
         } catch (IOException e) {

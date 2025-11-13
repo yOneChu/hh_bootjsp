@@ -350,6 +350,7 @@ public class SubaeController {
     public HashMap<String, String> pidExecute(String pid, String hogi, String testVersion, String floor, String isfloor) {
 
         //testVersion = on
+        //isfloor = Y
         //https://plmpro.hdel.co.kr/plmetc/vault/pidExecute?hogi=208223L01&PID=EL_PB186A01&testVersion=on&isfloor&floor=
 
         //http://localhost:8070/subae/pidExecute?hogi=208223L01&pid=EL_PB186A01&testVersion=on&isfloor&floor=

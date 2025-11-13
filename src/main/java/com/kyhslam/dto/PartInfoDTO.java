@@ -18,7 +18,9 @@ public class PartInfoDTO {
     private String parentSpec;
     private String parentSize;
     private String parentQty;
+    private String parentCmt;
     private String parentVersion;
+
 
     private String oid;
     private String partNo;
