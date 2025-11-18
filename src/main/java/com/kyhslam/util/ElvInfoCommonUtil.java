@@ -318,4 +318,93 @@ public class ElvInfoCommonUtil {
         return resultList;
     }
 
+
+    /**
+     * @apiNote 영업사양 값 추출
+     * @param
+     * @return
+     */
+    public static void findElvInfoValue(ArrayList<String> hogiList, HashMap<String, String> result) {
+
+        //HashMap<String, String> result = new HashMap<>();
+
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        try {
+
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                    SELECT V.MD$DESC, V.MD$NUMBER AS HOGI,
+                           CONCAT('elv_info$vf@', LOWER(DECTOHEX(V.vf$ouid))) OUID,   -- 영업사양 객체
+                           CODN(V.EL_ABRAND), -- 브랜드
+                           v.EL_DCCAQ AS EL_DCCAQ, -- compen bon
+                           CODN(V.EL_ATYP), -- 기종
+                           CODN (V.EL_ASPD), -- 속도
+                           CODN (V.EL_ACAPA), --용량
+                           V.EL_ZTEXT_B, --가내 특기사항
+                           V.EL_ZTEXT_C, --승장 특기사항
+                           V.EL_ZTEXT_D, --옵션 특기사항
+                           V.EL_ZTEXT_E, --L/O 특기사항
+                           V.EL_ZERR_M3_1, --기계 에러 메시지
+                           V.EL_ZERR_E3_1, --전기 에러 메시지
+                           V.EL_ZERR_M5_1, --기계 미품목,
+                           V.EL_ZERR_E5_1, --전기 미품목
+                           V.EL_ZERR_C_1, --공통 에러 메시지
+                           V.EL_ZERR_A_1, --자동 입력 오류
+                           V.MD$USER,
+                           V.MD$CDATE
+                           --CODN(V.EL_ETM)
+                           --V.*
+                    FROM ELV_INFO$VF V, ELV_INFO$ID A
+                    WHERE
+                        V.vf$identity = A.id$ouid and V.vf$ouid = A.id$wip
+                        --AND SUBSTR(V.MD$CDATE, 0, 4) = '2025'
+                    --AND CODN(V.EL_ATYP) LIKE '%WBLX%'
+                    --AND V.MD$NUMBER = '204861L04';
+                    AND V.MD$NUMBER IN (
+                    """;
+
+            String whereXp = "";
+            for (int i = 0; i < hogiList.size(); i++) {
+                String hogi = hogiList.get(i);
+                whereXp += "'" + hogi + "',";
+            }
+
+            // Remove trailing comma if present
+            if (whereXp.endsWith(",")) {
+                whereXp = whereXp.substring(0, whereXp.length() - 1);
+            }
+            
+            System.out.println("whereXp = " + whereXp);
+
+            sql += whereXp;
+
+            sql += ")";
+
+
+
+            pstmt = con.prepareStatement(sql.toString());
+            //pstmt.setString(1, hogi);
+
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+
+                String HOGI =  rs.getString("HOGI");
+                String EL_DCCAQ = rs.getString("EL_DCCAQ") == null ? "" : rs.getString("EL_DCCAQ");
+                result.put(HOGI, EL_DCCAQ);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        //return result;
+    }
+
 }

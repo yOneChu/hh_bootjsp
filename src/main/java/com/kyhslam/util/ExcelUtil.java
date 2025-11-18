@@ -12,7 +12,7 @@ public class ExcelUtil {
      * @param cell
      * @return
      */
-    private static String getCellValue(Cell cell) {
+    public static String getCellValue(Cell cell) {
         if (cell == null) return "";
         switch (cell.getCellType()) {
             case STRING:
