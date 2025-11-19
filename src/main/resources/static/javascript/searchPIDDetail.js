@@ -90,30 +90,31 @@ $(document).ready(function() {
 
 
 function searchExcel() {
-    let con01 = $("#con-01").val(); // SPEC
-    let con02 = $("#con-02").val(); // LIKE
-    let pidVal = $("#pidVal").val();
+    let spec01 = $("#spec-01").val(); // SPEC, CON
+    let link01 = $("#link-01").val(); // LIKE
+    let pidVal01 = $("#pidVal").val(); // PID-01
 
 
-    let SPEC03 = $("#con-03").val(); // SPEC
-    let CON04 = $("#con-04").val(); // LIKE
-    let pidVal02 = $("#pidVal02").val(); // SPEC
+    let spec02 = $("#spec-02").val(); // SPEC
+    let like02 = $("#link-02").val(); // LIKE
+    let pidVal02 = $("#pidVal02").val(); // PID-02
 
-    //PID-GROUP
-    let CON05 = $("#con-05").val();
+
+    let CON05 = $("#con-05").val(); //PID-GROUP
     let pidVal03 = $("#pidVal03").val();
     let pidVal04 = $("#pidVal04").val();
     let pidVal05 = $("#pidVal05").val();
+
     let joinOp = $("#joinOp").val();
 
-    if(pidVal == null || "" == pidVal) {
-        console.log(pidVal);
+    if(pidVal01 == null || "" === pidVal01) {
+        //console.log(pidVal01);
         alert("PID값을 입력하세요.");
         return;
     }
 
 
-    if(con01 == 'REMARKS' && pidVal02 != '') {
+    if(spec01 === 'REMARKS' && pidVal02 != '') {
         alert("조건1을 REMARKS로 검색 시, 조건2의 PID는 검색할 수 없습니다.");
         return;
     }
@@ -123,17 +124,17 @@ function searchExcel() {
         url: '/excel/searchPIDExcel',   // 요청 보낼 URL
         type: 'POST',              // 메서드 (GET/POST 등)
         data : {
-            pid : pidVal,
-            FIELD : con01,
-            GUBUN : con02,
-            SPEC02 : SPEC03,
-            GUBUN02 : CON04,
+            pid : pidVal01,
+            FIELD : spec01,
+            GUBUN : link01,
+            SPEC02 : spec02,
+            GUBUN02 : like02,
             PID02 : pidVal02,
-            CON05 : CON05,
+            CON05 : CON05, //PID-GROUP
             PID03 : pidVal03,
             PID04 : pidVal04,
             PID05 : pidVal05,
-            joinOp: joinOp
+            join: joinOp
         },
         xhrFields: {
             responseType: 'blob'    // 파일 다운로드용 응답 처리
@@ -189,7 +190,7 @@ function searchPID()
 
 
     if(pidVal01 == null || "" == pidVal01) {
-        console.log(pidVal01);
+        //console.log(pidVal01);
         alert("PID값을 입력하세요.");
         return;
     }
