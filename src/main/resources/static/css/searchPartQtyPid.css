@@ -1,0 +1,173 @@
+:root {
+    --hyundai-blue: #003876;
+    --hyundai-light-blue: #0066cc;
+    --hyundai-gray: #f8f9fa;
+    --hyundai-dark-gray: #6c757d;
+    --hyundai-red: #dc3545;
+    --hyundai-green: #28a745;
+}
+
+body {
+    background-color: var(--hyundai-gray);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.header {
+    background: linear-gradient(135deg, var(--hyundai-blue) 0%, var(--hyundai-light-blue) 100%);
+    color: white;
+    padding: 1.5rem 0;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.header h1 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 2rem;
+}
+
+.stats-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-left: 4px solid var(--hyundai-light-blue);
+    transition: transform 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.stats-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--hyundai-blue);
+    margin: 0;
+}
+
+.stats-label {
+    color: var(--hyundai-dark-gray);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.data-table {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.table-header {
+    background: var(--hyundai-blue);
+    color: white;
+    padding: 1rem;
+    border-radius: 12px 12px 0 0;
+}
+
+.table th {
+    background: var(--hyundai-light-blue);
+    color: white;
+    border: none;
+    font-weight: 600;
+    padding: 1rem 0.75rem;
+}
+
+.table td {
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+    border-color: #e9ecef;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9ff;
+}
+
+.btn-hyundai {
+    background: var(--hyundai-blue);
+    border-color: var(--hyundai-blue);
+    color: white;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+}
+
+.btn-hyundai:hover {
+    background: var(--hyundai-light-blue);
+    border-color: var(--hyundai-light-blue);
+    color: white;
+}
+
+.cost-high {
+    color: var(--hyundai-red);
+    font-weight: 600;
+}
+
+.cost-medium {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+.cost-low {
+    color: var(--hyundai-green);
+    font-weight: 600;
+}
+
+.search-box {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.modal-header {
+    background: var(--hyundai-blue);
+    color: white;
+    border-radius: 12px 12px 0 0;
+}
+
+.form-control:focus {
+    border-color: var(--hyundai-light-blue);
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.25);
+}
+
+.pagination .page-link {
+    color: var(--hyundai-blue);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--hyundai-blue);
+    border-color: var(--hyundai-blue);
+}
+
+
+.truncate-text {
+    display: block;
+    max-width: 300px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+
+/* td 자체에 적용하거나, td 안에 div/span을 넣고 적용 */
+td.truncated {
+    /* max-width는 td 자체에 적용하기 어려울 수 있으므로, 내부 요소에 적용하는 것이 좋음 */
+}
+
+/* 커스텀 툴팁을 위한 CSS */
+.custom-tooltip {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.4;
+    max-width: 300px;
+    white-space: pre-wrap; /* 줄바꿈(\n) 유지 */
+    z-index: 1000;
+    display: none;
+}

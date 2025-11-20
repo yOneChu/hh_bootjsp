@@ -19,6 +19,7 @@ public class MLBController {
     @GetMapping("/searchPartQtyPid")
     public String searchPartQtyPid() {
         return "mlb/searchPartQtyPid";
+        //return "thymeleaf/searchPartQtyPid";
     }
 
 

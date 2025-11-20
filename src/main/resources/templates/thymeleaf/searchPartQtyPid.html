@@ -1,29 +1,3 @@
-<%@ page import="com.kyhslam.util.UtilCommonAPI" %>
-<%@ page import="org.springframework.util.StopWatch" %>
-<%@ page import="java.util.HashMap" %>
-<%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
-<%  request.setCharacterEncoding("utf-8"); %>
-
-
-<%
-
-
-
-    StopWatch sw = new StopWatch();
-    sw.start();
-
-    sw.stop();
-
-    long millis = sw.getTotalTimeMillis();
-
-    double seconds = millis / 1000.0;
-    double minutes = seconds / 60.0;
-
-    System.out.println("⏱ 수행 시간:");
-    System.out.printf("   - %.3f 초%n", seconds);
-    System.out.printf("   - %.3f 분%n", minutes);
-
-%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,9 +25,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
     <%--<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">--%>
 
-    <link rel="stylesheet" href="/resources/css/searchPartQtyPid.css">
 
-    <%--<style>
+    <style>
         :root {
             --hyundai-blue: #003876;
             --hyundai-light-blue: #0066cc;
@@ -227,7 +200,7 @@
             z-index: 1000;
             display: none;
         }
-    </style>--%>
+    </style>
 
 </head>
 
@@ -255,10 +228,10 @@
     <!-- /.navbar -->
 
 
-    <jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true">
+   <!-- <jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true">
         <jsp:param name="menuType" value="dashboard" />
     </jsp:include>
-
+-->
 
     <!-- Content Wrapper. Contains page content -->
     <div class="content-wrapper">
@@ -402,75 +375,75 @@
 
             </div>
 
-            <div class="search-box">
-                <div class="row">
-                    <div class="col-md-3">
-                        <label class="form-label">현장명 검색</label>
-                        <input type="text" class="form-control" id="searchSite" placeholder="현장명을 입력하세요">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">부서명</label>
-                        <select class="form-control" id="searchTeam">
-                            <option value="">전체</option>
-                            <option value="수배로직설계팀">수배로직설계팀</option>
-                            <option value="중저속설계팀">중저속설계팀</option>
-                            <option value="고속설계팀">고속설계팀</option>
-                            <option value="양산개발PM팀">양산개발PM팀</option>
-                            <option value="중저속SI팀">중저속SI팀</option>
-                            <option value="고속SI팀">고속SI팀</option>
+                <div class="search-box">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">현장명 검색</label>
+                            <input type="text" class="form-control" id="searchSite" placeholder="현장명을 입력하세요">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">부서명</label>
+                            <select class="form-control" id="searchTeam">
+                                <option value="">전체</option>
+                                <option value="수배로직설계팀">수배로직설계팀</option>
+                                <option value="중저속설계팀">중저속설계팀</option>
+                                <option value="고속설계팀">고속설계팀</option>
+                                <option value="양산개발PM팀">양산개발PM팀</option>
+                                <option value="중저속SI팀">중저속SI팀</option>
+                                <option value="고속SI팀">고속SI팀</option>
 
-                            <option value="권상시스템개발팀">권상시스템개발팀</option>
-                            <option value="글로벌소싱팀">글로벌소싱팀</option>
-                            <option value="글로벌출하팀">글로벌출하팀</option>
-                            <option value="정보기술팀">정보기술팀</option>
-                        </select>
-                    </div>
-                    <%--<div class="col-md-2">
+                                <option value="권상시스템개발팀">권상시스템개발팀</option>
+                                <option value="글로벌소싱팀">글로벌소싱팀</option>
+                                <option value="글로벌출하팀">글로벌출하팀</option>
+                                <option value="정보기술팀">정보기술팀</option>
+                            </select>
+                        </div>
+                        <%--<div class="col-md-2">
                         <label class="form-label">발생자</label>
                         <input type="text" class="form-control" id="searchPerson" placeholder="발생자명">
                     </div>--%>
-                    <div class="col-md-2">
-                        <label class="form-label">상태</label>
-                        <select class="form-control" id="searchState">
-                            <option value="">전체</option>
-                            <option value="종결완료">종결완료</option>
-                            <option value="대책완료">대책완료</option>
-                            <option value="접수완료">접수완료</option>
-                            <option value="변상합의 발행">변상합의 발행</option>
-                        </select>
-                    </div>
+                        <div class="col-md-2">
+                            <label class="form-label">상태</label>
+                            <select class="form-control" id="searchState">
+                                <option value="">전체</option>
+                                <option value="종결완료">종결완료</option>
+                                <option value="대책완료">대책완료</option>
+                                <option value="접수완료">접수완료</option>
+                                <option value="변상합의 발행">변상합의 발행</option>
+                            </select>
+                        </div>
 
-                    <%--<div class="col-md-2">
-                            <label class="form-label">발생일자</label>
-                            <input type="date" class="form-control" id="dateFilter">
-                        </div>--%>
-                    <div class="col-md-2">
-                        <label class="form-label">검색 연도</label>
-                        <select class="form-control" id="searchYear">
-                            <option value="2025">2025</option>
-                            <option value="2024">2024</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">검색 월</label>
-                        <select class="form-control" id="searchMonth">
-                            <option value="">전체 월</option>
-                            <option value="01">1월</option>
-                            <option value="02">2월</option>
-                            <option value="03">3월</option>
-                            <option value="04">4월</option>
-                            <option value="05">5월</option>
-                            <option value="06">6월</option>
-                            <option value="07">7월</option>
-                            <option value="08">8월</option>
-                            <option value="09">9월</option>
-                            <option value="10">10월</option>
-                            <option value="11">11월</option>
-                            <option value="12">12월</option>
-                        </select>
-                    </div>
+                        <%--<div class="col-md-2">
+                        <label class="form-label">발생일자</label>
+                        <input type="date" class="form-control" id="dateFilter">
+                    </div>--%>
+                        <div class="col-md-2">
+                            <label class="form-label">검색 연도</label>
+                            <select class="form-control" id="searchYear">
+                                <option value="2025">2025</option>
+                                <option value="2024">2024</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">검색 월</label>
+                            <select class="form-control" id="searchMonth">
+                                <option value="">전체 월</option>
+                                <option value="01">1월</option>
+                                <option value="02">2월</option>
+                                <option value="03">3월</option>
+                                <option value="04">4월</option>
+                                <option value="05">5월</option>
+                                <option value="06">6월</option>
+                                <option value="07">7월</option>
+                                <option value="08">8월</option>
+                                <option value="09">9월</option>
+                                <option value="10">10월</option>
+                                <option value="11">11월</option>
+                                <option value="12">12월</option>
+                            </select>
+                        </div>
 
-                    <%--<div class="col-md-2">
+                        <%--<div class="col-md-2">
                         <label class="form-label">기간 설정</label>
                         <select class="form-control" id="periodFilter" onchange="setDateFilterByPeriod()">
                             <option value="">전체 기간</option>
@@ -479,97 +452,97 @@
                             <option value="last3Months">최근 3개월</option>
                         </select>
                     </div>--%>
-                    <div class="col-md-1">
-                        <label class="form-label">&nbsp;</label>
-                        <button class="btn btn-hyundai w-100" onclick="filterData()">
-                            <i class="fas fa-search"></i>
-                        </button>
+                        <div class="col-md-1">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-hyundai w-100" onclick="filterData()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="data-table">
+                    <div class="table-header">
+                        <h5 class="mb-0"><i class="fas fa-table me-2"></i>JQPR 데이터 목록</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="infoTable" style="zoom:95%;">
+                            <thead>
+                            <tr>
+                                <th>JQPR번호</th>
+                                <th>상태</th>
+                                <th>프로젝트명</th>
+                                <th>작성자</th>
+                                <th>기계</th>
+                                <th>전기</th>
+                                <th>호기</th>
+                                <th>작성일</th>
+
+                                <th>문제점 제목</th>
+                                <th>고장원인</th>
+                                <th>상세</th>
+
+                                <th>부서명1</th>
+                                <th>부서명2</th>
+                                <th>부서명3</th>
+
+                                <th>실패비용</th>
+
+                                <th>ITEM분류명</th>
+                            </tr>
+                            </thead>
+                            <tbody id="contentTable">
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center" id="pagination">
+                    </ul>
+                </nav>
+            </div>
+
+        </div>
+        <!-- /.content-wrapper -->
+
+
+        <footer class="main-footer">
+            <div class="float-right d-none d-sm-block">
+                <b>Version</b> 1.0.0
+            </div>
+            <strong>Copyright &copy; 2025 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
+        </footer>
+
+        <!-- Control Sidebar -->
+        <aside class="control-sidebar control-sidebar-dark">
+            <!-- Control sidebar content goes here -->
+        </aside>
+        <!-- /.control-sidebar -->
+
+    </div>
+
+
+        <div class="modal fade" id="detailModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-info-circle me-2"></i>JQPR 상세 정보</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="detailContent">
                     </div>
                 </div>
             </div>
-
-
-            <div class="data-table">
-                <div class="table-header">
-                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>JQPR 데이터 목록</h5>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0" id="infoTable" style="zoom:95%;">
-                        <thead>
-                        <tr>
-                            <th>JQPR번호</th>
-                            <th>상태</th>
-                            <th>프로젝트명</th>
-                            <th>작성자</th>
-                            <th>기계</th>
-                            <th>전기</th>
-                            <th>호기</th>
-                            <th>작성일</th>
-
-                            <th>문제점 제목</th>
-                            <th>고장원인</th>
-                            <th>상세</th>
-
-                            <th>부서명1</th>
-                            <th>부서명2</th>
-                            <th>부서명3</th>
-
-                            <th>실패비용</th>
-
-                            <th>ITEM분류명</th>
-                        </tr>
-                        </thead>
-                        <tbody id="contentTable">
-
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <nav class="mt-4">
-                <ul class="pagination justify-content-center" id="pagination">
-                </ul>
-            </nav>
         </div>
 
-    </div>
-    <!-- /.content-wrapper -->
 
+        <div id="custom-tooltip"></div>
 
-    <footer class="main-footer">
-        <div class="float-right d-none d-sm-block">
-            <b>Version</b> 1.0.0
-        </div>
-        <strong>Copyright &copy; 2025 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
-    </footer>
-
-    <!-- Control Sidebar -->
-    <aside class="control-sidebar control-sidebar-dark">
-        <!-- Control sidebar content goes here -->
-    </aside>
-    <!-- /.control-sidebar -->
-
-</div>
-
-
-<div class="modal fade" id="detailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-info-circle me-2"></i>JQPR 상세 정보</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="detailContent">
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<div id="custom-tooltip"></div>
-
-<!-- 툴팁 엘리먼트 (공용) -->
-<div id="tooltip" class="custom-tooltip"></div>
+        <!-- 툴팁 엘리먼트 (공용) -->
+        <div id="tooltip" class="custom-tooltip"></div>
 
 
 </body>

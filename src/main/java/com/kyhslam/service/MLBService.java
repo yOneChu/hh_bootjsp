@@ -15,6 +15,9 @@ public class MLBService {
         ArrayList<PartInfoDTO> list = MLBCommonUtil.findPartWithYearBlockNo(year, blockNo);
         for (PartInfoDTO partInfoDTO : list) {
 
+            // 2.하위 조회해서 수량 PID 찾기
+            
+            
         }
     }
 
