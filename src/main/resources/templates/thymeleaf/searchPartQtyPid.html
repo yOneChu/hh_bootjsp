@@ -23,8 +23,8 @@
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
-    <%--<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">--%>
 
+    <link rel="stylesheet" href="/resources/css/searchPartQtyPid.css">
 
     <style>
         :root {
@@ -228,12 +228,10 @@
     <!-- /.navbar -->
 
 
-   <!-- <jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true">
-        <jsp:param name="menuType" value="dashboard" />
-    </jsp:include>
--->
 
-    <!-- Content Wrapper. Contains page content -->
+    <!-- ★ JSP include처럼 sidebar 불러오기 -->
+    <div th:replace="thymeleaf/fragments/sidebar :: sidebarFragment"></div>
+
     <div class="content-wrapper">
 
         <section class="content-header">
@@ -245,8 +243,7 @@
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
-                            <%--<li class="breadcrumb-item"><a href="#">Home</a></li>
-                            <li class="breadcrumb-item active">DataTables</li>--%>
+
 
                             <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
                                 <input type="checkbox" class="custom-control-input" id="darkModeToggle">
@@ -259,7 +256,6 @@
 
             <div class="col-md-12">
                 <div class="callout callout-danger">
-                    <%--<i class="fas fa-bullhorn"></i> 🔊 도움말 <br>--%>
                     📢 도움말 <br>
                     <font color="red">- 집계 기준:  중국법인 자재 제외, 최신 릴리즈, 엘리베이터 자재(BlockNo 1,2,3) </font><br>
 
@@ -271,7 +267,7 @@
         </section>
 
 
-        <%--<div class="container mt-4">--%>
+
         <div class="container-fluid">
             <div class="row mb-4">
                 <div class="col-md-3">
@@ -365,7 +361,7 @@
                         </div>
                     </div>
                 </div>
-                <%--<div class="col-md-8">--%>
+
                 <div class="col-md-6">
                     <div class="stats-card">
                         <h5 class="mb-3"><i class="fas fa-chart-line me-2"></i>월별 비용 추이</h5>
@@ -398,10 +394,7 @@
                                 <option value="정보기술팀">정보기술팀</option>
                             </select>
                         </div>
-                        <%--<div class="col-md-2">
-                        <label class="form-label">발생자</label>
-                        <input type="text" class="form-control" id="searchPerson" placeholder="발생자명">
-                    </div>--%>
+
                         <div class="col-md-2">
                             <label class="form-label">상태</label>
                             <select class="form-control" id="searchState">
@@ -443,15 +436,7 @@
                             </select>
                         </div>
 
-                        <%--<div class="col-md-2">
-                        <label class="form-label">기간 설정</label>
-                        <select class="form-control" id="periodFilter" onchange="setDateFilterByPeriod()">
-                            <option value="">전체 기간</option>
-                            <option value="thisMonth">이번 달</option>
-                            <option value="lastMonth">지난 달</option>
-                            <option value="last3Months">최근 3개월</option>
-                        </select>
-                    </div>--%>
+
                         <div class="col-md-1">
                             <label class="form-label">&nbsp;</label>
                             <button class="btn btn-hyundai w-100" onclick="filterData()">
@@ -559,8 +544,6 @@
 <script src="/resources/dist/js/adminlte.min.js"></script>
 
 
-<!-- Bootstrap 4 -->
-<%--<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>--%>
 <!-- DataTables  & Plugins -->
 <script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
 <script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
@@ -579,12 +562,5 @@
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 
-<script>
-    $(document).ready(function() {
-
-
-
-    }) // end document ready
-</script>
 
 </html>

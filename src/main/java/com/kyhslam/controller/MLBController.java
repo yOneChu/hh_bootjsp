@@ -18,8 +18,8 @@ public class MLBController {
     @Description("수량 PID 조회 화면")
     @GetMapping("/searchPartQtyPid")
     public String searchPartQtyPid() {
-        return "mlb/searchPartQtyPid";
-        //return "thymeleaf/searchPartQtyPid";
+        //return "mlb/searchPartQtyPid";
+        return "thymeleaf/searchPartQtyPid";
     }
 
 
