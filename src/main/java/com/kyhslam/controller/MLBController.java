@@ -1,6 +1,7 @@
 package com.kyhslam.controller;
 
 import com.kyhslam.dto.PartInfoDTO;
+import com.kyhslam.service.MLBService;
 import com.kyhslam.util.MLBCommonUtil;
 import com.kyhslam.util.PIDCommonUtil;
 import lombok.RequiredArgsConstructor;
@@ -9,11 +10,15 @@ import org.springframework.context.annotation.Description;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+
 @Controller
 @RequiredArgsConstructor
 @Slf4j
 @RequestMapping("/mlb")
 public class MLBController {
+
+    private final MLBService mlbService;
 
     @Description("수량 PID 조회 화면")
     @GetMapping("/searchPartQtyPid")
@@ -26,9 +31,9 @@ public class MLBController {
     @Description("수량 PID 조회 로직")
     @PostMapping("/searchPartQtyPid")
     @ResponseBody
-    public String searchPartQtyPid(String year, String blockNo, String qtyPid, String cmtPid) {
-
-        return "";
+    public ArrayList<PartInfoDTO> searchPartQtyPid(String year, String blockNo, String qtyPid) {
+        ArrayList<PartInfoDTO> resultList = mlbService.findPartWithYear_inner(year, blockNo, qtyPid);
+        return resultList;
     }
 
 

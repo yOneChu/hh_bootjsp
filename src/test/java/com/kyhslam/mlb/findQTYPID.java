@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Description;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StopWatch;
 
 import java.util.ArrayList;
 
@@ -18,9 +19,12 @@ public class findQTYPID {
     @Test
     void findQty() {
 
+        StopWatch sw = new StopWatch();
+        sw.start();
+
         ArrayList<PartInfoDTO> dataDTOList = new ArrayList<>();
 
-        String year = "2025";
+        String year = "202510";   //10월 1600개 가능
         String blockNo = "E321A";
         String qtyPID = "E321A_28";
         
@@ -30,23 +34,30 @@ public class findQTYPID {
         //E321A_28
 
         System.out.println("list.size() = " + list.size());
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 10; i++) {
             PartInfoDTO parentDto = list.get(i);
-            String parentOID = parentDto.getOid();
+            System.out.println(parentDto.getPartNo() + " - " + parentDto.getOid());
 
-            //System.out.println(parentDto.getPartNo() + " - " + parentDto.getOid());
-
-            MLBCommonUtil.findDownLevelQTY(parentDto, qtyPID, dataDTOList);
+            //MLBCommonUtil.findDownLevelQTY(parentDto, qtyPID, dataDTOList);
         }
 
 
         for (int i = 0; i < dataDTOList.size(); i++) {
             PartInfoDTO dto = dataDTOList.get(i);
-            String parentOID = dto.getOid();
             System.out.println(dto.getParentPartNo() + " > " + dto.getPartNo() + " > " + dto.getCmt() + " :; " + dto.getQty());
-
         }
 
+
+        sw.stop();
+
+        long millis = sw.getTotalTimeMillis();
+
+        double seconds = millis / 1000.0;
+        double minutes = seconds / 60.0;
+
+        System.out.println("⏱ 수행 시간:");
+        System.out.printf("   - %.3f 초%n", seconds);
+        System.out.printf("   - %.3f 분%n", minutes);
     }
 
 }
