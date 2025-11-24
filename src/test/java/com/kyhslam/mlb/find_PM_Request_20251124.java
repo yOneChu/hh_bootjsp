@@ -1,6 +1,5 @@
 package com.kyhslam.mlb;
 
-import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.util.PLMDBConnection;
 import com.kyhslam.util.PartCommonUtil;
@@ -8,7 +7,6 @@ import com.kyhslam.util.ProductCommonUtil;
 import com.kyhslam.util.SubaeCommonUtil;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.util.StopWatch;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -22,12 +20,17 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 
-public class find_PM_Request_v3 {
+public class find_PM_Request_20251124 {
+
+
+    /**
+     * 김선태 MAIN ROPE 분석 요청
+     *
+     * @param args
+     */
 
     public static void main(String[] args) {
-
-
-        //Path inputPath = Path.of("C:/excel/sample.xlsx");   // 원본 파일
+//Path inputPath = Path.of("C:/excel/sample.xlsx");   // 원본 파일
         //Path outputPath = Path.of("C:\\excel\\sample_out.xlsx"); // 저장 파일
         Path outputPath = Path.of("C:\\excel\\sample_11111111111.xlsx"); // 저장 파일
 
@@ -38,34 +41,12 @@ public class find_PM_Request_v3 {
         //key: 호기번호|자재번호
 
 
-        /*// 1.제품의 OID 추출
-        ArrayList<ProductDto> productOids = new ArrayList<>();
-        productOids = SubaeCommonUtil.findProductALLInfo("197558L09");
-
-        ArrayList<ProductDto> dataList = new ArrayList<>();
-
-        for (int i = 0; i < productOids.size(); i++) {
-            ProductDto dto = productOids.get(i);
-            String oid = dto.getProductOid();
-            String prodNo = dto.getProductNo();
-            String prodName = dto.getProductName();
-            String prodVersion = dto.getProductVersion();
-            String prodCreDate = dto.getProductCreDate();
-            String prodAppDate = dto.getProductAppdate();
-
-            System.out.println(oid + " > " + prodNo + " > " + prodVersion);
-            //findPartOfProduct_v2(oid, "", dataList);
-            ArrayList<ProductDto> bomList = ProductCommonUtil.findProductBOMWithOID(oid);
-        }*/
-
-
-        HashSet<String> dupCheck =  new HashSet<>();
 
         HashMap<String, String> dupExportMap = new HashMap<>();
 
 
         try (FileInputStream fis = new FileInputStream(filePath);
-            Workbook workbook = new XSSFWorkbook(fis)) {
+             Workbook workbook = new XSSFWorkbook(fis)) {
 
 
             Sheet sheet = workbook.getSheetAt(0); // 첫 번째 시트 읽기
@@ -102,9 +83,9 @@ public class find_PM_Request_v3 {
 
 
                 //출하예정일
-                //productNo = productNo += ";";
+                productNo = productNo += ";";
 
-                /*if(!dupExportMap.containsKey(productNo)){
+                if(!dupExportMap.containsKey(productNo)){
                     ArrayList<HashMap<String, String>> exportList = PartCommonUtil.getExportDate(productNo + ";");
                     if(exportList != null && exportList.size()>0){
                         HashMap<String, String> exportMap = exportList.get(0);
@@ -114,10 +95,7 @@ public class find_PM_Request_v3 {
                     }
                 } else {
                     exportDate = dupExportMap.get(productNo);
-                }*/
-
-
-
+                }
 
 
 
@@ -150,12 +128,12 @@ public class find_PM_Request_v3 {
                     String prodAppDate = dto.getProductAppdate();
 
 
-                    /*if(!"".equals(firstVersion) && !"".equals(getProdAppDate) && !"".equals(exportDate) && !"".equals(modDate)){
+                    if(!"".equals(firstVersion) && !"".equals(getProdAppDate) && !"".equals(exportDate) && !"".equals(modDate)){
                         continue;
-                    }*/
+                    }
 
                     if(!"".equals(firstVersion) && !"".equals(getProdAppDate) && !"".equals(modDate)){
-                        //continue;
+                        continue;
                     }
 
 
@@ -232,10 +210,19 @@ public class find_PM_Request_v3 {
                 } // end for product
 
 
+                /*productNo = getCellValue(row.getCell(0));
+                String productVersion = getCellValue(row.getCell(1));
+                String productCreDate = getCellValue(row.getCell(2));
+                String partNo = getCellValue(row.getCell(3));
+                String partName = getCellValue(row.getCell(4));*/
 
+                Sheet newSheet = workbook.createSheet("MAIN_ROPE");
 
-                //firstVersion
+                row.createCell(0).setCellValue(productNo);
+
                 row.createCell(1).setCellValue(firstVersion);
+
+                row.createCell(2).setCellValue(firstVersion);
 
                 row.createCell(6).setCellValue(qtyProcess);
 
@@ -254,7 +241,7 @@ public class find_PM_Request_v3 {
                 //System.out.println("exportDate == " + exportDate);
 
                 if(exportDate != null && !"".equals(exportDate)){
-                    //row.createCell(13).setCellValue(com.kyhslam.util.DateUtil.formatDate(exportDate)); // 출하일
+                    row.createCell(13).setCellValue(com.kyhslam.util.DateUtil.formatDate(exportDate)); // 출하일
                 }
 
 
@@ -264,10 +251,9 @@ public class find_PM_Request_v3 {
                 //System.out.println(productNo + " > " + partNo + " > " + getProdAppDate + " > " + qtyProcess + " :: " + getProdAppDate);
 
 
-
                 // 출력 (또는 DTO에 매핑 가능)
                 //System.out.printf("제품번호=%s, 버전=%s, 등록일=%s, 자재번호=%s, 버전=%s%n",
-                        //productNo, productVersion, productCreDate, partNo, partName);
+                //productNo, productVersion, productCreDate, partNo, partName);
 
             } // end for excel
 
@@ -484,3 +470,4 @@ public class find_PM_Request_v3 {
         return dataList;
     }
 }
+
