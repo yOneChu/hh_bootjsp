@@ -32,7 +32,7 @@ public class MLBController {
     @PostMapping("/searchPartQtyPid")
     @ResponseBody
     public ArrayList<PartInfoDTO> searchPartQtyPid(String year, String blockNo, String qtyPid) {
-        ArrayList<PartInfoDTO> resultList = mlbService.findPartWithYear_inner(year, blockNo, qtyPid);
+        ArrayList<PartInfoDTO> resultList = mlbService.findPartWithYear_inner(year, blockNo.toUpperCase().trim(), qtyPid.toUpperCase().trim());
         return resultList;
     }
 

@@ -142,3 +142,90 @@ function filterData() {
         hideLoading();
     }
 }
+
+
+
+function excelData() {
+    try {
+        var dateFilterEl = document.querySelector('#dateFilter');
+        var searchBlockNoEl = document.querySelector('#searchBlockNo');
+        var searchPIDEl = document.querySelector('#searchPID');
+
+
+        var year = (dateFilterEl && dateFilterEl.value) ? dateFilterEl.value : '';
+        // Convert 'YYYY-MM-DD' to 'YYYYMMDD' for backend consumption
+        if (year && year.indexOf('-') !== -1) {
+            year = year.replace(/-/g, '');
+        }
+        var blockNo = (searchBlockNoEl && searchBlockNoEl.value) ? searchBlockNoEl.value.trim() : '';
+        var qtyPid = (searchPIDEl && searchPIDEl.value) ? searchPIDEl.value.trim() : '';
+
+        console.log('dateFilterEl == ', dateFilterEl);
+
+        // 필수 입력값 체크
+        if (!year) {
+            alert('날짜를 입력하세요.');
+            if (dateFilterEl) dateFilterEl.focus();
+            return;
+        }
+        if (!blockNo) {
+            alert('BlockNo.를 입력하세요.');
+            if (searchBlockNoEl) searchBlockNoEl.focus();
+            return;
+        }
+        if (!qtyPid) {
+            alert('수량 PID를 입력하세요.');
+            if (searchPIDEl) searchPIDEl.focus();
+            return;
+        }
+
+        // 기존 테이블 초기화
+        try { $('#infoTable').DataTable().destroy(); } catch (e) {}
+        $("#contentTable").empty();
+
+        showLoading(); // 로딩바 표시
+        $.ajax({
+            url: '/excel/searchQtyPid',   // 요청 보낼 URL
+            type: 'POST',              // 메서드 (GET/POST 등)
+            data : {
+                year: year,
+                blockNo: blockNo,
+                qtyPid: qtyPid
+            },
+            xhrFields: {
+                responseType: 'blob'    // 파일 다운로드용 응답 처리
+            },
+            success: function (data, status, xhr) {
+
+                console.log(data);
+
+                // 응답 헤더에서 파일명 추출
+                const disposition = xhr.getResponseHeader('Content-Disposition');
+                let filename = 'excel.xlsx';
+                if (disposition && disposition.indexOf('filename=') !== -1) {
+                    filename = disposition.split('filename=')[1].replace(/"/g, '');
+                }
+
+                // Blob으로 파일 생성 및 다운로드
+                const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = filename;
+                link.click();
+
+                hideLoading(); // 성공 시 로딩바 제거
+            },
+            error: function () {
+                alert('오류 발생하였습니다. 김영환M 문의하세요.😅');
+            }
+        });
+
+
+
+
+
+    } catch (e) {
+        console.error('filterData exception', e);
+        hideLoading();
+    }
+}

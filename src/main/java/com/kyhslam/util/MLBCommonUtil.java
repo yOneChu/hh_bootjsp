@@ -923,9 +923,9 @@ public class MLBCommonUtil {
                 -- LEFT OUTER JOIN PARTNAME$SF NAME ON NAME.SF$OUID = GETID(NP.PARTNAME)
                 """;
 
-            sql += "WHERE BOM.QTY LIKE '%" + qtyPID + "%' ";
+            sql += "WHERE BOM.QTY LIKE '" + qtyPID + "%' ";
 
-            sql += "OR BOM.CMT LIKE '%" + qtyPID + "%' ";
+            sql += "OR BOM.CMT LIKE '" + qtyPID + "%' ";
 
 
             sql += """
@@ -974,6 +974,138 @@ public class MLBCommonUtil {
                 curDto.setParentSpec(parentDto.getSpec());
                 curDto.setParentSize(parentDto.getPartSize());
                 curDto.setParentBlockNo(parentDto.getPartNo());
+
+                dataDTOList.add(curDto);
+                //}
+            } //end while
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+    }
+
+
+    @Description("부품하위에 수량PID 조회")
+    public static void findDownLevelQtyPID(String year, String blockNo, String qtyPID, ArrayList<PartInfoDTO> dataDTOList) {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        try {
+
+
+            if (con == null || con.isClosed()) {
+                con = PLMDBConnection.getConnection();
+            } else {
+                con = PLMDBConnection.getConnection();
+            }
+
+            String sql = """
+                  with ouid as
+            (select A.vf$ouid
+             from NORMALPART$vf A,
+                  NORMALPART$id B
+             where A.vf$identity = B.id$ouid
+               and A.vf$ouid = B.id$wip
+               AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
+                   AND A.PART_STATUS = '2466425004'
+                   AND A.ORIGIN_DIV = '2248978165' -- 내작
+                   AND A.BLOCKNO_NUMBER = ?
+                   AND A.MD$CDATE >= ?
+             )
+                SELECT
+                       (SELECT C.MD$NUMBER FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTNO
+                       , (SELECT C.MD$DESC FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTNAME
+                       , (SELECT C.SPEC FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTSPEC
+                       , (SELECT C.BLOCKNO_NUMBER FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTBLOCK
+                       , (SELECT C.PART_SIZE FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTSIZE
+                       ,  NP.MD$NUMBER AS PARTNO
+                       , BOM.QTY AS QTY
+                       , BOM.CMT AS CMT --공사주석
+                       , BOM.PART_SPT
+                       , CODN(NP.NATION)
+                       , NP.COMPEN_PART
+                       , CODN(NP.UOM) UOM -- 단위
+                       , CODN(NP.CLASSIFICATION_01)
+                       , BLOCKNO_NUMBER AS BLOCKNO
+                       , NP.MD$DESC AS PARTNAME
+                       , NP.VF$VERSION AS VERSION
+                       , NP.G_L_CODE AS G_L_CODE
+                       , NP.PART_SIZE AS PART_SIZE
+                       , NP.SPEC AS SPEC
+                       , CODN(NP.ORIGIN_DIV) -- 내작외작
+                       , CODN(NP.REVISION)
+                       , CODN(NP.PART_STATUS)
+                       , CODN(NP.ACTIVE_YN)
+                       , NP.MD$STATUS
+                       , DATEFORMAT(BOM.MD$CDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS CREATE_DATE
+                       , DATEFORMAT(BOM.MD$MDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS UPDATE_DATE
+                FROM
+                       PARTOFPART$AC BOM
+                       INNER JOIN NORMALPART$VF NP ON 	BOM.AS$END2 = NP.VF$OUID
+               """;
+
+
+            sql += "WHERE BOM.QTY LIKE '" + qtyPID + "%' ";
+            sql += "OR BOM.CMT LIKE '" + qtyPID + "%' ";
+                           //OR BOM.CMT LIKE 'E321A_28%'
+
+            sql += """
+                    START WITH AS$END1 IN (SELECT * FROM OUID)  -- 부품OID(VF$OUID)
+                    CONNECT BY
+                       PRIOR AS$END2 = AS$END1
+                    ORDER SIBLINGS BY CAST(BOM.MD$SEQUENCE AS NUMBER DEFAULT 0 ON CONVERSION ERROR)
+                """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, blockNo);
+            pstmt.setString(2, year);
+            //pstmt.setString(3, qtyPID);
+            //pstmt.setString(4, qtyPID);
+            //pstmt.setString(1, productOID);
+
+            //System.out.println("sql.toString() = " + sql.toString());
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String PARENTNO = rs.getString("PARENTNO");
+                String PARENTNAME = rs.getString("PARENTNAME");
+                String PARENTSPEC = rs.getString("PARENTSPEC");
+                String PARENTBLOCK = rs.getString("PARENTBLOCK");
+                String PARENTSIZE = rs.getString("PARENTSIZE");
+
+                String PARTNO =  rs.getString("PARTNO");
+                String PARTNAME = rs.getString("PARTNAME");
+                String SPEC = rs.getString("SPEC");
+                String PART_SIZE = rs.getString("PART_SIZE");
+                String qty = rs.getString("QTY") == null ? "" : rs.getString("QTY");
+                String BLOCKNO = rs.getString("BLOCKNO");
+                String CMT = rs.getString("CMT") == null ? "" : rs.getString("CMT"); // 공사주석
+                String VERSION = rs.getString("VERSION");
+
+
+                //if (qty.contains(qtyPID) || CMT.contains(qtyPID)) {
+
+                PartInfoDTO curDto =  new PartInfoDTO();
+                curDto.setPartNo(PARTNO);
+                curDto.setPartName(PARTNAME);
+                curDto.setBlockNo(BLOCKNO);
+                curDto.setSpec(SPEC);
+                curDto.setPartSize(PART_SIZE);
+                curDto.setQty(qty);
+                curDto.setCmt(CMT);
+                curDto.setVersion(VERSION);
+
+                curDto.setParentPartNo(PARENTNO);
+                curDto.setParentPartName(PARENTNAME);
+                curDto.setParentSpec(PARENTSPEC);
+                curDto.setParentSize(PARENTSIZE);
+                curDto.setParentBlockNo(PARENTBLOCK);
 
                 dataDTOList.add(curDto);
                 //}

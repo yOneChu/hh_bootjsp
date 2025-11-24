@@ -40,7 +40,7 @@ public class ExcelUtil {
      * @apiNote Header 스타일
      * @param workbook
      */
-    public static void getHeaderStyle(SXSSFWorkbook workbook) {
+    public static CellStyle getHeaderStyle(SXSSFWorkbook workbook) {
 
         //--스타일
         CellStyle headerStyle = workbook.createCellStyle();
@@ -66,7 +66,26 @@ public class ExcelUtil {
         headerFont.setFontName("맑은 고딕");
         headerStyle.setFont(headerFont);
 
+        return headerStyle;
+    }
 
+    public static CellStyle getBodyStyle(SXSSFWorkbook workbook) {
+
+        //--스타일
+        CellStyle bodyStyle = workbook.createCellStyle();
+        bodyStyle.setBorderTop(BorderStyle.THIN);
+        bodyStyle.setBorderBottom(BorderStyle.THIN);
+        bodyStyle.setBorderLeft(BorderStyle.THIN);
+        bodyStyle.setBorderRight(BorderStyle.THIN);
+        bodyStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        bodyStyle.setAlignment(HorizontalAlignment.LEFT);
+
+        Font bodyFont = workbook.createFont();
+        bodyFont.setFontHeightInPoints((short) 10);
+        bodyFont.setFontName("맑은 고딕");
+        bodyStyle.setFont(bodyFont);
+
+        return bodyStyle;
     }
     
 }

@@ -4,6 +4,8 @@ package com.kyhslam.controller;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.SubaeService;
+import com.kyhslam.util.ExcelUtil;
+import com.kyhslam.util.MLBCommonUtil;
 import com.kyhslam.util.PIDCommonUtil;
 import com.kyhslam.util.PartDashboardUtil;
 import jakarta.servlet.http.HttpServletResponse;
@@ -616,4 +618,101 @@ public class ExcelDownloadController {
     }
 
 
+    @PostMapping("/searchQtyPid")
+    public void searchQtyPid(HttpServletResponse response,
+                               String year, String blockNo, String qtyPid) throws IOException {
+
+
+
+        // 현재 시간을 기반으로 파일명 생성
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+        String timestamp = sdf.format(new Date());
+        String fileName = qtyPid + "_" + timestamp + ".xlsx";
+
+
+        // HTTP 응답 헤더 설정
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        //response.setHeader("Content-Disposition", "attachment; filename=\"PART_DATA.xlsx\"");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+
+        //System.out.println("subaeDownloadV2 -- " + month);
+        //System.out.println("subaeDownloadV2 -- " + ucheck);
+
+        // SXSSF 워크북 생성 (스트리밍)
+        SXSSFWorkbook workbook = new SXSSFWorkbook(100);
+        Sheet sheet = workbook.createSheet("Sheet1");
+
+        //--스타일
+        CellStyle headerStyle = ExcelUtil.getHeaderStyle(workbook);
+
+        // 헤더 작성
+        Row header = sheet.createRow(0);
+        String[] titles = { "P_자재번호", "P_자재명", "P_BlockNo", "P_SPEC", "P_SIZE",
+                "자재번호", "자재명", "BlockNo", "SPEC", "QTY", "CMT", "SIZE"
+        };
+        for (int i = 0; i < titles.length; i++) {
+            Cell cell = header.createCell(i);
+            cell.setCellValue(titles[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        //CellRangeAddress(시작행, 끝행, 시작열, 끝열)
+        sheet.setAutoFilter(new CellRangeAddress(0, 0, 0, titles.length - 1));
+
+        // 본문 기본 텍스트 스타일
+        CellStyle bodyStyle = ExcelUtil.getBodyStyle(workbook);
+
+        // 데이터 가져오기
+        ArrayList<PartInfoDTO> dataList = new ArrayList<>();
+        MLBCommonUtil.findDownLevelQtyPID(year, blockNo, qtyPid, dataList);
+
+
+        for (int i = 0; i < dataList.size(); i++) {
+            PartInfoDTO dto = dataList.get(i);
+
+            Row row = sheet.createRow(i + 1);
+            String pPartNo = dto.getParentPartNo();
+            String pPartName = dto.getParentPartName();
+            String pBlockNo = dto.getParentBlockNo();
+            String pSpec = dto.getParentSpec();
+            String pSize = dto.getParentSize();
+
+            String partNo = dto.getPartNo();
+            String partName = dto.getPartName();
+            String partSpec = dto.getSpec();
+            String vblockNo = dto.getBlockNo();
+            String partSize = dto.getPartSize();
+            String cmt =  dto.getCmt();
+            String qty = dto.getQty();
+
+            //String[] titles = { "P_자재번호", "P_BlockNo", "P_SPEC", "P_SIZE",
+            //        "자재번호", "자재명", "BlockNo", "SPEC", "QTY", "CMT", "SIZE"
+
+            row.createCell(0).setCellValue(pPartNo);
+            row.createCell(1).setCellValue(pPartName);
+            row.createCell(2).setCellValue(pBlockNo);
+            row.createCell(3).setCellValue(pSpec);
+            row.createCell(4).setCellValue(pSize);
+
+            row.createCell(5).setCellValue(partNo);
+            row.createCell(6).setCellValue(partName);
+            row.createCell(7).setCellValue(vblockNo);
+            row.createCell(8).setCellValue(partSpec);
+            row.createCell(9).setCellValue(qty);
+            row.createCell(10).setCellValue(cmt);
+            row.createCell(11).setCellValue(partSize);
+
+            for (int m = 0; m < 12; m++) {
+                row.getCell(m).setCellStyle(bodyStyle);
+            }
+        }
+
+        // 엑셀 파일 작성 및 스트림으로 출력
+        workbook.write(response.getOutputStream());
+
+        // 메모리 정리
+        workbook.dispose(); // 임시파일 삭제
+        workbook.close();
+
+    }
 }

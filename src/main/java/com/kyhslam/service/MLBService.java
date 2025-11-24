@@ -22,27 +22,9 @@ public class MLBService {
 
         System.out.println("year == " + year);
 
-        //년도, blockNo로 부품 조회 (내작, 활성)
-        ArrayList<PartInfoDTO> list = MLBCommonUtil.findPartWithYearBlockNo(year, blockNo);
+        MLBCommonUtil.findDownLevelQtyPID(year, blockNo, qtyPID, dataDTOList);
 
-        System.out.println(list.size());
 
-        if (list.size() > 1000) {
-            //너무많음
-            PartInfoDTO parentDto = new PartInfoDTO();
-            parentDto.setOid("TT");
-            parentDto.setPartNo(String.valueOf(list.size()));
-            dataDTOList.add(parentDto);
-
-            return dataDTOList;
-        }
-
-        for (int i = 0; i < list.size(); i++) {
-
-            // 2.하위 조회해서 수량 PID 찾기
-            PartInfoDTO parentDto = list.get(i);
-            MLBCommonUtil.findDownLevelQTY(parentDto, qtyPID, dataDTOList);
-        }
 
         return dataDTOList;
     }

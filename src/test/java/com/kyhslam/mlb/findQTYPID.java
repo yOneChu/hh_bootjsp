@@ -24,28 +24,22 @@ public class findQTYPID {
 
         ArrayList<PartInfoDTO> dataDTOList = new ArrayList<>();
 
-        String year = "202510";   //10월 1600개 가능
+        String year = "2025";
         String blockNo = "E321A";
         String qtyPID = "E321A_28";
-        
-        ArrayList<PartInfoDTO> list = MLBCommonUtil.findPartWithYearBlockNo(year, blockNo);
 
 
-        //E321A_28
+        MLBCommonUtil.findDownLevelQtyPID(year, blockNo, qtyPID, dataDTOList);
 
-        System.out.println("list.size() = " + list.size());
-        for (int i = 0; i < 10; i++) {
-            PartInfoDTO parentDto = list.get(i);
-            System.out.println(parentDto.getPartNo() + " - " + parentDto.getOid());
-
-            //MLBCommonUtil.findDownLevelQTY(parentDto, qtyPID, dataDTOList);
-        }
+       // ArrayList<PartInfoDTO> list = MLBCommonUtil.findPartWithYearBlockNo(year, blockNo);
 
 
-        for (int i = 0; i < dataDTOList.size(); i++) {
+        System.out.println("dataDTOList.size() = " + dataDTOList.size());
+
+        /*for (int i = 0; i < dataDTOList.size(); i++) {
             PartInfoDTO dto = dataDTOList.get(i);
             System.out.println(dto.getParentPartNo() + " > " + dto.getPartNo() + " > " + dto.getCmt() + " :; " + dto.getQty());
-        }
+        }*/
 
 
         sw.stop();
