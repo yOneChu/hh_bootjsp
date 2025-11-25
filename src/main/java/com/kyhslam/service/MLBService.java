@@ -16,7 +16,7 @@ public class MLBService {
 
 
     // 1.해당 년도의 내작 부품 조회
-    public ArrayList<PartInfoDTO> findPartWithYear_inner(String year, String blockNo, String qtyPID) {
+    public ArrayList<PartInfoDTO> findPIDasQTY(String year, String blockNo, String qtyPID) {
 
         ArrayList<PartInfoDTO> dataDTOList = new ArrayList<>();
 

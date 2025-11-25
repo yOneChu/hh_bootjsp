@@ -685,9 +685,6 @@ public class ExcelDownloadController {
             String cmt =  dto.getCmt();
             String qty = dto.getQty();
 
-            //String[] titles = { "P_자재번호", "P_BlockNo", "P_SPEC", "P_SIZE",
-            //        "자재번호", "자재명", "BlockNo", "SPEC", "QTY", "CMT", "SIZE"
-
             row.createCell(0).setCellValue(pPartNo);
             row.createCell(1).setCellValue(pPartName);
             row.createCell(2).setCellValue(pBlockNo);
@@ -713,6 +710,5 @@ public class ExcelDownloadController {
         // 메모리 정리
         workbook.dispose(); // 임시파일 삭제
         workbook.close();
-
     }
 }
