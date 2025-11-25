@@ -163,8 +163,8 @@ public class SubaeService {
      * @param partNo
      * @return
      */
-    public ArrayList<ProductDto> findPartOfProduct_v2(String year, String partNo) {
-        return SubaeCommonUtil.findPartOfProduct_v2(year, partNo.trim());
+    public ArrayList<ProductDto> findPartOfProduct_v2(String year, String partNo, String blockNo) {
+        return SubaeCommonUtil.findPartOfProduct_v2(year, partNo.trim(), blockNo);
     }
 
     public ArrayList<String> findUsedProductNo(ProductDto param) {

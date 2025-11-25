@@ -152,6 +152,15 @@
                                 </div>
                             </div>
 
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>BlockNo</label>
+                                    <input type="search" id="blockNo" class="form-control" placeholder="Block No." value="">
+                                    <div class="input-group-append">
+                                    </div>
+                                </div>
+                            </div>
+
                 <%--            <div class="col-md-2">
                                 <div class="form-group">
                                     <label>-조건</label>
@@ -322,25 +331,28 @@
     //검색
     function searchPID()
     {
-        let year = $("#year").val(); // SPEC
-        let partNo = $("#partNo").val(); // LIKE
+        let year = $("#year").val(); //
+        let partNo = $("#partNo").val(); // L
+        let blockNo = $("#blockNo").val();
 
         console.log(year);
         console.log(partNo);
 
-        if(partNo == null || "" == partNo) {
-            console.log(partNo);
-            alert("partNo 을 입력하세요.");
+        // 입력값 트림 처리
+        partNo = partNo ? partNo.trim() : "";
+        blockNo = blockNo ? blockNo.trim() : "";
+
+        // partNo, blockNo 둘 다 비어있으면 중단, 둘 중 하나라도 있으면 진행
+        if ((partNo === "" || partNo == null) && (blockNo === "" || blockNo == null)) {
+            alert("partNo 또는 blockNo 중 하나는 입력하세요.");
             return;
         }
-
-
-
 
 
         $('#infoTable').DataTable().destroy();
         $("#contentTable").empty();
 
+        showLoading(); // 로딩바 표시
         $.ajax({
             type : "post",
             //url : "searchPID.jsp",
@@ -348,7 +360,8 @@
             url : "/subae/searchMissPartofProduct",
             data : {
                 partNo : partNo,
-                year : year
+                year : year,
+                blockNo: blockNo
             },
             beforeSend: function() {
                 $("html").css("cursor", "wait");
@@ -423,10 +436,11 @@
 
                 } else {
                     alert("검색결과가 없습니다.");
-
                 }
             } // end success;
         });
+        hideLoading(); // 성공 시 로딩바 제거
+
     }
 
     function isStringAndNotEmptyOrWhitespace(value) {
