@@ -1,5 +1,13 @@
 //searchPartQtyPid.js
 
+
+document.addEventListener("DOMContentLoaded", () => {
+    //console.log("DOM 준비됨!");
+
+    $("#dashboard").removeClass("menu-open");
+    //init();
+});
+
 // 수량-PID 조회 화면 전용 스크립트
 // Enter 키 입력 시 조회 실행
 const keyCodeCheck = function() {
