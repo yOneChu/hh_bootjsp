@@ -614,7 +614,6 @@ public class ExcelDownloadController {
         // 메모리 정리
         workbook.dispose(); // 임시파일 삭제
         workbook.close();
-
     }
 
 
@@ -622,6 +621,9 @@ public class ExcelDownloadController {
     public void searchQtyPid(HttpServletResponse response,
                                String year, String blockNo, String qtyPid) throws IOException {
 
+        if(year != null)    year = year.toUpperCase().trim();
+        if(blockNo != null) blockNo = blockNo.toUpperCase().trim();
+        if(qtyPid != null)  qtyPid = qtyPid.toUpperCase().trim();
 
 
         // 현재 시간을 기반으로 파일명 생성

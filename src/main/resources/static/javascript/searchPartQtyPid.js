@@ -97,8 +97,7 @@ function filterData() {
                                 <td>${parentPartNo}</td>
                                 <td>${parentPartName}</td>
                                 <td>${parentBlockNo}</td>
-                                <td></td>
-                                <td>${creDate}</td>
+                                
                                 <td>${partNo}</td>
                                 <td style="text-align: left">${partName}</td>
                                 <td>${blockNo2}</td>
@@ -214,6 +213,7 @@ function excelData() {
                 link.click();
 
                 hideLoading(); // 성공 시 로딩바 제거
+                //alert('다운로드 완료하였습니다.');
             },
             error: function () {
                 alert('오류 발생하였습니다. 김영환M 문의하세요.😅');

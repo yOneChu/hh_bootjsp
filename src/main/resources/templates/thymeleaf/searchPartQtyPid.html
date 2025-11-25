@@ -19,10 +19,20 @@
     <!-- Theme style -->
     <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
 
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!--<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
+-->
+    <!--<link rel="stylesheet" href="/resources/css/searchPartQtyPid.css">-->
 
-    <link rel="stylesheet" href="/resources/css/searchPartQtyPid.css">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="/resources/dashboard/tweak.css">
+    <style>
+        body {
+            font-family: 'Cascadia Code', sans-serif;
+        }
+
+    </style>
 
 </head>
 
@@ -60,8 +70,8 @@
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
-                        <h1><i class="fas fa-building me-3"></i>JQPR 시스템</h1>
-                        <p class="mb-0">엘리베이터 설치 현장 비용 관리 시스템</p>
+                        <h1><i class="fas fa-building me-3"></i>수량 PID 조회</h1>
+                        <!--<p class="mb-0">엘리베이터 설치 현장 비용 관리 시스템</p>-->
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
@@ -75,103 +85,154 @@
                 </div>
             </div><!-- /.container-fluid -->
 
-            <div class="col-md-12">
+      <!--      <div class="col-md-12">
                 <div class="callout callout-danger">
                     📢 도움말 <br>
-                    <!--<font color="red">- 데이터가 너무 많을 경우 검색날짜 범위를 줄이세요 </font><br>-->
-                    <!--📝 사용 예시 <br>-->
+                    &lt;!&ndash;<font color="red">- 데이터가 너무 많을 경우 검색날짜 범위를 줄이세요 </font><br>&ndash;&gt;
+                    &lt;!&ndash;📝 사용 예시 <br>&ndash;&gt;
                     - 주석과 수량 중 조건의 수량PID의 값이 있는 부품 조회 <br>
 
                 </div>
-            </div>
+            </div>-->
         </section>
 
 
         <div class="container-fluid">
 
-                <div class="search-box">
-                    <div class="row">
+                <!-- 검색조건 -->
+                <!-- <div class="card card-default"> -->
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title"> 검색 조건</h3>
 
-
-                        <div class="col-md-2">
-                            <label class="form-label">선택날짜 이후</label>
-                            <input type="date" class="form-control" id="dateFilter">
-                        </div>
-
-                        <div class="col-md-2">
-                            <label class="form-label">BlockNo.</label>
-                            <input type="text" class="form-control" id="searchBlockNo" placeholder="BlockNo. 입력하세요">
-                        </div>
-
-                        <div class="col-md-2">
-                            <label class="form-label">수량_PID</label>
-                            <input type="text" class="form-control" id="searchPID" onkeydown="keyCodeCheck('key pressed')" placeholder="수량 PID 입력하세요">
-                        </div>
-
-                        <div class="col-md-1">
-                            <label class="form-label">검색</label>
-                            <button class="btn btn-hyundai w-100" onclick="filterData()">
-                                <i class="fas fa-search"></i>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-minus"></i>
                             </button>
-                        </div>
-
-                        <div class="col-md-1">
-                            <label class="form-label">excel</label>
-                            <button class="btn btn-hyundai w-100" onclick="excelData()">
-                                <!--<i class="fas fa-search">EXCEL</i>-->
-                                EXCEL
+                            <button type="button" class="btn btn-tool" data-card-widget="remove">
+                                <i class="fas fa-times"></i>
                             </button>
                         </div>
                     </div>
-                </div>
 
+                    <!-- /.card-header -->
+                    <div class="card-body" style="zoom:85%;">
+                        <div class="row">
+                            <!-- <div class="col-6"> -->
+                            <div class="col-md-12">
+                                <div class="callout callout-danger">
+                                    <!--<h4><i class="fas fa-bullhorn"></i> 도움말</h4>-->
+                                    <h4>📢 도움말 </h4><br>
+                                    <!--<font color="red">- 데이터가 너무 많을 경우 검색날짜 범위를 줄이세요 </font><br>-->
+                                    <!--📝 사용 예시 <br>-->
+                                    <h5>- 주석과 수량 중 ‘조건 수량 PID’ 값이 있는 부품 조회 </h5><br>
+                                </div>
+                            </div>
 
-                <div class="data-table">
-                    <div class="table-header">
-                        <h5 class="mb-0"><i class="fas fa-table me-2"></i>JQPR 데이터 목록</h5>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>조건-01</label>
+                                    <select id="dateFilter" class="form-control select" style="width: 100%;">
+                                        <option selected="selected" value="2025">2025</option>
+                                        <option value="2024">2024</option>
+                                        <option value="2023">2023</option>
+                                        <option value="2022">2022</option>
+                                        <option value="2021">2021</option>
+                                        <option value="2020">2020</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>-</label>
+                                    <input type="search" id="searchBlockNo" class="form-control" placeholder="BlockNo. 입력하세요" value="">
+                                    <div class="input-group-append">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>-</label>
+                                    <input type="search" id="searchPID" class="form-control" placeholder="수량 PID 입력하세요" onkeydown="keyCodeCheck('key pressed')" value="">
+                                    <div class="input-group-append">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0" id="infoTable" style="zoom:95%;">
-                            <thead>
-                            <tr>
-                                <th>상위품번</th>
-                                <th>상위파트명</th>
-                                <th>blockNo</th>
-                                <th>호기</th>
-                                <th>작성일</th>
 
-                                <th>자재번호</th>
-                                <th>자재명</th>
-                                <th>BlockNo</th>
 
-                                <th>SPEC</th>
-                                <th>QTY</th>
-                                <th>CMT</th>
-                            </tr>
-                            </thead>
-                            <tbody id="contentTable">
-
-                            </tbody>
-                        </table>
+                    <div class="card-footer">
+                        <button class="btn btn-secondary float-right" style="margin-right: 5px;" onclick="excelData()">EXCEL Download</button>
+                        <button class="btn btn-primary float-right" style="margin-right: 5px;" onclick="filterData()">검색</button>
                     </div>
-                </div>
+            </div> <!--card-primary-->
 
-                <nav class="mt-4">
-                    <ul class="pagination justify-content-center" id="pagination">
-                    </ul>
-                </nav>
+            <div class="row">
+                <div class="col-12">
+
+                    <div class="card card-primary">
+
+                        <div class="card-header">
+                            <h3 class="card-title">검색 결과</h3>
+                        </div>
+
+                        <!-- /.card-header -->
+                        <div class="card-body" style="zoom:85%;">
+                            <!-- <table id="infoTable" class="table table-bordered table-striped" style="height:400px;"> -->
+                            <table id="infoTable" class="table table-bordered table-hover" style="font-family: NotoSans; font-size:15px;">
+                                <thead>
+                                <!-- bg-primary -->
+                                <tr class="bg-secondary">
+                                    <th>상위품번</th>
+                                    <th>상위파트명</th>
+                                    <th>blockNo</th>
+
+                                    <th>자재번호</th>
+                                    <th>자재명</th>
+                                    <th>BlockNo</th>
+
+                                    <th>SPEC</th>
+                                    <th>QTY</th>
+                                    <th>CMT</th>
+                                </tr>
+                                </thead>
+
+                                <tbody id="contentTable">
+
+                                </tbody>
+
+                            </table>
+                        </div>
+                        <!-- /.card-body -->
+                    </div>
+                    <!-- /.card -->
+                </div>
+                <!-- /.col -->
             </div>
+            <!-- /.row -->
 
         </div>
-        <!-- /.content-wrapper -->
 
 
-        <footer class="main-footer">
-            <div class="float-right d-none d-sm-block">
-                <b>Version</b> 1.0.0
-            </div>
-            <strong>Copyright &copy; 2025 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
-        </footer>
+
+
+
+
+
+    </div>
+    <!-- /.content-wrapper -->
+
+
+    <footer class="main-footer">
+        <div class="float-right d-none d-sm-block">
+            <b>Version</b> 1.0.0
+        </div>
+        <strong>Copyright &copy; 2025 <a href="#">수배로직설계팀</a>.</strong> All rights reserved.
+    </footer>
+
 
         <!-- Control Sidebar -->
         <aside class="control-sidebar control-sidebar-dark">
@@ -179,7 +240,6 @@
         </aside>
         <!-- /.control-sidebar -->
 
-    </div>
 
 
         <div class="modal fade" id="detailModal" tabindex="-1">
@@ -201,7 +261,7 @@
         <!-- 툴팁 엘리먼트 (공용) -->
         <div id="tooltip" class="custom-tooltip"></div>
 
-
+</div>
 </body>
 
 <script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
