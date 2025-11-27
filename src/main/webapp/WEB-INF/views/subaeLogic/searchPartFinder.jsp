@@ -30,6 +30,7 @@
 
     <!-- Theme style -->
     <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="/resources/dashboard/tweak.css">
 
     <style>
         body {

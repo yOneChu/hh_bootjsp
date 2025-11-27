@@ -32,79 +32,51 @@ public class find_PM_Request_v3 {
         Path outputPath = Path.of("C:\\excel\\sample_11111111111.xlsx"); // 저장 파일
 
         String filePath = "";
-        filePath = "C:\\excel\\test.xlsx"; // 읽을 엑셀 파일 경로
-
-        LinkedHashMap<String, ArrayList<ProductDto>> dataMap = new LinkedHashMap<>();
-        //key: 호기번호|자재번호
+        filePath = "C:\\excel\\글로벌소싱_20251127.xlsx"; // 읽을 엑셀 파일 경로
 
 
-        /*// 1.제품의 OID 추출
-        ArrayList<ProductDto> productOids = new ArrayList<>();
-        productOids = SubaeCommonUtil.findProductALLInfo("197558L09");
-
-        ArrayList<ProductDto> dataList = new ArrayList<>();
-
-        for (int i = 0; i < productOids.size(); i++) {
-            ProductDto dto = productOids.get(i);
-            String oid = dto.getProductOid();
-            String prodNo = dto.getProductNo();
-            String prodName = dto.getProductName();
-            String prodVersion = dto.getProductVersion();
-            String prodCreDate = dto.getProductCreDate();
-            String prodAppDate = dto.getProductAppdate();
-
-            System.out.println(oid + " > " + prodNo + " > " + prodVersion);
-            //findPartOfProduct_v2(oid, "", dataList);
-            ArrayList<ProductDto> bomList = ProductCommonUtil.findProductBOMWithOID(oid);
-        }*/
-
-
-        HashSet<String> dupCheck =  new HashSet<>();
 
         HashMap<String, String> dupExportMap = new HashMap<>();
 
 
         try (FileInputStream fis = new FileInputStream(filePath);
-            Workbook workbook = new XSSFWorkbook(fis)) {
+             Workbook workbook = new XSSFWorkbook(fis)) {
 
 
             Sheet sheet = workbook.getSheetAt(0); // 첫 번째 시트 읽기
 
             // 첫 번째 행(헤더)은 건너뛴다고 가정 (row 0은 헤더)
             //for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
-            for (int rowIndex = 1000; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
+            for (int rowIndex = 3000; rowIndex <= 5000; rowIndex++) {
 
-                //System.out.println("excel row == " + rowIndex);
+                System.out.println("excel row == " + rowIndex);
 
                 Row row = sheet.getRow(rowIndex);
                 if (row == null) continue;
 
                 // 각 컬럼 값 읽기
                 String productNo = getCellValue(row.getCell(0));
-                String productVersion = getCellValue(row.getCell(1));
-                String productCreDate = getCellValue(row.getCell(2));
-                String partNo = getCellValue(row.getCell(3));
-                String partName = getCellValue(row.getCell(4));
-                String blockNo = getCellValue(row.getCell(5));
+                //String productVersion = getCellValue(row.getCell(1));
+                //String productCreDate = getCellValue(row.getCell(2));
+                //String partNo = getCellValue(row.getCell(3));
+
+                String partNo = getCellValue(row.getCell(4)); //자재번호
+
+                String partName = getCellValue(row.getCell(5));
                 String qty = getCellValue(row.getCell(6)); //수량변경이력
                 String spec = getCellValue(row.getCell(7)); // 주석변경이력
                 String firstRegDate = getCellValue(row.getCell(8)); // 최초등록일
+
                 String cmt = getCellValue(row.getCell(9)); // 최초
+                String exportDate = getCellValue(row.getCell(10)); // 출하일
 
-                String modDate = getCellValue(row.getCell(10)); // 변경 등록일
-                String lastVal = getCellValue(row.getCell(11)); // 최종
-                String modCount = getCellValue(row.getCell(12)); // 변경 수
-                String exportDate = getCellValue(row.getCell(13)); // 출하일
 
-                if(firstRegDate != null && !"".equals(firstRegDate) && modDate != null && !"".equals(modDate)){
-                    //continue;
-                }
 
 
                 //출하예정일
                 //productNo = productNo += ";";
 
-                /*if(!dupExportMap.containsKey(productNo)){
+                if(!dupExportMap.containsKey(productNo)){
                     ArrayList<HashMap<String, String>> exportList = PartCommonUtil.getExportDate(productNo + ";");
                     if(exportList != null && exportList.size()>0){
                         HashMap<String, String> exportMap = exportList.get(0);
@@ -114,7 +86,7 @@ public class find_PM_Request_v3 {
                     }
                 } else {
                     exportDate = dupExportMap.get(productNo);
-                }*/
+                }
 
 
 
@@ -123,8 +95,6 @@ public class find_PM_Request_v3 {
 
                 firstRegDate = ""; // COMPEN CHAIN 최초 등록일 -> 해당 제품 승인일
                 String getProdAppDate = ""; // 제품 승인일
-                modDate = ""; // COMPEN CHAIN 변경일
-
 
                 // 데이터쓰기
                 ArrayList<ProductDto> productOids = new ArrayList<>();
@@ -133,12 +103,14 @@ public class find_PM_Request_v3 {
                 //System.out.println(productOids.size());
                 //ArrayList<ProductDto> dataList = new ArrayList<>();
 
-
+                String modDate = "";
                 String firstVersion = ""; // 최초 해당자재 등록된 버전
                 String beforeQty = "";
                 String beforeCmt = "";
                 String qtyProcess = "";
                 String cmtProcess = "";
+
+
 
                 for (int i = 0; i < productOids.size(); i++) {
                     ProductDto dto = productOids.get(i);
@@ -147,23 +119,14 @@ public class find_PM_Request_v3 {
                     String prodName = dto.getProductName();
                     String prodVersion = dto.getProductVersion();
                     String prodCreDate = dto.getProductCreDate();
+                    String prodModDate =  dto.getProductModDate();
                     String prodAppDate = dto.getProductAppdate();
-
-
-                    /*if(!"".equals(firstVersion) && !"".equals(getProdAppDate) && !"".equals(exportDate) && !"".equals(modDate)){
-                        continue;
-                    }*/
-
-                    if(!"".equals(firstVersion) && !"".equals(getProdAppDate) && !"".equals(modDate)){
-                        //continue;
-                    }
 
 
                     //System.out.println(oid + " > " + prodNo + " > " + prodVersion + " : " + prodAppDate);
                     //findPartOfProduct_v2(oid, "", dataList);
                     // 해당 버전의 BOM 자재 조회
-                    ArrayList<ProductDto> bomList = ProductCommonUtil.findProductBOMWithOID(oid);
-
+                    ArrayList<ProductDto> bomList = ProductCommonUtil.findProductBOMWithOID_partNo(oid, partNo);
 
                     for (int j = 0; j < bomList.size(); j++) {
                         ProductDto dd = bomList.get(j);
@@ -172,9 +135,9 @@ public class find_PM_Request_v3 {
                         String vQty = dd.getQty();
                         String vCmt =  dd.getCmt();
 
-                        System.out.println(prodName + " --> " + vPartName);
-                        //if (vPartNo.equals(partNo)) {
-                        if (vPartNo.contains("MAIN ROPE")) {
+                        //System.out.println(prodName + " --> " + vPartName);
+                        if (vPartNo.equals(partNo)) {
+                            //if (vPartNo.contains("MAIN ROPE")) {
                             //System.out.println(prodName + " --> " + vPartName);
                             if ("".equals(firstVersion)) {
                                 firstVersion = prodVersion;
@@ -182,7 +145,7 @@ public class find_PM_Request_v3 {
 
                             // 최초등록일
                             if ("".equals(getProdAppDate)) {
-                                getProdAppDate = prodAppDate;
+                                getProdAppDate = prodModDate;
                             }
 
 
@@ -197,8 +160,11 @@ public class find_PM_Request_v3 {
                                     qtyProcess += " > " + vQty;
                                     beforeQty = vQty;
 
+                                    System.out.println("변경함-- : " + prodCreDate);
+
                                     if ("".equals(modDate)) {
-                                        modDate = prodAppDate; // 변경등록일
+                                        //modDate = prodAppDate; // 변경등록일
+                                        modDate = prodModDate;
                                     }
 
                                 }
@@ -221,10 +187,6 @@ public class find_PM_Request_v3 {
                             }
 
 
-                            /*if(!dupCheck.contains(productNo)) {
-                                dupCheck.add(productNo);
-                            }*/
-
                         }
                     }
 
@@ -233,9 +195,8 @@ public class find_PM_Request_v3 {
 
 
 
-
                 //firstVersion
-                row.createCell(1).setCellValue(firstVersion);
+                //row.createCell(1).setCellValue(firstVersion);
 
                 row.createCell(6).setCellValue(qtyProcess);
 
@@ -246,7 +207,10 @@ public class find_PM_Request_v3 {
                 cell.setCellValue(getProdAppDate);
 
 
-                row.createCell(10).setCellValue(modDate); // 변경등록일
+                //modDate
+                row.createCell(9).setCellValue(modDate); // 변경등록일
+
+                row.createCell(10).setCellValue(exportDate); // 출하일
                 //Cell cell = row.getCell(10, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK); // 최초 등록일
                 //cell.setCellValue(getProdAppDate);
 
@@ -267,17 +231,21 @@ public class find_PM_Request_v3 {
 
                 // 출력 (또는 DTO에 매핑 가능)
                 //System.out.printf("제품번호=%s, 버전=%s, 등록일=%s, 자재번호=%s, 버전=%s%n",
-                        //productNo, productVersion, productCreDate, partNo, partName);
+                //productNo, productVersion, productCreDate, partNo, partName);
 
             } // end for excel
 
-            try (FileOutputStream fos = new FileOutputStream(outputPath.toFile())) {
-                //workbook.write(fos);
+            //filePath
+            //try (FileOutputStream fos = new FileOutputStream(outputPath.toFile())) {
+            try (FileOutputStream fos = new FileOutputStream(filePath)) {
+                workbook.write(fos);
             }
 
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        System.out.println(" ------------------ end ------------------");
 
     }
 

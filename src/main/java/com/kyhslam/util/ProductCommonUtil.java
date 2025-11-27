@@ -323,6 +323,171 @@ public class ProductCommonUtil {
     }
 
 
+    /**
+     * 제품의 하위 bom 조회 (제품oid와 partNo로 )
+     * @param productOID
+     * @param partNo
+     * @return
+     */
+    public static ArrayList<ProductDto> findProductBOMWithOID_partNo(String productOID, String partNo) {
+        //System.out.println("PartCommonUtil findProductBOMWithOID start ==-" + productOID );
+
+        ArrayList<ProductDto> list = new ArrayList<>();
+
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        try {
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+             SELECT
+                     PE.ASSOOUID ASSOOUID
+                     , PE.PRODUCTOUID PRODUCTOUID
+                     , PE.PARTOUID PARTOUID
+                     , PE.SEQ
+                     , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) PARENTNO
+                     , (SELECT COUNT(*) FROM PARTANDCAD$AS WHERE AS$END1 = PE.PARTOUID) CADCNT
+                     , (SELECT F.VF$VERSION FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) AS PARENT_VER
+                     , (SELECT TO_CHAR(TO_DATE(PRODUCT.MD$CDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_CREDATE
+                     , (SELECT TO_CHAR(TO_DATE(PRODUCT.MD$MDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_MODDATE
+                     , (SELECT TO_CHAR(TO_DATE(PRODUCT.APP_DATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_APP_DATE
+                     , (SELECT PRODUCT.MD$STATUS FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_STATUS
+                     , (SELECT COD(E.EL_ATYP) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                        WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS GISONG
+                     , NP.MD$NUMBER AS PARTNO
+                     , cod(NP.NATION) AS NATION
+                     , NP.compen_part AS COMPEN_PART
+                     , NP.MD$DESC AS PARTNAME
+                     , NP.VF$VERSION AS VERSION
+                     , NVL(NP.G_L_CODE, '') AS GLCODE
+                     , NVL(NP.SPEC, '') AS SPEC
+                     , NVL(NP.PART_SIZE, '') AS PART_SIZE
+                     , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCKNO
+                     , (SELECT NVL(LOSSRATE, '') FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) LOSSRATE
+                     , (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCK_OPT
+                     , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.UPPERBLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.UPPERBLOCKNO, 12))))) UPPERBLOCKNO
+                     , NVL(COD(NP.UOM), '') AS UOM
+                     , PE.QTY
+                     , VP.WORK_QTY
+                     , PE.CMT
+                     , VP.WORK_CMT
+                     , PE.COLOR
+                     , VP.WORK_COLOR
+                     , NVL(CODN(NP.ORIGIN_DIV), '') DIV
+                     , NVL(PE.MBOM, '') MBOM
+                     , NVL(COD(NP.PART_MBOM), '') PART_MBOM
+                     , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = NP.MD$USER) USERNAME
+                     , NP.MD$USER USERID
+                     , NP.OLD_CODE
+                     , NP.OLD_CODE2
+                     , NP.OLD_CODE3
+                     , COD(NP.SPT) SPT
+                     , COD(NP.PARTMPCHECK) PARTMPCHECK
+                     , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = PE.CUSER) CUSERNAME
+                     , PE.CUSER CUSERID
+                     , 1 LEV
+                     , 'F' ISLEAF
+                     , VP.UCHECK AS UCHECK  -- 수정여부
+                     , VP.MCHECK
+                     , NVL(COD(NP.PART_DIVISION), '') AS PART_DIVISION
+                     , PE.CDATE
+                     , VP.MDATE
+                     , VP.user5
+                     , (SELECT COUNT(1) FROM PARTOFPART$AC WHERE AS$END1=NP.VF$OUID AND ROWNUM=1) AS HASCHILD -- 하위BOM 존재여부
+                    FROM
+                 PARTOFEBOM PE
+                INNER JOIN NORMALPART$VF NP ON PE.PARTOUID = NP.VF$OUID
+                LEFT OUTER JOIN VARIABLEPART_NEW VP ON VP.PRODUCTOUID = PE.PRODUCTOUID AND VP.ASSOOUID = PE.ASSOOUID
+                WHERE
+                 PE.PRODUCTOUID = ?
+                 AND MD$NUMBER = ?
+                ORDER BY TO_NUMBER(PE.SEQ)
+        """;
+
+
+            stmt = con.prepareStatement(sql.toString());
+            stmt.setString(1, productOID);
+            stmt.setString(2, partNo);
+            rs = stmt.executeQuery();
+
+            while(rs.next()) {
+
+                //PRODUCTOUID
+                String PRODUCTOUID = rs.getString("PRODUCTOUID");
+                String PARENTNO = rs.getString("PARENTNO");
+                String productVersion = rs.getString("PARENT_VER") == null ? "" : rs.getString("PARENT_VER"); //제품버전
+                String PROD_STATUS = rs.getString("PROD_STATUS") == null ? "" : rs.getString("PROD_STATUS");
+                String PROD_CREDATE = rs.getString("PROD_CREDATE") == null ? "" : rs.getString("PROD_CREDATE"); //제품 등록일
+                String PROD_MODDATE = rs.getString("PROD_MODDATE") == null ? "" : rs.getString("PROD_MODDATE"); //제품 수정일
+                String PROD_APP_DATE = rs.getString("PROD_APP_DATE") == null ? "" : rs.getString("PROD_APP_DATE"); //제품 승인일
+                String GISONG = rs.getString("GISONG") == null ? "" : rs.getString("GISONG");
+
+
+                String PARTOUID = rs.getString("PARTOUID");
+                String SEQ = rs.getString("SEQ");
+                String PARTNO = rs.getString("PARTNO");
+                String PARTNAME = rs.getString("PARTNAME");
+                String VERSION = rs.getString("VERSION");
+
+                String BLOCKNO = rs.getString("BLOCKNO");
+                String BLOCK_OPT = rs.getString("BLOCK_OPT"); //내작외작
+                String GLCODE = rs.getString("GLCODE");
+
+                String NATION = rs.getString("NATION");
+                String SPEC = rs.getString("SPEC");
+                String PART_SIZE = rs.getString("PART_SIZE");
+
+                String QTY = rs.getString("QTY");
+                String CMT = rs.getString("CMT");
+                String UCHECK = rs.getString("UCHECK");
+                String USERNAME = rs.getString("USERNAME");
+                String USERID = rs.getString("USERID");
+                String HASCHILD = rs.getString("HASCHILD");
+
+
+                //System.out.println(PARENTNO +">" + productVersion + " > " + PROD_APP_DATE + " >>> " + PARTNO + " > " + PARTNAME);
+
+                ProductDto dto = new ProductDto();
+                dto.setProductOid(PRODUCTOUID);
+                dto.setProductNo(PARENTNO);
+                dto.setProductVersion(productVersion); //제품버전
+                dto.setProductStatus(PROD_STATUS);
+                dto.setProductCreDate(PROD_CREDATE);
+                dto.setProductModDate(PROD_MODDATE);
+                dto.setProductAppdate(PROD_APP_DATE); //제품승인일
+                dto.setGisong(GISONG);
+
+                dto.setSeq(SEQ);
+                dto.setPartNo(PARTNO);
+                dto.setPartNoOID(PARTOUID);
+                dto.setPartName(PARTNAME);
+                dto.setVersion(VERSION);
+                dto.setBlockNo(BLOCKNO);
+                dto.setBlockopt(BLOCK_OPT);
+                dto.setGlCode(GLCODE);
+
+                dto.setNation(NATION);
+                dto.setSpec(SPEC);
+                dto.setPart_size(PART_SIZE);
+                dto.setQty(QTY);
+                dto.setCmt(CMT);
+                dto.setUcheck(UCHECK);
+                dto.setUsername(USERNAME);
+                dto.setUserId(USERID);
+
+                list.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, stmt, rs);
+        }
+        return list;
+    }
+
 
     /**
      * 제품 1레벨의 하위 BOM 조회
