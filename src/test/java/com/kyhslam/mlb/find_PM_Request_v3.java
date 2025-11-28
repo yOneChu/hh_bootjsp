@@ -29,12 +29,16 @@ public class find_PM_Request_v3 {
 
         //Path inputPath = Path.of("C:/excel/sample.xlsx");   // 원본 파일
         //Path outputPath = Path.of("C:\\excel\\sample_out.xlsx"); // 저장 파일
-        Path outputPath = Path.of("C:\\excel\\sample_11111111111.xlsx"); // 저장 파일
+        //Path outputPath = Path.of("C:\\excel\\sample_11111111111.xlsx"); // 저장 파일
 
         String filePath = "";
         filePath = "C:\\excel\\글로벌소싱_20251127.xlsx"; // 읽을 엑셀 파일 경로
 
 
+        //KEY: OID 에 연결된 그 하위 BOM
+        HashMap<String, ArrayList<ProductDto>> productOIDBOM = new HashMap<>();
+
+        HashMap<String, ArrayList<ProductDto>> productMap = new HashMap<>();
 
         HashMap<String, String> dupExportMap = new HashMap<>();
 
@@ -47,7 +51,8 @@ public class find_PM_Request_v3 {
 
             // 첫 번째 행(헤더)은 건너뛴다고 가정 (row 0은 헤더)
             //for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
-            for (int rowIndex = 3000; rowIndex <= 5000; rowIndex++) {
+            //for (int rowIndex = 5001; rowIndex <= 8000; rowIndex++) {
+            for (int rowIndex = 7045; rowIndex <= 12000; rowIndex++) {
 
                 System.out.println("excel row == " + rowIndex);
 
@@ -60,6 +65,12 @@ public class find_PM_Request_v3 {
                 //String productCreDate = getCellValue(row.getCell(2));
                 //String partNo = getCellValue(row.getCell(3));
 
+                // N: 리모델링현장 제외
+                if(productNo.startsWith("N")) {
+                    continue;
+                }
+
+
                 String partNo = getCellValue(row.getCell(4)); //자재번호
 
                 String partName = getCellValue(row.getCell(5));
@@ -67,14 +78,14 @@ public class find_PM_Request_v3 {
                 String spec = getCellValue(row.getCell(7)); // 주석변경이력
                 String firstRegDate = getCellValue(row.getCell(8)); // 최초등록일
 
+
                 String cmt = getCellValue(row.getCell(9)); // 최초
                 String exportDate = getCellValue(row.getCell(10)); // 출하일
 
 
-
-
                 //출하예정일
                 //productNo = productNo += ";";
+
 
                 if(!dupExportMap.containsKey(productNo)){
                     ArrayList<HashMap<String, String>> exportList = PartCommonUtil.getExportDate(productNo + ";");
@@ -89,17 +100,24 @@ public class find_PM_Request_v3 {
                 }
 
 
-
-
-
-
                 firstRegDate = ""; // COMPEN CHAIN 최초 등록일 -> 해당 제품 승인일
                 String getProdAppDate = ""; // 제품 승인일
 
                 // 데이터쓰기
                 ArrayList<ProductDto> productOids = new ArrayList<>();
+
                 // 모든 버전의 제품 OID 조회
-                productOids = SubaeCommonUtil.findProductALLInfo(productNo.trim());
+                //productOids = SubaeCommonUtil.findProductALLInfo(productNo.trim());
+
+                if(productMap != null && productMap.containsKey(productNo.trim())) {
+                    productOids = productMap.get(productNo.trim());
+
+                } else {
+                    // 모든 버전의 제품 OID 조회
+                    productOids = SubaeCommonUtil.findProductALLInfo(productNo.trim());
+                    productMap.put(productNo.trim(), productOids);
+                }
+
                 //System.out.println(productOids.size());
                 //ArrayList<ProductDto> dataList = new ArrayList<>();
 
@@ -109,7 +127,6 @@ public class find_PM_Request_v3 {
                 String beforeCmt = "";
                 String qtyProcess = "";
                 String cmtProcess = "";
-
 
 
                 for (int i = 0; i < productOids.size(); i++) {
@@ -123,10 +140,17 @@ public class find_PM_Request_v3 {
                     String prodAppDate = dto.getProductAppdate();
 
 
-                    //System.out.println(oid + " > " + prodNo + " > " + prodVersion + " : " + prodAppDate);
-                    //findPartOfProduct_v2(oid, "", dataList);
                     // 해당 버전의 BOM 자재 조회
-                    ArrayList<ProductDto> bomList = ProductCommonUtil.findProductBOMWithOID_partNo(oid, partNo);
+
+                    //ArrayList<ProductDto> bomList = ProductCommonUtil.findProductBOMWithOID_partNo(oid, partNo);
+                    ArrayList<ProductDto> bomList = new ArrayList<>();
+
+                    if (productOIDBOM.containsKey(oid)) {
+                        bomList = productOIDBOM.get(oid);
+                    } else {
+                        bomList = ProductCommonUtil.findProductBOMWithOID(oid);
+                        productOIDBOM.put(oid,  bomList);
+                    }
 
                     for (int j = 0; j < bomList.size(); j++) {
                         ProductDto dd = bomList.get(j);
@@ -135,10 +159,9 @@ public class find_PM_Request_v3 {
                         String vQty = dd.getQty();
                         String vCmt =  dd.getCmt();
 
-                        //System.out.println(prodName + " --> " + vPartName);
                         if (vPartNo.equals(partNo)) {
                             //if (vPartNo.contains("MAIN ROPE")) {
-                            //System.out.println(prodName + " --> " + vPartName);
+
                             if ("".equals(firstVersion)) {
                                 firstVersion = prodVersion;
                             }
@@ -188,7 +211,10 @@ public class find_PM_Request_v3 {
 
 
                         }
-                    }
+                    } // end for
+
+
+
 
 
                 } // end for product
