@@ -52,7 +52,7 @@ public class find_PM_Request_v3 {
             // 첫 번째 행(헤더)은 건너뛴다고 가정 (row 0은 헤더)
             //for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
             //for (int rowIndex = 5001; rowIndex <= 8000; rowIndex++) {
-            for (int rowIndex = 12500; rowIndex <= 12600; rowIndex++) {
+            for (int rowIndex = 12600; rowIndex <= 12800; rowIndex++) {
 
                 System.out.println("excel row == " + rowIndex);
 
@@ -77,6 +77,11 @@ public class find_PM_Request_v3 {
                 String qty = getCellValue(row.getCell(6)); //수량변경이력
                 String spec = getCellValue(row.getCell(7)); // 주석변경이력
                 String firstRegDate = getCellValue(row.getCell(8)); // 최초등록일
+
+
+                if (qty != null && !"".equals(qty)) {
+                    continue;
+                }
 
 
                 String cmt = getCellValue(row.getCell(9)); // 최초

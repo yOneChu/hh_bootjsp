@@ -409,7 +409,6 @@
                         "autoWidth": false, // 가로자동
                         "processing": true,
                         "destroy": true, // 테이블 재생성
-
                         //"scrollX" : true, //가로  스크롤
                         "destroy": true, // 테이블 재생성
                         //"scrollX": true, // 가로 스크롤
@@ -441,7 +440,6 @@
             } // end success;
         });
         hideLoading(); // 성공 시 로딩바 제거
-
     }
 
     function isStringAndNotEmptyOrWhitespace(value) {
