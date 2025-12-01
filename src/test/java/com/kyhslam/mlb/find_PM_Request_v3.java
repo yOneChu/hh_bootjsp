@@ -52,7 +52,7 @@ public class find_PM_Request_v3 {
             // 첫 번째 행(헤더)은 건너뛴다고 가정 (row 0은 헤더)
             //for (int rowIndex = 1; rowIndex <= sheet.getLastRowNum(); rowIndex++) {
             //for (int rowIndex = 5001; rowIndex <= 8000; rowIndex++) {
-            for (int rowIndex = 12600; rowIndex <= 12800; rowIndex++) {
+            for (int rowIndex = 1100; rowIndex <= 3000; rowIndex++) {
 
                 System.out.println("excel row == " + rowIndex);
 
@@ -65,9 +65,13 @@ public class find_PM_Request_v3 {
                 //String productCreDate = getCellValue(row.getCell(2));
                 //String partNo = getCellValue(row.getCell(3));
 
+                if (productNo == null || "".equals(productNo)) {
+                    break;
+                }
+
                 // N: 리모델링현장 제외
                 if(productNo.startsWith("N")) {
-                    continue;
+                    //continue;
                 }
 
 
