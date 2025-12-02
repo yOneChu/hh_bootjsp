@@ -81,7 +81,7 @@ public class APIController {
     }
 
 
-    @Description("시물레이터 결과만 추출")
+    @Description("메일 발송")
     @GetMapping("/api/sendMail")
     @ResponseBody
     @CrossOrigin
