@@ -4,6 +4,7 @@ import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.service.MLBService;
 import com.kyhslam.service.SubaeService;
 import com.kyhslam.util.MLBCommonUtil;
+import com.kyhslam.util.SendMail;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Description;
@@ -78,5 +79,18 @@ public class APIController {
 
         return  result;
     }
+
+
+    @Description("시물레이터 결과만 추출")
+    @GetMapping("/api/sendMail")
+    @ResponseBody
+    @CrossOrigin
+    public void sendSubaeMail(String sender, String toEmail, String ccEmail, String subject,
+                              String htmlContent, String key) {
+        if("subae".equals(key)){
+            SendMail.sendToSubaeMail(sender, toEmail, ccEmail, subject, htmlContent);
+        }
+    }
+
 
 }
