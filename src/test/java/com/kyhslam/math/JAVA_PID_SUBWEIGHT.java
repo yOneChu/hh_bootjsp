@@ -102,8 +102,8 @@ public class JAVA_PID_SUBWEIGHT {
             System.out.println("bestC = " + bestC);
             System.out.println("bestD = " + bestD);
 
-            result.put("BEST_C", String.valueOf(bestC));
-            result.put("BEST_D", String.valueOf(bestD));
+            result.put("SUB_BEST_Q1", String.valueOf(bestC));
+            result.put("SUB_BEST_Q2", String.valueOf(bestD));
 
             System.out.printf("X*C+Y*D = %d (AA=%d, 초과=%d)%n", bestSum1, AA, bestDiff1);
             System.out.printf("A*C+B*D = %d (BB=%d, 차이=%d)%n", bestSum2, BB, bestDiff2);
