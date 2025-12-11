@@ -33,15 +33,6 @@ public class JAVA_PID_SUBWEIGHT {
         boolean found = false;
 
 
-        /*if (!isNumeric(X) && !isNumeric(A) && !isNumeric(p1) &&
-                !isNumeric(Y) && !isNumeric(B) && !isNumeric(p2)) {
-
-            result.put("BEST_C", "9999");
-            result.put("BEST_D", "9999");
-            //System.out.println("999999999999999999999");
-            return result;
-        }*/
-
         int bestC = -1;
         int bestD = -1;
         int bestSum1 = 0;
