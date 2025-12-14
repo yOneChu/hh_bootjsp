@@ -12,19 +12,15 @@ public class JAVA_PID_SUBWEIGHT_V2 {
 
     public static void main(String[] args) {
 
-        if (!isPositiveNumber("111") || !isPositiveNumber("ㄱㄴ") || !isPositiveNumber("25.8") )
+       /* if (!isPositiveNumber("111") || !isPositiveNumber("ㄱㄴ") || !isPositiveNumber("25.8") )
         {
             System.out.println("asdf = ");
-        }
+        }*/
 
 
-       // calSubWeightAsDouble();
+        calSubWeightAsDouble();
 
         //System.out.println(isPositiveNumber("-25"));
-
-
-
-
     }
 
     private static boolean isPositiveNumber(String str) {
@@ -40,10 +36,10 @@ public class JAVA_PID_SUBWEIGHT_V2 {
 
         HashMap result = new HashMap<>();
 
-        double X = Double.parseDouble("30"); // 개당 무게
+        double X = Double.parseDouble("48.1"); // 개당 무게
         System.out.println("X = " + X);
-        double A = 52; // 개당 두께
-        double p1 = 1000; // X의 금액
+        double A = 48; // 개당 두께
+        double p1 = 10000; // X의 금액
 
         double Y = 30.1; // 개당 무게
         double B = 34; // 개당 두께
