@@ -188,6 +188,13 @@
                                 <p>로직 특성값 View</p>
                             </a>
                         </li>
+
+                        <li>
+                            <a href="/mlb/searchPartQtyPid" class="nav-link">
+                                <p>수량-PID</p>
+                            </a>
+                        </li>
+
                         <li>
                             <a href="#" class="nav-link" onclick="window.open('/subae/elevatorSpecDiff', 'firstPopup', 'width=1000,height=1000'); return false;">
                                 <%--<a href="/subae/logicView" class="nav-link">--%>
