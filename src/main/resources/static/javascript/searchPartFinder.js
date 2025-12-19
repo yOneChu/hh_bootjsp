@@ -10,6 +10,29 @@ let dtTable = $("#infoTable").DataTable({
     "buttons": ["csv", "excel", "copy"]
 }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
 
+// 저장된 숨김 컬럼 적용
+function getHiddenCols() {
+    try {
+        const val = localStorage.getItem('spf_hidden_cols');
+        return val ? JSON.parse(val) : [];
+    } catch (e) { return []; }
+}
+function applySavedColumnVisibility() {
+    if (!$.fn.DataTable.isDataTable('#infoTable')) return;
+    const table = $('#infoTable').DataTable();
+    const hidden = getHiddenCols();
+    const colCount = table.columns().indexes().length;
+    for (let i = 0; i < colCount; i++) {
+        const shouldShow = hidden.indexOf(i) === -1;
+        table.column(i).visible(shouldShow);
+    }
+    // 버튼 상태 동기화 (HTML 쪽에서 정의됨)
+    if (typeof window.syncColumnButtons === 'function') {
+        window.syncColumnButtons();
+    }
+}
+// 초기 1회 적용 시도 (DataTable DOM 준비 후 약간의 지연)
+setTimeout(applySavedColumnVisibility, 200);
 
 //ready
 $(document).ready(function() {
@@ -94,6 +117,7 @@ function searchPID()
                     str += "<td>" + data[i].partNo + "</td>";
                     str += "<td>" + data[i].partName + "</td>";
 
+                    str += "<td>" + data[i].spec + "</td>";
                     str += "<td>" + data[i].qty + "</td>";
                     str += "<td>" + data[i].blockNo + "</td>";
                     str += "<td>" + data[i].blockopt + "</td>";
@@ -142,6 +166,11 @@ function searchPID()
                         }
                     ]
                 }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
+
+                // 검색 후에도 저장된 컬럼 숨김 상태 적용
+                setTimeout(function(){
+                    applySavedColumnVisibility();
+                }, 0);
 
             } else {
                 alert("검색결과가 없습니다.");

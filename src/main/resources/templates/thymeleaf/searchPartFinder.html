@@ -191,7 +191,26 @@
 
               <!-- /.card-header -->
               <div class="card-body" style="zoom:85%;">
-                <!-- <table id="infoTable" class="table table-bordered table-striped" style="height:400px;"> -->
+                <div id="columnToggleToolbar" class="mb-2">
+                  <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="컬럼 토글">
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(0, this)">제품번호</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(1, this)">제품버전</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(2, this)">제품상태</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(3, this)">제품수정일</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(4, this)">브랜드</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(5, this)">기종</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(6, this)">생산거점</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(7, this)">품번</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(8, this)">품명</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(9, this)">SPEC</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(10, this)">QTY</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(11, this)">BlockNo.</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(12, this)">품목</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(13, this)">GL_CODE</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(14, this)">버전</button>
+                    <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(15, this)">cmt</button>
+                  </div>
+                </div>
                 <table id="infoTable" class="table table-bordered table-hover" style=" font-family: NotoSans; font-size:15px;">
                   <thead>
                   <!-- bg-primary -->
@@ -205,6 +224,7 @@
                     <th>생산거점</th>
                     <th>품번</th>
                     <th>품명</th>
+                    <th>SPEC</th>
 
                     <th>QTY</th>
                     <th>BlockNo.</th>
@@ -288,7 +308,7 @@
 <script>
   // 로딩바 표시 함수
   function showLoading() {
-    console.log('---------------- showloading');
+
     // 로딩바 HTML 생성
     const loadingHtml = `
         <div id="loadingOverlay" style="
@@ -341,6 +361,85 @@
       loadingOverlay.remove();
     }
   }
+
+
+  // 숨김 컬럼 인덱스 저장/로드
+  function getHiddenCols() {
+    try {
+      const val = localStorage.getItem('spf_hidden_cols');
+      return val ? JSON.parse(val) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  function setHiddenCols(arr) {
+    try {
+      localStorage.setItem('spf_hidden_cols', JSON.stringify(arr));
+    } catch (e) {}
+  }
+
+  function applyButtonState(idx, visible) {
+    const buttons = document.querySelectorAll('#columnToggleToolbar .btn-group button');
+    const btn = buttons && buttons[idx] ? buttons[idx] : null;
+    if (!btn) return;
+    if (visible) {
+      btn.classList.remove('btn-secondary');
+      btn.classList.add('btn-outline-secondary');
+      btn.classList.remove('active');
+      btn.setAttribute('aria-pressed', 'false');
+    } else {
+      btn.classList.remove('btn-outline-secondary');
+      btn.classList.add('btn-secondary');
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+    }
+  }
+
+  function syncColumnButtons() {
+    if (!$.fn.DataTable.isDataTable('#infoTable')) return;
+    const table = $('#infoTable').DataTable();
+    const colCount = table.columns().indexes().length;
+    for (let i = 0; i < colCount; i++) {
+      const visible = table.column(i).visible();
+      applyButtonState(i, visible);
+    }
+  }
+
+  // 버튼에서 호출: 특정 컬럼 토글
+  function hideColumn(colIndex, btn) {
+    if (!$.fn.DataTable.isDataTable('#infoTable')) return;
+    const table = $('#infoTable').DataTable();
+    const currentlyVisible = table.column(colIndex).visible();
+    table.column(colIndex).visible(!currentlyVisible);
+
+    // 저장 상태 업데이트
+    let hidden = getHiddenCols();
+    if (currentlyVisible) {
+      // 이제 숨김 처리 -> 목록에 추가
+      if (!hidden.includes(colIndex)) hidden.push(colIndex);
+    } else {
+      // 이제 표시 처리 -> 목록에서 제거
+      hidden = hidden.filter(i => i !== colIndex);
+    }
+    setHiddenCols(hidden);
+
+    // 버튼 상태 동기화
+    applyButtonState(colIndex, !currentlyVisible);
+  }
+
+  // DataTable 재생성 후 버튼 상태 맞추기 위해 전역에 노출
+  window.syncColumnButtons = syncColumnButtons;
+</script>
+
+<script>
+  // 초기 로드시 버튼 상태 동기화 시도 (DataTable 초기화 이후에 한번 더 호출됨)
+  $(document).ready(function() {
+    setTimeout(function() {
+      if (typeof window.syncColumnButtons === 'function') {
+        window.syncColumnButtons();
+      }
+    }, 200);
+  });
 
 
 </script>

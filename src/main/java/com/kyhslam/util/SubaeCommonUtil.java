@@ -957,6 +957,7 @@ public class SubaeCommonUtil {
                 String GLCODE = rs.getString("GLCODE") == null ? "" : rs.getString("GLCODE");
                 String UCHECK = rs.getString("UCHECK") == null ? "" : rs.getString("UCHECK");
                 String PART_QTY = rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
+                String SPEC = rs.getString("SPEC") == null ? "" : rs.getString("SPEC");
 
                 //System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + BLOCK_OPT);
 
@@ -982,6 +983,7 @@ public class SubaeCommonUtil {
                 dto.setQty(partQTY);
                 dto.setBlockopt(BLOCK_OPT);
                 dto.setQty(PART_QTY);
+                dto.setSpec(SPEC);
 
                 dataList.add(dto);
             } //end while
