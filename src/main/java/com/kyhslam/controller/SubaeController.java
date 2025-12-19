@@ -1,9 +1,6 @@
 package com.kyhslam.controller;
 
-import com.kyhslam.dto.BlockHistoryDTO;
-import com.kyhslam.dto.LogicDTO;
-import com.kyhslam.dto.PartInfoDTO;
-import com.kyhslam.dto.ProductDto;
+import com.kyhslam.dto.*;
 import com.kyhslam.service.BlockHistoryService;
 import com.kyhslam.service.SubaeService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -210,17 +207,18 @@ public class SubaeController {
 
     /**
      * 자재번호가 사용되고 있는 모든 제품 찾기
-     * @param year
-     * @param partNo
+     * @param whereCond
      * @return
      */
     @PostMapping("/subae/searchMissPartofProduct")
     @ResponseBody
-    public ArrayList<ProductDto> searchMissPartofProduct(String year, String partNo, String blockNo) {
+    //public ArrayList<ProductDto> searchMissPartofProduct(String year, String partNo, String blockNo) {
+    public ArrayList<ProductDto> searchMissPartofProduct(PartWhere whereCond) {
+        System.out.println("searchMissPartofProduct" + whereCond);
         ArrayList<ProductDto> result = new ArrayList<>();
 
         //subaeService.findMissPart(result, partNo, con01);
-        result = subaeService.findPartOfProduct_v2(year, partNo, blockNo);
+        result = subaeService.findPartOfProduct_v2(whereCond);
         return result;
     }
 

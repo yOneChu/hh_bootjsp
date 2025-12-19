@@ -3,6 +3,7 @@ package com.kyhslam.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kyhslam.dto.PartInfoDTO;
+import com.kyhslam.dto.PartWhere;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.repository.SubaeRepository;
 import com.kyhslam.repository.mybatis.SubaeMapper;
@@ -159,12 +160,11 @@ public class SubaeService {
 
     /**
      * 자재번호가 사용되고 있는 모든 제품 찾기
-     * @param year
-     * @param partNo
+     * @param whereCond
      * @return
      */
-    public ArrayList<ProductDto> findPartOfProduct_v2(String year, String partNo, String blockNo) {
-        return SubaeCommonUtil.findPartOfProduct_v2(year, partNo.trim(), blockNo);
+    public ArrayList<ProductDto> findPartOfProduct_v2(PartWhere whereCond) {
+        return SubaeCommonUtil.findPartOfProduct_v2(whereCond);
     }
 
     public ArrayList<String> findUsedProductNo(ProductDto param) {

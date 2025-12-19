@@ -81,7 +81,7 @@ public class findTest_02 {
         sw.start();
 
         //subaeService.findPartOfProduct("2837255897", "HX");
-        subaeService.findPartOfProduct_v2("", "10311392G12*", "");
+        //subaeService.findPartOfProduct_v2("", "10311392G12*", "");
 
         sw.stop();
 

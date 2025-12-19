@@ -1,6 +1,7 @@
 package com.kyhslam.util;
 
 import com.kyhslam.dto.PartInfoDTO;
+import com.kyhslam.dto.PartWhere;
 import com.kyhslam.dto.ProductDto;
 import org.springframework.util.StringUtils;
 
@@ -799,11 +800,18 @@ public class SubaeCommonUtil {
     // 자재번호로
     // 해당 자재번호를 사용하고 있는 제품 검색
     // 2.제품 하위에 해당 자재가 있는지 검사
-    public static ArrayList<ProductDto> findPartOfProduct_v2(String year, String partNo, String pBlockNo) {
+    //public static ArrayList<ProductDto> findPartOfProduct_v2(String year, String partNo, String pBlockNo, String cmt) {
+    public static ArrayList<ProductDto> findPartOfProduct_v2(PartWhere whereCond) {
 
         Connection con 			= null;
         PreparedStatement pstmt = null;
         ResultSet rs 			= null;
+
+        String year = whereCond.getYear();
+        String partNo =  whereCond.getPartNo();
+        String pBlockNo = whereCond.getBlockNo();
+        String status = whereCond.getStatus();
+        String cmt = whereCond.getCmt();
 
         ArrayList<ProductDto> dataList = new ArrayList<ProductDto>();
 
@@ -812,13 +820,20 @@ public class SubaeCommonUtil {
             String sql = """
                     with ouid as
                          ( select A.vf$ouid AS VFOID from product$vf A, product$id B
-                          	where A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip
+                          	where A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip 
+                          	AND A.MD$NUMBER NOT LIKE 'TEST%'
             """;
 
             if (year != null && !"".equals(year)) {
                 sql += " AND SUBSTR(A.MD$CDATE, 0, 4) = '" + year + "' ";
             } else {
                 sql += " AND SUBSTR(A.MD$CDATE, 0, 4) = '2025' ";
+            }
+
+            //상태
+            if (status != null && !"".equals(status)) {
+                sql += " AND A.MD$STATUS = 'RLS' ";
+                //sql += " AND A.MD$STATUS = '" + year + "' ";
             }
 
             sql += """        
@@ -896,9 +911,11 @@ public class SubaeCommonUtil {
             }
 
             if(pBlockNo != null && !"".equals(pBlockNo)){
-
                 sql += " AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = '" + pBlockNo + "' ";
+            }
 
+            if(cmt != null && !"".equals(cmt)){
+                sql += " AND PE.CMT LIKE '%" + cmt + "%' ";
             }
 
             System.out.println("sql = " + sql);

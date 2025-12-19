@@ -162,6 +162,28 @@
                                 </div>
                             </div>
 
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>CMT</label>
+                                    <input type="search" id="cmt" class="form-control" placeholder="cmt..." value="">
+                                    <div class="input-group-append">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>제품 상태</label>
+                                    <select id="status" class="form-control select" style="width: 100%;">
+                                        <option value="" selected="selected">전체</option>
+                                        <option value="RLS">릴리즈</option>
+                                    </select>
+
+                                    <div class="input-group-append">
+                                    </div>
+                                </div>
+                            </div>
+
                 <%--            <div class="col-md-2">
                                 <div class="form-group">
                                     <label>-조건</label>
@@ -335,6 +357,8 @@
         let year = $("#year").val(); //
         let partNo = $("#partNo").val(); // L
         let blockNo = $("#blockNo").val();
+        let cmt = $("#cmt").val();
+        let status = $("#status").val();
 
         console.log(year);
         console.log(partNo);
@@ -362,7 +386,9 @@
             data : {
                 partNo : partNo,
                 year : year,
-                blockNo: blockNo
+                blockNo: blockNo,
+                cmt : cmt,
+                status : status
             },
             beforeSend: function() {
                 $("html").css("cursor", "wait");
@@ -394,7 +420,11 @@
                         str += "<td>" + data[i].blockopt + "</td>";
                         str += "<td>" + data[i].glCode + "</td>";
                         str += "<td>" + data[i].version + "</td>";
-                        str += "<td>" + data[i].cmt + "</td>";
+
+                        let cmtVal = data[i].cmt;
+                        cmtVal = cmtVal.replace(/-/g, '<br>-');
+
+                        str += "<td>" + cmtVal + "</td>";
                         str += "</tr>";
                     } // end for
 
