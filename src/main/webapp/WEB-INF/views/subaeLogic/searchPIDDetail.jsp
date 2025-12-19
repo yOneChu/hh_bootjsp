@@ -269,8 +269,9 @@
 
                         <div class="card card-primary">
 
-                            <div class="card-header">
-                                <h3 class="card-title">검색 결과</h3>
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h3 class="card-title mb-0">검색 결과</h3>
+                                <%--<button id="toggleEmptyColsBtn" type="button" class="btn btn-sm btn-outline-secondary" onclick="hideColumns()">빈 컬럼 숨기기</button>--%>
                             </div>
 
                             <!-- /.card-header -->
@@ -357,7 +358,7 @@
         <div class="float-right d-none d-sm-block">
             <b>Version</b> 1.0.0
         </div>
-        <strong>Copyright &copy; 2025 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
+        <strong>Copyright &copy; 2026 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
     </footer>
 
     <!-- Control Sidebar -->
@@ -397,6 +398,7 @@
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 
+<script src="/resources/javascript/commonUtil.js"></script>
 <script src="/resources/javascript/searchPIDDetail.js"></script>
 
 <script>

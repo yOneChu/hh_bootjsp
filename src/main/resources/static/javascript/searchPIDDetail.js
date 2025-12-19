@@ -344,6 +344,13 @@ function searchPID()
                     ]
                 }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(1)');
 
+                // Reset hide-empty state and button after table is rebuilt
+                window._hideEmptyActive = false;
+                window._hiddenEmptyColumns = [];
+                if ($('#toggleEmptyColsBtn').length) {
+                    $('#toggleEmptyColsBtn').text('빈 컬럼 숨기기');
+                }
+
             } else {
                 hideLoading(); // 성공 시 로딩바 제거
                 alert("검색결과가 없습니다.");
@@ -363,3 +370,4 @@ function isStringAndNotEmptyOrWhitespace(value) {
     }
     return false; // 문자열이 아님
 }
+
