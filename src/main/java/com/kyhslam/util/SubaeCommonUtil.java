@@ -88,7 +88,7 @@ public class SubaeCommonUtil {
                 sql += " AND A.SPEC like '%" + pSpec.trim() + "%'";
             }
 
-            System.out.println("sql = " + sql);
+            //System.out.println("sql = " + sql);
 
             pstmt = con.prepareStatement(sql.toString());
             //pstmt.setString(1, partNo);
@@ -928,7 +928,7 @@ public class SubaeCommonUtil {
                 sql += " AND PE.CMT LIKE '%" + cmt + "%' ";
             }
 
-            System.out.println("sql = " + sql);
+            //System.out.println("sql = " + sql);
 
             pstmt = con.prepareStatement(sql.toString());
             //pstmt.setString(1, productOID);
@@ -958,7 +958,7 @@ public class SubaeCommonUtil {
                 String UCHECK = rs.getString("UCHECK") == null ? "" : rs.getString("UCHECK");
                 String PART_QTY = rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
 
-                System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + BLOCK_OPT);
+                //System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + BLOCK_OPT);
 
 
                 ProductDto dto = new ProductDto();
