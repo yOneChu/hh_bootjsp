@@ -45,6 +45,9 @@ function hideLoading() {
 
 // 로딩바 표시 함수
 function showLoading() {
+
+    console.log('showloading ------------');
+
     // 로딩바 HTML 생성
     const loadingHtml = `
         <div id="loadingOverlay" style="

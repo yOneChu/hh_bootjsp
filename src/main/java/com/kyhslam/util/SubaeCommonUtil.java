@@ -813,6 +813,10 @@ public class SubaeCommonUtil {
         String status = whereCond.getStatus();
         String cmt = whereCond.getCmt();
 
+        if (pBlockNo != null && !"".equals(pBlockNo)) {
+            pBlockNo = pBlockNo.toUpperCase();
+        }
+
         ArrayList<ProductDto> dataList = new ArrayList<ProductDto>();
 
         try {
@@ -825,9 +829,9 @@ public class SubaeCommonUtil {
             """;
 
             if (year != null && !"".equals(year)) {
-                sql += " AND SUBSTR(A.MD$CDATE, 0, 4) = '" + year + "' ";
+                sql += " AND SUBSTR(A.MD$MDATE, 0, 4) = '" + year + "' ";
             } else {
-                sql += " AND SUBSTR(A.MD$CDATE, 0, 4) = '2025' ";
+                sql += " AND SUBSTR(A.MD$MDATE, 0, 4) = '2025' ";
             }
 
             //상태
@@ -849,6 +853,12 @@ public class SubaeCommonUtil {
                      , (SELECT COD(E.EL_ATYP) FROM ELV_INFO$ID A, ELV_INFO$VF E
                         WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
                         AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS GISONG
+                     , (SELECT COD(E.EL_ABRAND) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                        WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS BRAND
+                     , (SELECT COD(E.EL_ASPSCD) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                        WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS ASPSCD
                      , NP.MD$NUMBER AS PARTNO
                      , cod(NP.NATION) AS NATION
                      , NP.compen_part AS COMPEN_PART
@@ -934,7 +944,8 @@ public class SubaeCommonUtil {
                 String PROD_MODDATE = rs.getString("PROD_MODDATE") == null ? "" : rs.getString("PROD_MODDATE"); //제품 수정일
                 String PROD_APP_DATE = rs.getString("PROD_APP_DATE") == null ? "" : rs.getString("PROD_APP_DATE"); //제품 승인일
                 String GISONG = rs.getString("GISONG") == null ? "" : rs.getString("GISONG");
-
+                String BRAND = rs.getString("BRAND") == null ? "" : rs.getString("BRAND");
+                String ASPSCD = rs.getString("ASPSCD") == null ? "" : rs.getString("ASPSCD");
 
                 String PARTNO = rs.getString("PARTNO") == null ? "" : rs.getString("PARTNO");
                 String PARTNAME = rs.getString("PARTNAME") == null ? "" : rs.getString("PARTNAME");
@@ -950,10 +961,6 @@ public class SubaeCommonUtil {
                 System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + BLOCK_OPT);
 
 
-                /*if (!PART_QTY.contains("$")) {
-                    continue;
-                }*/
-
                 ProductDto dto = new ProductDto();
                 dto.setProductNo(productNo); //제품번호
                 dto.setProductVersion(productVersion); //제품버전
@@ -962,6 +969,8 @@ public class SubaeCommonUtil {
                 dto.setProductModDate(PROD_MODDATE);
                 dto.setProductAppdate(PROD_APP_DATE); //제품승인일
                 dto.setGisong(GISONG);
+                dto.setAspscd(ASPSCD);
+                dto.setBrand(BRAND);
 
                 dto.setPartNo(PARTNO);
                 dto.setPartName(PARTNAME);

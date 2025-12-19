@@ -16,6 +16,8 @@ public class ProductDto {
     private String productModDate;
     private String productAppdate;
     private String productStatus; //상태
+    private String aspscd; //샌상거점
+    private String brand; // 브랜드
     private String gisong;
     private String mmanager;
     private String emanager;
