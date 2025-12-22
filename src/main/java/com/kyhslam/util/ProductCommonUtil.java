@@ -569,6 +569,7 @@ public class ProductCommonUtil {
             stmt.setString(2, partOid);
             stmt.setString(3, productOid);
             stmt.setString(4, partOid);
+
             rs = stmt.executeQuery();
 
             while(rs.next()) {

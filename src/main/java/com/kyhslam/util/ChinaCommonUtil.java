@@ -738,4 +738,97 @@ public class ChinaCommonUtil {
         }
     }
 
+
+    //모든 블럭의 정보 셋팅
+    // 조건: BLOCKNO가 키, 나머지 정보는 내부 HashMap에 담아 value로 저장
+    public static HashMap<String, HashMap<String, String>> initBlockNo(String appendVal) {
+
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        HashMap<String, HashMap<String, String>> result = new HashMap<>();
+        
+        try {
+            con = getConnection(); // 중국 Connection
+
+            String baseSql = """
+                    SELECT
+                        B.MD$NUMBER AS BLOCKNO,
+                        B.MD$DESC AS BLOCKNAME,
+                        B.REMARKS AS REMARKS,
+                        B.MD$STATUS AS STATUS,
+                        COD(B.BLOCK_OPT) AS OPT,
+                        COD(B.GC_PRODUCT) AS GC_PRODUCT,
+                        B.QTY_PID AS QTY_PID, B.CMT_PID AS CMT_PID,
+                        B.SPEC01, B.SPEC02, B.SPEC03, B.SPEC04, B.SPEC05, B.SPEC06, B.SPEC07,
+                        B.SPEC08, B.SPEC09, B.SPEC10, B.SPEC11, B.SPEC12, B.SPEC13, B.SPEC14,
+                        B.SPEC15, B.SPEC16, B.SPEC17, B.SPEC18, B.SPEC19, B.SPEC20 
+                    FROM BLOCKNO$SF B
+                    """;
+
+            StringBuilder sql = new StringBuilder(baseSql);
+            if (appendVal != null && !appendVal.trim().isEmpty()) {
+                // 주의: appendVal은 콤마로 구분된 따옴표 포함 값 목록 (예: 'B001','B002')이어야 함
+                sql.append(" WHERE B.MD$NUMBER IN ( ").append(appendVal).append(" )");
+            }
+
+            System.out.println("initBlockNo.toString() = " + sql.toString());
+
+            stmt = con.prepareStatement(sql.toString());
+            rs = stmt.executeQuery();
+
+
+
+            while (rs.next()) {
+                String blockNo = nvl(rs.getString("BLOCKNO"));
+
+                HashMap<String, String> map = new HashMap<>();
+                map.put("BLOCKNAME", nvl(rs.getString("BLOCKNAME")));
+                map.put("REMARKS", nvl(rs.getString("REMARKS")));
+                map.put("STATUS", nvl(rs.getString("STATUS")));
+                map.put("OPT", nvl(rs.getString("OPT")));
+                map.put("GC_PRODUCT", nvl(rs.getString("GC_PRODUCT")));
+                map.put("QTY_PID", nvl(rs.getString("QTY_PID")));
+                map.put("CMT_PID", nvl(rs.getString("CMT_PID")));
+
+                map.put("SPEC01", nvl(rs.getString("SPEC01")));
+                map.put("SPEC02", nvl(rs.getString("SPEC02")));
+                map.put("SPEC03", nvl(rs.getString("SPEC03")));
+                map.put("SPEC04", nvl(rs.getString("SPEC04")));
+                map.put("SPEC05", nvl(rs.getString("SPEC05")));
+                map.put("SPEC06", nvl(rs.getString("SPEC06")));
+                map.put("SPEC07", nvl(rs.getString("SPEC07")));
+                map.put("SPEC08", nvl(rs.getString("SPEC08")));
+                map.put("SPEC09", nvl(rs.getString("SPEC09")));
+                map.put("SPEC10", nvl(rs.getString("SPEC10")));
+                map.put("SPEC11", nvl(rs.getString("SPEC11")));
+                map.put("SPEC12", nvl(rs.getString("SPEC12")));
+                map.put("SPEC13", nvl(rs.getString("SPEC13")));
+                map.put("SPEC14", nvl(rs.getString("SPEC14")));
+                map.put("SPEC15", nvl(rs.getString("SPEC15")));
+                map.put("SPEC16", nvl(rs.getString("SPEC16")));
+                map.put("SPEC17", nvl(rs.getString("SPEC17")));
+                map.put("SPEC18", nvl(rs.getString("SPEC18")));
+                map.put("SPEC19", nvl(rs.getString("SPEC19")));
+                map.put("SPEC20", nvl(rs.getString("SPEC20")));
+
+                result.put(blockNo, map);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, stmt, rs);
+        }
+
+        System.out.println(result.size());
+
+        return result;
+    }
+
+    // null을 빈 문자열로 변환하는 유틸
+    private static String nvl(String val) {
+        return val == null ? "" : val;
+    }
 }
