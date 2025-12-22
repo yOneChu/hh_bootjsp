@@ -10,6 +10,7 @@ import org.springframework.util.StopWatch;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class LogicDataExcelOutput {
 
@@ -21,13 +22,9 @@ public class LogicDataExcelOutput {
         sw.start();
 
 
-        ChinaCommonUtil.initBlockNo("");
-
+        HashMap<String, HashMap<String, String>> blockMap = ChinaCommonUtil.initBlockNo("");
 
         //모든 블럭의 정보 셋팅
-
-
-
         String[] headers = {"PartNo", "PartName", "Version", "ENAME", "CNAME", "UOM", "BlockNo", "GLCode", "Part_Size", "SPEC"
                 , "SPEC1", "CON1", "SPEC2", "CON2", "SPEC3", "CON3", "SPEC4", "CON4", "SPEC5", "CON5", "SPEC6", "CON6", "SPEC7", "CON7", "SPEC8", "CON8", "SPEC9", "CON9", "SPEC10", "CON10"
                 , "SPEC11", "CON11", "SPEC12", "CON12", "SPEC13", "CON13", "SPEC14", "CON14", "SPEC15", "CON15", "SPEC16", "CON16", "SPEC17", "CON17", "SPEC18", "CON18", "SPEC19", "CON19", "SPEC20", "CON20"};

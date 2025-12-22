@@ -819,7 +819,7 @@ public class ChinaCommonUtil {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            PLMDBConnection.disconnect(con, stmt, rs);
+            disconnect(con, stmt, rs);
         }
 
         System.out.println(result.size());
@@ -831,4 +831,125 @@ public class ChinaCommonUtil {
     private static String nvl(String val) {
         return val == null ? "" : val;
     }
+
+
+
+    /**
+     * @apiNote 법인 데이터 모두 저장
+     * 주의: appendVal은 콤마로 구분된 따옴표 포함 값 목록 (예: 'B001','B002')이어야 함
+     * @param appendVal (PartNo)
+     * appendVal : PartNo
+     * @return
+     */
+    public static HashMap<String, HashMap<String, String>> findALLPartWithCN(String year, String appendVal) {
+
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        HashMap<String, HashMap<String, String>> result = new HashMap<>();
+
+        try {
+
+            con = getConnection(); // 중국 Connection
+
+            String baseSql = """
+                with ouid as
+                  ( select A.vf$ouid from NORMALPART$vf A, NORMALPART$id B
+                    where A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip
+                    -- AND ( md$number in ( 'C182P014647') )
+                    -- AND SUBSTR(A.MD$CDATE, 0, 4) IN( ? )
+                    AND SUBSTR(A.MD$MDATE, 0, 4) IN( ? )
+                  )
+                  SELECT A.MD$NUMBER AS PARTNO,
+                         A.MD$DESC AS PARTNAME, -- 파트명
+                         A.VF$VERSION AS VERSION,
+                         A.ENAME,
+                         A.CNAME,
+                         A.UOM,
+                         CODN(A.UOM) AS UOM_NAME,
+                         A.PART_DIVISION,
+                         A.SAVEUSER,
+                         A.DISUSE_YN, -- 폐기여부
+                         A.ORIGIN_DIV,
+                         A.G_L_CODE AS GL_CODE,
+                         A.BLOCKNO_NUMBER,
+                         A.PART_SIZE,
+                         A.SPEC_EN,
+                         A.SPEC,
+                         A.SPEC01, A.SPEC02, A.SPEC03, A.SPEC04, A.SPEC05, A.SPEC06, A.SPEC07, A.SPEC08, A.SPEC09, A.SPEC10, A.SPEC11, A.SPEC12, A.SPEC13, A.SPEC14, A.SPEC15, A.SPEC16,
+                         A.SPEC17, A.SPEC18, A.SPEC19, A.SPEC20
+                         --,A.*
+                  FROM NORMALPART$VF A
+                WHERE A.VF$OUID IN (SELECT * FROM OUID)
+                --AND A.MD$NUMBER = 'C184P002609'
+            """;
+
+            StringBuilder sql = new StringBuilder(baseSql);
+            if (appendVal != null && !appendVal.trim().isEmpty()) {
+                // 주의: appendVal은 콤마로 구분된 따옴표 포함 값 목록 (예: 'C184P002609','C182P014647')이어야 함
+                sql.append(" AND A.MD$NUMBER IN ( ").append(appendVal).append(" )");
+            }
+
+            System.out.println("findALLPartWithCN SQL = " + sql.toString());
+
+            stmt = con.prepareStatement(sql.toString());
+            stmt.setString(1, year);
+
+            rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                String PARTNO = nvl(rs.getString("PARTNO"));
+
+                HashMap<String, String> map = new HashMap<>();
+                map.put("PARTNO", PARTNO);
+                map.put("PARTNAME", nvl(rs.getString("PARTNAME")));
+                map.put("VERSION", nvl(rs.getString("VERSION")));
+                map.put("ENAME", nvl(rs.getString("ENAME")));
+                map.put("CNAME", nvl(rs.getString("CNAME")));
+                map.put("UOM", nvl(rs.getString("UOM")));
+                map.put("UOM_NAME", nvl(rs.getString("UOM_NAME")));
+                map.put("PART_DIVISION", nvl(rs.getString("PART_DIVISION")));
+                map.put("SAVEUSER", nvl(rs.getString("SAVEUSER")));
+                map.put("DISUSE_YN", nvl(rs.getString("DISUSE_YN")));
+                map.put("ORIGIN_DIV", nvl(rs.getString("ORIGIN_DIV")));
+                map.put("GL_CODE", nvl(rs.getString("GL_CODE")));
+                map.put("BLOCKNO_NUMBER", nvl(rs.getString("BLOCKNO_NUMBER")));
+                map.put("PART_SIZE", nvl(rs.getString("PART_SIZE")));
+                map.put("SPEC_EN", nvl(rs.getString("SPEC_EN")));
+                map.put("SPEC", nvl(rs.getString("SPEC")));
+
+                map.put("SPEC01", nvl(rs.getString("SPEC01")));
+                map.put("SPEC02", nvl(rs.getString("SPEC02")));
+                map.put("SPEC03", nvl(rs.getString("SPEC03")));
+                map.put("SPEC04", nvl(rs.getString("SPEC04")));
+                map.put("SPEC05", nvl(rs.getString("SPEC05")));
+                map.put("SPEC06", nvl(rs.getString("SPEC06")));
+                map.put("SPEC07", nvl(rs.getString("SPEC07")));
+                map.put("SPEC08", nvl(rs.getString("SPEC08")));
+                map.put("SPEC09", nvl(rs.getString("SPEC09")));
+                map.put("SPEC10", nvl(rs.getString("SPEC10")));
+                map.put("SPEC11", nvl(rs.getString("SPEC11")));
+                map.put("SPEC12", nvl(rs.getString("SPEC12")));
+                map.put("SPEC13", nvl(rs.getString("SPEC13")));
+                map.put("SPEC14", nvl(rs.getString("SPEC14")));
+                map.put("SPEC15", nvl(rs.getString("SPEC15")));
+                map.put("SPEC16", nvl(rs.getString("SPEC16")));
+                map.put("SPEC17", nvl(rs.getString("SPEC17")));
+                map.put("SPEC18", nvl(rs.getString("SPEC18")));
+                map.put("SPEC19", nvl(rs.getString("SPEC19")));
+                map.put("SPEC20", nvl(rs.getString("SPEC20")));
+
+                result.put(PARTNO, map);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            disconnect(con, stmt, rs);
+        }
+
+        return result;
+    }
+
 }

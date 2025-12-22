@@ -178,7 +178,8 @@
                         </li>--%>
                         <li>
                             <a href="/subae/searchMissPartofProduct" class="nav-link">
-                                <p>자재 실적 전체 조회(ERP 전송현장 포함)(테스트)</p>
+                                <%--<p>자재 실적 전체 조회(ERP 전송현장 포함)(테스트)</p>--%>
+                                   <p>PLM 제품·자재 데이터분석 </p>
                             </a>
                         </li>
 
