@@ -93,3 +93,6 @@ function showLoading() {
     document.body.insertAdjacentHTML('beforeend', loadingHtml);
 }
 
+
+
+
