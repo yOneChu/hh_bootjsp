@@ -3,6 +3,7 @@ package com.kyhslam.controller;
 import com.kyhslam.dto.*;
 import com.kyhslam.service.BlockHistoryService;
 import com.kyhslam.service.SubaeService;
+import com.kyhslam.util.ElvInfoCommonUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +32,6 @@ public class SubaeController {
     private final BlockHistoryService blockHistoryService;
 
     private final SubaeService subaeService;
-
 
 
     //본사-법인 자재비교
@@ -208,6 +208,7 @@ public class SubaeController {
 
     /**
      * 자재번호가 사용되고 있는 모든 제품 찾기
+     *
      * @param whereCond
      * @return
      */
@@ -274,7 +275,7 @@ public class SubaeController {
     @CrossOrigin
     public ArrayList<ArrayList<String>> findPIDLineView(String pid) {
 
-        if(pid != null && !pid.equals("")) {
+        if (pid != null && !pid.equals("")) {
             pid = pid.toUpperCase();
         }
 
@@ -290,8 +291,8 @@ public class SubaeController {
     }
 
     /**
-     * @apiNote 2개의 호기에 대한 영업사양 값 비교
      * @return
+     * @apiNote 2개의 호기에 대한 영업사양 값 비교
      */
     @GetMapping("/subae/elevatorSpecDiff")
     public String elevatorSpecDiff() {
@@ -304,8 +305,8 @@ public class SubaeController {
     @CrossOrigin
     public ArrayList<HashMap<String, String>> elevatorSpecDiff(String ho1, String ho2) {
         log.info("========== subae elevatorSpecDiff");
-        ArrayList<HashMap<String, String>> result = new  ArrayList<>();
-        if(ho1 != null && !"".equals(ho1) && ho2 != null && !"".equals(ho2)) {
+        ArrayList<HashMap<String, String>> result = new ArrayList<>();
+        if (ho1 != null && !"".equals(ho1) && ho2 != null && !"".equals(ho2)) {
             result = subaeService.getSalesInfo(ho1, ho2);
         }
         return result;
@@ -314,9 +315,10 @@ public class SubaeController {
 
     /**
      * 층별로직
-     * @apiNote 특정호기의 전체 층 검사하여 사양값 추출
+     *
      * @param hogi
      * @return
+     * @apiNote 특정호기의 전체 층 검사하여 사양값 추출
      */
     @GetMapping("/subae/getFloorInfoJson")
     @ResponseBody
@@ -331,7 +333,7 @@ public class SubaeController {
 
         List<Map<String, Object>> result = null;
         if (key.equals("electUser")) {
-            if(hogi != null && !"".equals(hogi)) {
+            if (hogi != null && !"".equals(hogi)) {
                 result = subaeService.getFloorInfoJson(hogi);
             }
         }
@@ -358,7 +360,7 @@ public class SubaeController {
 
         result = subaeService.pidExecute(hogi, pid, testVersion, floor, isfloor);
 
-        return  result;
+        return result;
     }
 
 
@@ -369,5 +371,13 @@ public class SubaeController {
     @GetMapping("/subae/searchElvInfo")
     public String thyTest() {
         return "thymeleaf/searchElvInfo";
+    }
+
+    @GetMapping("/subae/findGisong")
+    @ResponseBody
+    @CrossOrigin
+    public ArrayList<CodeDTO> findGisong() {
+        ArrayList<CodeDTO> result = ElvInfoCommonUtil.findDosCode("기종");
+        return result;
     }
 }

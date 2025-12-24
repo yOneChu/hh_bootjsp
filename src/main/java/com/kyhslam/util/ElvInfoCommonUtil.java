@@ -1,5 +1,6 @@
 package com.kyhslam.util;
 
+import com.kyhslam.dto.CodeDTO;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -407,4 +408,49 @@ public class ElvInfoCommonUtil {
         //return result;
     }
 
+    //기종 추출
+    public static ArrayList<CodeDTO> findDosCode(String type) {
+
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        ArrayList<CodeDTO> result = new ArrayList<>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                SELECT D.NAME, D.DES AS CODE , C.NAME AS TYPE_NAME
+                --, D.*, C.*
+                FROM doscoditm D, DOSCOD C
+                WHERE D.DOSCOD= C.OUID
+                --AND C.NAME = '기종'
+                AND C.NAME = ?
+                """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, type);
+
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                String NAME =  rs.getString("NAME"); // 설명
+                String CODE = rs.getString("CODE") == null ? "" : rs.getString("CODE");
+                String TYPE_NAME =  rs.getString("TYPE_NAME") == null ? "" : rs.getString("TYPE_NAME");
+
+                CodeDTO dto = new CodeDTO();
+                dto.setName(NAME);
+                dto.setCode(CODE);
+                dto.setTypeName(TYPE_NAME);
+
+                result.add(dto);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
+    }
 }

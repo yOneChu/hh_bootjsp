@@ -812,6 +812,10 @@ public class SubaeCommonUtil {
         String pBlockNo = whereCond.getBlockNo();
         String status = whereCond.getStatus();
         String cmt = whereCond.getCmt();
+        String spec = whereCond.getSpec();
+        String brand = whereCond.getBrand();
+        String EL_ASPSCD = whereCond.getEL_ASPSCD();
+        String EL_ATYP =  whereCond.getEL_ATYP();
 
         if (pBlockNo != null && !"".equals(pBlockNo)) {
             pBlockNo = pBlockNo.toUpperCase();
@@ -826,6 +830,7 @@ public class SubaeCommonUtil {
                          ( select A.vf$ouid AS VFOID from product$vf A, product$id B
                           	where A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip 
                           	AND A.MD$NUMBER NOT LIKE 'TEST%'
+                          	AND A.MD$NUMBER NOT LIKE 'Q%'
             """;
 
             if (year != null && !"".equals(year)) {
@@ -901,18 +906,12 @@ public class SubaeCommonUtil {
                     LEFT OUTER JOIN VARIABLEPART_NEW VP ON VP.PRODUCTOUID = PE.PRODUCTOUID AND VP.ASSOOUID = PE.ASSOOUID
                     WHERE
                     PE.PRODUCTOUID IN (SELECT VFOID FROM ouid)
-                    --AND NP.MD$NUMBER LIKE '2300005%'
-                    --AND NP.MD$NUMBER LIKE ''
-                    --ORDER BY TO_NUMBER(PE.SEQ)
                 """;
             
 
             if(partNo != null && !"".equals(partNo)){
-
                 if (partNo.contains("*")) {
-
                     partNo = partNo.replace("*", "%");
-
                     //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
                     sql += " AND NP.MD$NUMBER LIKE '" + partNo + "' ";
                 } else {
@@ -921,12 +920,51 @@ public class SubaeCommonUtil {
             }
 
             if(pBlockNo != null && !"".equals(pBlockNo)){
-                sql += " AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = '" + pBlockNo + "' ";
+                sql += " AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID = DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = '" + pBlockNo + "' ";
             }
 
             if(cmt != null && !"".equals(cmt)){
                 sql += " AND PE.CMT LIKE '%" + cmt + "%' ";
             }
+
+            //NP.SPEC
+            if(spec != null && !"".equals(spec)){
+                sql += " AND NP.SPEC LIKE '%" + spec + "%' ";
+            }
+
+            //brand
+            if(brand != null && !"".equals(brand) && !"-".equals(brand)) {
+                sql += """
+                    AND (SELECT COD(E.EL_ABRAND) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                    WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                    """;
+                sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) = '" + brand + "' ";
+            }
+
+            //생산거점(설계)
+            if(EL_ASPSCD != null && !"".equals(EL_ASPSCD) && !"-".equals(EL_ASPSCD)) {
+                sql += """
+                    AND (SELECT COD(E.EL_ASPSCD) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                    WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                    """;
+                sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) = '" + EL_ASPSCD + "' ";
+            }
+
+            //기종
+            if(EL_ATYP != null && !"".equals(EL_ATYP) && !"-".equals(EL_ATYP)) {
+                sql += """
+                    AND (SELECT COD(E.EL_ATYP) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                    WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                    """;
+
+                if (EL_ATYP.contains("*")) {
+                    EL_ATYP = partNo.replace("*", "%");
+                    sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) LIKE '" + EL_ATYP + "' ";
+                } else {
+                    sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) = '" + EL_ATYP + "' ";
+                }
+            }
+
 
             //System.out.println("sql = " + sql);
 

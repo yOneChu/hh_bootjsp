@@ -6,12 +6,17 @@ import lombok.Data;
 public class PartWhere {
 
     String year;
+    String brand;
     String partNo;
     String blockNo;
     String cmt;
+    String spec;
 
     String creDate;
     String endDate;
     String status;
+    
+    String EL_ASPSCD; //생산거점
+    String EL_ATYP; //기종
 
 }

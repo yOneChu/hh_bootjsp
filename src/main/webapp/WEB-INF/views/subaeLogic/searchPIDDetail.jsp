@@ -7,7 +7,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <link rel="icon" type="image/png" href="/resources/favicon.ico" />
 
-    <title>PID 상세조회</title>
+    <title>로직 PID Analytics</title>
 
     <!-- Google Font: Source Sans Pro -->
     <!--    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">-->
@@ -69,7 +69,7 @@
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
-                        <h1>PID 상세조회</h1>
+                        <h1>로직 PID Analytics</h1>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
@@ -89,7 +89,7 @@
 
 
         <!-- Main content -->
-        <section class="content" style="zoom:100%;">
+        <section class="content" style="zoom:95%;">
 
             <div class="container-fluid"> <!-- start - container-fluid -->
 
@@ -280,7 +280,7 @@
                                 <table id="infoTable" class="table table-bordered table-hover" style="font-family: NotoSans; font-size:15px;">
                                     <thead>
                                     <!-- bg-primary -->
-                                    <tr class="bg-secondary">
+                                    <tr class="bg-secondary" id="headerInfo">
                                         <th>PID</th>
                                         <th>NO</th>
                                         <th>ADDR</th>

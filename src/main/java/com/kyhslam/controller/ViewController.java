@@ -51,5 +51,10 @@ public class ViewController {
         return "/vault/eduView";
     }
 
+    //모듈러 폴더 조회
+    @GetMapping("/vault/moduleView")
+    public String moduleView() {
+        return "thymeleaf/searchModuleView";
+    }
 
 }

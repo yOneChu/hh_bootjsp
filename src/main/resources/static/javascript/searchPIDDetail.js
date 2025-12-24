@@ -308,9 +308,7 @@ function searchPID()
 
 
                 $("#contentTable").append(str);
-
-
-
+                
                 hideLoading(); // 성공 시 로딩바 제거
 
                 $("#infoTable").DataTable({
@@ -343,20 +341,51 @@ function searchPID()
                         }
                     ]
                 }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(1)');
-
-                // Reset hide-empty state and button after table is rebuilt
-                window._hideEmptyActive = false;
-                window._hiddenEmptyColumns = [];
-                if ($('#toggleEmptyColsBtn').length) {
-                    $('#toggleEmptyColsBtn').text('빈 컬럼 숨기기');
-                }
-
+                
             } else {
                 hideLoading(); // 성공 시 로딩바 제거
                 alert("검색결과가 없습니다.");
             }
+            
+            //컬럼 숨기기
+            hideCols();
+
         } // end success;
     });
+}
+
+
+function hideCols() {
+    const $table = $('#infoTable');
+    const dt = $table.DataTable();
+    const colCount = $('#headerInfo th').length;
+
+    if ($('#contentTable tr').length === 0) {
+        return;
+    }
+
+    const colsToHide = [];
+
+    for (let i = 0; i < colCount; i++) {
+        let allDash = true;
+
+        $('#contentTable tr').each(function() {
+            const text = $(this).children('td').eq(i).text().trim();
+            if (text !== '-') {
+                allDash = false;
+                return false; // break each
+            }
+        });
+
+        if (allDash) {
+            colsToHide.push(i);
+        }
+    }
+
+    if (colsToHide.length > 0) {
+        dt.columns(colsToHide).visible(false, false);
+        dt.columns.adjust().draw(false);
+    }
 }
 
 function isStringAndNotEmptyOrWhitespace(value) {

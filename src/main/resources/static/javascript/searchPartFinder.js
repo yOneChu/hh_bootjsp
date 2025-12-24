@@ -39,8 +39,6 @@ $(document).ready(function() {
 
     $("#dashboard").removeClass("menu-open");
 
-
-
     //엔터키 감지
     $(document).keyup(function(event) {
         if(event.which === 13) {
@@ -50,8 +48,67 @@ $(document).ready(function() {
     })
 
 
+    //findDosCode
+    codeSetting();
+
+
+    $('#EL_ASPSCD').select2({
+        tags: true,                 // 🔑 직접 입력 허용
+        placeholder: "직접 입력 또는 선택",
+        allowClear: true
+    });
+
+
+    $('#EL_ATYP').select2({
+        tags: true,                 // 🔑 직접 입력 허용
+        placeholder: "직접 입력 또는 선택",
+        allowClear: true
+    });
 
 });
+
+
+function codeSetting() {
+
+
+    $.ajax({
+        type: "get",
+        crossDomain: true,
+        url: "/subae/findGisong",
+
+        success: function (data) {
+            //console.log("data - ", data);
+
+            if (data != null && data.length > 0) {
+                let str = "";
+
+                for (let i = 0; i < data.length; i++) {
+
+                    let name = data[i].name;
+                    let code = data[i].code;
+
+                    str +=
+                        `
+                        <option value="${code}">${code} -> (${name})</option>
+                        `;
+                }
+
+                $("#EL_ATYP").append(str);
+            }
+        },
+
+        error: function (xhr, status, err) {
+            console.error("AJAX error:", status, err, xhr?.responseText);
+            alert("조회 중 오류가 발생했습니다.");
+        },
+
+        // ✅ 성공/실패 상관없이 항상 마지막에 로딩 제거 (가장 안전)
+        complete: function () {
+            //hideLoading();
+        }
+    });
+
+}
 
 
 function runHeavyWork() {
@@ -72,9 +129,13 @@ function searchPID()
     let blockNo = $("#blockNo").val();
     let cmt = $("#cmt").val();
     let status = $("#status").val();
+    let spec = $("#spec").val();
+    let brand = $("#brand").val();
+    let EL_ASPSCD = $("#EL_ASPSCD").val();
+    let EL_ATYP = $("#EL_ATYP").val();
 
-    console.log(year);
-    console.log(partNo);
+    //console.log(year);
+    //console.log(partNo);
 
     // 입력값 트림 처리
     partNo = partNo ? partNo.trim() : "";
@@ -82,7 +143,7 @@ function searchPID()
 
     // partNo, blockNo 둘 다 비어있으면 중단, 둘 중 하나라도 있으면 진행
     if ((partNo === "" || partNo == null) && (blockNo === "" || blockNo == null)) {
-        alert("partNo 또는 blockNo 중 하나는 입력하세요.");
+        alert("PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.");
         return;
     }
 
@@ -104,11 +165,15 @@ function searchPID()
                 year: year,
                 blockNo: blockNo,
                 cmt: cmt,
-                status: status
+                status: status,
+                spec: spec,
+                brand: brand,
+                EL_ASPSCD: EL_ASPSCD,
+                EL_ATYP: EL_ATYP
             },
 
             success: function (data) {
-                console.log("data - ", data);
+                //console.log("data - ", data);
 
                 // ✅ 기존 테이블 내용 비우기 (append 누적 방지)
                 $("#contentTable").empty();
