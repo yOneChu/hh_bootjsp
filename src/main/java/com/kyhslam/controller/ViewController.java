@@ -13,6 +13,11 @@ import java.io.IOException;
 @Slf4j
 public class ViewController {
 
+    @GetMapping("/edu/designStudy")
+    public String designStudy() {
+        return "thymeleaf/designStudy";
+    }
+
 
     @GetMapping("/vault/designMain")
     public String DesignView() {
