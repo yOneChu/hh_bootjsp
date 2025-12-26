@@ -13,11 +13,6 @@ import java.io.IOException;
 @Slf4j
 public class ViewController {
 
-    @GetMapping("/edu/designStudy")
-    public String designStudy() {
-        return "thymeleaf/designStudy";
-    }
-
 
     @GetMapping("/vault/designMain")
     public String DesignView() {
@@ -54,6 +49,16 @@ public class ViewController {
     public String eduView(String filename) throws IOException {
 
         return "/vault/eduView";
+    }
+
+    @GetMapping("/edu/designStudy")
+    public String designStudy() {
+        return "thymeleaf/designStudy";
+    }
+
+    @GetMapping("/edu/moduleDesignView")
+    public String moduleDesignView() {
+        return "thymeleaf/moduleView";
     }
 
     //모듈러 폴더 조회
