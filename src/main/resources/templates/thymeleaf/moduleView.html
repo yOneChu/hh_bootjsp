@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/png" href="/resources/favicon.ico" />
 
     <title>JQPR 현황</title>
@@ -176,6 +177,130 @@
             color: var(--he-primary-dark);
         }
 
+        /* 테이블 내 View 버튼 가시성 개선 (밝은 배경에서 흐리게 보이는 문제 해결) */
+        .module-table-wrap .btn-outline-light {
+            color: var(--he-primary-dark);
+            border-color: var(--he-border);
+            background-color: #ffffff;
+            font-weight: 600;
+        }
+
+        .module-table-wrap .btn-outline-light:hover {
+            background-color: var(--he-primary-light);
+            border-color: var(--he-primary-dark);
+            color: var(--he-primary-dark);
+        }
+
+        /* ==============================
+           Module Drawing Table (modDrawingTable)
+           - 가독성 개선, 페이지 스타일과 조화
+           - DataTables 구성요소 포함
+           ============================== */
+        .module-table-wrap #modDrawingTable {
+            border-color: var(--he-border);
+        }
+
+        /* 헤더: 상단 고정 + 대비 강화 */
+        .module-table-wrap #modDrawingTable thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--he-surface, #f8f9fa);
+            color: var(--he-primary-dark);
+            font-weight: 700;
+            border-bottom: 2px solid var(--he-border);
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        /* 셀 패딩(컴팩트) */
+        .module-table-wrap #modDrawingTable.table-sm td,
+        .module-table-wrap #modDrawingTable.table-sm th {
+            padding: 0.5rem 0.75rem;
+        }
+
+        /* 지브라 스트라이프 + 호버 강조 */
+        .module-table-wrap #modDrawingTable tbody tr:nth-child(odd) {
+            background-color: var(--he-row-alt, rgba(0, 0, 0, 0.02));
+        }
+        .module-table-wrap #modDrawingTable tbody tr:hover {
+            background-color: var(--he-primary-xxlight, rgba(0, 0, 0, 0.04));
+        }
+
+        /* 경계선 컬러 정돈 */
+        .module-table-wrap #modDrawingTable td,
+        .module-table-wrap #modDrawingTable th {
+            border-color: var(--he-border);
+        }
+
+        /* 텍스트 정렬 보정 (파일 경로 등 긴 텍스트는 줄바꿈 허용) */
+        .module-table-wrap #modDrawingTable td {
+            vertical-align: middle;
+            word-break: break-all;
+        }
+
+        /* DataTables 컨트롤(검색/페이지네이션/길이/정보) */
+        .module-table-wrap .dataTables_wrapper .dataTables_filter input {
+            height: 32px;
+            padding: 0.25rem 0.5rem;
+            border: 1px solid var(--he-border);
+            border-radius: 6px;
+            background: var(--he-surface, #fff);
+            color: inherit;
+        }
+        .module-table-wrap .dataTables_wrapper .dataTables_length select {
+            height: 32px;
+            padding: 0.25rem 1.75rem 0.25rem 0.5rem;
+            border: 1px solid var(--he-border);
+            border-radius: 6px;
+            background: var(--he-surface, #fff);
+            color: inherit;
+        }
+        .module-table-wrap .dataTables_wrapper .dataTables_info {
+            color: var(--he-text-secondary, #6c757d);
+            font-size: 0.875rem;
+        }
+        .module-table-wrap .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 0.25rem 0.5rem;
+            margin: 0 2px;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            color: inherit !important;
+        }
+        .module-table-wrap .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .module-table-wrap .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: var(--he-primary-light);
+            border-color: var(--he-primary-dark);
+            color: var(--he-primary-dark) !important;
+        }
+        .module-table-wrap .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: var(--he-primary-xxlight, #eef5ff);
+            border-color: var(--he-border);
+        }
+
+        /* 다크 모드 보정 */
+        body.dark-mode .module-table-wrap #modDrawingTable thead th {
+            background: #1f2937;
+            color: #e5e7eb;
+            border-bottom-color: #374151;
+        }
+        body.dark-mode .module-table-wrap #modDrawingTable tbody tr:nth-child(odd) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+        body.dark-mode .module-table-wrap #modDrawingTable tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.06);
+        }
+        body.dark-mode .module-table-wrap #modDrawingTable td,
+        body.dark-mode .module-table-wrap #modDrawingTable th {
+            border-color: #374151;
+        }
+        body.dark-mode .module-table-wrap .dataTables_wrapper .dataTables_filter input,
+        body.dark-mode .module-table-wrap .dataTables_wrapper .dataTables_length select {
+            background: #111827;
+            border-color: #374151;
+            color: #e5e7eb;
+        }
+
         /* 폼 컨트롤 */
         .module-search-card .form-label {
             font-size: 0.8rem;
@@ -271,6 +396,80 @@
             }
         }
 
+        /* --- 모바일/태블릿 최적화 추가 --- */
+        /* 스크롤 성능 향상 (iOS 등) */
+        .table-responsive {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 작은 화면에서 폼 요소와 버튼 터치 영역 확대 */
+        @media (max-width: 575.98px) {
+            .module-search-card .form-control,
+            .module-search-card .select2-selection--single {
+                min-height: 38px;
+                font-size: 0.9rem;
+            }
+            .module-search-card .btn {
+                min-height: 36px;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* 테이블 컬럼 가시성: 화면 크기에 따라 중요도 낮은 컬럼 숨김
+           - xs(<576px): 파일명 + 뷰어 링크만 표시 (경로/작업자 숨김)
+           - sm~md(576–992px): 경로는 표시, 작업자만 숨김
+        */
+        /* xs: 숨김 - 3열(파일경로), 4열(작업자) */
+        @media (max-width: 575.98px) {
+            #modDrawingTable thead th:nth-child(3),
+            #modDrawingTable tbody td:nth-child(3),
+            #modDrawingTable thead th:nth-child(4),
+            #modDrawingTable tbody td:nth-child(4) {
+                display: none !important;
+            }
+
+            /* 버튼 셀의 버튼을 조금 더 크고 터치 친화적으로 */
+            .module-table-wrap #modDrawingTable tbody td:nth-child(2) .btn {
+                padding: 0.3rem 0.6rem;
+                font-weight: 600;
+                border-radius: 8px;
+            }
+
+            /* 파일명은 두 줄까지 표시하고 넘치면 말줄임 처리 */
+            #modDrawingTable tbody td:nth-child(1) {
+                max-width: 60vw;
+                white-space: normal;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+        }
+
+        /* sm~md: 4열(작업자)만 숨김, 경로는 표시 */
+        @media (min-width: 576px) and (max-width: 991.98px) {
+            #modDrawingTable thead th:nth-child(4),
+            #modDrawingTable tbody td:nth-child(4) {
+                display: none !important;
+            }
+        }
+
+        /* 태블릿에서 테이블 셀 가독성 약간 증가 */
+        @media (min-width: 576px) and (max-width: 991.98px) {
+            #modDrawingTable thead th,
+            #modDrawingTable tbody td {
+                font-size: 0.82rem;
+            }
+        }
+
+        /* 다크모드에서도 숨김 규칙 유지 (명시적 재정의 불필요하지만 가독성 향상을 위해 폰트 크기 보정) */
+        @media (max-width: 575.98px) {
+            body.dark-mode #modDrawingTable thead th,
+            body.dark-mode #modDrawingTable tbody td {
+                font-size: 0.9rem;
+            }
+        }
+
     </style>
 
 </head>
@@ -310,13 +509,18 @@
         <section class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
-                    <div class="col-sm-6">
+                    <!--<div class="col-sm-6">
                         <h1><i class="fas fa-building me-3"></i>JQPR 시스템</h1>
                         <p class="mb-0">엘리베이터 설치 현장 비용 관리 시스템</p>
+                    </div>-->
+
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="bi bi-grid-3x3-gap-fill me-2 text-success"></i>
+                        <span class="module-header-title">모듈러시스템 도면 조회</span>
                     </div>
+
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
-
                             <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
                                 <input type="checkbox" class="custom-control-input" id="darkModeToggle">
                                 <label class="custom-control-label" for="darkModeToggle">🌓 다크모드</label>
@@ -342,18 +546,20 @@
         <div class="container-fluid">
             <div class="row module-header align-items-center mb-3">
                 <div class="col-12 col-md-8">
-                    <div class="d-flex align-items-center mb-1">
+<!--                    <div class="d-flex align-items-center mb-1">
                         <i class="bi bi-grid-3x3-gap-fill me-2 text-success"></i>
                         <span class="module-header-title">모듈러시스템 도면 조회</span>
-                    </div>
+                    </div>-->
                     <p class="module-header-subtitle mb-1">
                         모듈러 프로젝트의 2D/3D 도면을 생산거점·상태별로 빠르게 조회하고 관리하는 화면입니다.
                     </p>
                     <span class="module-badge">
-            <i class="bi bi-pc-display-horizontal me-1"></i>PC · Tablet · Mobile 반응형
-        </span>
+                            <i class="bi bi-pc-display-horizontal me-1"></i>PC · Tablet · Mobile 반응형
+                    </span>
                 </div>
-                <div class="col-12 col-md-4 mt-2 mt-md-0 text-md-end">
+            </div>
+
+            <!--<div class="col-12 col-md-4 mt-2 mt-md-0 text-md-end">
                     <button type="button" class="btn btn-he-outline btn-sm me-1">
                         <i class="bi bi-question-circle me-1"></i>가이드
                     </button>
@@ -361,10 +567,10 @@
                         <i class="bi bi-star me-1"></i>즐겨찾기 등록
                     </button>
                 </div>
-            </div>
+            </div>-->
 
             <!-- 상단 요약 카드 -->
-            <div class="row g-2 mb-3">
+            <!--<div class="row g-2 mb-3">
                 <div class="col-12 col-md-4">
                     <div class="module-stat-card">
                         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -407,7 +613,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>-->
 
             <!-- 모바일용 검색조건 토글 버튼 -->
             <div class="d-md-none mb-2">
@@ -446,99 +652,24 @@
                                        placeholder="예: MP2025-001">
                             </div>
                             <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">모듈 코드</label>
-                                <input type="text" class="form-control form-control-sm"
-                                       id="modModuleCode" name="moduleCode"
-                                       placeholder="예: MOD-CORE-01, *CORE*">
-                            </div>
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">도면 번호</label>
-                                <input type="text" class="form-control form-control-sm"
-                                       id="modDrawingNo" name="drawingNo"
-                                       placeholder="예: 201153*, *100325G02*">
+                                <label class="form-label">폴더경로</label>
+                                <select class="form-control form-control-sm select2"
+                                        id="folderList" name="folderList" style="width: 100%;">
+                                        <option value="">전체</option>
+
+
+                                    <!--<option value="">전체</option>
+                                    <option value="RELEASED">최신 릴리즈</option>
+                                    <option value="WIP">작성 중(WIP)</option>
+                                    <option value="ECN">변경 진행 중(ECN)</option>
+                                    <option value="OBSOLETE">사용 중지</option>-->
+                                </select>
                             </div>
                             <div class="col-12 col-md-6 col-xl-3">
                                 <label class="form-label">도면 명</label>
                                 <input type="text" class="form-control form-control-sm"
                                        id="modDrawingName" name="drawingName"
                                        placeholder="예: T-BOX 모듈 프레임">
-                            </div>
-
-                            <!-- 2열 -->
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">모듈 타입</label>
-                                <select class="form-control form-control-sm select2"
-                                        id="modModuleType" name="moduleType" style="width: 100%;">
-                                    <option value="">전체</option>
-                                    <option value="CORE">코어 모듈</option>
-                                    <option value="UNIT">유닛 모듈</option>
-                                    <option value="SHAFT">승강로 모듈</option>
-                                    <option value="ETC">기타</option>
-                                </select>
-                            </div>
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">생산거점</label>
-                                <select class="form-control form-control-sm select2"
-                                        id="modPlant" name="plant" style="width: 100%;">
-                                    <option value="">전체</option>
-                                    <option value="KR00">국내(KR00)</option>
-                                    <option value="KC01">국내+상해(KC01)</option>
-                                    <option value="KC02">국내+상해 모듈러(KC02)</option>
-                                    <option value="IN_HYBRID01">국내_전기+인도_기계(IN_HYBRID01)</option>
-                                    <option value="HD_HD">US-[기계]HD_[전기]HD(HD_HD)</option>
-                                    <option value="GAL_INNOV">US-[기계]GAL_[전기]INNOV(GAL_INNOV)</option>
-                                </select>
-                            </div>
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">도면 상태</label>
-                                <select class="form-control form-control-sm select2"
-                                        id="modDrawingStatus" name="drawingStatus" style="width: 100%;">
-                                    <option value="">전체</option>
-                                    <option value="RELEASED">최신 릴리즈</option>
-                                    <option value="WIP">작성 중(WIP)</option>
-                                    <option value="ECN">변경 진행 중(ECN)</option>
-                                    <option value="OBSOLETE">사용 중지</option>
-                                </select>
-                            </div>
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">3D 뷰어 지원</label>
-                                <select class="form-control form-control-sm"
-                                        id="modViewerYn" name="viewerYn">
-                                    <option value="">전체</option>
-                                    <option value="Y">지원(Y)</option>
-                                    <option value="N">미지원(N)</option>
-                                </select>
-                            </div>
-
-                            <!-- 3열 -->
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">최종 수정일(From)</label>
-                                <input type="date" class="form-control form-control-sm"
-                                       id="modModifiedFrom" name="modifiedFrom">
-                            </div>
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">최종 수정일(To)</label>
-                                <input type="date" class="form-control form-control-sm"
-                                       id="modModifiedTo" name="modifiedTo">
-                            </div>
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">옵션</label>
-                                <div class="d-flex flex-wrap align-items-center gap-2">
-                                    <div class="form-check form-check-inline mb-0">
-                                        <input class="form-check-input" type="checkbox"
-                                               id="modLatestRevOnly" name="latestRevOnly" checked>
-                                        <label class="form-check-label" for="modLatestRevOnly">
-                                            최신 Revision만
-                                        </label>
-                                    </div>
-                                    <div class="form-check form-check-inline mb-0">
-                                        <input class="form-check-input" type="checkbox"
-                                               id="modIncludeDeleted" name="includeDeleted">
-                                        <label class="form-check-label" for="modIncludeDeleted">
-                                            삭제 도면 포함
-                                        </label>
-                                    </div>
-                                </div>
                             </div>
 
                             <!-- 모바일용 버튼(아래쪽) -->
@@ -575,35 +706,34 @@
                         <div class="module-table-header">
                             <div class="module-table-header-title">
                                 <i class="bi bi-list-check"></i>
-                                <span>도면 조회 결과</span>
-                                <span class="badge bg-light text-dark ms-1" id="modResultCountBadge">0건</span>
+                                <span>결과</span>
+                                <!--<span class="badge bg-light text-dark ms-1" id="modResultCountBadge">0건</span>-->
                             </div>
-                            <div class="module-table-header-actions">
+                            <!--<div class="module-table-header-actions">
                                 <button type="button" id="modBtnExportExcel"
                                         class="btn btn-sm btn-outline-light">
                                     <i class="bi bi-file-earmark-excel me-1"></i>Excel
                                 </button>
-                            </div>
+                            </div>-->
                         </div>
                         <div class="table-responsive">
-                            <table id="modDrawingTable"
-                                   class="table table-sm table-hover mb-0">
+                            <table id="modDrawingTable" class="table table-sm table-hover mb-0">
                                 <thead>
-                                <tr>
-                                    <th style="width: 40px;">#</th>
-                                    <th>프로젝트</th>
-                                    <th>모듈 코드</th>
-                                    <th>도면 번호</th>
-                                    <th>Rev</th>
-                                    <th>도면 명</th>
-                                    <th>모듈 타입</th>
-                                    <th>생산거점</th>
-                                    <th>상태</th>
-                                    <th>최종 수정일</th>
-                                    <th style="width: 110px;">작업</th>
-                                </tr>
+                                    <tr>
+                                        <!--<th style="width: 40px;">파일명</th>-->
+                                        <th style="width: 200px;">파일명</th>
+                                        <th style="width: 100px;">뷰어 Link</th>
+                                        <th>파일경로</th>
+
+                                        <!--<th>모듈 코드</th>-->
+
+                                        <!--<th>폴더명</th>-->
+                                     <!--   <th>상태</th>-->
+                                        <!--<th style="width: 110px;">작업자</th>-->
+                                        <th style="width: 100px;">작업자</th>
+                                    </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="contentTable">
                                 <!-- DataTables로 바인딩 -->
                                 </tbody>
                             </table>
@@ -637,12 +767,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 <script src="/resources/javascript/commonUtil.js"></script>
-<script src="/resources/javascript/jqpr.js"></script>
 <script src="/resources/javascript/StringUtil.js"></script>
-
+<script src="/resources/javascript/moduleView.js"></script>
 
 <!-- AdminLTE App -->
-<script src="./dist/js/adminlte.min.js"></script>
+<script src="/resources/dist/js/adminlte.min.js"></script>
 
 
 <!-- Bootstrap 4 -->

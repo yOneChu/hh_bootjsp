@@ -1,13 +1,17 @@
 package com.kyhslam.controller;
 
 
+import com.kyhslam.util.ModulerTeam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 @Controller
 @Slf4j
@@ -51,6 +55,7 @@ public class ViewController {
         return "/vault/eduView";
     }
 
+    // 신입사운 - 설계교육일정
     @GetMapping("/edu/designStudy")
     public String designStudy() {
         return "thymeleaf/designStudy";
@@ -59,6 +64,17 @@ public class ViewController {
     @GetMapping("/edu/moduleDesignView")
     public String moduleDesignView() {
         return "thymeleaf/moduleView";
+    }
+
+    //모듈러 폴더 조회
+    @GetMapping("/vault/findModuleFolder")
+    @ResponseBody
+    public ArrayList<HashMap<String, String>> findModuleFolder() {
+
+        ArrayList<HashMap<String, String>> result = new ArrayList<HashMap<String, String>>();
+        result = ModulerTeam.findFolderList();
+
+        return result;
     }
 
     //모듈러 폴더 조회
