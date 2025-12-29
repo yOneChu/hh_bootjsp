@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="icon" type="image/png" href="/resources/favicon.ico" />
+
+    <title>PLM 제품-자재 Analytics</title>
+
+    <link rel="stylesheet" href="/resources/dist/googleFont.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+
+    <!-- DataTables -->
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+
+    <link rel="stylesheet" href="/resources/dist/plugins/select2/css/select2.min.css">
+
+    <!-- Theme style -->
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="/resources/dashboard/tweak.css">
+
+    <style>
+        body {
+            font-family: 'Cascadia Code', sans-serif;
+        }
+
+    </style>
+
+</head>
+
+
+<body class="hold-transition sidebar-mini text-sm" style="zoom:95%;">
+
+<div class="wrapper">
+    <!-- Navbar -->
+    <!-- <nav class="main-header navbar navbar-expand navbar-white navbar-light"> -->
+    <nav class="main-header navbar navbar-expand">
+        <!-- Left navbar links -->
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" data-widget="fullscreen" href="#" role="button">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <!-- /.navbar -->
+
+
+    <div th:replace="thymeleaf/fragments/sidebar :: sidebarFragment"></div>
+
+
+    <!-- Content Wrapper. Contains page content -->
+    <div class="content-wrapper">
+        <!-- Content Header (Page header) -->
+        <section class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1><i class="fas fa-lift me-3"></i>제품-자재 Analytics</h1>
+                        <!--<h1><i class="fas fa-lift me-3"></i>공사정보 Analytics</h1>-->
+                        <p class="mb-0">PLM에 등록된 제품-자재 연계 분석</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+
+                            <li class="breadcrumb-item">
+                                <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
+                                    <input type="checkbox" class="custom-control-input" id="darkModeToggle">
+                                    <label class="custom-control-label" for="darkModeToggle">🌓 다크모드</label>
+                                </div>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </div><!-- /.container-fluid -->
+        </section>
+
+
+
+        <!-- Main content -->
+        <section class="content" style="zoom:95%;">
+
+            <div class="container-fluid"> <!-- start - container-fluid -->
+
+                <!-- 검색조건 -->
+                <!-- <div class="card card-default"> -->
+                <div class="card card-primary" style="zoom:95%;">
+                    <div class="card-header">
+                        <h3 class="card-title"> 검색 조건</h3>
+
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <button type="button" class="btn btn-tool" data-card-widget="remove">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- /.card-header -->
+                    <div class="card-body" style="zoom:92%;">
+                        <div class="row">
+                            <!-- <div class="col-6"> -->
+                            <div class="col-md-12">
+                                <div class="callout callout-danger" style="zoom:85%;">
+                                    <h4>🔊 도움말</h4>
+                                    <h5 style="color: #60A5FA;">- PartNo, BlockNo 둘 중 하나는 필수입력(속도 이슈)  </h5>
+                                    <h5 style="color: #60A5FA;">- ex.자재번호를 입력하면, 그 자재가 사용되고 있는 모든 제품을 조회.  </h5>
+                                    <h5 style="color: #60A5FA;">- TEST, Q호기는 제외  </h5>
+                                    <h5>- 사용방법: 26300551G0*  -> Like 검색 ('26300551G0' 문자 포함한 자재를 사용중인 모든 제품 검색) </h5>
+                                    <h5>- '*' 없으면 EQUAL 검색 </h5>
+                                </div>
+                            </div>
+
+
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>년도</label>
+                                    <select id="year" class="form-control select" style="width: 100%;">
+                                        <option selected="selected">2025</option>
+                                        <option>2024</option>
+                                        <option>2023</option>
+                                        <option>2022</option>
+                                        <option>2021</option>
+                                        <option>2020</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>브랜드</label>
+                                    <select id="brand" class="form-control select" style="width: 100%;">
+                                        <option selected="selected">-</option>
+                                        <option>NEX_MRL</option>
+                                        <option>NEX_MR</option>
+                                        <option>LUXEN_2</option>
+                                        <option>LUXEN_1</option>
+                                        <option>THEEL</option>
+                                        <option>IXEL</option>
+                                        <option>NEO_MRL</option>
+                                        <option>NOBRAND</option>
+                                        <option>NEWYZER</option>
+                                        <option>SPACESAVER</option>
+                                    </select>
+                                </div>
+                            </div>
+
+
+                           <!-- //EL_ASPSCD-->
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>생산거점(설계)</label>
+                                    <select id="EL_ASPSCD" class="form-control select" style="width: 100%;">
+                                        <option selected="selected">-</option>
+                                        <option value="KR00">국내(KR00)</option>
+                                        <option value="KC01" >국내+상해(KC01)</option>
+                                        <option value="KC02">국내+상해 모듈러(KC02)</option>
+                                        <option value="IN_HYBRID01">국내_전기+인도_기계(IN_HYBRID01)</option>
+                                        <option value="HD_HD">US-[기계]HD_[전기]HD(HD_HD)</option>
+                                        <option value="GAL_INNOV">US-[기계]GAL_[전기]INNOV(GAL_INNOV)</option>
+                                        <option value="GAL_HD">US-[기계]GAL_[전기]HD(GAL_HD)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+
+                            <!--기종 EL_ATYP-->
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>기종</label>
+                                    <select id="EL_ATYP" class="form-control select" style="width: 100%;">
+                                        <option selected="selected">-</option>
+
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>Part No.</label>
+                                    <input type="search" id="partNo" class="form-control" placeholder="Part No." value="">
+                                    <div class="input-group-append">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>BlockNo</label>
+                                    <input type="search" id="blockNo" class="form-control" placeholder="Block No." value="">
+                                    <div class="input-group-append">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>CMT</label>
+                                    <input type="search" id="cmt" class="form-control" placeholder="cmt..." value="">
+                                    <div class="input-group-append">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>SPEC</label>
+                                    <input type="search" id="spec" class="form-control" placeholder="spec..." value="">
+                                    <div class="input-group-append">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>제품 상태</label>
+                                    <select id="status" class="form-control select" style="width: 100%;">
+                                        <option value="" >전체</option>
+                                        <option value="RLS" selected="selected">릴리즈</option>
+                                    </select>
+
+                                    <div class="input-group-append">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- /.col -->
+                        </div>
+                        <!-- /.row -->
+                    </div>
+
+
+                    <div class="card-footer">
+                        <button class="btn btn-primary float-right" style="margin-right: 5px;" onclick="searchPID()">검색</button>
+                    </div>
+
+                </div>
+
+
+                <div class="row">
+                    <div class="col-12">
+
+                        <div class="card card-primary">
+
+
+                            <!-- /.card-header -->
+                            <div class="card-body" style="zoom:85%;">
+                                <div id="columnToggleToolbar" class="mb-2">
+                                    <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="컬럼 토글">
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(0, this)">제품번호</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(1, this)">제품버전</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(2, this)">제품상태</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(3, this)">제품수정일</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(4, this)">브랜드</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(5, this)">기종</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(6, this)">생산거점</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(7, this)">품번</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(8, this)">품명</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(9, this)">SPEC</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(10, this)">QTY</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(11, this)">BlockNo.</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(12, this)">품목</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(13, this)">GL_CODE</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(14, this)">버전</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(15, this)">cmt</button>
+                                    </div>
+                                </div>
+                                <table id="infoTable" class="table table-bordered table-hover" style=" font-family: NotoSans; font-size:15px;">
+                                    <thead>
+                                    <!-- bg-primary -->
+                                    <tr class="bg-secondary">
+                                        <th>제품번호</th>
+                                        <th>제품버전</th>
+                                        <th>제품상태</th>
+                                        <th>제품수정일</th>
+                                        <th>브랜드</th>
+                                        <th>기종</th>
+                                        <th>생산거점</th>
+                                        <th>품번</th>
+                                        <th>품명</th>
+                                        <th>SPEC</th>
+
+                                        <th>QTY</th>
+                                        <th>BlockNo.</th>
+                                        <th>품목</th>
+                                        <th>GL_CODE</th>
+                                        <th>버전</th>
+                                        <th>cmt</th>
+
+                                    </tr>
+                                    </thead>
+
+                                    <tbody id="contentTable">
+
+                                    </tbody>
+
+                                </table>
+                            </div>
+                            <!-- /.card-body -->
+                        </div>
+                        <!-- /.card -->
+                    </div>
+                    <!-- /.col -->
+                </div>
+                <!-- /.row -->
+
+            </div> <!-- /.container-fluid -->
+
+        </section>
+        <!-- /.content -->
+    </div>
+    <!-- /.content-wrapper -->
+
+
+    <footer class="main-footer">
+        <div class="float-right d-none d-sm-block">
+            <b>Version</b> 1.0.0
+        </div>
+        <strong>Copyright &copy; 2025 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
+    </footer>
+
+    <!-- Control Sidebar -->
+    <aside class="control-sidebar control-sidebar-dark">
+        <!-- Control sidebar content goes here -->
+    </aside>
+    <!-- /.control-sidebar -->
+
+</div>
+
+
+</body>
+
+
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+
+
+
+<!-- AdminLTE App -->
+<script src="/resources/dist/js/adminlte.min.js"></script>
+
+<!-- Bootstrap 4 -->
+<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- DataTables  & Plugins -->
+<script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+
+
+<script src="/resources/dist/plugins/select2/js/select2.full.min.js"></script>
+
+<script src="/resources/dist/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/jszip/jszip.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/pdfmake.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/vfs_fonts.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
+
+<script src="/resources/javascript/searchPartFinder.js"></script>
+<script src="/resources/javascript/commonUtil.js"></script>
+
+<script>
+
+
+
+    // 숨김 컬럼 인덱스 저장/로드
+    function getHiddenCols() {
+        try {
+            const val = localStorage.getItem('spf_hidden_cols');
+            return val ? JSON.parse(val) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+    function setHiddenCols(arr) {
+        try {
+            localStorage.setItem('spf_hidden_cols', JSON.stringify(arr));
+        } catch (e) {}
+    }
+
+    function applyButtonState(idx, visible) {
+        const buttons = document.querySelectorAll('#columnToggleToolbar .btn-group button');
+        const btn = buttons && buttons[idx] ? buttons[idx] : null;
+        if (!btn) return;
+        if (visible) {
+            btn.classList.remove('btn-secondary');
+            btn.classList.add('btn-outline-secondary');
+            btn.classList.remove('active');
+            btn.setAttribute('aria-pressed', 'false');
+        } else {
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-secondary');
+            btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
+        }
+    }
+
+    function syncColumnButtons() {
+        if (!$.fn.DataTable.isDataTable('#infoTable')) return;
+        const table = $('#infoTable').DataTable();
+        const colCount = table.columns().indexes().length;
+        for (let i = 0; i < colCount; i++) {
+            const visible = table.column(i).visible();
+            applyButtonState(i, visible);
+        }
+    }
+
+    // 버튼에서 호출: 특정 컬럼 토글
+    function hideColumn(colIndex, btn) {
+        if (!$.fn.DataTable.isDataTable('#infoTable')) return;
+        const table = $('#infoTable').DataTable();
+        const currentlyVisible = table.column(colIndex).visible();
+        table.column(colIndex).visible(!currentlyVisible);
+
+        // 저장 상태 업데이트
+        let hidden = getHiddenCols();
+        if (currentlyVisible) {
+            // 이제 숨김 처리 -> 목록에 추가
+            if (!hidden.includes(colIndex)) hidden.push(colIndex);
+        } else {
+            // 이제 표시 처리 -> 목록에서 제거
+            hidden = hidden.filter(i => i !== colIndex);
+        }
+        setHiddenCols(hidden);
+
+        // 버튼 상태 동기화
+        applyButtonState(colIndex, !currentlyVisible);
+    }
+
+    // DataTable 재생성 후 버튼 상태 맞추기 위해 전역에 노출
+    window.syncColumnButtons = syncColumnButtons;
+</script>
+
+<script>
+    // 초기 로드시 버튼 상태 동기화 시도 (DataTable 초기화 이후에 한번 더 호출됨)
+    $(document).ready(function() {
+        setTimeout(function() {
+            if (typeof window.syncColumnButtons === 'function') {
+                window.syncColumnButtons();
+            }
+        }, 200);
+    });
+
+
+</script>
+
+</html>

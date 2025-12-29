@@ -205,6 +205,12 @@ public class SubaeController {
         return "thymeleaf/searchPartFinder";
     }
 
+    @GetMapping("/subae/searchPartFinderTest")
+    public String searchPartFinderTest() {
+        //return "subaeLogic/searchPartFinder";
+        return "thymeleaf/searchPartFinderTest";
+    }
+
 
     /**
      * 자재번호가 사용되고 있는 모든 제품 찾기
@@ -368,6 +374,7 @@ public class SubaeController {
     //https://plmpro.hdel.co.kr/plmetc/vault/pidExecuteLineData?hogi=208223L01&PID=EL_PB186A01&testVersion=on&isfloor&floor=
 
 
+    //공사정보 분석화면
     @GetMapping("/subae/searchElvInfo")
     public String thyTest() {
         return "thymeleaf/searchElvInfo";
