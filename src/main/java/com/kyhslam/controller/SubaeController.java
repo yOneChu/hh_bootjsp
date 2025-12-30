@@ -368,6 +368,7 @@ public class SubaeController {
     //https://plmpro.hdel.co.kr/plmetc/vault/pidExecuteLineData?hogi=208223L01&PID=EL_PB186A01&testVersion=on&isfloor&floor=
 
 
+    //공사번호 추출
     @GetMapping("/subae/searchElvInfo")
     public String thyTest() {
         return "thymeleaf/searchElvInfo";

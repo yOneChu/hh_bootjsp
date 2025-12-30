@@ -107,9 +107,7 @@ function codeSetting() {
             //hideLoading();
         }
     });
-
 }
-
 
 function runHeavyWork() {
     showLoading();
@@ -146,7 +144,6 @@ function searchPID()
         alert("PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.");
         return;
     }
-
 
     $('#infoTable').DataTable().destroy();
     $("#contentTable").empty();

@@ -9,18 +9,19 @@ import java.util.HashMap;
 public class ModulerTeam {
 
 
-    public static ArrayList<HashMap<String, String>> findFolderList() {
+    public static ArrayList<HashMap<String, String>> findFolderList(String filePath, String fileName) {
 
         Connection con = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
 
-        String folderName = "";
+        System.out.println("filePath = " + filePath);
+        System.out.println("fileName = " + fileName);
+        String folderName = "$/Dev Project/모듈러구조개발팀";
 
         ArrayList<HashMap<String, String>> list = new ArrayList<>();
 
         try {
-
             con = VaultHDELDBConnection.getConnection();
 
             String sql = """
@@ -42,8 +43,31 @@ public class ModulerTeam {
                      AND FM.HIDDEN = 0
                      AND f.vaultpath not like '%ko-KR%'
                      AND f.vaultpath not like '%Materials%'
-                     AND F.VaultPath LIKE '$/Dev Project/모듈러구조개발팀%'
+                     --AND F.VaultPath LIKE '$/Dev Project/모듈러구조개발팀%'
                     """;
+
+            if(filePath!= null && !"".equals(filePath)){
+
+                filePath = folderName + "/" +  filePath;
+
+                sql += "AND F.VaultPath LIKE '" + filePath + "%'";
+
+            } else {
+                sql += " AND F.VaultPath LIKE '$/Dev Project/모듈러구조개발팀%'";
+            }
+
+
+            if(fileName != null && !"".equals(fileName)){
+                if (fileName.contains("*")) {
+                    fileName = fileName.replace("*", "%");
+                    sql += " AND fm.TipFileBaseName LIKE '" + fileName + "' ";
+                } else {
+                    sql += " AND fm.TipFileBaseName = '" + fileName + "' ";
+                }
+            }
+
+                //fm.TipFileBaseName
+
 
             /*if( !"ALL".contains(folderName) ) {
                 sql.append(" AND F.FolderID = '" +  folderName + "'    ");
@@ -65,6 +89,7 @@ public class ModulerTeam {
             //sql.append(" AND FM.TIPFILEBASENAME= 'V0011221'  "); // 파일명
             //System.out.println("sql = " + sql.toString());
 
+            System.out.println("sql = " + sql.toString());
 
             pstmt = con.prepareStatement(sql.toString());
             rs = pstmt.executeQuery();
