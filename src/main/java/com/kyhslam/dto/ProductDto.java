@@ -16,10 +16,15 @@ public class ProductDto {
     private String productModDate;
     private String productAppdate;
     private String productStatus; //상태
+    private String aspd; // 속도 EL_ASPD
     private String aspscd; //샌상거점
     private String acapa; //용량
     private String brand; // 브랜드
+
+    private String ecbg; // 	CAR; BG
+    private String ecwbg; // CWT; BG
     private String ecww; // cw 폭
+
     private String gisong;
     private String mmanager;
     private String emanager;

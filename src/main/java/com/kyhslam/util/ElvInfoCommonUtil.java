@@ -453,4 +453,58 @@ public class ElvInfoCommonUtil {
         }
         return result;
     }
+
+    public static ArrayList<CodeDTO> findCodeList(String type) {
+
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        ArrayList<CodeDTO> result = new ArrayList<>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                    SELECT 
+                    a.name AS CODENAME, 
+                    a.TIT AS KNAME, 
+                    c.NAME AS SPECNAME, 
+                    c.DES AS SPECVALUE, 
+                    c.ouid, 
+                    b.name AS USENAME
+                                  FROM HDEL_SYSTEM.DOSFLD A LEFT JOIN HDEL_SYSTEM.DOSCOD B ON A.TYPECLAS  = B.OUID
+                                  LEFT JOIN DOSCODITM C ON C.DOSCOD = B.OUID
+                                  WHERE 1 = 1
+                                    AND A.DOSCLAS = 2248993771
+                                    --AND A.NAME = 'EL_ABRAND'
+                                  AND A.NAME = ?
+                                    --AND A.TIT = '브랜드'
+                                  ORDER BY A.name, C.CODITM
+                """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, type);
+
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                String NAME =  rs.getString("SPECNAME"); // 설명
+                String CODE = rs.getString("SPECVALUE") == null ? "" : rs.getString("SPECVALUE");
+                String TYPE_NAME =  rs.getString("SPECVALUE") == null ? "" : rs.getString("SPECVALUE");
+
+                CodeDTO dto = new CodeDTO();
+                dto.setName(NAME);
+                dto.setCode(CODE);
+                dto.setTypeName(TYPE_NAME);
+
+                result.add(dto);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
+    }
 }

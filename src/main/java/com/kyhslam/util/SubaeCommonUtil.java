@@ -861,15 +861,24 @@ public class SubaeCommonUtil {
                      , (SELECT COD(E.EL_ABRAND) FROM ELV_INFO$ID A, ELV_INFO$VF E
                         WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
                         AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS BRAND
+                     , (SELECT COD(E.EL_ASPD) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                        WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_ASPD -- 속도
                      , (SELECT COD(E.EL_ASPSCD) FROM ELV_INFO$ID A, ELV_INFO$VF E
                         WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
-                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS ASPSCD -- 속도
+                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS ASPSCD
                      , (SELECT COD(E.EL_ACAPA) FROM ELV_INFO$ID A, ELV_INFO$VF E
                        WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_ACAPA -- 용량
-                     , (SELECT COD(E.EL_ECWW) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                     , (SELECT E.EL_ECWW FROM ELV_INFO$ID A, ELV_INFO$VF E
                        WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_ECWW
+                     , (SELECT E.EL_ECWBG FROM ELV_INFO$ID A, ELV_INFO$VF E
+                       WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                       AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_ECWBG
+                    , (SELECT E.EL_ECBG FROM ELV_INFO$ID A, ELV_INFO$VF E
+                       WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                       AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_ECBG
                      , NP.MD$NUMBER AS PARTNO
                      , cod(NP.NATION) AS NATION
                      , NP.compen_part AS COMPEN_PART
@@ -972,7 +981,7 @@ public class SubaeCommonUtil {
             }
 
 
-            //System.out.println("sql = " + sql);
+            System.out.println("sql = " + sql);
 
             pstmt = con.prepareStatement(sql.toString());
             //pstmt.setString(1, productOID);
@@ -989,9 +998,15 @@ public class SubaeCommonUtil {
                 String PROD_APP_DATE = rs.getString("PROD_APP_DATE") == null ? "" : rs.getString("PROD_APP_DATE"); //제품 승인일
                 String GISONG = rs.getString("GISONG") == null ? "" : rs.getString("GISONG");
                 String BRAND = rs.getString("BRAND") == null ? "" : rs.getString("BRAND");
+                String EL_ASPD = rs.getString("EL_ASPD") == null ? "" : rs.getString("EL_ASPD");
+
                 String ASPSCD = rs.getString("ASPSCD") == null ? "" : rs.getString("ASPSCD");
                 String EL_ACAPA = rs.getString("EL_ACAPA") == null ? "" : rs.getString("EL_ACAPA");
                 String EL_ECWW = rs.getString("EL_ECWW") == null ? "" : rs.getString("EL_ECWW");
+
+                String EL_ECWBG = rs.getString("EL_ECWBG") == null ? "" : rs.getString("EL_ECWBG");
+                String EL_ECBG = rs.getString("EL_ECBG") == null ? "" : rs.getString("EL_ECBG");
+
 
                 String PARTNO = rs.getString("PARTNO") == null ? "" : rs.getString("PARTNO");
                 String PARTNAME = rs.getString("PARTNAME") == null ? "" : rs.getString("PARTNAME");
@@ -1020,6 +1035,9 @@ public class SubaeCommonUtil {
                 dto.setBrand(BRAND);
                 dto.setAcapa(EL_ACAPA); // 용량
                 dto.setEcww(EL_ECWW);
+                dto.setEcwbg(EL_ECWBG);
+                dto.setEcbg(EL_ECBG);
+                dto.setAspd(EL_ASPD);
 
                 dto.setPartNo(PARTNO);
                 dto.setPartName(PARTNAME);

@@ -380,11 +380,20 @@ public class SubaeController {
         return "thymeleaf/searchElvInfo";
     }
 
+
     @GetMapping("/subae/findGisong")
     @ResponseBody
     @CrossOrigin
     public ArrayList<CodeDTO> findGisong() {
         ArrayList<CodeDTO> result = ElvInfoCommonUtil.findDosCode("기종");
+        return result;
+    }
+
+    @PostMapping("/subae/findCodeList")
+    @ResponseBody
+    @CrossOrigin
+    public ArrayList<CodeDTO> findBrand(String typeName) {
+        ArrayList<CodeDTO> result = ElvInfoCommonUtil.findCodeList(typeName);
         return result;
     }
 }
