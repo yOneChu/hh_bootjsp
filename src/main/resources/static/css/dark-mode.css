@@ -1,0 +1,172 @@
+/* Global dark mode enhancements scoped to body.dark-mode */
+
+/* Base layout */
+body.dark-mode {
+  background-color: #121826;
+  color: #e5e7eb;
+}
+
+body.dark-mode .content-wrapper,
+body.dark-mode .wrapper,
+body.dark-mode .main-footer {
+  background-color: #121826;
+  color: #e5e7eb;
+}
+
+/* Cards and panels */
+body.dark-mode .card,
+body.dark-mode .module-stat-card,
+body.dark-mode .module-search-card {
+  background-color: #0b1220 !important;
+  color: #e5e7eb !important;
+  border-color: #25314a !important;
+}
+
+body.dark-mode .card-header,
+body.dark-mode .module-search-title {
+  background-color: #0f172a !important;
+  color: #e5e7eb !important;
+  border-color: #25314a !important;
+}
+
+/* Tables (DataTables and basic) */
+body.dark-mode table,
+body.dark-mode .table {
+  color: #e5e7eb;
+}
+
+body.dark-mode table.dataTable thead th,
+body.dark-mode .table thead th {
+  background-color: #0f172a !important;
+  color: #e5e7eb !important;
+  border-color: #25314a !important;
+}
+
+body.dark-mode table.dataTable tbody td,
+body.dark-mode .table tbody td,
+body.dark-mode table.dataTable tbody tr {
+  background-color: #0b1220 !important;
+  color: #e5e7eb !important;
+  border-color: #1f2a44 !important;
+}
+
+/* Row hovers/stripes */
+body.dark-mode table.dataTable.stripe tbody tr.odd,
+body.dark-mode .table-striped tbody tr:nth-of-type(odd) {
+  background-color: #0e1627 !important;
+}
+
+body.dark-mode table.dataTable.hover tbody tr:hover,
+body.dark-mode .table-hover tbody tr:hover {
+  background-color: #122038 !important;
+}
+
+/* DataTables buttons */
+body.dark-mode .dt-buttons .btn,
+body.dark-mode .buttons-html5,
+body.dark-mode .buttons-copy,
+body.dark-mode .buttons-csv,
+body.dark-mode .buttons-excel {
+  background-color: #293347 !important;
+  color: #e5e7eb !important;
+  border-color: #3b4761 !important;
+}
+
+body.dark-mode .dt-buttons .btn:hover {
+  background-color: #33405a !important;
+}
+
+/* Forms */
+body.dark-mode .form-control,
+body.dark-mode .select2-selection,
+body.dark-mode input[type="text"],
+body.dark-mode input[type="search"],
+body.dark-mode input[type="number"],
+body.dark-mode input[type="date"],
+body.dark-mode select,
+body.dark-mode textarea {
+  background-color: #0b1220 !important;
+  color: #e5e7eb !important;
+  border-color: #25314a !important;
+}
+
+body.dark-mode .form-control::placeholder,
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+/* Select2 dropdown */
+body.dark-mode .select2-container--default .select2-selection--single .select2-selection__rendered {
+  color: #e5e7eb;
+}
+body.dark-mode .select2-dropdown {
+  background-color: #0b1220;
+  color: #e5e7eb;
+  border-color: #25314a;
+}
+body.dark-mode .select2-results__option--highlighted[aria-selected] {
+  background-color: #122038;
+  color: #e5e7eb;
+}
+
+/* Pagination */
+body.dark-mode .pagination .page-link {
+  background-color: #0b1220;
+  color: #e5e7eb;
+  border-color: #25314a;
+}
+body.dark-mode .pagination .page-link:hover {
+  background-color: #122038;
+}
+body.dark-mode .page-item.active .page-link {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+/* Badges/labels tweaks */
+body.dark-mode .badge-light { color: #111827; }
+body.dark-mode .badge-secondary { background-color: #374151; }
+
+/* Breadcrumb & navbar subtle contrast */
+body.dark-mode .breadcrumb,
+body.dark-mode .navbar {
+  background-color: #0f172a !important;
+  color: #e5e7eb !important;
+}
+
+/* Links */
+body.dark-mode a { color: #93c5fd; }
+body.dark-mode a:hover { color: #bfdbfe; }
+
+/* ========================= */
+/* Page-specific refinements */
+/* ========================= */
+/* 1) Module header title text visibility */
+body.dark-mode .module-header-title {
+  color: #e5e7eb !important;
+}
+
+/* 2) Search form labels inside #modSearchForm */
+body.dark-mode #modSearchForm label,
+body.dark-mode #modSearchForm .form-label,
+body.dark-mode #modSearchForm .control-label {
+  color: #e5e7eb !important;
+}
+
+/* 3) Ensure table body (id=contentTable) doesn’t stay white */
+body.dark-mode #contentTable,
+body.dark-mode #contentTable tr,
+body.dark-mode #contentTable td {
+  background-color: #0b1220 !important;
+  color: #e5e7eb !important;
+  border-color: #1f2a44 !important;
+}
+
+/* Guard for sticky header tables that use table-head-fixed */
+body.dark-mode .table.table-head-fixed thead tr th {
+  background-color: #0f172a !important;
+  color: #e5e7eb !important;
+  border-color: #25314a !important;
+}
