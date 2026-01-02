@@ -863,7 +863,13 @@ public class SubaeCommonUtil {
                         AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS BRAND
                      , (SELECT COD(E.EL_ASPSCD) FROM ELV_INFO$ID A, ELV_INFO$VF E
                         WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
-                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS ASPSCD
+                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS ASPSCD -- 속도
+                     , (SELECT COD(E.EL_ACAPA) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                       WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                       AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_ACAPA -- 용량
+                     , (SELECT COD(E.EL_ECWW) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                       WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                       AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_ECWW
                      , NP.MD$NUMBER AS PARTNO
                      , cod(NP.NATION) AS NATION
                      , NP.compen_part AS COMPEN_PART
@@ -984,6 +990,8 @@ public class SubaeCommonUtil {
                 String GISONG = rs.getString("GISONG") == null ? "" : rs.getString("GISONG");
                 String BRAND = rs.getString("BRAND") == null ? "" : rs.getString("BRAND");
                 String ASPSCD = rs.getString("ASPSCD") == null ? "" : rs.getString("ASPSCD");
+                String EL_ACAPA = rs.getString("EL_ACAPA") == null ? "" : rs.getString("EL_ACAPA");
+                String EL_ECWW = rs.getString("EL_ECWW") == null ? "" : rs.getString("EL_ECWW");
 
                 String PARTNO = rs.getString("PARTNO") == null ? "" : rs.getString("PARTNO");
                 String PARTNAME = rs.getString("PARTNAME") == null ? "" : rs.getString("PARTNAME");
@@ -1010,6 +1018,8 @@ public class SubaeCommonUtil {
                 dto.setGisong(GISONG);
                 dto.setAspscd(ASPSCD);
                 dto.setBrand(BRAND);
+                dto.setAcapa(EL_ACAPA); // 용량
+                dto.setEcww(EL_ECWW);
 
                 dto.setPartNo(PARTNO);
                 dto.setPartName(PARTNAME);

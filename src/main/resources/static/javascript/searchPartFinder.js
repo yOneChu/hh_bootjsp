@@ -187,6 +187,10 @@ function searchPID()
                         str += "<td>" + (data[i].brand ?? "") + "</td>";
                         str += "<td>" + (data[i].gisong ?? "") + "</td>";
                         str += "<td>" + (data[i].aspscd ?? "") + "</td>";
+
+                        str += "<td>" + (data[i].acapa ?? "") + "</td>";
+                        str += "<td>" + (data[i].ecww ?? "") + "</td>";
+
                         str += "<td>" + (data[i].partNo ?? "") + "</td>";
                         str += "<td>" + (data[i].partName ?? "") + "</td>";
                         str += "<td>" + (data[i].spec ?? "") + "</td>";

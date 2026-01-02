@@ -264,15 +264,20 @@
                                         <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(4, this)">브랜드</button>
                                         <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(5, this)">기종</button>
                                         <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(6, this)">생산거점</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(7, this)">품번</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(8, this)">품명</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(9, this)">SPEC</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(10, this)">QTY</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(11, this)">BlockNo.</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(12, this)">품목</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(13, this)">GL_CODE</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(14, this)">버전</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(15, this)">cmt</button>
+
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(7, this)">용량</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(8, this)">CWT폭</button>
+
+
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(9, this)">품번</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(10, this)">품명</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(11, this)">SPEC</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(12, this)">QTY</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(13, this)">BlockNo.</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(14, this)">품목</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(15, this)">GL_CODE</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(16, this)">버전</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(17, this)">cmt</button>
                                     </div>
                                 </div>
                                 <table id="infoTable" class="table table-bordered table-hover" style=" font-family: NotoSans; font-size:15px;">
@@ -286,6 +291,10 @@
                                         <th>브랜드</th>
                                         <th>기종</th>
                                         <th>생산거점</th>
+
+                                        <th>용량</th>
+                                        <th>CWT폭</th>
+
                                         <th>품번</th>
                                         <th>품명</th>
                                         <th>SPEC</th>
@@ -411,6 +420,7 @@
         if (!$.fn.DataTable.isDataTable('#infoTable')) return;
         const table = $('#infoTable').DataTable();
         const colCount = table.columns().indexes().length;
+        console.log('colCount = ', colCount);
         for (let i = 0; i < colCount; i++) {
             const visible = table.column(i).visible();
             applyButtonState(i, visible);

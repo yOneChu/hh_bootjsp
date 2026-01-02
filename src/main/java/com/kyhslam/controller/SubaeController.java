@@ -205,6 +205,12 @@ public class SubaeController {
         return "thymeleaf/searchPartFinder";
     }
 
+    @GetMapping("/subae/searchPartFinderTest")
+    public String searchPartFinderTest() {
+        //return "subaeLogic/searchPartFinder";
+        return "thymeleaf/searchPartFinderTest";
+    }
+
 
     /**
      * 자재번호가 사용되고 있는 모든 제품 찾기
