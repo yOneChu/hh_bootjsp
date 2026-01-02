@@ -454,6 +454,12 @@ public class ElvInfoCommonUtil {
         return result;
     }
 
+
+    /**
+     * 사양코드로 관련 공통코드 리스트 조회
+     * @param type
+     * @return
+     */
     public static ArrayList<CodeDTO> findCodeList(String type) {
 
         Connection con = null;
