@@ -62,28 +62,4 @@ public class ViewController {
         return "thymeleaf/designStudy";
     }
 
-
-
-    //모듈러 폴더의 파일 조회
-    @PostMapping("/vault/findModuleFolder")
-    @ResponseBody
-    public ArrayList<HashMap<String, String>> findModuleFolder(String fileName, String filePath) {
-        ArrayList<HashMap<String, String>> result = new ArrayList<HashMap<String, String>>();
-        result = ModulerTeam.findFolderList(filePath, fileName);
-
-        return result;
-    }
-
-    //모듈러 폴더 조회
-    /*@GetMapping("/vault/moduleView")
-    public String moduleView() {
-        return "thymeleaf/searchModuleView";
-    }*/
-
-    //모듈러 폴더 조회 화면
-    @GetMapping("/edu/moduleDesignView")
-    public String moduleDesignView() {
-        return "thymeleaf/moduleView";
-    }
-
 }

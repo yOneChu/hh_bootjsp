@@ -89,7 +89,7 @@ public class ModulerTeam {
             //sql.append(" AND FM.TIPFILEBASENAME= 'V0011221'  "); // 파일명
             //System.out.println("sql = " + sql.toString());
 
-            System.out.println("sql = " + sql.toString());
+            //System.out.println("sql = " + sql.toString());
 
             pstmt = con.prepareStatement(sql.toString());
             rs = pstmt.executeQuery();
