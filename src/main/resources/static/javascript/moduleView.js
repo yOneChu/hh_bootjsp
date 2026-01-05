@@ -171,6 +171,13 @@ function searchFile()
                         continue;
                     }
 
+                    const hasSpecialChar = /[^a-zA-Z0-9가-힣._\-()\s]/.test(data[i].FILENAME);
+                    if (hasSpecialChar) {
+                        console.log("특수문자 포함됨:", fileName);
+                        continue;
+                    }
+
+
                     str += "<tr>";
                         //http://10.225.80.35/vaultview/getView.html?filename=12500471_G02_FRAME%20ASSY
                         let viewLink = 'http://10.225.80.35/vaultview/getView.html?filename=';
@@ -230,6 +237,9 @@ function searchFile()
                     //"buttons": ["csv", "excel", "pdf", "print"]
                     //"buttons": ["csv", "excel"]
                    // "dom": "Bfrtip",
+                    "order": [
+                      [0, 'desc'],
+                    ],
                     "buttons": [
                         {
                             extend: "excel",
