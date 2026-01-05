@@ -289,6 +289,11 @@
                                 <p>3D 설정파일 및 메뉴얼</p>
                             </a>
                         </li>
+                        <li>
+                            <a href="/vault/moduleDesignView" class="nav-link">
+                                <p>모듈러구조개발팀</p>
+                            </a>
+                        </li>
                     </ul>
                 </li>
 
