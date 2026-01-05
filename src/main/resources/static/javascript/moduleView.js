@@ -21,7 +21,7 @@ $(document).ready(function() {
     //엔터키 감지
     $(document).keyup(function(event) {
         if(event.which === 13) {
-            searchPID();
+            searchFile();
             return false; // 추가 이벤트 방지위해 false 리턴
         }
     })
@@ -115,12 +115,12 @@ $(document).ready(function() {
 
 
     $("#modBtnSearch").on("click", function () {
-        console.log('lllllllllllllll');
+        //console.log('lllllllllllllll');
         searchFile();
     });
 
     $("#modBtnSearch_m").on("click", function () {
-        console.log('lllllllllllllll');
+        //console.log('lllllllllllllll');
         searchFile();
     });
 }); // END JQUERY
