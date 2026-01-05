@@ -86,6 +86,13 @@ $(document).ready(function() {
         updateThemeLabel(willBeDark);
     });
 
+
+
+    //기본 다크모드로 설정
+    $('body').addClass('dark-mode');
+    $('#darkModeToggle').prop('checked', true);
+    updateThemeLabel(true);
+
 }); // END JQUERY
 
 
