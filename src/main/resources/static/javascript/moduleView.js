@@ -18,41 +18,13 @@ $(document).ready(function() {
 
     $("#dashboard").removeClass("menu-open");
 
-    //엔터키 감지
-    $(document).keyup(function(event) {
-        if(event.which === 13) {
+
+    document.addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
             searchFile();
-            return false; // 추가 이벤트 방지위해 false 리턴
-        }
-    })
-
-
-    //pidVal03 입력하면 pidVal04 활성화
-    $('#pidVal03').on('input', function () {
-        const value = $(this).val();
-        if (value.trim() !== '') {
-            $('#pidVal04').prop('readonly', false);
-        } else {
-            $('#pidVal04').prop('readonly', true);
-            $('#pidVal04').val('');
-
-            $('#pidVal05').prop('readonly', true);
-            $('#pidVal05').val('');
+            event.preventDefault();   // 기본 동작 막기
         }
     });
-
-    //pidVal04 입력하면 pidVal05 활성화
-    $('#pidVal04').on('input', function () {
-        const value = $(this).val();
-        if (value.trim() !== '') {
-            $('#pidVal05').prop('readonly', false);
-        } else {
-            $('#pidVal05').prop('readonly', true);
-            $('#pidVal05').val('');
-        }
-    });
-
-
 
     // 다크모드: 저장된 테마 적용
     const savedTheme = localStorage.getItem('theme');
@@ -88,6 +60,9 @@ $(document).ready(function() {
         updateThemeLabel(willBeDark);
     });
 
+
+    searchFile();
+
     // 폴더 셀렉트 기본값 세팅 후 데이터 로딩
     settingFolder();
 
@@ -111,16 +86,14 @@ $(document).ready(function() {
         }
         $child.html(optionsHtml).val('');
     });
-    searchFile();
+
 
 
     $("#modBtnSearch").on("click", function () {
-        //console.log('lllllllllllllll');
         searchFile();
     });
 
     $("#modBtnSearch_m").on("click", function () {
-        //console.log('lllllllllllllll');
         searchFile();
     });
 }); // END JQUERY
