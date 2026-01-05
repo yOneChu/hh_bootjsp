@@ -220,6 +220,7 @@ public class SubaeController {
      */
     @PostMapping("/subae/searchMissPartofProduct")
     @ResponseBody
+    @CrossOrigin
     //public ArrayList<ProductDto> searchMissPartofProduct(String year, String partNo, String blockNo) {
     public ArrayList<ProductDto> searchMissPartofProduct(PartWhere whereCond) {
         System.out.println("searchMissPartofProduct" + whereCond);
@@ -240,6 +241,7 @@ public class SubaeController {
     //BOM수배 데이터 조회
     @PostMapping("/subae/bomDashboard")
     @ResponseBody
+    @CrossOrigin
     public ArrayList<ProductDto> bomDashboard(String year, String month) {
 
         ArrayList<ProductDto> result = new ArrayList<>();

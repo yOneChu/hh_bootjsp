@@ -115,7 +115,7 @@
                             <!-- <div class="col-6"> -->
                             <div class="col-md-12">
                                 <div class="callout callout-danger">
-                                    <h4><i class="fas fa-bullhorn"></i> 도움말</h4>
+                                    <h4><%--<i class="fas fa-bullhorn"></i>--%>🔊 도움말</h4>
                                     <h5 style="color: #60A5FA;">- 10,000건 이상의 경우 "EXCEL Download"로 받으시기 바랍니다. </h5>
                                     <h5>- 현재 Excel 다운로드 시 숫자인식 관련 문제가 있어 Copy로 복사 후, EXCEL에 붙여넣기 하시기 바랍니다. </h5>
                                     <h5>- 조건1에 REMARKS로 검색 시, 조건2의 PID는 검색할 수 없습니다. </h5>

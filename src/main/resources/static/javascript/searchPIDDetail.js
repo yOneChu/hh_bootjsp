@@ -347,7 +347,7 @@ function searchPID()
                 alert("검색결과가 없습니다.");
             }
             
-            //컬럼 숨기기
+            //값이 없는 열의 컬럼 숨기기
             hideCols();
 
         } // end success;
