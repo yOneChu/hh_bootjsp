@@ -105,5 +105,39 @@ function showLoading() {
 }
 
 
+function codeSetInit(typeName, thisObj) {
+
+    $.ajax({
+        type: "post",
+        crossDomain: true,
+        url: "/subae/findCodeList",
+        data: {
+            typeName: typeName
+        },
+        success: function (data) {
+            //console.log("data - ", data);
+            let str = "";
+            if (data != null && data.length > 0) {
+                for (let i = 0; i < data.length; i++) {
+
+                    let name = data[i].name;
+                    let code = data[i].code;
+
+                    str +=
+                        `
+                        <option value="${code}">${code} -> (${name})</option>
+                        `;
+                }
+                //$("#EL_ECWRL").append(str);
+                thisObj.append(str);
+            }
+        },
+
+        error: function (xhr, status, err) {
+            console.error("AJAX error:", status, err, xhr?.responseText);
+        }
+    });
+}
+
 
 

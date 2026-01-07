@@ -48,25 +48,24 @@ $(document).ready(function() {
     })
 
 
-    //findDosCode
-    codeSetting('EL_ATYP');
-    codeSettingAsBrand('EL_ABRAND');
+    let EL_ATYPObj = $('#EL_ATYP');
+    codeSetInit('EL_ATYP', EL_ATYPObj);
+    setInput(EL_ATYPObj);
 
+    let EL_ABRANDObj = $('#EL_ABRAND');
+    codeSetInit('EL_ABRAND', EL_ABRANDObj);
+    setInput(EL_ABRANDObj);
+
+    let EL_AOPENObj = $('#EL_AOPEN');
+    codeSetInit('EL_AOPEN', EL_AOPENObj);
+    setInput(EL_AOPENObj);
+
+
+    let EL_ECWRLObj = $('#EL_ECWRL');
+    codeSetInit('EL_ECWRL', EL_ECWRLObj);
+    setInput(EL_ECWRLObj);
 
     $('#EL_ASPSCD').select2({
-        tags: true,                 // 🔑 직접 입력 허용
-        placeholder: "직접 입력 또는 선택",
-        allowClear: true
-    });
-
-
-    $('#EL_ATYP').select2({
-        tags: true,                 // 🔑 직접 입력 허용
-        placeholder: "직접 입력 또는 선택",
-        allowClear: true
-    });
-
-    $('#EL_BRAND').select2({
         tags: true,                 // 🔑 직접 입력 허용
         placeholder: "직접 입력 또는 선택",
         allowClear: true
@@ -75,9 +74,17 @@ $(document).ready(function() {
 });
 
 
-function codeSetting(typeName) {
+function setInput(thisObj) {
+    thisObj.select2({
+        tags: true,                 // 🔑 직접 입력 허용
+        placeholder: "직접 입력 또는 선택",
+        allowClear: true
+    });
+}
 
-    console.log(typeName);
+
+/*
+function codeSetInit(typeName, thisObj) {
 
     $.ajax({
         type: "post",
@@ -88,10 +95,8 @@ function codeSetting(typeName) {
         },
         success: function (data) {
             //console.log("data - ", data);
-
+            let str = "";
             if (data != null && data.length > 0) {
-                let str = "";
-
                 for (let i = 0; i < data.length; i++) {
 
                     let name = data[i].name;
@@ -102,66 +107,17 @@ function codeSetting(typeName) {
                         <option value="${code}">${code} -> (${name})</option>
                         `;
                 }
-
-                $("#EL_ATYP").append(str);
+                //$("#EL_ECWRL").append(str);
+                thisObj.append(str);
             }
         },
 
         error: function (xhr, status, err) {
             console.error("AJAX error:", status, err, xhr?.responseText);
-            alert("조회 중 오류가 발생했습니다.");
-        },
-
-        // ✅ 성공/실패 상관없이 항상 마지막에 로딩 제거 (가장 안전)
-        complete: function () {
-            //hideLoading();
         }
     });
-}
+}*/
 
-function codeSettingAsBrand(typeName) {
-
-    console.log(typeName);
-
-    $.ajax({
-        type: "post",
-        crossDomain: true,
-        url: "/subae/findCodeList",
-        data: {
-            typeName: typeName
-        },
-        success: function (data) {
-            //console.log("data - ", data);
-
-            if (data != null && data.length > 0) {
-                let str = "";
-
-                for (let i = 0; i < data.length; i++) {
-
-                    let name = data[i].name;
-                    let code = data[i].code;
-
-                    str +=
-                        `
-                        <option value="${code}">${code} -> (${name})</option>
-                        `;
-                }
-
-                $("#EL_BRAND").append(str);
-            }
-        },
-
-        error: function (xhr, status, err) {
-            console.error("AJAX error:", status, err, xhr?.responseText);
-            alert("조회 중 오류가 발생했습니다.");
-        },
-
-        // ✅ 성공/실패 상관없이 항상 마지막에 로딩 제거 (가장 안전)
-        complete: function () {
-            //hideLoading();
-        }
-    });
-}
 
 function runHeavyWork() {
     showLoading();
