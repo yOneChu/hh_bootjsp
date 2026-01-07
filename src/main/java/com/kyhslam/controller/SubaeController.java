@@ -196,7 +196,6 @@ public class SubaeController {
 
     /**
      * 자재 Finder 화면
-     *
      * @return
      */
     @GetMapping("/subae/searchMissPartofProduct")
@@ -205,6 +204,10 @@ public class SubaeController {
         return "thymeleaf/searchPartFinder";
     }
 
+    /**
+     * 자재 Finder 화면 (최신)
+     * @return
+     */
     @GetMapping("/subae/searchPartFinderTest")
     public String searchPartFinderTest() {
         //return "subaeLogic/searchPartFinder";
@@ -227,6 +230,17 @@ public class SubaeController {
         ArrayList<ProductDto> result = new ArrayList<>();
 
         //subaeService.findMissPart(result, partNo, con01);
+        result = subaeService.findPartOfProduct_v2(whereCond);
+        return result;
+    }
+
+    @PostMapping("/subae/searchPartFinder")
+    @ResponseBody
+    @CrossOrigin
+    public ArrayList<ProductDto> searchPartFinder(PartWhere whereCond) {
+        System.out.println("searchPartFinder" + whereCond);
+        ArrayList<ProductDto> result = new ArrayList<>();
+
         result = subaeService.findPartOfProduct_v2(whereCond);
         return result;
     }
