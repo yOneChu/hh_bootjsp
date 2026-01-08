@@ -2,6 +2,7 @@ package com.kyhslam.controller;
 
 import com.kyhslam.dto.*;
 import com.kyhslam.service.BlockHistoryService;
+import com.kyhslam.service.ELVInfoService;
 import com.kyhslam.service.SubaeService;
 import com.kyhslam.util.ElvInfoCommonUtil;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,6 +33,8 @@ public class SubaeController {
     private final BlockHistoryService blockHistoryService;
 
     private final SubaeService subaeService;
+
+    private final ELVInfoService elvInfoService;
 
 
     //본사-법인 자재비교
@@ -392,9 +395,22 @@ public class SubaeController {
 
     //공사번호 추출
     @GetMapping("/subae/searchElvInfo")
-    public String thyTest() {
+    public String searchElvInfo() {
         return "thymeleaf/searchElvInfo";
     }
+
+
+    @PostMapping("/subae/searchElvInfo")
+    @ResponseBody
+    public ArrayList<ElvInfoDTO> searchElvInfo(ElvWhere where) {
+        System.out.println("searchElvInfo where = " + where);
+        ArrayList<ElvInfoDTO> result = new ArrayList<>();
+        result = elvInfoService.findElvSearch(where);
+
+        return result;
+    }
+
+
 
 
     @GetMapping("/subae/findGisong")

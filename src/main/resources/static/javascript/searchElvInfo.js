@@ -42,7 +42,7 @@ $(document).ready(function() {
     //엔터키 감지
     $(document).keyup(function(event) {
         if(event.which === 13) {
-            searchPID();
+            search();
             return false; // 추가 이벤트 방지위해 false 리턴
         }
     })
@@ -60,11 +60,20 @@ $(document).ready(function() {
     codeSetInit('EL_AOPEN', EL_AOPENObj);
     setInput(EL_AOPENObj);
 
-
     let EL_ECWRLObj = $('#EL_ECWRL');
     codeSetInit('EL_ECWRL', EL_ECWRLObj);
     setInput(EL_ECWRLObj);
 
+    //용도
+    let EL_AUSEOb = $('#EL_AUSE');
+    codeSetInit('EL_AUSE', EL_AUSEOb);
+    setInput(EL_AUSEOb);
+
+    //속도
+    let EL_ASPDObj = $('#EL_ASPD');
+    codeSetInit('EL_ASPD', EL_ASPDObj);
+    setInput(EL_ASPDObj);
+    
     $('#EL_ASPSCD').select2({
         tags: true,                 // 🔑 직접 입력 허용
         placeholder: "직접 입력 또는 선택",
@@ -83,41 +92,6 @@ function setInput(thisObj) {
 }
 
 
-/*
-function codeSetInit(typeName, thisObj) {
-
-    $.ajax({
-        type: "post",
-        crossDomain: true,
-        url: "/subae/findCodeList",
-        data: {
-            typeName: typeName
-        },
-        success: function (data) {
-            //console.log("data - ", data);
-            let str = "";
-            if (data != null && data.length > 0) {
-                for (let i = 0; i < data.length; i++) {
-
-                    let name = data[i].name;
-                    let code = data[i].code;
-
-                    str +=
-                        `
-                        <option value="${code}">${code} -> (${name})</option>
-                        `;
-                }
-                //$("#EL_ECWRL").append(str);
-                thisObj.append(str);
-            }
-        },
-
-        error: function (xhr, status, err) {
-            console.error("AJAX error:", status, err, xhr?.responseText);
-        }
-    });
-}*/
-
 
 function runHeavyWork() {
     showLoading();
@@ -130,35 +104,21 @@ function runHeavyWork() {
 }
 
 //검색
-function searchPID()
+function search()
 {
-    let year = $("#year").val(); //
-    let partNo = $("#partNo").val(); // L
-    let blockNo = $("#blockNo").val();
-    let cmt = $("#cmt").val();
-    let status = $("#status").val();
-    let spec = $("#spec").val();
-    let brand = $("#EL_BRAND").val();
+    let year = $('#year').val()
+    let EL_ABRAND = $("#EL_ABRAND").val();
     let EL_ASPSCD = $("#EL_ASPSCD").val();
     let EL_ATYP = $("#EL_ATYP").val();
-
-    //console.log(year);
-    //console.log(partNo);
-
-    // 입력값 트림 처리
-    partNo = partNo ? partNo.trim() : "";
-    blockNo = blockNo ? blockNo.trim() : "";
-
-    // partNo, blockNo 둘 다 비어있으면 중단, 둘 중 하나라도 있으면 진행
-    if ((partNo === "" || partNo == null) && (blockNo === "" || blockNo == null)) {
-        alert("PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.");
-        return;
-    }
+    let EL_ASPD = $("#EL_ASPD").val();
+    let EL_ERPW = $("#EL_ERPW").val();
+    let EL_AOPEN = $("#EL_AOPEN").val();
+    let EL_ECWRL = $("#EL_ECWRL").val();
+    let EL_AUSE = $("#EL_AUSE").val();
 
     $('#infoTable').DataTable().destroy();
     $("#contentTable").empty();
 
-    //showLoading(); // 로딩바 표시
     showLoading();
 
     requestAnimationFrame(() => {
@@ -166,21 +126,20 @@ function searchPID()
         $.ajax({
             type: "post",
             crossDomain: true,
-            url: "/subae/searchMissPartofProduct",
+            url: "/subae/searchElvInfo",
             data: {
-                partNo: partNo,
                 year: year,
-                blockNo: blockNo,
-                cmt: cmt,
-                status: status,
-                spec: spec,
-                brand: brand,
+                EL_ABRAND: EL_ABRAND,
                 EL_ASPSCD: EL_ASPSCD,
-                EL_ATYP: EL_ATYP
+                EL_ATYP: EL_ATYP,
+                EL_ASPD: EL_ASPD,
+                EL_ERPW: EL_ERPW,
+                EL_AOPEN: EL_AOPEN,
+                EL_ECWRL: EL_ECWRL,
+                EL_AUSE: EL_AUSE
             },
-
             success: function (data) {
-                //console.log("data - ", data);
+                console.log("data - ", data);
 
                 // ✅ 기존 테이블 내용 비우기 (append 누적 방지)
                 $("#contentTable").empty();
@@ -190,33 +149,23 @@ function searchPID()
 
                     for (let i = 0; i < data.length; i++) {
                         str += "<tr>";
-                        str += "<td>" + (data[i].productNo ?? "") + "</td>";
-                        str += "<td>" + (data[i].productVersion ?? "") + "</td>";
-                        str += "<td>" + (data[i].productStatus ?? "") + "</td>";
-                        str += "<td>" + (data[i].productModDate ?? "") + "</td>";
-                        str += "<td>" + (data[i].brand ?? "") + "</td>";
-                        str += "<td>" + (data[i].gisong ?? "") + "</td>";
-                        str += "<td>" + (data[i].aspd ?? "") + "</td>";
-                        str += "<td>" + (data[i].aspscd ?? "") + "</td>";
+                        str += "<td>" + (data[i].productno ?? "") + "</td>";
+                        str += "<td>" + (data[i].productno ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_ABRAND ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_AUSE ?? "") + "</td>";
 
-                        str += "<td>" + (data[i].acapa ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_ASPSCD ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_ATYP ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_ASPD ?? "") + "</td>";
 
-                        str += "<td>" + (data[i].ecbg ?? "") + "</td>";
-                        str += "<td>" + (data[i].ecwbg ?? "") + "</td>";
-                        str += "<td>" + (data[i].ecww ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_AOPEN ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_ERPW ?? "") + "</td>";
 
-                        str += "<td>" + (data[i].partNo ?? "") + "</td>";
-                        str += "<td>" + (data[i].partName ?? "") + "</td>";
-                        str += "<td>" + (data[i].spec ?? "") + "</td>";
-                        str += "<td>" + (data[i].qty ?? "") + "</td>";
-                        str += "<td>" + (data[i].blockNo ?? "") + "</td>";
-                        str += "<td>" + (data[i].blockopt ?? "") + "</td>";
-                        str += "<td>" + (data[i].glCode ?? "") + "</td>";
-                        str += "<td>" + (data[i].version ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_ECWRL ?? "") + "</td>"; //CWT RAIL
+                        str += "<td>" + (data[i].el_AMAN ?? "") + "</td>"; //인승
 
-                        let cmtVal = data[i].cmt || "";
-                        cmtVal = cmtVal.replace(/-/g, "<br>-");
-                        str += "<td>" + cmtVal + "</td>";
+                        str += "<td>" + (data[i].el_ECWBG ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_ECJJ ?? "") + "</td>";
 
                         str += "</tr>";
                     }

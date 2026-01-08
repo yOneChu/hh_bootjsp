@@ -2,7 +2,11 @@ package com.kyhslam.service;
 
 import com.kyhslam.domain.ELVInfo;
 import com.kyhslam.domain.ELVInfoDash;
+import com.kyhslam.dto.ElvInfoDTO;
+import com.kyhslam.dto.ElvWhere;
+import com.kyhslam.dto.ProductDto;
 import com.kyhslam.repository.ElvInfoRepository;
+import com.kyhslam.util.ElvInfoCommonUtil;
 import com.kyhslam.util.PLMDBConnection;
 import com.kyhslam.util.VaultDBConnection;
 import lombok.RequiredArgsConstructor;
@@ -274,5 +278,12 @@ public class ELVInfoService {
         }
 
         return data;
+    }
+
+
+    //elvInfoService 조회
+    public ArrayList<ElvInfoDTO> findElvSearch(ElvWhere whereCond) {
+        ArrayList<ElvInfoDTO> result = ElvInfoCommonUtil.findElvSearch(whereCond);
+        return result;
     }
 }

@@ -112,7 +112,7 @@
                         <div class="row">
                             <!-- <div class="col-6"> -->
                             <div class="col-md-12">
-                                <div class="callout callout-danger" style="zoom:85%;">
+                                <div class="callout callout-danger" style="zoom:90%;">
                                     <h4>🔊 도움말</h4>
                                     <!--<h5 style="color: #60A5FA;">- PartNo, BlockNo 둘 중 하나는 필수입력(속도 이슈)  </h5>
                                     <h5 style="color: #60A5FA;">- ex.자재번호를 입력하면, 그 자재가 사용되고 있는 모든 제품을 조회.  </h5>
@@ -195,10 +195,11 @@
                                     <label>속도(m/min, EL_ASPD)</label>
                                     <select id="EL_ASPD" class="form-control select" style="width: 100%;">
                                         <option value="" selected="selected">전체</option>
-                                        <option value="<=120">≤ 120</option>
+                                        <!--<option value="<=120">≤ 120</option>
                                         <option value="121~180">121 ~ 180</option>
                                         <option value="181~240">181 ~ 240</option>
-                                        <option value=">240">> 240</option>
+                                        <option value=">240">> 240</option>-->
+
                                     </select>
                                 </div>
                             </div>
@@ -242,6 +243,15 @@
                                 </div>
                             </div>
 
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>용도(EL_AUSE)</label>
+                                    <select id="EL_AUSE" class="form-control select" style="width: 100%;">
+                                        <option selected="selected">-</option>
+                                    </select>
+                                </div>
+                            </div>
+
 
                             <!-- /.col -->
                         </div>
@@ -250,7 +260,7 @@
 
 
                     <div class="card-footer">
-                        <button class="btn btn-primary float-right" style="margin-right: 5px;" onclick="searchPID()">분석</button>
+                        <button class="btn btn-primary float-right" style="margin-right: 5px;" onclick="search()">분석</button>
                     </div>
 
                 </div>
@@ -266,46 +276,36 @@
                             <div class="card-body" style="zoom:85%;">
                                 <div id="columnToggleToolbar" class="mb-2">
                                     <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="컬럼 토글">
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(0, this)">제품번호</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(1, this)">제품버전</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(2, this)">제품상태</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(3, this)">제품수정일</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(4, this)">브랜드</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(5, this)">기종</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(6, this)">생산거점</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(7, this)">품번</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(8, this)">품명</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(9, this)">SPEC</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(10, this)">QTY</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(11, this)">BlockNo.</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(12, this)">품목</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(13, this)">GL_CODE</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(14, this)">버전</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(15, this)">cmt</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(0, this)">현장번호</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(1, this)">상태</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(2, this)">브랜드</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(3, this)">생산거점</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(4, this)">기종</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(5, this)">속도</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(6, this)">열림방식</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(7, this)">ROPE/BELT본수</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(8, this)">CWT RAIL</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(9, this)">용도</button>
+
                                     </div>
                                 </div>
                                 <table id="infoTable" class="table table-bordered table-hover" style=" font-family: NotoSans; font-size:15px;">
                                     <thead>
                                     <!-- bg-primary -->
                                     <tr class="bg-secondary">
-                                        <th>제품번호</th>
-                                        <th>제품버전</th>
-                                        <th>제품상태</th>
-                                        <th>제품수정일</th>
+                                        <th>현장번호</th>
+                                        <th>상태</th>
                                         <th>브랜드</th>
-                                        <th>기종</th>
+                                        <th>용도</th>
                                         <th>생산거점</th>
-                                        <th>품번</th>
-                                        <th>품명</th>
-                                        <th>SPEC</th>
-
-                                        <th>QTY</th>
-                                        <th>BlockNo.</th>
-                                        <th>품목</th>
-                                        <th>GL_CODE</th>
-                                        <th>버전</th>
-                                        <th>cmt</th>
-
+                                        <th>기종</th>
+                                        <th>속도</th>
+                                        <th>열림방식</th>
+                                        <th>ROPE/BELT본수</th>
+                                        <th>CWT RAIL</th>
+                                        <th>인승</th>
+                                        <th>el_ECWBG</th>
+                                        <th>el_ECJJ</th>
                                     </tr>
                                     </thead>
 

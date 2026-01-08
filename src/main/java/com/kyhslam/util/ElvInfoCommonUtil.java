@@ -1,10 +1,8 @@
 package com.kyhslam.util;
 
-import com.kyhslam.dto.CodeDTO;
+import com.kyhslam.dto.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import com.kyhslam.dto.ELVInfoDashDTO;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -512,5 +510,247 @@ public class ElvInfoCommonUtil {
             PLMDBConnection.disconnect(con, pstmt, rs);
         }
         return result;
+    }
+
+    //ELV 조회 및 분석
+    public static ArrayList<ElvInfoDTO> findElvSearch(ElvWhere whereCond) {
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        String year = whereCond.getYear();
+        String partNo =  whereCond.getPartNo();
+        String pBlockNo = whereCond.getBlockNo();
+        String status = whereCond.getStatus();
+        String cmt = whereCond.getCmt();
+        String spec = whereCond.getSpec();
+
+        String vEL_ACAPA =  whereCond.getEL_ACAPA();
+        String vEL_ABRAND = whereCond.getEL_ABRAND();
+        String vEL_ASPSCD = whereCond.getEL_ASPSCD();
+        String vEL_ATYP =  whereCond.getEL_ATYP();
+        String vEL_ASPD = whereCond.getEL_ASPD();
+        String vEL_ERPW = whereCond.getEL_ERPW();
+        String vEL_AOPEN = whereCond.getEL_AOPEN();
+        String vEL_ETM = whereCond.getEL_ETM();
+
+        ArrayList<ElvInfoDTO> dataList = new ArrayList<ElvInfoDTO>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+
+            String sql = """        
+                     SELECT V.MD$DESC, V.MD$NUMBER AS PRODUCTNO,
+                     COD(V.EL_AOPEN) AS EL_AOPEN, -- 열림방식 
+                     CODN(v.EL_AUSE) AS EL_AUSE, -- 용도
+                     V.EL_ECWBUFBH, --CWT BUFFER BLOCKING 높이 
+                     V.EL_ECCH, --CAR 높이; CH 
+                     V.EL_ECBG, --CAR:BG 
+                     V.EL_ECEE, --CAR 무게중심;EE 
+                     V.EL_ECJJ, --도어폭;JJ 
+                     V.EL_ERPW,
+                     COD(V.EL_ECWRL) AS EL_ECWRL, --CWT RAIL(K) 
+                     COD(V.EL_ETM) AS EL_ETM, --권상기 
+                     V.EL_ECWBG, --CWT; BG 
+                     V.EL_ECWW, --CWT;폭 
+                     COD(V.EL_ECSF), --CAR; SAFETY 
+                     COD(V.EL_ASPC), --시방서 
+                     COD(V.EL_ASPCD), -- 시방서 DEVIATION 여부 
+                     COD(V.EL_BCL) AS EL_BCL, -- 천장종류 
+                     V.EL_AMAN AS EL_AMAN, --인승 
+                     COD(V.EL_ASPSCD) AS EL_ASPSCD, --생산거점(설계) 
+                     CONCAT('elv_info$vf@', LOWER(DECTOHEX(V.vf$ouid))) OUID,   -- 영업사양 객체 
+                     CODN(V.EL_ABRAND) AS EL_ABRAND, -- 브랜드 
+                     CODN(V.EL_ATYP) AS EL_ATYP, -- 기종 
+                     CODN (V.EL_ASPD) AS EL_ASPD, -- 속도 
+                     CODN (V.EL_ACAPA) AS EL_ACAPA, --용량 
+                     V.EL_ZTEXT_B, --가내 특기사항 
+                     V.EL_ZTEXT_C, --승장 특기사항 
+                     V.EL_ZTEXT_D, --옵션 특기사항 
+                     V.EL_ZTEXT_E, --L/O 특기사항 
+                     V.EL_ZERR_M3_1, --기계 에러 메시지 
+                     V.EL_ZERR_E3_1, --전기 에러 메시지 
+                     V.EL_ZERR_M5_1, --기계 미품목, 
+                     V.EL_ZERR_E5_1, --전기 미품목 
+                     V.EL_ZERR_C_1, --공통 에러 메시지 
+                     V.EL_ZERR_A_1, --자동 입력 오류 
+                     V.MD$USER, 
+                     V.MD$CDATE, 
+                     CODN(V.EL_ETM), 
+                     V.* 
+              FROM ELV_INFO$VF V, ELV_INFO$ID A 
+              WHERE 
+                  V.vf$identity = A.id$ouid and V.vf$ouid = A.id$wip 
+                  AND V.MD$NUMBER NOT LIKE 'Q%'
+                  AND V.MD$NUMBER NOT LIKE 'TEST%'
+                """;
+
+            //year
+            if(year != null && !"".equals(year) && !"-".equals(year)) {
+                sql += " AND SUBSTR(V.MD$CDATE, 0, 4) = '" + year + "' ";
+            }
+
+            //vEL_ASPD
+            if(vEL_ASPD != null && !"".equals(vEL_ASPD) && !"-".equals(vEL_ASPD)) {
+                if (vEL_ASPD.contains("*")) {
+                    vEL_ASPD = vEL_ASPD.replace("*", "%");
+                    sql += " AND CODN(V.EL_ASPD) LIKE '" + vEL_ASPD + "' ";
+                } else {
+                    sql += " AND CODN(V.EL_ASPD) = '" + vEL_ASPD + "' ";
+                }
+            }
+
+            //EL_ACAPA
+            if(vEL_ACAPA != null && !"".equals(vEL_ACAPA) && !"-".equals(vEL_ACAPA)) {
+                if (vEL_ACAPA.contains("*")) {
+                    vEL_ACAPA = vEL_ACAPA.replace("*", "%");
+                    sql += " AND CODN(V.EL_ACAPA) LIKE '" + vEL_ACAPA + "' ";
+                } else {
+                    sql += " AND CODN(V.EL_ACAPA) = '" + vEL_ACAPA + "' ";
+                }
+            }
+
+            //EL_ETM:권상기 타입
+            if(vEL_ETM != null && !"".equals(vEL_ETM) && !"-".equals(vEL_ETM)) {
+                if (vEL_ETM.contains("*")) {
+                    vEL_ETM = vEL_ETM.replace("*", "%");
+                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
+                    sql += " AND CODN(V.EL_ETM) LIKE '" + vEL_ETM + "' ";
+                } else {
+                    sql += " AND CODN(V.EL_ETM) = '" + vEL_ETM + "' ";
+                }
+            }
+
+            //EL_ERPW
+            if(vEL_ERPW != null && !"".equals(vEL_ERPW) && !"-".equals(vEL_ERPW)) {
+                if (vEL_ERPW.contains("*")) {
+                    vEL_ERPW = vEL_ERPW.replace("*", "%");
+                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
+                    sql += " AND CODN(V.EL_ERPW) LIKE '" + vEL_ERPW + "' ";
+                } else {
+                    sql += " AND CODN(V.EL_ERPW) = '" + vEL_ERPW + "' ";
+                }
+            }
+
+            //EL_AOPEN 열림방식
+            if(vEL_AOPEN != null && !"".equals(vEL_AOPEN) && !"-".equals(vEL_AOPEN)) {
+                if (vEL_AOPEN.contains("*")) {
+                    vEL_AOPEN = vEL_AOPEN.replace("*", "%");
+                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
+                    sql += " AND CODN(V.EL_AOPEN) LIKE '" + vEL_AOPEN + "' ";
+                } else {
+                    sql += " AND CODN(V.EL_AOPEN) = '" + vEL_AOPEN + "' ";
+                }
+            }
+
+            //brand
+            if(vEL_ABRAND != null && !"".equals(vEL_ABRAND) && !"-".equals(vEL_ABRAND)) {
+                if (vEL_ABRAND.contains("*")) {
+                    vEL_ABRAND = vEL_ABRAND.replace("*", "%");
+                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
+                    sql += " AND COD(V.EL_ABRAND) LIKE '" + vEL_ABRAND + "' ";
+                } else {
+                    sql += " AND COD(V.EL_ABRAND) = '" + vEL_ABRAND + "' ";
+                }
+            }
+
+            //생산거점(설계)
+            if(vEL_ASPSCD != null && !"".equals(vEL_ASPSCD) && !"-".equals(vEL_ASPSCD)) {
+                if (vEL_ASPSCD.contains("*")) {
+                    vEL_ASPSCD = vEL_ASPSCD.replace("*", "%");
+                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
+                    sql += " AND COD(V.EL_ASPSCD) LIKE '" + vEL_ASPSCD + "' ";
+                } else {
+                    sql += " AND COD(V.EL_ASPSCD) = '" + vEL_ASPSCD + "' ";
+                }
+            }
+
+            //기종
+            if(vEL_ATYP != null && !"".equals(vEL_ATYP) && !"-".equals(vEL_ATYP)) {
+                if (vEL_ATYP.contains("*")) {
+                    vEL_ATYP = vEL_ATYP.replace("*", "%");
+                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
+                    sql += " AND CODN(V.EL_ATYP) LIKE '" + vEL_ATYP + "' ";
+                } else {
+                    sql += " AND CODN(V.EL_ATYP) = '" + vEL_ATYP + "' ";
+                }
+            }
+
+
+            System.out.println("sql = " + sql);
+
+            pstmt = con.prepareStatement(sql.toString());
+            //pstmt.setString(1, productOID);
+            //pstmt.setString(2, partNo);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String PRODUCTNO = rs.getString("PRODUCTNO"); //제품번호
+                String EL_AOPEN = rs.getString("EL_AOPEN") == null ? "" : rs.getString("EL_AOPEN");
+                String EL_ECWBUFBH = rs.getString("EL_ECWBUFBH") == null ? "" : rs.getString("EL_ECWBUFBH");
+
+                String EL_ECCH = rs.getString("EL_ECCH") == null ? "" : rs.getString("EL_ECCH");
+                String EL_ECBG = rs.getString("EL_ECBG") == null ? "" : rs.getString("EL_ECBG");
+                String EL_ECEE = rs.getString("EL_ECEE") == null ? "" : rs.getString("EL_ECEE");
+                String EL_ECJJ = rs.getString("EL_ECJJ") == null ? "" : rs.getString("EL_ECJJ");
+                String EL_ERPW = rs.getString("EL_ERPW") == null ? "" : rs.getString("EL_ERPW");
+
+                String EL_ECWRL =  rs.getString("EL_ECWRL") == null ? "" : rs.getString("EL_ECWRL");
+                String EL_ETM =  rs.getString("EL_ETM") == null ? "" : rs.getString("EL_ETM");
+                String EL_ECWBG = rs.getString("EL_ECWBG") == null ? "" : rs.getString("EL_ECWBG");
+                String EL_ECWW = rs.getString("EL_ECWW") == null ? "" : rs.getString("EL_ECWW");
+                String EL_ECSF = rs.getString("EL_ECSF") == null ? "" : rs.getString("EL_ECSF");
+                String EL_ASPC =  rs.getString("EL_ASPC") == null ? "" : rs.getString("EL_ASPC");
+                String EL_ASPCD =  rs.getString("EL_ASPCD") == null ? "" : rs.getString("EL_ASPCD");
+                String EL_BCL =  rs.getString("EL_BCL") == null ? "" : rs.getString("EL_BCL");
+
+                String EL_AMAN = rs.getString("EL_AMAN") == null ? "" : rs.getString("EL_AMAN");
+                String EL_ASPSCD = rs.getString("EL_ASPSCD") == null ? "" : rs.getString("EL_ASPSCD");
+                String EL_ABRAND = rs.getString("EL_ABRAND") == null ? "" : rs.getString("EL_ABRAND");
+                String EL_ATYP = rs.getString("EL_ATYP") == null ? "" : rs.getString("EL_ATYP");
+                String EL_ASPD = rs.getString("EL_ASPD") == null ? "" : rs.getString("EL_ASPD");
+                String EL_ACAPA = rs.getString("EL_ACAPA") == null ? "" : rs.getString("EL_ACAPA");
+                String EL_AUSE =  rs.getString("EL_AUSE") == null ? "" : rs.getString("EL_AUSE");
+
+                ElvInfoDTO dto = new ElvInfoDTO();
+                dto.setPRODUCTNO(PRODUCTNO); //제품번호
+                dto.setEL_AOPEN(EL_AOPEN);
+                dto.setEL_ECWBUFBH(EL_ECWBUFBH);
+                dto.setEL_ATYP(EL_ATYP);
+                dto.setEL_ECCH(EL_ECCH);
+                dto.setEL_ECBG(EL_ECBG);
+                dto.setEL_ECEE(EL_ECEE);
+                dto.setEL_ECJJ(EL_ECJJ);
+                dto.setEL_ERPW(EL_ERPW);
+
+                dto.setEL_ECWRL(EL_ECWRL);
+                dto.setEL_ETM(EL_ETM);
+                dto.setEL_ECWBG(EL_ECWBG);
+                dto.setEL_ECWW(EL_ECWW);
+                dto.setEL_ECSF(EL_ECSF);
+                dto.setEL_ASPC(EL_ASPC);
+                dto.setEL_ASPCD(EL_ASPCD);
+                dto.setEL_BCL(EL_BCL);
+                dto.setEL_AMAN(EL_AMAN);
+                dto.setEL_ASPSCD(EL_ASPSCD);
+                dto.setEL_ABRAND(EL_ABRAND);
+                dto.setEL_ATYP(EL_ATYP);
+                dto.setEL_ASPD(EL_ASPD);
+                dto.setEL_ACAPA(EL_ACAPA);
+                dto.setEL_AUSE(EL_AUSE);
+
+                dataList.add(dto);
+            } //end while
+
+            System.out.println("dataList.size() = " + dataList.size());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        return dataList;
     }
 }
