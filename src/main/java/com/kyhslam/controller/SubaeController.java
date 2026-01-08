@@ -410,9 +410,6 @@ public class SubaeController {
         return result;
     }
 
-
-
-
     @GetMapping("/subae/findGisong")
     @ResponseBody
     @CrossOrigin
