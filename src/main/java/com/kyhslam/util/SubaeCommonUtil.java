@@ -953,7 +953,13 @@ public class SubaeCommonUtil {
                     AND (SELECT COD(E.EL_ABRAND) FROM ELV_INFO$ID A, ELV_INFO$VF E
                     WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
                     """;
-                sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) = '" + brand + "' ";
+                if (brand.contains("*")) {
+                    brand = brand.replace("*", "%");
+                    sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) LIKE '" + brand + "' ";
+                } else {
+                    sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) = '" + brand + "' ";
+                }
+
             }
 
             //생산거점(설계)
