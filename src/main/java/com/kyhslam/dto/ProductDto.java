@@ -51,6 +51,7 @@ public class ProductDto {
     private String username;
     private String userId;
     private String modDate; //수정일자
+    private String workQty;
 
     //품목구분별 카운트
     private String mCount;

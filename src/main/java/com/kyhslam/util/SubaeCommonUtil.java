@@ -849,6 +849,10 @@ public class SubaeCommonUtil {
                          )
                         SELECT
                       PE.SEQ
+                     , PE.PRODUCTOUID AS PRODUCT_ID
+                     , PE.PARTOUID AS PARTEND2_OID
+                      , LOWER(CONCAT('PRODUCT$VF@', DECTOHEX(PE.PRODUCTOUID))) END1HEX
+                      , LOWER(CONCAT('NORMALPART$VF@', DECTOHEX(PE.PARTOUID))) END2HEX
                      , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) AS PARENTNO
                      , (SELECT F.VF$VERSION FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) AS PARENT_VER
                      , (SELECT TO_CHAR(TO_DATE(PRODUCT.MD$CDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') FROM PRODUCT$VF PRODUCT WHERE PRODUCT.VF$OUID = PE.PRODUCTOUID) AS PROD_CREDATE
@@ -914,7 +918,7 @@ public class SubaeCommonUtil {
                      , VP.MDATE
                     -- , DATEFORMAT(VP.MDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS 등록일
                      , VP.user5
-                     , (SELECT COUNT(1) FROM PARTOFPART$AC WHERE AS$END1=NP.VF$OUID AND ROWNUM=1) HASCHILD -- 하위BOM 존재여부
+                     , (SELECT COUNT(1) FROM PARTOFPART$AC WHERE AS$END1=NP.VF$OUID AND ROWNUM=1) AS HASCHILD -- 하위BOM 존재여부
                     FROM
                      PARTOFEBOM PE
                     INNER JOIN NORMALPART$VF NP ON PE.PARTOUID = NP.VF$OUID
@@ -996,6 +1000,8 @@ public class SubaeCommonUtil {
             rs = pstmt.executeQuery();
 
             while(rs.next()) {
+                String PRODUCT_ID = rs.getString("PRODUCT_ID");
+                String PARTEND2_OID =  rs.getString("PARTEND2_OID");
                 String productNo = rs.getString("PARENTNO"); //제품번호
                 String productVersion = rs.getString("PARENT_VER") == null ? "" : rs.getString("PARENT_VER"); //제품버전
                 String PROD_STATUS = rs.getString("PROD_STATUS") == null ? "" : rs.getString("PROD_STATUS");
@@ -1025,6 +1031,9 @@ public class SubaeCommonUtil {
                 String UCHECK = rs.getString("UCHECK") == null ? "" : rs.getString("UCHECK");
                 String PART_QTY = rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
                 String SPEC = rs.getString("SPEC") == null ? "" : rs.getString("SPEC");
+                String HASCHILD = rs.getString("HASCHILD") == null ? "" : rs.getString("HASCHILD");
+
+
 
                 //System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + BLOCK_OPT);
 
@@ -1056,6 +1065,37 @@ public class SubaeCommonUtil {
                 dto.setBlockopt(BLOCK_OPT);
                 dto.setQty(PART_QTY);
                 dto.setSpec(SPEC);
+
+
+                if(HASCHILD != null && HASCHILD.length() > 0) {
+
+                    ArrayList<ProductDto> childList = new ArrayList<>();
+                    //2레벨 검사
+                    //childList = findDownLevel(PRODUCT_ID, PARTEND2_OID);
+
+                    if(childList != null && childList.size() > 0) {
+                        for(int i=0; i < childList.size(); i++) {
+                            ProductDto childDto = childList.get(i);
+                            childDto.setProductNo(productNo); //제품번호
+                            childDto.setProductVersion(productVersion); //제품버전
+                            childDto.setProductStatus(PROD_STATUS);
+                            childDto.setProductCreDate(PROD_CREDATE);
+                            childDto.setProductModDate(PROD_MODDATE);
+                            childDto.setProductAppdate(PROD_APP_DATE); //제품승인일
+                            childDto.setGisong(GISONG);
+                            childDto.setAspscd(ASPSCD);
+                            childDto.setBrand(BRAND);
+                            childDto.setAcapa(EL_ACAPA); // 용량
+                            childDto.setEcww(EL_ECWW);
+                            childDto.setEcwbg(EL_ECWBG);
+                            childDto.setEcbg(EL_ECBG);
+                            childDto.setAspd(EL_ASPD);
+                            dataList.add(dto);
+                        }
+                    }
+
+
+                }
 
                 dataList.add(dto);
             } //end while
@@ -1198,6 +1238,135 @@ public class SubaeCommonUtil {
             PLMDBConnection.disconnect(con, pstmt, rs);
         }
         return result;
+    }
+
+
+    //BOM1레벨 -> 2레벨 조회
+
+    /**
+     * @BOM 2레벨 조회
+     * @param productOid
+     * @param partOid
+     * @return
+     */
+    public static ArrayList<ProductDto> findDownLevel(String productOid, String partOid) {
+
+        System.out.println("------- findDownLevel -------");
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<ProductDto> result = new ArrayList<ProductDto>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                    SELECT
+                         (ROWNUM-1) idx,
+                         (LEVEL+1)  LEV,
+                         A.SF$OUID ASSOOUID,
+                         A.AS$END1 END1,
+                         A.AS$END2 END2,
+                         A.END1_HEXOUID END1HEX,
+                         A.END2_HEXOUID END2HEX,
+                         A.MD$SEQUENCE SEQ,
+                         (SELECT MD$NUMBER FROM NORMALPART$VF WHERE VF$OUID = A.AS$END1) PARENTNO,
+                         (SELECT NVL(COD(ORIGIN_DIV), '') FROM NORMALPART$VF WHERE VF$OUID = A.AS$END1) PARENTDIV,
+                         (SELECT COUNT(*) FROM PARTANDCAD$AS WHERE AS$END1 = A.AS$END2) CADCNT,
+                         NP.MD$NUMBER PARTNO,
+                         NP.MD$DESC PARTNAME,
+                         NP.VF$VERSION VERSION,
+                         NVL(NP.G_L_CODE, '') GLCODE,
+                         NVL(COD(NP.NATION), '') NATION,
+                         A.QTY,
+                         VP.WORK_QTY,
+                         A.CMT,
+                         VP.WORK_CMT,
+                         A.COLOR,
+                         VP.WORK_COLOR,
+                         NVL(NP.COMPEN_PART, '') COMPEN_PART,
+                         NVL(A.SERVICEFLAG, '') SERVICEFLAG,
+                         NVL(NP.SPEC, '') SPEC,
+                         NVL(NP.PART_SIZE, '') PART_SIZE,
+                         (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCKNO,
+                         (SELECT NVL(LOSSRATE, '') FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) LOSSRATE,
+                         (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCK_OPT,
+                         (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.UPPERBLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.UPPERBLOCKNO, 12))))) UPPERBLOCKNO,
+                         NVL(COD(NP.UOM), '') UOM,
+                         NVL(CODN(NP.ORIGIN_DIV), '') DIV,
+                         NVL(A.MBOM, '') MBOM,
+                         NVL(COD(NP.PART_MBOM), '') PART_MBOM,
+                            (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = NP.MD$USER) USERNAME,
+                         NP.MD$USER USERID,
+                         NP.OLD_CODE,NP.OLD_CODE2, NP.OLD_CODE3, COD(NP.SPT) SPT, COD(NP.PARTMPCHECK) PARTMPCHECK,
+                            (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = B.CUSER) CUSERNAME, B.CUSER CUSERID,
+                            NVL(A.PART_SPT, '') PART_SPT,
+                         DECODE(CONNECT_BY_ISLEAF, 0,'F', 1, 'T') ISLEAF,
+                            VP.UCHECK, VP.MCHECK, NVL(COD(NP.PART_DIVISION), '') PART_DIVISION, A.MD$CDATE CDATE, VP.MDATE,
+                            VP.user5 --, VP.*
+                         FROM PARTOFPART$AC A
+                         INNER JOIN NORMALPART$VF NP ON AS$END2 = NP.VF$OUID
+                          LEFT JOIN VARIABLEPART_NEW VP ON A.SF$OUID = VP.ASSOOUID AND VP.PRODUCTOUID = ?
+                               LEFT OUTER JOIN PARTOFEBOM B ON B.PARTOUID = ? --END2
+                           AND B.PRODUCTOUID = ?
+                           --WHERE A.QTY IS NOT NULL OR (SUBSTR(A.QTY, 0, 1) = 'A' AND VP.WORK_QTY IS NOT NULL)
+                           WHERE REGEXP_LIKE(A.QTY, '^[0-9]+$') OR A.QTY LIKE 'A%' AND NVL(VP.WORK_QTY, 0) <> 0
+                           START WITH AS$END1 = ? -- END2
+                         CONNECT BY PRIOR AS$END2 = AS$END1
+                         ORDER SIBLINGS BY CAST(MD$SEQUENCE AS NUMBER DEFAULT 0 ON CONVERSION ERROR)
+                """;
+
+            //Q,V,NB,NC,NS,M,TEST, T
+            //System.out.println("sql = " + sql);
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, productOid);
+            pstmt.setString(2, partOid);
+            pstmt.setString(3, productOid);
+            pstmt.setString(4, partOid);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String PARTNO  = rs.getString("PARTNO") == null ? "" : rs.getString("PARTNO");
+                String PARTNAME   = rs.getString("PARTNAME") == null ? "" : rs.getString("PARTNAME");
+                String GLCODE   = rs.getString("GLCODE") == null ? "" : rs.getString("GLCODE");
+                String CMT   = rs.getString("CMT") == null ? "" : rs.getString("CMT");
+                String WORK_QTY   = rs.getString("WORK_QTY") == null ? "" : rs.getString("WORK_QTY");
+                String QTY = rs.getString("QTY") ==  null ? "" : rs.getString("QTY");
+                String BLOCK_OPT = rs.getString("BLOCK_OPT") ==  null ? "" : rs.getString("BLOCK_OPT");
+                String BLOCKNO = rs.getString("BLOCKNO") ==  null ? "" : rs.getString("BLOCKNO");
+                String VERSION = rs.getString("VERSION") ==  null ? "" : rs.getString("VERSION");
+                String SPEC = rs.getString("SPEC") ==  null ? "" : rs.getString("SPEC");
+
+                String UCHECK = rs.getString("UCHECK") ==  null ? "" : rs.getString("UCHECK");
+                //String STATUS   = rs.getString("STATUS");
+
+                ProductDto dto = new ProductDto();
+
+                dto.setPartNo(PARTNO);
+                dto.setPartName(PARTNAME);
+                dto.setVersion(VERSION);
+                dto.setBlockNo(BLOCKNO);
+                dto.setCmt(CMT);
+                dto.setGlCode(GLCODE);
+                dto.setUcheck(UCHECK);
+                dto.setQty(QTY);
+                dto.setBlockopt(BLOCK_OPT);
+                dto.setWorkQty(WORK_QTY);
+                dto.setSpec(SPEC);
+
+
+                result.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
+
     }
 
 }
