@@ -133,8 +133,9 @@ public class SubaeController {
     //로직뷰 화면
     @GetMapping("/subae/logicView")
     public String logicView(HttpServletResponse response) {
-        log.info("========== subae logicView");
-        return "subaeLogic/logicView";
+        log.info("========== subae logicView.html");
+        //return "subaeLogic/logicView.html";
+        return "thymeleaf/logicView";
     }
 
     @PostMapping("/subae/logiceditor")

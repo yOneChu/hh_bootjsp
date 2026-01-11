@@ -327,6 +327,8 @@ function initHandsontable(rr) {
     // 데이터 셀 색상
     hot.updateSettings({
         cells: function (row, col) {
+            //console.log('------ updateSettings', hot.getColHeader(col));
+
             const props = {};
             // 현재 col의 헤더명이 KEY1인지 확인
            /* if (hot.getColHeader(col) === 'KEY1') {
@@ -334,15 +336,12 @@ function initHandsontable(rr) {
             }*/
 
             if (['KEY1', 'KEY2', 'KEY3', 'KEY4', 'KEY5', 'KEY6', 'KEY7', 'KEY8', 'KEY9', 'KEY10'].includes(hot.getColHeader(col))) {
-                //props.classList.add('pink-col-header');
                 props.className = (props.className ? props.className + ' ' : '') + 'pink-col';
-                //col.classList.add('pink-col');
             }
 
             if (['SPEC1', 'SPEC2', 'SPEC3', 'SPEC4', 'SPEC5', 'SPEC6', 'SPEC7', 'SPEC8', 'SPEC9', 'SPEC10', 'SPEC11', 'SPEC12', 'SPEC13'].includes(hot.getColHeader(col))) {
-                //TH.classList.add('gery-col-header');
-                col.className = (props.className ? props.className + ' ' : '') + 'gery-col';
-                //col.classList.add('gery-col');
+            //if(hot.getColHeader(col) === 'SPEC1'|| hot.getColHeader(col) === 'SPEC2'){
+                props.className = (props.className ? props.className + ' ' : '') + 'gery-col';
             }
 
             return props;

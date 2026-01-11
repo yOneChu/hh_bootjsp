@@ -185,7 +185,7 @@
 
                         <li>
                             <a href="#" class="nav-link" onclick="window.open('/subae/logicView', 'firstPopup', 'width=1200,height=1000'); return false;">
-                            <%--<a href="/subae/logicView" class="nav-link">--%>
+                            <%--<a href="/subae/logicView.html" class="nav-link">--%>
                                 <p>로직 특성값 View</p>
                             </a>
                         </li>
@@ -198,7 +198,7 @@
 
                         <li>
                             <a href="#" class="nav-link" onclick="window.open('/subae/elevatorSpecDiff', 'firstPopup', 'width=1000,height=1000'); return false;">
-                                <%--<a href="/subae/logicView" class="nav-link">--%>
+                                <%--<a href="/subae/logicView.html" class="nav-link">--%>
                                 <p>호기 영업사양 비교</p>
                             </a>
                         </li>

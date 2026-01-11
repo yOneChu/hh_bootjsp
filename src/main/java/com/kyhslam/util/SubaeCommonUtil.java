@@ -1034,7 +1034,6 @@ public class SubaeCommonUtil {
                 String HASCHILD = rs.getString("HASCHILD") == null ? "" : rs.getString("HASCHILD");
 
 
-
                 //System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + BLOCK_OPT);
 
 
@@ -1070,6 +1069,7 @@ public class SubaeCommonUtil {
                 if(HASCHILD != null && HASCHILD.length() > 0) {
 
                     ArrayList<ProductDto> childList = new ArrayList<>();
+
                     //2레벨 검사
                     //childList = findDownLevel(PRODUCT_ID, PARTEND2_OID);
 
