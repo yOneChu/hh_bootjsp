@@ -8,7 +8,7 @@ $(document).ready(async function() {
 
     //let rr = searchPID("EL_PD162A06");
 
-    console.log("1111111");
+    //console.log("1111111");
     //initHandsontable(rr);AUTO_EL_ZERR_M3
 
 }); // END JQUERY

@@ -543,6 +543,7 @@ public class ElvInfoCommonUtil {
                      SELECT V.MD$DESC, V.MD$NUMBER AS PRODUCTNO,
                      COD(V.EL_AOPEN) AS EL_AOPEN, -- 열림방식 
                      CODN(v.EL_AUSE) AS EL_AUSE, -- 용도
+                     CODN(V.EL_ETM) AS EL_ETM, --권상기
                      V.EL_ECWBUFBH, --CWT BUFFER BLOCKING 높이 
                      V.EL_ECCH, --CAR 높이; CH 
                      V.EL_ECBG, --CAR:BG 

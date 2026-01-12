@@ -165,6 +165,7 @@ function search()
                         str += "<td>" + (data[i].el_AMAN ?? "") + "</td>"; //인승
 
                         str += "<td>" + (data[i].el_ECWBG ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_ETM ?? "") + "</td>";
                         str += "<td>" + (data[i].el_ECJJ ?? "") + "</td>";
 
                         str += "</tr>";
