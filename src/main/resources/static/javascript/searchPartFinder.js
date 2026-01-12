@@ -52,6 +52,10 @@ $(document).ready(function() {
     codeSetting('EL_ATYP');
     codeSettingAsBrand('EL_ABRAND');
 
+    let EL_COBObj = $('#EL_COB');
+    codeSetInit('EL_COB', EL_COBObj);
+    setInput(EL_COBObj);
+
 
     $('#EL_ASPSCD').select2({
         tags: true,                 // 🔑 직접 입력 허용
@@ -74,6 +78,13 @@ $(document).ready(function() {
 
 });
 
+function setInput(thisObj) {
+    thisObj.select2({
+        tags: true,                 // 🔑 직접 입력 허용
+        placeholder: "직접 입력 또는 선택",
+        allowClear: true
+    });
+}
 
 function codeSetting(typeName) {
 
@@ -185,6 +196,8 @@ function searchPID()
     let brand = $("#EL_BRAND").val();
     let EL_ASPSCD = $("#EL_ASPSCD").val();
     let EL_ATYP = $("#EL_ATYP").val();
+    let EL_ETHRU = $("#EL_ETHRU").val();
+    let EL_COB = $("#EL_COB").val();
 
     //console.log(year);
     //console.log(partNo);
@@ -220,11 +233,13 @@ function searchPID()
                 spec: spec,
                 brand: brand,
                 EL_ASPSCD: EL_ASPSCD,
-                EL_ATYP: EL_ATYP
+                EL_ATYP: EL_ATYP,
+                EL_ETHRU: EL_ETHRU,
+                EL_COB: EL_COB
             },
 
             success: function (data) {
-                //console.log("data - ", data);
+                console.log("data - ", data);
 
                 // ✅ 기존 테이블 내용 비우기 (append 누적 방지)
                 $("#contentTable").empty();
@@ -240,8 +255,11 @@ function searchPID()
                         str += "<td>" + (data[i].productModDate ?? "") + "</td>";
                         str += "<td>" + (data[i].brand ?? "") + "</td>";
                         str += "<td>" + (data[i].gisong ?? "") + "</td>";
+
                         str += "<td>" + (data[i].aspd ?? "") + "</td>";
                         str += "<td>" + (data[i].aspscd ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_ETHRU ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_COB ?? "") + "</td>";
 
                         str += "<td>" + (data[i].acapa ?? "") + "</td>";
 

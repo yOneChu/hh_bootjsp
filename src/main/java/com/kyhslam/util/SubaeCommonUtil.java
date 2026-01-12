@@ -816,6 +816,8 @@ public class SubaeCommonUtil {
         String brand = whereCond.getBrand();
         String EL_ASPSCD = whereCond.getEL_ASPSCD();
         String EL_ATYP =  whereCond.getEL_ATYP();
+        String vEL_ETHRU =  whereCond.getEL_ETHRU();
+        String vEL_COB = whereCond.getEL_COB();
 
         if (pBlockNo != null && !"".equals(pBlockNo)) {
             pBlockNo = pBlockNo.toUpperCase();
@@ -883,6 +885,12 @@ public class SubaeCommonUtil {
                     , (SELECT E.EL_ECBG FROM ELV_INFO$ID A, ELV_INFO$VF E
                        WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_ECBG
+                     , (SELECT COD(E.EL_ETHRU) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                       WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                       AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_ETHRU
+                     , (SELECT COD(E.EL_COB) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                       WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                       AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_COB -- 전망종류
                      , NP.MD$NUMBER AS PARTNO
                      , cod(NP.NATION) AS NATION
                      , NP.compen_part AS COMPEN_PART
@@ -938,22 +946,33 @@ public class SubaeCommonUtil {
                 }
             }
 
+            if(vEL_ETHRU != null && !"".equals(vEL_ETHRU) && !"-".equals(vEL_ETHRU)) {
+                sql += """
+                    AND (SELECT COD(E.EL_ETHRU) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                    WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                    """;
+                sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) = '" + vEL_ETHRU + "' ";
+            }
+
+
             if(pBlockNo != null && !"".equals(pBlockNo)){
                 sql += " AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID = DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = '" + pBlockNo + "' ";
             }
 
             if(cmt != null && !"".equals(cmt)){
                 //sql += " AND PE.CMT LIKE '%" + cmt + "%' ";
-                sql += " AND REGEXP_REPLACE(PE.CMT, '[a-z]', UPPER('\0')) LIKE '" + cmt + "%' ";
+
+                sql += " AND REGEXP_REPLACE(PE.CMT, '[a-z]', UPPER('\0')) LIKE '%" + cmt.toUpperCase() + "%' ";
             }
 
             //NP.SPEC
             if(spec != null && !"".equals(spec)){
-                sql += " AND NP.SPEC LIKE '%" + spec + "%' ";
+                sql += " AND NP.SPEC LIKE '%" + spec.toUpperCase() + "%' ";
             }
 
             //brand
             if(brand != null && !"".equals(brand) && !"-".equals(brand)) {
+                brand = brand.toUpperCase();
                 sql += """
                     AND (SELECT COD(E.EL_ABRAND) FROM ELV_INFO$ID A, ELV_INFO$VF E
                     WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
@@ -984,13 +1003,27 @@ public class SubaeCommonUtil {
                     """;
 
                 if (EL_ATYP.contains("*")) {
-                    EL_ATYP = partNo.replace("*", "%");
+                    EL_ATYP = EL_ATYP.replace("*", "%");
                     sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) LIKE '" + EL_ATYP + "' ";
                 } else {
                     sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) = '" + EL_ATYP + "' ";
                 }
             }
 
+            //vEL_COB
+            if(vEL_COB != null && !"".equals(vEL_COB) && !"-".equals(vEL_COB)) {
+                sql += """
+                    AND (SELECT COD(E.EL_COB) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                    WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                    """;
+
+                if (vEL_COB.contains("*")) {
+                    vEL_COB = vEL_COB.replace("*", "%");
+                    sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) LIKE '" + vEL_COB + "' ";
+                } else {
+                    sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) = '" + vEL_COB + "' ";
+                }
+            }
 
             System.out.println("sql = " + sql);
 
@@ -1034,6 +1067,9 @@ public class SubaeCommonUtil {
                 String SPEC = rs.getString("SPEC") == null ? "" : rs.getString("SPEC");
                 String HASCHILD = rs.getString("HASCHILD") == null ? "" : rs.getString("HASCHILD");
 
+                String EL_ETHRU = rs.getString("EL_ETHRU") == null ? "" : rs.getString("EL_ETHRU");
+                String EL_COB = rs.getString("EL_COB") == null ? "" : rs.getString("EL_COB");
+
 
                 //System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + BLOCK_OPT);
 
@@ -1065,6 +1101,8 @@ public class SubaeCommonUtil {
                 dto.setBlockopt(BLOCK_OPT);
                 dto.setQty(PART_QTY);
                 dto.setSpec(SPEC);
+                dto.setEL_ETHRU(EL_ETHRU);
+                dto.setEL_COB(EL_COB);
 
 
                 if(HASCHILD != null && HASCHILD.length() > 0) {
