@@ -943,7 +943,8 @@ public class SubaeCommonUtil {
             }
 
             if(cmt != null && !"".equals(cmt)){
-                sql += " AND PE.CMT LIKE '%" + cmt + "%' ";
+                //sql += " AND PE.CMT LIKE '%" + cmt + "%' ";
+                sql += " AND REGEXP_REPLACE(PE.CMT, '[a-z]', UPPER('\0')) LIKE '" + cmt + "%' ";
             }
 
             //NP.SPEC
