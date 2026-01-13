@@ -26,5 +26,6 @@ public class ElvWhere {
     String EL_ASPSCD; //생산거점
     String EL_ATYP; //기종
     String EL_ETM; // 권상기 타입
+    String EL_COB;
 
 }

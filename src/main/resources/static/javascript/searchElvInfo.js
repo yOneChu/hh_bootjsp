@@ -73,6 +73,15 @@ $(document).ready(function() {
     let EL_ASPDObj = $('#EL_ASPD');
     codeSetInit('EL_ASPD', EL_ASPDObj);
     setInput(EL_ASPDObj);
+
+    let EL_COBObj = $('#EL_COB');
+    codeSetInit('EL_COB', EL_COBObj);
+    setInput(EL_COBObj);
+
+
+    let EL_ACAPAObj = $('#EL_ACAPA');
+    codeSetInit('EL_ACAPA', EL_ACAPAObj);
+    setInput(EL_ACAPAObj);
     
     $('#EL_ASPSCD').select2({
         tags: true,                 // 🔑 직접 입력 허용
@@ -115,6 +124,9 @@ function search()
     let EL_AOPEN = $("#EL_AOPEN").val();
     let EL_ECWRL = $("#EL_ECWRL").val();
     let EL_AUSE = $("#EL_AUSE").val();
+    let EL_COB = $("#EL_COB").val();
+    let EL_ACAPA = $("#EL_ACAPA").val();
+
 
     $('#infoTable').DataTable().destroy();
     $("#contentTable").empty();
@@ -136,7 +148,9 @@ function search()
                 EL_ERPW: EL_ERPW,
                 EL_AOPEN: EL_AOPEN,
                 EL_ECWRL: EL_ECWRL,
-                EL_AUSE: EL_AUSE
+                EL_AUSE: EL_AUSE,
+                EL_COB: EL_COB,
+                EL_ACAPA: EL_ACAPA
             },
             success: function (data) {
                 console.log("data - ", data);
@@ -167,6 +181,9 @@ function search()
                         str += "<td>" + (data[i].el_ECWBG ?? "") + "</td>";
                         str += "<td>" + (data[i].el_ETM ?? "") + "</td>";
                         str += "<td>" + (data[i].el_ECJJ ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_COB ?? "") + "</td>";
+                        str += "<td>" + (data[i].el_ACAPA ?? "") + "</td>";
+
 
                         str += "</tr>";
                     }

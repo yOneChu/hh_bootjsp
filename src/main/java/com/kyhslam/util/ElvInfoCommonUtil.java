@@ -533,6 +533,7 @@ public class ElvInfoCommonUtil {
         String vEL_ERPW = whereCond.getEL_ERPW();
         String vEL_AOPEN = whereCond.getEL_AOPEN();
         String vEL_ETM = whereCond.getEL_ETM();
+        String vEL_COB = whereCond.getEL_COB();
 
         ArrayList<ElvInfoDTO> dataList = new ArrayList<ElvInfoDTO>();
 
@@ -583,7 +584,7 @@ public class ElvInfoCommonUtil {
               WHERE 
                   V.vf$identity = A.id$ouid and V.vf$ouid = A.id$wip 
                   AND V.MD$NUMBER NOT LIKE 'Q%'
-                  AND V.MD$NUMBER NOT LIKE 'TEST%'
+                  AND V.MD$NUMBER NOT LIKE '%TEST%'
                 """;
 
             //year
@@ -598,16 +599,6 @@ public class ElvInfoCommonUtil {
                     sql += " AND CODN(V.EL_ASPD) LIKE '" + vEL_ASPD + "' ";
                 } else {
                     sql += " AND CODN(V.EL_ASPD) = '" + vEL_ASPD + "' ";
-                }
-            }
-
-            //EL_ACAPA
-            if(vEL_ACAPA != null && !"".equals(vEL_ACAPA) && !"-".equals(vEL_ACAPA)) {
-                if (vEL_ACAPA.contains("*")) {
-                    vEL_ACAPA = vEL_ACAPA.replace("*", "%");
-                    sql += " AND CODN(V.EL_ACAPA) LIKE '" + vEL_ACAPA + "' ";
-                } else {
-                    sql += " AND CODN(V.EL_ACAPA) = '" + vEL_ACAPA + "' ";
                 }
             }
 
@@ -653,6 +644,28 @@ public class ElvInfoCommonUtil {
                 } else {
                     sql += " AND COD(V.EL_ABRAND) = '" + vEL_ABRAND + "' ";
                 }
+            }
+
+            if(vEL_COB != null && !"".equals(vEL_COB) && !"-".equals(vEL_COB)) {
+                /*if (vEL_ABRAND.contains("*")) {
+                    vEL_ABRAND = vEL_ABRAND.replace("*", "%");
+                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
+                    sql += " AND COD(V.EL_ABRAND) LIKE '" + vEL_ABRAND + "' ";
+                } else {
+                    sql += " AND COD(V.EL_ABRAND) = '" + vEL_COB + "' ";
+                }*/
+                sql += " AND COD(V.EL_COB) = '" + vEL_COB + "' ";
+            }
+
+            if(vEL_ACAPA != null && !"".equals(vEL_ACAPA) && !"-".equals(vEL_ACAPA)) {
+                /*if (vEL_ABRAND.contains("*")) {
+                    vEL_ABRAND = vEL_ABRAND.replace("*", "%");
+                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
+                    sql += " AND COD(V.EL_ABRAND) LIKE '" + vEL_ABRAND + "' ";
+                } else {
+                    sql += " AND COD(V.EL_ABRAND) = '" + vEL_COB + "' ";
+                }*/
+                sql += " AND COD(V.EL_ACAPA) = '" + vEL_ACAPA + "' ";
             }
 
             //생산거점(설계)
