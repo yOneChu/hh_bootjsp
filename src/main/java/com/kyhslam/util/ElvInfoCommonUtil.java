@@ -525,6 +525,7 @@ public class ElvInfoCommonUtil {
         String cmt = whereCond.getCmt();
         String spec = whereCond.getSpec();
 
+        String vNumber = whereCond.getHogi();
         String vEL_ACAPA =  whereCond.getEL_ACAPA();
         String vEL_ABRAND = whereCond.getEL_ABRAND();
         String vEL_ASPSCD = whereCond.getEL_ASPSCD();
@@ -534,6 +535,7 @@ public class ElvInfoCommonUtil {
         String vEL_AOPEN = whereCond.getEL_AOPEN();
         String vEL_ETM = whereCond.getEL_ETM();
         String vEL_COB = whereCond.getEL_COB();
+        String vEL_DLATT = whereCond.getEL_DLATT();
 
         ArrayList<ElvInfoDTO> dataList = new ArrayList<ElvInfoDTO>();
 
@@ -586,6 +588,21 @@ public class ElvInfoCommonUtil {
                   AND V.MD$NUMBER NOT LIKE 'Q%'
                   AND V.MD$NUMBER NOT LIKE '%TEST%'
                 """;
+
+            //vNumber
+            if(vNumber != null && !"".equals(vNumber) && !"-".equals(vNumber)) {
+                if (vNumber.contains("*")) {
+                    vNumber = vNumber.replace("*", "%");
+                    sql += " AND V.MD$NUMBER LIKE '" + vNumber + "' ";
+                } else {
+                    sql += " AND V.MD$NUMBER = '" + vNumber + "' ";
+                }
+            }
+
+            //
+            if(vEL_DLATT != null && !"".equals(vEL_DLATT) && !"-".equals(vEL_DLATT)) {
+                sql += " AND COD(V.EL_DLATT) = '" + vEL_DLATT + "' ";
+            }
 
             //year
             if(year != null && !"".equals(year) && !"-".equals(year)) {

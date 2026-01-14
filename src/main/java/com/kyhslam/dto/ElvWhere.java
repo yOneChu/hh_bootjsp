@@ -12,6 +12,7 @@ public class ElvWhere {
     String cmt;
     String spec;
 
+    String hogi;
     String creDate;
     String endDate;
     String status;
@@ -27,5 +28,6 @@ public class ElvWhere {
     String EL_ATYP; //기종
     String EL_ETM; // 권상기 타입
     String EL_COB;
+    String EL_DLATT; // 전력회생형 적용
 
 }
