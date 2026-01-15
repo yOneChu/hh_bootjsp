@@ -519,11 +519,6 @@ public class ElvInfoCommonUtil {
         ResultSet rs 			= null;
 
         String year = whereCond.getYear();
-        String partNo =  whereCond.getPartNo();
-        String pBlockNo = whereCond.getBlockNo();
-        String status = whereCond.getStatus();
-        String cmt = whereCond.getCmt();
-        String spec = whereCond.getSpec();
 
         String vNumber = whereCond.getHogi();
         String vEL_ACAPA =  whereCond.getEL_ACAPA();
@@ -599,17 +594,14 @@ public class ElvInfoCommonUtil {
                 }
             }
 
-            //
             if(vEL_DLATT != null && !"".equals(vEL_DLATT) && !"-".equals(vEL_DLATT)) {
                 sql += " AND COD(V.EL_DLATT) = '" + vEL_DLATT + "' ";
             }
 
-            //year
             if(year != null && !"".equals(year) && !"-".equals(year)) {
                 sql += " AND SUBSTR(V.MD$CDATE, 0, 4) = '" + year + "' ";
             }
 
-            //vEL_ASPD
             if(vEL_ASPD != null && !"".equals(vEL_ASPD) && !"-".equals(vEL_ASPD)) {
                 if (vEL_ASPD.contains("*")) {
                     vEL_ASPD = vEL_ASPD.replace("*", "%");
@@ -619,7 +611,6 @@ public class ElvInfoCommonUtil {
                 }
             }
 
-            //EL_ETM:권상기 타입
             if(vEL_ETM != null && !"".equals(vEL_ETM) && !"-".equals(vEL_ETM)) {
                 if (vEL_ETM.contains("*")) {
                     vEL_ETM = vEL_ETM.replace("*", "%");
@@ -630,7 +621,6 @@ public class ElvInfoCommonUtil {
                 }
             }
 
-            //EL_ERPW
             if(vEL_ERPW != null && !"".equals(vEL_ERPW) && !"-".equals(vEL_ERPW)) {
                 if (vEL_ERPW.contains("*")) {
                     vEL_ERPW = vEL_ERPW.replace("*", "%");
@@ -656,7 +646,6 @@ public class ElvInfoCommonUtil {
             if(vEL_ABRAND != null && !"".equals(vEL_ABRAND) && !"-".equals(vEL_ABRAND)) {
                 if (vEL_ABRAND.contains("*")) {
                     vEL_ABRAND = vEL_ABRAND.replace("*", "%");
-                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
                     sql += " AND COD(V.EL_ABRAND) LIKE '" + vEL_ABRAND + "' ";
                 } else {
                     sql += " AND COD(V.EL_ABRAND) = '" + vEL_ABRAND + "' ";
@@ -664,24 +653,10 @@ public class ElvInfoCommonUtil {
             }
 
             if(vEL_COB != null && !"".equals(vEL_COB) && !"-".equals(vEL_COB)) {
-                /*if (vEL_ABRAND.contains("*")) {
-                    vEL_ABRAND = vEL_ABRAND.replace("*", "%");
-                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
-                    sql += " AND COD(V.EL_ABRAND) LIKE '" + vEL_ABRAND + "' ";
-                } else {
-                    sql += " AND COD(V.EL_ABRAND) = '" + vEL_COB + "' ";
-                }*/
                 sql += " AND COD(V.EL_COB) = '" + vEL_COB + "' ";
             }
 
             if(vEL_ACAPA != null && !"".equals(vEL_ACAPA) && !"-".equals(vEL_ACAPA)) {
-                /*if (vEL_ABRAND.contains("*")) {
-                    vEL_ABRAND = vEL_ABRAND.replace("*", "%");
-                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
-                    sql += " AND COD(V.EL_ABRAND) LIKE '" + vEL_ABRAND + "' ";
-                } else {
-                    sql += " AND COD(V.EL_ABRAND) = '" + vEL_COB + "' ";
-                }*/
                 sql += " AND COD(V.EL_ACAPA) = '" + vEL_ACAPA + "' ";
             }
 
@@ -689,7 +664,6 @@ public class ElvInfoCommonUtil {
             if(vEL_ASPSCD != null && !"".equals(vEL_ASPSCD) && !"-".equals(vEL_ASPSCD)) {
                 if (vEL_ASPSCD.contains("*")) {
                     vEL_ASPSCD = vEL_ASPSCD.replace("*", "%");
-                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
                     sql += " AND COD(V.EL_ASPSCD) LIKE '" + vEL_ASPSCD + "' ";
                 } else {
                     sql += " AND COD(V.EL_ASPSCD) = '" + vEL_ASPSCD + "' ";
@@ -700,7 +674,6 @@ public class ElvInfoCommonUtil {
             if(vEL_ATYP != null && !"".equals(vEL_ATYP) && !"-".equals(vEL_ATYP)) {
                 if (vEL_ATYP.contains("*")) {
                     vEL_ATYP = vEL_ATYP.replace("*", "%");
-                    //sql += " AND NP.MD$NUMBER LIKE '%" + partNo + "%' ";
                     sql += " AND CODN(V.EL_ATYP) LIKE '" + vEL_ATYP + "' ";
                 } else {
                     sql += " AND CODN(V.EL_ATYP) = '" + vEL_ATYP + "' ";
