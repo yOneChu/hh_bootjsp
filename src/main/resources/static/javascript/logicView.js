@@ -318,7 +318,7 @@ function initHandsontable(rr) {
                     tip.style.color = '#fff';
                     tip.style.padding = '8px 10px';
                     tip.style.borderRadius = '6px';
-                    tip.style.fontSize = '12px';
+                    tip.style.fontSize = '15px';
                     tip.style.lineHeight = '1.4';
                     tip.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
                     tip.style.display = 'none';
