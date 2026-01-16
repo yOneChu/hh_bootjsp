@@ -299,6 +299,105 @@ function initHandsontable(rr) {
             // Removed updateFormulaBar as it's no longer a formula bar
         },
 
+        // 행 Hover 시 KEY/VAL 요약 툴팁 표시
+        afterOnCellMouseOver: function(event, coords, TD) {
+            try {
+                if (!hot || coords.row == null || coords.row < 0) return;
+
+                // 툴팁 요소 준비
+                let tip = document.getElementById('hot-row-tooltip');
+                if (!tip) {
+                    tip = document.createElement('div');
+                    tip.id = 'hot-row-tooltip';
+                    tip.style.position = 'fixed';
+                    tip.style.maxWidth = '480px';
+                    tip.style.maxHeight = '60vh';
+                    tip.style.overflow = 'auto';
+                    tip.style.zIndex = '9999';
+                    tip.style.background = 'rgba(0,0,0,0.85)';
+                    tip.style.color = '#fff';
+                    tip.style.padding = '8px 10px';
+                    tip.style.borderRadius = '6px';
+                    tip.style.fontSize = '12px';
+                    tip.style.lineHeight = '1.4';
+                    tip.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+                    tip.style.display = 'none';
+                    document.body.appendChild(tip);
+                }
+
+                // KEY/VAL 컬럼 인덱스를 계산 (한 번 캐시)
+                if (!hot.__keyValPairs) {
+                    const pairs = {};
+                    for (let c = 0; c < hot.countCols(); c++) {
+                        const h = hot.getColHeader(c);
+                        if (typeof h !== 'string') continue;
+                        const mKey = h.match(/^KEY(\d+)$/i);
+                        const mVal = h.match(/^VAL(\d+)$/i);
+                        if (mKey) {
+                            const n = mKey[1];
+                            if (!pairs[n]) pairs[n] = {};
+                            pairs[n].key = c;
+                        } else if (mVal) {
+                            const n = mVal[1];
+                            if (!pairs[n]) pairs[n] = {};
+                            pairs[n].val = c;
+                        }
+                    }
+                    // 인덱스가 있는 페어만 정렬된 배열로 저장
+                    hot.__keyValPairs = Object.keys(pairs)
+                        .sort((a,b) => Number(a) - Number(b))
+                        .map(k => pairs[k])
+                        .filter(p => typeof p.key === 'number' && typeof p.val === 'number');
+                }
+
+                // 현재 행의 KEY/VAL 값 수집
+                const rowIndex = coords.row;
+                const lines = [];
+                for (const p of hot.__keyValPairs) {
+                    const k = hot.getDataAtCell(rowIndex, p.key);
+                    const v = hot.getDataAtCell(rowIndex, p.val);
+                    const ks = (k == null ? '' : String(k).trim());
+                    const vs = (v == null ? '' : String(v).trim());
+                    if (ks || vs) {
+                        // 긴 텍스트 줄바꿈 보장
+                        const safeKs = ks.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                        const safeVs = vs.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                        lines.push(`<div><b>${safeKs}</b>: <span>${safeVs}</span></div>`);
+                    }
+                }
+
+                if (lines.length === 0) {
+                    // 표시할 내용 없음 → 숨김
+                    tip.style.display = 'none';
+                    return;
+                }
+
+                tip.innerHTML = lines.join('');
+                tip.style.display = 'block';
+
+                // 마우스 위치 기준으로 툴팁 위치
+                const offset = 14;
+                const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+                const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+                let x = event.clientX + offset;
+                let y = event.clientY + offset;
+                // 경계 보정
+                const rect = tip.getBoundingClientRect();
+                if (x + rect.width > vw - 8) x = Math.max(8, vw - rect.width - 8);
+                if (y + rect.height > vh - 8) y = Math.max(8, vh - rect.height - 8);
+                tip.style.left = x + 'px';
+                tip.style.top = y + 'px';
+            } catch (e) {
+                // 콘솔 에러만 기록 (기능 영향 최소화)
+                console.warn('Row tooltip error:', e);
+            }
+        },
+
+        afterOnCellMouseOut: function(event, coords, TD) {
+            const tip = document.getElementById('hot-row-tooltip');
+            if (tip) tip.style.display = 'none';
+        },
+
         afterChange: function(changes, source) {
             if (changes) {
                 updateStatusBar();

@@ -82,10 +82,6 @@ $(document).ready(function() {
     let EL_ACAPAObj = $('#EL_ACAPA');
     codeSetInit('EL_ACAPA', EL_ACAPAObj);
     setInput(EL_ACAPAObj);
-
-    /*let EL_DLATTObj = $('#EL_DLATT');
-    codeSetInit('EL_DLATT', EL_DLATTObj);
-    setInput(EL_DLATTObj);*/
     
     $('#EL_ASPSCD').select2({
         tags: true,                 // 🔑 직접 입력 허용
@@ -130,9 +126,6 @@ function search()
     let EL_AUSE = $("#EL_AUSE").val();
     let EL_COB = $("#EL_COB").val();
     let EL_ACAPA = $("#EL_ACAPA").val();
-    let EL_DLATT = $("#EL_DLATT").val();
-
-    let hogi = $("#hogi").val();
 
 
     $('#infoTable').DataTable().destroy();
@@ -157,9 +150,7 @@ function search()
                 EL_ECWRL: EL_ECWRL,
                 EL_AUSE: EL_AUSE,
                 EL_COB: EL_COB,
-                EL_ACAPA: EL_ACAPA,
-                hogi: hogi,
-                EL_DLATT: EL_DLATT
+                EL_ACAPA: EL_ACAPA
             },
             success: function (data) {
                 console.log("data - ", data);
