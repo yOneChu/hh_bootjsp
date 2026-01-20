@@ -327,7 +327,7 @@ public class ExcelDownloadController {
 
         // 헤더 작성
         Row header = sheet.createRow(0);
-        String[] titles = { "자재번호", "자재명", "버전", "설계사용", "견적사용", "BlockNo", "상태", "단위", "DIV", "PART_SIZE", "SPEC"};
+        String[] titles = { "자재번호", "자재명", "버전", "설계사용", "견적사용", "BlockNo", "상태", "단위", "DIV", "PART_SIZE", "SPEC", "GL_CODE"};
         for (int i = 0; i < titles.length; i++) {
             Cell cell = header.createCell(i);
             cell.setCellValue(titles[i]);
@@ -375,6 +375,7 @@ public class ExcelDownloadController {
             row.createCell(8).setCellValue(dto.getOriginDiv());
             row.createCell(9).setCellValue(dto.getPartSize());
             row.createCell(10).setCellValue(dto.getSpec());
+            row.createCell(11).setCellValue(dto.getGlCode());
 
             row.getCell(0).setCellStyle(bodyStyle);
             row.getCell(1).setCellStyle(bodyStyle);
@@ -387,6 +388,7 @@ public class ExcelDownloadController {
             row.getCell(8).setCellStyle(bodyStyle);
             row.getCell(9).setCellStyle(bodyStyle);
             row.getCell(10).setCellStyle(bodyStyle);
+            row.getCell(11).setCellStyle(bodyStyle);
         }
 
 
