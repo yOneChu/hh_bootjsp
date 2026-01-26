@@ -161,7 +161,7 @@ public class ProductCommonUtil {
 
     // 제품의 OID로  해당 1레벨 BOM 조회
     /**
-     * 제품의 최신 1레벨 조회
+     * 제품의 OID로  해당 1레벨 BOM 조회
      * @param productOID
      * @return
      */
