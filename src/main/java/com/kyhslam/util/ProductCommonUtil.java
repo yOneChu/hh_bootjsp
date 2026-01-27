@@ -395,7 +395,7 @@ public class ProductCommonUtil {
                      , PE.CDATE
                      , VP.MDATE
                      , VP.user5
-                     , (SELECT COUNT(1) FROM PARTOFPART$AC WHERE AS$END1=NP.VF$OUID AND ROWNUM=1) AS HASCHILD -- 하위BOM 존재여부
+                 --    , (SELECT COUNT(1) FROM PARTOFPART$AC WHERE AS$END1=NP.VF$OUID AND ROWNUM=1) AS HASCHILD -- 하위BOM 존재여부
                     FROM
                  PARTOFEBOM PE
                 INNER JOIN NORMALPART$VF NP ON PE.PARTOUID = NP.VF$OUID
@@ -444,7 +444,7 @@ public class ProductCommonUtil {
                 String UCHECK = rs.getString("UCHECK");
                 String USERNAME = rs.getString("USERNAME");
                 String USERID = rs.getString("USERID");
-                String HASCHILD = rs.getString("HASCHILD");
+                //String HASCHILD = rs.getString("HASCHILD") == null ? "" : rs.getString("HASCHILD");
 
 
                 //System.out.println(PARENTNO +">" + productVersion + " > " + PROD_APP_DATE + " >>> " + PARTNO + " > " + PARTNAME);
