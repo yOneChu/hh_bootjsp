@@ -93,7 +93,6 @@ public class subae_LogicPercentage {
                     } else {
                         productInfoList = SubaeCommonUtil.findProductOIDS(hogi);
                         hogiKeyMap.put(hogi,productInfoList);
-
                     }
 
                     for (int j = 0; j < productInfoList.size(); j++) {
