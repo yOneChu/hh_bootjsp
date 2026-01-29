@@ -7,7 +7,7 @@ import lombok.Setter;
 //@Entity
 @Setter
 @Getter
-@Table(name = "block_history")
+//@Table(name = "block_history")
 public class BlockHistory {
 
     @Id

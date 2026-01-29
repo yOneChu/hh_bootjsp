@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 
-@Entity
+//@Entity
 @Setter
 @Getter
 @Table(name = "dash_exportprice")

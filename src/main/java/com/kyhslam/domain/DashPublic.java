@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 
 
 
-@Entity
+//@Entity
 @Table(name = "dash_public")
 @Setter
 @Getter
