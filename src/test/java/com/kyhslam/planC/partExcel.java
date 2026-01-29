@@ -1,9 +1,12 @@
 package com.kyhslam.planC;
 
 import com.kyhslam.domain.PartPlanC;
+import com.kyhslam.dto.PartWhere;
+import com.kyhslam.dto.ProductDto;
 import com.kyhslam.repository.PlanCRepository;
 import com.kyhslam.service.PlanCService;
 import com.kyhslam.util.ExcelUtil;
+import com.kyhslam.util.SubaeCommonUtil;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -17,6 +20,8 @@ import org.springframework.util.StopWatch;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 @SpringBootTest
 public class partExcel {
@@ -105,9 +110,37 @@ public class partExcel {
                 e.printStackTrace();
             }
         }
-
-
-
-
     }
+
+
+    //수정 테스트
+    @Test
+    public void select() {
+        List<PartPlanC> list = service.findAll();
+
+        System.out.println("list = " + list.size());
+
+
+
+
+        //해당 자재 사용하는 호기 찾기
+        for(int i=0; i < 10; i++){
+
+            PartWhere where = new PartWhere();
+            where.setPartNo(list.get(i).getPartNo());
+            ArrayList<ProductDto> productList = SubaeCommonUtil.findPartOfProduct_v2(where);
+
+            for(int j=0; j < productList.size(); j++){
+                ProductDto productDto = productList.get(j);
+                System.out.println("productDto = " + productDto.getProductNo() + " > " + productDto.getPartNo());
+            }
+
+            //N27200L19 > C189P001148
+
+            //속도를 위해 미리 사용하는 호기들을
+
+
+        }
+    }
+
 }

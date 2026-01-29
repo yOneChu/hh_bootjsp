@@ -1,5 +1,6 @@
 package com.kyhslam.repository;
 
+import com.kyhslam.domain.DashPublic;
 import com.kyhslam.domain.DashPublicData;
 import com.kyhslam.domain.PartPlanC;
 import jakarta.persistence.EntityManager;
@@ -19,11 +20,20 @@ public class PlanCRepository {
     }
 
 
+    public List<PartPlanC> findAll() {
+        return em.createQuery("select o from PartPlanC o", PartPlanC.class)
+                .getResultList();
+    }
+
+
     public List<PartPlanC> findByBlock(String blockNo) {
         return em.createQuery("select o from PartPlanC o where o.blockNo = :blockNo", PartPlanC.class)
                 .setParameter("blockNo", blockNo)
                 .getResultList();
     }
+
+
+
 
 
 
