@@ -5,17 +5,22 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+@Entity
 @Setter
 @Getter
 @Table(name = "plancproduct")
 public class ProductPlanC {
+
+    //원가절감실적조회 후, 결과 데이터 저장
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "plancproduct_id")
     private Long id;
 
-    private String exportDate;
+    private String batchDate;
+    private String erpSendDate; //ERP전송일
+    private String exportDate; //출하예정일
 
     private String productOid;
     private String productNo;
@@ -32,13 +37,12 @@ public class ProductPlanC {
     private String EL_ETHRU; //관통
     private String EL_COB; //전망용 타입
 
-    private String ecbg; // 	CAR; BG
-    private String ecwbg; // CWT; BG
-    private String ecww; // cw 폭
-
+    private String dwgNo;
+    private String gongSa;
     private String gisong;
     private String mmanager;
     private String emanager;
+    private String module;
 
 
     private String seq;
@@ -63,8 +67,6 @@ public class ProductPlanC {
     private String userId;
     private String modDate; //수정일자
     private String workQty;
-
-
 
 
 }

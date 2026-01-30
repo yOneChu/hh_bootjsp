@@ -1,9 +1,11 @@
 package com.kyhslam.planC;
 
 import com.kyhslam.domain.PartPlanC;
+import com.kyhslam.domain.ProductPlanC;
 import com.kyhslam.dto.PartWhere;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.repository.PlanCRepository;
+import com.kyhslam.service.PartPublicationService;
 import com.kyhslam.service.PlanCService;
 import com.kyhslam.util.ExcelUtil;
 import com.kyhslam.util.SubaeCommonUtil;
@@ -37,6 +39,9 @@ public class partExcel {
 
     @Autowired
     PlanCService service;
+
+    @Autowired
+    PartPublicationService partPublicationService;
 
 
 
@@ -96,7 +101,7 @@ public class partExcel {
                 partPlanC.setPartNo(partNo);
                 partPlanC.setCost(cost);
 
-                service.save(partPlanC);
+                service.partSave(partPlanC);
             }
 
         } catch (Exception e) {
@@ -121,8 +126,6 @@ public class partExcel {
         System.out.println("list = " + list.size());
 
 
-
-
         //해당 자재 사용하는 호기 찾기
         for(int i=0; i < 10; i++){
 
@@ -130,14 +133,33 @@ public class partExcel {
             where.setPartNo(list.get(i).getPartNo());
             ArrayList<ProductDto> productList = SubaeCommonUtil.findPartOfProduct_v2(where);
 
+            String PARTNO = "";
+            int findCnt = 0;
+
             for(int j=0; j < productList.size(); j++){
                 ProductDto productDto = productList.get(j);
-                System.out.println("productDto = " + productDto.getProductNo() + " > " + productDto.getPartNo());
+                String vPartNO = productDto.getPartNo();
+
+                //System.out.println("productDto = " + productDto.getProductNo() + " > " + productDto.getPartNo());
+
+                //1.호기들 원가절감실적조회로 조회해서 데이터 넣기
+                PARTNO += vPartNO + ",";
+                findCnt++;
+
+                //100개씩 원가절감실적조회하기 - 속도때문에
+                if (findCnt > 100) {
+                    PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
+                    service.findSAPIF(PARTNO,"20260101", "20261231");
+                    PARTNO = "";
+                    findCnt = 0;
+                }
             }
 
             //N27200L19 > C189P001148
 
-            //속도를 위해 미리 사용하는 호기들을
+            //2.호기들 출하예정일 정보 넣기
+
+
 
 
         }
