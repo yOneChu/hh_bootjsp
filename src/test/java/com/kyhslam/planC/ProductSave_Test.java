@@ -5,6 +5,7 @@ import com.kyhslam.domain.ProductPlanC;
 import com.kyhslam.dto.HogiExportDTO;
 import com.kyhslam.service.PlanCService;
 import com.kyhslam.util.PartCommonUtil;
+import com.kyhslam.util.SAPCommonUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,13 +29,17 @@ public class ProductSave_Test {
     PlanCService service;
 
 
-    @Description("엑셀 데이터 읽어서 원갈절감 실적 조회 후의 데이터 저장")
+    @Description("PLAN-C 자재 읽어서(엑셀에 있던 자재) 원갈절감 실적 조회 후의 데이터 저장")
     @Test
     public void findCostData() {
 
         StopWatch sw = new StopWatch();
         sw.start();
 
+        //중복 자재 제거
+        ArrayList<String> dupCheck = new ArrayList<>();
+
+        //EXCEL에 있는 PLAN C 대상 데이터 조회
         List<PartPlanC> list = service.findAll();
 
         System.out.println("list = " + list.size());
@@ -47,8 +52,15 @@ public class ProductSave_Test {
 
         String PARTNO = "";
         int findCnt = 0;
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < list.size(); i++) {
             String vPartNo = list.get(i).getPartNo();
+
+            //이미 조회한거는 넘어간다.
+            if(dupCheck.contains(vPartNo)){
+                continue;
+            } else {
+                dupCheck.add(vPartNo);
+            }
 
             System.out.println("vPartNo = " + vPartNo);
             //1.호기들 원가절감실적조회로 조회해서 데이터 넣기
@@ -56,11 +68,11 @@ public class ProductSave_Test {
             findCnt++;
 
             //100개씩 원가절감실적조회하기 - 속도때문에
-            if (findCnt > 5) {
+            if (findCnt > 100) {
                 PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
 
                 //2026.01 이후부터 집계
-                costData = service.findSAPIF(PARTNO, "20260101", "20261231");
+                costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
                 //System.out.println("완료 0000000000000000000");
 
                 // 5초 대기
@@ -85,14 +97,11 @@ public class ProductSave_Test {
             System.out.println("추가로 도는거 PARTNO = " + PARTNO);
 
             //2026.01 이후부터 집계
-            costData = service.findSAPIF(PARTNO, "20260101", "20261231");
+            costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
             PARTNO = "";
             findCnt = 0;
         }
         getProductSave(costData, todayValue);
-
-        //저장된 데이터에서 호기만 빼서 따로 출하예정일 계산
-
 
         sw.stop();
 
@@ -107,6 +116,7 @@ public class ProductSave_Test {
     }
 
 
+    @Description("월가절감조회 완료 한 데이터 DB에 저장")
     @Test
     public void getProductSave(ArrayList costData, String todayValue) {
 
@@ -124,12 +134,14 @@ public class ProductSave_Test {
             String blockNo = (String) row.get(6); // StringUtil.NVL(row.get(6), "*");
             String gongSa = (String) row.get(7); //StringUtil.NVL(row.get(7), "*");
             String gisong = (String) row.get(8); // StringUtil.NVL(row.get(8), "*"); // 기종
-            String spec = (String) row.get(9); //StringUtil.NVL(row.get(9), "*"); // 스펙
+            String brand = (String) row.get(9); //브랜드
 
-            String createNation = (String) row.get(10); // StringUtil.NVL(row.get(11), "*"); // 생산거점
-            String module = (String) row.get(11); // StringUtil.NVL(row.get(11), "*"); // 모듈러
-            String mUser = (String) row.get(12); //StringUtil.NVL(row.get(10), "*"); // 기계담당자
-            String eUser = (String) row.get(13); // StringUtil.NVL(row.get(11), "*"); // 전기담당자
+            String spec = (String) row.get(10); //StringUtil.NVL(row.get(9), "*"); // 스펙
+
+            String createNation = (String) row.get(11); // StringUtil.NVL(row.get(11), "*"); // 생산거점
+            String module = (String) row.get(12); // StringUtil.NVL(row.get(11), "*"); // 모듈러
+            String mUser = (String) row.get(13); //StringUtil.NVL(row.get(10), "*"); // 기계담당자
+            String eUser = (String) row.get(14); // StringUtil.NVL(row.get(11), "*"); // 전기담당자
 
             //출하예정일
             ProductPlanC pData = new ProductPlanC();
@@ -142,6 +154,7 @@ public class ProductSave_Test {
             pData.setGongSa(gongSa);
             pData.setGisong(gisong);
             pData.setSpec(spec);
+            pData.setBrand(brand);
 
             pData.setAspscd(createNation);
             pData.setMmanager(mUser);
@@ -158,7 +171,7 @@ public class ProductSave_Test {
 
     @Description("출하예정일 셋팅")
     @Transactional
-    //@Commit
+    //@Commit  //COMMIT해야 데이터 저장됨
     @Test
     public void setExportData() {
         List<ProductPlanC> list = new ArrayList<>();
@@ -205,13 +218,18 @@ public class ProductSave_Test {
                     dto.setExportDate(exportMap.getSHIP_F());
                 }
             }
-
-            //service.productSave(dto);
-
         }
-        //System.out.println("resultMap = " + resultMap);
+
+        System.out.println(" -------------- END ---------------- ");
     }
 
+
+    /**
+     * 출하예정일 데이터 700개씩 나눠서 MAP에 넣는다.
+     * @param data
+     * @param resultMap
+     * @return
+     */
     public static HashMap<String, HogiExportDTO> findExportDateV3(ArrayList<String> data, HashMap<String, HogiExportDTO> resultMap) {
 
         //HashMap<String, HogiExportDTO> resultMap = new HashMap<>();

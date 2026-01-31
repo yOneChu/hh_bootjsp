@@ -34,12 +34,12 @@ public class ProductPlanC {
     private String aspscd; //샌상거점
     private String acapa; //용량
     private String brand; // 브랜드
-    private String EL_ETHRU; //관통
-    private String EL_COB; //전망용 타입
+    //private String EL_ETHRU; //관통
+    //private String EL_COB; //전망용 타입
 
     private String dwgNo;
-    private String gongSa;
-    private String gisong;
+    private String gongSa; //공사
+    private String gisong; //기종
     private String mmanager;
     private String emanager;
     private String module;

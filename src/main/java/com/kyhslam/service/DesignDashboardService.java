@@ -369,8 +369,8 @@ public class DesignDashboardService {
                 DesignRequestDTO d = new DesignRequestDTO();
                 d.setReqNo(REQNO);
                 d.setStatus(REQSTATUS);
-                d.setcUser(CUSER);
-                d.setcUserName(CUSERNAME);
+                //d.setcUser(CUSER);
+                //d.setcUserName(CUSERNAME);
                 d.setManager(MANAGER);
 
                 d.setWosun(WOSUN);

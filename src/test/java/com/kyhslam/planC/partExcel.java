@@ -8,6 +8,7 @@ import com.kyhslam.repository.PlanCRepository;
 import com.kyhslam.service.PartPublicationService;
 import com.kyhslam.service.PlanCService;
 import com.kyhslam.util.ExcelUtil;
+import com.kyhslam.util.SAPCommonUtil;
 import com.kyhslam.util.SubaeCommonUtil;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -149,7 +150,7 @@ public class partExcel {
                 //100개씩 원가절감실적조회하기 - 속도때문에
                 if (findCnt > 100) {
                     PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
-                    service.findSAPIF(PARTNO,"20260101", "20261231");
+                    SAPCommonUtil.findSAPIF(PARTNO,"20260101", "20261231");
                     PARTNO = "";
                     findCnt = 0;
                 }

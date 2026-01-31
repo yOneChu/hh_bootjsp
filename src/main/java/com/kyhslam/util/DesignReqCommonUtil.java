@@ -108,8 +108,8 @@ public class DesignReqCommonUtil {
                 DesignRequestDTO d = new DesignRequestDTO();
                 d.setReqNo(REQNO);
                 d.setStatus(REQSTATUS);
-                d.setcUser(CUSER);
-                d.setcUserName(CUSERNAME);
+                //d.setcUser(CUSER);
+                //d.setcUserName(CUSERNAME);
                 d.setManager(MANAGER);
 
                 d.setWosun(WOSUN);
@@ -275,8 +275,8 @@ public class DesignReqCommonUtil {
                 DesignRequestDTO d = new DesignRequestDTO();
                 d.setReqNo(REQNO);
                 d.setStatus(REQSTATUS);
-                d.setcUser(CUSER);
-                d.setcUserName(CUSERNAME);
+                //d.setcUser(CUSER);
+                //d.setcUserName(CUSERNAME);
                 d.setManager(MANAGER);
 
                 d.setWosun(WOSUN);
