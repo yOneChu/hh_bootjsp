@@ -4,6 +4,7 @@ import com.kyhslam.domain.PartPlanC;
 import com.kyhslam.domain.ProductPlanC;
 import com.kyhslam.dto.HogiExportDTO;
 import com.kyhslam.service.PlanCService;
+import com.kyhslam.util.DateUtil;
 import com.kyhslam.util.PartCommonUtil;
 import com.kyhslam.util.SAPCommonUtil;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,14 @@ public class ProductSave_Test {
     @Autowired
     PlanCService service;
 
+    @Test
+    public void dateTest() {
+
+        String today = DateUtil.getTodayDateNoHyphen();
+        System.out.println("today = " + today);
+
+    }
+
 
     @Description("PLAN-C 자재 읽어서(엑셀에 있던 자재) 원갈절감 실적 조회 후의 데이터 저장")
     @Test
@@ -38,6 +47,7 @@ public class ProductSave_Test {
 
         //중복 자재 제거
         ArrayList<String> dupCheck = new ArrayList<>();
+
 
         //EXCEL에 있는 PLAN C 대상 데이터 조회
         List<PartPlanC> list = service.findAll();
@@ -54,6 +64,7 @@ public class ProductSave_Test {
         int findCnt = 0;
         for (int i = 0; i < list.size(); i++) {
             String vPartNo = list.get(i).getPartNo();
+            System.out.println( (i+1) + "------- vPartNo = " + vPartNo);
 
             //이미 조회한거는 넘어간다.
             if(dupCheck.contains(vPartNo)){
@@ -62,7 +73,7 @@ public class ProductSave_Test {
                 dupCheck.add(vPartNo);
             }
 
-            System.out.println("vPartNo = " + vPartNo);
+            //System.out.println("vPartNo = " + vPartNo);
             //1.호기들 원가절감실적조회로 조회해서 데이터 넣기
             PARTNO += vPartNo + ",";
             findCnt++;
@@ -73,7 +84,6 @@ public class ProductSave_Test {
 
                 //2026.01 이후부터 집계
                 costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
-                //System.out.println("완료 0000000000000000000");
 
                 // 5초 대기
                 try {
@@ -82,7 +92,6 @@ public class ProductSave_Test {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
                 }
-                //System.out.println("완료 1111111111111111111111111111");
 
                 PARTNO = "";
                 findCnt = 0;
@@ -91,7 +100,7 @@ public class ProductSave_Test {
 
         getProductSave(costData, todayValue);
 
-        //남은거 추가로 돌리기
+        //남은거 추가로 돌려서 저장
         if(PARTNO != null && !"".equals(PARTNO)){
             PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
             System.out.println("추가로 도는거 PARTNO = " + PARTNO);
@@ -101,6 +110,7 @@ public class ProductSave_Test {
             PARTNO = "";
             findCnt = 0;
         }
+
         getProductSave(costData, todayValue);
 
         sw.stop();
@@ -171,7 +181,7 @@ public class ProductSave_Test {
 
     @Description("출하예정일 셋팅")
     @Transactional
-    //@Commit  //COMMIT해야 데이터 저장됨
+    //@Commit  //COMMIT해야 데이터 수정됨
     @Test
     public void setExportData() {
         List<ProductPlanC> list = new ArrayList<>();

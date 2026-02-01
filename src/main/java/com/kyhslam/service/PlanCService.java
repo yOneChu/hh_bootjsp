@@ -4,15 +4,18 @@ import com.kyhslam.domain.PartPlanC;
 import com.kyhslam.domain.ProductPlanC;
 import com.kyhslam.dto.HogiExportDTO;
 import com.kyhslam.repository.PlanCRepository;
+import com.kyhslam.util.DateUtil;
 import com.kyhslam.util.SAPCommonUtil;
 import com.kyhslam.util.searchListBasedOnCondition;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Description;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StopWatch;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,11 +49,19 @@ public class PlanCService {
         return list;
     }
 
-    //01
+    /**
+     * 매일 PLAN-C 배치 실행
+     * 저녁 10시 20분
+     */
     @Description("PLAN-C 자재 읽어서(엑셀에 있던 자재) 원갈절감 실적 조회 후의 데이터 저장")
+    @Scheduled(cron = "0 20 22 * * *")
     public void findCostData() {
         StopWatch sw = new StopWatch();
         sw.start();
+
+
+        //오늘날짜 출력 -> YYYYMMDD
+        String today_yyyymmdd = DateUtil.getTodayDateNoHyphen();
 
         //중복 자재 제거
         ArrayList<String> dupCheck = new ArrayList<>();
@@ -77,19 +88,17 @@ public class PlanCService {
                 dupCheck.add(vPartNo);
             }
 
-            System.out.println("vPartNo = " + vPartNo);
+            //System.out.println("vPartNo = " + vPartNo);
             //1.호기들 원가절감실적조회로 조회해서 데이터 넣기
             PARTNO += vPartNo + ",";
             findCnt++;
 
             //100개씩 원가절감실적조회하기 - 속도때문에
-            if (findCnt > 5) {
+            if (findCnt > 100) {
                 PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
 
                 //2026.01 이후부터 집계
-                //costData = service.findSAPIF(PARTNO, "20260101", "20261231");
-                costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
-                //System.out.println("완료 0000000000000000000");
+                costData = SAPCommonUtil.findSAPIF(PARTNO, "today_yyyymmdd", "20261231");
 
                 // 5초 대기
                 try {
@@ -98,8 +107,6 @@ public class PlanCService {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
                 }
-                //System.out.println("완료 1111111111111111111111111111");
-
                 PARTNO = "";
                 findCnt = 0;
             }
@@ -113,7 +120,6 @@ public class PlanCService {
             System.out.println("추가로 도는거 PARTNO = " + PARTNO);
 
             //2026.01 이후부터 집계
-            //costData = service.findSAPIF(PARTNO, "20260101", "20261231");
             costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
             PARTNO = "";
             findCnt = 0;
@@ -188,4 +194,5 @@ public class PlanCService {
             productSave(pData);
         }
     }
+
 }

@@ -37,7 +37,7 @@ public class PartPublicationService {
 
     /**
      * 1. CP만 수행
-     * 월~금 3시에 부품공용화 배치 실행 (CP 만)
+     * 월~금 3시 20분에 부품공용화 배치 실행 (CP 만)
      */
     @Scheduled(cron = "0 20 3 * * 1-5")
     public void scheduleProcessV1() {
