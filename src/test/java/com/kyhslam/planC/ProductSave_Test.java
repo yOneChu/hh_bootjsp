@@ -181,28 +181,30 @@ public class ProductSave_Test {
 
     @Description("출하예정일 셋팅")
     @Transactional
-    //@Commit  //COMMIT해야 데이터 수정됨
+    @Commit  //COMMIT해야 데이터 수정됨
     @Test
     public void setExportData() {
         List<ProductPlanC> list = new ArrayList<>();
         list = service.findProductAll();
 
         HashMap<String, HogiExportDTO> resultMap = new HashMap<>();
-        ArrayList<String> data = new ArrayList<>();
+        ArrayList<String> dataList = new ArrayList<>();
 
         for(int i=0;i<list.size();i++){
             ProductPlanC dto =  list.get(i);
             String hogi = dto.getProductNo();
 
-            data.add(hogi);
+            if ( !dataList.contains(hogi) ) {
+                dataList.add(hogi);
+            }
         }
 
-        findExportDateV3(data, resultMap);
+        findExportDateV3(dataList, resultMap);
 
-        for (String s : resultMap.keySet()) {
+        /*for (String s : resultMap.keySet()) {
             HogiExportDTO dto =  resultMap.get(s);
             System.out.println(dto.getHogi() + " > " + dto.getSHIP_A());
-        }
+        }*/
 
         //출하예정일 넣기
         for(int i=0;i<list.size();i++){

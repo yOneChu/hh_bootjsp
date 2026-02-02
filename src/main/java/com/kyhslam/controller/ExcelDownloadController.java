@@ -789,7 +789,6 @@ public class ExcelDownloadController {
             String reqCause = dto.getReqCause();
             String reqDetail = dto.getReqDetail();
 
-
             String subae01 = dto.getSubae01();
             String subae02 = dto.getSubae02();
             String isLimit = dto.getIsLimit();
