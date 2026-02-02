@@ -60,11 +60,22 @@ public class ProductSave_Test {
         //N27200L19 > C189P001148
         ArrayList costData = new ArrayList();
 
+        HashMap<String, HashMap<String,String>> partInfoMap = new HashMap<>();
+
         String PARTNO = "";
         int findCnt = 0;
         for (int i = 0; i < list.size(); i++) {
+            PartPlanC vPartInfo = list.get(i);
             String vPartNo = list.get(i).getPartNo();
+            String toCost = list.get(i).getCost();
+            String brand =  list.get(i).getBrand();
             System.out.println( (i+1) + "------- vPartNo = " + vPartNo);
+
+            if ( !partInfoMap.containsKey(brand) ) {
+                HashMap<String,String> map = new HashMap<>();
+                map.put(vPartNo, toCost);
+                partInfoMap.put(brand, map);
+            }
 
             //이미 조회한거는 넘어간다.
             if(dupCheck.contains(vPartNo)){
@@ -78,12 +89,16 @@ public class ProductSave_Test {
             PARTNO += vPartNo + ",";
             findCnt++;
 
+
             //100개씩 원가절감실적조회하기 - 속도때문에
             if (findCnt > 100) {
                 PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
 
                 //2026.01 이후부터 집계
                 costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
+
+                //저장
+                getProductSave(costData, todayValue);
 
                 // 5초 대기
                 try {
@@ -96,22 +111,28 @@ public class ProductSave_Test {
                 PARTNO = "";
                 findCnt = 0;
             }
-        }
 
-        getProductSave(costData, todayValue);
 
-        //남은거 추가로 돌려서 저장
+        } // end for
+
+
+
+
         if(PARTNO != null && !"".equals(PARTNO)){
             PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
             System.out.println("추가로 도는거 PARTNO = " + PARTNO);
 
             //2026.01 이후부터 집계
             costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
+
+            //저장
+            getProductSave(costData, todayValue);
+
             PARTNO = "";
             findCnt = 0;
         }
 
-        getProductSave(costData, todayValue);
+
 
         sw.stop();
 
@@ -170,6 +191,9 @@ public class ProductSave_Test {
             pData.setMmanager(mUser);
             pData.setEmanager(eUser);
             pData.setModule(module);
+
+            //pData.setIndexNo(vPartInfo.getPlanIndex());
+            //pData.setToCost(vPartInfo.getCost());
 
             pData.setBatchDate(todayValue); //배치수행일
 

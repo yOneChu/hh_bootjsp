@@ -30,6 +30,13 @@ public class DashboardController {
 
 
 
+    //PLAN-C Dashboard
+    @GetMapping("/planCDashboard")
+    public String searchPriceReductionRate() {
+        return "dashboard/planCDashboard";
+    }
+
+
 
     //https://10.225.80.35:8070/dashboard/dashboardSchdule
     @GetMapping("/dashboardSchdule")

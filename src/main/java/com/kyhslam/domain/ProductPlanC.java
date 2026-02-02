@@ -22,6 +22,9 @@ public class ProductPlanC {
     private String erpSendDate; //ERP전송일
     private String exportDate; //출하예정일
 
+    private String indexNo;
+    private String toCost;
+
     private String productOid;
     private String productNo;
     private String productName;

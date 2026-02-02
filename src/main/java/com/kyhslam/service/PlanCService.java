@@ -2,11 +2,10 @@ package com.kyhslam.service;
 
 import com.kyhslam.domain.PartPlanC;
 import com.kyhslam.domain.ProductPlanC;
-import com.kyhslam.dto.HogiExportDTO;
 import com.kyhslam.repository.PlanCRepository;
 import com.kyhslam.util.DateUtil;
 import com.kyhslam.util.SAPCommonUtil;
-import com.kyhslam.util.searchListBasedOnCondition;
+import com.kyhslam.util.VaultDBConnection;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Description;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -14,13 +13,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StopWatch;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-@Service
+@Service("PlanCService")
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class PlanCService {
@@ -47,6 +49,58 @@ public class PlanCService {
     public List<ProductPlanC> findProductAll() {
         List<ProductPlanC> list = repository.findProductAll();
         return list;
+    }
+
+    public List<ProductPlanC> findProductByBlock(String blockNo) {
+        List<ProductPlanC> list = repository.findProductByBlock(blockNo);
+        return list;
+    }
+
+    public List<ProductPlanC> findProductByBatchDate(String batchDate) {
+        List<ProductPlanC> list = repository.findProductByBatchDate(batchDate);
+        return list;
+    }
+
+    public List<ProductPlanC> findProductByBatchDate_v2(String batchDate, String blockNo) {
+        List<ProductPlanC> list = repository.findProductByBatchDate_v2(batchDate, blockNo);
+        return list;
+    }
+
+    public List<ProductPlanC> findProductByHogi(String productNo, String partNo) {
+        List<ProductPlanC> list = repository.findProductByHogi(productNo, partNo);
+        return list;
+    }
+
+
+    public void deletePlanCProduct() {
+
+        HashMap<String, String> data = new HashMap<String, String>();
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        LocalDate now = LocalDate.now();
+        String todayValue = now.toString();
+
+        try {
+            con = VaultDBConnection.getConnection();
+
+            StringBuffer temSql = new StringBuffer();
+            temSql.append(" DELETE FROM plancproduct ");
+            temSql.append(" WHERE BATCH_DATE = ?   ");
+            //temSql.append(" NVL(D.SPEC1, '-') AS SPEC1, NVL(D.CON1, '-') AS CON1,   ");
+
+            pstmt = con.prepareStatement(temSql.toString());
+            pstmt.setString(1, todayValue);
+
+            //rs = pstmt.executeQuery();
+            pstmt.executeUpdate();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            VaultDBConnection.disconnect(con,pstmt,rs);
+        }
     }
 
     /**
@@ -98,7 +152,8 @@ public class PlanCService {
                 PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
 
                 //2026.01 이후부터 집계
-                costData = SAPCommonUtil.findSAPIF(PARTNO, "today_yyyymmdd", "20261231");
+                //costData = SAPCommonUtil.findSAPIF(PARTNO, "today_yyyymmdd", "20261231");
+                costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
 
                 // 5초 대기
                 try {

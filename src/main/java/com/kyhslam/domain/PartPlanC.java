@@ -23,7 +23,6 @@ public class PartPlanC {
 
     private String brand;
     private String titleName;
-    //private String blockNo;
 
     //as-is
     private String partNo_as;
