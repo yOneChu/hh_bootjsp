@@ -662,13 +662,15 @@ public class DesignReqCommonUtil {
 
             sql.append(" A.REQUESTTYPE AS WORKGUBUN_KEY,   "); //작업구분 Key
             sql.append(" CODN(A.REQUESTTYPE) AS WORKGUBUN,   "); //작업구분
+            sql.append(" A.ANSWERDETAIL AS ANSWERDETAIL,   "); //작업내용
+
             sql.append(" CODN(A.REQUESTCAUSE) AS REQUESTCAUSE,   "); // 요청사유
             sql.append(" A.REQUESTDETAIL,   "); // 요청내용
 
             sql.append(" COD(A.SUBAESUITABILITY1) AS SUBAESUITABILITY1,   "); // 수배자료적합성(유관부품 포함)
             sql.append(" COD(A.SUBAESUITABILITY2) AS SUBAESUITABILITY2,   "); // 수배자료적합성 (수배조건)
-            sql.append(" COD(A.SUBAESUITABILITY2) AS SUBAESUITABILITY2,   "); // 제한조건작성여부
-            sql.append(" COD(A.SUBAESUITABILITY2) AS SUBAESUITABILITY2,   "); // LAYOUT MANUAL
+            sql.append(" COD(A.ISLIMITCONDITION) AS ISLIMITCONDITION,   "); // 제한조건작성여부
+            sql.append(" COD(A.ISLAYOUTMANAUL) AS ISLAYOUTMANAUL,   "); // LAYOUT MANUAL
             sql.append(" COD(A.ISFINISHDCB) AS ISFINISHDCB,   "); // DCB 완료 여부
 
             sql.append(" COD(A.ISFINISHISIR) AS ISFINISHISIR,   "); //ISIR(초도품 검사)
@@ -709,6 +711,7 @@ public class DesignReqCommonUtil {
                 String CUSERNAME = rs.getString("CUSERNAME") == null ? "" : rs.getString("CUSERNAME");
                 String MANAGER = rs.getString("MANAGER") == null ? "" : rs.getString("MANAGER");
 
+                String ANSWERDETAIL = rs.getString("ANSWERDETAIL");
                 String HOGI = rs.getString("HOGI") == null ? "" : rs.getString("HOGI");
                 String WOSUN = rs.getString("WOSUN") == null ? "" : rs.getString("WOSUN"); //우선순위
 
@@ -753,6 +756,7 @@ public class DesignReqCommonUtil {
                 d.setCUserName(CUSERNAME);
                 d.setManager(MANAGER);
                 d.setHogi(HOGI);
+                d.setAnswerDetail(ANSWERDETAIL);
 
                 d.setWosun(WOSUN);
                 d.setGubun(GUBUN);

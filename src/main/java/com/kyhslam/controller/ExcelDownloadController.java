@@ -718,7 +718,7 @@ public class ExcelDownloadController {
 
     //전산작업요청
     @Description("전산작업요청 엑셀 다운로드")
-    @PostMapping("/searchDesignExcel")
+    @GetMapping("/searchDesignExcel")
     public void searchDesignExcel(HttpServletResponse response,
                              String year) throws IOException {
 
@@ -747,10 +747,10 @@ public class ExcelDownloadController {
 
         // 헤더 작성
         Row header = sheet.createRow(0);
-        String[] titles = { "요청번호", "상태", "작업내용", "담당자", "대표호기", "우선순위", "구분", "작업구분", "요청사유",
+        String[] titles = { "요청번호", "상태", "등록일", "수정일", "담당자", "작업내용", "대표호기", "우선순위", "구분", "작업구분", "요청사유",
                 "요청내용", "수배자료적합성", "수배자료적합성2", "제한조건작성여부", "layout", "DCB완려여부", "ISIR(초도품검사)"
-                ,"인증완료여부","재고처리여부", "DUTY_TABLE수정요청여부", "시지르현장 적용 여부", "유관팀 공유여부", "원가영향도"
-                , "SUBSYSTEM공급구분", "CRE_DATE", "MOD_DATE"
+                ,"인증완료여부","재고처리여부", "DUTY_TABLE수정요청여부", "시리즈현장 적용 여부", "기 수주/설계 현장 대응 여부", "유관팀 공유여부", "원가영향도"
+                , "SUBSYSTEM공급구분"
         };
         for (int i = 0; i < titles.length; i++) {
             Cell cell = header.createCell(i);
@@ -785,8 +785,10 @@ public class ExcelDownloadController {
 
             String user = dto.getCUser();
             String manager = dto.getManager();
+            String answerDetail = dto.getAnswerDetail();
             String reqCause = dto.getReqCause();
             String reqDetail = dto.getReqDetail();
+
 
             String subae01 = dto.getSubae01();
             String subae02 = dto.getSubae02();
@@ -804,35 +806,41 @@ public class ExcelDownloadController {
             String costInfluence = dto.getCostInfluence();
             String subSystem = dto.getSubSystem();
 
+            String creDate = dto.getCreDate();
+            String modDate = dto.getModDate();
+
             row.createCell(0).setCellValue(reqNo);
             row.createCell(1).setCellValue(status);
-            row.createCell(2).setCellValue(status);
-            row.createCell(3).setCellValue(manager);
-            row.createCell(4).setCellValue(hogi);
+            row.createCell(2).setCellValue(creDate);
+            row.createCell(3).setCellValue(modDate);
 
-            row.createCell(5).setCellValue(wosun);
-            row.createCell(6).setCellValue(gubun);
-            row.createCell(7).setCellValue(workGubun);
-            row.createCell(8).setCellValue(reqCause);
-            row.createCell(9).setCellValue(reqDetail);
+            row.createCell(4).setCellValue(manager);
+            row.createCell(5).setCellValue(answerDetail);
+            row.createCell(6).setCellValue(hogi);
 
-            row.createCell(10).setCellValue(subae01);
-            row.createCell(11).setCellValue(subae02);
-            row.createCell(12).setCellValue(isLimit);
-            row.createCell(13).setCellValue(layout);
-            row.createCell(14).setCellValue(dcbFinish);
-            row.createCell(15).setCellValue(isIsir);
-            row.createCell(16).setCellValue(isFinish);
-            row.createCell(17).setCellValue(ingStock);
-            row.createCell(18).setCellValue(isDutyTable);
+            row.createCell(7).setCellValue(wosun);
+            row.createCell(8).setCellValue(gubun);
+            row.createCell(9).setCellValue(workGubun);
+            row.createCell(10).setCellValue(reqCause);
+            row.createCell(11).setCellValue(reqDetail);
 
-            row.createCell(19).setCellValue(isSeries);
-            row.createCell(20).setCellValue(designSite);
-            row.createCell(21).setCellValue(teamShared);
-            row.createCell(22).setCellValue(costInfluence);
-            row.createCell(23).setCellValue(subSystem);
+            row.createCell(12).setCellValue(subae01);
+            row.createCell(13).setCellValue(subae02);
+            row.createCell(14).setCellValue(isLimit);
+            row.createCell(15).setCellValue(layout);
+            row.createCell(16).setCellValue(dcbFinish);
+            row.createCell(17).setCellValue(isIsir);
+            row.createCell(18).setCellValue(isFinish);
+            row.createCell(19).setCellValue(ingStock);
+            row.createCell(20).setCellValue(isDutyTable);
 
-            for (int m = 0; m < 24; m++) {
+            row.createCell(21).setCellValue(isSeries);
+            row.createCell(22).setCellValue(designSite);
+            row.createCell(23).setCellValue(teamShared);
+            row.createCell(24).setCellValue(costInfluence);
+            row.createCell(25).setCellValue(subSystem);
+
+            for (int m = 0; m < 26; m++) {
                 row.getCell(m).setCellStyle(bodyStyle);
             }
         }

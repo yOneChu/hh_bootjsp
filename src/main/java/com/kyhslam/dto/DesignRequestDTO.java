@@ -17,6 +17,7 @@ public class DesignRequestDTO {
     private String cUser; //작성자
     private String cUserName;
     private String manager; //처리자
+    private String answerDetail; //작업내용
 
     private String first;
     private String designPart;
