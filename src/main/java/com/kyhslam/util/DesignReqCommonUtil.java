@@ -323,7 +323,7 @@ public class DesignReqCommonUtil {
                 d.setDcbFinish(ISFINISHDCB);
                 d.setIsIsir(ISFINISHISIR); //ISIR(초도품 검사)
                 d.setIsFinish(ISFINISHCERTIFY); //인증완료여부
-                d.setIngStoch(ISHANDLINGSTOCK); //재고처리여부
+                d.setIngStock(ISHANDLINGSTOCK); //재고처리여부
                 d.setIsDutyTable(ISUPDATEDUTYTABLE);
                 d.setIsSeries(ISAPPLYSERIES);
                 d.setDesignSite(ISORDERNDESIGNSITE);
