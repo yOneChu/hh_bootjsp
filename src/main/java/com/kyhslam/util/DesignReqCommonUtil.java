@@ -218,7 +218,23 @@ public class DesignReqCommonUtil {
             sql.append(" CODN(A.REQUESTTYPE) AS WORKGUBUN,   "); //작업구분
             sql.append(" CODN(A.REQUESTCAUSE) AS REQUESTCAUSE,   "); // 요청사유
             sql.append(" A.REQUESTDETAIL,   "); // 요청내용
+
+            sql.append(" COD(A.SUBAESUITABILITY1) AS SUBAESUITABILITY1,   "); // 수배자료적합성(유관부품 포함)
+            sql.append(" COD(A.SUBAESUITABILITY2) AS SUBAESUITABILITY2,   "); // 수배자료적합성 (수배조건)
+            sql.append(" COD(A.SUBAESUITABILITY2) AS SUBAESUITABILITY2,   "); // 제한조건작성여부
+            sql.append(" COD(A.SUBAESUITABILITY2) AS SUBAESUITABILITY2,   "); // LAYOUT MANUAL
+            sql.append(" COD(A.ISFINISHDCB) AS ISFINISHDCB,   "); // DCB 완료 여부
+
+            sql.append(" COD(A.ISFINISHISIR) AS ISFINISHISIR,   "); //ISIR(초도품 검사)
+            sql.append(" COD(A.ISFINISHCERTIFY) AS ISFINISHCERTIFY,   "); //인증완료여부
+            sql.append(" COD(A.ISHANDLINGSTOCK) AS ISHANDLINGSTOCK,   "); //재고 처리 여부
+            sql.append(" COD(A.ISUPDATEDUTYTABLE) AS ISUPDATEDUTYTABLE,   "); //DUTY TABLE 수정요청 여부
+
+            sql.append(" COD(A.ISAPPLYSERIES) AS ISAPPLYSERIES,   "); //시리즈 현장 적용 여부
+            sql.append(" COD(A.ISORDERNDESIGNSITE) AS ISORDERNDESIGNSITE,   "); // 기 수주/설계 현장 대응 여부
+            sql.append(" COD(A.ISTEAMSHARED) AS ISTEAMSHARED,   "); //유관팀 공유여부
             sql.append(" CODN(A.COSTINFLUENCE) AS COSTINFLUENCE,   "); //원가영향도
+            sql.append(" CODN(A.SUBSYSSUPPLYDIV) AS SUBSYSSUPPLYDIV,   "); //SubSystem 공급 구분
 
             sql.append(" SUBSTR(A.MD$CDATE, 1, 6) AS CRE_MONTH,   ");
             sql.append(" SUBSTR(A.MD$MDATE, 1, 6) AS MOD_MONTH,   ");
@@ -260,11 +276,26 @@ public class DesignReqCommonUtil {
 
                 String REQUESTDETAIL = rs.getString("REQUESTDETAIL") == null ? "" : rs.getString("REQUESTDETAIL"); //요청내용
                 String REQUESTCAUSE = rs.getString("REQUESTCAUSE"); //요청사유
-                String COSTINFLUENCE = rs.getString("COSTINFLUENCE"); //원가영향도
+
+                String SUBAESUITABILITY1 = rs.getString("SUBAESUITABILITY1"); //
+                String SUBAESUITABILITY2 = rs.getString("SUBAESUITABILITY2"); //
+                String ISLIMITCONDITION = rs.getString("ISLIMITCONDITION"); //
+                String ISLAYOUTMANAUL = rs.getString("ISLAYOUTMANAUL"); //
+                String ISFINISHDCB = rs.getString("ISFINISHDCB"); //DCB 완료 여부
+
+                String ISFINISHISIR = rs.getString("ISFINISHISIR"); //ISIR(초도품 검사)
+                String ISFINISHCERTIFY = rs.getString("ISFINISHCERTIFY"); //인증완료여부
+                String ISHANDLINGSTOCK = rs.getString("ISHANDLINGSTOCK");
+                String ISUPDATEDUTYTABLE = rs.getString("ISUPDATEDUTYTABLE");
+                String ISAPPLYSERIES = rs.getString("ISAPPLYSERIES"); //시리즈 현장 적용 여부
+
+                String ISORDERNDESIGNSITE = rs.getString("ISORDERNDESIGNSITE"); //기 수주/설계 현장 대응 여부
+                String ISTEAMSHARED = rs.getString("ISTEAMSHARED"); //유관팀 공유여부
+                String COSTINFLUENCE = rs.getString("COSTINFLUENCE"); // 원가영향도
+                String SUBSYSSUPPLYDIV = rs.getString("SUBSYSSUPPLYDIV"); //SubSystem 공급 구분
 
                 String CRE_DATE = rs.getString("CRE_DATE") == null ? "" : rs.getString("CRE_DATE"); //등록일
                 String MOD_DATE = rs.getString("MOD_DATE") == null ? "" : rs.getString("MOD_DATE"); //수정일
-
 
                 //CRE_MONTH
                 String CRE_MONTH = rs.getString("CRE_MONTH") == null ? "" : rs.getString("CRE_MONTH"); //등록월
@@ -284,6 +315,21 @@ public class DesignReqCommonUtil {
                 d.setWorkGubun(WORKGUBUN);
                 d.setReqCause(REQUESTCAUSE);
                 d.setReqDetail(REQUESTDETAIL);
+
+                d.setSubae01(SUBAESUITABILITY1);
+                d.setSubae02(SUBAESUITABILITY2);
+                d.setIsLimit(ISLIMITCONDITION);
+                d.setLayout(ISLAYOUTMANAUL);
+                d.setDcbFinish(ISFINISHDCB);
+                d.setIsIsir(ISFINISHISIR); //ISIR(초도품 검사)
+                d.setIsFinish(ISFINISHCERTIFY); //인증완료여부
+                d.setIngStoch(ISHANDLINGSTOCK); //재고처리여부
+                d.setIsDutyTable(ISUPDATEDUTYTABLE);
+                d.setIsSeries(ISAPPLYSERIES);
+                d.setDesignSite(ISORDERNDESIGNSITE);
+                d.setTeamShared(ISTEAMSHARED);
+                d.setCostInfluence(COSTINFLUENCE);
+                d.setSubSystem(SUBSYSSUPPLYDIV);
                 d.setCostInfluence(COSTINFLUENCE);
 
                 d.setCreMon(CRE_MONTH);
@@ -583,4 +629,170 @@ public class DesignReqCommonUtil {
 
         return result;
     }
+
+
+    public static ArrayList<DesignRequestDTO> findALLDesignReq(String year) {
+        ArrayList<DesignRequestDTO> result = new ArrayList<DesignRequestDTO>();
+
+        HashMap<String, String> data = new HashMap<String, String>();
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        try {
+
+            //con = DriverManager.getConnection(url, id, pass);
+            con = PLMDBConnection.getConnection();
+
+            System.out.println("con = " + con);
+
+
+            StringBuffer sql = new StringBuffer();
+
+            sql.append(" SELECT A.MD$NUMBER AS REQNO,   "); // 요청번호
+            sql.append(" A.MD$STATUS AS REQSTATUS, A.MD$DESC AS RDETAIL,  A.MD$USER AS CUSER, A.HOGI AS HOGI,   "); //
+
+            sql.append(" (select U.MD$DESC FROM FUSER$SF U WHERE U.MD$NUMBER = A.MD$USER) AS CUSERNAME,   ");
+            sql.append(" A.MANAGER AS MANAGER,   "); //
+            //A.MANAGER AS 처리자,
+
+            sql.append(" CODN(A.PRIORITY) AS WOSUN,   "); //우선순위
+            sql.append(" A.DESIGNPART AS GUBUN_KEY,    "); //구분-전기,기게 KEY
+            sql.append(" CODN(A.DESIGNPART) AS GUBUN,    "); //구분-전기,기게
+
+            sql.append(" A.REQUESTTYPE AS WORKGUBUN_KEY,   "); //작업구분 Key
+            sql.append(" CODN(A.REQUESTTYPE) AS WORKGUBUN,   "); //작업구분
+            sql.append(" CODN(A.REQUESTCAUSE) AS REQUESTCAUSE,   "); // 요청사유
+            sql.append(" A.REQUESTDETAIL,   "); // 요청내용
+
+            sql.append(" COD(A.SUBAESUITABILITY1) AS SUBAESUITABILITY1,   "); // 수배자료적합성(유관부품 포함)
+            sql.append(" COD(A.SUBAESUITABILITY2) AS SUBAESUITABILITY2,   "); // 수배자료적합성 (수배조건)
+            sql.append(" COD(A.SUBAESUITABILITY2) AS SUBAESUITABILITY2,   "); // 제한조건작성여부
+            sql.append(" COD(A.SUBAESUITABILITY2) AS SUBAESUITABILITY2,   "); // LAYOUT MANUAL
+            sql.append(" COD(A.ISFINISHDCB) AS ISFINISHDCB,   "); // DCB 완료 여부
+
+            sql.append(" COD(A.ISFINISHISIR) AS ISFINISHISIR,   "); //ISIR(초도품 검사)
+            sql.append(" COD(A.ISFINISHCERTIFY) AS ISFINISHCERTIFY,   "); //인증완료여부
+            sql.append(" COD(A.ISHANDLINGSTOCK) AS ISHANDLINGSTOCK,   "); //재고 처리 여부
+            sql.append(" COD(A.ISUPDATEDUTYTABLE) AS ISUPDATEDUTYTABLE,   "); //DUTY TABLE 수정요청 여부
+
+            sql.append(" COD(A.ISAPPLYSERIES) AS ISAPPLYSERIES,   "); //시리즈 현장 적용 여부
+            sql.append(" COD(A.ISORDERNDESIGNSITE) AS ISORDERNDESIGNSITE,   "); // 기 수주/설계 현장 대응 여부
+            sql.append(" COD(A.ISTEAMSHARED) AS ISTEAMSHARED,   "); //유관팀 공유여부
+            sql.append(" CODN(A.COSTINFLUENCE) AS COSTINFLUENCE,   "); //원가영향도
+            sql.append(" CODN(A.SUBSYSSUPPLYDIV) AS SUBSYSSUPPLYDIV,   "); //SubSystem 공급 구분
+
+            sql.append(" SUBSTR(A.MD$CDATE, 1, 6) AS CRE_MONTH,   ");
+            sql.append(" SUBSTR(A.MD$MDATE, 1, 6) AS MOD_MONTH,   ");
+            sql.append(" DATEFORMAT(A.MD$CDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS CRE_DATE,   ");
+            sql.append(" DATEFORMAT(A.MD$MDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS MOD_DATE   ");
+
+            sql.append(" FROM NEWPLMDESIGNREQUEST$VF A   ");
+            sql.append(" WHERE   ");
+            sql.append(" SUBSTR(A.MD$CDATE, 1, 4) = ?   ");
+
+            //sql.append(" AND A.DESIGNPART = ?   "); //기계 or 전기
+            //sql.append(" AND A.REQUESTTYPE = ?   "); //작업구분 : 수배로직, 1품1도 등
+
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, year);
+            //pstmt.setString(2, reqTypeOID);
+            rs = pstmt.executeQuery();
+
+            int totalCnt = 0;
+            while (rs.next()) {
+                String REQNO = rs.getString("REQNO") == null ? "" : rs.getString("REQNO");
+                String REQSTATUS = rs.getString("REQSTATUS") == null ? "" : rs.getString("REQSTATUS");
+                String RDETAIL = rs.getString("RDETAIL") == null ? "" : rs.getString("RDETAIL");
+                String CUSER = rs.getString("CUSER") == null ? "" : rs.getString("CUSER");
+                String CUSERNAME = rs.getString("CUSERNAME") == null ? "" : rs.getString("CUSERNAME");
+                String MANAGER = rs.getString("MANAGER") == null ? "" : rs.getString("MANAGER");
+
+                String HOGI = rs.getString("HOGI") == null ? "" : rs.getString("HOGI");
+                String WOSUN = rs.getString("WOSUN") == null ? "" : rs.getString("WOSUN"); //우선순위
+
+
+                String GUBUN = rs.getString("GUBUN");
+                String GUBUN_KEY = rs.getString("GUBUN_KEY") == null ? "" : rs.getString("GUBUN_KEY"); //구분key
+                String WORKGUBUN = rs.getString("WORKGUBUN");
+
+                String REQUESTDETAIL = rs.getString("REQUESTDETAIL") == null ? "" : rs.getString("REQUESTDETAIL"); //요청내용
+                String REQUESTCAUSE = rs.getString("REQUESTCAUSE"); //요청사유
+
+                String SUBAESUITABILITY1 = rs.getString("SUBAESUITABILITY1"); //
+                String SUBAESUITABILITY2 = rs.getString("SUBAESUITABILITY2"); //
+                String ISLIMITCONDITION = rs.getString("ISLIMITCONDITION"); //
+                String ISLAYOUTMANAUL = rs.getString("ISLAYOUTMANAUL"); //
+                String ISFINISHDCB = rs.getString("ISFINISHDCB"); //DCB 완료 여부
+
+                String ISFINISHISIR = rs.getString("ISFINISHISIR"); //ISIR(초도품 검사)
+                String ISFINISHCERTIFY = rs.getString("ISFINISHCERTIFY"); //인증완료여부
+                String ISHANDLINGSTOCK = rs.getString("ISHANDLINGSTOCK");
+                String ISUPDATEDUTYTABLE = rs.getString("ISUPDATEDUTYTABLE");
+                String ISAPPLYSERIES = rs.getString("ISAPPLYSERIES"); //시리즈 현장 적용 여부
+
+                String ISORDERNDESIGNSITE = rs.getString("ISORDERNDESIGNSITE"); //기 수주/설계 현장 대응 여부
+                String ISTEAMSHARED = rs.getString("ISTEAMSHARED"); //유관팀 공유여부
+                String COSTINFLUENCE = rs.getString("COSTINFLUENCE"); // 원가영향도
+                String SUBSYSSUPPLYDIV = rs.getString("SUBSYSSUPPLYDIV"); //SubSystem 공급 구분
+
+                String CRE_DATE = rs.getString("CRE_DATE") == null ? "" : rs.getString("CRE_DATE"); //등록일
+                String MOD_DATE = rs.getString("MOD_DATE") == null ? "" : rs.getString("MOD_DATE"); //수정일
+
+                //CRE_MONTH
+                String CRE_MONTH = rs.getString("CRE_MONTH") == null ? "" : rs.getString("CRE_MONTH"); //등록월
+                String MOD_MONTH = rs.getString("MOD_MONTH") == null ? "" : rs.getString("MOD_MONTH"); //수정월
+
+                System.out.println(REQNO + " , " + REQSTATUS + ", " + HOGI + ", " + GUBUN + "," + WORKGUBUN);
+
+                DesignRequestDTO d = new DesignRequestDTO();
+                d.setReqNo(REQNO);
+                d.setStatus(REQSTATUS);
+                //d.setcUser(CUSER);
+                d.setCUserName(CUSERNAME);
+                d.setManager(MANAGER);
+                d.setHogi(HOGI);
+
+                d.setWosun(WOSUN);
+                d.setGubun(GUBUN);
+                d.setWorkGubun(WORKGUBUN);
+                d.setReqCause(REQUESTCAUSE);
+                d.setReqDetail(REQUESTDETAIL);
+
+                d.setSubae01(SUBAESUITABILITY1);
+                d.setSubae02(SUBAESUITABILITY2);
+                d.setIsLimit(ISLIMITCONDITION);
+                d.setLayout(ISLAYOUTMANAUL);
+                d.setDcbFinish(ISFINISHDCB);
+                d.setIsIsir(ISFINISHISIR); //ISIR(초도품 검사)
+                d.setIsFinish(ISFINISHCERTIFY); //인증완료여부
+                d.setIngStock(ISHANDLINGSTOCK); //재고처리여부
+                d.setIsDutyTable(ISUPDATEDUTYTABLE);
+                d.setIsSeries(ISAPPLYSERIES);
+                d.setDesignSite(ISORDERNDESIGNSITE);
+                d.setTeamShared(ISTEAMSHARED);
+                d.setCostInfluence(COSTINFLUENCE);
+                d.setSubSystem(SUBSYSSUPPLYDIV);
+                d.setCostInfluence(COSTINFLUENCE);
+
+                d.setCreMon(CRE_MONTH);
+                d.setModMon(MOD_MONTH);
+                d.setCreDate(CRE_DATE);
+                d.setModDate(MOD_DATE);
+
+                result.add(d);
+
+                totalCnt++;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        return result;
+    }
+
 }

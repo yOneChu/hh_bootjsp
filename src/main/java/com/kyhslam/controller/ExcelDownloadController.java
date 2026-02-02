@@ -1,18 +1,17 @@
 package com.kyhslam.controller;
 
 
+import com.kyhslam.dto.DesignRequestDTO;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.SubaeService;
-import com.kyhslam.util.ExcelUtil;
-import com.kyhslam.util.MLBCommonUtil;
-import com.kyhslam.util.PIDCommonUtil;
-import com.kyhslam.util.PartDashboardUtil;
+import com.kyhslam.util.*;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.springframework.context.annotation.Description;
 import org.springframework.util.StopWatch;
 import org.springframework.web.accept.MediaTypeFileExtensionResolver;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -718,6 +717,7 @@ public class ExcelDownloadController {
 
 
     //전산작업요청
+    @Description("전산작업요청 엑셀 다운로드")
     @PostMapping("/searchDesignExcel")
     public void searchDesignExcel(HttpServletResponse response,
                              String year) throws IOException {
@@ -764,44 +764,75 @@ public class ExcelDownloadController {
         // 본문 기본 텍스트 스타일
         CellStyle bodyStyle = ExcelUtil.getBodyStyle(workbook);
 
+        //ArrayList<DesignRequestDTO>
         // 데이터 가져오기
-        ArrayList<PartInfoDTO> dataList = new ArrayList<>();
-        //MLBCommonUtil.findDownLevelQtyPID(year, blockNo, qtyPid, dataList);
+        ArrayList<DesignRequestDTO> dataList = new ArrayList<>();
+        dataList = DesignReqCommonUtil.findALLDesignReq(year);
+
 
 
         for (int i = 0; i < dataList.size(); i++) {
-            PartInfoDTO dto = dataList.get(i);
+            DesignRequestDTO dto = dataList.get(i);
 
             Row row = sheet.createRow(i + 1);
-            String pPartNo = dto.getParentPartNo();
-            String pPartName = dto.getParentPartName();
-            String pBlockNo = dto.getParentBlockNo();
-            String pSpec = dto.getParentSpec();
-            String pSize = dto.getParentSize();
+            String reqNo = dto.getReqNo();
+            String status =  dto.getStatus();
+            String wosun = dto.getWosun();
+            String gubun = dto.getGubun();
+            String workGubun = dto.getWorkGubun();
+            String hogi = dto.getHogi();
+            String first = dto.getFirst();
 
-            String partNo = dto.getPartNo();
-            String partName = dto.getPartName();
-            String partSpec = dto.getSpec();
-            String vblockNo = dto.getBlockNo();
-            String partSize = dto.getPartSize();
-            String cmt =  dto.getCmt();
-            String qty = dto.getQty();
+            String user = dto.getCUser();
+            String manager = dto.getManager();
+            String reqCause = dto.getReqCause();
+            String reqDetail = dto.getReqDetail();
 
-            row.createCell(0).setCellValue(pPartNo);
-            row.createCell(1).setCellValue(pPartName);
-            row.createCell(2).setCellValue(pBlockNo);
-            row.createCell(3).setCellValue(pSpec);
-            row.createCell(4).setCellValue(pSize);
+            String subae01 = dto.getSubae01();
+            String subae02 = dto.getSubae02();
+            String isLimit = dto.getIsLimit();
+            String layout = dto.getLayout();
+            String dcbFinish = dto.getDcbFinish();
+            String isIsir =  dto.getIsIsir();
+            String isFinish = dto.getIsFinish();
+            String ingStock = dto.getIngStock();
+            String isDutyTable = dto.getIsDutyTable();
 
-            row.createCell(5).setCellValue(partNo);
-            row.createCell(6).setCellValue(partName);
-            row.createCell(7).setCellValue(vblockNo);
-            row.createCell(8).setCellValue(partSpec);
-            row.createCell(9).setCellValue(qty);
-            row.createCell(10).setCellValue(cmt);
-            row.createCell(11).setCellValue(partSize);
+            String isSeries = dto.getIsSeries();
+            String designSite = dto.getDesignSite();
+            String teamShared = dto.getTeamShared();
+            String costInfluence = dto.getCostInfluence();
+            String subSystem = dto.getSubSystem();
 
-            for (int m = 0; m < 12; m++) {
+            row.createCell(0).setCellValue(reqNo);
+            row.createCell(1).setCellValue(status);
+            row.createCell(2).setCellValue(status);
+            row.createCell(3).setCellValue(manager);
+            row.createCell(4).setCellValue(hogi);
+
+            row.createCell(5).setCellValue(wosun);
+            row.createCell(6).setCellValue(gubun);
+            row.createCell(7).setCellValue(workGubun);
+            row.createCell(8).setCellValue(reqCause);
+            row.createCell(9).setCellValue(reqDetail);
+
+            row.createCell(10).setCellValue(subae01);
+            row.createCell(11).setCellValue(subae02);
+            row.createCell(12).setCellValue(isLimit);
+            row.createCell(13).setCellValue(layout);
+            row.createCell(14).setCellValue(dcbFinish);
+            row.createCell(15).setCellValue(isIsir);
+            row.createCell(16).setCellValue(isFinish);
+            row.createCell(17).setCellValue(ingStock);
+            row.createCell(18).setCellValue(isDutyTable);
+
+            row.createCell(19).setCellValue(isSeries);
+            row.createCell(20).setCellValue(designSite);
+            row.createCell(21).setCellValue(teamShared);
+            row.createCell(22).setCellValue(costInfluence);
+            row.createCell(23).setCellValue(subSystem);
+
+            for (int m = 0; m < 24; m++) {
                 row.getCell(m).setCellStyle(bodyStyle);
             }
         }
