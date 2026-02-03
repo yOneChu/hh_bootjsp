@@ -23,7 +23,8 @@ public class ProductPlanC {
     private String exportDate; //출하예정일
 
     private String indexNo;
-    private String toCost;
+    private String toCost; //단가
+    //private String prevCost; //이전단가
 
     private String productOid;
     private String productNo;

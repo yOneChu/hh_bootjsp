@@ -1,6 +1,7 @@
 package com.kyhslam.service;
 
 import com.kyhslam.domain.PartPlanC;
+import com.kyhslam.domain.PlanCDash;
 import com.kyhslam.domain.ProductPlanC;
 import com.kyhslam.repository.PlanCRepository;
 import com.kyhslam.util.DateUtil;
@@ -39,6 +40,17 @@ public class PlanCService {
         repository.productSave(productPlanC);
     }
 
+    @Transactional
+    public void planDashSave(PlanCDash planDash) {
+        repository.planDashSave(planDash);
+    }
+
+
+    public List<PlanCDash> findPlanDash(String batchDate) {
+        List<PlanCDash> list = repository.findPlanDash(batchDate);
+        return list;
+    }
+
 
     public List<PartPlanC> findAll() {
         List<PartPlanC> list = repository.findAll();
@@ -71,7 +83,13 @@ public class PlanCService {
         return list;
     }
 
+    public List<ProductPlanC> findProductByPartNoBrand(String partNo, String brand) {
+        List<ProductPlanC> list = repository.findProductByPartNoBrand(partNo, brand);
+        return list;
+    }
 
+
+    //특정일자 배치 삭제
     public void deletePlanCProduct() {
 
         HashMap<String, String> data = new HashMap<String, String>();

@@ -13,6 +13,7 @@
 <%@ page import="com.kyhslam.util.DateUtil" %>
 <%@ page import="com.kyhslam.domain.ProductPlanC" %>
 <%@ page import="java.util.List" %>
+<%@ page import="com.kyhslam.domain.PlanCDash" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
@@ -39,16 +40,31 @@
 
     System.out.println("planCService = " + planCService);
 
-    List<ProductPlanC> result =  planCService.findProductByBatchDate("2026-02-01");
-
+    List<PlanCDash> result =  planCService.findPlanDash("2026-02-01");
 
     for (int i = 0; i < result.size(); i++) {
-        ProductPlanC data = result.get(i);
-        String productNo = data.getProductNo();
+        PlanCDash data = result.get(i);
         String brand = data.getBrand();
         String partNo = data.getPartNo();
+        int dis202601 = data.getDis202601();
+        int dis202602 = data.getDis202602();
+        int dis202603 = data.getDis202603();
+        int dis202604 = data.getDis202604();
+        int dis202605 = data.getDis202605();
+        int dis202606 = data.getDis202606();
+        int dis202607 = data.getDis202607();
+        int dis202608 = data.getDis202608();
+        int dis202609 = data.getDis202609();
+        int dis202610 = data.getDis202610();
+        int dis202611 = data.getDis202611();
+        int dis202612 = data.getDis202612();
+        int total = data.getTotalCnt();
 
-        System.out.println("productNo = " + productNo + " > " + brand);
+
+
+
+
+        System.out.println("partNo = " + partNo + " > " + brand);
     }
 
 
@@ -257,6 +273,7 @@
                                         <th style="font-weight: bold; text-align: center;">10</th>
                                         <th style="font-weight: bold; text-align: center;">11</th>
                                         <th style="font-weight: bold; text-align: center;">12</th>
+                                        <th style="font-weight: bold; text-align: center;">etc</th>
                                     </tr>
                                     </thead>
 
@@ -283,6 +300,8 @@
                                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202509');">    </a></td>
                                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202510');">    </a></td>
                                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202511');">    </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202512');">    </a></td>
+
                                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202512');">    </a></td>
                                         </tr>
 

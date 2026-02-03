@@ -61,7 +61,7 @@ public class SAPCommonUtil {
 
             HashMap resultHM = searchListBasedOnCondition.searchListBasedOnCondition(g_l_code, EL_ATYP, EL_ASPD_1, EL_ASPD_2, EL_AMAN_1, EL_AMAN_2, EL_ECSF, EL_ETM, EL_ECJJ_1, EL_ECJJ_2, PARTNO, BLOCKNO, start_date_day, end_date_day, specList, isOnlyElv, isGeneralElv);
             data = (ArrayList) resultHM.get("data");
-            System.out.println("data.size == " + data.size());
+            System.out.println("data.size == " + data);
 
         } catch (Exception e) {
             e.printStackTrace();
