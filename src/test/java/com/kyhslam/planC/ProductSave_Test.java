@@ -349,20 +349,7 @@ public class ProductSave_Test {
                     brand = "LUXEN_2";
                 }
 
-                /*List<ProductPlanC> product = service.findProductByPartNoBrand(partNo, brand);
-                System.out.println("product = " + product.size());
-
-
-
-                if(product != null && product.size() > 0) {
-                    exportDate = product.get(0).getExportDate();
-                }
-                System.out.println("exportDate = " + exportDate);
-                if(exportDate != null && !exportDate.equals("")) {
-                    exportDate = exportDate.substring(0, 6);
-                }*/
                 System.out.println("partNo = " + partNo);
-                //System.out.println("exportDate = " + exportDate);
                 System.out.println("brand = " + brand);
 
                 int dis202601 = 0;
@@ -388,6 +375,7 @@ public class ProductSave_Test {
                 dis202603 = Integer.parseInt(dateInfo.get("202603"));
                 dis202604 = Integer.parseInt(dateInfo.get("202604"));
                 dis202605 = Integer.parseInt(dateInfo.get("202605"));
+                disTotal = Integer.parseInt(dateInfo.get("TOTAL"));
 
 
                 PlanCDash planCDash = new PlanCDash();
@@ -414,8 +402,6 @@ public class ProductSave_Test {
                 planCDash.setBatchDate(todayValue);
 
                 service.planDashSave(planCDash);
-
-                System.out.println("202603 = " + dis202603);
             }
 
 
@@ -478,7 +464,12 @@ public class ProductSave_Test {
                                         from plancproduct A
                                         WHERE A.ASPSCD = 'KC01'
                                           AND A.part_no = ?
-                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202608') AS DIS08
+                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202608') AS DIS08,
+                        (select COUNT(a.part_no) AS COUNT
+                                            from plancproduct A
+                                            WHERE A.ASPSCD = 'KC01'
+                                              AND A.part_no = ?
+                                            and a.brand = ?) AS TOTAL
                     """;
 
             System.out.println(sql.toString());
@@ -508,6 +499,9 @@ public class ProductSave_Test {
             pstmt.setString(15, partNo);
             pstmt.setString(16, brand);
 
+            pstmt.setString(17, partNo);
+            pstmt.setString(18, brand);
+
             rs = pstmt.executeQuery();
 
             while (rs.next()) {
@@ -516,12 +510,15 @@ public class ProductSave_Test {
                 String DIS03 = rs.getString("DIS03") == null ? "" : rs.getString("DIS03");
                 String DIS04 = rs.getString("DIS04") == null ? "" : rs.getString("DIS04");
                 String DIS05 = rs.getString("DIS05") == null ? "" : rs.getString("DIS05");
+                String TOTAL = rs.getString("TOTAL") == null ? "" : rs.getString("TOTAL");
+                //TOTAL
 
                 data.put("202601", DIS01);
                 data.put("202602", DIS02);
                 data.put("202603", DIS03);
                 data.put("202604", DIS04);
                 data.put("202605", DIS05);
+                data.put("TOTAL", TOTAL);
             }
         } catch (Exception e) {
             e.printStackTrace();

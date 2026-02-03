@@ -51,6 +51,12 @@ public class PlanCService {
         return list;
     }
 
+    public List<PlanCDash> findPlanDashAsBrand(String batchDate, String brand) {
+        List<PlanCDash> list = repository.findPlanDashAsBrand(batchDate, brand);
+        return list;
+    }
+
+
 
     public List<PartPlanC> findAll() {
         List<PartPlanC> list = repository.findAll();

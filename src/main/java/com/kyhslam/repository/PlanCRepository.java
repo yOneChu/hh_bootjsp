@@ -32,6 +32,13 @@ public class PlanCRepository {
                 .getResultList();
     }
 
+    public List<PlanCDash> findPlanDashAsBrand(String batchDate, String brand) {
+        return em.createQuery("select o from PlanCDash o where o.batchDate = :batchDate and o.brand = :brand", PlanCDash.class)
+                .setParameter("batchDate", batchDate)
+                .setParameter("brand", brand)
+                .getResultList();
+    }
+
     //엑셀 자재
     public List<PartPlanC> findAll() {
         return em.createQuery("select o from PartPlanC o", PartPlanC.class)
@@ -45,16 +52,18 @@ public class PlanCRepository {
 
 
     public List<PartPlanC> findPartByBlock(String blockNo) {
-        return em.createQuery("select o from PartPlanC o where o.blockNo = :blockNo", PartPlanC.class)
+        return em.createQuery("select o from PartPlanC o where o.blockNo = :blockNo and o.aspscd = :aspscd", PartPlanC.class)
                 .setParameter("blockNo", blockNo)
+                .setParameter("aspscd", "KC01")
                 .getResultList();
     }
 
-
+//ASPSCD
     //제품
     public List<ProductPlanC> findProductByBlock(String blockNo) {
-        return em.createQuery("select o from ProductPlanC o where o.blockNo = :blockNo", ProductPlanC.class)
+        return em.createQuery("select o from ProductPlanC o where o.blockNo = :blockNo and o.aspscd = :aspscd", ProductPlanC.class)
                 .setParameter("blockNo", blockNo)
+                .setParameter("aspscd", "KC01")
                 .getResultList();
     }
 
@@ -66,24 +75,27 @@ public class PlanCRepository {
     }
 
     public List<ProductPlanC> findProductByBatchDate_v2(String batchDate, String blockNo) {
-        return em.createQuery("select o from ProductPlanC o where o.blockNo = :blockNo and o.batchDate = :batchDate", ProductPlanC.class)
+        return em.createQuery("select o from ProductPlanC o where o.blockNo = :blockNo and o.batchDate = :batchDate and o.aspscd = :aspscd", ProductPlanC.class)
                 .setParameter("blockNo", blockNo)
                 .setParameter("batchDate", batchDate)
+                .setParameter("aspscd", "KC01")
                 .getResultList();
     }
 
     //원가실적조회로 조회 한게 있는지 검사
     public List<ProductPlanC> findProductByHogi(String productNo, String partNo) {
-        return em.createQuery("select o from ProductPlanC o where o.productNo = :productNo and o.partNo = :partNo", ProductPlanC.class)
+        return em.createQuery("select o from ProductPlanC o where o.productNo = :productNo and o.partNo = :partNo and o.aspscd = :aspscd", ProductPlanC.class)
                 .setParameter("productNo", productNo)
                 .setParameter("partNo", partNo)
+                .setParameter("aspscd", "KC01")
                 .getResultList();
     }
 
     public List<ProductPlanC> findProductByPartNoBrand(String partNo, String brand) {
-        return em.createQuery("select o from ProductPlanC o where o.brand = :brand and o.partNo = :partNo", ProductPlanC.class)
+        return em.createQuery("select o from ProductPlanC o where o.brand = :brand and o.partNo = :partNo and o.aspscd = :aspscd", ProductPlanC.class)
                 .setParameter("brand", brand)
                 .setParameter("partNo", partNo)
+                .setParameter("aspscd", "KC01")
                 .getResultList();
     }
 

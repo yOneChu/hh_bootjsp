@@ -40,8 +40,9 @@
 
     System.out.println("planCService = " + planCService);
 
-    List<PlanCDash> result =  planCService.findPlanDash("2026-02-03");
-
+    //List<PlanCDash> result =  planCService.findPlanDash(todayVal);
+    List<PlanCDash> result =  planCService.findPlanDashAsBrand(todayVal, "LUXEN_2");
+    //findPlanDashAsBrand
 
     int countNum = 1;
     System.out.println(" ---------------- end dashboard -------------");
@@ -221,45 +222,47 @@
                                 <table id="infoTable" class="table table-bordered table-hover" style="font-family: NotoSans; font-size:15px;">
                                     <thead>
 
-                                    <!-- bg-primary -->
-                                    <tr class="bg-secondary">
-                                        <th style="font-weight: bold; text-align: center;" rowspan="3">NO</th>
-                                        <th style="font-weight: bold; text-align: center;" rowspan="3">INDEX</th>
-                                        <th style="font-weight: bold; text-align: center;" rowspan="3">브랜드</th>
-                                        <th style="font-weight: bold; text-align: center;" rowspan="3">자재번호</th>
-                                        <th style="font-weight: bold; text-align: center;" rowspan="3">과제명</th>
-                                        <th style="font-weight: bold; text-align: center;" rowspan="3">총 수량</th>
-                                        <th style="font-weight: bold; text-align: center;" colspan="20">월별실적</th>
-                                    </tr>
+                                        <!-- bg-primary -->
+                                        <tr class="bg-secondary">
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">NO</th>
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">INDEX</th>
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">브랜드</th>
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">자재번호</th>
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">BlockNo</th>
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">과제명</th>
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">총 수량</th>
+                                            <th style="font-weight: bold; text-align: center;" colspan="20">월별실적</th>
+                                        </tr>
 
-                                    <tr class="bg-secondary">
-                                        <th style="font-weight: bold; text-align: center;" colspan="13">2025년</th>
-                                    </tr>
+                                        <tr class="bg-secondary">
+                                            <th style="font-weight: bold; text-align: center;" colspan="13">2025년</th>
+                                        </tr>
 
-                                    <tr class="bg-secondary">
-                                        <th style="font-weight: bold; text-align: center;">01</th>
-                                        <th style="font-weight: bold; text-align: center;">02</th>
-                                        <th style="font-weight: bold; text-align: center;">03</th>
-                                        <th style="font-weight: bold; text-align: center;">04</th>
-                                        <th style="font-weight: bold; text-align: center;">05</th>
-                                        <th style="font-weight: bold; text-align: center;">06</th>
-                                        <th style="font-weight: bold; text-align: center;">07</th>
-                                        <th style="font-weight: bold; text-align: center;">08</th>
-                                        <th style="font-weight: bold; text-align: center;">09</th>
-                                        <th style="font-weight: bold; text-align: center;">10</th>
-                                        <th style="font-weight: bold; text-align: center;">11</th>
-                                        <th style="font-weight: bold; text-align: center;">12</th>
-                                        <th style="font-weight: bold; text-align: center;">etc</th>
-                                    </tr>
+                                        <tr class="bg-secondary">
+                                            <th style="font-weight: bold; text-align: center;">01</th>
+                                            <th style="font-weight: bold; text-align: center;">02</th>
+                                            <th style="font-weight: bold; text-align: center;">03</th>
+                                            <th style="font-weight: bold; text-align: center;">04</th>
+                                            <th style="font-weight: bold; text-align: center;">05</th>
+                                            <th style="font-weight: bold; text-align: center;">06</th>
+                                            <th style="font-weight: bold; text-align: center;">07</th>
+                                            <th style="font-weight: bold; text-align: center;">08</th>
+                                            <th style="font-weight: bold; text-align: center;">09</th>
+                                            <th style="font-weight: bold; text-align: center;">10</th>
+                                            <th style="font-weight: bold; text-align: center;">11</th>
+                                            <th style="font-weight: bold; text-align: center;">12</th>
+                                            <th style="font-weight: bold; text-align: center;">etc</th>
+                                        </tr>
                                     </thead>
 
                                     <tbody id="contentTable">
 
                                         <%
-                                            for (int i = 0; i < 3000; i++) {
+                                            for (int i = 0; i < result.size(); i++) {
                                                 PlanCDash data = result.get(i);
                                                 String indexNo = data.getPlanIndex();
                                                 String brand = data.getBrand();
+                                                String blockNo = data.getBlockNo();
                                                 String partNo = data.getPartNo();
                                                 String partName = data.getPartName();
 
@@ -275,17 +278,19 @@
                                                 int dis202610 = data.getDis202610();
                                                 int dis202611 = data.getDis202611();
                                                 int dis202612 = data.getDis202612();
+                                                int total = data.getTotalCnt();
+
+                                                int etc = total - (dis202601 + dis202602 + dis202603 + dis202604 + dis202605 + dis202606 + dis202607 + dis202608 + dis202609 + dis202610 + dis202611 + dis202612);
                                         %>
 
                                         <tr>
                                             <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
-
-
                                             <td style="font-weight: bold; text-align: center;"><%=indexNo%></td>
                                             <td style="font-weight: bold; text-align: center;"><%=brand%></td>
                                             <td style="font-weight: bold; text-align: center;"><%=partNo%></td>
+                                            <td style="font-weight: bold; text-align: center;"><%=blockNo%></td>
                                             <td style="font-weight: bold; text-align: center;"><%=partName%></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', 'total');"> <font color="red"> </font> </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', 'total');"> <font color="red"> <%=total%> </font> </a></td>
                                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202501');"> <%=dis202601 %>   </a></td>
                                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202502');"> <%=dis202602 %>   </a></td>
                                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202503');"> <%=dis202603 %>   </a></td>
@@ -299,7 +304,7 @@
                                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202511');"> <%=dis202611 %>  </a></td>
                                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202512');"> <%=dis202612 %>  </a></td>
 
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202512');">    </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202512');">  <%=etc%>  </a></td>
                                         </tr>
 
 
@@ -395,11 +400,11 @@
         "pageLength": 50,     //페이지 당 글 개수 설정
         "autoWidth": false, // 가로자동
         "processing": true,
-        "scrollX" : true, //가로  스크롤
+        //"scrollX" : true, //가로  스크롤
         //"ordering" : false,
         //"searching" : false,
         //"paging" : false, // 페이징표시 삭제
-        "destroy": true, // 테이블 재생성
+         "destroy": true, // 테이블 재생성
         "buttons": ["csv", "excel", "copy"]
     }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
 
