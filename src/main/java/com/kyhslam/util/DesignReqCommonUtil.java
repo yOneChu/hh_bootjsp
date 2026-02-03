@@ -641,11 +641,9 @@ public class DesignReqCommonUtil {
 
         try {
 
-            //con = DriverManager.getConnection(url, id, pass);
             con = PLMDBConnection.getConnection();
 
             System.out.println("con = " + con);
-
 
             StringBuffer sql = new StringBuffer();
 
@@ -747,7 +745,7 @@ public class DesignReqCommonUtil {
                 String CRE_MONTH = rs.getString("CRE_MONTH") == null ? "" : rs.getString("CRE_MONTH"); //등록월
                 String MOD_MONTH = rs.getString("MOD_MONTH") == null ? "" : rs.getString("MOD_MONTH"); //수정월
 
-                System.out.println(REQNO + " , " + REQSTATUS + ", " + HOGI + ", " + GUBUN + "," + WORKGUBUN);
+                //System.out.println(REQNO + " , " + REQSTATUS + ", " + HOGI + ", " + GUBUN + "," + WORKGUBUN);
 
                 DesignRequestDTO d = new DesignRequestDTO();
                 d.setReqNo(REQNO);

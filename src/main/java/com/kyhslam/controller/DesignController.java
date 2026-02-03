@@ -21,6 +21,10 @@ public class DesignController {
 
     private final DesignDashboardService designDashboardService;
 
+    @GetMapping("/designReq/searchDesignReq")
+    public String searchDesignReq() {
+        return "thymeleaf/searchDesignRequest";
+    }
 
     //데이터 배치
     @GetMapping("/designReq/designBatch")

@@ -718,7 +718,7 @@ public class ExcelDownloadController {
 
     //전산작업요청
     @Description("전산작업요청 엑셀 다운로드")
-    @GetMapping("/searchDesignExcel")
+    @PostMapping("/searchDesignReqExcel")
     public void searchDesignExcel(HttpServletResponse response,
                              String year) throws IOException {
 
