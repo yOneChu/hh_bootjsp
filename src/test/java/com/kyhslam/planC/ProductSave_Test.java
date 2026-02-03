@@ -60,7 +60,7 @@ public class ProductSave_Test {
         //N27200L19 > C189P001148
         ArrayList costData = new ArrayList();
 
-        HashMap<String, HashMap<String,String>> partInfoMap = new HashMap<>();
+        HashMap<String, ArrayList<PartPlanC>> partInfoMap = new HashMap<>();
 
         String PARTNO = "";
         int findCnt = 0;
@@ -71,13 +71,13 @@ public class ProductSave_Test {
             String brand =  list.get(i).getBrand();
             System.out.println( (i+1) + "------- vPartNo = " + vPartNo);
 
-            if ( !partInfoMap.containsKey(brand) ) {
-                HashMap<String,String> map = new HashMap<>();
-                map.put(vPartNo, toCost);
-                partInfoMap.put(brand, map);
+            if(partInfoMap.containsKey(brand)) {
+
+            } else {
+
             }
 
-            //이미 조회한거는 넘어간다.
+            //이미 조회한거는 넘어간다. > 어차피 전체로 조회하기 때문에.
             if(dupCheck.contains(vPartNo)){
                 continue;
             } else {
@@ -98,7 +98,7 @@ public class ProductSave_Test {
                 costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
 
                 //저장
-                getProductSave(costData, todayValue);
+                getProductSave(costData, todayValue, list);
 
                 // 5초 대기
                 try {
@@ -126,7 +126,7 @@ public class ProductSave_Test {
             costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
 
             //저장
-            getProductSave(costData, todayValue);
+            getProductSave(costData, todayValue, list);
 
             PARTNO = "";
             findCnt = 0;
@@ -149,7 +149,7 @@ public class ProductSave_Test {
 
     @Description("월가절감조회 완료 한 데이터 DB에 저장")
     @Test
-    public void getProductSave(ArrayList costData, String todayValue) {
+    public void getProductSave(ArrayList costData, String todayValue, List<PartPlanC> list) {
 
         for (int i = 0; i < costData.size(); i++) {
 
@@ -192,8 +192,19 @@ public class ProductSave_Test {
             pData.setEmanager(eUser);
             pData.setModule(module);
 
-            //pData.setIndexNo(vPartInfo.getPlanIndex());
-            //pData.setToCost(vPartInfo.getCost());
+
+            for (int j = 0; i < list.size(); j++) {
+                PartPlanC vPartInfo = list.get(i);
+                String vPartNo = vPartInfo.getPartNo();
+                String vBrand = vPartInfo.getBrand();
+                String vPlanIndex = vPartInfo.getPlanIndex();
+                String vCost = vPartInfo.getCost();
+
+                if(vPartNo.equals(partNo) && brand.equals(vBrand)) {
+                    pData.setIndexNo(vPartInfo.getPlanIndex());
+                    pData.setToCost(vPartInfo.getCost());
+                }
+            }
 
             pData.setBatchDate(todayValue); //배치수행일
 
