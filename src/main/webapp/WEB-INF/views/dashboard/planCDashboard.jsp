@@ -40,32 +40,7 @@
 
     System.out.println("planCService = " + planCService);
 
-    List<PlanCDash> result =  planCService.findPlanDash("2026-02-01");
-
-    for (int i = 0; i < result.size(); i++) {
-        PlanCDash data = result.get(i);
-        String brand = data.getBrand();
-        String partNo = data.getPartNo();
-        int dis202601 = data.getDis202601();
-        int dis202602 = data.getDis202602();
-        int dis202603 = data.getDis202603();
-        int dis202604 = data.getDis202604();
-        int dis202605 = data.getDis202605();
-        int dis202606 = data.getDis202606();
-        int dis202607 = data.getDis202607();
-        int dis202608 = data.getDis202608();
-        int dis202609 = data.getDis202609();
-        int dis202610 = data.getDis202610();
-        int dis202611 = data.getDis202611();
-        int dis202612 = data.getDis202612();
-        int total = data.getTotalCnt();
-
-
-
-
-
-        System.out.println("partNo = " + partNo + " > " + brand);
-    }
+    List<PlanCDash> result =  planCService.findPlanDash("2026-02-03");
 
 
     int countNum = 1;
@@ -187,19 +162,17 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>브랜드</label>
-                                    <select id="spec-01" class="form-control select" style="width: 100%;">
-                                        <option selected="selected">SPEC</option>
-                                        <option>CON</option>
-                                        <option>KEY</option>
-                                        <option>VAL</option>
-                                        <option>REMARKS</option>
+                                    <select id="brand" class="form-control select" style="width: 100%;">
+                                        <option selected="selected">LUXEN_G</option>
+                                        <option>NEX_MRL_G</option>
+                                        <option>NEX_MR_G</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>-</label>
-                                    <select id="link-01" class="form-control select" style="width: 100%;">
+                                    <select id="BlockNo" class="form-control select" style="width: 100%;">
                                         <option selected="selected">LIKE</option>
                                         <option>EQUAL</option>
                                     </select>
@@ -251,13 +224,16 @@
                                     <!-- bg-primary -->
                                     <tr class="bg-secondary">
                                         <th style="font-weight: bold; text-align: center;" rowspan="3">NO</th>
+                                        <th style="font-weight: bold; text-align: center;" rowspan="3">INDEX</th>
+                                        <th style="font-weight: bold; text-align: center;" rowspan="3">브랜드</th>
+                                        <th style="font-weight: bold; text-align: center;" rowspan="3">자재번호</th>
                                         <th style="font-weight: bold; text-align: center;" rowspan="3">과제명</th>
                                         <th style="font-weight: bold; text-align: center;" rowspan="3">총 수량</th>
                                         <th style="font-weight: bold; text-align: center;" colspan="20">월별실적</th>
                                     </tr>
 
                                     <tr class="bg-secondary">
-                                        <th style="font-weight: bold; text-align: center;" colspan="12">2025년</th>
+                                        <th style="font-weight: bold; text-align: center;" colspan="13">2025년</th>
                                     </tr>
 
                                     <tr class="bg-secondary">
@@ -280,30 +256,59 @@
                                     <tbody id="contentTable">
 
                                         <%
-                                            
+                                            for (int i = 0; i < 3000; i++) {
+                                                PlanCDash data = result.get(i);
+                                                String indexNo = data.getPlanIndex();
+                                                String brand = data.getBrand();
+                                                String partNo = data.getPartNo();
+                                                String partName = data.getPartName();
 
+                                                int dis202601 = data.getDis202601();
+                                                int dis202602 = data.getDis202602();
+                                                int dis202603 = data.getDis202603();
+                                                int dis202604 = data.getDis202604();
+                                                int dis202605 = data.getDis202605();
+                                                int dis202606 = data.getDis202606();
+                                                int dis202607 = data.getDis202607();
+                                                int dis202608 = data.getDis202608();
+                                                int dis202609 = data.getDis202609();
+                                                int dis202610 = data.getDis202610();
+                                                int dis202611 = data.getDis202611();
+                                                int dis202612 = data.getDis202612();
                                         %>
 
                                         <tr>
                                             <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
-                                            <td style="font-weight: bold; text-align: center;">1단계 CP (MRL_5.5kW_일반)</td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', 'total');"> <font color="red"> </font> </a></td>
 
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202501');">    </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202502');">    </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202503');">    </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202504');">    </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202505');">    </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202506');">    </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202507');">    </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202508');">    </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202509');">    </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202510');">    </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202511');">    </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202512');">    </a></td>
+
+                                            <td style="font-weight: bold; text-align: center;"><%=indexNo%></td>
+                                            <td style="font-weight: bold; text-align: center;"><%=brand%></td>
+                                            <td style="font-weight: bold; text-align: center;"><%=partNo%></td>
+                                            <td style="font-weight: bold; text-align: center;"><%=partName%></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', 'total');"> <font color="red"> </font> </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202501');"> <%=dis202601 %>   </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202502');"> <%=dis202602 %>   </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202503');"> <%=dis202603 %>   </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202504');"> <%=dis202604 %>   </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202505');"> <%=dis202605 %>   </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202506');"> <%=dis202606 %>   </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202507');"> <%=dis202607 %>   </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202508');"> <%=dis202608 %>  </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202509');"> <%=dis202609 %>  </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202510');"> <%=dis202610 %>  </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202511');"> <%=dis202611 %>  </a></td>
+                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202512');"> <%=dis202612 %>  </a></td>
 
                                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202512');">    </a></td>
                                         </tr>
+
+
+                                        <%
+                                            }
+
+                                        %>
+
+
 
 
                                     </tbody>
@@ -387,12 +392,13 @@
     let dtTable = $("#infoTable").DataTable({
         "responsive": true,
         "lengthChange": true,
-        "pageLength": 25,     //페이지 당 글 개수 설정
+        "pageLength": 50,     //페이지 당 글 개수 설정
         "autoWidth": false, // 가로자동
         "processing": true,
-        "ordering" : false,
-        "searching" : false,
-        "paging" : false, // 페이징표시 삭제
+        "scrollX" : true, //가로  스크롤
+        //"ordering" : false,
+        //"searching" : false,
+        //"paging" : false, // 페이징표시 삭제
         "destroy": true, // 테이블 재생성
         "buttons": ["csv", "excel", "copy"]
     }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');

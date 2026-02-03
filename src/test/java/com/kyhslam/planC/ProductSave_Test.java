@@ -164,9 +164,15 @@ public class ProductSave_Test {
         HashMap<String, String> nexMRL_Map2 = new HashMap<>();
         HashMap<String, String> LUXEN_Map2 = new HashMap<>();
 
+        //PART_NAME
+        HashMap<String, String> nexMR_Map3 = new HashMap<>();
+        HashMap<String, String> nexMRL_Map3 = new HashMap<>();
+        HashMap<String, String> LUXEN_Map3 = new HashMap<>();
+
         for (int i = 0; i < partList.size(); i++) {
             PartPlanC vPartInfo = partList.get(i);
             String vPartNo = partList.get(i).getPartNo();
+            String vPartName = partList.get(i).getPartName();
             String toCost = partList.get(i).getCost();
             String brand = partList.get(i).getBrand();
             String indexNo = partList.get(i).getPlanIndex();
@@ -188,6 +194,14 @@ public class ProductSave_Test {
                 nexMRL_Map2.put(vPartNo, indexNo);
             } else if(brand.equals("LUXEN_G")) {
                 LUXEN_Map2.put(vPartNo, indexNo);
+            }
+
+            if (brand.equals("NEX_MR_G")) {
+                nexMR_Map3.put(vPartNo, vPartName);
+            } else if (brand.equals("NEX_MRL_G")) {
+                nexMRL_Map3.put(vPartNo, vPartName);
+            } else if(brand.equals("LUXEN_G")) {
+                LUXEN_Map3.put(vPartNo, vPartName);
             }
         }
 
@@ -246,13 +260,15 @@ public class ProductSave_Test {
             if(brand.equals("LUXEN_2") && "KC01".equals(aspscd)){
                 dto.setToCost(LUXEN_Map.get(partNo));
                 dto.setIndexNo(LUXEN_Map2.get(partNo));
-
+                dto.setPartName(LUXEN_Map3.get(partNo));
             } else if(brand.equals("NEX_MR") && "KC01".equals(aspscd)){
                 dto.setToCost(nexMR_Map.get(partNo));
                 dto.setIndexNo(nexMR_Map2.get(partNo));
+                dto.setPartName(nexMR_Map3.get(partNo));
             } else if(brand.equals("NEX_MRL") && "KC01".equals(aspscd)){
                 dto.setToCost(nexMRL_Map.get(partNo));
                 dto.setIndexNo(nexMRL_Map2.get(partNo));
+                dto.setPartName(nexMRL_Map3.get(partNo));
             }
 
 
@@ -309,15 +325,12 @@ public class ProductSave_Test {
     @Description("엑셀의 자재INDEX를 기준으로 대시보드 테이블에 집계")
     @Test
     public void setDashboardData() {
-
         LocalDate now = LocalDate.now();
         String todayValue = now.toString();
-
         try {
 
             List<PartPlanC> list = new ArrayList<>();
             list = service.findAll();
-
 
             for(int i=0;i<list.size();i++) {
                 PartPlanC dto = list.get(i);
@@ -325,6 +338,7 @@ public class ProductSave_Test {
                 String brand = dto.getBrand();
                 String blockNo = dto.getBlockNo();
                 String planIndex = dto.getPlanIndex();
+                String partName =  dto.getPartName();
                 //String exportDate = ""; // dto.getExportDate();
 
                 if (brand.equals("NEX_MR_G")) {
@@ -365,19 +379,15 @@ public class ProductSave_Test {
                 int dis202612 = 0;
                 int disTotal = 0;
 
-                dis202601 = findMonthCount(partNo, brand, "202601");
-                dis202602 = findMonthCount(partNo, brand, "202602");
-                dis202603 = findMonthCount(partNo, brand, "202603");
-                dis202604 = findMonthCount(partNo, brand, "202604");
-                dis202605 = findMonthCount(partNo, brand, "202605");
-                dis202606 = findMonthCount(partNo, brand, "202606");
-                dis202607 = findMonthCount(partNo, brand, "202607");
-                dis202608 = findMonthCount(partNo, brand, "202608");
-                dis202609 = findMonthCount(partNo, brand, "202609");
-                dis202610 = findMonthCount(partNo, brand, "202610");
-                dis202611 = findMonthCount(partNo, brand, "202611");
-                dis202612 = findMonthCount(partNo, brand, "202612");
-                disTotal = findMonthCount(partNo, brand, "total");
+
+                HashMap<String, String> dateInfo = new HashMap<>();
+                dateInfo = findMonth_V2(partNo, brand);
+
+                dis202601 = Integer.parseInt(dateInfo.get("202601"));
+                dis202602 = Integer.parseInt(dateInfo.get("202602"));
+                dis202603 = Integer.parseInt(dateInfo.get("202603"));
+                dis202604 = Integer.parseInt(dateInfo.get("202604"));
+                dis202605 = Integer.parseInt(dateInfo.get("202605"));
 
 
                 PlanCDash planCDash = new PlanCDash();
@@ -385,6 +395,7 @@ public class ProductSave_Test {
                 planCDash.setBrand(brand);
                 planCDash.setBlockNo(blockNo);
                 planCDash.setPlanIndex(planIndex);
+                planCDash.setPartName(partName);
 
                 planCDash.setDis202601(dis202601);
                 planCDash.setDis202602(dis202602);
@@ -414,75 +425,110 @@ public class ProductSave_Test {
     }
 
 
-//    @Description("월별 조회")
-//    @Test
-    public int findMonthCount(String partNo, String brand, String month) {
+    //월별조회 - 쿼리 한방에
+    public HashMap<String, String> findMonth_V2(String partNo, String brand) {
 
-        ArrayList<HashMap<String, String>> resultList = new ArrayList<HashMap<String,String>>();
-
-        Connection con 			= null;
+        Connection con = null;
         PreparedStatement pstmt = null;
-        ResultSet rs 			= null;
+        ResultSet rs = null;
 
-        //partNo = "C18210766G0300";
-        //brand = "LUXEN_2";
-        //month = "202603";
-
-        int result = 0;
-
-        String url = "jdbc:sqlserver://;serverName=10.225.80.35;port=1433;databaseName=PLMPRDIF;encrypt=false;";
-        String id  = "SA";
-        String pw  = "AutodeskVault@26200"; // "qwe123!@#"
+        HashMap<String, String> data = new HashMap<>();
 
         try {
+            con = VaultDBConnection.getConnection();
 
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver").newInstance();
-            con = DriverManager.getConnection(url,id,pw);
-
-            System.out.println("con = " + con);
-            
             String sql = """
-                    select COUNT(a.part_no) AS COUNT
-                    from plancproduct A
-                    WHERE A.ASPSCD = 'KC01'
-                      AND A.part_no = ?
-                    and a.brand = ?
+                    SELECT
+                        (select COUNT(a.part_no) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202601') AS DIS01,
+                        (select COUNT(a.part_no) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202602') AS DIS02,
+                            (select COUNT(a.part_no) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202603') AS DIS03,
+                        (select COUNT(a.part_no) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202604') AS DIS04,
+                        (select COUNT(a.part_no) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202605') AS DIS05,
+                        (select COUNT(a.part_no) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202606') AS DIS06,
+                        (select COUNT(a.part_no) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202607') AS DIS07,
+                        (select COUNT(a.part_no) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202608') AS DIS08
                     """;
 
-            if ("total".equals(month)) {
-
-            } else {
-                sql += "AND LEFT(A.export_date, 6) = ? ";
-                sql += "AND A.export_date IS NOT NULL";
-            }
-
-
-
+            System.out.println(sql.toString());
 
             pstmt = con.prepareStatement(sql.toString());
-            pstmt.setString(1,partNo);
-            pstmt.setString(2,brand);
-            //pstmt.setString(3,month);
-            if ("total".equals(month)) {
+            pstmt.setString(1, partNo);
+            pstmt.setString(2, brand);
 
-            } else {
-                pstmt.setString(3,month);
-            }
+            pstmt.setString(3, partNo);
+            pstmt.setString(4, brand);
+
+            pstmt.setString(5, partNo);
+            pstmt.setString(6, brand);
+
+            pstmt.setString(7, partNo);
+            pstmt.setString(8, brand);
+
+            pstmt.setString(9, partNo);
+            pstmt.setString(10, brand);
+
+            pstmt.setString(11, partNo);
+            pstmt.setString(12, brand);
+
+            pstmt.setString(13, partNo);
+            pstmt.setString(14, brand);
+
+            pstmt.setString(15, partNo);
+            pstmt.setString(16, brand);
 
             rs = pstmt.executeQuery();
 
-            while(rs.next())
-            {
-                String COUNT = rs.getString("COUNT") == null ? "" : rs.getString("COUNT"); // 파일명
+            while (rs.next()) {
+                String DIS01 = rs.getString("DIS01") == null ? "" : rs.getString("DIS01");
+                String DIS02 = rs.getString("DIS02") == null ? "" : rs.getString("DIS02");
+                String DIS03 = rs.getString("DIS03") == null ? "" : rs.getString("DIS03");
+                String DIS04 = rs.getString("DIS04") == null ? "" : rs.getString("DIS04");
+                String DIS05 = rs.getString("DIS05") == null ? "" : rs.getString("DIS05");
 
-                result =  Integer.parseInt(COUNT);
+                data.put("202601", DIS01);
+                data.put("202602", DIS02);
+                data.put("202603", DIS03);
+                data.put("202604", DIS04);
+                data.put("202605", DIS05);
             }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            VaultDBConnection.disconnect(con,pstmt,rs);
+            VaultDBConnection.disconnect(con, pstmt, rs);
         }
 
-        return result;
+        return data;
     }
 }
