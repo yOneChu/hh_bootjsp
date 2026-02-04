@@ -43,7 +43,4 @@ public class PartPlanC {
     private String cost;
 
     private String exportDate; //해당 자재의 출하예정일
-
-
-
 }

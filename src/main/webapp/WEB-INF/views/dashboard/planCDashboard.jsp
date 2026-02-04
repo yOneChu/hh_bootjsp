@@ -30,7 +30,7 @@
 
     LocalDate now = LocalDate.now();
     //String todayVal = now.toString();
-    String todayVal = DateUtil.getTodayDate();
+    String todayVal = DateUtil.getYesterdayDate();
 
     // ServletContext에서 Spring WebApplicationContext 얻기
     WebApplicationContext context = WebApplicationContextUtils.getRequiredWebApplicationContext(application);
@@ -113,7 +113,7 @@
                 <div class="row mb-2">
                     <div class="col-sm-6">
                         <!-- <h1>부품공용화 - 월별실적 Dashboard <font color="red">(2024/11/17, 06:00기준)</font> </h1> -->
-                        <h1>부품공용화 - 월별실적(수량) <font color="red">( <%=todayVal %>, 06:00기준)</font> </h1>
+                        <h1>PLAN-C 대시보드 - 월별실적(수량) <font color="red">( <%=todayVal %>, 06:00기준)</font> </h1>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
@@ -153,10 +153,8 @@
                             <div class="col-md-12">
                                 <div class="callout callout-danger" style="zoom:85%;">
                                     <h4><%--<i class="fas fa-bullhorn"></i>--%>🔊 도움말</h4>
-                                    <h5 style="color: #60A5FA;">- 10,000건 이상의 경우 "EXCEL Download"로 받으시기 바랍니다. </h5>
-                                    <h5>- 현재 Excel 다운로드 시 숫자인식 관련 문제가 있어 Copy로 복사 후, EXCEL에 붙여넣기 하시기 바랍니다. </h5>
-                                    <h5>- 조건1에 REMARKS로 검색 시, 조건2의 PID는 검색할 수 없습니다. </h5>
-                                    <h5>- PID-GROUP을 EQUAL,LIKE 입력시  PID03,04,05는 OR 조건으로 동작하고, NOT EQUAL, NOT LIKE 입력시 PID03,04,05는 AND 조건으로 동작합니다. </h5>
+                                    <h5 style="color: #60A5FA;">- etc는 SAP에 출하예정일이 지정되지 않은 호기 입니다.</h5>
+                                    <h5>- 'Excel 다운로드'는 집계에 포함된 모든 실적 자재들 입니다. </h5>
                                 </div>
                             </div>
 
@@ -198,8 +196,8 @@
 
 
                     <div class="card-footer">
-                        <button class="btn btn-secondary float-right" style="margin-right: 5px;" onclick="searchExcel()">EXCEL Download</button>
-                        <button class="btn btn-primary float-right" style="margin-right: 5px;" onclick="searchPID()">검색</button>
+                        <button class="btn btn-secondary float-right" style="margin-right: 5px;" onclick="searchExcel()">전체 데이터 EXCEL Download</button>
+                        <%--<button class="btn btn-primary float-right" style="margin-right: 5px;" onclick="searchPID()">검색</button>--%>
                     </div>
 
                 </div>
@@ -228,7 +226,7 @@
                                             <th style="font-weight: bold; text-align: center;" rowspan="3">INDEX</th>
                                             <th style="font-weight: bold; text-align: center;" rowspan="3">브랜드</th>
                                             <th style="font-weight: bold; text-align: center;" rowspan="3">자재번호</th>
-                                            <th style="font-weight: bold; text-align: center;" rowspan="3">BlockNo</th>
+                                            <%--<th style="font-weight: bold; text-align: center;" rowspan="3">BlockNo</th>--%>
                                             <th style="font-weight: bold; text-align: center;" rowspan="3">과제명</th>
                                             <th style="font-weight: bold; text-align: center;" rowspan="3">총 수량</th>
                                             <th style="font-weight: bold; text-align: center;" colspan="20">월별실적</th>
@@ -288,7 +286,7 @@
                                             <td style="font-weight: bold; text-align: center;"><%=indexNo%></td>
                                             <td style="font-weight: bold; text-align: center;"><%=brand%></td>
                                             <td style="font-weight: bold; text-align: center;"><%=partNo%></td>
-                                            <td style="font-weight: bold; text-align: center;"><%=blockNo%></td>
+                                            <%--<td style="font-weight: bold; text-align: center;"><%=blockNo%></td>--%>
                                             <td style="font-weight: bold; text-align: center;"><%=partName%></td>
                                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', 'total');"> <font color="red"> <%=total%> </font> </a></td>
                                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202501');"> <%=dis202601 %>   </a></td>
@@ -341,7 +339,7 @@
         <div class="float-right d-none d-sm-block">
             <b>Version</b> 1.0.0
         </div>
-        <strong>Copyright &copy; 2024 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
+        <strong>Copyright &copy; 2026 <a href="#">수배로직설계팀</a>.</strong> All rights reserved.
     </footer>
 
     <!-- Control Sidebar -->

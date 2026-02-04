@@ -27,6 +27,20 @@ public class DateUtil {
         return today.format(formatter);
     }
 
+    public static String getYesterdayDate() {
+        // 오늘 날짜
+        LocalDate today = LocalDate.now();
+
+        // 하루 전 날짜
+        LocalDate yesterday = today.minusDays(1);
+
+        // 출력 포맷
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        //System.out.println("어제 날짜: " + yesterday.format(formatter));
+        return yesterday.format(formatter);
+    }
+
     public static String formatDate(String yyyymmdd) {
         // 입력 검증: 길이가 8자리인지 확인
         if (yyyymmdd == null || yyyymmdd.length() != 8) {

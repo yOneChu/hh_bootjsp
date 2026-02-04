@@ -29,7 +29,6 @@ public class DashboardController {
     private final DashboardRepository dashboardRepository;
 
 
-
     //PLAN-C Dashboard
     @GetMapping("/planCDashboard")
     public String searchPriceReductionRate() {
