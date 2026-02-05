@@ -29,3 +29,14 @@ function emptyIfBlank(value) {
     }
     return value;
 }
+
+/**
+ * @description 숫자에 천단위에 콤마 넣기
+ * @param value
+ * @returns {string}
+ */
+function formatMoney(value) {
+    if (value === null || value === undefined || value === '') return '';
+
+    return Number(value).toLocaleString('ko-KR');
+}

@@ -3,8 +3,10 @@ package com.kyhslam.service;
 import com.kyhslam.domain.PartPlanC;
 import com.kyhslam.domain.PlanCDash;
 import com.kyhslam.domain.ProductPlanC;
+import com.kyhslam.dto.HogiExportDTO;
 import com.kyhslam.repository.PlanCRepository;
 import com.kyhslam.util.DateUtil;
+import com.kyhslam.util.PartCommonUtil;
 import com.kyhslam.util.SAPCommonUtil;
 import com.kyhslam.util.VaultDBConnection;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +58,10 @@ public class PlanCService {
         return list;
     }
 
-
+    public List<PlanCDash> findPlanDashAsBrand(String batchDate, String brand, String partName) {
+        List<PlanCDash> list = repository.findPlanDashAsBrand(batchDate, brand, partName);
+        return list;
+    }
 
     public List<PartPlanC> findAll() {
         List<PartPlanC> list = repository.findAll();
@@ -131,15 +136,12 @@ public class PlanCService {
      * 매일 PLAN-C 배치 실행
      * 저녁 10시 20분
      */
+    //01
     @Description("PLAN-C 자재 읽어서(엑셀에 있던 자재) 원갈절감 실적 조회 후의 데이터 저장")
-    @Scheduled(cron = "0 20 22 * * *")
+    @Scheduled(cron = "0 10 01 * * *")
     public void findCostData() {
         StopWatch sw = new StopWatch();
         sw.start();
-
-
-        //오늘날짜 출력 -> YYYYMMDD
-        String today_yyyymmdd = DateUtil.getTodayDateNoHyphen();
 
         //중복 자재 제거
         ArrayList<String> dupCheck = new ArrayList<>();
@@ -152,14 +154,26 @@ public class PlanCService {
         LocalDate now = LocalDate.now();
         String todayValue = now.toString();
 
+        //N27200L19 > C189P001148
         ArrayList costData = new ArrayList();
+
 
         String PARTNO = "";
         int findCnt = 0;
-        for (int i = 0; i < 10; i++) {
-            String vPartNo = list.get(i).getPartNo();
 
-            //이미 조회한거는 넘어간다.
+        HashMap<String,String> oMap = new HashMap();
+
+
+        for (int i = 0; i < list.size(); i++) {
+            PartPlanC vPartInfo = list.get(i);
+            String vPartNo = list.get(i).getPartNo();
+            String toCost = list.get(i).getCost();
+            String brand =  list.get(i).getBrand();
+
+            oMap.put(vPartNo,toCost);
+            System.out.println( (i+1) + "------- vPartNo = " + vPartNo);
+
+            //이미 조회한거는 넘어간다. > 어차피 전체로 조회하기 때문에.
             if(dupCheck.contains(vPartNo)){
                 continue;
             } else {
@@ -176,8 +190,10 @@ public class PlanCService {
                 PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
 
                 //2026.01 이후부터 집계
-                //costData = SAPCommonUtil.findSAPIF(PARTNO, "today_yyyymmdd", "20261231");
                 costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
+
+                //저장
+                getProductSave(costData, todayValue);
 
                 // 5초 대기
                 try {
@@ -186,24 +202,28 @@ public class PlanCService {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
                 }
+
                 PARTNO = "";
                 findCnt = 0;
+                oMap.clear();
             }
-        }
 
-        getProductSave(costData, todayValue);
 
-        //남은거 추가로 돌리기
+        } // end for
+
         if(PARTNO != null && !"".equals(PARTNO)){
             PARTNO = PARTNO.substring(0, PARTNO.length() - 1);
             System.out.println("추가로 도는거 PARTNO = " + PARTNO);
 
             //2026.01 이후부터 집계
             costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
+
+            //저장
+            getProductSave(costData, todayValue);
+
             PARTNO = "";
             findCnt = 0;
         }
-        getProductSave(costData, todayValue);
 
         sw.stop();
 
@@ -274,4 +294,331 @@ public class PlanCService {
         }
     }
 
+    //02
+    @Description("출하예정일 셋팅")
+    @Scheduled(cron = "0 0 02 * * *")
+    public void setExportData() {
+        List<ProductPlanC> list = new ArrayList<>();
+        list = findProductAll();
+
+
+        //EXCEL에 있는 PLAN C 대상 데이터 조회
+        List<PartPlanC> partList = findAll();
+        HashMap<String, String> nexMR_Map = new HashMap<>();
+        HashMap<String, String> nexMRL_Map = new HashMap<>();
+        HashMap<String, String> LUXEN_Map = new HashMap<>();
+
+        HashMap<String, String> nexMR_Map2 = new HashMap<>();
+        HashMap<String, String> nexMRL_Map2 = new HashMap<>();
+        HashMap<String, String> LUXEN_Map2 = new HashMap<>();
+
+        //PART_NAME
+        HashMap<String, String> nexMR_Map3 = new HashMap<>();
+        HashMap<String, String> nexMRL_Map3 = new HashMap<>();
+        HashMap<String, String> LUXEN_Map3 = new HashMap<>();
+
+        for (int i = 0; i < partList.size(); i++) {
+            PartPlanC vPartInfo = partList.get(i);
+            String vPartNo = partList.get(i).getPartNo();
+            String vPartName = partList.get(i).getPartName();
+            String toCost = partList.get(i).getCost();
+            String brand = partList.get(i).getBrand();
+            String indexNo = partList.get(i).getPlanIndex();
+
+            if(vPartNo != null && !"".equals(vPartNo)){ vPartNo = vPartNo.toUpperCase().trim(); }
+            if(brand != null && !"".equals(brand)){ brand = brand.toUpperCase().trim(); }
+
+            if (brand.equals("NEX_MR_G")) {
+                nexMR_Map.put(vPartNo, toCost);
+            } else if (brand.equals("NEX_MRL_G")) {
+                nexMRL_Map.put(vPartNo, toCost);
+            } else if(brand.equals("LUXEN_G")) {
+                LUXEN_Map.put(vPartNo, toCost);
+            }
+
+            if (brand.equals("NEX_MR_G")) {
+                nexMR_Map2.put(vPartNo, indexNo);
+            } else if (brand.equals("NEX_MRL_G")) {
+                nexMRL_Map2.put(vPartNo, indexNo);
+            } else if(brand.equals("LUXEN_G")) {
+                LUXEN_Map2.put(vPartNo, indexNo);
+            }
+
+            if (brand.equals("NEX_MR_G")) {
+                nexMR_Map3.put(vPartNo, vPartName);
+            } else if (brand.equals("NEX_MRL_G")) {
+                nexMRL_Map3.put(vPartNo, vPartName);
+            } else if(brand.equals("LUXEN_G")) {
+                LUXEN_Map3.put(vPartNo, vPartName);
+            }
+        }
+
+        //System.out.println("nexMR_Map2 ---- " + nexMR_Map2);
+
+        HashMap<String, HogiExportDTO> resultMap = new HashMap<>();
+        ArrayList<String> dataList = new ArrayList<>();
+
+        for(int i=0;i<list.size();i++){
+            ProductPlanC dto =  list.get(i);
+            String hogi = dto.getProductNo();
+
+            if ( !dataList.contains(hogi) ) {
+                dataList.add(hogi);
+            }
+        }
+
+        //출하예정일 조회
+        findExportDateV3(dataList, resultMap);
+
+        /*for (String s : resultMap.keySet()) {
+            HogiExportDTO dto =  resultMap.get(s);
+            System.out.println(dto.getHogi() + " > " + dto.getSHIP_A());
+        }*/
+
+        //출하예정일 넣기
+        for(int i=0;i<list.size();i++){
+            ProductPlanC dto =  list.get(i);
+            String hogi = dto.getProductNo();
+            String partNo = dto.getPartNo();
+            String brand = dto.getBrand();
+            String blockNo = dto.getBlockNo();
+            String aspscd = dto.getAspscd();
+            blockNo = blockNo.substring(0, 1);
+
+            if(brand != null && !"".equals(brand)){ brand = brand.toUpperCase().trim(); }
+            if(partNo != null && !"".equals(partNo)){ partNo = partNo.toUpperCase().trim(); }
+
+            if(resultMap.containsKey(hogi)){
+                HogiExportDTO exportMap = resultMap.get(hogi.trim());
+                if ("A".equals(blockNo)) {
+                    dto.setExportDate(exportMap.getSHIP_A());
+                } else if("B".equals(blockNo)) {
+                    dto.setExportDate(exportMap.getSHIP_B());
+                } else if("C".equals(blockNo)) {
+                    dto.setExportDate(exportMap.getSHIP_C());
+                } else if("D".equals(blockNo)) {
+                    dto.setExportDate(exportMap.getSHIP_D());
+                } else if("E".equals(blockNo)) {
+                    dto.setExportDate(exportMap.getSHIP_E());
+                } else if("F".equals(blockNo)) {
+                    dto.setExportDate(exportMap.getSHIP_F());
+                }
+            }
+
+            //COST, index 셋팅
+            if(brand.equals("LUXEN_2") && "KC01".equals(aspscd)){
+                dto.setToCost(LUXEN_Map.get(partNo));
+                dto.setIndexNo(LUXEN_Map2.get(partNo));
+                dto.setPartName(LUXEN_Map3.get(partNo));
+            } else if(brand.equals("NEX_MR") && "KC01".equals(aspscd)){
+                dto.setToCost(nexMR_Map.get(partNo));
+                dto.setIndexNo(nexMR_Map2.get(partNo));
+                dto.setPartName(nexMR_Map3.get(partNo));
+            } else if(brand.equals("NEX_MRL") && "KC01".equals(aspscd)){
+                dto.setToCost(nexMRL_Map.get(partNo));
+                dto.setIndexNo(nexMRL_Map2.get(partNo));
+                dto.setPartName(nexMRL_Map3.get(partNo));
+            }
+
+
+        } // end for
+        System.out.println(" -------------- END ---------------- ");
+    }
+
+    //03
+    @Description("엑셀의 자재INDEX를 기준으로 대시보드 테이블에 집계 > ERP전송날짜 기준으로")
+    @Scheduled(cron = "0 40 02 * * *")
+    public void setDashboardData() {
+        LocalDate now = LocalDate.now();
+        String todayValue = now.toString();
+        try {
+
+            List<PartPlanC> list = new ArrayList<>();
+            list = findAll();
+
+            for(int i=0;i<list.size();i++) {
+                PartPlanC dto = list.get(i);
+                String partNo = dto.getPartNo();
+                String brand = dto.getBrand();
+                String blockNo = dto.getBlockNo();
+                String planIndex = dto.getPlanIndex();
+                String partName =  dto.getPartName();
+                String toCost = dto.getCost();
+                //String exportDate = ""; // dto.getExportDate();
+
+                if (brand.equals("NEX_MR_G")) {
+                    brand = "NEX_MR";
+                } else if (brand.equals("NEX_MRL_G")) {
+                    brand = "NEX_MRL";
+                } else if(brand.equals("LUXEN_G")) {
+                    brand = "LUXEN_2";
+                }
+
+                System.out.println("partNo = " + partNo);
+                System.out.println("brand = " + brand);
+
+                int dis202601 = 0;
+                int dis202602 = 0;
+                int dis202603 = 0;
+                int dis202604 = 0;
+                int dis202605 = 0;
+                int dis202606 = 0;
+                int dis202607 = 0;
+                int dis202608 = 0;
+                int dis202609 = 0;
+                int dis202610 = 0;
+                int dis202611 = 0;
+                int dis202612 = 0;
+                int disTotal = 0;
+
+
+                HashMap<String, String> dateInfo = new HashMap<>();
+
+                //ERP전송일자로 집계
+                //dateInfo = findMonth_V2(partNo, brand);
+                dateInfo = findMonth_V3(partNo, brand);
+
+                dis202601 = Integer.parseInt(dateInfo.get("202601"));
+                dis202602 = Integer.parseInt(dateInfo.get("202602"));
+                dis202603 = Integer.parseInt(dateInfo.get("202603"));
+                dis202604 = Integer.parseInt(dateInfo.get("202604"));
+                dis202605 = Integer.parseInt(dateInfo.get("202605"));
+                disTotal = Integer.parseInt(dateInfo.get("TOTAL"));
+
+
+                PlanCDash planCDash = new PlanCDash();
+                planCDash.setPartNo(partNo);
+                planCDash.setBrand(brand);
+                planCDash.setBlockNo(blockNo);
+                planCDash.setPlanIndex(planIndex);
+                planCDash.setPartName(partName);
+
+                planCDash.setDis202601(dis202601);
+                planCDash.setDis202602(dis202602);
+                planCDash.setDis202603(dis202603);
+                planCDash.setDis202604(dis202604);
+                planCDash.setDis202605(dis202605);
+                planCDash.setDis202606(dis202606);
+                planCDash.setDis202607(dis202607);
+                planCDash.setDis202608(dis202608);
+                planCDash.setDis202609(dis202609);
+                planCDash.setDis202610(dis202610);
+                planCDash.setDis202611(dis202611);
+                planCDash.setDis202612(dis202612);
+                planCDash.setTotalCnt(disTotal);
+
+                if(toCost != null && !toCost.equals("")) {
+                    planCDash.setToCost(Integer.parseInt(toCost));
+                }
+
+                planCDash.setBatchDate(todayValue);
+                planDashSave(planCDash);
+            }
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static HashMap<String, HogiExportDTO> findExportDateV3(ArrayList<String> data, HashMap<String, HogiExportDTO> resultMap) {
+
+        //HashMap<String, HogiExportDTO> resultMap = new HashMap<>();
+        try {
+
+            String appendVal = "";
+
+            int cnt = 0;
+            for(int i=0; i < data.size(); i++) {
+                //ArrayList<String> row = (ArrayList<String>) data.get(i);
+                String hogi = data.get(i);
+                appendVal += (" '" + hogi + "',");
+
+                cnt++;
+
+                if(cnt == 700) {
+                    appendVal = appendVal.substring(0, appendVal.length() - 1);
+                    PartCommonUtil.findExportDateV4(appendVal, resultMap);
+                    appendVal = "";
+                    cnt = 0;
+                }
+            }
+
+            if (cnt > 0) {
+                if(appendVal != null && !appendVal.equals("")) {
+                    appendVal = appendVal.substring(0, appendVal.length() - 1);
+                    PartCommonUtil.findExportDateV4(appendVal, resultMap);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return resultMap;
+    }
+
+    public HashMap<String, String> findMonth_V3(String partNo, String brand) {
+
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        String todayVal = DateUtil.getTodayDate();
+
+        HashMap<String, String> data = new HashMap<>();
+        try {
+            con = VaultDBConnection.getConnection();
+
+            String sql = """
+                    SELECT
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202601' THEN 1 END) AS DIS01,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202602' THEN 1 END) AS DIS02,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202603' THEN 1 END) AS DIS03,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202604' THEN 1 END) AS DIS04,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202605' THEN 1 END) AS DIS05,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202606' THEN 1 END) AS DIS06,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202607' THEN 1 END) AS DIS07,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202608' THEN 1 END) AS DIS08,
+                        COUNT(part_no) AS TOTAL,
+                        MAX(to_cost) AS to_cost -- 그룹화 시 단일 값을 가져오기 위해 MAX/MIN 사용
+                    FROM plancproduct
+                    WHERE
+                      part_no = ?
+                      AND ASPSCD = 'KC01'
+                      AND brand = ?
+                      AND batch_date = ?
+                    """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, partNo);
+            pstmt.setString(2, brand);
+            pstmt.setString(3, todayVal);
+
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                String DIS01 = rs.getString("DIS01") == null ? "" : rs.getString("DIS01");
+                String DIS02 = rs.getString("DIS02") == null ? "" : rs.getString("DIS02");
+                String DIS03 = rs.getString("DIS03") == null ? "" : rs.getString("DIS03");
+                String DIS04 = rs.getString("DIS04") == null ? "" : rs.getString("DIS04");
+                String DIS05 = rs.getString("DIS05") == null ? "" : rs.getString("DIS05");
+                String TOTAL = rs.getString("TOTAL") == null ? "" : rs.getString("TOTAL");
+                String to_cost = rs.getString("TOTAL") == null ? "" : rs.getString("to_cost");
+
+                data.put("202601", DIS01);
+                data.put("202602", DIS02);
+                data.put("202603", DIS03);
+                data.put("202604", DIS04);
+                data.put("202605", DIS05);
+                data.put("TOTAL", TOTAL);
+                data.put("to_cost", to_cost);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            VaultDBConnection.disconnect(con, pstmt, rs);
+        }
+        return data;
+    }
 }

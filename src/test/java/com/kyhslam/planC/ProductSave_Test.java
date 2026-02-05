@@ -219,6 +219,7 @@ public class ProductSave_Test {
             }
         }
 
+        //출하예정일 조회
         findExportDateV3(dataList, resultMap);
 
         /*for (String s : resultMap.keySet()) {
@@ -339,6 +340,7 @@ public class ProductSave_Test {
                 String blockNo = dto.getBlockNo();
                 String planIndex = dto.getPlanIndex();
                 String partName =  dto.getPartName();
+                String toCost = dto.getCost();
                 //String exportDate = ""; // dto.getExportDate();
 
                 if (brand.equals("NEX_MR_G")) {
@@ -368,9 +370,10 @@ public class ProductSave_Test {
 
 
                 HashMap<String, String> dateInfo = new HashMap<>();
-                dateInfo = findMonth_V2(partNo, brand);
-
-
+                
+                //ERP전송일자로 집계
+                //dateInfo = findMonth_V2(partNo, brand);
+                dateInfo = findMonth_V3(partNo, brand);
 
                 dis202601 = Integer.parseInt(dateInfo.get("202601"));
                 dis202602 = Integer.parseInt(dateInfo.get("202602"));
@@ -401,8 +404,11 @@ public class ProductSave_Test {
                 planCDash.setDis202612(dis202612);
                 planCDash.setTotalCnt(disTotal);
 
-                planCDash.setBatchDate(todayValue);
+                if(toCost != null && !toCost.equals("")) {
+                    planCDash.setToCost(Integer.parseInt(toCost));
+                }
 
+                planCDash.setBatchDate(todayValue);
                 service.planDashSave(planCDash);
             }
 
@@ -410,6 +416,71 @@ public class ProductSave_Test {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public HashMap<String, String> findMonth_V3(String partNo, String brand) {
+
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        String todayVal = DateUtil.getTodayDate();
+
+        HashMap<String, String> data = new HashMap<>();
+        try {
+            con = VaultDBConnection.getConnection();
+
+            String sql = """
+                    SELECT
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202601' THEN 1 END) AS DIS01,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202602' THEN 1 END) AS DIS02,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202603' THEN 1 END) AS DIS03,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202604' THEN 1 END) AS DIS04,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202605' THEN 1 END) AS DIS05,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202606' THEN 1 END) AS DIS06,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202607' THEN 1 END) AS DIS07,
+                        COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202608' THEN 1 END) AS DIS08,
+                        COUNT(part_no) AS TOTAL,
+                        MAX(to_cost) AS to_cost -- 그룹화 시 단일 값을 가져오기 위해 MAX/MIN 사용
+                    FROM plancproduct
+                    WHERE
+                      part_no = ?
+                      AND ASPSCD = 'KC01'
+                      AND brand = ?
+                      AND batch_date = ?
+                    """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, partNo);
+            pstmt.setString(2, brand);
+            pstmt.setString(3, todayVal);
+
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                String DIS01 = rs.getString("DIS01") == null ? "" : rs.getString("DIS01");
+                String DIS02 = rs.getString("DIS02") == null ? "" : rs.getString("DIS02");
+                String DIS03 = rs.getString("DIS03") == null ? "" : rs.getString("DIS03");
+                String DIS04 = rs.getString("DIS04") == null ? "" : rs.getString("DIS04");
+                String DIS05 = rs.getString("DIS05") == null ? "" : rs.getString("DIS05");
+                String TOTAL = rs.getString("TOTAL") == null ? "" : rs.getString("TOTAL");
+                String to_cost = rs.getString("TOTAL") == null ? "" : rs.getString("to_cost");
+
+                data.put("202601", DIS01);
+                data.put("202602", DIS02);
+                data.put("202603", DIS03);
+                data.put("202604", DIS04);
+                data.put("202605", DIS05);
+                data.put("TOTAL", TOTAL);
+                data.put("to_cost", to_cost);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            VaultDBConnection.disconnect(con, pstmt, rs);
+        }
+        return data;
     }
 
 
@@ -471,7 +542,12 @@ public class ProductSave_Test {
                                             from plancproduct A
                                             WHERE A.ASPSCD = 'KC01'
                                               AND A.part_no = ?
-                                            and a.brand = ?) AS TOTAL
+                                            and a.brand = ?) AS TOTAL,
+                        (select a.to_cost AS COUNT
+                                            from plancproduct A
+                                            WHERE A.ASPSCD = 'KC01'
+                                              AND A.part_no = ?
+                                            and a.brand = ?) AS to_cost
                     """;
 
             System.out.println(sql.toString());
@@ -504,6 +580,9 @@ public class ProductSave_Test {
             pstmt.setString(17, partNo);
             pstmt.setString(18, brand);
 
+            pstmt.setString(19, partNo);
+            pstmt.setString(20, brand);
+
             rs = pstmt.executeQuery();
 
             while (rs.next()) {
@@ -513,7 +592,7 @@ public class ProductSave_Test {
                 String DIS04 = rs.getString("DIS04") == null ? "" : rs.getString("DIS04");
                 String DIS05 = rs.getString("DIS05") == null ? "" : rs.getString("DIS05");
                 String TOTAL = rs.getString("TOTAL") == null ? "" : rs.getString("TOTAL");
-                //TOTAL
+                String to_cost = rs.getString("TOTAL") == null ? "" : rs.getString("to_cost");
 
                 data.put("202601", DIS01);
                 data.put("202602", DIS02);
@@ -521,6 +600,8 @@ public class ProductSave_Test {
                 data.put("202604", DIS04);
                 data.put("202605", DIS05);
                 data.put("TOTAL", TOTAL);
+                data.put("to_cost", to_cost);
+
             }
         } catch (Exception e) {
             e.printStackTrace();

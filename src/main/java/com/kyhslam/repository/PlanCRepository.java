@@ -39,24 +39,35 @@ public class PlanCRepository {
                 .getResultList();
     }
 
+    public List<PlanCDash> findPlanDashAsBrand(String batchDate, String brand, String partName) {
+        return em.createQuery("select o from PlanCDash o where o.batchDate = :batchDate and o.brand = :brand and o.partName = :partName", PlanCDash.class)
+                .setParameter("batchDate", batchDate)
+                .setParameter("brand", brand)
+                .setParameter("partName", partName)
+                .getResultList();
+    }
+
+
     //엑셀 자재
     public List<PartPlanC> findAll() {
         return em.createQuery("select o from PartPlanC o", PartPlanC.class)
                 .getResultList();
     }
 
-    public List<ProductPlanC> findProductAll() {
-        return em.createQuery("select o from ProductPlanC o", ProductPlanC.class)
+    public List<PartPlanC> findPartByBlock(String blockNo) {
+        return em.createQuery("select o from PartPlanC o where o.blockNo = :blockNo", PartPlanC.class)
+                .setParameter("blockNo", blockNo)
                 .getResultList();
     }
 
-
-    public List<PartPlanC> findPartByBlock(String blockNo) {
-        return em.createQuery("select o from PartPlanC o where o.blockNo = :blockNo and o.aspscd = :aspscd", PartPlanC.class)
-                .setParameter("blockNo", blockNo)
+    public List<ProductPlanC> findProductAll() {
+        return em.createQuery("select o from ProductPlanC o where o.aspscd = :aspscd", ProductPlanC.class)
                 .setParameter("aspscd", "KC01")
                 .getResultList();
     }
+
+
+
 
 //ASPSCD
     //제품

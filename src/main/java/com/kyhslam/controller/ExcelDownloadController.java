@@ -869,7 +869,7 @@ public class ExcelDownloadController {
         // 현재 시간을 기반으로 파일명 생성
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
         String timestamp = sdf.format(new Date());
-        String fileName = year + "_" + timestamp + ".xlsx";
+        String fileName = "PLAN_C_" + timestamp + ".xlsx";
 
 
         // HTTP 응답 헤더 설정
@@ -890,7 +890,7 @@ public class ExcelDownloadController {
         // 헤더 작성
         Row header = sheet.createRow(0);
         String[] titles = { "ERP전송일", "호기", "INDEX", "브랜드", "생산거점", "자재번호", "자재명", "SPEC", "기종", "공사", "dwgNo",
-                "BlockNo", "TOBE COST", "BATCH-DATE"
+                "BlockNo", "TOBE COST", "출하예정일", "BATCH-DATE"
         };
         for (int i = 0; i < titles.length; i++) {
             Cell cell = header.createCell(i);
@@ -924,6 +924,10 @@ public class ExcelDownloadController {
 
             String indexNo = dto.getIndexNo();
             String toCost = dto.getToCost();
+
+            if(indexNo == null || "".equals(indexNo)){
+                continue;
+            }
 
             String productOid = dto.getProductOid();
             String productNo = dto.getProductNo();
@@ -965,10 +969,11 @@ public class ExcelDownloadController {
             row.createCell(10).setCellValue(dwgNo);
             row.createCell(11).setCellValue(blockNo);
             row.createCell(12).setCellValue(toCost);
-            row.createCell(13).setCellValue(batchDate);
+            row.createCell(13).setCellValue(exportDate);
+            row.createCell(14).setCellValue(batchDate);
 
 
-            for (int m = 0; m < 14; m++) {
+            for (int m = 0; m < 15; m++) {
                 row.getCell(m).setCellStyle(bodyStyle);
             }
         }

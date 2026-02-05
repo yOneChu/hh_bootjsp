@@ -42,12 +42,6 @@ function viewList(type, viewDate) {
 
     let todayVal = '<%=todayVal %>'
 
-    //PLM
-    //let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionPopRev.jsp?";
-
-    //VAULT-LOCAL
-    //let urlValue = "http://localhost:8070/dashboard/searchPriceReductionPopRev?";
-
     //VAULT-운영
     let urlValue = "https://vault-in.hdel.co.kr:8070/dashboard/searchPriceReductionPopRev?";
 
@@ -75,6 +69,7 @@ function viewExportList(curDate) {
 function searchPID()
 {
     let brand = $("#brand").val();
+    let partName = $("#partName").val();
 
 
     $('#infoTable').DataTable().destroy();
@@ -88,11 +83,12 @@ function searchPID()
         crossDomain : true,
         url : "/dashboard/findPlanDashAsBrand",
         data : {
-            brand : brand
+            brand : brand,
+            partName: partName
         },
         success : function(data)
         {
-            //console.log("data - ", data);
+            console.log("data - ", data);
 
             let str = "";
 
@@ -106,6 +102,9 @@ function searchPID()
                     let partNo = data[i].partNo;
                     let planIndex = data[i].planIndex;
                     let totalCnt = data[i].totalCnt;
+                    let toCost = data[i].toCost;
+
+
 
                     let dis202601 = data[i].dis202601;
                     let dis202602 = data[i].dis202602;
@@ -120,6 +119,7 @@ function searchPID()
                     let dis202611 = data[i].dis202611;
                     let dis202612 = data[i].dis202612;
 
+                    let toCostSum = formatMoney(toCost * totalCnt);
 
 
                     str +=
@@ -131,6 +131,7 @@ function searchPID()
                             <td style="font-weight: bold; text-align: center;">${partNo}</td>
                             <td style="font-weight: bold; text-align: center;">${partName}</td>
                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> <font color="red"> ${totalCnt} </font> </a></td>
+                            <td style="font-weight: bold; text-align: center;">${toCostSum}</td>
                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202601}   </a></td>
                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202602}   </a></td>
                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202603}   </a></td>
@@ -154,7 +155,7 @@ function searchPID()
 
                 $("#contentTable").append(str);
 
-                hideLoading(); // 성공 시 로딩바 제거
+
 
                 $("#infoTable").DataTable({
                     "responsive": true,
@@ -186,7 +187,11 @@ function searchPID()
 
             }
         } // end success;
+
+         // 성공 시 로딩바 제거
     });
+
+    hideLoading();
 }
 
 
@@ -233,6 +238,14 @@ function reSetData() {
     // 브랜드 선택 변경 시 검색 수행
     if (typeof $ !== 'undefined') {
         $("#brand").off('change.planC').on('change.planC', function() {
+            try {
+                searchPID();
+            } catch (e) {
+                console.error('searchPID 호출 중 오류:', e);
+            }
+        });
+
+        $("#partName").off('change.planC').on('change.planC', function() {
             try {
                 searchPID();
             } catch (e) {

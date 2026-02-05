@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="icon" type="image/png" href="/resources/favicon.ico" />
+
+    <title>PLAN-C 원가절감 실적 집계</title>
+
+    <!-- Google Font: Source Sans Pro -->
+    <!--    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">-->
+    <link rel="stylesheet" href="/resources/dist/googleFont.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+
+    <!-- DataTables -->
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+
+    <link rel="stylesheet" href="/resources/dist/plugins/select2/css/select2.min.css">
+
+    <!-- Theme style -->
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+</head>
+
+
+<body class="hold-transition sidebar-mini text-sm" style="zoom:95%;">
+
+<div class="wrapper">
+    <!-- Navbar -->
+    <!-- <nav class="main-header navbar navbar-expand navbar-white navbar-light"> -->
+    <nav class="main-header navbar navbar-expand">
+        <!-- Left navbar links -->
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" data-widget="fullscreen" href="#" role="button">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <!-- /.navbar -->
+
+
+    <div th:replace="thymeleaf/fragments/sidebar :: sidebarFragment"></div>
+
+
+    <!-- Content Wrapper. Contains page content -->
+    <div class="content-wrapper">
+        <!-- Content Header (Page header) -->
+        <section class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <!-- <h1>부품공용화 - 월별실적 Dashboard <font color="red">(2024/11/17, 06:00기준)</font> </h1> -->
+                        <h1>PLAN-C Dashboard <font color="red">(금일 06:00기준)</font> </h1>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+
+                            <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
+                                <input type="checkbox" class="custom-control-input" id="darkModeToggle">
+                                <label class="custom-control-label" for="darkModeToggle">🌓 다크모드</label>
+                            </div>
+
+                        </ol>
+                    </div>
+                </div>
+            </div><!-- /.container-fluid -->
+        </section>
+
+
+
+        <!-- Main content -->
+        <section class="content" style="zoom:95%;">
+
+            <div class="container-fluid"> <!-- start - container-fluid -->
+
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <!--<h3 class="card-title"> 테스트 </h3>-->
+
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <button type="button" class="btn btn-tool" data-card-widget="remove">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- /.card-header -->
+                    <div class="card-body" style="zoom:90%;">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="callout callout-danger" style="zoom:90%;">
+                                    <h4>🔊 도움말</h4>
+                                    <!--<h5 style="color: #60A5FA;">- etc는 SAP에 출하예정일이 지정되지 않은 호기 입니다.</h5>-->
+                                    <h5>- '전체 데이터 Excel 다운로드'는 집계에 포함된 모든 실적 자재들 리스트 출력합니다. (호기, 출하예정일, 생산거점 등 포함) </h5>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>브랜드</label>
+                                    <select id="brand" class="form-control select" style="width: 100%;">
+                                        <option selected="selected" value="LUXEN_2">LUXEN_G</option>
+                                        <option value="NEX_MRL">NEX_MRL_G</option>
+                                        <option value="NEX_MR">NEX_MR_G</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                            <div class="form-group">
+                                <label>자재명</label>
+                                <select id="partName" class="form-control select" style="width: 100%;">
+                                    <option value="">전체</option>
+                                    <option value="PIT LADDER">PIT LADDER</option>
+                                    <option value="UPPER MACHINE BASE">UPPER MACHINE BASE</option>
+                                    <option value="COMPEN. CHAIN">COMPEN. CHAIN</option>
+                                    <option value="PLATFORM">PLATFORM</option>
+                                    <option value="TM SUPPORT FRAME">TM SUPPORT FRAME</option>
+                                    <option value="MC BEAM SUPPORT">MC BEAM SUPPORT</option>
+                                    <option value="CLIP">CLIP</option>
+                                    <option value="TOP BEAM">TOP BEAM</option>
+                                    <option value="TM BED ASSY">TM BED ASSY</option>
+                                    <option value="OILER">OILER</option>
+                                    <option value="BOTTOM MACHINE BASE">BOTTOM MACHINE BASE</option>
+                                    <option value="STILE">STILE</option>
+                                    <option value="REMOTE CONTROLLER (CAR TOP)">REMOTE CONTROLLER (CAR TOP)</option>
+                                    <option value="CHAMFERING DRAWING">CHAMFERING DRAWING</option>
+                                    <option value="SAFETY GUARD">SAFETY GUARD</option>
+                                    <option value="ISOLATION PAD STANDARD PART">ISOLATION PAD STANDARD PART</option>
+                                    <option value="SUBWEIGHT">SUBWEIGHT</option>
+                                    <option value="SOUND PROOF BOX">SOUND PROOF BOX</option>
+                                    <option value="ISOLATION PAD">ISOLATION PAD</option>
+                                    <option value="CWT FRAME">CWT FRAME</option>
+                                    <option value="RAIL BRACKET">RAIL BRACKET</option>
+                                    <option value="MC LINER">MC LINER</option>
+                                    <option value="MC BEAM">MC BEAM</option>
+                                    <option value="BALANCE WEIGHT">BALANCE WEIGHT</option>
+                                </select>
+                            </div>
+                        </div>
+
+                            <!-- /.col -->
+                        </div>
+                        <!-- /.row -->
+                    </div>
+
+
+                    <div class="card-footer">
+                        <button class="btn btn-secondary float-right" style="margin-right: 5px;" onclick="searchExcel()">전체 데이터 EXCEL Download</button>
+                        <!--<button class="btn btn-primary float-right" style="margin-right: 5px;" onclick="searchPID()">검색</button>-->
+                    </div>
+
+                </div>
+
+
+                <div class="row">
+                    <div class="col-12">
+
+                        <div class="card card-primary">
+
+                            <div class="card-header">
+                                <!--<h3 class="card-title">Dashboard(수량)</h3>-->
+                            </div>
+
+                            <!-- /.card-header -->
+                            <div class="card-body" style="zoom:90%;">
+                                <!-- <table id="infoTable" class="table table-bordered table-striped" style="height:400px;"> -->
+                                <table id="infoTable" class="table table-bordered table-hover" style="font-family: NotoSans; font-size:15px;">
+                                    <thead>
+
+                                        <!-- bg-primary -->
+                                        <tr class="bg-secondary">
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">NO</th>
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">INDEX</th>
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">브랜드</th>
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">자재번호</th>
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">과제명</th>
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">총 수량</th>
+                                            <th style="font-weight: bold; text-align: center;" rowspan="3">금액</th>
+                                            <th style="font-weight: bold; text-align: center;" colspan="20">월별실적</th>
+                                        </tr>
+
+                                        <tr class="bg-secondary">
+                                            <th style="font-weight: bold; text-align: center;" colspan="13">2026년</th>
+                                        </tr>
+
+                                        <tr class="bg-secondary">
+                                            <th style="font-weight: bold; text-align: center;">01</th>
+                                            <th style="font-weight: bold; text-align: center;">02</th>
+                                            <th style="font-weight: bold; text-align: center;">03</th>
+                                            <th style="font-weight: bold; text-align: center;">04</th>
+                                            <th style="font-weight: bold; text-align: center;">05</th>
+                                            <th style="font-weight: bold; text-align: center;">06</th>
+                                            <th style="font-weight: bold; text-align: center;">07</th>
+                                            <th style="font-weight: bold; text-align: center;">08</th>
+                                            <th style="font-weight: bold; text-align: center;">09</th>
+                                            <th style="font-weight: bold; text-align: center;">10</th>
+                                            <th style="font-weight: bold; text-align: center;">11</th>
+                                            <th style="font-weight: bold; text-align: center;">12</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody id="contentTable">
+
+                                    </tbody>
+
+                                </table>
+                            </div>
+                            <!-- /.card-body -->
+                        </div>
+                        <!-- /.card -->
+                    </div>
+                        <!-- </section> -->
+                    </div>
+                    <!-- /.row -->
+
+
+                </div> <!-- /.container-fluid -->
+
+        </section>
+        <!-- /.content -->
+    </div>
+    <!-- /.content-wrapper -->
+
+
+    <footer class="main-footer">
+        <div class="float-right d-none d-sm-block">
+            <b>Version</b> 1.0.0
+        </div>
+        <strong>Copyright &copy; 2026 <a href="#">수배로직설계팀</a>.</strong> All rights reserved.
+    </footer>
+
+    <!-- Control Sidebar -->
+    <aside class="control-sidebar control-sidebar-dark">
+        <!-- Control sidebar content goes here -->
+    </aside>
+    <!-- /.control-sidebar -->
+
+</div>
+
+
+</body>
+
+<!-- <script src="https://code.jquery.com/jquery-3.5.1.js"></script> -->
+
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+
+
+
+<!-- AdminLTE App -->
+<script src="/resources/dist/js/adminlte.min.js"></script>
+
+<!-- Bootstrap 4 -->
+<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- DataTables  & Plugins -->
+<script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+
+
+<script src="/resources/dist/plugins/select2/js/select2.full.min.js"></script>
+
+<script src="/resources/dist/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/jszip/jszip.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/pdfmake.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/vfs_fonts.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
+
+<script src="/resources/javascript/commonUtil.js"></script>
+<script src="/resources/javascript/StringUtil.js"></script>
+<script src="/resources/javascript/planCDashboard.js"></script>
+
+
+</html>

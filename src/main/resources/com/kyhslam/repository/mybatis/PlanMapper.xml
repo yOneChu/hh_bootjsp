@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kyhslam.repository.mybatis.PartDashMapper">
+
+    <!--전체 삭제-->
+    <delete id="deleteAll">
+        delete from PARTDASHBOARD where BLOCKNO != ''
+    </delete>
+
+    <insert id="savePartDashboard" >
+        INSERT INTO PARTDASHBOARD(PARTALL, PARTACTIVE, PARTINACTIVE, BATCHDATE, OLS)
+        VALUES( #{partDto.partALL}, #{partDto.partActive}, #{partDto.partInactive}, #{partDto.batchDate}, #{partDto.ols} )
+    </insert>
+
+    <!--2025-07-09-->
+    <select id="findPartDashboard" resultType="PartDashboardDTO">
+        select A.partALL, A.partActive, A.partInactive, A.ols, A.batchDate
+        from PARTDASHBOARD A
+        where A.batchDate = #{batchDate}
+    </select>
+
+    <select id="findTopBlockPart" resultType="hashmap">
+        SELECT
+            A.BLOCKNO_NUMBER AS BLOCKNO, COUNT(A.BLOCKNO_NUMBER) AS BLOCKNO_COUNT
+        FROM normalpart$vf A JOIN normalpart$id B
+                                  ON A.vf$ouid = B.id$last
+        WHERE A.NATION != '2803457356' --중국법인 제외
+            AND A.PART_STATUS = '2466425004' --활성
+            AND A.MD$STATUS = 'RLS' --릴리즈
+            AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
+            AND SUBSTR(A.MD$MDATE, 0,4) IN('2025', '2024')
+        GROUP BY A.BLOCKNO_NUMBER
+        ORDER BY BLOCKNO_COUNT DESC
+    </select>
+
+</mapper>

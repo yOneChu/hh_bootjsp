@@ -36,24 +36,31 @@ public class DashboardController {
     //PLAN-C Dashboard
     @GetMapping("/planDashboard")
     public String searchPriceReductionRate() {
-        return "dashboard/planCDashboard";
+        return "thymeleaf/planDashboard";
     }
 
-    //
+
     @PostMapping("/findPlanDashAsBrand")
     @ResponseBody
     @CrossOrigin
-    public List<PlanCDash> searchPriceReductionRate(String brand) {
-
+    public List<PlanCDash> searchPriceReductionRate(String brand, String partName) {
         System.out.println("brand = " + brand);
         LocalDate now = LocalDate.now();
         //String todayVal = DateUtil.getYesterdayDate();
         String todayVal = DateUtil.getTodayDate();
-
         log.info("brand={}", brand);
+        log.info("partName={}", partName);
         log.info("todayVal={}", todayVal);
 
-        List<PlanCDash> result =  planCService.findPlanDashAsBrand(todayVal, brand);
+        List<PlanCDash> result = new ArrayList<>();
+
+        if(brand != null & !"".equals(brand) && partName != null && !"".equals(partName) ){
+            result =  planCService.findPlanDashAsBrand(todayVal, brand, partName);
+        } else {
+            result =  planCService.findPlanDashAsBrand(todayVal, brand);
+        }
+
+        //List<PlanCDash> result =  planCService.findPlanDashAsBrand(todayVal, brand);
         log.info("result={}", result.size());
         return result;
     }
