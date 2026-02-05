@@ -322,7 +322,7 @@ public class ProductSave_Test {
 
     //03
     //조회한 데이터로 대시보드 집게
-    @Description("엑셀의 자재INDEX를 기준으로 대시보드 테이블에 집계")
+    @Description("엑셀의 자재INDEX를 기준으로 대시보드 테이블에 집계 > ERP전송날짜 기준으로")
     @Test
     public void setDashboardData() {
         LocalDate now = LocalDate.now();
@@ -369,6 +369,8 @@ public class ProductSave_Test {
 
                 HashMap<String, String> dateInfo = new HashMap<>();
                 dateInfo = findMonth_V2(partNo, brand);
+
+
 
                 dis202601 = Integer.parseInt(dateInfo.get("202601"));
                 dis202602 = Integer.parseInt(dateInfo.get("202602"));
@@ -429,42 +431,42 @@ public class ProductSave_Test {
                                         from plancproduct A
                                         WHERE A.ASPSCD = 'KC01'
                                           AND A.part_no = ?
-                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202601') AS DIS01,
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202601') AS DIS01,
                         (select COUNT(a.part_no) AS COUNT
                                         from plancproduct A
                                         WHERE A.ASPSCD = 'KC01'
                                           AND A.part_no = ?
-                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202602') AS DIS02,
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202602') AS DIS02,
                             (select COUNT(a.part_no) AS COUNT
                                         from plancproduct A
                                         WHERE A.ASPSCD = 'KC01'
                                           AND A.part_no = ?
-                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202603') AS DIS03,
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202603') AS DIS03,
                         (select COUNT(a.part_no) AS COUNT
                                         from plancproduct A
                                         WHERE A.ASPSCD = 'KC01'
                                           AND A.part_no = ?
-                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202604') AS DIS04,
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202604') AS DIS04,
                         (select COUNT(a.part_no) AS COUNT
                                         from plancproduct A
                                         WHERE A.ASPSCD = 'KC01'
                                           AND A.part_no = ?
-                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202605') AS DIS05,
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202605') AS DIS05,
                         (select COUNT(a.part_no) AS COUNT
                                         from plancproduct A
                                         WHERE A.ASPSCD = 'KC01'
                                           AND A.part_no = ?
-                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202606') AS DIS06,
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202606') AS DIS06,
                         (select COUNT(a.part_no) AS COUNT
                                         from plancproduct A
                                         WHERE A.ASPSCD = 'KC01'
                                           AND A.part_no = ?
-                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202607') AS DIS07,
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202607') AS DIS07,
                         (select COUNT(a.part_no) AS COUNT
                                         from plancproduct A
                                         WHERE A.ASPSCD = 'KC01'
                                           AND A.part_no = ?
-                                        and a.brand = ? AND LEFT(A.export_date, 6) = '202608') AS DIS08,
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202608') AS DIS08,
                         (select COUNT(a.part_no) AS COUNT
                                             from plancproduct A
                                             WHERE A.ASPSCD = 'KC01'

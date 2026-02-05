@@ -1,9 +1,11 @@
 package com.kyhslam.controller;
 
 
+import com.kyhslam.domain.ProductPlanC;
 import com.kyhslam.dto.DesignRequestDTO;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
+import com.kyhslam.service.PlanCService;
 import com.kyhslam.service.SubaeService;
 import com.kyhslam.util.*;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,6 +27,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,6 +36,9 @@ public class ExcelDownloadController {
 
     private final SubaeService subaeService;
     private final MediaTypeFileExtensionResolver mediaTypeFileExtensionResolver;
+
+    private final PlanCService planCService;
+
 
     @PostMapping("/subaeDownload")
     public void downloadExcel(HttpServletResponse response, String month) throws IOException {
@@ -840,6 +846,129 @@ public class ExcelDownloadController {
             row.createCell(25).setCellValue(subSystem);
 
             for (int m = 0; m < 26; m++) {
+                row.getCell(m).setCellStyle(bodyStyle);
+            }
+        }
+
+        // 엑셀 파일 작성 및 스트림으로 출력
+        workbook.write(response.getOutputStream());
+
+        // 메모리 정리
+        workbook.dispose(); // 임시파일 삭제
+        workbook.close();
+    }
+
+
+    @Description("PLAN-C 자재들 엑셀 다운로드")
+    @PostMapping("/searchPlanDataExcel")
+    public void searchPlanDataExcel(HttpServletResponse response,
+                                  String year) throws IOException {
+
+
+
+        // 현재 시간을 기반으로 파일명 생성
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+        String timestamp = sdf.format(new Date());
+        String fileName = year + "_" + timestamp + ".xlsx";
+
+
+        // HTTP 응답 헤더 설정
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        //response.setHeader("Content-Disposition", "attachment; filename=\"PART_DATA.xlsx\"");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+
+        //System.out.println("subaeDownloadV2 -- " + month);
+        //System.out.println("subaeDownloadV2 -- " + ucheck);
+
+        // SXSSF 워크북 생성 (스트리밍)
+        SXSSFWorkbook workbook = new SXSSFWorkbook(100);
+        Sheet sheet = workbook.createSheet("Sheet1");
+
+        //--스타일
+        CellStyle headerStyle = ExcelUtil.getHeaderStyle(workbook);
+
+        // 헤더 작성
+        Row header = sheet.createRow(0);
+        String[] titles = { "ERP전송일", "호기", "INDEX", "브랜드", "생산거점", "자재번호", "자재명", "SPEC", "기종", "공사", "dwgNo",
+                "BlockNo", "TOBE COST", "BATCH-DATE"
+        };
+        for (int i = 0; i < titles.length; i++) {
+            Cell cell = header.createCell(i);
+            cell.setCellValue(titles[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        //CellRangeAddress(시작행, 끝행, 시작열, 끝열)
+        sheet.setAutoFilter(new CellRangeAddress(0, 0, 0, titles.length - 1));
+
+        // 본문 기본 텍스트 스타일
+        CellStyle bodyStyle = ExcelUtil.getBodyStyle(workbook);
+
+        //ArrayList<DesignRequestDTO>
+        // 데이터 가져오기
+        List<ProductPlanC> dataList = new ArrayList<>();
+        dataList = planCService.findProductAll();
+
+
+
+        for (int i = 0; i < dataList.size(); i++) {
+            ProductPlanC dto = dataList.get(i);
+
+            Row row = sheet.createRow(i + 1);
+            String reqNo = dto.getErpSendDate();
+            
+            // ProductPlanC fields extracted for further processing/export
+            String batchDate = dto.getBatchDate();
+            String erpSendDate = dto.getErpSendDate();
+            String exportDate = dto.getExportDate();
+
+            String indexNo = dto.getIndexNo();
+            String toCost = dto.getToCost();
+
+            String productOid = dto.getProductOid();
+            String productNo = dto.getProductNo();
+            String aspd = dto.getAspd();
+            String aspscd = dto.getAspscd();
+            String acapa = dto.getAcapa();
+            String brand = dto.getBrand();
+
+            String dwgNo = dto.getDwgNo();
+            String gongSa = dto.getGongSa();
+            String gisong = dto.getGisong();
+            String mmanager = dto.getMmanager();
+            String emanager = dto.getEmanager();
+            String module = dto.getModule();
+
+            String seq = dto.getSeq();
+            String parentNo = dto.getParentNo();
+            String partNo = dto.getPartNo();
+            String partNoOID = dto.getPartNoOID();
+            String partName = dto.getPartName();
+            String nation = dto.getNation();
+            String version = dto.getVersion();
+            String glCode = dto.getGlCode();
+            String spec = dto.getSpec();
+            String part_size = dto.getPart_size();
+            String blockNo = dto.getBlockNo();
+            String blockName = dto.getBlockName();
+
+            row.createCell(0).setCellValue(erpSendDate);
+            row.createCell(1).setCellValue(productNo);
+            row.createCell(2).setCellValue(indexNo);
+            row.createCell(3).setCellValue(brand);
+            row.createCell(4).setCellValue(aspscd);
+            row.createCell(5).setCellValue(partNo);
+            row.createCell(6).setCellValue(partName);
+            row.createCell(7).setCellValue(spec);
+            row.createCell(8).setCellValue(gisong);
+            row.createCell(9).setCellValue(gongSa);
+            row.createCell(10).setCellValue(dwgNo);
+            row.createCell(11).setCellValue(blockNo);
+            row.createCell(12).setCellValue(toCost);
+            row.createCell(13).setCellValue(batchDate);
+
+
+            for (int m = 0; m < 14; m++) {
                 row.getCell(m).setCellStyle(bodyStyle);
             }
         }

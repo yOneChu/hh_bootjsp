@@ -587,7 +587,6 @@
 
 
 <!-- Bootstrap 4 -->
-<%--<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>--%>
 <!-- DataTables  & Plugins -->
 <script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
 <script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>

@@ -35,15 +35,17 @@
     // ServletContext에서 Spring WebApplicationContext 얻기
     WebApplicationContext context = WebApplicationContextUtils.getRequiredWebApplicationContext(application);
 
-    // 원하는 Bean 가져오기
+   /* // 원하는 Bean 가져오기
     PlanCService planCService = (PlanCService) context.getBean("PlanCService");
 
     System.out.println("planCService = " + planCService);
 
     //List<PlanCDash> result =  planCService.findPlanDash(todayVal);
-    List<PlanCDash> result =  planCService.findPlanDashAsBrand(todayVal, "LUXEN_2");
+    List<PlanCDash> result =  planCService.findPlanDashAsBrand("2026-02-05", "LUXEN_2");
     //findPlanDashAsBrand
 
+    System.out.println("result.size() = " + result.size());*/
+    
     int countNum = 1;
     System.out.println(" ---------------- end dashboard -------------");
 
@@ -113,12 +115,18 @@
                 <div class="row mb-2">
                     <div class="col-sm-6">
                         <!-- <h1>부품공용화 - 월별실적 Dashboard <font color="red">(2024/11/17, 06:00기준)</font> </h1> -->
-                        <h1>PLAN-C 대시보드 - 월별실적(수량) <font color="red">( <%=todayVal %>, 06:00기준)</font> </h1>
+                        <h1>PLAN-C 대시보드 - 월별실적(수량) <font color="red">( <%=todayVal %>, 04:00기준)</font> </h1>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
-                            <li class="breadcrumb-item"><a href="#">Home</a></li>
-                            <li class="breadcrumb-item active">DataTables</li>
+                            <%--<li class="breadcrumb-item"><a href="#">Home</a></li>
+                            <li class="breadcrumb-item active">DataTables</li>--%>
+
+                            <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
+                                <input type="checkbox" class="custom-control-input" id="darkModeToggle">
+                                <label class="custom-control-label" for="darkModeToggle">🌓 다크모드</label>
+                            </div>
+
                         </ol>
                     </div>
                 </div>
@@ -162,8 +170,8 @@
                                 <div class="form-group">
                                     <label>브랜드</label>
                                     <select id="brand" class="form-control select" style="width: 100%;">
-                                        <option selected="selected">LUXEN_G</option>
-                                        <option>NEX_MRL_G</option>
+                                        <option selected="selected" value="LUXEN_2">LUXEN_G</option>
+                                        <option value="NEX_MR">NEX_MRL_G</option>
                                         <option>NEX_MR_G</option>
                                     </select>
                                 </div>
@@ -171,9 +179,7 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>-</label>
-                                    <select id="BlockNo" class="form-control select" style="width: 100%;">
-                                        <option selected="selected">LIKE</option>
-                                        <option>EQUAL</option>
+                                    <select id="partName" class="form-control select" style="width: 100%;">
                                     </select>
                                 </div>
                             </div>
@@ -226,14 +232,13 @@
                                             <th style="font-weight: bold; text-align: center;" rowspan="3">INDEX</th>
                                             <th style="font-weight: bold; text-align: center;" rowspan="3">브랜드</th>
                                             <th style="font-weight: bold; text-align: center;" rowspan="3">자재번호</th>
-                                            <%--<th style="font-weight: bold; text-align: center;" rowspan="3">BlockNo</th>--%>
                                             <th style="font-weight: bold; text-align: center;" rowspan="3">과제명</th>
                                             <th style="font-weight: bold; text-align: center;" rowspan="3">총 수량</th>
                                             <th style="font-weight: bold; text-align: center;" colspan="20">월별실적</th>
                                         </tr>
 
                                         <tr class="bg-secondary">
-                                            <th style="font-weight: bold; text-align: center;" colspan="13">2025년</th>
+                                            <th style="font-weight: bold; text-align: center;" colspan="13">2026년</th>
                                         </tr>
 
                                         <tr class="bg-secondary">
@@ -249,70 +254,10 @@
                                             <th style="font-weight: bold; text-align: center;">10</th>
                                             <th style="font-weight: bold; text-align: center;">11</th>
                                             <th style="font-weight: bold; text-align: center;">12</th>
-                                            <th style="font-weight: bold; text-align: center;">etc</th>
                                         </tr>
                                     </thead>
 
                                     <tbody id="contentTable">
-
-                                        <%
-                                            for (int i = 0; i < result.size(); i++) {
-                                                PlanCDash data = result.get(i);
-                                                String indexNo = data.getPlanIndex();
-                                                String brand = data.getBrand();
-                                                String blockNo = data.getBlockNo();
-                                                String partNo = data.getPartNo();
-                                                String partName = data.getPartName();
-
-                                                int dis202601 = data.getDis202601();
-                                                int dis202602 = data.getDis202602();
-                                                int dis202603 = data.getDis202603();
-                                                int dis202604 = data.getDis202604();
-                                                int dis202605 = data.getDis202605();
-                                                int dis202606 = data.getDis202606();
-                                                int dis202607 = data.getDis202607();
-                                                int dis202608 = data.getDis202608();
-                                                int dis202609 = data.getDis202609();
-                                                int dis202610 = data.getDis202610();
-                                                int dis202611 = data.getDis202611();
-                                                int dis202612 = data.getDis202612();
-                                                int total = data.getTotalCnt();
-
-                                                int etc = total - (dis202601 + dis202602 + dis202603 + dis202604 + dis202605 + dis202606 + dis202607 + dis202608 + dis202609 + dis202610 + dis202611 + dis202612);
-                                        %>
-
-                                        <tr>
-                                            <td style="font-weight: bold; text-align: center;"><%=countNum++%></td>
-                                            <td style="font-weight: bold; text-align: center;"><%=indexNo%></td>
-                                            <td style="font-weight: bold; text-align: center;"><%=brand%></td>
-                                            <td style="font-weight: bold; text-align: center;"><%=partNo%></td>
-                                            <%--<td style="font-weight: bold; text-align: center;"><%=blockNo%></td>--%>
-                                            <td style="font-weight: bold; text-align: center;"><%=partName%></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', 'total');"> <font color="red"> <%=total%> </font> </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202501');"> <%=dis202601 %>   </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202502');"> <%=dis202602 %>   </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202503');"> <%=dis202603 %>   </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202504');"> <%=dis202604 %>   </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202505');"> <%=dis202605 %>   </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202506');"> <%=dis202606 %>   </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202507');"> <%=dis202607 %>   </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202508');"> <%=dis202608 %>  </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202509');"> <%=dis202609 %>  </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202510');"> <%=dis202610 %>  </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202511');"> <%=dis202611 %>  </a></td>
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202512');"> <%=dis202612 %>  </a></td>
-
-                                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList('cpMRL_5', '202512');">  <%=etc%>  </a></td>
-                                        </tr>
-
-
-                                        <%
-                                            }
-
-                                        %>
-
-
-
 
                                     </tbody>
 
@@ -357,6 +302,8 @@
 
 <script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
 
+
+
 <!-- AdminLTE App -->
 <script src="/resources/dist/js/adminlte.min.js"></script>
 
@@ -380,87 +327,8 @@
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 
+<script src="/resources/javascript/commonUtil.js"></script>
+<script src="/resources/javascript/planCDashboard.js"></script>
 
-
-<!-- Highhart -->
-<script src="/resources/dist/js/highcharts.js"></script>
-<script src="/resources/dist/js/exporting.js"></script>
-<script src="/resources/dist/js/export-data.js"></script>
-<script src="/resources/dist/js/accessibility.js"></script>
-
-
-
-<script>
-
-    let dtTable = $("#infoTable").DataTable({
-        "responsive": true,
-        "lengthChange": true,
-        "pageLength": 50,     //페이지 당 글 개수 설정
-        "autoWidth": false, // 가로자동
-        "processing": true,
-        //"scrollX" : true, //가로  스크롤
-        //"ordering" : false,
-        //"searching" : false,
-        //"paging" : false, // 페이징표시 삭제
-         "destroy": true, // 테이블 재생성
-        "buttons": ["csv", "excel", "copy"]
-    }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
-
-
-    //ready
-    $(document).ready(function() {
-
-
-        $("#subae").removeClass("menu-open");
-        $("#sap").removeClass("menu-open");
-        $("#mlb").removeClass("menu-open");
-        $("#vault").removeClass("menu-open");
-
-    }); // end document ready
-
-
-    /**
-     * 대시보드 상세화면 리스트
-     * @param type
-     * @param viewDate
-     */
-    function viewList(type, viewDate) {
-
-        //console.log(type + " -- " + viewDate);
-
-        let todayVal = '<%=todayVal %>'
-
-        //PLM
-        //let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionPopRev.jsp?";
-
-        //VAULT-LOCAL
-        //let urlValue = "http://localhost:8070/dashboard/searchPriceReductionPopRev?";
-
-        //VAULT-운영
-        let urlValue = "https://vault-in.hdel.co.kr:8070/dashboard/searchPriceReductionPopRev?";
-
-        urlValue += "viewType=" + type;
-        urlValue += "&startDate=" + viewDate;
-        urlValue += "&todayVal=" + todayVal;
-        urlValue += "&rate=TRUE";
-        window.open(urlValue,'_blank','width=1500, height=800, top=50, left=50, scrollbars=yes');
-    }
-
-    function viewExportList(curDate) {
-
-        //alert('curdate == ' + curDate);
-        let todayVal = '<%=todayVal %>'
-        //searchPriceReductionExportDataPop.jsp
-
-        let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionExportDataPop.jsp?";
-        //let urlValue = "http://localhost/jsp/searchLogic/searchPriceReductionExportDataPop.jsp?";
-        urlValue += "curDate=" + curDate;
-        urlValue += "&todayVal=" + todayVal;
-        window.open(urlValue,'_blank','width=1600, height=800, top=50, left=50, scrollbars=yes');
-
-    }
-
-
-</script>
 
 </html>

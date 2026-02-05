@@ -1,23 +1,25 @@
 package com.kyhslam.controller;
 
+import com.kyhslam.domain.PlanCDash;
 import com.kyhslam.repository.DashboardRepository;
 import com.kyhslam.service.PartPublicationService;
+import com.kyhslam.service.PlanCService;
 import com.kyhslam.util.DashboardCommonUtil;
 import com.kyhslam.util.DashboardHPB;
 import com.kyhslam.util.DashboardHPI;
+import com.kyhslam.util.DateUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.lang.reflect.Array;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
@@ -28,6 +30,8 @@ public class DashboardController {
     private final PartPublicationService partPublicationService;
     private final DashboardRepository dashboardRepository;
 
+    private final PlanCService planCService;
+
 
     //PLAN-C Dashboard
     @GetMapping("/planCDashboard")
@@ -35,7 +39,24 @@ public class DashboardController {
         return "dashboard/planCDashboard";
     }
 
+    //
+    @PostMapping("/findPlanDashAsBrand")
+    @ResponseBody
+    @CrossOrigin
+    public List<PlanCDash> searchPriceReductionRate(String brand) {
 
+        System.out.println("brand = " + brand);
+        LocalDate now = LocalDate.now();
+        //String todayVal = DateUtil.getYesterdayDate();
+        String todayVal = DateUtil.getTodayDate();
+
+        log.info("brand={}", brand);
+        log.info("todayVal={}", todayVal);
+
+        List<PlanCDash> result =  planCService.findPlanDashAsBrand(todayVal, brand);
+        log.info("result={}", result.size());
+        return result;
+    }
 
     //https://10.225.80.35:8070/dashboard/dashboardSchdule
     @GetMapping("/dashboardSchdule")
