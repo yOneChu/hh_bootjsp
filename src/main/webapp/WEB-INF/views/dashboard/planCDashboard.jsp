@@ -161,7 +161,7 @@
                             <div class="col-md-12">
                                 <div class="callout callout-danger" style="zoom:85%;">
                                     <h4><%--<i class="fas fa-bullhorn"></i>--%>🔊 도움말</h4>
-                                    <h5 style="color: #60A5FA;">- etc는 SAP에 출하예정일이 지정되지 않은 호기 입니다.</h5>
+                                    <%--<h5 style="color: #60A5FA;">- etc는 SAP에 출하예정일이 지정되지 않은 호기 입니다.</h5>--%>
                                     <h5>- 'Excel 다운로드'는 집계에 포함된 모든 실적 자재들 입니다. </h5>
                                 </div>
                             </div>
@@ -171,12 +171,12 @@
                                     <label>브랜드</label>
                                     <select id="brand" class="form-control select" style="width: 100%;">
                                         <option selected="selected" value="LUXEN_2">LUXEN_G</option>
-                                        <option value="NEX_MR">NEX_MRL_G</option>
-                                        <option>NEX_MR_G</option>
+                                        <option value="NEX_MRL">NEX_MRL_G</option>
+                                        <option value="NEX_MR">NEX_MR_G</option>
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <%--<div class="col-md-4">
                                 <div class="form-group">
                                     <label>-</label>
                                     <select id="partName" class="form-control select" style="width: 100%;">
@@ -187,12 +187,12 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>-</label>
-                                    <%--<label>PID-01</label>--%>
+                                    &lt;%&ndash;<label>PID-01</label>&ndash;%&gt;
                                     <input type="search" id="pidVal" class="form-control" placeholder="PID-01" value="">
                                     <div class="input-group-append">
                                     </div>
                                 </div>
-                            </div>
+                            </div>--%>
 
 
                             <!-- /.col -->
@@ -217,7 +217,7 @@
                         <div class="card card-primary">
 
                             <div class="card-header">
-                                <h3 class="card-title">Dashboard(수량)</h3>
+                                <%--<h3 class="card-title">Dashboard(수량)</h3>--%>
                             </div>
 
                             <!-- /.card-header -->

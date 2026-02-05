@@ -34,7 +34,7 @@ public class DashboardController {
 
 
     //PLAN-C Dashboard
-    @GetMapping("/planCDashboard")
+    @GetMapping("/planDashboard")
     public String searchPriceReductionRate() {
         return "dashboard/planCDashboard";
     }

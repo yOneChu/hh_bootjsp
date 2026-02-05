@@ -22,6 +22,10 @@ $(document).ready(function() {
     $("#vault").removeClass("menu-open");
 
 
+    // Initialize event bindings
+    reSetData();
+    
+    // Initial load
     searchPID();
 
 }); // end document ready
@@ -76,7 +80,7 @@ function searchPID()
     $('#infoTable').DataTable().destroy();
     $("#contentTable").empty();
 
-    //showLoading(); // 로딩바 표시
+    showLoading(); // 로딩바 표시
 
     $.ajax({
         type : "post",
@@ -150,7 +154,7 @@ function searchPID()
 
                 $("#contentTable").append(str);
 
-                //hideLoading(); // 성공 시 로딩바 제거
+                hideLoading(); // 성공 시 로딩바 제거
 
                 $("#infoTable").DataTable({
                     "responsive": true,
@@ -178,7 +182,7 @@ function searchPID()
                             extend: "copy"
                         }
                     ]
-                }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(1)');
+                }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(6)');
 
             }
         } // end success;
@@ -222,5 +226,19 @@ function searchExcel() {
             alert('엑셀 다운로드 중 오류가 발생했습니다.');
         }
     });
+}
+
+
+function reSetData() {
+    // 브랜드 선택 변경 시 검색 수행
+    if (typeof $ !== 'undefined') {
+        $("#brand").off('change.planC').on('change.planC', function() {
+            try {
+                searchPID();
+            } catch (e) {
+                console.error('searchPID 호출 중 오류:', e);
+            }
+        });
+    }
 }
 
