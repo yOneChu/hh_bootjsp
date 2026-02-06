@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -884,13 +885,17 @@ public class ExcelDownloadController {
         SXSSFWorkbook workbook = new SXSSFWorkbook(100);
         Sheet sheet = workbook.createSheet("Sheet1");
 
+        DataFormat format = workbook.createDataFormat();
+        CellStyle moneyStyle = workbook.createCellStyle();
+        moneyStyle.setDataFormat(format.getFormat("#,##0"));
+
         //--스타일
         CellStyle headerStyle = ExcelUtil.getHeaderStyle(workbook);
 
         // 헤더 작성
         Row header = sheet.createRow(0);
         String[] titles = { "ERP전송일", "호기", "INDEX", "브랜드", "생산거점", "자재번호", "자재명", "SPEC", "기종", "공사", "dwgNo",
-                "BlockNo", "TOBE COST", "출하예정일", "BATCH-DATE"
+                "BlockNo", "개당 절감액", "출하예정일", "BATCH-DATE"
         };
         for (int i = 0; i < titles.length; i++) {
             Cell cell = header.createCell(i);
@@ -974,7 +979,19 @@ public class ExcelDownloadController {
             row.createCell(9).setCellValue(gongSa);
             row.createCell(10).setCellValue(dwgNo);
             row.createCell(11).setCellValue(blockNo);
-            row.createCell(12).setCellValue(toCost);
+
+            BigDecimal amount = new BigDecimal(toCost);
+
+            // 4. 엑셀 셀에 숫자로 입력
+            Cell cell12 = row.createCell(12);   // 원하는 컬럼 인덱스
+            cell12.setCellValue(amount.doubleValue());
+            //row.createCell(12).setCellValue(toCost);
+
+            // 5. 금액 서식 적용
+            cell12.setCellStyle(moneyStyle);
+
+
+
             row.createCell(13).setCellValue(exportDate);
             row.createCell(14).setCellValue(batchDate);
 

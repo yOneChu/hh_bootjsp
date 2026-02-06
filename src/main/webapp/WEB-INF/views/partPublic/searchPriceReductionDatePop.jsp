@@ -1,185 +1,42 @@
-<%@page import="java.util.HashSet"%>
-<%@page import="java.util.Date"%>
-<%@page import="java.text.SimpleDateFormat"%>
 <%@page import="java.time.LocalDate"%>
-<%@page import="java.sql.DriverManager"%>
-<%@page import="java.util.Map"%>
-<%@page import="java.util.HashMap"%>
-<%@page import="java.util.ArrayList"%>
-<%@page import="java.sql.ResultSetMetaData"%>
-<%@page import="java.sql.ResultSet"%>
-<%@page import="java.sql.PreparedStatement"%>
-<%@page import="java.sql.Connection"%>
-<%@ page import="com.kyhslam.util.VaultDBConnection" %>
+<%@ page import="org.springframework.web.context.WebApplicationContext" %>
+<%@ page import="com.kyhslam.service.PlanCService" %>
+<%@ page import="org.springframework.web.context.support.WebApplicationContextUtils" %>
+<%@ page import="com.kyhslam.domain.ProductPlanC" %>
+<%@ page import="java.util.*" %>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%  request.setCharacterEncoding("utf-8"); %>
 
 
 <%
 
-    //출하예정일 대시보드 -> 상세화면 팝업
-    // searchPriceReductionDatePop.jsp
-    // http://10.225.4.20/jsp/searchLogic/searchPriceReductionDatePop.jsp
-    // http://localhost/jsp/searchLogic/searchPriceReductionDatePop.jsp
-
 
     String contextPath = request.getContextPath();
     System.out.println("--- searchPriceReductionDatePop.jsp ---");
 
 
-    String curDate = (String)request.getParameter("curDate"); // 202411/2024/2025/total
-    String partType = (String)request.getParameter("partType"); // 월date or total
-    String todayVal = (String)request.getParameter("todayVal");
+    String brand = (String)request.getParameter("brand"); // 202411/2024/2025/total
+    String partNo = (String)request.getParameter("partNo"); // 월date or total
+    String month = (String)request.getParameter("month");
+
+    WebApplicationContext context = WebApplicationContextUtils.getRequiredWebApplicationContext(application);
+
+    LocalDate now = LocalDate.now();
+    String todayVal = now.toString();
+
+    PlanCService planCService = (PlanCService) context.getBean("PlanCService");
+
+    List<ProductPlanC> data = planCService.findProductByBatchDate_v3(todayVal, partNo, brand, month);
 
 
+    System.out.println("brand == " + brand);
+    System.out.println("partNo == " + partNo);
+    System.out.println("month == " + month);
 
-    System.out.println("curDate == " + curDate);
-    System.out.println("partType == " + partType);
-    System.out.println("todayVal == " + todayVal);
+    System.out.println("data.size() = " + data.size());
 
     ArrayList<HashMap<String, String>> dataList = new ArrayList<HashMap<String, String>>();
 
-    HashSet<String> duplicatedCheck = new HashSet<String>();
-    String title = partType;
-
-    Connection con 			= null;
-    PreparedStatement pstmt = null;
-    ResultSet rs 			= null;
-
-    try
-    {
-
-
-        String url = "jdbc:sqlserver://;serverName=10.225.80.35;port=1433;databaseName=PLMPRDIF;encrypt=false;";
-        String id = "SA";
-        String pw = "AutodeskVault@26200"; // "qwe123!@#"
-        //Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver").newInstance();
-        //con = DriverManager.getConnection(url,id,pw);
-        con = VaultDBConnection.getConnection();
-
-
-        StringBuffer sql = new StringBuffer();
-        sql.append(" SELECT ");
-        sql.append(" A.HOGI, A.batch_date, A.part_type, ");
-        sql.append(" A.erp_send_date, A.erp_send_month, A.part_no,A.qty, A.dwg_no, A.export_date, ");
-        sql.append(" A.gi_song, A.BLOCK_NO, ");
-        sql.append(" A.gong_sa, A.SPEC, A.M_USER, A.E_USER ");
-        sql.append(" FROM dash_publicdata A ");
-
-        sql.append(" WHERE A.BATCH_DATE = ? ");
-
-
-        if("total".equals(curDate)) {
-            //sql.append(" AND SUBSTRING(A.export_date, 1, 6) = ? ");
-
-
-        } else if("2024".equals(curDate)) {
-            sql.append(" AND SUBSTRING(A.export_date, 1, 4) = '" + curDate + "'");
-        } else if("2025".equals(curDate)) {
-            sql.append(" AND SUBSTRING(A.export_date, 1, 4) = '" + curDate + "'");
-        } else if("ETC".equals(curDate)) {
-            sql.append(" AND SUBSTRING(A.export_date, 1, 4) != '2024' AND SUBSTRING(A.export_date, 1, 4) != '2025' ");
-        } else {
-            sql.append(" AND SUBSTRING(A.export_date, 1, 6) = '" + curDate + "'");
-        }
-
-
-
-        //sql.append(" AND A.part_type = ? ");
-        //sql.append(" AND A.part_type = ? ");
-
-        if("LAMP".equals(partType)) {
-            //sql.append(" AND A.part_type LIKE '" + partType + "%'");
-            sql.append(" AND A.part_type IN ('LAMP_CARTOP', 'LAMP_HOIST', 'LAMP_OVER', 'LAMP_PIT') ");
-
-        } else if("HIP".equals(partType)) {
-            sql.append(" AND A.part_type IN ('HIP_BOT', 'HIP_MID', 'HIP_TOP' ) ");
-
-        } else if("HPB".equals(partType)) {
-            sql.append(" AND A.part_type IN ('HPB_BOT', 'HPB_MID', 'HPB_TOP' ) ");
-
-        } else {
-            sql.append(" AND A.part_type ='" + partType + "'");
-        }
-
-
-
-        System.out.println("sql.tostring == " + sql.toString());
-        pstmt = con.prepareStatement(sql.toString());
-        pstmt.setString(1, todayVal);
-        //pstmt.setString(2, curDate);
-        //pstmt.setString(3, partType);
-
-        rs = pstmt.executeQuery();
-
-        while(rs.next())
-        {
-            String part_name = rs.getString("part_type") == null ? "" : rs.getString("part_type");
-            String batch_date = rs.getString("batch_date") == null ? "" : rs.getString("batch_date");
-            String erp_send_date = rs.getString("erp_send_date") == null ? "" : rs.getString("erp_send_date");
-            String erp_send_month = rs.getString("erp_send_month") == null ? "" : rs.getString("erp_send_month");
-
-            String hogi = rs.getString("HOGI") == null ? "" : rs.getString("HOGI");
-            String export_date = rs.getString("export_date") == null ? "" : rs.getString("export_date");
-            String part_no = rs.getString("part_no") == null ? "" : rs.getString("part_no");
-            String qty = rs.getString("qty") == null ? "" : rs.getString("qty");
-            String dwg_no = rs.getString("dwg_no") == null ? "" : rs.getString("dwg_no");
-            String gi_song = rs.getString("gi_song") == null ? "" : rs.getString("gi_song");
-            String gong_sa = rs.getString("gong_sa") == null ? "" : rs.getString("gong_sa");
-            String spec = rs.getString("spec") == null ? "" : rs.getString("spec");
-            String m_user = rs.getString("m_user") == null ? "" : rs.getString("m_user");
-            String e_user = rs.getString("e_user") == null ? "" : rs.getString("e_user");
-            String BLOCK_NO = rs.getString("BLOCK_NO") == null ? "" : rs.getString("BLOCK_NO");
-
-            HashMap<String, String> dMap = new HashMap<String, String>();
-            dMap.put("part_name", part_name);
-            dMap.put("batch_date", batch_date);
-            dMap.put("erp_send_date", erp_send_date);
-            dMap.put("erp_send_month", erp_send_month);
-
-            dMap.put("BLOCK_NO", BLOCK_NO);
-            dMap.put("HOGI", hogi);
-            dMap.put("export_date", export_date);
-            dMap.put("part_no", part_no);
-            dMap.put("qty", qty);
-            dMap.put("dwg_no", dwg_no);
-            dMap.put("gi_song", gi_song);
-            dMap.put("gong_sa", gong_sa);
-            dMap.put("spec", spec);
-            dMap.put("m_user", m_user);
-            dMap.put("e_user", e_user);
-
-            dataList.add(dMap);
-
-
-            if(!duplicatedCheck.contains(hogi.trim())) {
-                //dataList.add(dMap);
-                //duplicatedCheck.add(hogi.trim());
-            }
-
-        }
-
-    } catch (Exception e) {
-        e.printStackTrace();
-    } finally {
-        //DynaUtils.close(rs,pstmt,con);
-        VaultDBConnection.disconnect(con, pstmt, rs);
-
-    }
-
-    if(partType.contains("CP")) {
-        title = "CP";
-    } else if(partType.contains("TM")) {
-        title = "TM(Belt Type)";
-    } else if(partType.contains("CAR")) {
-        //title = "Car Top Box";
-    } else if(partType.contains("CAR")) {
-        //title = "Car Top Box";
-    } else if(partType.contains("CAR")) {
-        //title = "Car Top Box";
-    } else if(partType.contains("CAR")) {
-        //title = "Car Top Box";
-    }
 
 
 %>
@@ -224,21 +81,8 @@
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
+                        <h1><%= partNo  + ", " %> <font color="red"> (<%=todayVal %>, 06:00기준)</font></h1>
 
-                        <%
-                            if("total".equals(curDate)){
-                        %>
-                        <h1><%= title  + " 전체, 출하(예정) 자재" %> <font color="red"> (<%=todayVal %>, 06:00기준)</font></h1>
-
-                        <h4><font color="blue"> (2024.05 이후 출하예정일 모든 자재 포함) </font></h4>
-
-                        <%
-                        } else {
-                        %>
-                        <%-- <h1><%= curDate.substring(0,4) + "-" + curDate.substring(4,6) + ", " + partType  + " 출하(예정) 자재" %> <font color="red"> (<%=todayVal %>, 06:00기준)</font></h1> --%>
-                        <%
-                            }
-                        %>
 
 
                     </div>
@@ -275,122 +119,59 @@
                                 <table id="infoTable" class="table table-bordered table-hover" style="font-family: NotoSans; font-size:15px;">
                                     <thead>
                                     <tr class="bg-secondary">
-                                        <th style="font-weight: bold; text-align: center;">전송일자</th>
+                                        <th style="font-weight: bold; text-align: center;">ERP전송일자</th>
+                                        <th style="font-weight: bold; text-align: center;">INDEX</th>
                                         <th style="font-weight: bold; text-align: center;">호기</th>
-                                        <th style="font-weight: bold; text-align: center;">기종</th>
+                                        <th style="font-weight: bold; text-align: center;">브랜드</th>
                                         <th style="font-weight: bold; text-align: center;">자재번호</th>
-                                        <th style="font-weight: bold; text-align: center;">자재타입</th>
-                                        <th style="font-weight: bold; text-align: center;">출하예정일</th>
+                                        <th style="font-weight: bold; text-align: center;">단가</th>
+                                        <th style="font-weight: bold; text-align: center;">자재명</th>
+                                        <th style="font-weight: bold; text-align: center;">생산거점</th>
+                                        <th style="font-weight: bold; text-align: center;">기종</th>
+                                        <th style="font-weight: bold; text-align: center;">공사정보</th>
                                         <th style="font-weight: bold; text-align: center;">수량</th>
-
-
                                         <th style="font-weight: bold; text-align: center;">도면번호</th>
-                                        <th style="font-weight: bold; text-align: center;">Block.NO</th>
-                                        <th style="font-weight: bold; text-align: center;">공사번호</th>
-
-
+                                        <th style="font-weight: bold; text-align: center;">출하예정일</th>
                                         <th style="font-weight: bold; text-align: center;">SPEC</th>
-                                        <th style="font-weight: bold; text-align: center;">기계담당자</th>
-                                        <th style="font-weight: bold; text-align: center;">전기담당자</th>
                                     </tr>
                                     </thead>
 
                                     <tbody id="contentTable">
-
                                     <%
-                                        //String viewType = (String)request.getParameter("viewType");
-                                        //String startDate = (String)request.getParameter("startDate");
-
-                                        SimpleDateFormat dtFormat = new SimpleDateFormat("yyyyMMdd");
-                                        SimpleDateFormat newDtFormat = new SimpleDateFormat("yyyy-MM-dd");
-
-                                        for(int i=0; i < dataList.size(); i++)
-                                        {
-                                            HashMap<String, String> row = (HashMap) dataList.get(i);
-
-                                            String erpSendDate = row.get("erp_send_date");
-                                            String exportDate = row.get("export_date");
+                                        if (data != null & data.size() > 0) {
 
 
-                                            // String 타입을 Date 타입으로 변환
-                                            Date formatDate = dtFormat.parse(erpSendDate);
-
-                                            // Date타입의 변수를 새롭게 지정한 포맷으로 변환
-                                            String strNewDtFormat = newDtFormat.format(formatDate);
-
-
-                                            String strExportDate = "";
-
-                                            if(exportDate != null && !"".equals(exportDate)) {
-                                                Date exportFormatDate = dtFormat.parse(exportDate);
-                                                strExportDate = newDtFormat.format(exportFormatDate);
-                                            }
-
-
-                                            String getPartType = row.get("part_name");
-
-                                            if(getPartType.equals("CARTOPBOX")) {
-                                                getPartType = "CAR_TOP_BOX";
-
-                                            } else if("LAMP_CARTOP".equals(getPartType)) {
-                                                getPartType = "LAMP_CARTOP";
-
-                                            } else if("LAMP_HOIST".equals(getPartType)) {
-                                                getPartType = "LAMP_HOISTWAY";
-
-                                            } else if("LAMP_OVER".equals(getPartType)) {
-                                                getPartType = "LAMP_OVERHEAD";
-
-                                            }  else if("LAMP_PIT".equals(getPartType)) {
-                                                getPartType = "LAMP_PIT";
-
-                                            } else if("cpMRL_5".equals(getPartType)) {
-                                                getPartType = "CP(MRL_5.5kW_일반)";
-
-                                            } else if("cpMRL_9".equals(getPartType)) {
-                                                getPartType = "CP(MRL_9kW_일반)";
-
-                                            } else if("cpMRL_14".equals(getPartType)) {
-                                                getPartType = "CP(MRL_14kW_일반)";
-
-                                            } else if("cpMRL_17".equals(getPartType)) {
-                                                getPartType = "CP(MRL_17.5kW_일반)";
-
-                                            } else if("cpMR_9".equals(getPartType)) {
-                                                getPartType = "CP(MR_9kW_회생) ";
-
-                                            } else if("cpMR_14".equals(getPartType)) {
-                                                getPartType = "CP(MR_14kW_회생)";
-
-                                            } else if("cp1_5_MRL_General".equals(getPartType)) {
-                                                getPartType = "1.5단계 CP(MRL_일반)";
-
-                                            } else if("cp1_5_MRL_Revive".equals(getPartType)) {
-                                                getPartType = "1.5단계 CP(MRL_회생)";
-                                            }
-
+                                        for (int i = 0; i < data.size(); i++) {
+                                            ProductPlanC dto = data.get(i);
                                     %>
 
-                                    <tr>
-                                        <td style="text-align: center;"> <%=strNewDtFormat %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=row.get("HOGI") %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=row.get("gi_song") %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=row.get("part_no") %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <%=getPartType %> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <font color="red"> <%=strExportDate %> </font> </td>
-                                        <td style="font-weight: bold; background-color: #e6ffff; text-align: center;"> <font color="red"><%=row.get("qty") %> </font> </td>
-                                        <td style="text-align: center;"> <%=row.get("dwg_no") %> </td>
-                                        <td style="text-align: center;"> <%=row.get("BLOCK_NO") %> </td>
-                                        <td> <%=row.get("gong_sa") %> </td>
-                                        <td> <%=row.get("spec") %> </td>
-                                        <td style="text-align: center;"> <%=row.get("m_user") %> </td>
-                                        <td style="text-align: center;"> <%=row.get("e_user")  %> </td>
-                                    </tr>
+                                        <tr>
+                                            <td><%=dto.getErpSendDate()%></td>
+                                            <td><%=dto.getIndexNo()%></td>
+                                            <td><%=dto.getProductNo()%></td>
+                                            <td><%=dto.getBrand()%></td>
+                                            <td><%=dto.getPartNo()%></td>
+                                            <td><%=dto.getToCost()%></td>
+                                            <td><%=dto.getPartName()%></td>
+                                            <td><%=dto.getAspscd()%></td>
+                                            <td><%=dto.getGisong()%></td>
+                                            <td><%=dto.getGongSa()%></td>
+                                            <td><%=dto.getQty()%></td>
+                                            <td><%=dto.getDwgNo()%></td>
+                                            <td><%=dto.getExportDate()%></td>
+                                            <td><%=dto.getSpec()%></td>
+                                        </tr>
+
+
                                     <%
 
-                                        } // end for
-
+                                            }
+                                        }
                                     %>
+
+
+
+
 
                                     </tbody>
 
@@ -416,7 +197,7 @@
         <div class="float-right d-none d-sm-block">
             <b>Version</b> 1.0.0
         </div>
-        <strong>Copyright &copy; 2024 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
+        <strong>Copyright &copy; 2026 <a href="#">수배로직설계팀</a>.</strong> All rights reserved.
     </footer>
 
     <!-- Control Sidebar -->
@@ -488,6 +269,10 @@
         console.log('start');
 
     }); // end document ready
+
+
+
+
 
 </script>
 

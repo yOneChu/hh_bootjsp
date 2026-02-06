@@ -94,6 +94,11 @@ public class PlanCService {
         return list;
     }
 
+    public List<ProductPlanC> findProductByBatchDate_v3(String batchDate, String partNo, String brand, String month) {
+        List<ProductPlanC> list = repository.findProductByBatchDate_v3(batchDate, partNo, brand, month);
+        return list;
+    }
+
     public List<ProductPlanC> findProductByHogi(String productNo, String partNo) {
         List<ProductPlanC> list = repository.findProductByHogi(productNo, partNo);
         return list;

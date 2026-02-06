@@ -33,38 +33,45 @@ $(document).ready(function() {
 
 /**
  * 대시보드 상세화면 리스트
- * @param type
- * @param viewDate
+ * 클릭한 라인의 brand, partNo를 추출하여 팝업을 연다.
+ * @param el 클릭된 a 엘리먼트(this)
  */
-function viewList(type, viewDate) {
+function viewList(el, month) {
+    // 클릭된 엘리먼트가 속한 행(tr)을 찾고, 컬럼 인덱스로 brand/partNo 추출
+    // 컬럼 구조: 0:idx, 1:planIndex, 2:brand, 3:partNo, 4:partName, 5:toCost, 6:totalCnt, 7:toCostSum, 8~: 월별 수치
+/*
+    const $tr = $(el).closest('tr');
+    const tds = $tr.find('td');
 
-    //console.log(type + " -- " + viewDate);
+    let brand = $(tds[1]).text().trim();
+    let partNo = $(tds[2]).text().trim();
 
-    let todayVal = '<%=todayVal %>'
+    // URL 구성 (인코딩 포함)
+    const urlValue = "/dashboard/planDashboardPop?" +
+        "brand=" + encodeURIComponent(brand) +
+        "&partNo=" + encodeURIComponent(partNo) +
+        "&month=" + encodeURIComponent(month) ;
 
-    //VAULT-운영
-    let urlValue = "https://vault-in.hdel.co.kr:8070/dashboard/searchPriceReductionPopRev?";
+    window.open(urlValue, '_blank', 'width=1500, height=800, top=50, left=50, scrollbars=yes');
 
-    urlValue += "viewType=" + type;
-    urlValue += "&startDate=" + viewDate;
-    urlValue += "&todayVal=" + todayVal;
-    urlValue += "&rate=TRUE";
-    window.open(urlValue,'_blank','width=1500, height=800, top=50, left=50, scrollbars=yes');
-}
+*/
+    const $tr = $(el).closest('tr');
+    const tds = $tr.find('td');
 
-function viewExportList(curDate) {
+    let brand = $(tds[1]).text().trim();
+    let partNo = $(tds[2]).text().trim();
+    //let urlValue = "https://vault-in.hdel.co.kr:8070/dashboard/searchPriceReductionDatePop?";
+    let urlValue = "/dashboard/searchPriceReductionDatePop?";
+    //http://localhost/jsp/searchLogic/searchPriceReductionDatePrice.jsp
 
-    //alert('curdate == ' + curDate);
-    let todayVal = '<%=todayVal %>'
-    //searchPriceReductionExportDataPop.jsp
+    urlValue += "month=" + month;
+    urlValue += "&brand=" + brand;
+    urlValue += "&partNo=" + partNo;
 
-    let urlValue = "https://plmpro.hdel.co.kr/jsp/searchLogic/searchPriceReductionExportDataPop.jsp?";
-    //let urlValue = "http://localhost/jsp/searchLogic/searchPriceReductionExportDataPop.jsp?";
-    urlValue += "curDate=" + curDate;
-    urlValue += "&todayVal=" + todayVal;
     window.open(urlValue,'_blank','width=1600, height=800, top=50, left=50, scrollbars=yes');
 
 }
+
 
 function searchPID()
 {
@@ -103,7 +110,7 @@ function searchPID()
                     let planIndex = data[i].planIndex;
                     let totalCnt = data[i].totalCnt;
                     let toCost = data[i].toCost;
-
+                    let toCostVal = formatMoney(toCost);
 
 
                     let dis202601 = data[i].dis202601;
@@ -130,20 +137,21 @@ function searchPID()
                             <td style="font-weight: bold; text-align: center;">${brand}</td>
                             <td style="font-weight: bold; text-align: center;">${partNo}</td>
                             <td style="font-weight: bold; text-align: center;">${partName}</td>
+                            <td style="font-weight: bold; text-align: center;">${toCostVal}</td>
                             <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> <font color="red"> ${totalCnt} </font> </a></td>
                             <td style="font-weight: bold; text-align: center;">${toCostSum}</td>
-                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202601}   </a></td>
-                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202602}   </a></td>
-                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202603}   </a></td>
-                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202604}   </a></td>
-                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202605}   </a></td>
-                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202606}   </a></td>
-                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202607}   </a></td>
-                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202608}  </a></td>
-                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202609}  </a></td>
-                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202610}  </a></td>
-                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202611}  </a></td>
-                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);'> ${dis202612}  </a></td>
+                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList(this, '202601')"> ${dis202601}   </a></td>
+                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList(this, '202602')"> ${dis202602}   </a></td>
+                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList(this, '202603')"> ${dis202603}   </a></td>
+                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList(this, '202604')"> ${dis202604}   </a></td>
+                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList(this, '202605')"> ${dis202605}   </a></td>
+                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList(this, '202606')"> ${dis202606}   </a></td>
+                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList(this, '202607')"> ${dis202607}   </a></td>
+                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList(this, '202608')"> ${dis202608}  </a></td>
+                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList(this, '202609')"> ${dis202609}  </a></td>
+                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList(this, '202610')"> ${dis202610}  </a></td>
+                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList(this, '202611')"> ${dis202611}  </a></td>
+                            <td style="font-weight: bold; text-align: center;"><a href='javascript:void(0);' onclick="viewList(this, '202612')"> ${dis202612}  </a></td>
                         </tr>
                         `;
 
@@ -166,7 +174,7 @@ function searchPID()
                     //"scrollX" : true, //가로  스크롤
                     "destroy": true, // 테이블 재생성
                     "dom": "Bfrtip",
-                    "order": [[5, 'desc']], // 0번 컬럼 오름차순
+                    "order": [[6, 'desc']], // 0번 컬럼 오름차순
                     "columnDefs": [
                         { targets: 0, visible: false } // 0번 컬럼 숨김
                     ],

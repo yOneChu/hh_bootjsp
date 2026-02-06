@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <!-- <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"> -->
+
+        <!-- <script data-jsfiddle="common" src="/js/jquery-1.11.0.min.js"></script> -->
+
+        <title>상세목록</title>
+
+        <!-- Google Font: Source Sans Pro -->
+        <!--    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">-->
+        <link rel="stylesheet" href="/resources/dist/googleFont.css">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+
+        <!-- DataTables -->
+        <link rel="stylesheet" href="/resources/dist/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+        <link rel="stylesheet" href="/resources/dist/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+        <link rel="stylesheet" href="/resources/dist/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+
+        <link rel="stylesheet" href="/resources/dist/plugins/select2/css/select2.min.css">
+
+        <!-- Theme style -->
+        <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+    </head>
+
+
+    <body>
+
+    <div class="wrapper">
+
+
+        <!-- Content Wrapper. Contains page content -->
+        <div class="content">
+            <!-- Content Header (Page header) -->
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <!--<h1><%= title  + " 전체, 출하(예정) 자재" %> <font color="red"> (<%=todayVal %>, 06:00기준)</font></h1>-->
+                            <h4><font color="blue"> (2024.05 이후 출하예정일 모든 자재 포함) </font></h4>
+                        </div>
+                        <div class="col-sm-6">
+                            <ol class="breadcrumb float-sm-right">
+                                <li class="breadcrumb-item"><a href="#">Home</a></li>
+                                <li class="breadcrumb-item active">DataTables</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div><!-- /.container-fluid -->
+            </section>
+
+
+
+            <!-- Main content -->
+            <section class="content" style="zoom:100%;">
+
+                <div class="container-fluid"> <!-- start - container-fluid -->
+
+
+
+                    <div class="row">
+                        <div class="col-12">
+
+                            <div class="card card-primary">
+
+                                <!-- <div class="card-header">
+                                    <h3 class="card-title">Dashboard</h3>
+                                </div>
+     -->
+                                <!-- /.card-header -->
+                                <div class="card-body" style="zoom:90%;">
+                                    <table id="infoTable" class="table table-bordered table-hover" style="font-family: NotoSans; font-size:15px;">
+                                        <thead>
+                                        <tr class="bg-secondary">
+                                            <th style="font-weight: bold; text-align: center;">전송일자</th>
+                                            <th style="font-weight: bold; text-align: center;">호기</th>
+                                            <th style="font-weight: bold; text-align: center;">기종</th>
+                                            <th style="font-weight: bold; text-align: center;">자재번호</th>
+                                            <th style="font-weight: bold; text-align: center;">자재타입</th>
+                                            <th style="font-weight: bold; text-align: center;">출하예정일</th>
+                                            <th style="font-weight: bold; text-align: center;">수량</th>
+
+
+                                            <th style="font-weight: bold; text-align: center;">도면번호</th>
+                                            <th style="font-weight: bold; text-align: center;">Block.NO</th>
+                                            <th style="font-weight: bold; text-align: center;">공사번호</th>
+
+
+                                            <th style="font-weight: bold; text-align: center;">SPEC</th>
+                                            <th style="font-weight: bold; text-align: center;">기계담당자</th>
+                                            <th style="font-weight: bold; text-align: center;">전기담당자</th>
+                                        </tr>
+                                        </thead>
+
+                                        <tbody id="contentTable">
+
+                                        </tbody>
+
+                                    </table>
+                                </div>
+                                <!-- /.card-body -->
+                            </div>
+                            <!-- /.card -->
+                        </div>
+                        <!-- /.col -->
+                    </div>
+                    <!-- /.row -->
+
+                </div> <!-- /.container-fluid -->
+
+            </section>
+            <!-- /.content -->
+        </div>
+        <!-- /.content-wrapper -->
+
+
+        <footer class="main-footer">
+            <div class="float-right d-none d-sm-block">
+                <b>Version</b> 1.0.0
+            </div>
+            <strong>Copyright &copy; 2024 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
+        </footer>
+
+        <!-- Control Sidebar -->
+        <aside class="control-sidebar control-sidebar-dark">
+            <!-- Control sidebar content goes here -->
+        </aside>
+        <!-- /.control-sidebar -->
+
+    </div>
+
+
+    </body>
+
+    <!-- <script src="https://code.jquery.com/jquery-3.5.1.js"></script> -->
+
+    <script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+
+    <!-- AdminLTE App -->
+    <script src="/resources/dist/js/adminlte.min.js"></script>
+
+    <!-- Bootstrap 4 -->
+    <script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- DataTables  & Plugins -->
+    <script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
+    <script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+    <script src="/resources/dist/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+    <script src="/resources/dist/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+
+
+    <script src="/resources/dist/plugins/select2/js/select2.full.min.js"></script>
+
+    <script src="/resources/dist/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
+    <script src="/resources/dist/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
+    <script src="/resources/dist/plugins/jszip/jszip.min.js"></script>
+    <script src="/resources/dist/plugins/pdfmake/pdfmake.min.js"></script>
+    <script src="/resources/dist/plugins/pdfmake/vfs_fonts.js"></script>
+    <script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
+    <script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
+    <script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
+
+
+    <!-- Highhart -->
+    <script src="/resources/dist/js/highcharts.js"></script>
+    <script src="/resources/dist/js/exporting.js"></script>
+    <script src="/resources/dist/js/export-data.js"></script>
+    <script src="/resources/dist/js/accessibility.js"></script>
+
+
+
+
+    <script>
+
+        let dtTable = $("#infoTable").DataTable({
+            "responsive": true,
+            "lengthChange": true,
+            "pageLength": 50,     //페이지 당 글 개수 설정
+            "autoWidth": false, // 가로자동
+            //"processing": true,
+            "searching" : true,
+            "paging" : true, // 페이징표시 삭제
+            "destroy": true, // 테이블 재생성
+            "buttons": ["csv", "excel", "copy"]
+        }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
+
+
+        //ready
+        $(document).ready(function() {
+
+            console.log('start');
+            // 팝업 열릴 때 링크의 brand, partNo 값 받기
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const brand = (params.get('brand') || '').trim();
+                const partNo = (params.get('partNo') || '').trim();
+                const month = (params.get('month') || '').trim();
+
+                // 전역에 저장하여 이후 함수에서 활용 가능
+                //window.popBrand = brand;
+                //window.popPartNo = partNo;
+                //window.popMonth = month;
+
+                console.log('[planDashboardPop] brand =', brand, 'partNo =', partNo);
+                searchPID(partNo, brand, month);
+            } catch (e) {
+                console.error('쿼리 파라미터 파싱 실패:', e);
+            }
+
+
+
+
+
+        }); // end document ready
+
+        function searchPID(partNo, brand, month)
+        {
+            //let brand = $("#brand").val();
+            //let partName = $("#partName").val();
+
+            //let todayVal = getTodayYYYYMMDD();
+
+            $('#infoTable').DataTable().destroy();
+            $("#contentTable").empty();
+
+            showLoading(); // 로딩바 표시
+
+            $.ajax({
+                type : "post",
+                //url : "searchPID.jsp",
+                crossDomain : true,
+                url : "/dashboard/findProductByBatchDate_v3",
+                data : {
+                    brand : brand,
+                    partName: partName,
+                    month: month
+                },
+                success : function(data)
+                {
+                    console.log("data - ", data);
+
+                    let str = "";
+
+                    if(data != null && data.length > 0) {
+
+                        for(let i=0; i < data.length; i++) {
+
+
+
+                        } // end for
+
+
+                        $("#contentTable").append(str);
+
+
+
+                        $("#infoTable").DataTable({
+                            "responsive": true,
+                            "lengthChange": true,
+                            "pageLength": 50,     //페이지 당 글 개수 설정
+                            "autoWidth": false, // 가로자동
+                            "processing": true,
+                            //"scrollX" : true, //가로  스크롤
+                            "destroy": true, // 테이블 재생성
+                            "dom": "Bfrtip",
+                            "order": [[6, 'desc']], // 0번 컬럼 오름차순
+                            "columnDefs": [
+                                { targets: 0, visible: false } // 0번 컬럼 숨김
+                            ],
+                            "buttons": [
+                                {
+                                    extend: "csv",
+                                    charset: "UTF-16LE",
+                                    text: "CSV",
+                                    filename: 'csv_Result'
+                                },
+                                {
+                                    extend: "excel",
+                                    charset: "UTF-8",
+                                    text: "EXCEL",
+                                    filename: 'excel_Result',
+                                },
+                                {
+                                    extend: "copy"
+                                }
+                            ]
+                        }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(6)');
+
+                    }
+                } // end success;
+
+                // 성공 시 로딩바 제거
+            });
+
+            hideLoading();
+        }
+
+    </script>
+
+    </html>

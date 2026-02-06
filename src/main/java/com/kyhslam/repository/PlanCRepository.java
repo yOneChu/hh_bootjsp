@@ -87,10 +87,23 @@ public class PlanCRepository {
                 .getResultList();
     }
 
+
+
     public List<ProductPlanC> findProductByBatchDate_v2(String batchDate, String blockNo) {
         return em.createQuery("select o from ProductPlanC o where o.blockNo = :blockNo and o.batchDate = :batchDate and o.aspscd = :aspscd", ProductPlanC.class)
                 .setParameter("blockNo", blockNo)
                 .setParameter("batchDate", batchDate)
+                .setParameter("aspscd", "KC01")
+                .getResultList();
+    }
+
+    public List<ProductPlanC> findProductByBatchDate_v3(String batchDate, String partNo, String brand, String month) {
+        return em.createQuery("select o from ProductPlanC o where o.batchDate = :batchDate and o.aspscd = :aspscd " +
+                        "and o.partNo = :partNo and o.brand = :brand and o.erpSendDate like :erpSendDate", ProductPlanC.class)
+                .setParameter("batchDate", batchDate)
+                .setParameter("partNo", partNo)
+                .setParameter("brand", brand)
+                .setParameter("erpSendDate", month + "%")  // 2026-02%
                 .setParameter("aspscd", "KC01")
                 .getResultList();
     }

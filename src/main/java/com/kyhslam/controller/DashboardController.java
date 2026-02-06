@@ -1,6 +1,7 @@
 package com.kyhslam.controller;
 
 import com.kyhslam.domain.PlanCDash;
+import com.kyhslam.domain.ProductPlanC;
 import com.kyhslam.repository.DashboardRepository;
 import com.kyhslam.service.PartPublicationService;
 import com.kyhslam.service.PlanCService;
@@ -39,6 +40,39 @@ public class DashboardController {
         return "thymeleaf/planDashboard";
     }
 
+    /*@GetMapping("/planDashboardPop")
+    public String planDashboardPop(String brand, String partNo, String month) {
+        //return "thymeleaf/planDashboardPop";
+        return "partPublic/searchPriceReductionDatePop";
+    }*/
+
+    @GetMapping("/searchPriceReductionDatePop")
+    public String searchPriceReductionDatePop(String brand, String partNo, String month) {
+        System.out.println("\"1111111111111111\" = " + "1111111111111111");
+        return "partPublic/searchPriceReductionDatePop";
+    }
+
+
+    //findProductByBatchDate_v3
+    @PostMapping("/findProductByBatchDate_v3")
+    @ResponseBody
+    @CrossOrigin
+    public List<ProductPlanC> findProductByBatchDate_v3(String brand, String partNo, String month) {
+        System.out.println("findProductByBatchDate_v3 = " + brand);
+        LocalDate now = LocalDate.now();
+        //String todayVal = DateUtil.getYesterdayDate();
+        String todayVal = DateUtil.getTodayDate();
+        log.info("brand={}", brand);
+        log.info("month={}", month);
+        log.info("partNo={}", partNo);
+
+        List<ProductPlanC> result = new ArrayList<>();
+
+        result = planCService.findProductByBatchDate_v3(todayVal, partNo, brand, month);
+        //List<PlanCDash> result =  planCService.findPlanDashAsBrand(todayVal, brand);
+        log.info("result={}", result.size());
+        return result;
+    }
 
     @PostMapping("/findPlanDashAsBrand")
     @ResponseBody
@@ -452,10 +486,10 @@ public class DashboardController {
     }
 
     //출하예정일 -> 상세화면
-    @GetMapping("/searchPriceReductionDatePop")
+    /*@GetMapping("/searchPriceReductionDatePop")
     public String searchPriceReductionDatePop() {
         return "partPublic/searchPriceReductionDatePop";
-    }
+    }*/
 
 
     //http://localhost:8070/dashboard/batchvDelete
