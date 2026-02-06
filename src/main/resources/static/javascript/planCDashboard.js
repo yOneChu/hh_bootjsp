@@ -163,9 +163,13 @@ function searchPID()
                     "pageLength": 50,     //페이지 당 글 개수 설정
                     "autoWidth": false, // 가로자동
                     "processing": true,
-                    "scrollX" : true, //가로  스크롤
+                    //"scrollX" : true, //가로  스크롤
                     "destroy": true, // 테이블 재생성
                     "dom": "Bfrtip",
+                    "order": [[5, 'desc']], // 0번 컬럼 오름차순
+                    "columnDefs": [
+                        { targets: 0, visible: false } // 0번 컬럼 숨김
+                    ],
                     "buttons": [
                         {
                             extend: "csv",
@@ -235,6 +239,7 @@ function searchExcel() {
 
 
 function reSetData() {
+    showLoading(); // 로딩바 표시
     // 브랜드 선택 변경 시 검색 수행
     if (typeof $ !== 'undefined') {
         $("#brand").off('change.planC').on('change.planC', function() {
@@ -253,5 +258,6 @@ function reSetData() {
             }
         });
     }
+    hideLoading(); // 성공 시 로딩바 제거
 }
 

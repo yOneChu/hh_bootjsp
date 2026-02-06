@@ -907,12 +907,22 @@ public class ExcelDownloadController {
         //ArrayList<DesignRequestDTO>
         // 데이터 가져오기
         List<ProductPlanC> dataList = new ArrayList<>();
-        dataList = planCService.findProductAll();
+        dataList = planCService.findProductAll_v2();
 
 
 
         for (int i = 0; i < dataList.size(); i++) {
             ProductPlanC dto = dataList.get(i);
+
+            String indexNo = dto.getIndexNo();
+            String toCost = dto.getToCost();
+            if(indexNo == null || "".equals(indexNo.trim()) ){
+                continue;
+            }
+
+            if(toCost == null || "".equals(toCost.trim()) ){
+                continue;
+            }
 
             Row row = sheet.createRow(i + 1);
             String reqNo = dto.getErpSendDate();
@@ -922,12 +932,8 @@ public class ExcelDownloadController {
             String erpSendDate = dto.getErpSendDate();
             String exportDate = dto.getExportDate();
 
-            String indexNo = dto.getIndexNo();
-            String toCost = dto.getToCost();
 
-            if(indexNo == null || "".equals(indexNo)){
-                continue;
-            }
+
 
             String productOid = dto.getProductOid();
             String productNo = dto.getProductNo();

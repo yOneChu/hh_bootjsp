@@ -74,6 +74,11 @@ public class PlanCService {
         return list;
     }
 
+    public List<ProductPlanC> findProductAll_v2() {
+        List<ProductPlanC> list = repository.findProductAll_v2();
+        return list;
+    }
+
     public List<ProductPlanC> findProductByBlock(String blockNo) {
         List<ProductPlanC> list = repository.findProductByBlock(blockNo);
         return list;

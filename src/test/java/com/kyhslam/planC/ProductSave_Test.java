@@ -205,7 +205,7 @@ public class ProductSave_Test {
             }
         }
 
-        //System.out.println("nexMR_Map2 ---- " + nexMR_Map2);
+        System.out.println("nexMR_Map2 ---- " + nexMR_Map2);
 
         HashMap<String, HogiExportDTO> resultMap = new HashMap<>();
         ArrayList<String> dataList = new ArrayList<>();
@@ -227,6 +227,7 @@ public class ProductSave_Test {
             System.out.println(dto.getHogi() + " > " + dto.getSHIP_A());
         }*/
 
+        System.out.println("list.size() = " + list.size());
         //출하예정일 넣기
         for(int i=0;i<list.size();i++){
             ProductPlanC dto =  list.get(i);

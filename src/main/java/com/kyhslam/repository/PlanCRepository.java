@@ -66,10 +66,12 @@ public class PlanCRepository {
                 .getResultList();
     }
 
+    public List<ProductPlanC> findProductAll_v2() {
+        return em.createQuery("select o from ProductPlanC o where o.aspscd = :aspscd and o.indexNo is not null", ProductPlanC.class)
+                .setParameter("aspscd", "KC01")
+                .getResultList();
+    }
 
-
-
-//ASPSCD
     //제품
     public List<ProductPlanC> findProductByBlock(String blockNo) {
         return em.createQuery("select o from ProductPlanC o where o.blockNo = :blockNo and o.aspscd = :aspscd", ProductPlanC.class)

@@ -10,10 +10,7 @@ import com.kyhslam.service.PlanCService;
 import com.kyhslam.util.ExcelUtil;
 import com.kyhslam.util.SAPCommonUtil;
 import com.kyhslam.util.SubaeCommonUtil;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +18,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Description;
 import org.springframework.util.StopWatch;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,27 +55,27 @@ public class partExcel {
         sw.start();
 
         //String fileName = "D:\\C자재번호 단가 없는거 (20250808).xlsx";
-        String fileName = "C:\\excel\\PLAN-C_260129.xlsx";
+        String fileName = "C:\\excel\\TET.xlsx";
 
         FileInputStream fis = null;
         FileOutputStream fos = null;
         Workbook workbook = null;
 
-
         try {
-
-
             // 1. 엑셀 파일 읽기
             fis = new FileInputStream(fileName);
-            workbook = new XSSFWorkbook(fis);
+
+            workbook = WorkbookFactory.create(new File(fileName));
+            //workbook = new XSSFWorkbook(fis);
 
 
             Sheet sheet = workbook.getSheetAt(0);
 
             int rowCnt = sheet.getPhysicalNumberOfRows();
 
-            System.out.println("rowCnt = " + rowCnt);
 
+            FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+            System.out.println("rowCnt = " + rowCnt);
 
             for (int i = 1; i < rowCnt; i++) {
                 Row row = sheet.getRow(i);
@@ -88,10 +88,33 @@ public class partExcel {
 
                 String partName = ExcelUtil.getCellValue(row.getCell(2));
                 String partNo_as = ExcelUtil.getCellValue(row.getCell(3));
-                String cost_as = ExcelUtil.getCellValue(row.getCell(4));
 
-                String partNo = ExcelUtil.getCellValue(row.getCell(5));
-                String cost = ExcelUtil.getCellValue(row.getCell(6));
+                //String cost_as = ExcelUtil.getCellValue(row.getCell(4));
+                /*double value01 = evaluator.evaluate(row.getCell(4)).getNumberValue();
+                long intValue01 = (long) value01;
+                String cost_as = String.valueOf(intValue01);*/
+
+                double value = evaluator.evaluate(row.getCell(4)).getNumberValue();
+                BigDecimal bd = BigDecimal.valueOf(value);
+                long result01 = bd.setScale(0, RoundingMode.DOWN).longValue();
+                String cost_as = String.valueOf(result01);
+
+                String partNo = ExcelUtil.getCellValue(row.getCell(8));
+
+
+                //String cost = ExcelUtil.getCellValue(row.getCell(9));
+                //CellValue value02 = evaluator.evaluate(row.getCell(9));
+                //String cost = String.valueOf(value02.getNumberValue());
+
+                /*double value02 = evaluator.evaluate(row.getCell(9)).getNumberValue();
+                long intValue = (long) value02;
+                String cost = String.valueOf(intValue);*/
+                double value02 = evaluator.evaluate(row.getCell(9)).getNumberValue();
+                BigDecimal bd02 = BigDecimal.valueOf(value02);
+                long result02 = Math.round(value02);
+                String cost = String.valueOf(result02);
+
+
 
                 PartPlanC partPlanC = new PartPlanC();
                 partPlanC.setPlanIndex(index);
