@@ -9,6 +9,7 @@ import com.kyhslam.util.DateUtil;
 import com.kyhslam.util.PartCommonUtil;
 import com.kyhslam.util.SAPCommonUtil;
 import com.kyhslam.util.VaultDBConnection;
+import jakarta.persistence.Tuple;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Description;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,7 +21,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -109,6 +109,11 @@ public class PlanCService {
         return list;
     }
 
+    //findPlanDashSum
+    public List<Tuple> findPlanDashSum(String batchDate) {
+        List<Tuple> list = repository.findPlanDashSum(batchDate);
+        return list;
+    }
 
     //특정일자 배치 삭제
     public void deletePlanCProduct() {
@@ -363,7 +368,7 @@ public class PlanCService {
             }
         }
 
-        //System.out.println("nexMR_Map2 ---- " + nexMR_Map2);
+        System.out.println("nexMR_Map2 ---- " + nexMR_Map2);
 
         HashMap<String, HogiExportDTO> resultMap = new HashMap<>();
         ArrayList<String> dataList = new ArrayList<>();
@@ -385,6 +390,7 @@ public class PlanCService {
             System.out.println(dto.getHogi() + " > " + dto.getSHIP_A());
         }*/
 
+        System.out.println("list.size() = " + list.size());
         //출하예정일 넣기
         for(int i=0;i<list.size();i++){
             ProductPlanC dto =  list.get(i);

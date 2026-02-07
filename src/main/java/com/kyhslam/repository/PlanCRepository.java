@@ -2,6 +2,7 @@ package com.kyhslam.repository;
 
 import com.kyhslam.domain.*;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Tuple;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -47,6 +48,13 @@ public class PlanCRepository {
                 .getResultList();
     }
 
+    //총 수량
+    public List<Tuple> findPlanDashSum(String batchDate) {
+        return em.createQuery("select o.brand as brand, SUM(o.totalCnt) AS totalCntSum from PlanCDash o where o.batchDate = :batchDate " +
+                        "GROUP BY o.brand", Tuple.class)
+                .setParameter("batchDate", batchDate)
+                .getResultList();
+    }
 
     //엑셀 자재
     public List<PartPlanC> findAll() {

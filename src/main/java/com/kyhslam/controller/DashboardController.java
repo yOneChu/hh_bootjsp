@@ -48,7 +48,6 @@ public class DashboardController {
 
     @GetMapping("/searchPriceReductionDatePop")
     public String searchPriceReductionDatePop(String brand, String partNo, String month) {
-        System.out.println("\"1111111111111111\" = " + "1111111111111111");
         return "partPublic/searchPriceReductionDatePop";
     }
 

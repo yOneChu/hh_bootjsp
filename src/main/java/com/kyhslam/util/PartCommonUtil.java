@@ -228,7 +228,7 @@ public class PartCommonUtil {
 
                 if(cnt == 700) {
                     appendVal = appendVal.substring(0, appendVal.length() - 1);
-                    findExportDateV4(appendVal, resultMap);
+                    PartCommonUtil.findExportDateV4(appendVal, resultMap);
                     appendVal = "";
                     cnt = 0;
                 }
@@ -237,7 +237,7 @@ public class PartCommonUtil {
             if (cnt > 0) {
                 if(appendVal != null && !appendVal.equals("")) {
                     appendVal = appendVal.substring(0, appendVal.length() - 1);
-                    findExportDateV4(appendVal, resultMap);
+                    PartCommonUtil.findExportDateV4(appendVal, resultMap);
                 }
             }
 

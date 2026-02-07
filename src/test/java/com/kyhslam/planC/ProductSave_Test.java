@@ -4,9 +4,9 @@ import com.kyhslam.domain.PartPlanC;
 import com.kyhslam.domain.PlanCDash;
 import com.kyhslam.domain.ProductPlanC;
 import com.kyhslam.dto.HogiExportDTO;
-import com.kyhslam.dto.PlanDashDTO;
 import com.kyhslam.service.PlanCService;
 import com.kyhslam.util.*;
+import jakarta.persistence.Tuple;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,15 +17,12 @@ import org.springframework.util.StopWatch;
 
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.*;
 
 @SpringBootTest
 public class ProductSave_Test {
@@ -611,5 +608,20 @@ public class ProductSave_Test {
         }
 
         return data;
+    }
+
+    @Test
+    public void sumTest() {
+
+        List<Tuple> result = service.findPlanDashSum("2026-02-07");
+        System.out.println("result = " + result);
+
+        for (Tuple t : result) {
+            String brand = t.get("brand", String.class);
+            Long sum = t.get("totalCntSum", Long.class);
+
+            System.out.println("brand = " + brand);
+            System.out.println("sum = " + sum);
+        }
     }
 }
