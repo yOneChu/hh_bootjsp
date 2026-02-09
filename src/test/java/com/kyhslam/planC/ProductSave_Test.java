@@ -375,7 +375,7 @@ public class ProductSave_Test {
 
                 if(dateInfo == null || dateInfo.get("202601") == null || "".equals(dateInfo.get("202601"))) continue;
 
-                System.out.println("dateInfo.get(\"202601\") = " + dateInfo.get("202601"));
+                //System.out.println("dateInfo.get(\"202601\") = " + dateInfo.get("202601"));
                 dis202601 = Integer.parseInt(dateInfo.get("202601"));
                 dis202602 = Integer.parseInt(dateInfo.get("202602"));
                 dis202603 = Integer.parseInt(dateInfo.get("202603"));
