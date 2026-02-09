@@ -55,7 +55,7 @@ public class partExcel {
         sw.start();
 
         //String fileName = "D:\\C자재번호 단가 없는거 (20250808).xlsx";
-        String fileName = "C:\\excel\\TET.xlsx";
+        String fileName = "C:\\excel\\PLAN-C_260202.xlsx";
 
         FileInputStream fis = null;
         FileOutputStream fos = null;
@@ -109,7 +109,7 @@ public class partExcel {
                 /*double value02 = evaluator.evaluate(row.getCell(9)).getNumberValue();
                 long intValue = (long) value02;
                 String cost = String.valueOf(intValue);*/
-                double value02 = evaluator.evaluate(row.getCell(9)).getNumberValue();
+                double value02 = evaluator.evaluate(row.getCell(13)).getNumberValue();
                 BigDecimal bd02 = BigDecimal.valueOf(value02);
                 long result02 = Math.round(value02);
                 String cost = String.valueOf(result02);

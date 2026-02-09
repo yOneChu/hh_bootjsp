@@ -373,12 +373,17 @@ public class ProductSave_Test {
                 //dateInfo = findMonth_V2(partNo, brand);
                 dateInfo = findMonth_V3(partNo, brand);
 
+                if(dateInfo == null || dateInfo.get("202601") == null || "".equals(dateInfo.get("202601"))) continue;
+
+                System.out.println("dateInfo.get(\"202601\") = " + dateInfo.get("202601"));
                 dis202601 = Integer.parseInt(dateInfo.get("202601"));
                 dis202602 = Integer.parseInt(dateInfo.get("202602"));
                 dis202603 = Integer.parseInt(dateInfo.get("202603"));
                 dis202604 = Integer.parseInt(dateInfo.get("202604"));
                 dis202605 = Integer.parseInt(dateInfo.get("202605"));
                 disTotal = Integer.parseInt(dateInfo.get("TOTAL"));
+
+
 
 
                 PlanCDash planCDash = new PlanCDash();
@@ -428,7 +433,7 @@ public class ProductSave_Test {
         try {
             con = VaultDBConnection.getConnection();
 
-            String sql = """
+            /*String sql = """
                     SELECT
                         COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202601' THEN 1 END) AS DIS01,
                         COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202602' THEN 1 END) AS DIS02,
@@ -440,6 +445,34 @@ public class ProductSave_Test {
                         COUNT(CASE WHEN LEFT(erp_send_date, 6) = '202608' THEN 1 END) AS DIS08,
                         COUNT(part_no) AS TOTAL,
                         MAX(to_cost) AS to_cost -- 그룹화 시 단일 값을 가져오기 위해 MAX/MIN 사용
+                    FROM plancproduct
+                    WHERE
+                      part_no = ?
+                      AND ASPSCD = 'KC01'
+                      AND brand = ?
+                      AND batch_date = ?
+                    """;*/
+            String sql = """
+                    SELECT
+                    SUM(CASE WHEN LEFT(erp_send_date, 6) = '202601'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS01,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202602'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS02,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202603'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS03,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202604'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS04,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202605'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS05,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202606'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS06,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202607'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS07,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202608'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS08,
+                        -- 전체 수량 합계
+                        SUM(TRY_CAST(REPLACE(qty, ',', '') AS INT)) AS TOTAL,
+                        MAX(to_cost) AS to_cost
                     FROM plancproduct
                     WHERE
                       part_no = ?
@@ -494,7 +527,7 @@ public class ProductSave_Test {
         try {
             con = VaultDBConnection.getConnection();
 
-            String sql = """
+            /*String sql = """
                     SELECT
                         (select COUNT(a.part_no) AS COUNT
                                         from plancproduct A
@@ -537,6 +570,59 @@ public class ProductSave_Test {
                                           AND A.part_no = ?
                                         and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202608') AS DIS08,
                         (select COUNT(a.part_no) AS COUNT
+                                            from plancproduct A
+                                            WHERE A.ASPSCD = 'KC01'
+                                              AND A.part_no = ?
+                                            and a.brand = ?) AS TOTAL,
+                        (select a.to_cost AS COUNT
+                                            from plancproduct A
+                                            WHERE A.ASPSCD = 'KC01'
+                                              AND A.part_no = ?
+                                            and a.brand = ?) AS to_cost
+                    """;*/
+            String sql = """
+                    SELECT
+                        (select SUM(CAST(A.qty AS INT)) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202601') AS DIS01,
+                        (select SUM(CAST(A.qty AS INT)) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202602') AS DIS02,
+                            (select SUM(CAST(A.qty AS INT)) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202603') AS DIS03,
+                        (select SUM(CAST(A.qty AS INT)) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202604') AS DIS04,
+                        (select SUM(CAST(A.qty AS INT)) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202605') AS DIS05,
+                        (select SUM(CAST(A.qty AS INT)) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202606') AS DIS06,
+                        (select SUM(CAST(A.qty AS INT)) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202607') AS DIS07,
+                        (select SUM(CAST(A.qty AS INT)) AS COUNT
+                                        from plancproduct A
+                                        WHERE A.ASPSCD = 'KC01'
+                                          AND A.part_no = ?
+                                        and a.brand = ? AND LEFT(A.erp_send_date, 6) = '202608') AS DIS08,
+                        (select SUM(CAST(A.qty AS INT)) AS COUNT
                                             from plancproduct A
                                             WHERE A.ASPSCD = 'KC01'
                                               AND A.part_no = ?
