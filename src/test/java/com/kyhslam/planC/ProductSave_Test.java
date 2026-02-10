@@ -470,6 +470,14 @@ public class ProductSave_Test {
                                  THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS07,
                         SUM(CASE WHEN LEFT(erp_send_date, 6) = '202608'
                                  THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS08,
+                         SUM(CASE WHEN LEFT(erp_send_date, 6) = '202609'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS09,
+                         SUM(CASE WHEN LEFT(erp_send_date, 6) = '202610'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS10,
+                         SUM(CASE WHEN LEFT(erp_send_date, 6) = '202611'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS11,
+                         SUM(CASE WHEN LEFT(erp_send_date, 6) = '202612'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS12,
                         -- 전체 수량 합계
                         SUM(TRY_CAST(REPLACE(qty, ',', '') AS INT)) AS TOTAL,
                         MAX(to_cost) AS to_cost

@@ -208,7 +208,9 @@ public class PlanCService {
                 costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
 
                 //저장
-                getProductSave(costData, todayValue);
+                if(costData != null &&  costData.size()>0){
+                    getProductSave(costData, todayValue);
+                }
 
                 // 5초 대기
                 try {
@@ -234,7 +236,9 @@ public class PlanCService {
             costData = SAPCommonUtil.findSAPIF(PARTNO, "20260101", "20261231");
 
             //저장
-            getProductSave(costData, todayValue);
+            if(costData != null && costData.size()>0){
+                getProductSave(costData, todayValue);
+            }
 
             PARTNO = "";
             findCnt = 0;
@@ -493,6 +497,8 @@ public class PlanCService {
                 //ERP전송일자로 집계
                 //dateInfo = findMonth_V2(partNo, brand);
                 dateInfo = findMonth_V3(partNo, brand);
+
+                if(dateInfo == null || dateInfo.get("202601") == null || "".equals(dateInfo.get("202601"))) continue;
 
                 dis202601 = Integer.parseInt(dateInfo.get("202601"));
                 dis202602 = Integer.parseInt(dateInfo.get("202602"));
