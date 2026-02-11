@@ -87,7 +87,10 @@ public class DashboardController {
 
         List<PlanCDash> result = new ArrayList<>();
 
-        if(brand != null & !"".equals(brand) && partName != null && !"".equals(partName) ){
+
+        if("SUBWEIGHT".equals(brand)){
+            result = planCService.findPlanDashAsPartName(todayVal, brand);
+        } else if(brand != null & !"".equals(brand) && partName != null && !"".equals(partName) ){
             result =  planCService.findPlanDashAsBrand(todayVal, brand, partName);
         } else {
             result =  planCService.findPlanDashAsBrand(todayVal, brand);

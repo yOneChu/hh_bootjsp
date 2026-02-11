@@ -55,7 +55,7 @@ public class partExcel {
         sw.start();
 
         //String fileName = "D:\\C자재번호 단가 없는거 (20250808).xlsx";
-        String fileName = "C:\\excel\\PLAN-C_260202.xlsx";
+        String fileName = "C:\\excel\\PLAN-C_20260211.xlsx";
 
         FileInputStream fis = null;
         FileOutputStream fos = null;
@@ -94,13 +94,18 @@ public class partExcel {
                 long intValue01 = (long) value01;
                 String cost_as = String.valueOf(intValue01);*/
 
+                //이전금액
                 double value = evaluator.evaluate(row.getCell(4)).getNumberValue();
                 BigDecimal bd = BigDecimal.valueOf(value);
                 long result01 = bd.setScale(0, RoundingMode.DOWN).longValue();
                 String cost_as = String.valueOf(result01);
 
+                //자재번호
                 String partNo = ExcelUtil.getCellValue(row.getCell(8));
 
+                if (partNo.contains("X")) {
+                    continue;
+                }
 
                 //String cost = ExcelUtil.getCellValue(row.getCell(9));
                 //CellValue value02 = evaluator.evaluate(row.getCell(9));
@@ -109,11 +114,11 @@ public class partExcel {
                 /*double value02 = evaluator.evaluate(row.getCell(9)).getNumberValue();
                 long intValue = (long) value02;
                 String cost = String.valueOf(intValue);*/
+                //단위절감액
                 double value02 = evaluator.evaluate(row.getCell(13)).getNumberValue();
                 BigDecimal bd02 = BigDecimal.valueOf(value02);
                 long result02 = Math.round(value02);
                 String cost = String.valueOf(result02);
-
 
 
                 PartPlanC partPlanC = new PartPlanC();

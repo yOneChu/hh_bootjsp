@@ -65,7 +65,20 @@ public class ProductSave_Test {
         int findCnt = 0;
 
         HashMap<String,String> oMap = new HashMap();
+/*
+        List<PartPlanC> list2 = new ArrayList<>();
+        for (int i = 0; i < list.size(); i++) {
+            PartPlanC vPartInfo = list.get(i);
+            String vPartNo = list.get(i).getPartNo();
+            String toCost = list.get(i).getCost();
+            String vPartName = list.get(i).getPartName();
 
+            if(vPartName.contains("SUBWEI")) {
+                list2.add(vPartInfo);
+            }
+        }
+
+        list = list2;*/
 
         for (int i = 0; i < list.size(); i++) {
             PartPlanC vPartInfo = list.get(i);
@@ -150,6 +163,8 @@ public class ProductSave_Test {
         List<ProductPlanC> list = new ArrayList<>();
         list = service.findProductAll();
 
+        HashMap<String,String> SUBWEIGHT_Map = new HashMap();
+        HashMap<String,String> SUBWEIGHT_Map2 = new HashMap();
 
         //EXCEL에 있는 PLAN C 대상 데이터 조회
         List<PartPlanC> partList = service.findAll();
@@ -200,9 +215,19 @@ public class ProductSave_Test {
             } else if(brand.equals("LUXEN_G")) {
                 LUXEN_Map3.put(vPartNo, vPartName);
             }
-        }
 
-        System.out.println("nexMR_Map2 ---- " + nexMR_Map2);
+            if("SUBWEIGHT".equals(vPartName.trim())) {
+                SUBWEIGHT_Map.put(vPartNo, toCost); //단위절감액
+                SUBWEIGHT_Map2.put(vPartNo, vPartName);
+
+            }
+
+        }// end for
+
+
+
+        System.out.println("SUBWEIGHT_Map ---- " + SUBWEIGHT_Map);
+        System.out.println("SUBWEIGHT_Map2 ---- " + SUBWEIGHT_Map2);
 
         HashMap<String, HogiExportDTO> resultMap = new HashMap<>();
         ArrayList<String> dataList = new ArrayList<>();
@@ -217,7 +242,7 @@ public class ProductSave_Test {
         }
 
         //출하예정일 조회
-        findExportDateV3(dataList, resultMap);
+        //findExportDateV3(dataList, resultMap);
 
         /*for (String s : resultMap.keySet()) {
             HogiExportDTO dto =  resultMap.get(s);
@@ -225,6 +250,7 @@ public class ProductSave_Test {
         }*/
 
         System.out.println("list.size() = " + list.size());
+        list.clear();
         //출하예정일 넣기
         for(int i=0;i<list.size();i++){
             ProductPlanC dto =  list.get(i);
@@ -271,7 +297,14 @@ public class ProductSave_Test {
             }
 
 
+            if(SUBWEIGHT_Map.containsKey(partNo)){
+                dto.setToCost(SUBWEIGHT_Map.get(partNo));
+                dto.setIndexNo("5-2-1-1");
+                dto.setPartName(SUBWEIGHT_Map2.get(partNo));
+            }
+
         } // end for
+
         System.out.println(" -------------- END ---------------- ");
     }
 
@@ -381,6 +414,13 @@ public class ProductSave_Test {
                 dis202603 = Integer.parseInt(dateInfo.get("202603"));
                 dis202604 = Integer.parseInt(dateInfo.get("202604"));
                 dis202605 = Integer.parseInt(dateInfo.get("202605"));
+                dis202606 = Integer.parseInt(dateInfo.get("202606"));
+                dis202607 = Integer.parseInt(dateInfo.get("202607"));
+                dis202608 = Integer.parseInt(dateInfo.get("202608"));
+                dis202609 = Integer.parseInt(dateInfo.get("202609"));
+                dis202610 = Integer.parseInt(dateInfo.get("202610"));
+                dis202611 = Integer.parseInt(dateInfo.get("202611"));
+                dis202612 = Integer.parseInt(dateInfo.get("202612"));
                 disTotal = Integer.parseInt(dateInfo.get("TOTAL"));
 
 
@@ -502,14 +542,28 @@ public class ProductSave_Test {
                 String DIS03 = rs.getString("DIS03") == null ? "" : rs.getString("DIS03");
                 String DIS04 = rs.getString("DIS04") == null ? "" : rs.getString("DIS04");
                 String DIS05 = rs.getString("DIS05") == null ? "" : rs.getString("DIS05");
+                String DIS06 = rs.getString("DIS06") == null ? "" : rs.getString("DIS06");
+                String DIS07 = rs.getString("DIS07") == null ? "" : rs.getString("DIS07");
+                String DIS08 = rs.getString("DIS08") == null ? "" : rs.getString("DIS08");
+                String DIS09 = rs.getString("DIS09") == null ? "" : rs.getString("DIS09");
+                String DIS10 = rs.getString("DIS10") == null ? "" : rs.getString("DIS10");
+                String DIS11 = rs.getString("DIS11") == null ? "" : rs.getString("DIS11");
+                String DIS12 = rs.getString("DIS12") == null ? "" : rs.getString("DIS12");
                 String TOTAL = rs.getString("TOTAL") == null ? "" : rs.getString("TOTAL");
-                String to_cost = rs.getString("TOTAL") == null ? "" : rs.getString("to_cost");
+                String to_cost = rs.getString("to_cost") == null ? "" : rs.getString("to_cost");
 
                 data.put("202601", DIS01);
                 data.put("202602", DIS02);
                 data.put("202603", DIS03);
                 data.put("202604", DIS04);
                 data.put("202605", DIS05);
+                data.put("202606", DIS06);
+                data.put("202607", DIS07);
+                data.put("202608", DIS08);
+                data.put("202609", DIS09);
+                data.put("202610", DIS10);
+                data.put("202611", DIS11);
+                data.put("202612", DIS12);
                 data.put("TOTAL", TOTAL);
                 data.put("to_cost", to_cost);
             }

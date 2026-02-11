@@ -48,6 +48,15 @@ public class PlanCRepository {
                 .getResultList();
     }
 
+    //SUBWEIGHT
+    public List<PlanCDash> findPlanDashAsPartName(String batchDate, String partName) {
+        return em.createQuery("select o from PlanCDash o where o.batchDate = :batchDate and o.partName = :partName", PlanCDash.class)
+                .setParameter("batchDate", batchDate)
+                .setParameter("partName", partName)
+                .getResultList();
+    }
+
+
     //총 수량
     public List<Tuple> findPlanDashSum(String batchDate) {
         return em.createQuery("select o.brand as brand, SUM(o.totalCnt) AS totalCntSum from PlanCDash o where o.batchDate = :batchDate " +
@@ -87,6 +96,7 @@ public class PlanCRepository {
                 .setParameter("aspscd", "KC01")
                 .getResultList();
     }
+
 
     public List<ProductPlanC> findProductByBatchDate(String batchDate) {
         return em.createQuery("select o from ProductPlanC o where o.batchDate = :batchDate and o.aspscd = :aspscd", ProductPlanC.class)
@@ -129,6 +139,14 @@ public class PlanCRepository {
         return em.createQuery("select o from ProductPlanC o where o.brand = :brand and o.partNo = :partNo and o.aspscd = :aspscd", ProductPlanC.class)
                 .setParameter("brand", brand)
                 .setParameter("partNo", partNo)
+                .setParameter("aspscd", "KC01")
+                .getResultList();
+    }
+
+    public List<ProductPlanC> findProductByPartName(String batchDate, String partName) {
+        return em.createQuery("select o from ProductPlanC o where o.partName = :partName and o.batchDate = :batchDate and o.aspscd = :aspscd", ProductPlanC.class)
+                .setParameter("partName", partName)
+                .setParameter("batchDate", batchDate)
                 .setParameter("aspscd", "KC01")
                 .getResultList();
     }

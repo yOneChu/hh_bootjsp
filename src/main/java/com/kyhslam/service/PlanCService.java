@@ -63,6 +63,12 @@ public class PlanCService {
         return list;
     }
 
+    //findPlanDashAsPartName
+    public List<PlanCDash> findPlanDashAsPartName(String batchDate, String partName) {
+        List<PlanCDash> list = repository.findPlanDashAsPartName(batchDate, partName);
+        return list;
+    }
+
     public List<PartPlanC> findAll() {
         List<PartPlanC> list = repository.findAll();
         return list;
@@ -96,6 +102,12 @@ public class PlanCService {
 
     public List<ProductPlanC> findProductByBatchDate_v3(String batchDate, String partNo, String brand, String month) {
         List<ProductPlanC> list = repository.findProductByBatchDate_v3(batchDate, partNo, brand, month);
+        return list;
+    }
+
+    //findProductByPartName
+    public List<ProductPlanC> findProductByPartName(String batchDate, String partName) {
+        List<ProductPlanC> list = repository.findProductByPartName(batchDate, partName);
         return list;
     }
 
