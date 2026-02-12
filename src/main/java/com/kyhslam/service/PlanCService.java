@@ -329,6 +329,9 @@ public class PlanCService {
     @Description("출하예정일 셋팅")
     @Scheduled(cron = "0 0 02 * * *")
     public void setExportData() {
+        StopWatch sw = new StopWatch();
+        sw.start();
+
         List<ProductPlanC> list = new ArrayList<>();
         list = findProductAll();
 
@@ -469,12 +472,25 @@ public class PlanCService {
 
         } // end for
         System.out.println(" -------------- END ---------------- ");
+        sw.stop();
+
+        long millis = sw.getTotalTimeMillis();
+
+        double seconds = millis / 1000.0;
+        double minutes = seconds / 60.0;
+
+        System.out.println("⏱ PLAN-C 02 수행 시간:");
+        System.out.printf("   - %.3f 초%n", seconds);
+        System.out.printf("   - %.3f 분%n", minutes);
     }
 
     //03
     @Description("엑셀의 자재INDEX를 기준으로 대시보드 테이블에 집계 > ERP전송날짜 기준으로")
     @Scheduled(cron = "0 40 02 * * *")
     public void setDashboardData() {
+        StopWatch sw = new StopWatch();
+        sw.start();
+
         LocalDate now = LocalDate.now();
         String todayValue = now.toString();
         try {
@@ -499,10 +515,6 @@ public class PlanCService {
                 } else if(brand.equals("LUXEN_G")) {
                     brand = "LUXEN_2";
                 }
-
-               /* if("SUBWEIGHT".equals(partName)){
-                    brand = "COMMON";
-                }*/
 
                 System.out.println("partNo = " + partNo);
                 System.out.println("brand = " + brand);
@@ -585,6 +597,17 @@ public class PlanCService {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        sw.stop();
+
+        long millis = sw.getTotalTimeMillis();
+
+        double seconds = millis / 1000.0;
+        double minutes = seconds / 60.0;
+
+        System.out.println("⏱ PLAN-C 03 배치 수행 시간:");
+        System.out.printf("   - %.3f 초%n", seconds);
+        System.out.printf("   - %.3f 분%n", minutes);
     }
 
     public static HashMap<String, HogiExportDTO> findExportDateV3(ArrayList<String> data, HashMap<String, HogiExportDTO> resultMap) {

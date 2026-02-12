@@ -62,6 +62,11 @@
 
                     <ul class="nav nav-treeview">
                         <li>
+                            <a href="/dashboard/planDashboard" class="nav-link">
+                                <p>PLAN-C Dashboard</p>
+                            </a>
+                        </li>
+                        <li>
                             <a href="/jqpr/dashboard" class="nav-link">
                                 <p>JQPR 현황 및 검색</p>
                             </a>

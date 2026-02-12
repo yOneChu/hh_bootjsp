@@ -281,7 +281,6 @@ public class ProductSave_Test {
                 dto.setPartName(nexMRL_Map3.get(partNo));
             }
 
-
             if(SUBWEIGHT_Map.containsKey(partNo)){
                 dto.setToCost(SUBWEIGHT_Map.get(partNo));
                 dto.setIndexNo("5-2-1-1");
