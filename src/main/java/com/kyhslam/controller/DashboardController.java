@@ -76,7 +76,7 @@ public class DashboardController {
     @PostMapping("/findPlanDashAsBrand")
     @ResponseBody
     @CrossOrigin
-    public List<PlanCDash> searchPriceReductionRate(String brand, String partName) {
+    public List<PlanCDash> findPlanDashAsBrand(String brand, String partName) {
         System.out.println("brand = " + brand);
         LocalDate now = LocalDate.now();
         //String todayVal = DateUtil.getYesterdayDate();
@@ -88,8 +88,8 @@ public class DashboardController {
         List<PlanCDash> result = new ArrayList<>();
 
 
-        if("SUBWEIGHT".equals(brand)){
-            result = planCService.findPlanDashAsPartName(todayVal, brand);
+        if("COMMON".equals(brand)){
+            result = planCService.findPlanDashAsPartName(todayVal, "SUBWEIGHT");
         } else if(brand != null & !"".equals(brand) && partName != null && !"".equals(partName) ){
             result =  planCService.findPlanDashAsBrand(todayVal, brand, partName);
         } else {

@@ -335,6 +335,10 @@ public class PlanCService {
 
         //EXCEL에 있는 PLAN C 대상 데이터 조회
         List<PartPlanC> partList = findAll();
+
+        HashMap<String,String> SUBWEIGHT_Map = new HashMap();
+        HashMap<String,String> SUBWEIGHT_Map2 = new HashMap();
+
         HashMap<String, String> nexMR_Map = new HashMap<>();
         HashMap<String, String> nexMRL_Map = new HashMap<>();
         HashMap<String, String> LUXEN_Map = new HashMap<>();
@@ -381,6 +385,11 @@ public class PlanCService {
                 nexMRL_Map3.put(vPartNo, vPartName);
             } else if(brand.equals("LUXEN_G")) {
                 LUXEN_Map3.put(vPartNo, vPartName);
+            }
+
+            if("SUBWEIGHT".equals(vPartName.trim())) {
+                SUBWEIGHT_Map.put(vPartNo, toCost); //단위절감액
+                SUBWEIGHT_Map2.put(vPartNo, vPartName);
             }
         }
 
@@ -452,6 +461,11 @@ public class PlanCService {
                 dto.setPartName(nexMRL_Map3.get(partNo));
             }
 
+            if(SUBWEIGHT_Map.containsKey(partNo)){
+                dto.setToCost(SUBWEIGHT_Map.get(partNo));
+                dto.setIndexNo("5-2-1-1");
+                dto.setPartName(SUBWEIGHT_Map2.get(partNo));
+            }
 
         } // end for
         System.out.println(" -------------- END ---------------- ");
@@ -486,6 +500,10 @@ public class PlanCService {
                     brand = "LUXEN_2";
                 }
 
+               /* if("SUBWEIGHT".equals(partName)){
+                    brand = "COMMON";
+                }*/
+
                 System.out.println("partNo = " + partNo);
                 System.out.println("brand = " + brand);
 
@@ -508,16 +526,30 @@ public class PlanCService {
 
                 //ERP전송일자로 집계
                 //dateInfo = findMonth_V2(partNo, brand);
-                dateInfo = findMonth_V3(partNo, brand);
+                if("SUBWEIGHT".equals(partName)){
+                    dateInfo = findMonth_SUBWEIGHT(partNo);
+                } else {
+                    dateInfo = findMonth_V3(partNo, brand);
+                }
 
                 if(dateInfo == null || dateInfo.get("202601") == null || "".equals(dateInfo.get("202601"))) continue;
 
+                //System.out.println("dateInfo.get(\"202601\") = " + dateInfo.get("202601"));
                 dis202601 = Integer.parseInt(dateInfo.get("202601"));
                 dis202602 = Integer.parseInt(dateInfo.get("202602"));
                 dis202603 = Integer.parseInt(dateInfo.get("202603"));
                 dis202604 = Integer.parseInt(dateInfo.get("202604"));
                 dis202605 = Integer.parseInt(dateInfo.get("202605"));
+                dis202606 = Integer.parseInt(dateInfo.get("202606"));
+                dis202607 = Integer.parseInt(dateInfo.get("202607"));
+                dis202608 = Integer.parseInt(dateInfo.get("202608"));
+                dis202609 = Integer.parseInt(dateInfo.get("202609"));
+                dis202610 = Integer.parseInt(dateInfo.get("202610"));
+                dis202611 = Integer.parseInt(dateInfo.get("202611"));
+                dis202612 = Integer.parseInt(dateInfo.get("202612"));
                 disTotal = Integer.parseInt(dateInfo.get("TOTAL"));
+
+
 
 
                 PlanCDash planCDash = new PlanCDash();
@@ -673,6 +705,103 @@ public class PlanCService {
                 data.put("202603", DIS03);
                 data.put("202604", DIS04);
                 data.put("202605", DIS05);
+                data.put("TOTAL", TOTAL);
+                data.put("to_cost", to_cost);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            VaultDBConnection.disconnect(con, pstmt, rs);
+        }
+        return data;
+    }
+
+    public HashMap<String, String> findMonth_SUBWEIGHT(String partNo) {
+
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        String todayVal = DateUtil.getTodayDate();
+
+        HashMap<String, String> data = new HashMap<>();
+        try {
+            con = VaultDBConnection.getConnection();
+
+            String sql = """
+                    SELECT
+                    SUM(CASE WHEN LEFT(erp_send_date, 6) = '202601'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS01,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202602'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS02,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202603'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS03,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202604'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS04,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202605'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS05,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202606'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS06,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202607'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS07,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202608'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS08,
+                         SUM(CASE WHEN LEFT(erp_send_date, 6) = '202609'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS09,
+                         SUM(CASE WHEN LEFT(erp_send_date, 6) = '202610'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS10,
+                         SUM(CASE WHEN LEFT(erp_send_date, 6) = '202611'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS11,
+                         SUM(CASE WHEN LEFT(erp_send_date, 6) = '202612'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS12,
+                        -- 전체 수량 합계
+                        SUM(TRY_CAST(REPLACE(qty, ',', '') AS INT)) AS TOTAL,
+                        MAX(to_cost) AS to_cost
+                    FROM plancproduct
+                    WHERE
+                      part_no = ?
+                      AND ASPSCD = 'KC01'
+                      AND batch_date = ?
+                      --AND brand = ?
+                    """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, partNo);
+            pstmt.setString(2, todayVal);
+            //pstmt.setString(2, brand);
+
+
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                String DIS01 = rs.getString("DIS01") == null ? "" : rs.getString("DIS01");
+                String DIS02 = rs.getString("DIS02") == null ? "" : rs.getString("DIS02");
+                String DIS03 = rs.getString("DIS03") == null ? "" : rs.getString("DIS03");
+                String DIS04 = rs.getString("DIS04") == null ? "" : rs.getString("DIS04");
+                String DIS05 = rs.getString("DIS05") == null ? "" : rs.getString("DIS05");
+                String DIS06 = rs.getString("DIS06") == null ? "" : rs.getString("DIS06");
+                String DIS07 = rs.getString("DIS07") == null ? "" : rs.getString("DIS07");
+                String DIS08 = rs.getString("DIS08") == null ? "" : rs.getString("DIS08");
+                String DIS09 = rs.getString("DIS09") == null ? "" : rs.getString("DIS09");
+                String DIS10 = rs.getString("DIS10") == null ? "" : rs.getString("DIS10");
+                String DIS11 = rs.getString("DIS11") == null ? "" : rs.getString("DIS11");
+                String DIS12 = rs.getString("DIS12") == null ? "" : rs.getString("DIS12");
+                String TOTAL = rs.getString("TOTAL") == null ? "" : rs.getString("TOTAL");
+                String to_cost = rs.getString("to_cost") == null ? "" : rs.getString("to_cost");
+
+                data.put("202601", DIS01);
+                data.put("202602", DIS02);
+                data.put("202603", DIS03);
+                data.put("202604", DIS04);
+                data.put("202605", DIS05);
+                data.put("202606", DIS06);
+                data.put("202607", DIS07);
+                data.put("202608", DIS08);
+                data.put("202609", DIS09);
+                data.put("202610", DIS10);
+                data.put("202611", DIS11);
+                data.put("202612", DIS12);
                 data.put("TOTAL", TOTAL);
                 data.put("to_cost", to_cost);
             }

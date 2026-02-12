@@ -55,7 +55,7 @@ public class partExcel {
         sw.start();
 
         //String fileName = "D:\\C자재번호 단가 없는거 (20250808).xlsx";
-        String fileName = "C:\\excel\\PLAN-C_20260211.xlsx";
+        String fileName = "C:\\excel\\PLAN-C_260211.xlsx";
 
         FileInputStream fis = null;
         FileOutputStream fos = null;
