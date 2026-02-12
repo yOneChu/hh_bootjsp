@@ -29,9 +29,11 @@ $(document).ready(function() {
     searchPID();
 
 
-    chart();
+    //chart();
 
-    lineChart();
+    //lineChart();
+
+    barChart();
 
 }); // end document ready
 
@@ -443,4 +445,31 @@ function lineChart() {
 
     });
 
+}
+
+
+function barChart() {
+    Highcharts.chart('container_bar', {
+        chart: {
+            type: 'column'
+        },
+        title: {
+            //text: 'Column chart with negative values'
+        },
+        xAxis: {
+            categories: ['PIT LADDER', 'COMPEN CHAIN', 'RAIL', 'Grapes', 'Bananas', 'A', 'B', 'C', 'D']
+        },
+        credits: {
+            enabled: false
+        },
+        plotOptions: {
+            column: {
+                borderRadius: '25%'
+            }
+        },
+        series: [{
+            //name: 'John',
+            data: [850000, 30000, 47000, 789000, -200200, 789000, 789000 ,789000 ,789000]
+        }]
+    });
 }

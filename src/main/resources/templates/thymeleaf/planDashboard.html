@@ -22,6 +22,10 @@
 
     <!-- Theme style -->
     <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+
+    <style>
+
+    </style>
 </head>
 
 
@@ -159,99 +163,110 @@
                     </div>
                         <!-- /.row -->
 
-
                     <div class="row">
-                        <div class="col-12 col-sm-6 col-md-3">
-                            <div class="info-box">
-                                <span class="info-box-icon bg-info elevation-1"><i class="fas fa-cog"></i></span>
+                        <div class="col-lg-3 col-6">
+                            <!-- small box -->
+                            <div class="small-box bg-info">
+                                <div class="inner">
+                                    <h3>150</h3>
 
-                                <div class="info-box-content">
-                                    <span class="info-box-text">LUXEN_G 총 수량</span>
-                                    <span class="info-box-number">
-                                  10
-                                  <small>%</small>
-                                </span>
+                                    <p>총 개수</p>
                                 </div>
-                                <!-- /.info-box-content -->
-                            </div>
-                            <!-- /.info-box -->
-                        </div>
-                        <!-- /.col -->
-                        <div class="col-12 col-sm-6 col-md-3">
-                            <div class="info-box mb-3">
-                                <span class="info-box-icon bg-danger elevation-1"><i class="fas fa-thumbs-up"></i></span>
-
-                                <div class="info-box-content">
-                                    <span class="info-box-text">NEX_MR_G 총 수량</span>
-                                    <span class="info-box-number">41,410</span>
+                                <div class="icon">
+                                    <i class="ion ion-bag"></i>
                                 </div>
-                                <!-- /.info-box-content -->
+                                <!--<a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>-->
                             </div>
-                            <!-- /.info-box -->
                         </div>
-                        <!-- /.col -->
+                        <!-- ./col -->
+                        <div class="col-lg-3 col-6">
+                            <!-- small box -->
+                            <div class="small-box bg-success">
+                                <div class="inner">
+                                    <h3>53<sup style="font-size: 20px">%</sup></h3>
 
-                        <!-- fix for small devices only -->
-                        <div class="clearfix hidden-md-up"></div>
-
-                        <div class="col-12 col-sm-6 col-md-3">
-                            <div class="info-box mb-3">
-                                <span class="info-box-icon bg-success elevation-1"><i class="fas fa-shopping-cart"></i></span>
-
-                                <div class="info-box-content">
-                                    <span class="info-box-text">NEX_MRL_G 총 수량</span>
-                                    <span class="info-box-number">760</span>
+                                    <p>Bounce Rate</p>
                                 </div>
-                                <!-- /.info-box-content -->
-                            </div>
-                            <!-- /.info-box -->
-                        </div>
-                        <!-- /.col -->
-                        <div class="col-12 col-sm-6 col-md-3">
-                            <div class="info-box mb-3">
-                                <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-users"></i></span>
-
-                                <div class="info-box-content">
-                                    <span class="info-box-text">New Members</span>
-                                    <span class="info-box-number">2,000</span>
+                                <div class="icon">
+                                    <i class="ion ion-stats-bars"></i>
                                 </div>
-                                <!-- /.info-box-content -->
+                               <!-- <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>-->
                             </div>
-                            <!-- /.info-box -->
                         </div>
-                        <!-- /.col -->
+                        <!-- ./col -->
+                        <div class="col-lg-3 col-6">
+                            <!-- small box -->
+                            <div class="small-box bg-warning">
+                                <div class="inner">
+                                    <h3>44</h3>
+
+                                    <p>User Registrations</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="ion ion-person-add"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- ./col -->
+                        <div class="col-lg-3 col-6">
+                            <!-- small box -->
+                            <div class="small-box bg-danger">
+                                <div class="inner">
+                                    <h3>65</h3>
+
+                                    <p>Unique Visitors</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="ion ion-pie-graph"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- ./col -->
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card card-primary card-outline">
-                                <div class="card-header">
-                                    <h3 class="card-title">
-                                        <i class="far fa-chart-bar"></i>
-                                        Donut Chart
-                                    </h3>
-                                    <figure class="highcharts-figure">
-                                        <div id="container"></div>
-                                    </figure>
-                                </div>
 
-                                <!-- /.card-body-->
-                            </div>
-                        </div>
-
-
-
-                        <div class="col-md-6">
-                            <div class="card card-primary card-outline">
+                        <div class="row">
+                            <div class="col-md-12">
                                 <figure class="highcharts-figure">
-                                    <div id="container-02"></div>
+                                    <div id="container_bar"></div>
+
                                 </figure>
                             </div>
                         </div>
 
-                    </div>
+
+<!--
+
+                    <div class="row">
+                            <div class="col-md-6">
+                                <div class="card card-primary card-outline">
+                                    <div class="card-header">
+                                        <h3 class="card-title">
+                                            <i class="far fa-chart-bar"></i>
+                                            Donut Chart
+                                        </h3>
+                                        <figure class="highcharts-figure">
+                                            <div id="container"></div>
+                                        </figure>
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+                            <div class="col-md-6">
+                                <div class="card card-primary card-outline">
+                                    <figure class="highcharts-figure">
+                                        <div id="container-02"></div>
+                                    </figure>
+                                </div>
+                            </div>
+                        </div>
+-->
+
 
                     </div>
+
 
 
                     <div class="card-footer">
@@ -351,11 +366,7 @@
 
 </body>
 
-<!-- <script src="https://code.jquery.com/jquery-3.5.1.js"></script> -->
-
 <script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
-
-
 
 <!-- AdminLTE App -->
 <script src="/resources/dist/js/adminlte.min.js"></script>
@@ -385,16 +396,24 @@
 <script src="/resources/javascript/planCDashboard.js"></script>
 
 <!-- Highhart -->
-<!--<script src="/resources/dist/js/highcharts.js"></script>
+<script src="/resources/dist/js/highcharts.js"></script>
 <script src="/resources/dist/js/exporting.js"></script>
 <script src="/resources/dist/js/export-data.js"></script>
-<script src="/resources/dist/js/accessibility.js"></script>-->
+<script src="/resources/dist/js/accessibility.js"></script>
 
-<script src="https://code.highcharts.com/highcharts.js"></script>
+<!--<script src="https://code.highcharts.com/highcharts.js"></script>
 <script src="https://code.highcharts.com/modules/non-cartesian-zoom.js"></script>
 <script src="https://code.highcharts.com/modules/mouse-wheel-zoom.js"></script>
 <script src="https://code.highcharts.com/modules/exporting.js"></script>
 <script src="https://code.highcharts.com/modules/accessibility.js"></script>
 <script src="https://code.highcharts.com/themes/adaptive.js"></script>
 
+
+<script src="https://code.highcharts.com/modules/data.js"></script>
+<script src="https://code.highcharts.com/modules/drilldown.js"></script>-->
+
+<!--<script src="https://code.highcharts.com/highcharts.js"></script>-->
+<script src="https://code.highcharts.com/modules/data.js"></script>
+<script src="https://code.highcharts.com/modules/drilldown.js"></script>
+<script src="https://code.highcharts.com/themes/adaptive.js"></script>
 </html>
