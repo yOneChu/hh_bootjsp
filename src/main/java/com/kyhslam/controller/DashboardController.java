@@ -11,6 +11,7 @@ import com.kyhslam.util.DashboardHPI;
 import com.kyhslam.util.DateUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Description;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -49,6 +50,13 @@ public class DashboardController {
     @GetMapping("/searchPriceReductionDatePop")
     public String searchPriceReductionDatePop(String brand, String partNo, String month) {
         return "partPublic/searchPriceReductionDatePop";
+    }
+
+    @Description("현 집계중인 자재 리스트")
+    @CrossOrigin
+    @GetMapping("/searchPlanPartView")
+    public String searchPlanPartView(String brand, String partNo, String month) {
+        return "partPublic/searchPlanPartView";
     }
 
 

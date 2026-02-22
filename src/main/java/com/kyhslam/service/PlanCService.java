@@ -655,6 +655,7 @@ public class PlanCService {
         String todayVal = DateUtil.getTodayDate();
 
         HashMap<String, String> data = new HashMap<>();
+
         try {
             con = VaultDBConnection.getConnection();
 
@@ -696,6 +697,14 @@ public class PlanCService {
                                  THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS07,
                         SUM(CASE WHEN LEFT(erp_send_date, 6) = '202608'
                                  THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS08,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202609'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS09,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202610'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS10,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202611'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS11,
+                        SUM(CASE WHEN LEFT(erp_send_date, 6) = '202612'
+                                 THEN TRY_CAST(REPLACE(qty, ',', '') AS INT) ELSE 0 END) AS DIS12,
                         -- 전체 수량 합계
                         SUM(TRY_CAST(REPLACE(qty, ',', '') AS INT)) AS TOTAL,
                         MAX(to_cost) AS to_cost
@@ -720,6 +729,13 @@ public class PlanCService {
                 String DIS03 = rs.getString("DIS03") == null ? "" : rs.getString("DIS03");
                 String DIS04 = rs.getString("DIS04") == null ? "" : rs.getString("DIS04");
                 String DIS05 = rs.getString("DIS05") == null ? "" : rs.getString("DIS05");
+                String DIS06 = rs.getString("DIS06") == null ? "" : rs.getString("DIS06");
+                String DIS07 = rs.getString("DIS07") == null ? "" : rs.getString("DIS07");
+                String DIS08 = rs.getString("DIS08") == null ? "" : rs.getString("DIS08");
+                String DIS09 = rs.getString("DIS09") == null ? "" : rs.getString("DIS09");
+                String DIS10 = rs.getString("DIS10") == null ? "" : rs.getString("DIS10");
+                String DIS11 = rs.getString("DIS11") == null ? "" : rs.getString("DIS11");
+                String DIS12 = rs.getString("DIS12") == null ? "" : rs.getString("DIS12");
                 String TOTAL = rs.getString("TOTAL") == null ? "" : rs.getString("TOTAL");
                 String to_cost = rs.getString("TOTAL") == null ? "" : rs.getString("to_cost");
 
@@ -728,6 +744,13 @@ public class PlanCService {
                 data.put("202603", DIS03);
                 data.put("202604", DIS04);
                 data.put("202605", DIS05);
+                data.put("202606", DIS06);
+                data.put("202607", DIS07);
+                data.put("202608", DIS08);
+                data.put("202609", DIS09);
+                data.put("202610", DIS10);
+                data.put("202611", DIS11);
+                data.put("202612", DIS12);
                 data.put("TOTAL", TOTAL);
                 data.put("to_cost", to_cost);
             }
