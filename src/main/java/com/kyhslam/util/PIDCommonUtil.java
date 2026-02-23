@@ -1,5 +1,7 @@
 package com.kyhslam.util;
 
+import org.springframework.context.annotation.Description;
+
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -1175,22 +1177,76 @@ public class PIDCommonUtil {
                             }
                         }
                     }
-
-
-
-
-
                 }
-
             }
-            //System.out.println(result);
-
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             PLMDBConnection.disconnect(con, pstmt, rs);
         }
 
+        return result;
+    }
+
+
+    /**
+     * PID명으로 전체 버전 조회
+     * @param pid
+     * @return
+     */
+    @Description("PID명으로 전체 버전 조회")
+    public static ArrayList<HashMap<String, String>> findPIDList(String pid) {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<HashMap<String, String>> result = new ArrayList<>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                    SELECT H.PID, H.HOUID, H.NAME, H.REG_DATE,
+                           H.VERSION, H.REMARKS, H.USERID
+                    FROM variant_H H
+                    --WHERE H.PID = 'EL_PB185B'
+                    WHERE H.PID = ?
+                    ORDER BY H.REG_DATE DESC
+                    """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, pid);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+
+                String PID = rs.getString("PID"); //제품번호
+                String HOUID = rs.getString("HOUID");
+                String NAME = rs.getString("NAME");
+                String REG_DATE = rs.getString("REG_DATE");
+                String VERSION = rs.getString("VERSION");
+                String REMARKS = rs.getString("REMARKS");
+                String USERID = rs.getString("USERID");
+
+
+                HashMap<String, String> oMap = new HashMap<>();
+                oMap.put("PID", PID);
+                oMap.put("HOUID", HOUID);
+                oMap.put("NAME", NAME);
+                oMap.put("REG_DATE", REG_DATE);
+                oMap.put("VERSION", VERSION);
+                oMap.put("REMARKS", REMARKS);
+                oMap.put("USERID", USERID);
+
+                result.add(oMap);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
         return result;
     }
 }

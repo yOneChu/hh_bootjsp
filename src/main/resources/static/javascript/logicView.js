@@ -48,12 +48,94 @@ function hideEmptyColumns() {
 
 
 
+function searchPIDList()
+{
+    let pid = document.getElementById('searchInput').value.trim();
+    if (!pid) {
+        alert('PID를 입력하세요.');
+        return;
+    }
+
+    console.log("---searchPIDList---", pid);
+
+    const $select = $('#pidList');
+    // 초기화
+    $select.empty();
+    $select.append($('<option>', { value: '', text: '버전을 선택하세요', disabled: true, selected: true }));
+
+    showLoading(); // 로딩바 표시
+    $.ajax({
+        type : "get", // 서버는 @GetMapping 이므로 GET 사용
+        crossDomain : true,
+        url : "/pid/findPIDList",
+        data : { pid : pid.toUpperCase() },
+        beforeSend: function() {
+            $("html").css("cursor", "wait");
+        },
+        complete: function() {
+            $("html").css("cursor", "auto");
+        },
+        success : function(rr)
+        {
+            try {
+                if (rr && rr.length > 0) {
+                    // rr 이 문자열 배열 또는 객체 배열인 경우 모두 지원
+                    rr.forEach(function(item) {
+                        let value, text;
+                        if (typeof item === 'string') {
+                            value = item;
+                            text = item;
+                        } else if (item && typeof item === 'object') {
+                            // 선호 표시: VERSION (등록일, 이름)
+                            const version = item.VERSION || item.version || '';
+                            const regDate = item.REG_DATE || item.regDate || item.reg_date || '';
+                            const name = item.NAME || item.name || '';
+                            const pidStr = item.PID || item.pid || '';
+                            const houid = item.HOUID || item.houid || '';
+
+                            value = houid || version || pidStr || name || JSON.stringify(item);
+
+                            // 보기 좋은 텍스트 조립
+                            const parts = [];
+                            if (version) parts.push('v' + version);
+                            if (regDate) parts.push(regDate);
+                            if (name) parts.push(name);
+                            if (!parts.length && pidStr) parts.push(pidStr);
+                            text = parts.join(' | ') || value;
+
+                            value = houid;
+                        }
+
+                        if (text !== undefined) {
+                            $select.append($('<option>', { value: value, text: text }));
+                        }
+                    });
+                } else {
+                    alert("검색결과가 없습니다.");
+                }
+            } finally {
+                hideLoading(); // 로딩바 제거
+            }
+        }, // end success
+        error: function () {
+            hideLoading(); // 로딩바 제거
+            alert('오류 발생하였습니다. 김영환M 문의하세요.😅');
+        }
+    });
+
+} // END SearchPIDList
+
+
+
 function searchPID()
 {
 
     let pid = document.getElementById('searchInput').value.trim();
+    let pidListVal = $('#pidList').value();
+
     console.log("---searchPID---");
 
+    console.log('pidListVal -- ', pidListVal);
 
     showLoading(); // 로딩바 표시
     $.ajax({
@@ -82,7 +164,6 @@ function searchPID()
                 //공백 인 열 제외
                 hideEmptyColumns();
 
-
                 hideLoading(); // 성공 시 로딩바 제거
                 //return rr;
             } else {
@@ -99,6 +180,7 @@ function searchPID()
 
 
 } // END SearchPID
+
 
 
 // Handsontable 인스턴스

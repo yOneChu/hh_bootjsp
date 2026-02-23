@@ -101,4 +101,14 @@ public class PIDController {
         return result;
     }
 
+    @Description("PID명으로 전체 버전 조회")
+    @GetMapping("/pid/findPIDList")
+    @ResponseBody
+    public ArrayList<HashMap<String, String>> findPIDList(String pid) {
+        ArrayList<HashMap<String, String>> result = new ArrayList<>();
+        result = PIDCommonUtil.findPIDList(pid);
+
+        return result;
+    }
+
 }

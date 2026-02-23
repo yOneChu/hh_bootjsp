@@ -149,7 +149,7 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
     <div class="container-fluid">
         <a class="navbar-brand" href="#">
-            <i class="fas fa-table me-2"></i>로직에디터 어시스턴트
+            <i class="fas fa-table me-4"></i>로직에디터 어시스턴트
         </a>
     </div>
 </nav>
@@ -169,7 +169,15 @@
         <input type="text" class="form-control cell-reference" id="cellReference" value="A1" readonly>
         <div class="me-2"><i class="fas fa-search"></i></div>
         <input type="text" class="form-control formula-input" id="searchInput" placeholder="PID를 입력하세요..." style="max-width:250px;">
-        <button class="btn btn-primary ms-2" onclick="searchPID()" style="width:120px;">
+
+        <div class="me-2">
+            <select class="form-select formula-input" id="pidList">
+
+
+            </select>
+        </div>
+
+        <button class="btn btn-primary ms-2" onclick="searchPIDList()" style="width:120px;">
             검색
         </button>
     </div>
