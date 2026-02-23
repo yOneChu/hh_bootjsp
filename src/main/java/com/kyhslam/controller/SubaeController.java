@@ -138,6 +138,13 @@ public class SubaeController {
         return "thymeleaf/logicView";
     }
 
+    @GetMapping("/subae/logicViewV2")
+    public String logicViewV2(HttpServletResponse response) {
+        log.info("========== subae logicView.html");
+        //return "subaeLogic/logicView.html";
+        return "thymeleaf/logicViewV2";
+    }
+
     @PostMapping("/subae/logiceditor")
     @ResponseBody
     public List<LogicDTO> logiceditor() {
@@ -306,6 +313,22 @@ public class SubaeController {
         }
 
         ArrayList<ArrayList<String>> result = subaeService.findPIDLineView(pid);
+        return result;
+    }
+
+    @PostMapping("/subae/findPIDLineViewV2")
+    @ResponseBody
+    @CrossOrigin
+    public ArrayList<ArrayList<String>> findPIDLineViewV2(String pid, String pidOid) {
+
+        log.info("pid = " + pid);
+        log.info("pidOid = " + pidOid);
+        if (pid != null && !pid.equals("")) {
+            pid = pid.toUpperCase();
+        }
+
+        ArrayList<ArrayList<String>> result = subaeService.findPIDLineViewV2(pid, pidOid);
+        log.info("result.size() = " + result.size());
         return result;
     }
 

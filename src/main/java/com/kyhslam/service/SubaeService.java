@@ -235,6 +235,11 @@ public class SubaeService {
         return result;
     }
 
+    //findPIDLineViewV2
+    public ArrayList<ArrayList<String>> findPIDLineViewV2(String pidName, String pidOid) {
+        ArrayList<ArrayList<String>> result = PIDCommonUtil.findPIDLineViewV2(pidName, pidOid);
+        return result;
+    }
 
     //findPIDLineMaptify
     public ArrayList<String> findPIDLineMaptify(String pidName) {
