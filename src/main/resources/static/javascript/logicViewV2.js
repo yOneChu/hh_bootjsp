@@ -87,16 +87,23 @@ function searchPIDList()
                             text = item;
                         } else if (item && typeof item === 'object') {
                             // 선호 표시: VERSION (등록일, 이름)
-                            const version = item.VERSION || item.version || '';
+                            let version = item.VERSION || item.version || '';
                             const regDate = item.REG_DATE || item.regDate || item.reg_date || '';
                             const name = item.NAME || item.name || '';
                             const pidStr = item.PID || item.pid || '';
                             const houid = item.HOUID || item.houid || '';
 
+                            console.log(`${name} `);
+                            console.log(`${pidStr} `);
+                            console.log(`${version} `);
+
                             value = houid || version || pidStr || name || JSON.stringify(item);
 
                             // 보기 좋은 텍스트 조립
                             const parts = [];
+                            if(version === '-1') {
+                                version = 'TEST';
+                            }
                             if (version) parts.push('v' + version);
                             if (regDate) parts.push(regDate);
                             if (name) parts.push(name);
