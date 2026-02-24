@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="icon" type="image/png" href="/resources/favicon.ico" />
+
+    <title>로직 Viewer</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/handsontable/12.4.0/handsontable.full.min.css" rel="stylesheet">
+    <link href="/resources/css/logicViewDiff.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">
+            <i class="fas fa-table me-4"></i>로직에디터 어시스턴트
+        </a>
+    </div>
+</nav>
+
+<div class="toolbar">
+    <div class="d-flex align-items-center flex-wrap">
+        <div class="btn-toolbar-group">
+            <button class="btn btn-outline-success btn-sm" onclick="insertChart()">
+                <i class="fas fa-chart-line"></i> Maptify
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="formula-bar">
+    <div class="d-flex align-items-center">
+        <input type="text" class="form-control cell-reference" id="cellReference" value="A1" readonly>
+        <div class="me-2"><i class="fas fa-search"></i></div>
+        <input type="text" class="form-control formula-input" id="searchInput" placeholder="PID를 입력하세요..." style="max-width:250px;">
+
+        <button class="btn btn-primary ms-2" onclick="searchPIDList()" style="width:120px;">
+            검색
+        </button>
+
+        <div class="me-2">
+            <select class="form-select formula-input" id="pidList">
+
+            </select>
+        </div>
+
+        <div class="btn-group ms-2">
+            <button class="btn btn-primary" onclick="searchPID('top')" style="width:100px;">
+                위 출력
+            </button>
+            <button class="btn btn-secondary" onclick="searchPID('bottom')" style="width:100px;">
+                아래 출력
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid mt-3">
+    <div class="split-view-container">
+        <!-- 위쪽 컨테이너 -->
+        <div class="excel-wrapper">
+            <div class="excel-container h-100 d-flex flex-column">
+                <div id="handsontable-container-top" class="handsontable-container-wrapper"></div>
+                <div class="status-bar">
+                    <div class="d-flex justify-content-between">
+                        <span id="statusText-top">준비 (위)</span>
+                        <span>행: <span id="rowCount-top">0</span> | 열: <span id="colCount-top">0</span> | 선택된 셀: <span id="selectedCell-top">-</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 아래쪽 컨테이너 -->
+        <div class="excel-wrapper">
+            <div class="excel-container h-100 d-flex flex-column">
+                <div id="handsontable-container-bottom" class="handsontable-container-wrapper"></div>
+                <div class="status-bar">
+                    <div class="d-flex justify-content-between">
+                        <span id="statusText-bottom">준비 (아래)</span>
+                        <span>행: <span id="rowCount-bottom">0</span> | 열: <span id="colCount-bottom">0</span> | 선택된 셀: <span id="selectedCell-bottom">-</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer 추가 -->
+<!-- Footer -->
+<footer class="main-footer">
+    <div class="footer-left">
+        <i class="fas fa-code-branch me-1"></i><b>Version</b> 1.0.0
+    </div>
+    <div class="footer-right">
+        <strong>
+            Copyright &copy; 2026
+            <a href="#" class="footer-link">수배로직설계팀-김영환 M</a>
+        </strong>
+        <span>All rights reserved.</span>
+    </div>
+</footer>
+
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/handsontable/12.4.0/handsontable.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperformula@2.2.0/dist/hyperformula.full.min.js"></script>
+
+<script src="/resources/javascript/logicViewDiff.js"></script>
+
+
+</body>
+</html>

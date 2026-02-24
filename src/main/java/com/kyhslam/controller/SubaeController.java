@@ -145,6 +145,13 @@ public class SubaeController {
         return "thymeleaf/logicViewV2";
     }
 
+    @GetMapping("/subae/logicViewV3")
+    public String logicViewV3(HttpServletResponse response) {
+        log.info("========== subae logicViewV3.html");
+        //return "subaeLogic/logicView.html";
+        return "thymeleaf/logicViewDiff";
+    }
+
     @PostMapping("/subae/logiceditor")
     @ResponseBody
     public List<LogicDTO> logiceditor() {

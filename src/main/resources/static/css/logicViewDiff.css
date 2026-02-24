@@ -1,0 +1,57 @@
+.excel-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid #e0e0e0;
+}
+
+.status-bar {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.formula-bar {
+    background: #f8f9fa;
+    padding: 10px 20px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.toolbar {
+    padding: 10px 20px;
+    background: white;
+    border-bottom: 1px solid #eee;
+}
+
+/* 위아래 분할을 위한 스타일 */
+.split-view-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 200px); /* 헤더, 툴바, 푸터 제외 높이 */
+    gap: 10px;
+}
+
+.excel-wrapper {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.handsontable-container-wrapper {
+    flex: 1;
+    overflow: hidden;
+}
+
+.main-footer {
+    padding: 10px 20px;
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+}
