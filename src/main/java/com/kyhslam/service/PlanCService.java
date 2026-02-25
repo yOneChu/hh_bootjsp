@@ -812,7 +812,7 @@ public class PlanCService {
                     FROM plancproduct
                     WHERE
                       part_no = ?
-                      AND ASPSCD = 'KC01'
+                     -- AND ASPSCD = 'KC01'
                       AND batch_date = ?
                       --AND brand = ?
                     """;
