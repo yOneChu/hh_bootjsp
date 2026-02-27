@@ -577,7 +577,8 @@
                         <div class="col-md-1">
                             <label class="form-label small text-muted">기간</label>
                             <select id="year" class="form-select form-control-hyundai">
-                                <option value="2025" selected>2025년</option>
+                                <option value="2026" selected>2026년</option>
+                                <option value="2025">2025년</option>
                                 <option value="2024">2024년</option>
                                 <option value="2023">2023년</option>
                                 <option value="2024">2022년</option>
