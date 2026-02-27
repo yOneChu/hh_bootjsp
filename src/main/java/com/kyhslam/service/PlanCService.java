@@ -105,6 +105,11 @@ public class PlanCService {
         return list;
     }
 
+    public List<ProductPlanC> findProductByBatchDate_v4(String batchDate, String blockNo, String partNo, String month) {
+        List<ProductPlanC> list = repository.findProductByBatchDate_v4(batchDate, blockNo, partNo, month);
+        return list;
+    }
+
     //findProductByPartName
     public List<ProductPlanC> findProductByPartName(String batchDate, String partName) {
         List<ProductPlanC> list = repository.findProductByPartName(batchDate, partName);
@@ -807,7 +812,7 @@ public class PlanCService {
                     FROM plancproduct
                     WHERE
                       part_no = ?
-                      AND ASPSCD = 'KC01'
+                     -- AND ASPSCD = 'KC01'
                       AND batch_date = ?
                       --AND brand = ?
                     """;

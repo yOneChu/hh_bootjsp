@@ -24,9 +24,18 @@
     LocalDate now = LocalDate.now();
     String todayVal = now.toString();
 
+
+    List<ProductPlanC> data = new ArrayList<>();
+
     PlanCService planCService = (PlanCService) context.getBean("PlanCService");
 
-    List<ProductPlanC> data = planCService.findProductByBatchDate_v3(todayVal, partNo, brand, month);
+    if ("COMMON".equals(brand)) {
+        //BlockNo
+        data = planCService.findProductByBatchDate_v4(todayVal, "B181B", partNo, month);
+    } else {
+        data = planCService.findProductByBatchDate_v3(todayVal, partNo, brand, month);
+    }
+    //List<ProductPlanC> data = planCService.findProductByBatchDate_v3(todayVal, partNo, brand, month);
 
 
     System.out.println("brand == " + brand);

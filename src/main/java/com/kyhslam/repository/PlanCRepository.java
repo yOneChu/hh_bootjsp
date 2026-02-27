@@ -126,6 +126,17 @@ public class PlanCRepository {
                 .getResultList();
     }
 
+    public List<ProductPlanC> findProductByBatchDate_v4(String batchDate, String blockNo, String partNo, String month) {
+        return em.createQuery("select o from ProductPlanC o where o.blockNo = :blockNo and o.batchDate = :batchDate and o.aspscd = :aspscd " +
+                        "and o.partNo = :partNo and o.erpSendDate like :erpSendDate", ProductPlanC.class)
+                .setParameter("blockNo", blockNo)
+                .setParameter("partNo", partNo)
+                .setParameter("batchDate", batchDate)
+                .setParameter("erpSendDate", month + "%")  // 2026-02%
+                .setParameter("aspscd", "KC01")
+                .getResultList();
+    }
+
     //원가실적조회로 조회 한게 있는지 검사
     public List<ProductPlanC> findProductByHogi(String productNo, String partNo) {
         return em.createQuery("select o from ProductPlanC o where o.productNo = :productNo and o.partNo = :partNo and o.aspscd = :aspscd", ProductPlanC.class)
