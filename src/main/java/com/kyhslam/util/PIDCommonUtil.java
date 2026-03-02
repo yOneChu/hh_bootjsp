@@ -1637,7 +1637,8 @@ public class PIDCommonUtil {
         Connection con 			= null;
         PreparedStatement pstmt = null;
         ResultSet rs 			= null;
-
+        HashSet<String> dupCheck = new HashSet<>();
+        HashMap<String, String> codeMap = new HashMap<>();
         ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
 
         try {
@@ -1740,6 +1741,62 @@ public class PIDCommonUtil {
                         s = s.replace("-", "");
                     }
 
+                    if("".equals(s)) {
+                        buff.append("X-");
+                    } else {
+                        buff.append(s + "-");
+                    }
+
+                    if (dupCheck.contains(s)) {
+                        if(!"".equals(s)) {
+                            String temp = codeMap.get(s.trim());
+                            if(temp != null && !"".equals(temp) && !"null".equals(temp)) {
+                                s += " \n" + "(" + codeMap.get(s.trim()) + ")";
+                            }
+                        }
+
+                    } else {
+
+                        if(!"".equals(s)) {
+
+
+                            //System.out.println("s = " + s);
+                            if (codeMap.containsKey(s.trim())) {
+                                String temp = codeMap.get(s.trim());
+
+                                //이미 있으면
+                                if(temp != null && !"null".equals(temp) && !"".equals(temp)) {
+                                    //System.out.println(s + "  111 codeMap = " + temp);
+                                    s += " \n" + "(" + temp + ")";
+
+                                }
+
+                            } else {
+
+                                //없으면
+                                String val = "";
+                                if (s.startsWith("EL_")) {
+                                    val = SubaeCommonUtil.findCodeName(s); // 영업사양 코드 값 조회
+                                    codeMap.put(s.trim(), val.trim());
+                                }
+
+
+                                if(val != null && !"null".equals(val) && !"".equals(val)) {
+                                    //System.out.println(s + "  2222 = " + val);
+                                    s += " \n" + "(" + val + ")";
+                                }
+
+                            }
+                        }
+
+                        dupCheck.add(s.trim());
+                    }
+
+
+
+
+
+
 
                     String c = rs.getString("CON" + i);
                     if(c != null && !"".equals(c)) {
@@ -1749,18 +1806,14 @@ public class PIDCommonUtil {
                     row.add(s);
                     row.add(c);
 
-                    if("".equals(s)) {
-                        buff.append("X-");
-                    } else {
-                        buff.append(s + "-");
-                    }
+
 
                     if("".equals(c)) {
                         buff.append("X-");
                     } else {
                         buff.append(c + "-");
                     }
-                }
+                } // END SPEC/CON
 
                 for (int i = 1; i <= 20; i++) {
                     String k = rs.getString("KEY" + i);
