@@ -31,8 +31,9 @@
 
 <div class="formula-bar">
     <div class="d-flex align-items-center">
-        <input type="text" class="form-control cell-reference" id="cellReference" value="A1" readonly>
-        <div class="me-2"><i class="fas fa-search"></i></div>
+        <!--<input type="text" class="form-control cell-reference" id="cellReference" value="A1" readonly>
+        <div class="me-2"><i class="fas fa-search"></i></div>-->
+
         <input type="text" class="form-control formula-input" id="searchInput" placeholder="PID를 입력하세요..." style="max-width:250px;">
 
         <button class="btn btn-primary ms-2" onclick="searchPIDList()" style="width:120px;">
@@ -43,14 +44,22 @@
             <select class="form-select formula-input" id="pidList">
 
             </select>
+
+
+        </div>
+
+        <div class="me-2">
+            <select class="form-select formula-input" id="pidList2">
+
+            </select>
         </div>
 
         <div class="btn-group ms-2">
-            <button class="btn btn-primary" onclick="searchPID('top')" style="width:100px;">
-                위 출력
-            </button>
-            <button class="btn btn-secondary" onclick="searchPID('bottom')" style="width:100px;">
-                아래 출력
+            <!--<button class="btn btn-primary" onclick="searchPID('top')" style="width:100px;">
+                조회
+            </button>-->
+            <button class="btn btn-secondary" onclick="searchDiff()" style="width:100px;">
+                비교
             </button>
         </div>
     </div>
@@ -64,21 +73,8 @@
                 <div id="handsontable-container-top" class="handsontable-container-wrapper"></div>
                 <div class="status-bar">
                     <div class="d-flex justify-content-between">
-                        <span id="statusText-top">준비 (위)</span>
+                        <span id="statusText-top">준비</span>
                         <span>행: <span id="rowCount-top">0</span> | 열: <span id="colCount-top">0</span> | 선택된 셀: <span id="selectedCell-top">-</span></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 아래쪽 컨테이너 -->
-        <div class="excel-wrapper">
-            <div class="excel-container h-100 d-flex flex-column">
-                <div id="handsontable-container-bottom" class="handsontable-container-wrapper"></div>
-                <div class="status-bar">
-                    <div class="d-flex justify-content-between">
-                        <span id="statusText-bottom">준비 (아래)</span>
-                        <span>행: <span id="rowCount-bottom">0</span> | 열: <span id="colCount-bottom">0</span> | 선택된 셀: <span id="selectedCell-bottom">-</span></span>
                     </div>
                 </div>
             </div>

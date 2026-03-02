@@ -1,6 +1,5 @@
 
 let hotTop;
-let hotBottom;
 
 $(document).ready(async function() {
     // 초기화 시 필요한 작업이 있다면 여기에 작성
@@ -16,6 +15,10 @@ function searchPIDList() {
     const $select = $('#pidList');
     $select.empty();
     $select.append($('<option>', { value: '', text: '버전을 선택하세요', disabled: true, selected: true }));
+
+    const $select2 = $('#pidList2');
+    $select2.empty();
+    $select2.append($('<option>', { value: '', text: '버전을 선택하세요', disabled: true, selected: true }));
 
     showLoading();
     $.ajax({
@@ -54,6 +57,7 @@ function searchPIDList() {
                             text = parts.join(' | ') || value;
                         }
                         $select.append($('<option>', { value: value, text: text }));
+                        $select2.append($('<option>', { value: value, text: text }));
                     });
                 }
             } catch (e) {
@@ -108,11 +112,55 @@ function searchPID(target) {
     });
 }
 
+function searchDiff() {
+    let target = 'top';
+    let pid = document.getElementById('searchInput').value.trim();
+    const pidList = document.getElementById("pidList");
+    const pidList2 = document.getElementById("pidList2");
+
+    if (!pidList.value) {
+        alert("버전을 선택해주세요.");
+        return;
+    }
+
+    showLoading();
+    $.ajax({
+        type : "post",
+        url : "/subae/findPIDLineDiff",
+        data : {
+            pid : pid.toUpperCase(),
+            pidOid : pidList.value,
+            pidOidb: pidList2.value
+        },
+        beforeSend: function() {
+            $("html").css("cursor", "wait");
+        },
+        complete: function() {
+            $("html").css("cursor", "auto");
+        },
+        success : function(rr) {
+            if(rr != null && rr.length > 0) {
+                initHandsontable(rr, target);
+                hideEmptyColumns(target);
+                hideLoading();
+            } else {
+                hideLoading();
+                alert("검색결과가 없습니다.");
+            }
+        },
+        error: function () {
+            hideLoading();
+            alert('데이터를 가져오는 중 오류가 발생하였습니다.');
+        }
+    });
+}
+
+
 function initHandsontable(data, target) {
     const containerId = 'handsontable-container-' + target;
     const container = document.getElementById(containerId);
     
-    let hotInstance = (target === 'top') ? hotTop : hotBottom;
+    let hotInstance = hotTop;
     
     if (hotInstance) {
         hotInstance.destroy();
@@ -125,7 +173,7 @@ function initHandsontable(data, target) {
         'KEY1', 'VAL1', 'KEY2', 'VAL2', 'KEY3', 'VAL3', 'KEY4', 'VAL4', 'KEY5', 'VAL5',
         'KEY6', 'VAL6', 'KEY7', 'VAL7', 'KEY8', 'VAL8', 'KEY9', 'VAL9', 'KEY10', 'VAL10', 'KEY11', 'VAL11',
         'KEY12', 'VAL12', 'KEY13', 'VAL13', 'KEY14', 'VAL14', 'KEY15', 'VAL15', 'KEY16', 'VAL16', 'KEY17', 'VAL17' ,'KEY18', 'VAL18', 'KEY19', 'VAL19', 'KEY20', 'VAL20',
-        'GOTO', 'REMARKS'
+        'GOTO', 'REMARKS', 'DIFF'
     ];
 
     hotInstance = new Handsontable(container, {
@@ -141,6 +189,21 @@ function initHandsontable(data, target) {
         hiddenColumns: {
             indicators: true
         },
+        cells: function(row, col) {
+            const cellProperties = {};
+            const diffColIndex = this.instance.countCols() - 1; // 'DIFF' 컬럼은 항상 마지막에 위치함
+            
+            // 2차원 배열 데이터에서 'DIFF' 값 확인
+            const rowData = this.instance.getSourceDataAtRow(row);
+            if (rowData && rowData[diffColIndex] === 'DIFF') {
+                cellProperties.renderer = function(instance, td, row, col, prop, value, cellProperties) {
+                    Handsontable.renderers.TextRenderer.apply(this, arguments);
+                    td.style.backgroundColor = '#FFD580'; // 연한 주황색 (Light Orange)
+                };
+            }
+            
+            return cellProperties;
+        },
         afterSelection: function(row, col) {
             const cellName = Handsontable.helper.columnLabel(col) + (row + 1);
             document.getElementById('selectedCell-' + target).innerText = cellName;
@@ -150,14 +213,13 @@ function initHandsontable(data, target) {
         }
     });
 
-    if (target === 'top') hotTop = hotInstance;
-    else hotBottom = hotInstance;
+    hotTop = hotInstance;
 
     updateStatus(target);
 }
 
 function updateStatus(target) {
-    const hotInstance = (target === 'top') ? hotTop : hotBottom;
+    const hotInstance = hotTop;
     if (hotInstance) {
         document.getElementById('rowCount-' + target).innerText = hotInstance.countRows();
         document.getElementById('colCount-' + target).innerText = hotInstance.countCols();
@@ -166,7 +228,7 @@ function updateStatus(target) {
 }
 
 function hideEmptyColumns(target) {
-    const hotInstance = (target === 'top') ? hotTop : hotBottom;
+    const hotInstance = hotTop;
     if (!hotInstance) return;
 
     const data = hotInstance.getData();

@@ -5,6 +5,7 @@ import com.kyhslam.service.BlockHistoryService;
 import com.kyhslam.service.ELVInfoService;
 import com.kyhslam.service.SubaeService;
 import com.kyhslam.util.ElvInfoCommonUtil;
+import com.kyhslam.util.PIDCommonUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,10 +17,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 수배 or MLB 화면
@@ -134,22 +132,31 @@ public class SubaeController {
     @GetMapping("/subae/logicView")
     public String logicView(HttpServletResponse response) {
         log.info("========== subae logicView.html");
-        //return "subaeLogic/logicView.html";
         return "thymeleaf/logicView";
     }
 
     @GetMapping("/subae/logicViewV2")
     public String logicViewV2(HttpServletResponse response) {
         log.info("========== subae logicView.html");
-        //return "subaeLogic/logicView.html";
         return "thymeleaf/logicViewV2";
     }
 
     @GetMapping("/subae/logicViewV3")
     public String logicViewV3(HttpServletResponse response) {
         log.info("========== subae logicViewV3.html");
-        //return "subaeLogic/logicView.html";
         return "thymeleaf/logicViewDiff";
+    }
+
+    //findPIDLineDiff
+    @PostMapping("/subae/findPIDLineDiff")
+    @ResponseBody
+    public ArrayList<ArrayList<String>> findPIDLineDiff(String pid, String pidOid, String pidOidb) {
+        HashSet<String> beforeMap = new HashSet<>();
+
+        PIDCommonUtil.findPIDLineDiffBefore(pid, pidOid, beforeMap); // 이전 108v
+        ArrayList<ArrayList<String>> result = PIDCommonUtil.findPIDLineDiffMain(pid, pidOidb, beforeMap);
+
+        return result;
     }
 
     @PostMapping("/subae/logiceditor")

@@ -27,12 +27,11 @@
     border-bottom: 1px solid #eee;
 }
 
-/* 위아래 분할을 위한 스타일 */
+/* 단일 뷰를 위한 스타일 */
 .split-view-container {
     display: flex;
     flex-direction: column;
     height: calc(100vh - 200px); /* 헤더, 툴바, 푸터 제외 높이 */
-    gap: 10px;
 }
 
 .excel-wrapper {
