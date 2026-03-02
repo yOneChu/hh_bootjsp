@@ -141,9 +141,10 @@ public class SubaeController {
         return "thymeleaf/logicViewV2";
     }
 
-    @GetMapping("/subae/logicViewV3")
-    public String logicViewV3(HttpServletResponse response) {
-        log.info("========== subae logicViewV3.html");
+    //로직 비교
+    @GetMapping("/subae/logicViewDiff")
+    public String logicViewDiff(HttpServletResponse response) {
+        log.info("========== subae logicViewDiff.html");
         return "thymeleaf/logicViewDiff";
     }
 

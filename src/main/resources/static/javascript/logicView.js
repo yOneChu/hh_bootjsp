@@ -131,11 +131,11 @@ function searchPID()
 {
 
     let pid = document.getElementById('searchInput').value.trim();
-    let pidListVal = $('#pidList').value();
+    //let pidListVal = $('#pidList').value();
 
     console.log("---searchPID---");
 
-    console.log('pidListVal -- ', pidListVal);
+    //console.log('pidListVal -- ', pidListVal);
 
     showLoading(); // 로딩바 표시
     $.ajax({
