@@ -1731,8 +1731,6 @@ public class PIDCommonUtil {
                 }
 
 
-
-
                 for (int i = 1; i <= 20; i++) {
                     String s = rs.getString("SPEC" + i);
 
@@ -1792,12 +1790,6 @@ public class PIDCommonUtil {
                         dupCheck.add(s.trim());
                     }
 
-
-
-
-
-
-
                     String c = rs.getString("CON" + i);
                     if(c != null && !"".equals(c)) {
                         c = c.trim();
@@ -1855,8 +1847,8 @@ public class PIDCommonUtil {
                 } else {
                     //동일한 라인이 없는거다
                     row.add("DIFF");
-                    System.out.println("row = " + "다름다ㅡㄻ다름");
-                    System.out.println(NO + " >>> row = " + buff.toString());
+                    //System.out.println("row = " + "다름다ㅡㄻ다름");
+                    //System.out.println(NO + " >>> row = " + buff.toString());
                 }
 
 
