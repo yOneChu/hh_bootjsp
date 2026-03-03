@@ -36,8 +36,8 @@ public class java_pid_20260303 {
                 || !isInteger(Ys) || !isInteger(Bs) || !isInteger(P2s)
                 || !isInteger(AA_s) || !isInteger(BB_s)) {
 
-            result.put("SUB_BEST_Q1", "9999");
-            result.put("SUB_BEST_Q2", "9999");
+            result.put("SUB_BEST_Q1", "ERROR");
+            result.put("SUB_BEST_Q2", "ERROR");
             return result;
         }
 
