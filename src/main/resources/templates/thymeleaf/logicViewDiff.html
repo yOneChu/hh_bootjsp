@@ -41,38 +41,36 @@
         </button>
 
         <div class="me-2">
-            <p id="beforePID">비교대상 PID</p>
-        </div>
-
-        <div class="me-2">
+            <p id="beforePID" class="text-danger">비교할 PID 버전 선택</p>
             <select class="form-select formula-input" id="pidList">
 
             </select>
         </div>
 
-        <div class="me-2">
-            <p id="mainPID">기준 PID <br>(출력)</p>
-        </div>
+
 
         <div class="me-2">
+            <p id="mainPID" class="text-success">기준 PID (해당 버전의 PID 로직 출력됨)</p>
             <select class="form-select formula-input" id="pidList2">
 
             </select>
         </div>
 
-        <div class="btn-group ms-2">
+
+        <!--<div class="btn-group ms-2">-->
+        <div class="me-2">
             <!--<button class="btn btn-primary" onclick="searchPID('top')" style="width:100px;">
                 조회
             </button>-->
-
+            <!--<p class="text-sm font-weight-bold">(두 버전의 PID 비교하여 기준PID 버전 내용 출력하며, 상이한 부분은 색 표시)</p>-->
             <button class="btn btn-secondary" onclick="searchDiff()" style="width:100px;">
                 비교
             </button>
         </div>
 
-        <div class="me-2">
+  <!--      <div class="me-2">
             <p class="text-sm font-weight-bold">(두 버전의 PID 비교하여 기준PID 버전 내용 출력하며, 상이한 부분은 색 표시)</p>
-        </div>
+        </div>-->
 
     </div>
 </div>

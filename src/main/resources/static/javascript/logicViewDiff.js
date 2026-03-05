@@ -36,17 +36,22 @@ function searchPIDList() {
                 if (rr && rr.length > 0) {
                     rr.forEach(function(item) {
                         let value, text;
+                        console.log(item)
                         if (typeof item === 'string') {
                             value = item;
                             text = item;
                         } else if (item && typeof item === 'object') {
+
                             let version = item.VERSION || item.version || '';
+                            let remarks = item.REMARKS || item.remarks || '';
                             const regDate = item.REG_DATE || item.regDate || item.reg_date || '';
                             const name = item.NAME || item.name || '';
                             const pidStr = item.PID || item.pid || '';
                             const houid = item.HOUID || item.houid || '';
 
-                            value = houid || version || pidStr || name;
+                            value = houid || version || pidStr || name || remarks;
+
+                            console.log("remarks == ", remarks);
 
                             const parts = [];
                             if(version === '-1') version = 'TEST';
@@ -54,6 +59,7 @@ function searchPIDList() {
                             if (regDate) parts.push(regDate);
                             if (name) parts.push(name);
                             if (!parts.length && pidStr) parts.push(pidStr);
+                            if (remarks) parts.push(remarks);
                             text = parts.join(' | ') || value;
                         }
                         $select.append($('<option>', { value: value, text: text }));
