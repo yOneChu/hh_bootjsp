@@ -20,5 +20,7 @@ public class PartWhere {
     String EL_ATYP; //기종
     String EL_ETHRU; //관통
     String EL_COB; //전망타입
+    String EL_ZFDA;
+    String EL_ZFDA_TYPE;
 
 }

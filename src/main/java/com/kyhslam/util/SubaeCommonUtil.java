@@ -818,6 +818,8 @@ public class SubaeCommonUtil {
         String EL_ATYP =  whereCond.getEL_ATYP();
         String vEL_ETHRU =  whereCond.getEL_ETHRU();
         String vEL_COB = whereCond.getEL_COB();
+        String vEL_ZFDA = whereCond.getEL_ZFDA();
+        String vEL_ZFDA_TYPE =  whereCond.getEL_ZFDA_TYPE();
 
         if (pBlockNo != null && !"".equals(pBlockNo)) {
             pBlockNo = pBlockNo.toUpperCase();
@@ -891,6 +893,9 @@ public class SubaeCommonUtil {
                      , (SELECT COD(E.EL_COB) FROM ELV_INFO$ID A, ELV_INFO$VF E
                        WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_COB -- 전망종류
+                     , (SELECT E.EL_ZFDA FROM ELV_INFO$ID A, ELV_INFO$VF E
+                       WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                       AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_ZFDA --기계구조 최초설계일
                      , NP.MD$NUMBER AS PARTNO
                      , cod(NP.NATION) AS NATION
                      , NP.compen_part AS COMPEN_PART
@@ -1025,7 +1030,18 @@ public class SubaeCommonUtil {
                 }
             }
 
-            System.out.println("sql = " + sql);
+            if(vEL_ZFDA != null && !"".equals(vEL_ZFDA.trim()) && !"-".equals(vEL_ZFDA)) {
+                vEL_ZFDA = vEL_ZFDA.trim();
+
+                sql += """
+                    AND (SELECT E.EL_ZFDA FROM ELV_INFO$ID A, ELV_INFO$VF E
+                    WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                    """;
+
+                sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) " + vEL_ZFDA_TYPE +    "'" + vEL_ZFDA + "' ";
+            }
+
+            //System.out.println("sql = " + sql);
 
             pstmt = con.prepareStatement(sql.toString());
             //pstmt.setString(1, productOID);
@@ -1069,6 +1085,7 @@ public class SubaeCommonUtil {
 
                 String EL_ETHRU = rs.getString("EL_ETHRU") == null ? "" : rs.getString("EL_ETHRU");
                 String EL_COB = rs.getString("EL_COB") == null ? "" : rs.getString("EL_COB");
+                String EL_ZFDA = rs.getString("EL_ZFDA") == null ? "" : rs.getString("EL_ZFDA");
 
 
                 //System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + BLOCK_OPT);
@@ -1103,6 +1120,7 @@ public class SubaeCommonUtil {
                 dto.setSpec(SPEC);
                 dto.setEL_ETHRU(EL_ETHRU);
                 dto.setEL_COB(EL_COB);
+                dto.setEL_ZFDA(EL_ZFDA);
 
 
                 if(HASCHILD != null && HASCHILD.length() > 0) {
@@ -1139,7 +1157,7 @@ public class SubaeCommonUtil {
                 dataList.add(dto);
             } //end while
 
-            System.out.println("dataList.size() = " + dataList.size());
+            //System.out.println("dataList.size() = " + dataList.size());
 
         } catch (Exception e) {
             e.printStackTrace();

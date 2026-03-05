@@ -212,6 +212,21 @@
 
                             <div class="col-md-2">
                                 <div class="form-group">
+                                    <label>기계구조 최초설계일</label>
+                                    <input type="search" id="EL_ZFDA" class="form-control" placeholder="ex. 20260130" value="">
+                                    <select id="EL_ZFDA_TYPE" class="form-control select" style="width: 100%;">
+                                        <!--<option selected="selected">-</option>-->
+                                        <option value="=" selected="selected">일치 ( = )</option>
+                                        <option value=">=" selected="selected">이상 ( >= )</option>
+                                        <option value=">=">초과 ( > )</option>
+                                        <option value="<=">이하 ( <= )</option>
+                                        <option value="<">미만 ( < )</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <div class="form-group">
                                     <label>CMT</label>
                                     <input type="search" id="cmt" class="form-control" placeholder="cmt..." value="">
                                     <div class="input-group-append">
@@ -260,6 +275,8 @@
                                 </div>
                             </div>
 
+
+
                             <!-- /.col -->
                         </div>
                         <!-- /.row -->
@@ -287,27 +304,29 @@
                                         <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(1, this)">제품버전</button>
                                         <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(2, this)">제품상태</button>
                                         <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(3, this)">제품수정일</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(4, this)">브랜드</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(5, this)">기종</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(6, this)">속도</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(4, this)">기계구조 최초설계일</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(5, this)">브랜드</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(6, this)">기종</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(7, this)">속도</button>
 
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(7, this)">생산거점</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(8, this)">생산거점</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(9, this)">관통</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(10, this)">전망타입</button>
 
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(8, this)">용량</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(11, this)">용량</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(12, this)">CAR_BG</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(13, this)">CWT_BG</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(14, this)">CWT폭</button>
 
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(9, this)">CAR_BG</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(10, this)">CWT_BG</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(11, this)">CWT폭</button>
-
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(12, this)">품번</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(13, this)">품명</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(14, this)">SPEC</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(15, this)">QTY</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(16, this)">BlockNo.</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(17, this)">품목</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(18, this)">GL_CODE</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(19, this)">버전</button>
-                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(20, this)">cmt</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(15, this)">품번</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(16, this)">품명</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(17, this)">SPEC</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(18, this)">QTY</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(19, this)">BlockNo.</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(20, this)">품목</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(21, this)">GL_CODE</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(22, this)">버전</button>
+                                        <button type="button" class="btn btn-outline-secondary m-1" onclick="hideColumn(23, this)">cmt</button>
                                     </div>
                                 </div>
                                 <table id="infoTable" class="table table-bordered table-hover" style=" font-family: NotoSans; font-size:15px;">
@@ -318,10 +337,12 @@
                                         <th>제품버전</th>
                                         <th>제품상태</th>
                                         <th>제품수정일</th>
+                                        <th>기계구조 최초설계일</th>
+
                                         <th>브랜드</th>
                                         <th>기종</th>
-
                                         <th>속도</th>
+
                                         <th>생산거점</th>
                                         <th>관통</th>
                                         <th>전망타입</th>

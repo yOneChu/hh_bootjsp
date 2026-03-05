@@ -199,6 +199,10 @@ function searchPID()
     let EL_ETHRU = $("#EL_ETHRU").val();
     let EL_COB = $("#EL_COB").val();
 
+    let EL_ZFDA = $("#EL_ZFDA").val();
+    let EL_ZFDA_TYPE = $("#EL_ZFDA_TYPE").val();
+
+
     //console.log(year);
     //console.log(partNo);
 
@@ -235,11 +239,13 @@ function searchPID()
                 EL_ASPSCD: EL_ASPSCD,
                 EL_ATYP: EL_ATYP,
                 EL_ETHRU: EL_ETHRU,
-                EL_COB: EL_COB
+                EL_COB: EL_COB,
+                EL_ZFDA: EL_ZFDA,
+                EL_ZFDA_TYPE: EL_ZFDA_TYPE
             },
 
             success: function (data) {
-                console.log("data - ", data);
+                //console.log("data - ", data);
 
                 // ✅ 기존 테이블 내용 비우기 (append 누적 방지)
                 $("#contentTable").empty();
@@ -253,6 +259,9 @@ function searchPID()
                         str += "<td>" + (data[i].productVersion ?? "") + "</td>";
                         str += "<td>" + (data[i].productStatus ?? "") + "</td>";
                         str += "<td>" + (data[i].productModDate ?? "") + "</td>";
+
+                        str += "<td>" + (data[i].el_ZFDA ?? "") + "</td>";
+
                         str += "<td>" + (data[i].brand ?? "") + "</td>";
                         str += "<td>" + (data[i].gisong ?? "") + "</td>";
 
