@@ -154,8 +154,10 @@ public class SubaeController {
     public ArrayList<ArrayList<String>> findPIDLineDiff(String pid, String pidOid, String pidOidb) {
         HashSet<String> beforeMap = new HashSet<>();
 
-        PIDCommonUtil.findPIDLineDiffBefore(pid, pidOid, beforeMap); // 이전 108v
-        ArrayList<ArrayList<String>> result = PIDCommonUtil.findPIDLineDiffMain(pid, pidOidb, beforeMap);
+        LinkedHashMap<String,PIDDetailDTO> beforeDetailMap = new LinkedHashMap<>();
+
+        PIDCommonUtil.findPIDLineDiffBefore(pid, pidOid, beforeMap, beforeDetailMap); // 이전 버전
+        ArrayList<ArrayList<String>> result = PIDCommonUtil.findPIDLineDiffMain(pid, pidOidb, beforeMap, beforeDetailMap);
 
         return result;
     }

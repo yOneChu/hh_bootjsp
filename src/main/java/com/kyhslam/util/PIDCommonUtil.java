@@ -1,5 +1,6 @@
 package com.kyhslam.util;
 
+import com.kyhslam.dto.PIDDetailDTO;
 import org.springframework.context.annotation.Description;
 
 import java.sql.Array;
@@ -10,6 +11,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 
 public class PIDCommonUtil {
 
@@ -1447,7 +1449,7 @@ public class PIDCommonUtil {
 
 
 
-    public static void findPIDLineDiffBefore(String paramPid, String pidOid, HashSet<String> beforeMap) {
+    public static void findPIDLineDiffBefore(String paramPid, String pidOid, HashSet<String> beforeMap, LinkedHashMap<String, PIDDetailDTO> beforeDetailMap) {
 
         Connection con 			= null;
         PreparedStatement pstmt = null;
@@ -1455,9 +1457,6 @@ public class PIDCommonUtil {
 
         ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
 
-        HashSet<String> dupCheck = new HashSet<>();
-
-        HashMap<String, String> codeMap = new HashMap<>();
         try {
 
             con = PLMDBConnection.getConnection();
@@ -1533,6 +1532,7 @@ public class PIDCommonUtil {
 
                 StringBuffer buff = new StringBuffer();
 
+                PIDDetailDTO detailDto = new PIDDetailDTO();
 
                 if(REMARKS != null && !"".equals(REMARKS)) {
                     REMARKS = REMARKS.trim();
@@ -1541,14 +1541,13 @@ public class PIDCommonUtil {
 
                 row.add(ADDR);
 
+
                 if("".equals(ADDR)) {
                     buff.append("X-");
                 } else {
                     buff.append(ADDR + "-");
                 }
-
-
-
+                detailDto.setAddr(ADDR);
 
                 for (int i = 1; i <= 20; i++) {
                     String s = rs.getString("SPEC" + i);
@@ -1567,6 +1566,68 @@ public class PIDCommonUtil {
                     row.add(s);
                     row.add(c);
 
+                    if(i == 1) {
+                        detailDto.setSpec1(s);
+                        detailDto.setCon1(c);
+                    } else if(i == 2) {
+                        detailDto.setSpec2(s);
+                        detailDto.setCon2(c);
+                    } else if(i == 3) {
+                        detailDto.setSpec3(s);
+                        detailDto.setCon3(c);
+                    } else if(i == 4) {
+                        detailDto.setSpec4(s);
+                        detailDto.setCon4(c);
+                    } else if(i == 5) {
+                        detailDto.setSpec5(s);
+                        detailDto.setCon5(c);
+                    } else if(i == 6) {
+                        detailDto.setSpec6(s);
+                        detailDto.setCon6(c);
+                    } else if(i == 7) {
+                        detailDto.setSpec7(s);
+                        detailDto.setCon7(c);
+                    } else if(i == 8) {
+                        detailDto.setSpec8(s);
+                        detailDto.setCon8(c);
+                    } else if(i == 9) {
+                        detailDto.setSpec9(s);
+                        detailDto.setCon9(c);
+                    } else if(i == 10) {
+                        detailDto.setSpec10(s);
+                        detailDto.setCon10(c);
+                    } else if(i == 11) {
+                        detailDto.setSpec11(s);
+                        detailDto.setCon11(c);
+                    } else if(i == 12) {
+                        detailDto.setSpec12(s);
+                        detailDto.setCon12(c);
+                    } else if(i == 13) {
+                        detailDto.setSpec13(s);
+                        detailDto.setCon13(c);
+                    } else if(i == 14) {
+                        detailDto.setSpec14(s);
+                        detailDto.setCon14(c);
+                    } else if(i == 15) {
+                        detailDto.setSpec15(s);
+                        detailDto.setCon15(c);
+                    } else if(i == 16) {
+                        detailDto.setSpec16(s);
+                        detailDto.setCon16(c);
+                    } else if(i == 17) {
+                        detailDto.setSpec17(s);
+                        detailDto.setCon17(c);
+                    } else if(i == 18) {
+                        detailDto.setSpec18(s);
+                        detailDto.setCon18(c);
+                    } else if(i == 19) {
+                        detailDto.setSpec19(s);
+                        detailDto.setCon19(c);
+                    } else if(i == 20) {
+                        detailDto.setSpec20(s);
+                        detailDto.setCon20(c);
+                    }
+                    
                     if("".equals(s)) {
                         buff.append("X-");
                     } else {
@@ -1597,6 +1658,69 @@ public class PIDCommonUtil {
                     row.add(k);
                     row.add(v);
 
+                    if(i == 1) {
+                        detailDto.setKey1(k);
+                        detailDto.setVal1(v);
+                    } else if(i == 2) {
+                        detailDto.setKey2(k);
+                        detailDto.setVal2(v);
+                    } else if(i == 3) {
+                        detailDto.setKey3(k);
+                        detailDto.setVal3(v);
+                    } else if(i == 4) {
+                        detailDto.setKey4(k);
+                        detailDto.setVal4(v);
+                    } else if(i == 5) {
+                        detailDto.setKey5(k);
+                        detailDto.setVal5(v);
+                    } else if(i == 6) {
+                        detailDto.setKey6(k);
+                        detailDto.setVal6(v);
+                    } else if(i == 7) {
+                        detailDto.setKey7(k);
+                        detailDto.setVal7(v);
+                    } else if(i == 8) {
+                        detailDto.setKey8(k);
+                        detailDto.setVal8(v);
+                    } else if(i == 9) {
+                        detailDto.setKey9(k);
+                        detailDto.setVal9(v);
+                    } else if(i == 10) {
+                        detailDto.setKey10(k);
+                        detailDto.setVal10(v);
+                    } else if(i == 11) {
+                        detailDto.setKey11(k);
+                        detailDto.setVal11(v);
+                    } else if(i == 12) {
+                        detailDto.setKey12(k);
+                        detailDto.setVal12(v);
+                    } else if(i == 13) {
+                        detailDto.setKey13(k);
+                        detailDto.setVal13(v);
+                    } else if(i == 14) {
+                        detailDto.setKey14(k);
+                        detailDto.setVal14(v);
+                    } else if(i == 15) {
+                        detailDto.setKey15(k);
+                        detailDto.setVal15(v);
+                    } else if(i == 16) {
+                        detailDto.setKey16(k);
+                        detailDto.setVal16(v);
+                    } else if(i == 17) {
+                        detailDto.setKey17(k);
+                        detailDto.setVal17(v);
+                    } else if(i == 18) {
+                        detailDto.setKey18(k);
+                        detailDto.setVal18(v);
+                    } else if(i == 19) {
+                        detailDto.setKey19(k);
+                        detailDto.setVal19(v);
+                    } else if(i == 20) {
+                        detailDto.setKey20(k);
+                        detailDto.setVal20(v);
+                    }
+
+
                     if("".equals(k)) {
                         buff.append("X-");
                     } else {
@@ -1612,10 +1736,12 @@ public class PIDCommonUtil {
 
                 row.add(GOTO);
                 row.add(REMARKS);
+                detailDto.setRemarks(REMARKS);
+                detailDto.setGogo(GOTO);
 
+                beforeDetailMap.put(buff.toString(), detailDto);
 
                 beforeMap.add(buff.toString());
-
                 //System.out.println("row = " + buff.toString());
                 //System.out.println();
 
@@ -1632,7 +1758,7 @@ public class PIDCommonUtil {
     }
 
 
-    public static ArrayList<ArrayList<String>> findPIDLineDiffMain(String paramPid, String pidOid, HashSet<String> beforeMap) {
+    public static ArrayList<ArrayList<String>> findPIDLineDiffMain(String paramPid, String pidOid, HashSet<String> beforeMap, LinkedHashMap<String,PIDDetailDTO> beforeDetailMap) {
 
         Connection con 			= null;
         PreparedStatement pstmt = null;
@@ -1844,12 +1970,18 @@ public class PIDCommonUtil {
                 if (beforeMap.contains(buff.toString())) {
                     //동일한 라인이 있는거다.
                     row.add("EQUAL");
+
+                    beforeDetailMap.remove(buff.toString()); // 있는거는 이전 map에서 삭제한다.
+
                 } else {
-                    //동일한 라인이 없는거다
+                    //동일한 라인이 없는거다 -> 추가된 부분
                     row.add("DIFF");
                     //System.out.println("row = " + "다름다ㅡㄻ다름");
                     //System.out.println(NO + " >>> row = " + buff.toString());
                 }
+
+
+
 
 
                 //System.out.println("row = " + buff.toString());
