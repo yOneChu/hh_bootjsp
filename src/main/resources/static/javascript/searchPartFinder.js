@@ -56,6 +56,10 @@ $(document).ready(function() {
     codeSetInit('EL_COB', EL_COBObj);
     setInput(EL_COBObj);
 
+    let EL_BWALLTObj = $('#EL_BWALLT');
+    codeSetInit('EL_BWALLT', EL_BWALLTObj);
+    setInput(EL_BWALLTObj);
+
 
     $('#EL_ASPSCD').select2({
         tags: true,                 // 🔑 직접 입력 허용
@@ -199,6 +203,8 @@ function searchPID()
     let EL_ETHRU = $("#EL_ETHRU").val();
     let EL_COB = $("#EL_COB").val();
 
+    let EL_BWALLT = $("#EL_BWALLT").val();
+
     let EL_ZFDA = $("#EL_ZFDA").val();
     let EL_ZFDA_TYPE = $("#EL_ZFDA_TYPE").val();
 
@@ -241,9 +247,9 @@ function searchPID()
                 EL_ETHRU: EL_ETHRU,
                 EL_COB: EL_COB,
                 EL_ZFDA: EL_ZFDA,
-                EL_ZFDA_TYPE: EL_ZFDA_TYPE
+                EL_ZFDA_TYPE: EL_ZFDA_TYPE,
+                EL_BWALLT: EL_BWALLT
             },
-
             success: function (data) {
                 //console.log("data - ", data);
 
@@ -288,6 +294,8 @@ function searchPID()
                         let cmtVal = data[i].cmt || "";
                         cmtVal = cmtVal.replace(/-/g, "<br>-");
                         str += "<td>" + cmtVal + "</td>";
+
+                        str += "<td>" + (data[i].el_BWALLT ?? "") + "</td>";
 
                         str += "</tr>";
                     }

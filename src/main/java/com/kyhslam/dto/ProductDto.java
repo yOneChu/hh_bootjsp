@@ -23,6 +23,7 @@ public class ProductDto {
     private String EL_ETHRU; //관통
     private String EL_COB; //전망용 타입
     private String EL_ZFDA; //기계구조 최초설계일
+    private String EL_BWALLT;
 
     private String ecbg; // 	CAR; BG
     private String ecwbg; // CWT; BG

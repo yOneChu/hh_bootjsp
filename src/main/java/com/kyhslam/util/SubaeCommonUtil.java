@@ -820,6 +820,7 @@ public class SubaeCommonUtil {
         String vEL_COB = whereCond.getEL_COB();
         String vEL_ZFDA = whereCond.getEL_ZFDA();
         String vEL_ZFDA_TYPE =  whereCond.getEL_ZFDA_TYPE();
+        String vEL_BWALLT = whereCond.getEL_BWALLT();
 
         if (pBlockNo != null && !"".equals(pBlockNo)) {
             pBlockNo = pBlockNo.toUpperCase();
@@ -896,6 +897,9 @@ public class SubaeCommonUtil {
                      , (SELECT E.EL_ZFDA FROM ELV_INFO$ID A, ELV_INFO$VF E
                        WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_ZFDA --기계구조 최초설계일
+                     , (SELECT COD(E.EL_BWALLT) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                       WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                       AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_BWALLT -- WALL 구조
                      , NP.MD$NUMBER AS PARTNO
                      , cod(NP.NATION) AS NATION
                      , NP.compen_part AS COMPEN_PART
@@ -1041,7 +1045,23 @@ public class SubaeCommonUtil {
                 sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) " + vEL_ZFDA_TYPE +    "'" + vEL_ZFDA + "' ";
             }
 
-            //System.out.println("sql = " + sql);
+
+            if(vEL_BWALLT != null && !"".equals(vEL_BWALLT) && !"-".equals(vEL_BWALLT)) {
+                sql += """
+                    AND (SELECT COD(E.EL_BWALLT) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                    WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                    """;
+
+                if (vEL_BWALLT.contains("*")) {
+                    vEL_BWALLT = vEL_BWALLT.replace("*", "%");
+                    sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) LIKE '" + vEL_BWALLT + "' ";
+                } else {
+                    sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) = '" + vEL_BWALLT + "' ";
+                }
+            }
+
+
+            System.out.println("sql = " + sql);
 
             pstmt = con.prepareStatement(sql.toString());
             //pstmt.setString(1, productOID);
@@ -1086,7 +1106,7 @@ public class SubaeCommonUtil {
                 String EL_ETHRU = rs.getString("EL_ETHRU") == null ? "" : rs.getString("EL_ETHRU");
                 String EL_COB = rs.getString("EL_COB") == null ? "" : rs.getString("EL_COB");
                 String EL_ZFDA = rs.getString("EL_ZFDA") == null ? "" : rs.getString("EL_ZFDA");
-
+                String EL_BWALLT = rs.getString("EL_BWALLT") ==  null ? "" : rs.getString("EL_BWALLT");
 
                 //System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + BLOCK_OPT);
 
@@ -1121,6 +1141,7 @@ public class SubaeCommonUtil {
                 dto.setEL_ETHRU(EL_ETHRU);
                 dto.setEL_COB(EL_COB);
                 dto.setEL_ZFDA(EL_ZFDA);
+                dto.setEL_BWALLT(EL_BWALLT);
 
 
                 if(HASCHILD != null && HASCHILD.length() > 0) {
