@@ -257,7 +257,17 @@ function searchPID()
             if(data != null && data.length > 0) {
 
                 for(let i=0; i < data.length; i++) {
-                    str += "<tr>";
+                    let tooltipText = "";
+                    for(let k=1; k <= 20; k++) {
+                        let keyName = "KEY" + k;
+                        let valName = "VAL" + k;
+                        if(data[i][keyName] && data[i][keyName] !== "-" && data[i][valName] && data[i][valName] !== "-") {
+                            //tooltipText += keyName + ": " + data[i][keyName] + ", " + valName + ": " + data[i][valName] + "\n";
+                            tooltipText += keyName + "-" + valName + " ::: " + data[i][keyName] + " -> " + data[i][valName] + "\n";
+                        }
+                    }
+
+                    str += "<tr title='" + tooltipText + "'>";
 
                     str += "<td>" + data[i].PID + "</td>";
                     str += "<td>" + data[i].NO + "</td>";
@@ -355,7 +365,7 @@ function searchPID()
             }
             
             //값이 없는 열의 컬럼 숨기기
-            hideCols();
+            //hideCols();
 
         } // end success;
     });
