@@ -30,8 +30,8 @@ public class SendMail {
         //String password = "1111"; // 이메일 비밀번호 또는 앱 비밀번호
 
         //수신자
-        String toEmail = "jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, hh.park@hyundaielevator.com, sunwoo.jung@hyundaielevator.com, daehwan.ahn@hyundaielevator.com, dohyun.kim1@hyundaielevator.com";
-        toEmail += ", je.lee@hyundaielevator.com";
+        String toEmail = "jihyun.kim@hyundaielevator.com, jeongwon.shon@hyundaielevator.com, dongki.seo@hyundaielevator.com, hh.park@hyundaielevator.com, sunwoo.jung@hyundaielevator.com";
+        toEmail += ", je.lee@hyundaielevator.com, dohyun.kim1@hyundaielevator.com, daehwan.ahn@hyundaielevator.com, su.jang@hyundaielevator.com";
 
         //참조자
         String ccEmail = "younghwan.kim@hyundaielevator.com, seonuk.lee@hyundaielevator.com";
