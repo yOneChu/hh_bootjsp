@@ -422,7 +422,7 @@ public class ChinaCommonUtil {
 
             sql.append("  FROM  NORMALPART$VF P ");
             sql.append("  WHERE SUBSTR(P.MD$MDATE, 0,8) = ? ");
-            sql.append("  AND SUBSTR(P.MD$MDATE, 0,4) = '2025' and P.MD$STATUS = 'RLS'  ");
+            sql.append("  AND SUBSTR(P.MD$MDATE, 0,4) = '2026' and P.MD$STATUS = 'RLS'  ");
             sql.append("  AND P.VF$VERSION != '0'  ");
 
             //formattedTodayDate
