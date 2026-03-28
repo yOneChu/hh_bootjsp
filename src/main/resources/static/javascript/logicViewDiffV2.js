@@ -1,85 +1,4 @@
 
-
-/*
-
-document.getElementById('searchBtnPID').addEventListener('click', () => {
-
-    let pid = document.getElementById('pidInput').value.trim();
-    if (!pid) {
-        alert('PID를 입력하세요.');
-        return;
-    }
-
-    console.log('pid --------', pid);
-
-    const $select = $('#baseVersion');
-    $select.empty();
-    $select.append($('<option>', { value: '', text: '버전을 선택하세요', disabled: true, selected: true }));
-
-    const $select2 = $('#compareVersion');
-    $select2.empty();
-    $select2.append($('<option>', { value: '', text: '버전을 선택하세요', disabled: true, selected: true }));
-
-    showLoading();
-    $.ajax({
-        type : "get",
-        url : "/pid/findPIDList",
-        data : { pid : pid.toUpperCase() },
-        beforeSend: function() {
-            $("html").css("cursor", "wait");
-        },
-        complete: function() {
-            $("html").css("cursor", "auto");
-        },
-        success : function(rr) {
-            try {
-                if (rr && rr.length > 0) {
-                    rr.forEach(function(item) {
-                        let value, text;
-                        console.log(item)
-                        if (typeof item === 'string') {
-                            value = item;
-                            text = item;
-                        } else if (item && typeof item === 'object') {
-
-                            let version = item.VERSION || item.version || '';
-                            let remarks = item.REMARKS || item.remarks || '';
-                            const regDate = item.REG_DATE || item.regDate || item.reg_date || '';
-                            const name = item.NAME || item.name || '';
-                            const pidStr = item.PID || item.pid || '';
-                            const houid = item.HOUID || item.houid || '';
-
-                            value = houid || version || pidStr || name || remarks;
-
-                            console.log("remarks == ", remarks);
-
-                            const parts = [];
-                            if(version === '-1') version = 'TEST';
-                            if (version) parts.push('v' + version);
-                            if (regDate) parts.push(regDate);
-                            if (name) parts.push(name);
-                            if (!parts.length && pidStr) parts.push(pidStr);
-                            if (remarks) parts.push(remarks);
-                            text = parts.join(' | ') || value;
-                        }
-                        $select.append($('<option>', { value: value, text: text }));
-                        $select2.append($('<option>', { value: value, text: text }));
-                    });
-                }
-            } catch (e) {
-                console.error("목록 처리 중 오류:", e);
-            }
-            hideLoading();
-        },
-        error: function() {
-            hideLoading();
-            alert('목록을 가져오는 중 오류가 발생했습니다.');
-        }
-    });
-
-});
-*/
-
 function searchPIDList() {
     let pid = document.getElementById('pidInput').value;
     console.log("pid --------", pid);
@@ -174,3 +93,82 @@ function hideLoading() {
     const loadingOverlay = document.getElementById('loadingOverlay');
     if (loadingOverlay) loadingOverlay.remove();
 }
+
+
+document.getElementById('searchBtn').addEventListener('click', () => {
+    const pid = document.getElementById('pidInput').value;
+    const v1 = document.getElementById('baseVersion').value;
+    const v2 = document.getElementById('compareVersion').value;
+
+
+    console.log(v1, v2);
+
+/*
+    let target = 'top';
+    let pid = document.getElementById('searchInput').value.trim();
+    const pidList = document.getElementById("pidList");
+    const pidList2 = document.getElementById("pidList2");
+*/
+
+
+
+
+    /*if (!v1.value) {
+        alert("버전을 선택해주세요.");
+        return;
+    }*/
+
+    showLoading();
+    $.ajax({
+        type : "post",
+        url : "/subae/findPIDLineDiff",
+        data : {
+            pid : pid.toUpperCase().trim(),
+            pidOid : v1,
+            pidOidb: v2
+        },
+        beforeSend: function() {
+            $("html").css("cursor", "wait");
+        },
+        complete: function() {
+            $("html").css("cursor", "auto");
+        },
+        success : function(rr) {
+
+            console.log(rr);
+
+
+            hideLoading();
+        },
+        error: function () {
+            hideLoading();
+            alert('데이터를 가져오는 중 오류가 발생하였습니다.');
+        }
+    });
+
+
+
+    /*if(!pid || !v1 || !v2) {
+        alert("PID와 두 버전을 모두 선택해주세요.");
+        return;
+    }
+
+    // TODO: 실제 환경에서는 fetch API나 axios를 사용해 Spring Boot 백엔드에 요청
+    // 예시: axios.get(`/api/bom/compare?pid=${pid}&base=${v1}&target=${v2}`).then(res => executeCompare(res.data.past, res.data.latest));
+
+    // 샘플 테스트용 더미 데이터
+    const pastDummy = [
+        { id: `${pid}-001`, name: 'CAR HEADER ARM', spec01: 'Steel', con01: 'A-Type' },
+        { id: `${pid}-002`, name: '시브커브', spec01: 'Iron', con01: 'B-Type' },
+        { id: `${pid}-003`, name: '컴펜체인', spec01: 'Alloy', con01: 'C-Type' },
+    ];
+
+    const latestDummy = [
+        { id: `${pid}-001`, name: 'CAR HEADER ARM', spec01: 'Steel', con01: 'A-Type' },
+        { id: `${pid}-002`, name: '시브커브', spec01: 'Aluminium', con01: 'B-Type' },
+        { id: `${pid}-004`, name: 'pit screen', spec01: 'Mesh', con01: 'D-Type' },
+    ];*/
+
+    // 렌더링 함수 호출
+    //executeCompare(pastDummy, latestDummy);
+});
