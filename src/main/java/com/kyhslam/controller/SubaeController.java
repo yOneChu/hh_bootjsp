@@ -148,6 +148,12 @@ public class SubaeController {
         return "thymeleaf/logicViewDiff";
     }
 
+    @GetMapping("/subae/logicViewDiffV2")
+    public String logicViewDiffV2(HttpServletResponse response) {
+        log.info("========== subae logicViewDiffV2.html");
+        return "thymeleaf/logicViewDiffV2";
+    }
+
     //findPIDLineDiff
     @PostMapping("/subae/findPIDLineDiff")
     @ResponseBody
