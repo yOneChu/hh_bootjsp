@@ -1659,7 +1659,10 @@ public class PIDCommonUtil {
 
                     if(v != null && !"".equals(v)) {
                         v = v.trim();
-                        v = v.replace("-", "");
+                        if ("-".equals(v)) {
+                            v = "";
+                        }
+                        //v = v.replace("-", "");
                     }
 
                     row.add(k);
@@ -1951,7 +1954,10 @@ public class PIDCommonUtil {
 
                     if(v != null && !"".equals(v)) {
                         v = v.trim();
-                        v = v.replace("-", "");
+                        if ("-".equals(v)) {
+                            v = "";
+                        }
+                        //v = v.replace("-", "");
                     }
 
                     row.add(k);

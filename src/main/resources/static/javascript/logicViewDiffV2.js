@@ -191,8 +191,8 @@ document.getElementById('searchBtn').addEventListener('click', () => {
 
         //EL_PB182F01
         //기본
-        let cellClass = "px-4 py-2 border-b border-r border-gray-100";
-        let cellClassKey = "px-4 py-2 bg-pink-10 border-b border-r border-gray-100";
+        let cellClass = "px-4 py-2 border-b border-r border-gray-300";
+        let cellClassKey = "px-4 py-2 bg-pink-10 border-b border-r border-gray-300";
 
         for(let i=0; i < items.length; i++) {
             const tr = document.createElement('tr');
@@ -206,9 +206,9 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             tr.className = config.rowClass;
 
             if('EQUAL' === status) {
-                html = `<td class="px-4 py-2 text-center border-b border-r border-gray-100"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
+                html = `<td class="px-4 py-2 text-center border-b border-r border-gray-300"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
             } else if('DIFF' === status) {
-                html = `<td class="px-4 py-2 text-center border-b border-r border-gray-100"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
+                html = `<td class="px-4 py-2 text-center border-b border-r border-gray-300"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
             }
 
             let no = item[84];
