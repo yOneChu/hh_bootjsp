@@ -7,7 +7,7 @@ import lombok.Setter;
 //@Entity
 @Setter
 @Getter
-@Table(name = "dash_publicdata")
+//@Table(name = "dash_publicdata")
 public class DashPublicData {
 
     @Id

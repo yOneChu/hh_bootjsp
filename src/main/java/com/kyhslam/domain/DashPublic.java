@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 
 //@Entity
-@Table(name = "dash_public")
+//@Table(name = "dash_public")
 @Setter
 @Getter
 public class DashPublic {

@@ -75,6 +75,8 @@ function searchPIDList() {
     });
 }
 
+/*
+
 function showLoading() {
     if (document.getElementById('loadingOverlay')) return;
     const loadingHtml = `
@@ -93,6 +95,7 @@ function hideLoading() {
     const loadingOverlay = document.getElementById('loadingOverlay');
     if (loadingOverlay) loadingOverlay.remove();
 }
+*/
 
 
 document.getElementById('searchBtn').addEventListener('click', () => {
@@ -179,16 +182,17 @@ document.getElementById('searchBtn').addEventListener('click', () => {
 
         // 화면 렌더링
         const statusConfig = {
-            'DIFF': { label: '추가 or 수정', rowClass: 'bg-green-50 hover:bg-green-100 transition-colors', labelClass: 'bg-green-100 text-green-700 font-bold px-2 py-1 rounded' },
+            'DIFF': { label: '추가 or 수정', rowClass: 'bg-pink-100 hover:bg-pink-200 transition-colors', labelClass: 'bg-green-100 text-green-700 font-bold px-2 py-1 rounded' },
             'DELETED': { label: '삭제', rowClass: 'bg-red-50 opacity-60 hover:opacity-100 transition-opacity line-through text-red-500', labelClass: 'bg-red-100 text-red-700 font-bold px-2 py-1 rounded line-through-none' },
-            'MODIFIED': { label: '수정', rowClass: 'hover:bg-slate-50 transition-colors', labelClass: 'bg-yellow-100 text-yellow-700 font-bold px-2 py-1 rounded' },
-            'EQUAL': { label: '동일', rowClass: 'hover:bg-slate-50 transition-colors text-slate-500', labelClass: 'bg-slate-100 text-slate-500 px-2 py-1 rounded' }
+           /* 'MODIFIED': { label: '수정', rowClass: 'hover:bg-slate-50 transition-colors', labelClass: 'bg-yellow-100 text-yellow-700 font-bold px-2 py-1 rounded' },*/
+            'EQUAL': { label: '동일', rowClass: 'hover:bg-slate-300 transition-colors text-slate-500', labelClass: 'bg-slate-100 text-slate-500 px-2 py-1 rounded' }
         };
 
 
         //EL_PB182F01
         //기본
-        let cellClass = "px-4 py-2 border-b border-gray-100";
+        let cellClass = "px-4 py-2 border-b border-r border-gray-100";
+        let cellClassKey = "px-4 py-2 bg-pink-10 border-b border-r border-gray-100";
 
         for(let i=0; i < items.length; i++) {
             const tr = document.createElement('tr');
@@ -202,13 +206,16 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             tr.className = config.rowClass;
 
             if('EQUAL' === status) {
-                html = `<td class="px-4 py-2 text-center border-b border-gray-100"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
+                html = `<td class="px-4 py-2 text-center border-b border-r border-gray-100"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
             } else if('DIFF' === status) {
-                html = `<td class="px-4 py-2 text-center border-b border-gray-100"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
+                html = `<td class="px-4 py-2 text-center border-b border-r border-gray-100"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
             }
 
-
+            let no = item[84];
+            let goto = item[81];
+            let remarks = item[82];
             let addr = item[0];
+
             let spec1 = item[1];
             let con1 = item[2];
             let spec2 = item[3];
@@ -263,15 +270,71 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             let key9 = item[57];
             let val9 = item[58];
             let key10 = item[59];
-            let val10 = item[50];
+            let val10 = item[60];
 
+            let key11 = item[61];
+            let val11 = item[62];
+            let key12 = item[63];
+            let val12 = item[64];
+            let key13 = item[65];
+            let val13 = item[66];
+            let key14 = item[67];
+            let val14 = item[68];
+            let key15 = item[69];
+            let val15 = item[70];
+            let key16 = item[71];
+            let val16 = item[72];
+            let key17 = item[73];
+            let val17 = item[74];
+            let key18 = item[75];
+            let val18 = item[76];
+            let key19 = item[77];
+            let val19 = item[78];
+            let key20 = item[79];
+            let val20 = item[80];
 
+            // 툴팁용 텍스트 생성
+            let tooltipText = "";
+            for (let k = 1; k <= 20; k++) {
+                let kVal = eval(`key${k}`);
+                let vVal = eval(`val${k}`);
+                if (kVal && kVal !== '-' && kVal !== '') {
+                    //tooltipText += `KEY${k}: ${kVal}, VAL${k}: ${vVal}\n`;
+                    tooltipText += `KEY${k}-VAL${k} ::  ${kVal} > ${vVal}\n`;
+                }
+            }
+
+            if (goto !== '-' && goto !== '') {
+                tooltipText += `goto :: ${goto}\n`;
+            }
+
+            if (remarks !== '-' && remarks !== '') {
+                tooltipText += `remarks :: ${remarks}\n`;
+            }
+
+            // tr.title = tooltipText.trim(); // 기존 브라우저 툴팁 제거
+
+            // 커스텀 팝오버 이벤트 추가
+            if (tooltipText.trim()) {
+                const popover = document.getElementById('custom-popover');
+                tr.addEventListener('mouseenter', (e) => {
+                    popover.innerText = tooltipText.trim();
+                    popover.style.display = 'block';
+                });
+                tr.addEventListener('mousemove', (e) => {
+                    popover.style.left = (e.clientX + 15) + 'px';
+                    popover.style.top = (e.clientY + 15) + 'px';
+                });
+                tr.addEventListener('mouseleave', () => {
+                    popover.style.display = 'none';
+                });
+            }
 
             let stopFlag = item[81];
 
             //console.log(spec1, con1);
             //onsole.log(stopFlag);
-
+            html += `<td class="${cellClass}">${no}</td>`;
             html += `<td class="${cellClass}">${addr}</td>`;
             html += `<td class="${cellClass}">${spec1}</td>`;
             html += `<td class="${cellClass}">${con1}</td>`;
@@ -310,28 +373,40 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             html += `<td class="${cellClass}">${con17}</td>`;
 
 
-            html += `<td class="${cellClass}">${key1}</td>`;
+            html += `<td class="${cellClassKey}">${key1}</td>`;
             html += `<td class="${cellClass}">${val1}</td>`;
-            html += `<td class="${cellClass}">${key2}</td>`;
+            html += `<td class="${cellClassKey}">${key2}</td>`;
             html += `<td class="${cellClass}">${val2}</td>`;
-            html += `<td class="${cellClass}">${key3}</td>`;
+            html += `<td class="${cellClassKey}">${key3}</td>`;
             html += `<td class="${cellClass}">${val3}</td>`;
 
-            html += `<td class="${cellClass}">${key4}</td>`;
+            html += `<td class="${cellClassKey}">${key4}</td>`;
             html += `<td class="${cellClass}">${val4}</td>`;
-            html += `<td class="${cellClass}">${key5}</td>`;
+            html += `<td class="${cellClassKey}">${key5}</td>`;
             html += `<td class="${cellClass}">${val5}</td>`;
-            html += `<td class="${cellClass}">${key6}</td>`;
+            html += `<td class="${cellClassKey}">${key6}</td>`;
             html += `<td class="${cellClass}">${val6}</td>`;
-            html += `<td class="${cellClass}">${key7}</td>`;
+            html += `<td class="${cellClassKey}">${key7}</td>`;
             html += `<td class="${cellClass}">${val7}</td>`;
-            html += `<td class="${cellClass}">${key8}</td>`;
+            html += `<td class="${cellClassKey}">${key8}</td>`;
             html += `<td class="${cellClass}">${val8}</td>`;
-            html += `<td class="${cellClass}">${key9}</td>`;
+            html += `<td class="${cellClassKey}">${key9}</td>`;
             html += `<td class="${cellClass}">${val9}</td>`;
-            html += `<td class="${cellClass}">${key10}</td>`;
+            html += `<td class="${cellClassKey}">${key10}</td>`;
             html += `<td class="${cellClass}">${val10}</td>`;
+            html += `<td class="${cellClass}">${key11}</td>`;
+            html += `<td class="${cellClass}">${val11}</td>`;
+            html += `<td class="${cellClass}">${key12}</td>`;
+            html += `<td class="${cellClass}">${val12}</td>`;
+            html += `<td class="${cellClass}">${key13}</td>`;
+            html += `<td class="${cellClass}">${val13}</td>`;
+            html += `<td class="${cellClass}">${key14}</td>`;
+            html += `<td class="${cellClass}">${val14}</td>`;
+            html += `<td class="${cellClass}">${key15}</td>`;
+            html += `<td class="${cellClass}">${val15}</td>`;
 
+            html += `<td class="${cellClass}">${goto}</td>`;
+            html += `<td class="${cellClass}">${remarks}</td>`;
 
             tr.innerHTML = html;
             tbody.appendChild(tr);

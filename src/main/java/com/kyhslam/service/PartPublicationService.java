@@ -39,7 +39,7 @@ public class PartPublicationService {
      * 1. CP만 수행
      * 월~금 3시 20분에 부품공용화 배치 실행 (CP 만)
      */
-    @Scheduled(cron = "0 20 3 * * 1-5")
+    //@Scheduled(cron = "0 20 3 * * 1-5")
     public void scheduleProcessV1() {
         LocalTime now = LocalTime.now();
         System.out.println("scheduleProcessV1 start now = " + now);
@@ -226,7 +226,7 @@ public class PartPublicationService {
      * 2. CP, LAMP 제외 품목
      * 매일 4시에 부품공용화 배치 실행 (CP 외)
      */
-    @Scheduled(cron = "0 30 4 * * 1-5")
+    //@Scheduled(cron = "0 30 4 * * 1-5")
     public void scheduleProcessV2() {
         LocalTime now = LocalTime.now();
         System.out.println("scheduleProcessV2 start now = " + now);
@@ -1223,7 +1223,7 @@ public class PartPublicationService {
     /**
      * 불필요한 LAMP 데이터 삭제
      */
-    @Scheduled(cron = "0 30 7 * * 1-5")
+    //@Scheduled(cron = "0 30 7 * * 1-5")
     public void deleteLamp() {
 
         System.out.println("START --> deleteLamp");

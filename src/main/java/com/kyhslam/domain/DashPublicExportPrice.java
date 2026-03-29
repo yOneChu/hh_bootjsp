@@ -9,7 +9,7 @@ import lombok.Setter;
 //@Entity
 @Setter
 @Getter
-@Table(name = "dash_exportprice")
+//@Table(name = "dash_exportprice")
 public class DashPublicExportPrice {
 
 
