@@ -11,6 +11,7 @@ public class PIDDetailDTO {
 
 
     private String pid;
+    private String no;
     private String addr;
     private String gogo;
     private String remarks;

@@ -66,8 +66,8 @@
             <thead class="bg-slate-100 sticky top-0 z-10 shadow-sm">
             <tr id="table-header" class="text-slate-600">
                 <th class="px-4 py-3 font-semibold border-b border-gray-200 text-center">상태</th>
-                <th class="px-4 py-3 font-semibold border-b border-gray-200">Part ID</th>
-                <th class="px-4 py-3 font-semibold border-b border-gray-200">부품명</th>
+                <th class="px-4 py-3 font-semibold border-b border-gray-200">ADDR</th>
+                <!--<th class="px-4 py-3 font-semibold border-b border-gray-200">부품명</th>-->
             </tr>
             </thead>
             <tbody id="bom-tbody" class="divide-y divide-gray-200">
@@ -83,8 +83,8 @@
 
 <script>
     // 1. 비교할 컬럼명 배열 생성 (spec01~20, con01~20)
-    const compareColumns = [];
-    for(let i = 1; i <= 20; i++) {
+    let compareColumns = [];
+    for(let i = 1; i <= 17; i++) {
         compareColumns.push(`spec${String(i).padStart(2, '0')}`);
         compareColumns.push(`con${String(i).padStart(2, '0')}`);
     }
@@ -98,7 +98,34 @@
         headerRow.appendChild(th);
     });
 
+    //KEY-VAL
+    compareColumns = [];
+    for(let i = 1; i <= 10; i++) {
+        compareColumns.push(`KEY${String(i).padStart(2, '0')}`);
+        compareColumns.push(`VAL${String(i).padStart(2, '0')}`);
+    }
+    compareColumns.forEach(col => {
+        const th = document.createElement('th');
+        th.className = 'px-4 py-3 font-semibold border-b border-pink-200 text-slate-500 text-xs';
+        th.textContent = col.toUpperCase();
+        headerRow.appendChild(th);
+    });
+
+    //GOTO-REMARKS
+    compareColumns = [];
+    compareColumns.push(`GOTO`);
+    compareColumns.push(`REMARK`);
+    compareColumns.forEach(col => {
+        const th = document.createElement('th');
+        th.className = 'px-4 py-3 font-semibold border-b border-gray-200 text-slate-500 text-xs';
+        th.textContent = col.toUpperCase();
+        headerRow.appendChild(th);
+    });
+
     const tbody = document.getElementById('bom-tbody');
+
+
+
 
     // 빈 속성 채워주기
     const fillEmptyColumns = (item) => {
@@ -108,7 +135,7 @@
     };
 
     // 2. 검색 및 렌더링 함수
-    function executeCompare(pastDataArr, latestDataArr) {
+    /*function executeCompare(pastDataArr, latestDataArr) {
         tbody.innerHTML = ''; // 기존 테이블 초기화
 
         const pastMap = new Map(pastDataArr.map(item => [item.id, fillEmptyColumns(item)]));
@@ -170,7 +197,7 @@
             compareColumns.forEach(col => {
                 const isChanged = item.changedCols.includes(col);
                 let cellValue = item.data[col];
-                let cellClass = "px-4 py-2 border-b border-gray-100 truncate max-w-[120px]";
+                let cellClass = "px-4 py-2 border-b border-gray-100";
 
                 if (isChanged && item.status === 'MODIFIED') {
                     cellClass += " bg-yellow-200 text-yellow-900 font-semibold cursor-help";
@@ -184,7 +211,7 @@
             tr.innerHTML = html;
             tbody.appendChild(tr);
         });
-    }
+    }*/
 
     // 3. 이벤트 리스너 등록
     /*document.getElementById('searchBtn').addEventListener('click', () => {

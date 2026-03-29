@@ -137,6 +137,7 @@ document.getElementById('searchBtn').addEventListener('click', () => {
 
             console.log(rr);
 
+            executeCompareData(rr);
 
             hideLoading();
         },
@@ -171,4 +172,175 @@ document.getElementById('searchBtn').addEventListener('click', () => {
 
     // 렌더링 함수 호출
     //executeCompare(pastDummy, latestDummy);
+
+
+    function executeCompareData(items) {
+        tbody.innerHTML = ''; // 기존 테이블 초기화
+
+        // 화면 렌더링
+        const statusConfig = {
+            'DIFF': { label: '추가 or 수정', rowClass: 'bg-green-50 hover:bg-green-100 transition-colors', labelClass: 'bg-green-100 text-green-700 font-bold px-2 py-1 rounded' },
+            'DELETED': { label: '삭제', rowClass: 'bg-red-50 opacity-60 hover:opacity-100 transition-opacity line-through text-red-500', labelClass: 'bg-red-100 text-red-700 font-bold px-2 py-1 rounded line-through-none' },
+            'MODIFIED': { label: '수정', rowClass: 'hover:bg-slate-50 transition-colors', labelClass: 'bg-yellow-100 text-yellow-700 font-bold px-2 py-1 rounded' },
+            'EQUAL': { label: '동일', rowClass: 'hover:bg-slate-50 transition-colors text-slate-500', labelClass: 'bg-slate-100 text-slate-500 px-2 py-1 rounded' }
+        };
+
+
+        //EL_PB182F01
+        //기본
+        let cellClass = "px-4 py-2 border-b border-gray-100";
+
+        for(let i=0; i < items.length; i++) {
+            const tr = document.createElement('tr');
+
+            let item = items[i];
+
+
+            let html = '';
+            let status = item[83];
+            const config = statusConfig[status];
+            tr.className = config.rowClass;
+
+            if('EQUAL' === status) {
+                html = `<td class="px-4 py-2 text-center border-b border-gray-100"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
+            } else if('DIFF' === status) {
+                html = `<td class="px-4 py-2 text-center border-b border-gray-100"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
+            }
+
+
+            let addr = item[0];
+            let spec1 = item[1];
+            let con1 = item[2];
+            let spec2 = item[3];
+            let con2 = item[4];
+            let spec3 = item[5];
+            let con3 = item[6];
+            let spec4 = item[7];
+            let con4 = item[8];
+            let spec5 = item[9];
+            let con5 = item[10];
+            let spec6 = item[11];
+            let con6 = item[12];
+            let spec7 = item[13];
+            let con7 = item[14];
+            let spec8 = item[15];
+            let con8 = item[16];
+            let spec9 = item[17];
+            let con9 = item[18];
+            let spec10 = item[19];
+            let con10 = item[20];
+            let spec11 = item[21];
+            let con11 = item[22];
+            let spec12 = item[23];
+            let con12 = item[24];
+            let spec13 = item[25];
+            let con13 = item[26];
+            let spec14 = item[27];
+            let con14 = item[28];
+            let spec15 = item[29];
+            let con15 = item[30];
+            let spec16 = item[31];
+            let con16 = item[32];
+            let spec17 = item[33];
+            let con17 = item[34];
+
+            let key1 = item[41];
+            let val1 = item[42];
+            let key2 = item[43];
+            let val2 = item[44];
+            let key3 = item[45];
+            let val3 = item[46];
+            let key4 = item[47];
+            let val4 = item[48];
+            let key5 = item[49];
+            let val5 = item[50];
+            let key6 = item[51];
+            let val6 = item[52];
+            let key7 = item[53];
+            let val7 = item[54];
+            let key8 = item[55];
+            let val8 = item[56];
+            let key9 = item[57];
+            let val9 = item[58];
+            let key10 = item[59];
+            let val10 = item[50];
+
+
+
+            let stopFlag = item[81];
+
+            //console.log(spec1, con1);
+            //onsole.log(stopFlag);
+
+            html += `<td class="${cellClass}">${addr}</td>`;
+            html += `<td class="${cellClass}">${spec1}</td>`;
+            html += `<td class="${cellClass}">${con1}</td>`;
+            html += `<td class="${cellClass}">${spec2}</td>`;
+            html += `<td class="${cellClass}">${con2}</td>`;
+            html += `<td class="${cellClass}">${spec3}</td>`;
+            html += `<td class="${cellClass}">${con3}</td>`;
+            html += `<td class="${cellClass}">${spec4}</td>`;
+            html += `<td class="${cellClass}">${con4}</td>`;
+            html += `<td class="${cellClass}">${spec5}</td>`;
+            html += `<td class="${cellClass}">${con5}</td>`;
+            html += `<td class="${cellClass}">${spec6}</td>`;
+            html += `<td class="${cellClass}">${con6}</td>`;
+            html += `<td class="${cellClass}">${spec7}</td>`;
+            html += `<td class="${cellClass}">${con7}</td>`;
+            html += `<td class="${cellClass}">${spec8}</td>`;
+            html += `<td class="${cellClass}">${con8}</td>`;
+            html += `<td class="${cellClass}">${spec9}</td>`;
+            html += `<td class="${cellClass}">${con9}</td>`;
+            html += `<td class="${cellClass}">${spec10}</td>`;
+            html += `<td class="${cellClass}">${con10}</td>`;
+
+            html += `<td class="${cellClass}">${spec11}</td>`;
+            html += `<td class="${cellClass}">${con11}</td>`;
+            html += `<td class="${cellClass}">${spec12}</td>`;
+            html += `<td class="${cellClass}">${con12}</td>`;
+            html += `<td class="${cellClass}">${spec13}</td>`;
+            html += `<td class="${cellClass}">${con13}</td>`;
+            html += `<td class="${cellClass}">${spec14}</td>`;
+            html += `<td class="${cellClass}">${con14}</td>`;
+            html += `<td class="${cellClass}">${spec15}</td>`;
+            html += `<td class="${cellClass}">${con15}</td>`;
+            html += `<td class="${cellClass}">${spec16}</td>`;
+            html += `<td class="${cellClass}">${con16}</td>`;
+            html += `<td class="${cellClass}">${spec17}</td>`;
+            html += `<td class="${cellClass}">${con17}</td>`;
+
+
+            html += `<td class="${cellClass}">${key1}</td>`;
+            html += `<td class="${cellClass}">${val1}</td>`;
+            html += `<td class="${cellClass}">${key2}</td>`;
+            html += `<td class="${cellClass}">${val2}</td>`;
+            html += `<td class="${cellClass}">${key3}</td>`;
+            html += `<td class="${cellClass}">${val3}</td>`;
+
+            html += `<td class="${cellClass}">${key4}</td>`;
+            html += `<td class="${cellClass}">${val4}</td>`;
+            html += `<td class="${cellClass}">${key5}</td>`;
+            html += `<td class="${cellClass}">${val5}</td>`;
+            html += `<td class="${cellClass}">${key6}</td>`;
+            html += `<td class="${cellClass}">${val6}</td>`;
+            html += `<td class="${cellClass}">${key7}</td>`;
+            html += `<td class="${cellClass}">${val7}</td>`;
+            html += `<td class="${cellClass}">${key8}</td>`;
+            html += `<td class="${cellClass}">${val8}</td>`;
+            html += `<td class="${cellClass}">${key9}</td>`;
+            html += `<td class="${cellClass}">${val9}</td>`;
+            html += `<td class="${cellClass}">${key10}</td>`;
+            html += `<td class="${cellClass}">${val10}</td>`;
+
+
+            tr.innerHTML = html;
+            tbody.appendChild(tr);
+        }
+
+
+
+
+    }
+
+
 });

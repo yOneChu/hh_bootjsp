@@ -986,6 +986,8 @@ public class PIDCommonUtil {
             while(rs.next()) {
                 ArrayList<String> row = new ArrayList<>();
 
+                PIDDetailDTO detailDTO = new PIDDetailDTO();
+
                 String PID = rs.getString("PID"); //제품번호
                 String NO = rs.getString("NO") == null ? "" : rs.getString("NO");
                 String ADDR = rs.getString("ADDR") == null ? "" : rs.getString("ADDR");
@@ -1001,6 +1003,11 @@ public class PIDCommonUtil {
                 //row.add(PID);
                 //row.add(NO);
                 row.add(ADDR);
+
+                //detailDTO.setPid(PID);
+                //detailDTO.setNo(NO);
+                //detailDTO.setAddr(ADDR);
+                //detailDTO.setRemarks(REMARKS);
 
                 for (int i = 1; i <= 20; i++) {
                     String s = rs.getString("SPEC" + i);
@@ -1980,14 +1987,15 @@ public class PIDCommonUtil {
                     //System.out.println(NO + " >>> row = " + buff.toString());
                 }
 
-
-
-
-
                 //System.out.println("row = " + buff.toString());
-                //System.out.println();
 
+                row.add(NO);
                 result.add(row);
+            }
+            System.out.println("beforeDetailMap --- "+ beforeDetailMap);
+
+            for(String key : beforeDetailMap.keySet()) {
+                System.out.println(beforeDetailMap.get(key));
             }
 
         } catch (Exception e) {
