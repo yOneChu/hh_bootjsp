@@ -300,16 +300,16 @@ document.getElementById('searchBtn').addEventListener('click', () => {
                 let vVal = eval(`val${k}`);
                 if (kVal && kVal !== '-' && kVal !== '') {
                     //tooltipText += `KEY${k}: ${kVal}, VAL${k}: ${vVal}\n`;
-                    tooltipText += `KEY${k}-VAL${k} ::  ${kVal} > ${vVal}\n`;
+                    tooltipText += `KEY${k}-VAL${k} :::  ${kVal} > ${vVal}\n`;
                 }
             }
 
             if (goto !== '-' && goto !== '') {
-                tooltipText += `GOTO :: ${goto}\n`;
+                tooltipText += `GOTO ::: ${goto}\n`;
             }
 
             if (remarks !== '-' && remarks !== '') {
-                tooltipText += `remarks :: ${remarks}\n`;
+                tooltipText += `remarks ::: ${remarks}\n`;
             }
 
             // tr.title = tooltipText.trim(); // 기존 브라우저 툴팁 제거

@@ -1744,6 +1744,13 @@ public class PIDCommonUtil {
                     }
                 }
 
+                if("".equals(GOTO)) {
+                    buff.append("X-");
+                }else {
+                    buff.append(GOTO + "-");
+                }
+
+
                 row.add(GOTO);
                 row.add(REMARKS);
                 detailDto.setRemarks(REMARKS);
@@ -1974,6 +1981,12 @@ public class PIDCommonUtil {
                     } else {
                         buff.append(v + "-");
                     }
+                }
+
+                if("".equals(GOTO)) {
+                    buff.append("X-");
+                } else {
+                    buff.append(GOTO + "-");
                 }
 
                 row.add(GOTO);
