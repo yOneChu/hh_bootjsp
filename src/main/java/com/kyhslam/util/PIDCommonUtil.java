@@ -1998,11 +1998,11 @@ public class PIDCommonUtil {
                 row.add(NO);
                 result.add(row);
             }
-            System.out.println("beforeDetailMap --- "+ beforeDetailMap);
+            //System.out.println("beforeDetailMap --- "+ beforeDetailMap);
 
-            for(String key : beforeDetailMap.keySet()) {
+            /*for(String key : beforeDetailMap.keySet()) {
                 System.out.println(beforeDetailMap.get(key));
-            }
+            }*/
 
         } catch (Exception e) {
             e.printStackTrace();
