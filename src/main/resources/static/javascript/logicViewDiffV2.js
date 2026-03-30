@@ -305,7 +305,7 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             }
 
             if (goto !== '-' && goto !== '') {
-                tooltipText += `goto :: ${goto}\n`;
+                tooltipText += `GOTO :: ${goto}\n`;
             }
 
             if (remarks !== '-' && remarks !== '') {
