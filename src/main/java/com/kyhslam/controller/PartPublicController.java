@@ -32,7 +32,8 @@ public class PartPublicController {
     //부품공용화 - 출하예정일
     @GetMapping("/public/searchPriceReductionDate")
     public String searchPriceReductionDate() {
-        return "partPublic/searchPriceReductionDate";
+        //return "partPublic/searchPriceReductionDate";
+        return "dashboard/partDashboardv2";
     }
 
     //부품공용화 - 금액

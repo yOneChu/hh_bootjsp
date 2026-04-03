@@ -3,19 +3,25 @@ package com.kyhslam.api;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kyhslam.domain.SubaeHogi;
+import com.kyhslam.util.DateUtil;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.LocalDate;
 
 public class JsonApiSample_01 {
 
     public static void main(String[] args) {
 
         //설계완료일
-        String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/gethogilistByBlockopt.jsp?searchdate=20231129";
+        String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/gethogilistByBlockopt.jsp?searchdate=20261231";
+
+        LocalDate now = LocalDate.now();
+        String todayVal = DateUtil.getTodayDate();
 
         try {
             String jsonResponse = getJson(requestUrl);
@@ -41,6 +47,12 @@ public class JsonApiSample_01 {
 
                     System.out.println("hogiNo = " + hogiNo);
                     System.out.println("codat = " + codat);
+
+                    /*SubaeHogi s = new  SubaeHogi();
+                    s.setHogi(hogiNo);
+                    s.setCodat(codat);
+                    s.setBatchDate(todayVal);*/
+
                     System.out.println("--------");
                 }
             }

@@ -491,7 +491,7 @@ public class PlanCService {
 
     //03
     @Description("엑셀의 자재INDEX를 기준으로 대시보드 테이블에 집계 > ERP전송날짜 기준으로")
-    @Scheduled(cron = "0 40 02 * * *")
+    //@Scheduled(cron = "0 40 02 * * *")
     public void setDashboardData() {
         StopWatch sw = new StopWatch();
         sw.start();

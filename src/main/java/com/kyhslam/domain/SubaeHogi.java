@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+@Entity
 @Table(name = "subaehogi")
 @Setter
 @Getter
@@ -16,4 +17,5 @@ public class SubaeHogi {
 
     private String hogi; //호기번호
     private String codat; //설계완료일
+    private String batchDate;
 }
