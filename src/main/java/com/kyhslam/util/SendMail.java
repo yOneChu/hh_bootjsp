@@ -38,29 +38,37 @@ public class SendMail {
 
         //String subject = "PLM-VAULT 연계 테스트 메일";
         String subject = """
-                📢 법인PDM 모니터링 결과 메일 입니다.
+                📢 [PLM] 전날 법인 PDM 릴리즈 부품 정합성 확인 대상 안내
                 """;
 
         String htmlContent = """
                 <html>
                 <body style="font-family: Arial, sans-serif; line-height: 1.6;">
-                    <h2 style="color: #2F5597;">🔔 법인PDM-PLM 비교 모니터링 알림</h2>
-                    <p>안녕하세요,</p>
-                    <p>법인PDM과 PLM 정합성 비교 결과, 상이한 부품 목록 입니다.</p>
-
+                    <h4 style="color: #2F5597;">🔔 법인PDM-PLM 비교 모니터링 알림</h4>
+                    <p>안녕하세요.</p>
+                    <p>본 메일은 전날 법인 PDM에서 릴리즈된 부품 중, 본사 PLM에 동일 부품이 존재하는 대상을 안내드리는 자동 발송 메일입니다.</p>
+                    
+                    <p>아래 부품 목록을 확인하시어,
+                       본사 PLM의 부품 정보와 법인 PDM의 부품 정합성 확인을 요청드립니다.
+                    <p>
+                    
                     <hr style="margin-top: 30px;"/>
                                 
-                    <h4 style="color: #2F5597; margin-bottom: 10px;">📌 PLM 자재 목록 </h4>
+                    <h4 style="color: #2F5597; margin-bottom: 10px;">📌 자재 목록 </h4>
                     <table style="border-collapse: collapse; width: 100%;">
                         <thead>
                             <tr>
                                 <th style="border: 1px solid #ccc; padding: 8px; background-color: #f2f2f2;">자재번호</th>
                                 <th style="border: 1px solid #ccc; padding: 8px; background-color: #f2f2f2;">자재명</th>
                                 <th style="border: 1px solid #ccc; padding: 8px; background-color: #f2f2f2;">버전</th>
+                                <th style="border: 1px solid #ccc; padding: 8px; background-color: #f2f2f2;">BlockNo</th>
+                                <th style="border: 1px solid #ccc; padding: 8px; background-color: #f2f2f2;">SPEC</th>
                             </tr>
                         </thead>
                         <tbody>
                         """;
+
+        //<p>법인PDM과 PLM 정합성 비교 결과, 상이한 부품 목록 입니다.</p>
 
         /*htmlContent += """
                             <tr>
@@ -78,11 +86,16 @@ public class SendMail {
             String eName = data.get(i).getEName();
             String cName = data.get(i).getCName();
             String version = data.get(i).getVersion();
+            String blockNo = data.get(i).getBlockNo();
+            String spec = data.get(i).getSpec();
+
 
             str += "<tr>";
             str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + partNo + "</td>";
             str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + partName + "</td>";
             str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + version + "</td>";
+            str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + blockNo + "</td>";
+            str += "<td style='text-align: center; border: 1px solid #ccc; padding: 8px;'>" + spec + "</td>";
             str += "</tr>";
         }
 
