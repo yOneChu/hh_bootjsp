@@ -2,6 +2,13 @@
 
 let beforeData;
 
+document.getElementById('pidInput').addEventListener('keydown', (e) => {
+
+    //console.log(e.keyCode);
+    if (e.key === 'Enter') {
+        searchPIDList();
+    }
+});
 
 function searchPIDList() {
     let pid = document.getElementById('pidInput').value;
@@ -37,7 +44,7 @@ function searchPIDList() {
                 if (rr && rr.length > 0) {
                     rr.forEach(function(item) {
                         let value, text;
-                        console.log(item)
+                        //console.log(item)
                         if (typeof item === 'string') {
                             value = item;
                             text = item;
@@ -110,8 +117,7 @@ document.getElementById('searchBtn').addEventListener('click', () => {
     const v1 = document.getElementById('baseVersion').value;
     const v2 = document.getElementById('compareVersion').value;
 
-
-    console.log(v1, v2);
+    //console.log(v1, v2);
 
     showLoading();
     $.ajax({
@@ -135,8 +141,8 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             let data = rr.result;
             let beforeMap = rr.beforeDetailMap;
 
-            console.log('data -- ' , data);
-            console.log('beforeMap-- ', beforeMap);
+            //console.log('data -- ' , data);
+            //console.log('beforeMap-- ', beforeMap);
 
             beforeData = beforeMap;
 
@@ -151,8 +157,6 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             hideLoading();
             alert('데이터를 가져오는 중 오류가 발생하였습니다.');
         }
-
-
 
     });
 
@@ -188,21 +192,8 @@ document.getElementById('searchBtn').addEventListener('click', () => {
     });
 
 
-
         //이전버전의 데이터 조회 팝업
     function openBeforeDataPopup() {
-       // const url = "subae/logicViewDiffPopup";
-        //const name = "popupWindow";
-        //const options = "width=600,height=400,top=200,left=300,resizable=yes,scrollbars=yes";
-
-        //let postData = encodeURIComponent(JSON.stringify(beforeData));
-        //console.log('postData -- ', postData);
-
-        /*window.open(
-            "/subae/logicViewDiffPopup?data=" + postData,
-            "popupWindow",
-            "width=600,height=400,top=200,left=300, resizable=yes,scrollbars=yes"
-        );*/
 
         const form = document.createElement("form");
         form.method = "post";
@@ -221,8 +212,6 @@ document.getElementById('searchBtn').addEventListener('click', () => {
         form.submit();
 
         document.body.removeChild(form);
-
-
         //window.open(url, name, options);
     }
 
@@ -464,6 +453,22 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             html += `<td class="${cellClass}">${no}</td>`;
 
             tr.innerHTML = html;
+            
+            // 행 클릭 이벤트 추가 (노란색 하이라이트)
+            tr.addEventListener('click', function() {
+                const isSelected = this.classList.contains('selected-row');
+                
+                // 모든 행에서 하이라이트 제거
+                document.querySelectorAll('#bom-tbody tr').forEach(row => {
+                    row.classList.remove('selected-row');
+                });
+                
+                // 클릭한 행이 이전에 선택되지 않았다면 하이라이트 추가
+                if (!isSelected) {
+                    this.classList.add('selected-row');
+                }
+            });
+            
             tbody.appendChild(tr);
         }
 

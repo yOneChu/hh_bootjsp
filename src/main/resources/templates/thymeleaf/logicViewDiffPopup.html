@@ -30,6 +30,13 @@
             pointer-events: none;
             white-space: pre-line;
         }
+
+        .selected-row {
+            background-color: #fef08a !important; /* bg-yellow-200 */
+        }
+        .selected-row td {
+            background-color: #fef08a !important; /* bg-yellow-200 */
+        }
     </style>
 
 
@@ -50,12 +57,12 @@
     <div class="flex-1 overflow-auto">
         <table class="min-w-max w-full text-left text-sm whitespace-nowrap" style="zoom:85%;">
             <thead class="bg-slate-100 sticky top-0 z-20 shadow-sm text-xs">
-            <tr id="table-header" class="text-slate-600">
-                <th class="px-4 py-3 font-semibold border-b border-r border-gray-300 text-center sticky left-0 bg-slate-100 z-30">상태</th>
-                <th class="px-4 py-3 font-semibold border-b border-r border-gray-300 text-center sticky left-[64px] bg-slate-100 z-30">NO</th>
-                <th class="px-4 py-3 font-semibold border-b border-r border-gray-300">ADDR</th>
-                <!--<th class="px-4 py-3 font-semibold border-b border-gray-300">부품명</th>-->
-            </tr>
+                <tr id="table-header" class="text-slate-600">
+                    <th class="px-4 py-3 font-semibold border-b border-r border-gray-300 text-center sticky left-0 bg-slate-100 z-30">상태</th>
+                    <th class="px-4 py-3 font-semibold border-b border-r border-gray-300 text-center sticky left-[64px] bg-slate-100 z-30">NO</th>
+                    <th class="px-4 py-3 font-semibold border-b border-r border-gray-300">ADDR</th>
+                    <!--<th class="px-4 py-3 font-semibold border-b border-gray-300">부품명</th>-->
+                </tr>
             </thead>
             <tbody id="bom-tbody" class="divide-y divide-gray-200 border-b border-gray-200">
                 <tr>
@@ -244,6 +251,22 @@
         html += `<td class="${cellClass}">${valObj.no}</td>`;
 
         tr.innerHTML = html;
+        
+        // 행 클릭 이벤트 추가 (노란색 하이라이트)
+        tr.addEventListener('click', function() {
+            const isSelected = this.classList.contains('selected-row');
+            
+            // 모든 행에서 하이라이트 제거
+            document.querySelectorAll('#bom-tbody tr').forEach(row => {
+                row.classList.remove('selected-row');
+            });
+            
+            // 클릭한 행이 이전에 선택되지 않았다면 하이라이트 추가
+            if (!isSelected) {
+                this.classList.add('selected-row');
+            }
+        });
+        
         tbody.appendChild(tr);
     }
 
