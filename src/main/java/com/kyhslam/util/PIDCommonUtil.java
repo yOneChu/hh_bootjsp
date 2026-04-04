@@ -1554,6 +1554,8 @@ public class PIDCommonUtil {
                 } else {
                     buff.append(ADDR + "-");
                 }
+                detailDto.setPid(PID);
+                detailDto.setNo(NO);
                 detailDto.setAddr(ADDR);
 
                 for (int i = 1; i <= 20; i++) {

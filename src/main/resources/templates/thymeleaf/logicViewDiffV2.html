@@ -77,14 +77,22 @@
         <button id="searchBtn" class="bg-blue-600 text-white px-5 py-2 rounded-md text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
             조회 및 비교
         </button>
+
+        <button id="searchBeforeBtn" class="bg-blue-600 text-white px-5 py-2 rounded-md text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
+            기준 버전(과거) 다른 라인 데이터 보기
+        </button>
     </div>
 
     <div class="flex-1 overflow-auto">
         <table class="min-w-max w-full text-left text-sm whitespace-nowrap" style="zoom:85%;">
             <thead class="bg-slate-100 sticky top-0 z-10 shadow-sm text-xs">
                 <tr id="table-header" class="text-slate-600">
-                    <th class="px-4 py-3 font-semibold border-b border-r border-gray-300 text-center">상태</th>
-                    <th class="px-4 py-3 font-semibold border-b border-r border-gray-300 text-center">NO</th>
+                    <!--<th class="px-4 py-3 font-semibold border-b border-r border-gray-300 text-center">상태</th>
+                    <th class="px-4 py-3 font-semibold border-b border-r border-gray-300 text-center">NO</th>-->
+
+                    <th class="px-4 py-3 font-semibold border-b border-r border-gray-300 text-center sticky left-0 bg-slate-100 z-30">상태</th>
+                    <th class="px-4 py-3 font-semibold border-b border-r border-gray-300 text-center sticky left-[64px] bg-slate-100 z-30">NO</th>
+
                     <th class="px-4 py-3 font-semibold border-b border-r border-gray-300">ADDR</th>
                     <!--<th class="px-4 py-3 font-semibold border-b border-gray-300">부품명</th>-->
                 </tr>
@@ -138,6 +146,7 @@
     compareColumns = [];
     compareColumns.push(`GOTO`);
     compareColumns.push(`REMARK`);
+    compareColumns.push(`NO`);
     compareColumns.forEach(col => {
         const th = document.createElement('th');
         th.className = 'px-4 py-3 font-semibold border-b border-r border-gray-300 text-slate-500 text-xs';

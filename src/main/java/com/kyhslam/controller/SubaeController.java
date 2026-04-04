@@ -14,6 +14,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
@@ -157,7 +158,9 @@ public class SubaeController {
     //findPIDLineDiff
     @PostMapping("/subae/findPIDLineDiff")
     @ResponseBody
-    public ArrayList<ArrayList<String>> findPIDLineDiff(String pid, String pidOid, String pidOidb) {
+    public HashMap<String, Object> findPIDLineDiff(String pid, String pidOid, String pidOidb) {
+
+        HashMap<String, Object> resultMap = new HashMap<>();
         HashSet<String> beforeMap = new HashSet<>();
 
         LinkedHashMap<String,PIDDetailDTO> beforeDetailMap = new LinkedHashMap<>();
@@ -165,7 +168,11 @@ public class SubaeController {
         PIDCommonUtil.findPIDLineDiffBefore(pid, pidOid, beforeMap, beforeDetailMap); // 이전 버전
         ArrayList<ArrayList<String>> result = PIDCommonUtil.findPIDLineDiffMain(pid, pidOidb, beforeMap, beforeDetailMap);
 
-        return result;
+        resultMap.put("result", result);
+        resultMap.put("beforeDetailMap", beforeDetailMap);
+
+        //return result;
+        return resultMap;
     }
 
     @PostMapping("/subae/logiceditor")
@@ -353,6 +360,14 @@ public class SubaeController {
         ArrayList<ArrayList<String>> result = subaeService.findPIDLineViewV2(pid, pidOid);
         log.info("result.size() = " + result.size());
         return result;
+    }
+
+    @PostMapping("/subae/logicViewDiffPopup")
+    public String logicViewDiffPopup(@RequestParam("data") String data, Model model) {
+        model.addAttribute("data", data);
+
+        System.out.println("data = " + data);
+        return "thymeleaf/logicViewDiffPopup";
     }
 
     //마인드맵

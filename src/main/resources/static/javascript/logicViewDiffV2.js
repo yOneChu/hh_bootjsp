@@ -1,13 +1,17 @@
 
+
+let beforeData;
+
+
 function searchPIDList() {
     let pid = document.getElementById('pidInput').value;
-    console.log("pid --------", pid);
+    //console.log("pid --------", pid);
     if (!pid) {
         alert('PID를 입력하세요.');
         return;
     }
 
-    console.log('--------searchPIDList');
+    //console.log('--------searchPIDList');
 
     const $select = $('#baseVersion');
     $select.empty();
@@ -48,7 +52,7 @@ function searchPIDList() {
 
                             value = houid || version || pidStr || name || remarks;
 
-                            console.log("remarks == ", remarks);
+                            //console.log("remarks == ", remarks);
 
                             const parts = [];
                             if(version === '-1') version = 'TEST';
@@ -98,6 +102,9 @@ function hideLoading() {
 */
 
 
+
+
+
 document.getElementById('searchBtn').addEventListener('click', () => {
     const pid = document.getElementById('pidInput').value;
     const v1 = document.getElementById('baseVersion').value;
@@ -105,21 +112,6 @@ document.getElementById('searchBtn').addEventListener('click', () => {
 
 
     console.log(v1, v2);
-
-/*
-    let target = 'top';
-    let pid = document.getElementById('searchInput').value.trim();
-    const pidList = document.getElementById("pidList");
-    const pidList2 = document.getElementById("pidList2");
-*/
-
-
-
-
-    /*if (!v1.value) {
-        alert("버전을 선택해주세요.");
-        return;
-    }*/
 
     showLoading();
     $.ajax({
@@ -140,14 +132,28 @@ document.getElementById('searchBtn').addEventListener('click', () => {
 
             console.log(rr);
 
-            executeCompareData(rr);
+            let data = rr.result;
+            let beforeMap = rr.beforeDetailMap;
+
+            console.log('data -- ' , data);
+            console.log('beforeMap-- ', beforeMap);
+
+            beforeData = beforeMap;
+
+            executeCompareData(data);
 
             hideLoading();
+
+
+            //openBeforeDataPopup();
         },
         error: function () {
             hideLoading();
             alert('데이터를 가져오는 중 오류가 발생하였습니다.');
         }
+
+
+
     });
 
 
@@ -177,6 +183,50 @@ document.getElementById('searchBtn').addEventListener('click', () => {
     //executeCompare(pastDummy, latestDummy);
 
 
+    document.getElementById('searchBeforeBtn').addEventListener('click', () => {
+        openBeforeDataPopup();
+    });
+
+
+
+        //이전버전의 데이터 조회 팝업
+    function openBeforeDataPopup() {
+       // const url = "subae/logicViewDiffPopup";
+        //const name = "popupWindow";
+        //const options = "width=600,height=400,top=200,left=300,resizable=yes,scrollbars=yes";
+
+        //let postData = encodeURIComponent(JSON.stringify(beforeData));
+        //console.log('postData -- ', postData);
+
+        /*window.open(
+            "/subae/logicViewDiffPopup?data=" + postData,
+            "popupWindow",
+            "width=600,height=400,top=200,left=300, resizable=yes,scrollbars=yes"
+        );*/
+
+        const form = document.createElement("form");
+        form.method = "post";
+        form.action = "/subae/logicViewDiffPopup";
+        form.target = "popupWindow";
+
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "data";
+        input.value = JSON.stringify(beforeData);
+
+        form.appendChild(input);
+        document.body.appendChild(form);
+
+        window.open("/subae/logicViewDiffPopup", "popupWindow", "width=1200,height=400");
+        form.submit();
+
+        document.body.removeChild(form);
+
+
+        //window.open(url, name, options);
+    }
+
+
     function executeCompareData(items) {
         tbody.innerHTML = ''; // 기존 테이블 초기화
 
@@ -197,7 +247,9 @@ document.getElementById('searchBtn').addEventListener('click', () => {
         for(let i=0; i < items.length; i++) {
             const tr = document.createElement('tr');
 
-            let item = items[i];
+            let item = items[i]
+
+            //console.log(item);
 
 
             let html = '';
@@ -206,9 +258,9 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             tr.className = config.rowClass;
 
             if('EQUAL' === status) {
-                html = `<td class="px-4 py-2 text-center border-b border-r border-gray-300"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
+                html = `<td class="px-4 py-2 text-center border-b border-r border-gray-300 sticky left-0 z-10"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
             } else if('DIFF' === status) {
-                html = `<td class="px-4 py-2 text-center border-b border-r border-gray-300"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
+                html = `<td class="px-4 py-2 text-center border-b border-r border-gray-300 sticky left-0 z-10"><span class="text-xs ${config.labelClass}">${config.label}</span></td>`;
             }
 
             let no = item[84];
@@ -334,7 +386,9 @@ document.getElementById('searchBtn').addEventListener('click', () => {
 
             //console.log(spec1, con1);
             //onsole.log(stopFlag);
-            html += `<td class="${cellClass}">${no}</td>`;
+
+            //html += `<td class="${cellClass}">${no}</td>`;
+            html += `<td class="${cellClass} sticky left-[64px] z-10 ${config.rowClass.split(' ')[0]}">${no}</td>`;
             html += `<td class="${cellClass}">${addr}</td>`;
             html += `<td class="${cellClass}">${spec1}</td>`;
             html += `<td class="${cellClass}">${con1}</td>`;
@@ -407,6 +461,7 @@ document.getElementById('searchBtn').addEventListener('click', () => {
 
             html += `<td class="${cellClass}">${goto}</td>`;
             html += `<td class="${cellClass}">${remarks}</td>`;
+            html += `<td class="${cellClass}">${no}</td>`;
 
             tr.innerHTML = html;
             tbody.appendChild(tr);
