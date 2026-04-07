@@ -231,7 +231,7 @@ document.getElementById('searchBtn').addEventListener('click', () => {
         //EL_PB182F01
         //기본
         let cellClass = "px-4 py-2 border-b border-r border-gray-300";
-        let cellKeyClass = "px-4 py-2 bg-pink-100 border-b border-r border-gray-300";
+        let cellKeyClass = "px-4 py-2 bg-pink-50 border-b border-r border-gray-300";
         let cellClassKey = "px-4 py-2 bg-pink-10 border-b border-r border-gray-300";
 
         for(let i=0; i < items.length; i++) {
