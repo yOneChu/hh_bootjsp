@@ -231,6 +231,7 @@ document.getElementById('searchBtn').addEventListener('click', () => {
         //EL_PB182F01
         //기본
         let cellClass = "px-4 py-2 border-b border-r border-gray-300";
+        let cellKeyClass = "px-4 py-2 bg-pink-50 border-b border-r border-gray-300";
         let cellClassKey = "px-4 py-2 bg-pink-10 border-b border-r border-gray-300";
 
         for(let i=0; i < items.length; i++) {
@@ -291,6 +292,12 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             let con16 = item[32];
             let spec17 = item[33];
             let con17 = item[34];
+            let spec18 = item[35];
+            let con18 = item[36];
+            let spec19 = item[37];
+            let con19 = item[38];
+            let spec20 = item[39];
+            let con20 = item[40];
 
             let key1 = item[41];
             let val1 = item[42];
@@ -414,28 +421,34 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             html += `<td class="${cellClass}">${con16}</td>`;
             html += `<td class="${cellClass}">${spec17}</td>`;
             html += `<td class="${cellClass}">${con17}</td>`;
+            html += `<td class="${cellClass}">${spec18}</td>`;
+            html += `<td class="${cellClass}">${con18}</td>`;
+            html += `<td class="${cellClass}">${spec19}</td>`;
+            html += `<td class="${cellClass}">${con19}</td>`;
+            html += `<td class="${cellClass}">${spec20}</td>`;
+            html += `<td class="${cellClass}">${con20}</td>`;
 
 
-            html += `<td class="${cellClassKey}">${key1}</td>`;
+            html += `<td class="${cellKeyClass}">${key1}</td>`;
             html += `<td class="${cellClass}">${val1}</td>`;
-            html += `<td class="${cellClassKey}">${key2}</td>`;
+            html += `<td class="${cellKeyClass}">${key2}</td>`;
             html += `<td class="${cellClass}">${val2}</td>`;
-            html += `<td class="${cellClassKey}">${key3}</td>`;
+            html += `<td class="${cellKeyClass}">${key3}</td>`;
             html += `<td class="${cellClass}">${val3}</td>`;
 
-            html += `<td class="${cellClassKey}">${key4}</td>`;
+            html += `<td class="${cellKeyClass}">${key4}</td>`;
             html += `<td class="${cellClass}">${val4}</td>`;
-            html += `<td class="${cellClassKey}">${key5}</td>`;
+            html += `<td class="${cellKeyClass}">${key5}</td>`;
             html += `<td class="${cellClass}">${val5}</td>`;
-            html += `<td class="${cellClassKey}">${key6}</td>`;
+            html += `<td class="${cellKeyClass}">${key6}</td>`;
             html += `<td class="${cellClass}">${val6}</td>`;
-            html += `<td class="${cellClassKey}">${key7}</td>`;
+            html += `<td class="${cellKeyClass}">${key7}</td>`;
             html += `<td class="${cellClass}">${val7}</td>`;
-            html += `<td class="${cellClassKey}">${key8}</td>`;
+            html += `<td class="${cellKeyClass}">${key8}</td>`;
             html += `<td class="${cellClass}">${val8}</td>`;
-            html += `<td class="${cellClassKey}">${key9}</td>`;
+            html += `<td class="${cellKeyClass}">${key9}</td>`;
             html += `<td class="${cellClass}">${val9}</td>`;
-            html += `<td class="${cellClassKey}">${key10}</td>`;
+            html += `<td class="${cellKeyClass}">${key10}</td>`;
             html += `<td class="${cellClass}">${val10}</td>`;
             html += `<td class="${cellClass}">${key11}</td>`;
             html += `<td class="${cellClass}">${val11}</td>`;
@@ -472,8 +485,56 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             tbody.appendChild(tr);
         }
 
+    // 빈 열 숨기기 기능 구현
+    document.getElementById('hide-empty-cols').addEventListener('click', function() {
+        const table = document.querySelector('table');
+        const rows = table.querySelectorAll('tbody tr');
+        const headers = table.querySelectorAll('thead th');
+        
+        // SPEC1~20, CON1~20, KEY1~20, VAL1~20 열의 인덱스 확인
+        const targetIndices = [];
+        headers.forEach((th, index) => {
+            const text = th.textContent.trim().toUpperCase();
+            const isSpecOrCon = text.startsWith('SPEC') || text.startsWith('CON');
+            const isKeyOrVal = text.startsWith('KEY') || text.startsWith('VAL');
+            
+            if (isSpecOrCon || isKeyOrVal) {
+                const numStr = text.replace('SPEC', '').replace('CON', '').replace('KEY', '').replace('VAL', '');
+                const num = parseInt(numStr);
+                if (num >= 1 && num <= 20) {
+                    targetIndices.push(index);
+                }
+            }
+        });
 
+        // 각 인덱스에 대해 모든 행의 값이 비어있는지 체크
+        targetIndices.forEach(colIndex => {
+            let hasValue = false;
+            rows.forEach(row => {
+                const cell = row.cells[colIndex];
+                if (cell) {
+                    const text = cell.textContent.trim();
+                    if (text !== '' && text !== '-' && text !== 'undefined' && text !== 'null') {
+                        hasValue = true;
+                    }
+                }
+            });
 
+            // 값이 하나도 없으면 해당 열 숨김
+            if (!hasValue) {
+                headers[colIndex].style.display = 'none';
+                rows.forEach(row => {
+                    if (row.cells[colIndex]) {
+                        row.cells[colIndex].style.display = 'none';
+                    }
+                });
+            }
+        });
+        
+        this.textContent = '빈 열 숨김 완료';
+        this.disabled = true;
+        this.classList.replace('bg-green-600', 'bg-gray-400');
+    });
 
     }
 

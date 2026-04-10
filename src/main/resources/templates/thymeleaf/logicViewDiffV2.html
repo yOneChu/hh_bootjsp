@@ -88,6 +88,10 @@
         <button id="searchBeforeBtn" class="bg-blue-600 text-white px-5 py-2 rounded-md text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
             기준 버전(과거) 다른 라인 데이터 보기
         </button>
+
+        <button id="hide-empty-cols" class="bg-green-600 text-white px-5 py-2 rounded-md text-sm font-bold hover:bg-green-700 transition-colors shadow-sm">
+            빈 열 숨기기
+        </button>
     </div>
 
     <div class="flex-1 overflow-auto">
@@ -122,7 +126,7 @@
 <script>
     // 1. 비교할 컬럼명 배열 생성 (spec01~20, con01~20)
     let compareColumns = [];
-    for(let i = 1; i <= 17; i++) {
+    for(let i = 1; i <= 20; i++) {
         compareColumns.push(`spec${String(i).padStart(2, '0')}`);
         compareColumns.push(`con${String(i).padStart(2, '0')}`);
     }

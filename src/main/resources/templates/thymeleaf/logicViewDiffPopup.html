@@ -47,6 +47,9 @@
     <div class="p-6 border-b border-gray-200 bg-slate-800 text-white flex justify-between items-center">
         <h1 class="text-2xl font-bold">로직 비교 분석</h1>
         <div class="flex gap-4 text-sm font-medium">
+            <button id="hide-empty-cols" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow transition-colors">
+                빈 열 숨기기
+            </button>
             <!--<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-200 inline-block border border-green-500"></span> 추가됨</span>
             <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-100 inline-block border border-red-400"></span> 삭제됨</span>
             <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-yellow-200 inline-block border border-yellow-500"></span> 수정됨 (셀 강조)</span>-->
@@ -84,7 +87,7 @@
 <script>
     // 1. 비교할 컬럼명 배열 생성 (spec01~20, con01~20)
     let compareColumns = [];
-    for(let i = 1; i <= 17; i++) {
+    for(let i = 1; i <= 20; i++) {
         compareColumns.push(`spec${String(i).padStart(2, '0')}`);
         compareColumns.push(`con${String(i).padStart(2, '0')}`);
     }
@@ -100,7 +103,7 @@
 
     //KEY-VAL
     compareColumns = [];
-    for(let i = 1; i <= 15; i++) {
+    for(let i = 1; i <= 20; i++) {
         compareColumns.push(`KEY${String(i).padStart(2, '0')}`);
         compareColumns.push(`VAL${String(i).padStart(2, '0')}`);
     }
@@ -212,38 +215,55 @@
         html += `<td class="${cellClass}">${valObj.con16}</td>`;
         html += `<td class="${cellClass}">${valObj.spec17}</td>`;
         html += `<td class="${cellClass}">${valObj.con17}</td>`;
+        html += `<td class="${cellClass}">${valObj.spec18}</td>`;
+        html += `<td class="${cellClass}">${valObj.con18}</td>`;
+        html += `<td class="${cellClass}">${valObj.spec19}</td>`;
+        html += `<td class="${cellClass}">${valObj.con19}</td>`;
+        html += `<td class="${cellClass}">${valObj.spec20}</td>`;
+        html += `<td class="${cellClass}">${valObj.con20}</td>`;
 
 
-        html += `<td class="${cellClass}">${valObj.key1}</td>`;
-        html += `<td class="${cellClass}">${valObj.val1}</td>`;
-        html += `<td class="${cellClass}">${valObj.key2}</td>`;
-        html += `<td class="${cellClass}">${valObj.val2}</td>`;
-        html += `<td class="${cellClass}">${valObj.key3}</td>`;
-        html += `<td class="${cellClass}">${valObj.val3}</td>`;
-        html += `<td class="${cellClass}">${valObj.key4}</td>`;
-        html += `<td class="${cellClass}">${valObj.val4}</td>`;
-        html += `<td class="${cellClass}">${valObj.key5}</td>`;
-        html += `<td class="${cellClass}">${valObj.val5}</td>`;
-        html += `<td class="${cellClass}">${valObj.key6}</td>`;
-        html += `<td class="${cellClass}">${valObj.val6}</td>`;
-        html += `<td class="${cellClass}">${valObj.key7}</td>`;
-        html += `<td class="${cellClass}">${valObj.val7}</td>`;
-        html += `<td class="${cellClass}">${valObj.key8}</td>`;
-        html += `<td class="${cellClass}">${valObj.val8}</td>`;
-        html += `<td class="${cellClass}">${valObj.key9}</td>`;
-        html += `<td class="${cellClass}">${valObj.val9}</td>`;
-        html += `<td class="${cellClass}">${valObj.key10}</td>`;
-        html += `<td class="${cellClass}">${valObj.val10}</td>`;
-        html += `<td class="${cellClass}">${valObj.key11}</td>`;
-        html += `<td class="${cellClass}">${valObj.val11}</td>`;
-        html += `<td class="${cellClass}">${valObj.key12}</td>`;
-        html += `<td class="${cellClass}">${valObj.val12}</td>`;
-        html += `<td class="${cellClass}">${valObj.key13}</td>`;
-        html += `<td class="${cellClass}">${valObj.val13}</td>`;
-        html += `<td class="${cellClass}">${valObj.key14}</td>`;
-        html += `<td class="${cellClass}">${valObj.val14}</td>`;
-        html += `<td class="${cellClass}">${valObj.key15}</td>`;
-        html += `<td class="${cellClass}">${valObj.val15}</td>`;
+
+        html += `<td class="${cellClass}">${valObj.key1 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val1 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key2 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val2 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key3 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val3 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key4 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val4 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key5 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val5 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key6 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val6 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key7 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val7 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key8 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val8 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key9 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val9 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key10 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val10 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key11 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val11 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key12 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val12 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key13 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val13 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key14 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val14 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key15 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val15 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key16 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val16 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key17 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val17 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key18 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val18 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key19 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val19 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.key20 || ''}</td>`;
+        html += `<td class="${cellClass}">${valObj.val20 || ''}</td>`;
 
         html += `<td class="${cellClass}">${valObj.gogo}</td>`;
         html += `<td class="${cellClass}">${valObj.remarks}</td>`;
@@ -268,13 +288,71 @@
         });
         
         tbody.appendChild(tr);
-    }
+    } // END FOR
+
+    // 빈 열 숨기기 기능 구현
+    document.getElementById('hide-empty-cols').addEventListener('click', function() {
+        const table = document.querySelector('table');
+        const rows = table.querySelectorAll('tbody tr');
+        const headers = table.querySelectorAll('thead th');
+        
+        // SPEC1~20, CON1~20, KEY1~20, VAL1~20 열의 인덱스 확인
+        // ADDR(3번째, index 2) 이후부터 GOTO 이전까지가 대상
+        // 정확하게 매칭하기 위해 헤더의 텍스트를 기준으로 인덱스 추출
+        const targetIndices = [];
+        headers.forEach((th, index) => {
+            const text = th.textContent.trim().toUpperCase();
+            const isSpecOrCon = text.startsWith('SPEC') || text.startsWith('CON');
+            const isKeyOrVal = text.startsWith('KEY') || text.startsWith('VAL');
+            
+            if (isSpecOrCon || isKeyOrVal) {
+                const numStr = text.replace('SPEC', '').replace('CON', '').replace('KEY', '').replace('VAL', '');
+                const num = parseInt(numStr);
+                if (num >= 1 && num <= 20) {
+                    targetIndices.push(index);
+                }
+            }
+        });
+
+        // 각 인덱스에 대해 모든 행의 값이 비어있는지 체크
+        targetIndices.forEach(colIndex => {
+            let hasValue = false;
+            rows.forEach(row => {
+                const cell = row.cells[colIndex];
+                if (cell) {
+                    const text = cell.textContent.trim();
+                    // 값이 있고, '-'나 'undefined', 'null'이 아닌 경우 데이터가 있는 것으로 간주
+                    if (text !== '' && text !== '-' && text !== 'undefined' && text !== 'null') {
+                        hasValue = true;
+                    }
+                }
+            });
+
+            // 값이 하나도 없으면 해당 열 숨김
+            if (!hasValue) {
+                headers[colIndex].style.display = 'none';
+                rows.forEach(row => {
+                    if (row.cells[colIndex]) {
+                        row.cells[colIndex].style.display = 'none';
+                    }
+                });
+            }
+        });
+        
+        this.textContent = '빈 열 숨김 완료';
+        this.disabled = true;
+        this.classList.replace('bg-blue-600', 'bg-gray-400');
+    });
 
  /*   for (let i = 0; i < dataArr.length; i++) {
         console.log("index:", i);
         console.log("spec1:", dataArr[i].spec1);
         console.log("con1:", dataArr[i].con1);
     }*/
+
+
+
+
 
 </script>
 
