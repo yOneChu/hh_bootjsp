@@ -46,7 +46,7 @@ public class ProductCommonUtil {
                          , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) PARENTNO
                          , (SELECT COUNT(*) FROM PARTANDCAD$AS WHERE AS$END1 = PE.PARTOUID) CADCNT
                          , NP.MD$NUMBER AS PARTNO
-                         , cod(NP.NATION) AS NATION
+                         , CODN(NP.NATION) AS NATION
                          , NP.compen_part AS COMPEN_PART
                          , NP.MD$DESC AS PARTNAME
                          , NP.VF$VERSION AS VERSION
