@@ -30,9 +30,16 @@ public class SubaeHogiRepository {
     }
 
 
+    //호기 조회
     public List<SubaeHogi> findSubaeHogi(String batchDate) {
         return em.createQuery("select o from SubaeHogi o where o.batchDate = :batchDate", SubaeHogi.class)
                 .setParameter("batchDate", batchDate)
+                .getResultList();
+    }
+
+    public List<SubaeHogi> findSubaeHogiAsCodat(String codat) {
+        return em.createQuery("select o from SubaeHogi o where o.codat = :codat", SubaeHogi.class)
+                .setParameter("codat", codat)
                 .getResultList();
     }
 

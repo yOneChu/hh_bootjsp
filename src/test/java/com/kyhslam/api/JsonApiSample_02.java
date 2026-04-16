@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kyhslam.domain.SubaeHogi;
 import com.kyhslam.domain.SubaeHogiBOM;
+import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.SubaeHogiService;
 import com.kyhslam.util.DateUtil;
+import com.kyhslam.util.ProductCommonUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +20,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 @SpringBootTest
 public class JsonApiSample_02 {
@@ -43,43 +47,81 @@ public class JsonApiSample_02 {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(jsonResponse);
 
+            //제품의 버전별 하위 BOM 저장
+            HashMap<String, HashMap<String, ProductDto>> productBOM = new HashMap<>();
+
             if (root.isArray()) {
                 for (JsonNode node : root) {
                     String partNo = node.path("PART").asText();
                     String partName = node.path("PARTNAME").asText();
                     String hogi = node.path("MD$NUMBER").asText();
                     String hogiVersion = node.path("VF$VERSION").asText();
+                    String key = hogi + "-" + hogiVersion;
+
                     String UCHECK =  node.path("UCHECK").asText();
+
+
+
                     if(UCHECK == null || "".equals(UCHECK)){
                         UCHECK = "";
                     }
+
                     String CDATE = node.path("CDATE").asText();
                     String QTY = node.path("QTY").asText();
 
                     String BLOCKNO_NUMBER = node.path("BLOCKNO_NUMBER").asText();
                     String BLOCK_OPT = node.path("BLOCK_OPT").asText();
 
+                    String cmt = "";
 
-                    System.out.println("hogi = " + hogi);
-                    System.out.println("hogiVersion = " + hogiVersion);
-                    System.out.println("partNo = " + partNo);
-                    System.out.println("QTY = " + QTY);
+                    if (productBOM.containsKey(key)) {
+
+                        HashMap<String, ProductDto> map = productBOM.get(key);
+                        ProductDto vDto = map.get(partNo);
+
+                        cmt = vDto.getCmt();
+
+                    } else {
+                        //주석 찾기 위한 용도
+                        //호기-버전을 key값으로 해당 제품의 BOM 조회하여 저장
+                        ArrayList<ProductDto> downBom = ProductCommonUtil.findProductInfo(hogi, hogiVersion);
+
+                        HashMap<String, ProductDto> map = new HashMap<>();
+                        for (int i = 0; i < downBom.size(); i++) {
+                            ProductDto dto = downBom.get(i);
+                            String vPartNo = dto.getPartNo();
+
+                            map.put(vPartNo, dto);
+                        }
+                        productBOM.put(key, map);
+
+                        //HashMap<String, ProductDto> map = productBOM.get(key);
+                        ProductDto vDto = map.get(partNo);
+
+                        cmt = vDto.getCmt();
+                    }
+
+                    //System.out.println("hogi = " + hogi);
+                    //System.out.println("hogiVersion = " + hogiVersion);
+                    //System.out.println("partNo = " + partNo);
+                    //System.out.println("QTY = " + QTY);
+                    //System.out.println("cmt = " + cmt);
+                    System.out.println("hogi = " + hogi + "_" + hogiVersion + " >> " + partNo + " >> " + cmt);
 
 
-                    SubaeHogiBOM b = new  SubaeHogiBOM();
-                    b.setHogi(hogi);
-                    b.setHogiVersion(hogiVersion);
-                    b.setPartNo(partNo);
-                    b.setPartName(partName);
-                    b.setQty(QTY);
-                    b.setBlockNo(BLOCKNO_NUMBER);
-                    b.setBlockOpt(BLOCK_OPT);
-                    b.setCodate(CDATE);
-                    b.setUcheck(UCHECK);
+                    //SubaeHogiBOM b = new  SubaeHogiBOM();
+                    //b.setHogi(hogi);
+                    //b.setHogiVersion(hogiVersion);
+                    //b.setPartNo(partNo);
+                    //b.setPartName(partName);
+                    //b.setQty(QTY);
+                    //b.setBlockNo(BLOCKNO_NUMBER);
+                    //b.setBlockOpt(BLOCK_OPT);
+                    //b.setCodate(CDATE);
+                    //b.setUcheck(UCHECK);
 
-                    subaeHogiService.subaeHogiBOMSave(b);
-
-                    System.out.println("--------");
+                    //subaeHogiService.subaeHogiBOMSave(b);
+                    //System.out.println("--------");
                 }
             }
 
