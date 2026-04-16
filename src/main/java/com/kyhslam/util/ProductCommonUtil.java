@@ -164,7 +164,6 @@ public class ProductCommonUtil {
      * @return
      */
     public static ArrayList<ProductDto> findProductInfo(String productNo, String productVer) {
-        System.out.println("PartCommonUtil findProductInfo start ==-" + productNo );
 
         ArrayList<ProductDto> list = new ArrayList<>();
 

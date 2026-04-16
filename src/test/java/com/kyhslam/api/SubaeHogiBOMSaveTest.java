@@ -52,9 +52,10 @@ public class SubaeHogiBOMSaveTest {
             //제품의 버전별 하위 BOM 저장
             HashMap<String, HashMap<String, ProductDto>> productBOM = new HashMap<>();
 
-
             //설계완료일자로 호기 조회
-            List<SubaeHogi> hogiList = subaeHogiService.findSubaeHogiAsCodat("20260302");
+            //List<SubaeHogi> hogiList = subaeHogiService.findSubaeHogiAsCodat("20260101");
+            List<SubaeHogi> hogiList = subaeHogiService.findSubaeHogiLikeCodat("202601");
+            //List<SubaeHogi> hogiList = subaeHogiService.findSubaeHogi("2026-04-16");
 
             //호기조회
             for (SubaeHogi subaeHogi : hogiList) {
@@ -63,21 +64,48 @@ public class SubaeHogiBOMSaveTest {
                 System.out.println(hogi + " > " + codat);
 
                 String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/getBomByBlockoptList.jsp?proNo=";
-                requestUrl += hogi;
+                requestUrl += hogi.trim();
 
-                String jsonResponse = getJson(requestUrl);
+
+                // 5초 대기
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
+
+                HashMap<String, String> headers = getJson(requestUrl);
+                String responseStatusCode = headers.get("responseStatusCode");
+                String responseBody = headers.get("responseBody");
+
+                //String jsonResponse = getJson(requestUrl);
                 System.out.println("응답 JSON:");
-                System.out.println(jsonResponse);
+                System.out.println(responseBody);
+                System.out.println(responseStatusCode);
+
+                if (responseStatusCode.equals("500")) {
+                    continue;
+                }
 
                 ObjectMapper mapper = new ObjectMapper();
-                JsonNode root = mapper.readTree(jsonResponse);
+                JsonNode root = mapper.readTree(responseBody);
 
 
                 if (root.isArray()) {
                     for (JsonNode node : root) {
                         String vPartNo = node.path("PART").asText();
-                        String vPartName = node.path("PARTNAME").asText();
+                        String vPartName = node.path("PART_DESC").asText();
                         String vHogi = node.path("MD$NUMBER").asText();
+
+                        if (vHogi.length() > 15) {
+                            continue;
+                        }
+
+                        if (vHogi.startsWith("Q")) {
+                            continue;
+                        }
+
                         String vHogiVersion = node.path("VF$VERSION").asText();
                         String key = hogi + "-" + vHogiVersion;
 
@@ -123,11 +151,11 @@ public class SubaeHogiBOMSaveTest {
                             spec = vDto.getSpec();
                         }
 
-                        System.out.println("hogi = " + hogi);
-                        System.out.println("hogiVersion = " + vHogiVersion);
-                        System.out.println("partNo = " + vPartNo);
-                        System.out.println("QTY = " + QTY);
-                        System.out.println("cmt = " + cmt);
+                        //System.out.println("hogi = " + hogi);
+                        //System.out.println("hogiVersion = " + vHogiVersion);
+                        //System.out.println("partNo = " + vPartNo);
+                        //System.out.println("QTY = " + QTY);
+                        //System.out.println("cmt = " + cmt);
                         //System.out.println("hogi = " + hogi + "_" + hogiVersion + " >> " + partNo + " >> " + cmt);
 
 
@@ -139,7 +167,7 @@ public class SubaeHogiBOMSaveTest {
                         b.setQty(QTY);
                         b.setBlockNo(BLOCKNO_NUMBER);
                         b.setBlockOpt(BLOCK_OPT);
-                        b.setCodate(CDATE);
+                        b.setCodate(codat);
                         b.setUcheck(vUCHECK);
                         b.setSpec(spec);
                         b.setCmt(cmt);
@@ -170,7 +198,9 @@ public class SubaeHogiBOMSaveTest {
 
 
 
-    public static String getJson(String requestUrl) throws Exception {
+    public static HashMap<String, String> getJson(String requestUrl) throws Exception {
+        HashMap<String, String> headers = new HashMap<>();
+
         HttpClient client = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
@@ -185,10 +215,12 @@ public class SubaeHogiBOMSaveTest {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new RuntimeException("HTTP 요청 실패. status=" + response.statusCode()
-                    + ", body=" + response.body());
-        }
+            //throw new RuntimeException("HTTP 요청 실패. status=" + response.statusCode() + ", body=" + response.body());
 
-        return response.body();
+        }
+        headers.put("responseStatusCode", String.valueOf(response.statusCode()));
+        headers.put("responseBody", response.body());
+        //return response.body();
+        return headers;
     }
 }

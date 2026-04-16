@@ -43,6 +43,13 @@ public class SubaeHogiRepository {
                 .getResultList();
     }
 
+    //findSubaeHogiLikeCodat
+    public List<SubaeHogi> findSubaeHogiLikeCodat(String codat) {
+        return em.createQuery("select o from SubaeHogi o where o.codat like :codat", SubaeHogi.class)
+                .setParameter("codat", codat + "%")
+                .getResultList();
+    }
+
 
     public List<SubaeHogi> findAll() {
 

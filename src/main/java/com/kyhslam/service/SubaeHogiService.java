@@ -52,6 +52,11 @@ public class SubaeHogiService {
         return list;
     }
 
+    public List<SubaeHogi> findSubaeHogiLikeCodat(String codat) {
+        List<SubaeHogi> list = repository.findSubaeHogiLikeCodat(codat);
+        return list;
+    }
+
 
     @Scheduled(cron = "0 30 22 * * *")
     public void subaeHogiInsertBatch() {

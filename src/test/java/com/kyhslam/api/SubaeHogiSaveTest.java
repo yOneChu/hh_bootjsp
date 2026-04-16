@@ -46,7 +46,7 @@ public class SubaeHogiSaveTest {
         try {
 
             for (int i = 1; i < 32; i++) {
-                String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/gethogilistByBlockopt.jsp?searchdate=202507";
+                String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/gethogilistByBlockopt.jsp?searchdate=202603";
 
                 if(i < 10) {
                     requestUrl += "0" + (String.valueOf(i));
@@ -55,6 +55,14 @@ public class SubaeHogiSaveTest {
                 }
 
                 System.out.println("requestUrl = " + requestUrl);
+
+                // 2초 대기
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
 
                 String jsonResponse = getJson(requestUrl);
                 System.out.println("응답 JSON:");
@@ -70,6 +78,14 @@ public class SubaeHogiSaveTest {
                         String hogiNo = node.path("posid").asText();
                         String codat = node.path("codat").asText();
 
+                        if (hogiNo.startsWith("Q")) {
+                            continue;
+                        }
+
+                        if (hogiNo.length() > 15) {
+                            continue;
+                        }
+
                         System.out.println("hogiNo = " + hogiNo);
                         System.out.println("codat = " + codat);
 
@@ -84,8 +100,6 @@ public class SubaeHogiSaveTest {
                     }
                 }
             }
-
-
 
 
         } catch (Exception e)  {

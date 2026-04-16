@@ -38,14 +38,29 @@ public class JsonApiSample_02 {
         String todayVal = DateUtil.getTodayDate();
 
         try {
-            String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/getBomByBlockoptList.jsp?proNo=210317L07";
+            String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/getBomByBlockoptList.jsp?proNo=211413T01";
 
-            String jsonResponse = getJson(requestUrl);
+            //String jsonResponse = getJson(requestUrl);
+            HashMap<String, String> headers = getJson(requestUrl);
+
+            //headers.put("responseStatusCode", String.valueOf(response.statusCode()));
+            //headers.put("responseBody", response.body());
+
+            String responseStatusCode = headers.get("responseStatusCode");
+            String responseBody = headers.get("responseBody");
             System.out.println("응답 JSON:");
-            System.out.println(jsonResponse);
+            System.out.println(responseBody);
+
+
+            //N27537L01 -> 문제
+            //211413T01
+
+            if(responseStatusCode.equals("500")) {
+                return;
+            }
 
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(jsonResponse);
+            JsonNode root = mapper.readTree(responseBody);
 
             //제품의 버전별 하위 BOM 저장
             HashMap<String, HashMap<String, ProductDto>> productBOM = new HashMap<>();
@@ -142,7 +157,12 @@ public class JsonApiSample_02 {
     }
 
 
-    public static String getJson(String requestUrl) throws Exception {
+    public static HashMap<String, String> getJson(String requestUrl) throws Exception {
+
+
+        HashMap<String, String> headers = new HashMap<>();
+
+        //flag = true;
         HttpClient client = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
@@ -157,10 +177,13 @@ public class JsonApiSample_02 {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new RuntimeException("HTTP 요청 실패. status=" + response.statusCode()
-                    + ", body=" + response.body());
+            //throw new RuntimeException("HTTP 요청 실패. status=" + response.statusCode() + ", body=" + response.body());
         }
 
-        return response.body();
+        //System.out.println("response.statusCode() = " + response.statusCode());
+        //return response.body();
+        headers.put("responseStatusCode", String.valueOf(response.statusCode()));
+        headers.put("responseBody", response.body());
+        return headers;
     }
 }
