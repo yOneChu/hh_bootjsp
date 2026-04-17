@@ -57,10 +57,12 @@
     String olsCnt = ""; //PartDashboardUtil.findPLMPartSum("OSL");
 
 
-    allCnt = dto.getPartALL();
-    activeCnt = dto.getPartActive();
-    inactiveCnt = dto.getPartInactive();
-    olsCnt = dto.getOls();
+    if (dto != null) {
+        allCnt = dto.getPartALL() == null ? "" : dto.getPartALL();
+        activeCnt = dto.getPartActive();
+        inactiveCnt = dto.getPartInactive();
+        olsCnt = dto.getOls();
+    }
 
     allCnt = UtilCommonAPI.formatNumberWithCommas(allCnt);
     activeCnt = UtilCommonAPI.formatNumberWithCommas(activeCnt);
