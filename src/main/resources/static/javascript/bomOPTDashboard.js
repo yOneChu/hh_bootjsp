@@ -5,18 +5,6 @@ const summary = {
 };
 
 const monthlyRateData = [
-    { label: "2024-01", rate: 92.74 },
-    { label: "2024-02", rate: 94.40 },
-    { label: "2024-03", rate: 94.67 },
-    { label: "2024-04", rate: 96.98 },
-    { label: "2024-05", rate: 96.58 },
-    { label: "2024-06", rate: 97.12 },
-    { label: "2024-07", rate: 96.75 },
-    { label: "2024-08", rate: 96.41 },
-    { label: "2024-09", rate: 96.24 },
-    { label: "2024-10", rate: 96.48 },
-    { label: "2024-11", rate: 96.57 },
-    { label: "2024-12", rate: 96.97 },
     { label: "2025-01", rate: 95.42 },
     { label: "2025-02", rate: 95.85 },
     { label: "2025-03", rate: 96.69 },
@@ -28,11 +16,11 @@ const monthlyRateData = [
     { label: "2025-09", rate: 95.89 },
     { label: "2025-10", rate: 94.99 },
     { label: "2025-11", rate: 95.79 },
-    { label: "2025-12", rate: 96.57 },
-    { label: "2026-01", rate: 94.96 },
-    { label: "2026-02", rate: 95.78 },
-    { label: "2026-03", rate: 90.60 }
-    ];
+    { label: "2025-12", rate: 95.80 },
+    { label: "2026-01", rate: 96.57 },
+    { label: "2026-02", rate: 95.03 },
+    { label: "2026-03", rate: 95.90 }
+];
 
 const machineTypeRateData = [
     { type: "GTSS", rate: 99.04 },
@@ -44,7 +32,7 @@ const machineTypeRateData = [
     { type: "STS7H", rate: 75.40 },
     { type: "WLSH", rate: 69.66 },
     { type: "WSH", rate: 61.93 }
-    ];
+];
 
 const baseRows = [
     { blockNo: "B182D01", material: "RAIL LINER", request: 63282, modify: 1061 },
@@ -61,17 +49,17 @@ const baseRows = [
     { blockNo: "D112A04", material: "BRACKET", request: 39528, modify: 2201 },
     { blockNo: "M220A11", material: "MOTOR BASE", request: 38210, modify: 514 },
     { blockNo: "K201F02", material: "PANEL", request: 37102, modify: 1280 }
-    ];
+];
 
 const blockRows = Array.from({ length: 74 }, (_, i) => {
     const base = baseRows[i % baseRows.length];
     const suffix = String(i + 1).padStart(2, "0");
     return {
-    blockNo: `${base.blockNo}-${suffix}`,
-    material: `${base.material} ${suffix}`,
-    request: base.request - (i * 117),
-    modify: Math.max(1, base.modify + ((i * 37) % 900))
-};
+        blockNo: `${base.blockNo}-${suffix}`,
+        material: `${base.material} ${suffix}`,
+        request: base.request - (i * 117),
+        modify: Math.max(1, base.modify + ((i * 37) % 900))
+    };
 });
 
     const PAGE_SIZE = 30;
@@ -275,15 +263,15 @@ function buildMonthlyChart() {
     const dark = isDarkMode();
 
     if (monthlyChartInstance) {
-    monthlyChartInstance.destroy();
-}
+        monthlyChartInstance.destroy();
+    }
 
     monthlyChartInstance = new Chart(ctx, {
-    type: "line",
-    data: {
-    labels: monthlyRateData.map(item => item.label),
-    datasets: [
-{
+        type: "line",
+        data: {
+        labels: monthlyRateData.map(item => item.label),
+        datasets: [
+    {
     label: "BOM 수배율",
     data: monthlyRateData.map(item => item.rate),
     borderColor: "#16a34a",
@@ -294,50 +282,50 @@ function buildMonthlyChart() {
     pointRadius: 0,
     pointHoverRadius: 5,
     pointBackgroundColor: "#16a34a"
-}
-    ]
-},
-    options: {
-    maintainAspectRatio: false,
-    interaction: {
-    mode: "index",
-    intersect: false
-},
-    plugins: {
-    legend: { display: false },
-    tooltip: {
-    backgroundColor: dark ? "rgba(15,23,42,0.96)" : "rgba(15,23,42,0.88)",
-    titleColor: "#fff",
-    bodyColor: "#fff",
-    padding: 12,
-    displayColors: false,
-    callbacks: {
-    label: (context) => `수배율 ${context.parsed.y.toFixed(2)}%`
-}
-}
-},
+    }
+        ]
+    },
+        options: {
+        maintainAspectRatio: false,
+        interaction: {
+        mode: "index",
+        intersect: false
+    },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+            backgroundColor: dark ? "rgba(15,23,42,0.96)" : "rgba(15,23,42,0.88)",
+            titleColor: "#fff",
+            bodyColor: "#fff",
+            padding: 12,
+            displayColors: false,
+            callbacks: {
+                label: (context) => `수배율 ${context.parsed.y.toFixed(2)}%`
+            }
+        }
+    },
     scales: {
-    y: {
-    min: 90,
-    max: 98,
-    ticks: {
-    color: dark ? "#94a3b8" : "#64748b",
-    callback: (value) => value + "%"
-},
-    grid: {
-    color: "rgba(148,163,184,0.12)",
-    drawBorder: false
-},
-    border: { display: false }
-},
-    x: {
-    ticks: {
-    color: dark ? "#94a3b8" : "#94a3b8",
-    maxTicksLimit: 8
-},
-    grid: { display: false },
-    border: { display: false }
-}
+        y: {
+            min: 90,
+            max: 98,
+            ticks: {
+                color: dark ? "#94a3b8" : "#64748b",
+                callback: (value) => value + "%"
+            },
+            grid: {
+                color: "rgba(148,163,184,0.12)",
+                drawBorder: false
+            },
+                border: { display: false }
+        },
+        x: {
+        ticks: {
+        color: dark ? "#94a3b8" : "#94a3b8",
+        maxTicksLimit: 8
+    },
+        grid: { display: false },
+        border: { display: false }
+    }
 }
 }
 });
@@ -442,14 +430,14 @@ function renderCharts() {
 function applyTheme(theme) {
     const root = document.documentElement;
     if (theme === "dark") {
-    root.classList.add("dark");
-    localStorage.setItem("theme", "dark");
-    document.getElementById("themeToggleText").textContent = "라이트모드";
-} else {
-    root.classList.remove("dark");
-    localStorage.setItem("theme", "light");
-    document.getElementById("themeToggleText").textContent = "다크모드";
-}
+        root.classList.add("dark");
+        localStorage.setItem("theme", "dark");
+        document.getElementById("themeToggleText").textContent = "라이트모드";
+    } else {
+        root.classList.remove("dark");
+        localStorage.setItem("theme", "light");
+        document.getElementById("themeToggleText").textContent = "다크모드";
+    }
     renderCharts();
 }
 
