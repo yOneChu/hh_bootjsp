@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="icon" type="image/png" href="/resources/favicon.ico" />
+
+    <title>BOM 수배율 현황</title>
+
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+
+    <!-- DataTables -->
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+
+    <link rel="stylesheet" href="/resources/dist/plugins/select2/css/select2.min.css">
+
+    <!-- Theme style -->
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'SF Pro Display', 'Apple SD Gothic Neo', 'Malgun Gothic', 'sans-serif']
+                    },
+                    boxShadow: {
+                        soft: "0 8px 30px rgba(15, 23, 42, 0.08)",
+                        card: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.06)"
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body {
+            font-family: Inter, "SF Pro Display", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+        }
+
+        .app-bg {
+            background:
+                    radial-gradient(circle at top left, rgba(34,197,94,0.10), transparent 24%),
+                    radial-gradient(circle at top right, rgba(59,130,246,0.08), transparent 22%),
+                    linear-gradient(to bottom, #f8fafc, #eef2f7);
+        }
+
+        .dark .app-bg {
+            background:
+                    radial-gradient(circle at top left, rgba(34,197,94,0.10), transparent 24%),
+                    radial-gradient(circle at top right, rgba(59,130,246,0.08), transparent 20%),
+                    linear-gradient(to bottom, #020617, #0f172a);
+        }
+
+        .glass-card {
+            background: rgba(255,255,255,0.78);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.7);
+            box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        .dark .glass-card {
+            background: rgba(15, 23, 42, 0.72);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 8px 30px rgba(2, 6, 23, 0.45);
+        }
+
+        .table-scroll::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        .table-scroll::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.45);
+            border-radius: 999px;
+        }
+
+        .table-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .btn-ui {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.85rem;
+            border: 1px solid rgba(148,163,184,0.2);
+            background: rgba(255,255,255,0.9);
+            padding: 0.625rem 0.9rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: rgb(15 23 42);
+            transition: all .2s ease;
+            box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+        }
+
+        .btn-ui:hover {
+            background: rgba(248,250,252,1);
+            transform: translateY(-1px);
+        }
+
+        .dark .btn-ui {
+            background: rgba(15,23,42,0.8);
+            color: rgb(226 232 240);
+            border-color: rgba(148,163,184,0.18);
+        }
+
+        .input-ui {
+            width: 100%;
+            border-radius: 1rem;
+            border: 1px solid rgba(148,163,184,0.2);
+            background: rgba(255,255,255,0.85);
+            padding: 0.7rem 0.95rem;
+            font-size: 0.875rem;
+            outline: none;
+            transition: all .2s ease;
+            color: rgb(15 23 42);
+        }
+
+        .input-ui:focus {
+            border-color: rgba(34,197,94,0.35);
+            box-shadow: 0 0 0 4px rgba(34,197,94,0.10);
+        }
+
+        .dark .input-ui {
+            background: rgba(15,23,42,0.78);
+            color: rgb(226 232 240);
+            border-color: rgba(148,163,184,0.16);
+        }
+
+        .badge-ui {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.3rem 0.7rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: clamp(300px, 32vh, 420px);
+        }
+
+        .dashboard-shell {
+            min-height: 100vh;
+        }
+    </style>
+
+</head>
+
+
+<body class="hold-transition sidebar-mini text-sm" style="zoom:95%;">
+
+<div class="wrapper">
+
+    <!-- Navbar -->
+    <!-- <nav class="main-header navbar navbar-expand navbar-white navbar-light"> -->
+    <nav class="main-header navbar navbar-expand">
+        <!-- Left navbar links -->
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" data-widget="fullscreen" href="#" role="button">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <!-- /.navbar -->
+
+
+<!--
+    <jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true">
+        <jsp:param name="menuType" value="dashboard" />
+    </jsp:include>
+-->
+    <div th:replace="thymeleaf/fragments/sidebar :: sidebarFragment"></div>
+
+
+    <!-- Content Wrapper. Contains page content -->
+    <div class="content-wrapper">
+
+        <div class="dashboard-shell max-w-[1680px] mx-auto px-4 py-5 md:px-6 lg:px-8 xl:px-10">
+
+            <!-- Header -->
+            <header class="mb-5">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <div class="text-sm font-medium text-slate-500 dark:text-slate-400">Manufacturing Analytics</div>
+                        <h1 class="mt-1 text-3xl md:text-4xl font-semibold tracking-tight">BOM 수배율 대시보드</h1>
+                        <p class="mt-2 text-sm md:text-base text-slate-500 dark:text-slate-400">
+                            수배율 추이, 기종별 성과, BLOCK NO 상세 현황을 한 화면에서 확인합니다.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="hidden sm:inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/70 px-4 py-2 text-sm text-slate-600 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300">
+                            <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                            Updated just now
+                        </div>
+
+                        <button id="themeToggle" class="btn-ui">
+                            <span id="themeToggleText">다크모드</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- KPI -->
+            <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-5">
+                <div class="glass-card rounded-[28px] p-6 shadow-card xl:col-span-2">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">BOM 수배율</p>
+                            <h2 id="mainRate" class="mt-4 text-5xl md:text-6xl font-semibold tracking-tight">95.92%</h2>
+                        </div>
+                        <span class="badge-ui bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">Stable</span>
+                    </div>
+                    <div class="mt-6 text-sm text-slate-500 dark:text-slate-400">
+                        전체 수배 대비 수정 비율을 반영한 핵심 지표
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-[28px] p-6 shadow-card">
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">수배건수</p>
+                    <div id="requestCount" class="mt-5 text-4xl font-semibold tracking-tight">5,175,587</div>
+                    <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">누적 전체 요청 건수</p>
+                </div>
+
+                <div class="glass-card rounded-[28px] p-6 shadow-card">
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">수정 건수</p>
+                    <div id="modifyCount" class="mt-5 text-4xl font-semibold tracking-tight">211,405</div>
+                    <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">재작업 및 수정 반영 건수</p>
+                </div>
+            </section>
+
+            <!-- Charts -->
+            <section class="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5">
+                <div class="glass-card rounded-[28px] p-6 md:p-7 shadow-card h-full">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-5">
+                        <div>
+                            <h3 class="text-xl font-semibold tracking-tight">기간별 BOM 수배율</h3>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">월 단위 추세를 통해 변동 구간을 파악합니다.</p>
+                        </div>
+                        <span class="badge-ui bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">Monthly Trend</span>
+                    </div>
+                    <div class="chart-wrap">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-[28px] p-6 md:p-7 shadow-card h-full">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-5">
+                        <div>
+                            <h3 class="text-xl font-semibold tracking-tight">기종별 BOM 수배율</h3>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">기종별 성과 수준을 비교합니다.</p>
+                        </div>
+                        <span class="badge-ui bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">Model Comparison</span>
+                    </div>
+                    <div class="chart-wrap">
+                        <canvas id="typeChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Table Full Width -->
+            <section class="mb-4">
+                <div class="glass-card rounded-[28px] p-6 md:p-7 shadow-card">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-5">
+                        <div>
+                            <h3 class="text-xl font-semibold tracking-tight">BLOCK NO 상세 현황</h3>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                검색, 페이지 이동, 건수별 현황 분석이 가능합니다.
+                            </p>
+                        </div>
+
+                        <div class="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+                            <input id="searchInput" type="text" placeholder="BLOCK NO / 자재명 검색" class="input-ui sm:w-80" />
+                            <button id="resetSearchBtn" class="btn-ui">초기화</button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-hidden rounded-3xl border border-slate-200/70 bg-white/70 dark:border-slate-800 dark:bg-slate-950/40">
+                        <div class="table-scroll overflow-auto">
+                            <table class="min-w-full text-sm">
+                                <thead class="sticky top-0 z-10 border-b border-slate-200/70 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
+                                <tr class="text-slate-500 dark:text-slate-400">
+                                    <th class="px-5 py-4 text-left font-semibold">BLOCK NO</th>
+                                    <th class="px-5 py-4 text-left font-semibold">자재명</th>
+                                    <th class="px-5 py-4 text-right font-semibold">수배 건수</th>
+                                    <th class="px-5 py-4 text-right font-semibold">수정 건수</th>
+                                    <th class="px-5 py-4 text-right font-semibold">수배율</th>
+                                </tr>
+                                </thead>
+
+                                <tbody id="bomTableBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+
+                                <tfoot class="border-t border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/80">
+                                <tr>
+                                    <td class="px-5 py-4 font-semibold">합계</td>
+                                    <td class="px-5 py-4"></td>
+                                    <td id="tfootRequest" class="px-5 py-4 text-right font-semibold">5,175,587</td>
+                                    <td id="tfootModify" class="px-5 py-4 text-right font-semibold">211,405</td>
+                                    <td id="tfootRate" class="px-5 py-4 text-right font-semibold">95.92%</td>
+                                </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="flex flex-col gap-3 border-t border-slate-200/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
+                            <div id="paginationInfo" class="text-sm text-slate-500 dark:text-slate-400">
+                                1 - 30 / 0건
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <button id="prevPageBtn" class="btn-ui">이전</button>
+                                <div id="pageNumbers" class="flex items-center gap-1"></div>
+                                <button id="nextPageBtn" class="btn-ui">다음</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+
+    </div>
+    <!-- /.content-wrapper -->
+
+
+    <footer class="main-footer">
+        <div class="float-right d-none d-sm-block">
+            <b>Version</b> 1.0.0
+        </div>
+        <strong>Copyright &copy; 2025 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
+    </footer>
+
+    <!-- Control Sidebar -->
+    <aside class="control-sidebar control-sidebar-dark">
+        <!-- Control sidebar content goes here -->
+    </aside>
+    <!-- /.control-sidebar -->
+
+</div>
+
+
+</body>
+
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+
+<!-- AdminLTE App -->
+<script src="/resources/dist/js/adminlte.min.js"></script>
+
+<!-- Bootstrap 4 -->
+<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- DataTables  & Plugins -->
+<script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+
+
+<script src="/resources/dist/plugins/select2/js/select2.full.min.js"></script>
+
+<script src="/resources/dist/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/jszip/jszip.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/pdfmake.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/vfs_fonts.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
+
+<!-- Highhart -->
+<script src="/resources/dist/js/highcharts.js"></script>
+<script src="/resources/dist/js/exporting.js"></script>
+<script src="/resources/dist/js/export-data.js"></script>
+<script src="/resources/dist/js/accessibility.js"></script>
+
+<script src="/resources/javascript/bomOPTDashboard.js"></script>
+
+
+<script>
+
+
+</script>
+
+</html>

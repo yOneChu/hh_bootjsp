@@ -293,6 +293,12 @@ public class SubaeController {
         return "dashboard/bomSubaeDashboard";
     }
 
+    @GetMapping("/subae/bomOPTDashboard")
+    public String bomOPTDashboard() {
+        //return "dashboard/bomSubaeDashboard";
+        return "thymeleaf/bomOPTDashboard";
+    }
+
     //BOM수배 데이터 조회
     @PostMapping("/subae/bomDashboard")
     @ResponseBody

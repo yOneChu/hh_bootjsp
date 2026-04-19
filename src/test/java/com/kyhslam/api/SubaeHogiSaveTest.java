@@ -46,7 +46,7 @@ public class SubaeHogiSaveTest {
         try {
 
             for (int i = 1; i < 32; i++) {
-                String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/gethogilistByBlockopt.jsp?searchdate=202603";
+                String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/gethogilistByBlockopt.jsp?searchdate=202604";
 
                 if(i < 10) {
                     requestUrl += "0" + (String.valueOf(i));

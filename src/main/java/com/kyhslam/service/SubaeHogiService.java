@@ -40,8 +40,6 @@ public class SubaeHogiService {
     }
 
 
-
-
     public List<SubaeHogi> findSubaeHogi(String batchDate) {
         List<SubaeHogi> list = repository.findSubaeHogi(batchDate);
         return list;

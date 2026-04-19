@@ -32,7 +32,6 @@ public class SubaeHogiBOMSaveTest {
 
     @Test
     public void printDate() {
-
         String toDate = DateUtil.getTodayDateNoHyphen();
         System.out.println("toDate = " + toDate);
     }
