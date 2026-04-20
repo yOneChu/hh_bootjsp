@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 @SpringBootTest
@@ -45,6 +46,9 @@ public class SubaeHogiBOMSaveTest {
         LocalDate now = LocalDate.now();
         String todayVal = DateUtil.getTodayDate();
 
+        HashSet<String> dupSet = new HashSet<>();
+
+
         try {
             //String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/getBomByBlockoptList.jsp?proNo=210317L07";
 
@@ -53,7 +57,7 @@ public class SubaeHogiBOMSaveTest {
 
             //설계완료일자로 호기 조회
             //List<SubaeHogi> hogiList = subaeHogiService.findSubaeHogiAsCodat("20260101");
-            List<SubaeHogi> hogiList = subaeHogiService.findSubaeHogiLikeCodat("202601");
+            List<SubaeHogi> hogiList = subaeHogiService.findSubaeHogiLikeCodat("202603");
             //List<SubaeHogi> hogiList = subaeHogiService.findSubaeHogi("2026-04-16");
 
             //호기조회
@@ -62,9 +66,14 @@ public class SubaeHogiBOMSaveTest {
                 String codat =  subaeHogi.getCodat();
                 System.out.println(hogi + " > " + codat);
 
+                if (dupSet.contains(hogi)) {
+                    continue;
+                } else {
+                    dupSet.add(hogi);
+                }
+
                 String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/getBomByBlockoptList.jsp?proNo=";
                 requestUrl += hogi.trim();
-
 
                 // 5초 대기
                 try {

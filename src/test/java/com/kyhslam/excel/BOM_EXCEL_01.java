@@ -29,7 +29,7 @@ public class BOM_EXCEL_01 {
 
         ArrayList<String> hogiList = new ArrayList<>();
 
-        String fileName = "d:\\excel\\BOM원복리스트_207대_260416_검토_ver3.xlsx";
+        String fileName = "d:\\excel\\BOM원복리스트_2차분_102대.xlsx";
 
         FileInputStream fis = null;
         FileOutputStream fos = null;

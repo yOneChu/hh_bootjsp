@@ -17,6 +17,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.HashSet;
 
 @SpringBootTest
 public class SubaeHogiSaveTest {
@@ -46,7 +47,7 @@ public class SubaeHogiSaveTest {
         try {
 
             for (int i = 1; i < 32; i++) {
-                String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/gethogilistByBlockopt.jsp?searchdate=202604";
+                String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/gethogilistByBlockopt.jsp?searchdate=202512";
 
                 if(i < 10) {
                     requestUrl += "0" + (String.valueOf(i));
@@ -72,6 +73,7 @@ public class SubaeHogiSaveTest {
                 JsonNode root = mapper.readTree(jsonResponse);
                 System.out.println("root = " + root);
 
+                HashSet<String> set = new HashSet<>();
 
                 if (root.isArray()) {
                     for (JsonNode node : root) {
@@ -94,7 +96,12 @@ public class SubaeHogiSaveTest {
                         s.setCodat(codat);
                         s.setBatchDate(todayVal);
 
-                        subaeHogiService.subaeHogiSave(s);
+                        if (set.contains(hogiNo)) {
+
+                        } else {
+                            subaeHogiService.subaeHogiSave(s);
+                            set.add(hogiNo);
+                        }
 
                         System.out.println("--------");
                     }
