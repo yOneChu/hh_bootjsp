@@ -111,6 +111,44 @@ function getPaginatedRows() {
     return filteredRows.slice(start, end);
 }
 
+
+//데이터 조회
+function searchInit(target) {
+
+    showLoading();
+    $.ajax({
+        type : "get",
+        url : "/subae/findSummaryAsBlockNo",
+        beforeSend: function() {
+            $("html").css("cursor", "wait");
+        },
+        complete: function() {
+            $("html").css("cursor", "auto");
+        },
+        success : function(rr) {
+
+            console.log(rr);
+
+            /*if(rr != null && rr.length > 0) {
+                initHandsontable(rr, target);
+                hideEmptyColumns(target);
+            } else {
+                alert("검색결과가 없습니다.");
+            }*/
+
+            hideLoading();
+        },
+        error: function () {
+            hideLoading();
+            alert('데이터를 가져오는 중 오류가 발생하였습니다.');
+        }
+    });
+}
+
+
+
+
+
 function renderTable() {
     const tbody = document.getElementById("bomTableBody");
     tbody.innerHTML = "";
@@ -118,16 +156,16 @@ function renderTable() {
     const rows = getPaginatedRows();
 
     if (rows.length === 0) {
-    tbody.innerHTML = `
-          <tr>
-            <td colspan="5" class="px-5 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
-              검색 결과가 없습니다.
-            </td>
-          </tr>
-        `;
-    renderPagination();
-    return;
-}
+        tbody.innerHTML = `
+              <tr>
+                <td colspan="5" class="px-5 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
+                  검색 결과가 없습니다.
+                </td>
+              </tr>
+            `;
+        renderPagination();
+        return;
+    }
 
     rows.forEach((row) => {
     const rate = calculateRate(row.request, row.modify);
@@ -459,9 +497,12 @@ function bindThemeToggle() {
 }
 
 function init() {
-    renderSummary();
+    //renderSummary();
+
+    searchInit();
+
     initTheme();
-    renderTable();
+    //renderTable();
     bindSearch();
     bindThemeToggle();
 }

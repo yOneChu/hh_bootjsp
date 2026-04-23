@@ -57,7 +57,7 @@ public class SubaeHogiBOMSaveTest {
 
             //설계완료일자로 호기 조회
             //List<SubaeHogi> hogiList = subaeHogiService.findSubaeHogiAsCodat("20260101");
-            List<SubaeHogi> hogiList = subaeHogiService.findSubaeHogiLikeCodat("202603");
+            List<SubaeHogi> hogiList = subaeHogiService.findSubaeHogiLikeCodat("202602");
             //List<SubaeHogi> hogiList = subaeHogiService.findSubaeHogi("2026-04-16");
 
             //호기조회
@@ -77,7 +77,7 @@ public class SubaeHogiBOMSaveTest {
 
                 // 5초 대기
                 try {
-                    Thread.sleep(3000);
+                    Thread.sleep(4000);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException(e);

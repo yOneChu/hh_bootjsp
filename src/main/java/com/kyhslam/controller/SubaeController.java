@@ -3,6 +3,7 @@ package com.kyhslam.controller;
 import com.kyhslam.dto.*;
 import com.kyhslam.service.BlockHistoryService;
 import com.kyhslam.service.ELVInfoService;
+import com.kyhslam.service.SubaeHogiService;
 import com.kyhslam.service.SubaeService;
 import com.kyhslam.util.ElvInfoCommonUtil;
 import com.kyhslam.util.PIDCommonUtil;
@@ -34,6 +35,8 @@ public class SubaeController {
     private final SubaeService subaeService;
 
     private final ELVInfoService elvInfoService;
+
+    private final SubaeHogiService subaeHogiService;
 
 
     //본사-법인 자재비교
@@ -293,6 +296,7 @@ public class SubaeController {
         return "dashboard/bomSubaeDashboard";
     }
 
+    //BOM품목비교
     @GetMapping("/subae/bomOPTDashboard")
     public String bomOPTDashboard() {
         //return "dashboard/bomSubaeDashboard";
@@ -493,4 +497,13 @@ public class SubaeController {
         ArrayList<CodeDTO> result = ElvInfoCommonUtil.findCodeList(typeName);
         return result;
     }
+
+    @GetMapping("/subae/findSummaryAsBlockNo")
+    @ResponseBody
+    @CrossOrigin
+    public ArrayList<HashMap<String, String>> findSummaryAsBlockNo() {
+        ArrayList<HashMap<String, String>> result = subaeHogiService.findSummaryAsBlockNo();
+        return result;
+    }
+
 }

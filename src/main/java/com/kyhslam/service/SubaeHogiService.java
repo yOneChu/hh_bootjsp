@@ -20,6 +20,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @Service("SubaeHogiService")
@@ -133,6 +135,12 @@ public class SubaeHogiService {
         }
 
         return response.body();
+    }
+
+    public ArrayList<HashMap<String, String>> findSummaryAsBlockNo() {
+        ArrayList<HashMap<String, String>> list = new ArrayList<>();
+        list = repository.findSummaryAsBlockNo();
+        return list;
     }
 
 }
