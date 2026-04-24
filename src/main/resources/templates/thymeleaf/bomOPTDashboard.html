@@ -151,6 +151,14 @@
             height: clamp(300px, 32vh, 420px);
         }
 
+        .th-gradient {
+            background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+        }
+
+        .dark .th-gradient {
+            background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%);
+        }
+
         .dashboard-shell {
             min-height: 100vh;
         }
@@ -200,7 +208,8 @@
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <div class="text-sm font-medium text-slate-500 dark:text-slate-400">Manufacturing Analytics</div>
-                        <h1 class="mt-1 text-3xl md:text-4xl font-semibold tracking-tight">최초설계완료 BOM 비교분석</h1>
+                        <!--<h1 class="mt-1 text-3xl md:text-4xl font-semibold tracking-tight">최초설계완료 BOM 비교분석</h1>-->
+                        <h1 class="mt-1 text-3xl md:text-4xl font-semibold tracking-tight">BLOCK별 수배율 분석</h1>
                         <p class="mt-2 text-sm md:text-base text-slate-500 dark:text-slate-400">
                             수배율 추이, 기종별 성과, BLOCK NO 상세 현황을 한 화면에서 확인합니다.
                         </p>
@@ -220,7 +229,7 @@
             </header>
 
             <!-- KPI -->
-            <!--<section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-5">
+            <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-5">
                 <div class="glass-card rounded-[28px] p-6 shadow-card xl:col-span-2">
                     <div class="flex items-start justify-between">
                         <div>
@@ -247,7 +256,7 @@
                 </div>
             </section>
 
-            &lt;!&ndash; Charts &ndash;&gt;
+            <!-- Charts -->
             <section class="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5">
                 <div class="glass-card rounded-[28px] p-6 md:p-7 shadow-card h-full">
                     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-5">
@@ -275,8 +284,7 @@
                     </div>
                 </div>
             </section>
-            -->
-
+            
             <!-- Table Full Width -->
             <section class="mb-4">
                 <div class="glass-card rounded-[28px] p-6 md:p-7 shadow-card">
@@ -290,33 +298,40 @@
 
                         <div class="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
                             <input id="searchInput" type="text" placeholder="BLOCK NO / 자재명 검색" class="input-ui sm:w-80" />
-                            <button id="resetSearchBtn" class="btn-ui">초기화</button>
+                            <!--<button id="resetSearchBtn" class="btn-ui">초기화</button>-->
                         </div>
                     </div>
 
                     <div class="overflow-hidden rounded-3xl border border-slate-200/70 bg-white/70 dark:border-slate-800 dark:bg-slate-950/40">
                         <div class="table-scroll overflow-auto">
-                            <table class="min-w-full text-sm">
-                                <thead class="sticky top-0 z-10 border-b border-slate-200/70 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
-                                <tr class="text-slate-500 dark:text-slate-400">
-                                    <th class="px-5 py-4 text-left font-semibold">BLOCK NO</th>
-                                    <th class="px-5 py-4 text-left font-semibold">자재명</th>
-                                    <th class="px-5 py-4 text-right font-semibold">수배 건수</th>
-                                    <th class="px-5 py-4 text-right font-semibold">수정 건수</th>
-                                    <th class="px-5 py-4 text-right font-semibold">수배율</th>
-                                </tr>
+
+                            <!--<table class="min-w-full text-sm">-->
+                            <table id="infoTable" class="table table-bordered table-hover" style="font-family: NotoSans; font-size:15px;">
+                                <thead class="sticky top-0 z-10 border-b-2 border-slate-200/80 bg-slate-50/95 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/90 th-gradient">
+                                    <tr class="text-slate-600 dark:text-slate-300">
+                                        <th class="px-5 py-4 text-left font-bold uppercase tracking-wider text-[11px]">BLOCK NO</th>
+                                        <th class="px-5 py-4 text-left font-bold uppercase tracking-wider text-[11px]">자재명</th>
+                                        <th class="px-5 py-4 text-right font-bold uppercase tracking-wider text-[11px]">수배 건수</th>
+                                        <th class="px-5 py-4 text-right font-bold uppercase tracking-wider text-[11px]">수정 건수</th>
+                                        <th class="px-5 py-4 text-right font-bold uppercase tracking-wider text-[11px]">EXCEL 다운로드</th>
+                                        <th class="px-5 py-4 text-right font-bold uppercase tracking-wider text-[11px]">수배율</th>
+                                    </tr>
                                 </thead>
 
-                                <tbody id="bomTableBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                                <!--<tbody id="bomTableBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>-->
+                                <tbody id="bomTableBody">
+
+                                </tbody>
 
                                 <tfoot class="border-t border-slate-200 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/80">
-                                <tr>
-                                    <td class="px-5 py-4 font-semibold">합계</td>
-                                    <td class="px-5 py-4"></td>
-                                    <td id="tfootRequest" class="px-5 py-4 text-right font-semibold">5,175,587</td>
-                                    <td id="tfootModify" class="px-5 py-4 text-right font-semibold">211,405</td>
-                                    <td id="tfootRate" class="px-5 py-4 text-right font-semibold">95.92%</td>
-                                </tr>
+                                    <tr>
+                                        <td class="px-5 py-4 font-semibold">합계</td>
+                                        <td class="px-5 py-4"></td>
+                                        <td id="tfootRequest" class="px-5 py-4 text-right font-semibold">5,175,587</td>
+                                        <td id="tfootModify" class="px-5 py-4 text-right font-semibold">211,405</td>
+                                        <td id="excelFile" class="px-5 py-4 text-right font-semibold">211,405</td>
+                                        <td id="tfootRate" class="px-5 py-4 text-right font-semibold">95.92%</td>
+                                    </tr>
                                 </tfoot>
                             </table>
                         </div>
@@ -332,6 +347,8 @@
                                 <button id="nextPageBtn" class="btn-ui">다음</button>
                             </div>
                         </div>
+
+
                     </div>
                 </div>
             </section>
@@ -346,7 +363,7 @@
         <div class="float-right d-none d-sm-block">
             <b>Version</b> 1.0.0
         </div>
-        <strong>Copyright &copy; 2025 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
+        <strong>Copyright &copy; 2026 <a href="#">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
     </footer>
 
     <!-- Control Sidebar -->

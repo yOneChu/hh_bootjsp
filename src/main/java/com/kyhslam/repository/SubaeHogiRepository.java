@@ -77,19 +77,13 @@ public class SubaeHogiRepository {
 
         ArrayList<HashMap<String, String>> list = new ArrayList<>();
 
-
         Connection con 			= null;
         PreparedStatement pstmt = null;
         ResultSet rs 			= null;
 
-        String url = "jdbc:sqlserver://;serverName=10.225.80.35;port=1433;databaseName=HDEL;encrypt=false;";
-        String id  = "SA";
-        String pw  = "AutodeskVault@26200"; // "qwe123!@#"
-
         try {
 
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver").newInstance();
-            con = DriverManager.getConnection(url,id,pw);
+            con = VaultDBConnection.getConnection();
 
             String sql = """
                     SELECT

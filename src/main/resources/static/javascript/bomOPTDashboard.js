@@ -1,3 +1,15 @@
+let dtTable = $("#infoTable").DataTable({
+    "responsive": true,
+    "lengthChange": true,
+    "pageLength": 50,     //페이지 당 글 개수 설정
+    "autoWidth": false, // 가로자동
+    "processing": true,
+    "destroy": true, // 테이블 재생성
+    //"scrollX": true, // 가로 스크롤
+    //"buttons": ["csv", "excel", "pdf", "print"]
+    "buttons": ["csv", "excel", "copy"]
+}).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
+
 
 const summary = {
     totalRequest: 5175587,
@@ -9,17 +21,17 @@ const monthlyRateData = [
     { label: "2025-02", rate: 95.85 },
     { label: "2025-03", rate: 96.69 },
     { label: "2025-04", rate: 96.15 },
-    { label: "2025-05", rate: 96.68 },
-    { label: "2025-06", rate: 96.18 },
-    { label: "2025-07", rate: 95.98 },
-    { label: "2025-08", rate: 95.08 },
-    { label: "2025-09", rate: 95.89 },
-    { label: "2025-10", rate: 94.99 },
-    { label: "2025-11", rate: 95.79 },
-    { label: "2025-12", rate: 95.80 },
+    { label: "2025-05", rate: 96.18 },
+    { label: "2025-06", rate: 96.68 },
+    { label: "2025-07", rate: 96.48 },
+    { label: "2025-08", rate: 95.98 },
+    { label: "2025-09", rate: 95.08 },
+    { label: "2025-10", rate: 95.89 },
+    { label: "2025-11", rate: 94.99 },
+    { label: "2025-12", rate: 95.81 },
     { label: "2026-01", rate: 96.57 },
     { label: "2026-02", rate: 95.03 },
-    { label: "2026-03", rate: 95.90 }
+    { label: "2026-03", rate: 95.91 }
 ];
 
 const machineTypeRateData = [
@@ -51,22 +63,15 @@ const baseRows = [
     { blockNo: "K201F02", material: "PANEL", request: 37102, modify: 1280 }
 ];
 
-const blockRows = Array.from({ length: 74 }, (_, i) => {
-    const base = baseRows[i % baseRows.length];
-    const suffix = String(i + 1).padStart(2, "0");
-    return {
-        blockNo: `${base.blockNo}-${suffix}`,
-        material: `${base.material} ${suffix}`,
-        request: base.request - (i * 117),
-        modify: Math.max(1, base.modify + ((i * 37) % 900))
-    };
-});
+let blockRows = [];
 
-    const PAGE_SIZE = 30;
-    let currentPage = 1;
-    let filteredRows = [...blockRows];
-    let monthlyChartInstance = null;
-    let typeChartInstance = null;
+const PAGE_SIZE = 30;
+let currentPage = 1;
+let filteredRows = [];
+let monthlyChartInstance = null;
+let typeChartInstance = null;
+
+
 
 function formatNumber(value) {
     return new Intl.NumberFormat("ko-KR").format(value);
@@ -83,25 +88,45 @@ function formatRate(value) {
 
 function getRateTone(rate) {
     if (rate >= 97) {
-    return "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300";
-}
+        return "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300";
+    }
     if (rate >= 94) {
-    return "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300";
-}
+        return "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300";
+    }
+
     return "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300";
 }
 
-    function isDarkMode() {
+function isDarkMode() {
     return document.documentElement.classList.contains("dark");
 }
 
 function renderSummary() {
-    const totalRate = calculateRate(summary.totalRequest, summary.totalModify);
-    document.getElementById("mainRate").textContent = formatRate(totalRate);
-    document.getElementById("requestCount").textContent = formatNumber(summary.totalRequest);
-    document.getElementById("modifyCount").textContent = formatNumber(summary.totalModify);
-    document.getElementById("tfootRequest").textContent = formatNumber(summary.totalRequest);
-    document.getElementById("tfootModify").textContent = formatNumber(summary.totalModify);
+    if (blockRows.length === 0) {
+        document.getElementById("mainRate").textContent = "0.00%";
+        document.getElementById("requestCount").textContent = "0";
+        document.getElementById("modifyCount").textContent = "0";
+        document.getElementById("tfootRequest").textContent = "0";
+        document.getElementById("tfootModify").textContent = "0";
+        document.getElementById("tfootRate").textContent = "0.00%";
+        return;
+    }
+
+    const totalRequest = blockRows.reduce((sum, row) => sum + (Number(row.totalCnt) || 0), 0);
+    const totalModify = blockRows.reduce((sum, row) => sum + (Number(row.modifyCnt) || 0), 0);
+    const totalRate = calculateRate(totalRequest, totalModify);
+
+    const mainRateEl = document.getElementById("mainRate");
+    if (mainRateEl) mainRateEl.textContent = formatRate(totalRate);
+    
+    const requestCountEl = document.getElementById("requestCount");
+    if (requestCountEl) requestCountEl.textContent = formatNumber(totalRequest);
+    
+    const modifyCountEl = document.getElementById("modifyCount");
+    if (modifyCountEl) modifyCountEl.textContent = formatNumber(totalModify);
+
+    document.getElementById("tfootRequest").textContent = formatNumber(totalRequest);
+    document.getElementById("tfootModify").textContent = formatNumber(totalModify);
     document.getElementById("tfootRate").textContent = formatRate(totalRate);
 }
 
@@ -126,15 +151,17 @@ function searchInit(target) {
             $("html").css("cursor", "auto");
         },
         success : function(rr) {
-
             console.log(rr);
 
-            /*if(rr != null && rr.length > 0) {
-                initHandsontable(rr, target);
-                hideEmptyColumns(target);
-            } else {
-                alert("검색결과가 없습니다.");
-            }*/
+            // 데이터 할당
+            blockRows = rr;
+            filteredRows = [...blockRows];
+            currentPage = 1;
+
+            // UI 렌더링
+            renderTable();
+            renderSummary();
+            renderCharts(); // 차트 데이터는 static이지만 초기화 시점에 호출
 
             hideLoading();
         },
@@ -145,13 +172,14 @@ function searchInit(target) {
     });
 }
 
-
-
-
-
 function renderTable() {
     const tbody = document.getElementById("bomTableBody");
     tbody.innerHTML = "";
+
+    // DataTable 인스턴스가 있으면 파괴
+    if ($.fn.DataTable.isDataTable('#infoTable')) {
+        $('#infoTable').DataTable().destroy();
+    }
 
     const rows = getPaginatedRows();
 
@@ -168,25 +196,28 @@ function renderTable() {
     }
 
     rows.forEach((row) => {
-    const rate = calculateRate(row.request, row.modify);
-    const tone = getRateTone(rate);
+        const totalCnt = Number(row.totalCnt) || 0;
+        const modifyCnt = Number(row.modifyCnt) || 0;
+        const rate = calculateRate(totalCnt, modifyCnt);
+        const tone = getRateTone(rate);
 
-    const tr = document.createElement("tr");
-    tr.className = "transition hover:bg-slate-50/80 dark:hover:bg-slate-900/50";
+        const tr = document.createElement("tr");
+        tr.className = "transition hover:bg-slate-50/80 dark:hover:bg-slate-900/50";
 
-    tr.innerHTML = `
-          <td class="px-5 py-4 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">${row.blockNo}</td>
-          <td class="px-5 py-4 text-slate-600 dark:text-slate-300">${row.material}</td>
-          <td class="px-5 py-4 text-right text-slate-700 dark:text-slate-200">${formatNumber(row.request)}</td>
-          <td class="px-5 py-4 text-right text-slate-700 dark:text-slate-200">${formatNumber(row.modify)}</td>
-          <td class="px-5 py-4 text-right">
-            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${tone}">
-              ${formatRate(rate)}
-            </span>
-          </td>
-        `;
-    tbody.appendChild(tr);
-});
+        tr.innerHTML = `
+              <td class="px-5 py-4 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">${row.blockNo}</td>
+              <td class="px-5 py-4 text-slate-600 dark:text-slate-300">${row.partName}</td>
+              <td class="px-5 py-4 text-right text-slate-700 dark:text-slate-200">${formatNumber(totalCnt)}</td>
+              <td class="px-5 py-4 text-right text-slate-700 dark:text-slate-200">${formatNumber(modifyCnt)}</td>
+              <td class="px-5 py-4 text-right text-slate-700 dark:text-slate-200">Excel</td>
+              <td class="px-5 py-4 text-right">
+                <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${tone}">
+                  ${formatRate(rate)}
+                </span>
+              </td>
+            `;
+        tbody.appendChild(tr);
+    });
 
     renderPagination();
 }
@@ -206,25 +237,25 @@ function renderPagination() {
 
     pagesToShow.forEach((page) => {
         if (page === "...") {
-        const span = document.createElement("span");
-        span.className = "px-2 text-sm text-slate-400";
-        span.textContent = "...";
-        pageNumbers.appendChild(span);
-        return;
-    }
+            const span = document.createElement("span");
+            span.className = "px-2 text-sm text-slate-400";
+            span.textContent = "...";
+            pageNumbers.appendChild(span);
+            return;
+        }
 
-    const btn = document.createElement("button");
-    const active = page === currentPage;
-    btn.className = active
-    ? "inline-flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white dark:bg-slate-100 dark:text-slate-900"
-    : "inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800";
-    btn.textContent = page;
-    btn.addEventListener("click", () => {
-    currentPage = page;
-    renderTable();
-});
-    pageNumbers.appendChild(btn);
-});
+        const btn = document.createElement("button");
+        const active = page === currentPage;
+        btn.className = active
+        ? "inline-flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white dark:bg-slate-100 dark:text-slate-900"
+        : "inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800";
+        btn.textContent = page;
+        btn.addEventListener("click", () => {
+            currentPage = page;
+            renderTable();
+        });
+        pageNumbers.appendChild(btn);
+    });
 
     document.getElementById("prevPageBtn").disabled = currentPage <= 1;
     document.getElementById("nextPageBtn").disabled = currentPage >= totalPages;
@@ -235,26 +266,26 @@ function renderPagination() {
 
 function setButtonDisabledStyle(button, disabled) {
     if (disabled) {
-    button.disabled = true;
-    button.classList.add("opacity-50", "cursor-not-allowed");
-} else {
-    button.disabled = false;
-    button.classList.remove("opacity-50", "cursor-not-allowed");
-}
+        button.disabled = true;
+        button.classList.add("opacity-50", "cursor-not-allowed");
+    } else {
+        button.disabled = false;
+        button.classList.remove("opacity-50", "cursor-not-allowed");
+    }
 }
 
 function getVisiblePages(current, total) {
     if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-}
+        return Array.from({ length: total }, (_, i) => i + 1);
+    }
 
     if (current <= 4) {
-    return [1, 2, 3, 4, 5, "...", total];
-}
+        return [1, 2, 3, 4, 5, "...", total];
+    }
 
     if (current >= total - 3) {
-    return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
-}
+        return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+    }
 
     return [1, "...", current - 1, current, current + 1, "...", total];
 }
@@ -263,37 +294,37 @@ function applySearch() {
     const keyword = document.getElementById("searchInput").value.trim().toLowerCase();
 
     filteredRows = blockRows.filter(row =>
-    row.blockNo.toLowerCase().includes(keyword) ||
-    row.material.toLowerCase().includes(keyword)
+        (row.blockNo && row.blockNo.toLowerCase().includes(keyword)) ||
+        (row.partName && row.partName.toLowerCase().includes(keyword))
     );
 
     currentPage = 1;
     renderTable();
 }
 
-    function bindSearch() {
+function bindSearch() {
     document.getElementById("searchInput").addEventListener("input", applySearch);
     document.getElementById("resetSearchBtn").addEventListener("click", () => {
-    document.getElementById("searchInput").value = "";
-    filteredRows = [...blockRows];
-    currentPage = 1;
-    renderTable();
-});
+        document.getElementById("searchInput").value = "";
+        filteredRows = [...blockRows];
+        currentPage = 1;
+        renderTable();
+    });
 
     document.getElementById("prevPageBtn").addEventListener("click", () => {
-    if (currentPage > 1) {
-    currentPage--;
-    renderTable();
-}
-});
+        if (currentPage > 1) {
+            currentPage--;
+            renderTable();
+        }
+    });
 
     document.getElementById("nextPageBtn").addEventListener("click", () => {
-    const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
-    if (currentPage < totalPages) {
-    currentPage++;
-    renderTable();
-}
-});
+        const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+            if (currentPage < totalPages) {
+            currentPage++;
+            renderTable();
+        }
+    });
 }
 
 function buildMonthlyChart() {
@@ -374,89 +405,89 @@ function buildTypeChart() {
     const dark = isDarkMode();
 
     if (typeChartInstance) {
-    typeChartInstance.destroy();
-}
+        typeChartInstance.destroy();
+    }
 
     typeChartInstance = new Chart(ctx, {
-    type: "bar",
-    data: {
-    labels: machineTypeRateData.map(item => item.type),
-    datasets: [
-{
-    data: machineTypeRateData.map(item => item.rate),
-    backgroundColor: [
-    "#166534",
-    "#15803d",
-    "#16a34a",
-    "#22c55e",
-    "#4ade80",
-    "#86efac",
-    "#bbf7d0",
-    "#d1fae5",
-    "#dcfce7"
-    ],
-    borderRadius: 999,
-    barThickness: 18
-}
-    ]
-},
-    options: {
-    indexAxis: "y",
-    maintainAspectRatio: false,
-    plugins: {
-    legend: { display: false },
-    tooltip: {
-    backgroundColor: dark ? "rgba(15,23,42,0.96)" : "rgba(15,23,42,0.88)",
-    titleColor: "#fff",
-    bodyColor: "#fff",
-    padding: 12,
-    displayColors: false,
-    callbacks: {
-    label: (context) => `${context.parsed.x.toFixed(2)}%`
-}
-}
-},
-    scales: {
-    x: {
-    min: 0,
-    max: 100,
-    ticks: {
-    color: dark ? "#94a3b8" : "#64748b",
-    callback: (v) => v + "%"
-},
-    grid: {
-    color: "rgba(148,163,184,0.12)",
-    drawBorder: false
-},
-    border: { display: false }
-},
-    y: {
-    ticks: {
-    color: dark ? "#cbd5e1" : "#475569",
-    font: { size: 12, weight: "600" }
-},
-    grid: { display: false },
-    border: { display: false }
-}
-}
-},
-    plugins: [{
-    id: "valueLabelPlugin",
-    afterDatasetsDraw(chart) {
-    const { ctx } = chart;
-    const meta = chart.getDatasetMeta(0);
-    ctx.save();
-    ctx.font = "600 12px Inter, sans-serif";
-    ctx.fillStyle = dark ? "#e2e8f0" : "#334155";
-
-    meta.data.forEach((bar, i) => {
-    const value = machineTypeRateData[i].rate.toFixed(2) + "%";
-    ctx.fillText(value, bar.x + 10, bar.y + 4);
-});
-
-    ctx.restore();
-}
-}]
+        type: "bar",
+        data: {
+            labels: machineTypeRateData.map(item => item.type),
+            datasets: [
+                {
+                    data: machineTypeRateData.map(item => item.rate),
+                    backgroundColor: [
+                    "#166534",
+                    "#15803d",
+                    "#16a34a",
+                    "#22c55e",
+                    "#4ade80",
+                    "#86efac",
+                    "#bbf7d0",
+                    "#d1fae5",
+                    "#dcfce7"
+                    ],
+                    borderRadius: 999,
+                    barThickness: 18
+                }
+            ]
+        },
+        options: {
+            indexAxis: "y",
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: dark ? "rgba(15,23,42,0.96)" : "rgba(15,23,42,0.88)",
+                    titleColor: "#fff",
+                    bodyColor: "#fff",
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        label: (context) => `${context.parsed.x.toFixed(2)}%`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                        color: dark ? "#94a3b8" : "#64748b",
+                        callback: (v) => v + "%"
+                    },
+                        grid: {
+                        color: "rgba(148,163,184,0.12)",
+                        drawBorder: false
+                    },
+                        border: { display: false }
+                },
+                y: {
+                    ticks: {
+                        color: dark ? "#cbd5e1" : "#475569",
+                        font: { size: 12, weight: "600" }
+                    },
+                    grid: { display: false },
+                    border: { display: false }
+                }
+            }
+        },
+        plugins: [{
+            id: "valueLabelPlugin",
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                const meta = chart.getDatasetMeta(0);
+                ctx.save();
+                ctx.font = "600 12px Inter, sans-serif";
+                ctx.fillStyle = dark ? "#e2e8f0" : "#334155";
+        
+                meta.data.forEach((bar, i) => {
+                    const value = machineTypeRateData[i].rate.toFixed(2) + "%";
+                    ctx.fillText(value, bar.x + 10, bar.y + 4);
+                });
+        
+                ctx.restore();
+            }
+        }]
 });
 }
 
@@ -482,11 +513,11 @@ function applyTheme(theme) {
 function initTheme() {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme) {
-    applyTheme(savedTheme);
-    return;
-}
+        applyTheme(savedTheme);
+        return;
+    }
 
-const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     applyTheme(prefersDark ? "dark" : "light");
 }
 
@@ -497,12 +528,8 @@ function bindThemeToggle() {
 }
 
 function init() {
-    //renderSummary();
-
-    searchInit();
-
     initTheme();
-    //renderTable();
+    searchInit();
     bindSearch();
     bindThemeToggle();
 }

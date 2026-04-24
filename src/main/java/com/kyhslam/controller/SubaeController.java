@@ -10,6 +10,7 @@ import com.kyhslam.util.PIDCommonUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Description;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -498,6 +499,7 @@ public class SubaeController {
         return result;
     }
 
+    @Description("블록번호별 요약 정보를 조회하는 메서드")
     @GetMapping("/subae/findSummaryAsBlockNo")
     @ResponseBody
     @CrossOrigin

@@ -137,6 +137,10 @@ public class SubaeHogiService {
         return response.body();
     }
 
+    /**
+     * 블록번호별 요약 정보를 조회하는 메서드
+     * @return 블록번호별 요약 정보 리스트
+     */
     public ArrayList<HashMap<String, String>> findSummaryAsBlockNo() {
         ArrayList<HashMap<String, String>> list = new ArrayList<>();
         list = repository.findSummaryAsBlockNo();
