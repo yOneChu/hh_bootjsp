@@ -64,6 +64,7 @@ const baseRows = [
 ];
 
 let blockRows = [];
+let sortConfig = { key: null, direction: 'asc' };
 
 const PAGE_SIZE = 30;
 let currentPage = 1;
@@ -158,6 +159,9 @@ function searchInit(target) {
             filteredRows = [...blockRows];
             currentPage = 1;
 
+            // searchType (자재명 선택) 옵션 설정
+            updateMaterialSelect();
+
             // UI 렌더링
             renderTable();
             renderSummary();
@@ -175,6 +179,9 @@ function searchInit(target) {
 function renderTable() {
     const tbody = document.getElementById("bomTableBody");
     tbody.innerHTML = "";
+
+    // 헤더 정렬 아이콘 업데이트
+    updateSortIcons();
 
     // DataTable 인스턴스가 있으면 파괴
     if ($.fn.DataTable.isDataTable('#infoTable')) {
@@ -290,26 +297,131 @@ function getVisiblePages(current, total) {
     return [1, "...", current - 1, current, current + 1, "...", total];
 }
 
-function applySearch() {
-    const keyword = document.getElementById("searchInput").value.trim().toLowerCase();
+function updateSortIcons() {
+    const headers = document.querySelectorAll("#infoTable thead th");
+    const keys = ["blockNo", "partName", "totalCnt", "modifyCnt", null, "rate"];
 
-    filteredRows = blockRows.filter(row =>
-        (row.blockNo && row.blockNo.toLowerCase().includes(keyword)) ||
-        (row.partName && row.partName.toLowerCase().includes(keyword))
-    );
+    headers.forEach((th, index) => {
+        const key = keys[index];
+        if (!key) return;
 
+        // 기존 아이콘 제거
+        const existingIcon = th.querySelector(".sort-icon");
+        if (existingIcon) existingIcon.remove();
+
+        const icon = document.createElement("i");
+        icon.className = "fas sort-icon ml-2 opacity-30 text-[10px]";
+        
+        if (sortConfig.key === key) {
+            icon.className = `fas sort-icon ml-2 text-[10px] ${sortConfig.direction === "asc" ? "fa-sort-up" : "fa-sort-down"}`;
+            icon.classList.remove("opacity-30");
+        } else {
+            icon.className = "fas fa-sort sort-icon ml-2 opacity-30 text-[10px]";
+        }
+        
+        th.appendChild(icon);
+        th.style.cursor = "pointer";
+    });
+}
+
+function handleSort(key) {
+    if (!key) return;
+
+    if (sortConfig.key === key) {
+        sortConfig.direction = sortConfig.direction === "asc" ? "desc" : "asc";
+    } else {
+        sortConfig.key = key;
+        sortConfig.direction = "asc";
+    }
+
+    applySort();
     currentPage = 1;
     renderTable();
 }
 
-function bindSearch() {
-    document.getElementById("searchInput").addEventListener("input", applySearch);
-    document.getElementById("resetSearchBtn").addEventListener("click", () => {
-        document.getElementById("searchInput").value = "";
-        filteredRows = [...blockRows];
-        currentPage = 1;
-        renderTable();
+function applySort() {
+    if (!sortConfig.key) return;
+
+    filteredRows.sort((a, b) => {
+        let valA, valB;
+
+        if (sortConfig.key === "rate") {
+            valA = calculateRate(Number(a.totalCnt) || 0, Number(a.modifyCnt) || 0);
+            valB = calculateRate(Number(b.totalCnt) || 0, Number(b.modifyCnt) || 0);
+        } else if (sortConfig.key === "totalCnt" || sortConfig.key === "modifyCnt") {
+            valA = Number(a[sortConfig.key]) || 0;
+            valB = Number(b[sortConfig.key]) || 0;
+        } else {
+            valA = (a[sortConfig.key] || "").toString().toLowerCase();
+            valB = (b[sortConfig.key] || "").toString().toLowerCase();
+        }
+
+        if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
     });
+}
+
+function applySearch() {
+    const keyword = document.getElementById("searchInput").value.trim().toLowerCase();
+    const selectedMaterial = document.getElementById("searchType").value;
+
+    filteredRows = blockRows.filter(row => {
+        const matchesKeyword = (row.blockNo && row.blockNo.toLowerCase().includes(keyword)) ||
+                             (row.partName && row.partName.toLowerCase().includes(keyword));
+        
+        const matchesMaterial = !selectedMaterial || row.partName === selectedMaterial;
+
+        return matchesKeyword && matchesMaterial;
+    });
+
+    applySort(); // 검색 후에도 현재 정렬 상태 유지
+    currentPage = 1;
+    renderTable();
+}
+
+function updateMaterialSelect() {
+    const select = document.getElementById("searchType");
+    const currentValue = select.value;
+    
+    // 기존 옵션 제거 (첫 번째 '전체' 옵션 제외 혹은 초기화)
+    select.innerHTML = '<option value="">자재명 선택 (전체)</option>';
+
+    // unique partNames 추출 및 정렬
+    const partNames = [...new Set(blockRows.map(row => row.partName))].filter(Boolean).sort();
+
+    partNames.forEach(name => {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        if (name === currentValue) option.selected = true;
+        select.appendChild(option);
+    });
+}
+
+function bindSearch() {
+    const headers = document.querySelectorAll("#infoTable thead th");
+    const keys = ["blockNo", "partName", "totalCnt", "modifyCnt", null, "rate"];
+    
+    headers.forEach((th, index) => {
+        if (keys[index]) {
+            th.addEventListener("click", () => handleSort(keys[index]));
+        }
+    });
+
+    document.getElementById("searchInput").addEventListener("input", applySearch);
+    document.getElementById("searchType").addEventListener("change", applySearch);
+    
+    const resetBtn = document.getElementById("resetSearchBtn");
+    if (resetBtn) {
+        resetBtn.addEventListener("click", () => {
+            document.getElementById("searchInput").value = "";
+            document.getElementById("searchType").value = "";
+            filteredRows = [...blockRows];
+            currentPage = 1;
+            renderTable();
+        });
+    }
 
     document.getElementById("prevPageBtn").addEventListener("click", () => {
         if (currentPage > 1) {
