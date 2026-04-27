@@ -704,7 +704,7 @@ function getBlockDiffExcel(blockNo, partName) {
         },
         success: function (data, status, xhr) {
 
-            console.log(data);
+            //console.log(data);
 
             // 응답 헤더에서 파일명 추출
             const disposition = xhr.getResponseHeader('Content-Disposition');

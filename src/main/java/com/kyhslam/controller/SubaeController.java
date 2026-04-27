@@ -304,8 +304,6 @@ public class SubaeController {
         return "thymeleaf/bomOPTDashboard";
     }
 
-
-
     //BOM수배 데이터 조회
     @PostMapping("/subae/bomDashboard")
     @ResponseBody
