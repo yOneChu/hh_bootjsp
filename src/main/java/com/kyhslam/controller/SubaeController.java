@@ -298,11 +298,13 @@ public class SubaeController {
     }
 
     //BOM품목비교
-    @GetMapping("/subae/bomOPTDashboard")
+    @GetMapping("/subae/bomDashboardV2")
     public String bomOPTDashboard() {
         //return "dashboard/bomSubaeDashboard";
         return "thymeleaf/bomOPTDashboard";
     }
+
+
 
     //BOM수배 데이터 조회
     @PostMapping("/subae/bomDashboard")

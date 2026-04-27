@@ -58,10 +58,19 @@ public class SubaeHogiRepository {
     }
 
 
+    //BlockNo로 수정된 해당 자재 조회
+    public List<SubaeHogiBOM> findSubaeBOMAsBlockNo(String blockNo) {
+        /*return em.createQuery("select o from SubaeHogiBOM o where o.blockNo = :blockNo AND o.ucheck = '1' ", SubaeHogiBOM.class)
+                .setParameter("blockNo", blockNo)
+                .getResultList();*/
+        return em.createQuery("select o from SubaeHogiBOM o where o.blockNo = :blockNo ", SubaeHogiBOM.class)
+                .setParameter("blockNo", blockNo)
+                .getResultList();
+    }
+
     public List<SubaeHogi> findAll() {
 
         String sql = "select i from SubaeHogi i";
-
 
 
         TypedQuery<SubaeHogi> query = em.createQuery(sql, SubaeHogi.class);

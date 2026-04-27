@@ -72,6 +72,11 @@
                             </a>
                         </li>
                         <li>
+                            <a href="/subae/bomDashboardV2" class="nav-link">
+                                <p>블럭별 BOM수배율 분석</p>
+                            </a>
+                        </li>
+                        <li>
                             <a href="/subae/bomDashboard" class="nav-link">
                                 <p>BOM 수배율 부품 현황(월별)</p>
                             </a>

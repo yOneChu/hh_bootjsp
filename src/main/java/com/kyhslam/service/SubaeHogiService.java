@@ -57,6 +57,11 @@ public class SubaeHogiService {
         return list;
     }
 
+    public List<SubaeHogiBOM> findSubaeBOMAsBlockNo(String blockNo) {
+        List<SubaeHogiBOM> list = repository.findSubaeBOMAsBlockNo(blockNo);
+        return list;
+    }
+
 
     @Scheduled(cron = "0 30 22 * * *")
     public void subaeHogiInsertBatch() {

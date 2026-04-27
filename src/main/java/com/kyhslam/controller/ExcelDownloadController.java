@@ -2,10 +2,12 @@ package com.kyhslam.controller;
 
 
 import com.kyhslam.domain.ProductPlanC;
+import com.kyhslam.domain.SubaeHogiBOM;
 import com.kyhslam.dto.DesignRequestDTO;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.PlanCService;
+import com.kyhslam.service.SubaeHogiService;
 import com.kyhslam.service.SubaeService;
 import com.kyhslam.util.*;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,6 +41,8 @@ public class ExcelDownloadController {
     private final MediaTypeFileExtensionResolver mediaTypeFileExtensionResolver;
 
     private final PlanCService planCService;
+
+    private final SubaeHogiService subaeHogiService;
 
 
     @PostMapping("/subaeDownload")
@@ -999,6 +1003,141 @@ public class ExcelDownloadController {
             for (int m = 0; m < 15; m++) {
                 row.getCell(m).setCellStyle(bodyStyle);
             }
+        }
+
+        // 엑셀 파일 작성 및 스트림으로 출력
+        workbook.write(response.getOutputStream());
+
+        // 메모리 정리
+        workbook.dispose(); // 임시파일 삭제
+        workbook.close();
+    }
+
+
+    //BOM품목비교-EXCEL
+    @PostMapping("/searchBlockSubae")
+    public void searchBlockSubae(HttpServletResponse response, String blockNo, String partName) throws IOException {
+
+        // 현재 시간을 기반으로 파일명 생성
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+        String timestamp = sdf.format(new Date());
+        String fileName = blockNo + "_" + timestamp + ".xlsx";
+
+        // HTTP 응답 헤더 설정
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        //response.setHeader("Content-Disposition", "attachment; filename=\"PART_DATA.xlsx\"");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+
+        //System.out.println("subaeDownloadV2 -- " + month);
+        //System.out.println("subaeDownloadV2 -- " + ucheck);
+
+        // SXSSF 워크북 생성 (스트리밍)
+        SXSSFWorkbook workbook = new SXSSFWorkbook(100);
+        //Sheet sheet = workbook.createSheet("Sheet1");
+        Sheet sheet = workbook.createSheet(blockNo);
+
+        //--스타일
+        CellStyle headerStyle = workbook.createCellStyle();
+
+        // 배경색 (연한 회색)
+        headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+        // 테두리 설정
+        headerStyle.setBorderTop(BorderStyle.THIN);
+        headerStyle.setBorderBottom(BorderStyle.THIN);
+        headerStyle.setBorderLeft(BorderStyle.THIN);
+        headerStyle.setBorderRight(BorderStyle.THIN);
+
+        // 정렬 설정 (가운데 정렬)
+        headerStyle.setAlignment(HorizontalAlignment.CENTER);
+        headerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+
+        // 폰트 설정 (굵은 글씨 + 크기 조절)
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerFont.setFontHeightInPoints((short) 11);
+        headerFont.setFontName("맑은 고딕");
+        headerStyle.setFont(headerFont);
+
+        // 행 생성 및 스타일 적용
+        //Row header = sheet.createRow(0);
+
+        // 헤더 작성
+        Row header = sheet.createRow(0);
+        String[] titles = { "현장번호", "버전", "자재번호", "자재명", "BlockNo", "품목", "최초설계완료일", "SEPC", "수량", "주석" };
+
+
+        for (int i = 0; i < titles.length; i++) {
+            Cell cell = header.createCell(i);
+            cell.setCellValue(titles[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        //CellRangeAddress(시작행, 끝행, 시작열, 끝열)
+        sheet.setAutoFilter(new CellRangeAddress(0, 0, 0, titles.length - 1));
+
+
+        // 본문 기본 텍스트 스타일
+        CellStyle bodyStyle = workbook.createCellStyle();
+        bodyStyle.setBorderTop(BorderStyle.THIN);
+        bodyStyle.setBorderBottom(BorderStyle.THIN);
+        bodyStyle.setBorderLeft(BorderStyle.THIN);
+        bodyStyle.setBorderRight(BorderStyle.THIN);
+        bodyStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        bodyStyle.setAlignment(HorizontalAlignment.LEFT);
+
+        Font bodyFont = workbook.createFont();
+        bodyFont.setFontHeightInPoints((short) 10);
+        bodyFont.setFontName("맑은 고딕");
+        bodyStyle.setFont(bodyFont);
+
+        CellStyle bodyCenterStyle = workbook.createCellStyle();
+        bodyCenterStyle.setBorderTop(BorderStyle.THIN);
+        bodyCenterStyle.setBorderBottom(BorderStyle.THIN);
+        bodyCenterStyle.setBorderLeft(BorderStyle.THIN);
+        bodyCenterStyle.setBorderRight(BorderStyle.THIN);
+        bodyCenterStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        bodyCenterStyle.setAlignment(HorizontalAlignment.CENTER);
+        bodyCenterStyle.setFont(bodyFont);
+
+
+        // 데이터 가져오기
+        List<SubaeHogiBOM> dataList = new ArrayList<>();
+
+        dataList = subaeHogiService.findSubaeBOMAsBlockNo(blockNo);
+
+        for (int i = 0; i < dataList.size(); i++) {
+            SubaeHogiBOM bom =  dataList.get(i);
+
+            Row row = sheet.createRow(i + 1);
+            String hogi = bom.getHogi();
+            String hogiVer = bom.getHogiVersion();
+            String partNo = bom.getPartNo();
+            //String partName = bom.getPartName();
+            String blockOpt =  bom.getBlockOpt();
+            String codate =  bom.getCodate();
+            String spec = bom.getSpec();
+            String qty = bom.getQty();
+            String uCheck = bom.getUcheck();
+            String cmt = bom.getCmt();
+
+            row.createCell(0).setCellValue(hogi);
+            row.createCell(1).setCellValue(hogiVer);
+            row.createCell(2).setCellValue(partNo);
+            row.createCell(3).setCellValue(partName);
+            row.createCell(4).setCellValue(blockNo);
+            row.createCell(5).setCellValue(blockOpt);
+            row.createCell(6).setCellValue(codate);
+            row.createCell(7).setCellValue(spec);
+            row.createCell(8).setCellValue(qty);
+            row.createCell(9).setCellValue(uCheck);
+            row.createCell(10).setCellValue(cmt);
+
+            for (int m = 0; m < 11; m++) {
+                row.getCell(m).setCellStyle(bodyStyle);
+            }
+
         }
 
         // 엑셀 파일 작성 및 스트림으로 출력
