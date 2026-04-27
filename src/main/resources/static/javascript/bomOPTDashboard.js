@@ -89,13 +89,13 @@ function formatRate(value) {
 
 function getRateTone(rate) {
     if (rate >= 97) {
-        return "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300";
+        return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 dark:bg-emerald-500/20 dark:text-emerald-200 dark:ring-emerald-400/30";
     }
     if (rate >= 94) {
-        return "bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300";
+        return "bg-sky-50 text-sky-700 ring-1 ring-sky-100 dark:bg-sky-500/20 dark:text-sky-200 dark:ring-sky-400/30";
     }
 
-    return "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300";
+    return "bg-amber-50 text-amber-700 ring-1 ring-amber-100 dark:bg-amber-500/20 dark:text-amber-200 dark:ring-amber-400/30";
 }
 
 function isDarkMode() {
@@ -209,7 +209,7 @@ function renderTable() {
         const tone = getRateTone(rate);
 
         const tr = document.createElement("tr");
-        tr.className = "transition hover:bg-slate-50/80 dark:hover:bg-slate-900/50";
+        tr.className = "transition border-b border-slate-100/70 hover:bg-slate-50/80 dark:border-slate-800/70 dark:hover:bg-slate-800/60";
 
         tr.innerHTML = `
               <td class="px-5 py-4 font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap">${row.blockNo}</td>
@@ -217,7 +217,7 @@ function renderTable() {
               <td class="px-5 py-4 text-right text-slate-700 dark:text-slate-200">${formatNumber(totalCnt)}</td>
               <td class="px-5 py-4 text-right text-slate-700 dark:text-slate-200">${formatNumber(modifyCnt)}</td>
               <td class="px-5 py-4 text-right">
-                <button id="findDiff-Btn" type="button" class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-700/60 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20">
+                <button id="findDiff-Btn" type="button" class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-400/40 dark:bg-emerald-500/20 dark:text-emerald-200 dark:hover:bg-emerald-500/30">
                   <i class="fas fa-file-excel"></i>
                   Excel
                 </button>
@@ -259,8 +259,8 @@ function renderPagination() {
         const btn = document.createElement("button");
         const active = page === currentPage;
         btn.className = active
-        ? "inline-flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white dark:bg-slate-100 dark:text-slate-900"
-        : "inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800";
+        ? "inline-flex h-10 min-w-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white dark:bg-emerald-400 dark:text-slate-900"
+        : "inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-800";
         btn.textContent = page;
         btn.addEventListener("click", () => {
             currentPage = page;
@@ -460,6 +460,8 @@ function bindSearch() {
 function buildMonthlyChart() {
     const ctx = document.getElementById("monthlyChart");
     const dark = isDarkMode();
+    const lineColor = dark ? "#34d399" : "#16a34a";
+    const fillColor = dark ? "rgba(52,211,153,0.20)" : "rgba(34,197,94,0.14)";
 
     if (monthlyChartInstance) {
         monthlyChartInstance.destroy();
@@ -473,14 +475,14 @@ function buildMonthlyChart() {
     {
     label: "BOM 수배율",
     data: monthlyRateData.map(item => item.rate),
-    borderColor: "#16a34a",
-    backgroundColor: dark ? "rgba(34,197,94,0.18)" : "rgba(34,197,94,0.14)",
+    borderColor: lineColor,
+    backgroundColor: fillColor,
     fill: true,
     tension: 0.34,
     borderWidth: 3,
     pointRadius: 0,
     pointHoverRadius: 5,
-    pointBackgroundColor: "#16a34a"
+    pointBackgroundColor: lineColor
     }
         ]
     },
@@ -512,14 +514,14 @@ function buildMonthlyChart() {
                 callback: (value) => value + "%"
             },
             grid: {
-                color: "rgba(148,163,184,0.12)",
+                color: dark ? "rgba(148,163,184,0.20)" : "rgba(148,163,184,0.12)",
                 drawBorder: false
             },
                 border: { display: false }
         },
         x: {
         ticks: {
-        color: dark ? "#94a3b8" : "#94a3b8",
+        color: dark ? "#94a3b8" : "#64748b",
         maxTicksLimit: 8
     },
         grid: { display: false },
@@ -533,6 +535,29 @@ function buildMonthlyChart() {
 function buildTypeChart() {
     const ctx = document.getElementById("typeChart");
     const dark = isDarkMode();
+    const barPalette = dark
+        ? [
+            "rgba(16,185,129,0.95)",
+            "rgba(52,211,153,0.90)",
+            "rgba(45,212,191,0.88)",
+            "rgba(56,189,248,0.85)",
+            "rgba(96,165,250,0.80)",
+            "rgba(125,211,252,0.78)",
+            "rgba(147,197,253,0.75)",
+            "rgba(165,180,252,0.70)",
+            "rgba(196,181,253,0.65)"
+        ]
+        : [
+            "#166534",
+            "#15803d",
+            "#16a34a",
+            "#22c55e",
+            "#4ade80",
+            "#86efac",
+            "#bbf7d0",
+            "#d1fae5",
+            "#dcfce7"
+        ];
 
     if (typeChartInstance) {
         typeChartInstance.destroy();
@@ -545,17 +570,7 @@ function buildTypeChart() {
             datasets: [
                 {
                     data: machineTypeRateData.map(item => item.rate),
-                    backgroundColor: [
-                    "#166534",
-                    "#15803d",
-                    "#16a34a",
-                    "#22c55e",
-                    "#4ade80",
-                    "#86efac",
-                    "#bbf7d0",
-                    "#d1fae5",
-                    "#dcfce7"
-                    ],
+                    backgroundColor: barPalette,
                     borderRadius: 999,
                     barThickness: 18
                 }

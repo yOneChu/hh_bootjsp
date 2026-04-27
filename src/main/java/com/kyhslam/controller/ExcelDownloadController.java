@@ -1036,7 +1036,7 @@ public class ExcelDownloadController {
         //Sheet sheet = workbook.createSheet("Sheet1");
         Sheet sheet = workbook.createSheet(blockNo);
 
-        //--스타일
+        // 스타일
         CellStyle headerStyle = workbook.createCellStyle();
 
         // 배경색 (연한 회색)
@@ -1065,7 +1065,7 @@ public class ExcelDownloadController {
 
         // 헤더 작성
         Row header = sheet.createRow(0);
-        String[] titles = { "현장번호", "버전", "자재번호", "자재명", "BlockNo", "품목", "최초설계완료일", "SEPC", "수량", "주석" };
+        String[] titles = { "현장번호", "버전", "자재번호", "자재명", "BlockNo", "품목", "최초설계완료일", "SEPC", "수량", "수정여부", "주석" };
 
 
         for (int i = 0; i < titles.length; i++) {
@@ -1076,7 +1076,6 @@ public class ExcelDownloadController {
 
         //CellRangeAddress(시작행, 끝행, 시작열, 끝열)
         sheet.setAutoFilter(new CellRangeAddress(0, 0, 0, titles.length - 1));
-
 
         // 본문 기본 텍스트 스타일
         CellStyle bodyStyle = workbook.createCellStyle();
