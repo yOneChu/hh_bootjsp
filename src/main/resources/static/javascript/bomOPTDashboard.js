@@ -36,16 +36,16 @@ const monthlyRateData = [
 
 const machineTypeRateData = [
     { type: "GTSS", rate: 99.04 },
-    { type: "GTLX", rate: 96.43 },
-    { type: "WBSS", rate: 95.12 },
-    { type: "LXVF", rate: 94.80 },
-    { type: "HSVF", rate: 93.35 },
+    { type: "GTLX", rate: 96.45 },
+    { type: "WBSS", rate: 95.07 },
+    { type: "LXVF", rate: 94.84 },
+    { type: "HSVF", rate: 93.34 },
     { type: "SUVF", rate: 78.68 },
     { type: "STS7H", rate: 75.40 },
     { type: "WLSH", rate: 69.66 },
     { type: "WSH", rate: 61.93 }
 ];
-
+/*
 const baseRows = [
     { blockNo: "B182D01", material: "RAIL LINER", request: 63282, modify: 1061 },
     { blockNo: "B126A01", material: "GUIDE SHOE", request: 63219, modify: 3016 },
@@ -61,7 +61,7 @@ const baseRows = [
     { blockNo: "D112A04", material: "BRACKET", request: 39528, modify: 2201 },
     { blockNo: "M220A11", material: "MOTOR BASE", request: 38210, modify: 514 },
     { blockNo: "K201F02", material: "PANEL", request: 37102, modify: 1280 }
-];
+];*/
 
 let blockRows = [];
 let sortConfig = { key: null, direction: 'asc' };
@@ -102,8 +102,53 @@ function isDarkMode() {
     return document.documentElement.classList.contains("dark");
 }
 
-function renderSummary() {
-    if (blockRows.length === 0) {
+async function renderSummary() {
+
+    let totalCount = 0;
+    let modifyCount = 0;
+
+    /*showLoading();
+    $.ajax({
+        type : "get",
+        url : "/subae/findSummaryAsCount",
+        success : function(rr) {
+            console.log(rr);
+
+            //rr.forEach(row => {
+                totalCount += Number(rr.totalCnt) || 0;
+                modifyCount += Number(rr.modifyCnt) || 0;
+            //})
+            hideLoading();
+        },
+        error: function () {
+            hideLoading();
+            alert('데이터를 가져오는 중 오류가 발생하였습니다.');
+        }
+    });*/
+
+    showLoading();
+
+    try {
+        const rr = await $.ajax({
+            type: "get",
+            url: "/subae/findSummaryAsCount"
+        });
+
+        console.log(rr);
+
+        totalCount = Number(rr.TOTAL_COUNT) || 0;
+        modifyCount = Number(rr.UCHECK_1_COUNT) || 0;
+
+    } catch (e) {
+        alert("데이터를 가져오는 중 오류가 발생하였습니다.");
+    } finally {
+        hideLoading();
+    }
+
+    console.log(`총 수배건수: ${totalCount}, 총 수정건수: ${modifyCount}`);
+
+
+    /*if (blockRows.length === 0) {
         document.getElementById("mainRate").textContent = "0.00%";
         document.getElementById("requestCount").textContent = "0";
         document.getElementById("modifyCount").textContent = "0";
@@ -111,14 +156,16 @@ function renderSummary() {
         document.getElementById("tfootModify").textContent = "0";
         document.getElementById("tfootRate").textContent = "0.00%";
         return;
-    }
+    }*/
 
-    const totalRequest = blockRows.reduce((sum, row) => sum + (Number(row.totalCnt) || 0), 0);
-    const totalModify = blockRows.reduce((sum, row) => sum + (Number(row.modifyCnt) || 0), 0);
+    const totalRequest = totalCount; //blockRows.reduce((sum, row) => sum + (Number(row.totalCnt) || 0), 0);
+    const totalModify = modifyCount; //blockRows.reduce((sum, row) => sum + (Number(row.modifyCnt) || 0), 0);
     const totalRate = calculateRate(totalRequest, totalModify);
 
     const mainRateEl = document.getElementById("mainRate");
     if (mainRateEl) mainRateEl.textContent = formatRate(totalRate);
+
+    mainRateEl.textContent = formatRate(totalRate);
     
     const requestCountEl = document.getElementById("requestCount");
     if (requestCountEl) requestCountEl.textContent = formatNumber(totalRequest);
@@ -164,7 +211,7 @@ function searchInit(target) {
 
             // UI 렌더링
             renderTable();
-            renderSummary();
+            //renderSummary();
             renderCharts(); // 차트 데이터는 static이지만 초기화 시점에 호출
 
             hideLoading();
@@ -675,6 +722,7 @@ function bindThemeToggle() {
 function init() {
     initTheme();
     searchInit();
+    renderSummary();
     bindSearch();
     bindThemeToggle();
 }
@@ -686,12 +734,8 @@ init();
 //EXCEL
 function getBlockDiffExcel(blockNo, partName) {
 
-    //const pidVal01 = blockNo;
-    //const spec01 = partName;
-
     showLoading(); // 로딩바 표시
     $.ajax({
-        //url: '/excel/searchPIDExcel',   // 요청 보낼 URL
         url: '/excel/searchBlockSubae',   // 요청 보낼 URL
         type: 'POST',              // 메서드 (GET/POST 등)
         data : {

@@ -144,4 +144,44 @@ public class SubaeHogiRepository {
         return list;
     }
 
+
+    public HashMap<String, String> findSummaryAsCount() {
+
+        HashMap<String, String> result = new HashMap<>();
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        try {
+
+            con = VaultDBConnection.getConnection();
+
+            String sql = """
+                    SELECT
+                        COUNT(*) AS TOTAL_COUNT,
+                        SUM(CASE WHEN A.UCHECK = 1 THEN 1 ELSE 0 END) AS UCHECK_1_COUNT
+                    FROM subaehogibom A
+                    WHERE A.hogi NOT LIKE '%NC%'
+                      AND A.hogi NOT LIKE 'V%'
+                      AND A.hogi NOT LIKE 'Q%'
+                    """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String TOTAL_COUNT = rs.getString("TOTAL_COUNT");
+                String UCHECK_1_COUNT = rs.getString("UCHECK_1_COUNT");
+
+                result.put("TOTAL_COUNT", TOTAL_COUNT);
+                result.put("UCHECK_1_COUNT", UCHECK_1_COUNT);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            VaultDBConnection.disconnect(con,pstmt,rs);
+        }
+        return result;
+    }
 }
