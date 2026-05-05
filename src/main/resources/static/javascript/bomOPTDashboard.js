@@ -677,6 +677,8 @@ function init() {
     searchInit();
     bindSearch();
     bindThemeToggle();
+
+    isDarkMode();
 }
 
 init();
