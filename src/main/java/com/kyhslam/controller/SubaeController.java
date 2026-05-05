@@ -508,4 +508,13 @@ public class SubaeController {
         return result;
     }
 
+    @Description("블록번호별 요약 정보를 조회하는 메서드(총 수배건수, 총 수정건수)")
+    @GetMapping("/subae/findSummaryAsCount")
+    @ResponseBody
+    @CrossOrigin
+    public HashMap<String, String> findSummaryAsCount() {
+        HashMap<String, String> result = subaeHogiService.findSummaryAsCount();
+        return result;
+    }
+
 }
