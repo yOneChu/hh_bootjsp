@@ -41,9 +41,9 @@ const machineTypeRateData = [
     { type: "LXVF", rate: 94.84 },
     { type: "HSVF", rate: 93.34 },
     { type: "SUVF", rate: 78.68 },
-    { type: "STS7H", rate: 75.40 },
-    { type: "WLSH", rate: 69.66 },
-    { type: "WSH", rate: 61.93 }
+    { type: "STS7H", rate: 75.40 }
+   // { type: "WLSH", rate: 69.66 },
+   // { type: "WSH", rate: 61.93 }
 ];
 /*
 const baseRows = [
