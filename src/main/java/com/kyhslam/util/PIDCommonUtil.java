@@ -451,7 +451,7 @@ public class PIDCommonUtil {
 
             con = PLMDBConnection.getConnection();
 
-            System.out.println("PID_Search sql.toString() = " + sql.toString());
+            //System.out.println("PID_Search sql.toString() = " + sql.toString());
             pstmt = con.prepareStatement(sql.toString());
 
             //pstmt2.setString(1, projrctNo);

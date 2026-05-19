@@ -217,6 +217,11 @@ document.getElementById('searchBtn').addEventListener('click', () => {
 
 
     function executeCompareData(items) {
+        const tbody = document.getElementById('bom-tbody') || document.querySelector('table tbody');
+        if (!tbody) {
+            console.error('tbody 요소를 찾을 수 없습니다.');
+            return;
+        }
         tbody.innerHTML = ''; // 기존 테이블 초기화
 
         // 화면 렌더링
@@ -468,17 +473,38 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             tr.innerHTML = html;
             
             // 행 클릭 이벤트 추가 (노란색 하이라이트)
-            tr.addEventListener('click', function() {
-                const isSelected = this.classList.contains('selected-row');
-                
-                // 모든 행에서 하이라이트 제거
-                document.querySelectorAll('#bom-tbody tr').forEach(row => {
+            // Ctrl + 클릭 시 텍스트가 선택되는 것을 방지
+            tr.addEventListener('mousedown', function(e) {
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                }
+            });
+            tr.addEventListener('click', function(e) {
+                const highlight = (row) => {
+                    row.classList.add('selected-row');
+                    row.style.backgroundColor = '#fef08a';
+                };
+                const unhighlight = (row) => {
                     row.classList.remove('selected-row');
-                });
-                
-                // 클릭한 행이 이전에 선택되지 않았다면 하이라이트 추가
-                if (!isSelected) {
-                    this.classList.add('selected-row');
+                    row.style.backgroundColor = '';
+                };
+
+                if (e.ctrlKey) {
+                    // Ctrl 눌린 상태: 클릭한 행 토글
+                    if (this.classList.contains('selected-row')) {
+                        unhighlight(this);
+                    } else {
+                        highlight(this);
+                    }
+                } else {
+                    // Ctrl 안 눌린 상태: 모든 행 선택 해제 후 클릭한 행만 선택
+                    const tbodyEl = this.parentNode;
+                    if (tbodyEl) {
+                        tbodyEl.querySelectorAll('tr.selected-row').forEach(row => {
+                            unhighlight(row);
+                        });
+                    }
+                    highlight(this);
                 }
             });
             
