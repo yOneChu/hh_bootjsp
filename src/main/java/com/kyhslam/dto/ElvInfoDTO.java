@@ -5,6 +5,8 @@ import lombok.Data;
 @Data
 public class ElvInfoDTO {
 
+    private String productoid;
+    private String status;
     private String hogi;
     private String speed;
     private String nation;

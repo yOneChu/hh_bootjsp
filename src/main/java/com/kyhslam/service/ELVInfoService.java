@@ -270,13 +270,11 @@ public class ELVInfoService {
 
             System.out.println("data = " + data);
 
-
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             VaultDBConnection.disconnect(con, pstmt, rs);
         }
-
         return data;
     }
 

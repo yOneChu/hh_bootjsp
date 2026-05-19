@@ -538,8 +538,11 @@ public class ElvInfoCommonUtil {
             con = PLMDBConnection.getConnection();
 
             String sql = """        
-                     SELECT V.MD$DESC, V.MD$NUMBER AS PRODUCTNO,
-                     COD(V.EL_AOPEN) AS EL_AOPEN, -- 열림방식 
+                     SELECT V.MD$DESC, 
+                     V.MD$NUMBER AS PRODUCTNO,
+                     V.VF$OUID AS OID,
+                     COD(V.EL_AOPEN) AS EL_AOPEN,
+                     V.MD$STATUS AS STATUS,
                      CODN(v.EL_AUSE) AS EL_AUSE, -- 용도
                      CODN(V.EL_ETM) AS EL_ETM, --권상기
                      V.EL_ECWBUFBH, --CWT BUFFER BLOCKING 높이 
@@ -550,11 +553,11 @@ public class ElvInfoCommonUtil {
                      V.EL_ERPW,
                      COD(V.EL_ECWRL) AS EL_ECWRL, --CWT RAIL(K) 
                      COD(V.EL_ETM) AS EL_ETM, --권상기 
-                     V.EL_ECWBG, --CWT; BG 
-                     V.EL_ECWW, --CWT;폭 
-                     COD(V.EL_ECSF), --CAR; SAFETY 
-                     COD(V.EL_ASPC), --시방서 
-                     COD(V.EL_ASPCD), -- 시방서 DEVIATION 여부 
+                     V.EL_ECWBG AS EL_ECWBG, --CWT; BG 
+                     V.EL_ECWW AS EL_ECWW, --CWT;폭 
+                     COD(V.EL_ECSF) AS EL_ECSF, --CAR; SAFETY 
+                     COD(V.EL_ASPC) AS EL_ASPC, --시방서 
+                     COD(V.EL_ASPCD) AS EL_ASPCD, -- 시방서 DEVIATION 여부 
                      COD(V.EL_BCL) AS EL_BCL, -- 천장종류 
                      V.EL_AMAN AS EL_AMAN, --인승 
                      COD(V.EL_ASPSCD) AS EL_ASPSCD, --생산거점(설계) 
@@ -575,8 +578,8 @@ public class ElvInfoCommonUtil {
                      V.EL_ZERR_A_1, --자동 입력 오류 
                      V.MD$USER, 
                      V.MD$CDATE, 
-                     CODN(V.EL_ETM), 
-                     V.* 
+                     CODN(V.EL_ETM) 
+                     --,V.* 
               FROM ELV_INFO$VF V, ELV_INFO$ID A 
               WHERE 
                   V.vf$identity = A.id$ouid and V.vf$ouid = A.id$wip 
@@ -691,6 +694,8 @@ public class ElvInfoCommonUtil {
 
             while(rs.next()) {
                 String PRODUCTNO = rs.getString("PRODUCTNO"); //제품번호
+                String OID = rs.getString("OID");
+                String STATUS = rs.getString("STATUS");
                 String EL_AOPEN = rs.getString("EL_AOPEN") == null ? "" : rs.getString("EL_AOPEN");
                 String EL_ECWBUFBH = rs.getString("EL_ECWBUFBH") == null ? "" : rs.getString("EL_ECWBUFBH");
 
@@ -719,6 +724,8 @@ public class ElvInfoCommonUtil {
 
                 ElvInfoDTO dto = new ElvInfoDTO();
                 dto.setPRODUCTNO(PRODUCTNO); //제품번호
+                dto.setProductoid(OID);
+                dto.setStatus(STATUS);
                 dto.setEL_AOPEN(EL_AOPEN);
                 dto.setEL_ECWBUFBH(EL_ECWBUFBH);
                 dto.setEL_ATYP(EL_ATYP);

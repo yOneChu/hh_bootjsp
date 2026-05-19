@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="icon" type="image/png" href="/resources/favicon.ico" />
+
+    <title>공사정보 Analytics</title>
+
+    <link rel="stylesheet" href="/resources/dist/googleFont.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+
+    <!-- DataTables -->
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+
+    <link rel="stylesheet" href="/resources/dist/plugins/select2/css/select2.min.css">
+
+    <!-- Handsontable -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14/dist/handsontable.full.min.css">
+
+    <!-- Theme style -->
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+    <!-- Custom dark mode enhancements -->
+    <link rel="stylesheet" href="/resources/css/dark-mode.css">
+    <link rel="stylesheet" href="/resources/dashboard/tweak.css">
+
+    <!-- TailwindCSS (preflight off to coexist with Bootstrap/AdminLTE) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: { preflight: false },
+            darkMode: ['class', 'body.dark-mode'],
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard', 'Noto Sans KR', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'soft': '0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px 0 rgba(0,0,0,0.04)',
+                        'lift': '0 10px 25px -5px rgba(79, 70, 229, 0.15), 0 8px 10px -6px rgba(0,0,0,0.05)',
+                        'glow': '0 10px 30px -5px rgba(99, 102, 241, 0.4)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+        }
+
+        /* ------- Handsontable ------- */
+        #infoTable .handsontable {
+            font-family: 'Pretendard', 'Noto Sans KR', 'Cascadia Code', sans-serif;
+            font-size: 13px;
+        }
+
+        #infoTable .handsontable th {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: #fff;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 0.02em;
+            border-color: #4338ca !important;
+        }
+
+        body.dark-mode #infoTable .handsontable th {
+            background: linear-gradient(135deg, #312e81 0%, #581c87 100%);
+        }
+
+        /* ------- Hero header card ------- */
+        .hero-card {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
+            border-radius: 1.25rem;
+            box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 400px;
+            height: 400px;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.08);
+            pointer-events: none;
+        }
+        .hero-card::after {
+            content: '';
+            position: absolute;
+            bottom: -40%;
+            left: 20%;
+            width: 300px;
+            height: 300px;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.06);
+            pointer-events: none;
+        }
+
+        .icon-tile {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 1rem;
+            background: rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+
+        /* ------- Modern AdminLTE card overrides ------- */
+        .modern-card.card {
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05), 0 1px 2px 0 rgba(0,0,0,0.03);
+            overflow: hidden;
+            background: #ffffff;
+        }
+        .modern-card.card-primary,
+        .modern-card.card.card-primary.card-outline,
+        .modern-card.card { border-top: none !important; }
+
+        .modern-card .card-header {
+            background: linear-gradient(to right, #f8fafc, #ffffff);
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.875rem 1.25rem;
+            border-radius: 0;
+        }
+        body.dark-mode .modern-card.card {
+            background: #0b1220 !important;
+            border-color: #25314a !important;
+        }
+        body.dark-mode .modern-card .card-header {
+            background: linear-gradient(to right, #0f172a, #0b1220) !important;
+            border-bottom-color: #25314a !important;
+        }
+        .modern-card .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #0f172a;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0;
+            padding-top: 0.25rem;
+        }
+        body.dark-mode .modern-card .card-title { color: #f1f5f9; }
+
+        .title-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.85rem;
+            height: 1.85rem;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border-radius: 0.55rem;
+            font-size: 0.8rem;
+            box-shadow: 0 4px 10px -2px rgba(79, 70, 229, 0.45);
+        }
+
+        .modern-card .card-footer {
+            background: #fafbfc;
+            border-top: 1px solid #e2e8f0;
+            padding: 0.875rem 1.25rem;
+        }
+        body.dark-mode .modern-card .card-footer {
+            background: #0f172a !important;
+            border-top-color: #25314a !important;
+        }
+
+        /* AdminLTE collapse button tweaks */
+        .modern-card .card-tools .btn-tool { color: #94a3b8; }
+        .modern-card .card-tools .btn-tool:hover { color: #4f46e5; }
+        body.dark-mode .modern-card .card-tools .btn-tool { color: #94a3b8; }
+        body.dark-mode .modern-card .card-tools .btn-tool:hover { color: #a78bfa; }
+
+        /* ------- Section divider with label ------- */
+        .section-label {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #6366f1;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .section-label .dot {
+            display: inline-block;
+            width: 0.4rem;
+            height: 0.4rem;
+            border-radius: 9999px;
+            background: linear-gradient(135deg, #4f46e5, #ec4899);
+        }
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, #c7d2fe, transparent);
+        }
+        body.dark-mode .section-label { color: #a5b4fc; }
+        body.dark-mode .section-label::after { background: linear-gradient(to right, #312e81, transparent); }
+
+        /* ------- Field label ------- */
+        .field-label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 0.35rem;
+            letter-spacing: 0.02em;
+        }
+        body.dark-mode .field-label { color: #cbd5e1; }
+
+        /* ------- Input override (form-control) ------- */
+        .modern-card .form-control {
+            height: 38px;
+            border-radius: 0.5rem !important;
+            border: 1px solid #cbd5e1;
+            transition: all 0.15s ease;
+            font-size: 0.875rem;
+            color: #0f172a;
+            background-color: #ffffff;
+        }
+        .modern-card .form-control:hover { border-color: #818cf8; }
+        .modern-card .form-control:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        body.dark-mode .modern-card .form-control {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            color: #e2e8f0 !important;
+        }
+
+        /* ------- Select2 modern styling ------- */
+        .select2-container--default .select2-selection--single {
+            height: 38px !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 0.5rem !important;
+            background-color: #ffffff !important;
+            transition: all 0.15s ease !important;
+        }
+        .select2-container--default .select2-selection--single:hover {
+            border-color: #818cf8 !important;
+        }
+        .select2-container--default.select2-container--focus .select2-selection--single,
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 36px !important;
+            padding-left: 12px !important;
+            padding-right: 32px !important;
+            color: #0f172a !important;
+            font-size: 0.875rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px !important;
+            right: 6px !important;
+        }
+        body.dark-mode .select2-container--default .select2-selection--single {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+        }
+        body.dark-mode .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #e2e8f0 !important;
+        }
+        body.dark-mode .select2-dropdown {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+        }
+        body.dark-mode .select2-results__option { color: #e2e8f0; }
+        body.dark-mode .select2-results__option--highlighted[aria-selected] {
+            background-color: #4f46e5 !important;
+            color: #fff !important;
+        }
+
+        /* ------- Primary buttons ------- */
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.55rem 1.4rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: white;
+            border: none;
+            border-radius: 0.6rem;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            letter-spacing: 0.01em;
+        }
+        .btn-action:focus { outline: none; }
+        .btn-action.primary {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            box-shadow: 0 2px 8px -1px rgba(79, 70, 229, 0.4);
+        }
+        .btn-action.primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px -2px rgba(79, 70, 229, 0.5);
+        }
+        .btn-action.accent {
+            background: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%);
+            box-shadow: 0 2px 8px -1px rgba(14, 165, 233, 0.4);
+        }
+        .btn-action.accent:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px -2px rgba(14, 165, 233, 0.5);
+        }
+        .btn-action:active { transform: translateY(0); }
+
+        /* ------- Help callout ------- */
+        .help-callout {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #f59e0b;
+            border-radius: 0.75rem;
+            padding: 0.875rem 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        body.dark-mode .help-callout {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.05));
+            border-left-color: #fbbf24;
+        }
+        .help-callout .help-icon {
+            flex-shrink: 0;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            background: #f59e0b;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+        }
+        .help-callout h4 {
+            color: #78350f;
+            font-weight: 700;
+            font-size: 0.875rem;
+            margin: 0 0 0.15rem 0;
+        }
+        .help-callout p {
+            color: #92400e;
+            font-size: 0.8rem;
+            margin: 0;
+        }
+        body.dark-mode .help-callout h4 { color: #fde68a; }
+        body.dark-mode .help-callout p { color: #fcd34d; }
+
+        /* ------- Column toggle pills ------- */
+        .pill-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            padding: 0.75rem;
+            background: linear-gradient(to right, #f8fafc, #f1f5f9);
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+        }
+        body.dark-mode .pill-toolbar {
+            background: linear-gradient(to right, #0f172a, #0b1220);
+            border-color: #25314a;
+        }
+
+        .pill-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.35rem 0.85rem;
+            font-size: 0.745rem;
+            font-weight: 600;
+            color: #475569;
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            line-height: 1.2;
+        }
+        .pill-btn:hover {
+            background-color: #eef2ff;
+            border-color: #818cf8;
+            color: #4338ca;
+        }
+        .pill-btn.btn-secondary,
+        .pill-btn.active {
+            background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%) !important;
+            border-color: transparent !important;
+            color: #ffffff !important;
+        }
+        body.dark-mode .pill-btn {
+            background-color: #1e293b;
+            border-color: #334155;
+            color: #cbd5e1;
+        }
+        body.dark-mode .pill-btn:hover {
+            background-color: #312e81;
+            border-color: #6366f1;
+            color: #c7d2fe;
+        }
+
+        /* ------- Export buttons ------- */
+        .btn-export {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #4338ca;
+            background-color: #eef2ff;
+            border: 1px solid #c7d2fe;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-export:hover {
+            background-color: #e0e7ff;
+            border-color: #6366f1;
+            box-shadow: 0 2px 8px -1px rgba(99, 102, 241, 0.25);
+        }
+        body.dark-mode .btn-export {
+            background-color: rgba(99, 102, 241, 0.12);
+            border-color: #4338ca;
+            color: #c7d2fe;
+        }
+        body.dark-mode .btn-export:hover {
+            background-color: rgba(99, 102, 241, 0.22);
+            color: #e0e7ff;
+        }
+
+        /* ------- Table wrapper ------- */
+        .table-wrap {
+            border-radius: 0.75rem;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.04);
+        }
+        body.dark-mode .table-wrap { border-color: #25314a; }
+
+        /* ------- Top navbar tweaks ------- */
+        .main-header.navbar {
+            border-bottom: 1px solid #e2e8f0;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+        }
+        body.dark-mode .main-header.navbar {
+            background: rgba(15, 23, 42, 0.85) !important;
+            border-bottom-color: #25314a !important;
+        }
+
+        /* ------- Footer ------- */
+        .main-footer {
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 0.825rem;
+        }
+        body.dark-mode .main-footer {
+            background: #0b1220 !important;
+            border-top-color: #25314a !important;
+            color: #94a3b8 !important;
+        }
+
+        /* ------- Dark mode toggle pill ------- */
+        .dark-mode-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.85rem;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 9999px;
+            backdrop-filter: blur(10px);
+        }
+        .dark-mode-pill label {
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.825rem;
+            margin: 0;
+        }
+
+        /* AdminLTE breadcrumb default removal */
+        .breadcrumb { background: transparent; padding: 0; margin: 0; }
+        .breadcrumb-item + .breadcrumb-item::before { content: ''; }
+
+        /* AdminLTE content-header padding cleanup */
+        .content-header { padding: 1rem 0.5rem 0.25rem 0.5rem; }
+
+        /* Soft animation for cards on load */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .fade-up { animation: fadeUp 0.45s ease-out both; }
+        .fade-up.delay-1 { animation-delay: 0.05s; }
+        .fade-up.delay-2 { animation-delay: 0.1s; }
+        .fade-up.delay-3 { animation-delay: 0.15s; }
+    </style>
+</head>
+
+
+<body class="hold-transition sidebar-mini text-sm" style="zoom:95%;">
+
+<div class="wrapper">
+    <!-- Navbar -->
+    <nav class="main-header navbar navbar-expand">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-widget="fullscreen" href="#" role="button">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+
+    <div th:replace="thymeleaf/fragments/sidebar :: sidebarFragment"></div>
+
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+
+        <!-- ========== Hero Header ========== -->
+        <section class="content-header">
+            <div class="container-fluid">
+                <div class="hero-card fade-up px-6 py-5 md:px-8 md:py-6 mb-4">
+                    <div class="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="icon-tile">
+                                <i class="fas fa-elevator text-2xl text-white"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-2xl md:text-3xl font-bold text-white m-0 tracking-tight">공사정보 Analytics</h1>
+                                <p class="text-white/85 m-0 text-sm md:text-[0.95rem]">엘리베이터 공사현장 데이터 분석 대시보드</p>
+                            </div>
+                        </div>
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item">
+                                <div class="dark-mode-pill">
+                                    <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
+                                        <input type="checkbox" class="custom-control-input" id="darkModeToggle">
+                                        <label class="custom-control-label" for="darkModeToggle">🌓 다크모드</label>
+                                    </div>
+                                </div>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========== Main content ========== -->
+        <section class="content">
+
+            <div class="container-fluid">
+
+                <!-- =================== 검색조건 카드 =================== -->
+                <div class="card card-primary modern-card fade-up delay-1 mb-4">
+                    <div class="card-header">
+                        <div class="d-flex align-items-center justify-content-between w-100">
+                            <h3 class="card-title">
+                                <span class="title-badge"><i class="fas fa-sliders-h"></i></span>
+                                검색 조건
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="접기/펼치기">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <button type="button" class="btn btn-tool" data-card-widget="remove" title="닫기">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-4 md:p-5">
+
+                        <!-- 도움말 -->
+                        <div class="help-callout mb-4">
+                            <div class="help-icon"><i class="fas fa-bullhorn"></i></div>
+                            <div class="flex-1">
+                                <h4>도움말</h4>
+                                <p>테스트 개발 중 — 검색 조건을 자유롭게 조합해 사용하실 수 있습니다.</p>
+                            </div>
+                        </div>
+
+                        <!-- ▸ 기본 정보 -->
+                        <div class="section-label mb-3"><span class="dot"></span><span>기본 정보</span></div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-3 mb-5">
+                            <div>
+                                <label class="field-label" for="year">년도</label>
+                                <select id="year" class="form-control select" style="width: 100%;">
+                                    <option selected="selected">2026</option>
+                                    <option>2025</option>
+                                    <option>2024</option>
+                                    <option>2023</option>
+                                    <option>2022</option>
+                                    <option>2021</option>
+                                    <option>2020</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="hogi">현장 호기번호</label>
+                                <input type="search" id="hogi" class="form-control" placeholder="현장번호 입력" value="">
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="status">공사현장 상태</label>
+                                <select id="status" class="form-control select" style="width: 100%;">
+                                    <option value="">전체</option>
+                                    <option value="RLS" selected="selected">릴리즈</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="EL_ABRAND">브랜드</label>
+                                <select id="EL_ABRAND" class="form-control select" style="width: 100%;">
+                                    <option selected="selected">-</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="EL_ASPSCD">생산거점 <span class="text-slate-400 font-normal">(EL_ASPSCD)</span></label>
+                                <select id="EL_ASPSCD" class="form-control select" style="width: 100%;">
+                                    <option selected="selected">-</option>
+                                    <option value="KR00">국내(KR00)</option>
+                                    <option value="KC01">국내+상해(KC01)</option>
+                                    <option value="KC02">국내+상해 모듈러(KC02)</option>
+                                    <option value="IN_HYBRID01">국내_전기+인도_기계(IN_HYBRID01)</option>
+                                    <option value="HD_HD">US-[기계]HD_[전기]HD(HD_HD)</option>
+                                    <option value="GAL_INNOV">US-[기계]GAL_[전기]INNOV(GAL_INNOV)</option>
+                                    <option value="GAL_HD">US-[기계]GAL_[전기]HD(GAL_HD)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="EL_ATYP">기종 <span class="text-slate-400 font-normal">(EL_ATYP)</span></label>
+                                <select id="EL_ATYP" class="form-control select" style="width: 100%;">
+                                    <option selected="selected">-</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- ▸ 사양 정보 -->
+                        <div class="section-label mb-3"><span class="dot"></span><span>사양 정보</span></div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-3 mb-5">
+                            <div>
+                                <label class="field-label" for="EL_ASPD">속도 <span class="text-slate-400 font-normal">(m/min)</span></label>
+                                <select id="EL_ASPD" class="form-control select" style="width: 100%;">
+                                    <option selected="selected">-</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="EL_ERPW">ROPE/BELT 본수 <span class="text-slate-400 font-normal">(EL_ERPW)</span></label>
+                                <select id="EL_ERPW" class="form-control select" style="width: 100%;">
+                                    <option value="" selected="selected">전체</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
+                                    <option value="7">7</option>
+                                    <option value="8">8</option>
+                                    <option value="9">9</option>
+                                    <option value="10">10</option>
+                                    <option value="12">12</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="EL_AOPEN">열림 방식 <span class="text-slate-400 font-normal">(EL_AOPEN)</span></label>
+                                <select id="EL_AOPEN" class="form-control select" style="width: 100%;">
+                                    <option selected="selected">-</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="EL_ACAPA">용량 <span class="text-slate-400 font-normal">(EL_ACAPA)</span></label>
+                                <select id="EL_ACAPA" class="form-control select" style="width: 100%;">
+                                    <option selected="selected">-</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="EL_ECWRL">CWT RAIL(K) <span class="text-slate-400 font-normal">(EL_ECWRL)</span></label>
+                                <select id="EL_ECWRL" class="form-control select" style="width: 100%;">
+                                    <option selected="selected">-</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="EL_AUSE">용도 <span class="text-slate-400 font-normal">(EL_AUSE)</span></label>
+                                <select id="EL_AUSE" class="form-control select" style="width: 100%;">
+                                    <option selected="selected">-</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- ▸ 옵션 -->
+                        <div class="section-label mb-3"><span class="dot"></span><span>옵션</span></div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-3">
+                            <div>
+                                <label class="field-label" for="EL_COB">전망 타입 <span class="text-slate-400 font-normal">(EL_COB)</span></label>
+                                <select id="EL_COB" class="form-control select" style="width: 100%;">
+                                    <option selected="selected">-</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="EL_DLATT">전력회생형 적용 <span class="text-slate-400 font-normal">(EL_DLATT)</span></label>
+                                <select id="EL_DLATT" class="form-control select" style="width: 100%;">
+                                    <option value="" selected="selected">-</option>
+                                    <option value="Y">Y</option>
+                                    <option value="N">N</option>
+                                </select>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="flex flex-wrap items-center justify-end gap-2">
+                            <button type="button" class="btn-action accent" title="데이터 분석 실행">
+                                <i class="fas fa-chart-line"></i>
+                                <span>분석</span>
+                            </button>
+                            <button type="button" class="btn-action primary" onclick="search()" title="조회 (Enter)">
+                                <i class="fas fa-search"></i>
+                                <span>조회</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- =================== 부품-PID 분석 카드 =================== -->
+                <div class="card card-primary modern-card fade-up delay-2 mb-4">
+                    <div class="card-header">
+                        <div class="d-flex align-items-center justify-content-between w-100">
+                            <h3 class="card-title">
+                                <span class="title-badge"><i class="fas fa-microchip"></i></span>
+                                부품-PID 분석 조건
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="접기/펼치기">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <button type="button" class="btn btn-tool" data-card-widget="remove" title="닫기">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-4 md:p-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
+                            <div>
+                                <label class="field-label" for="blockNo">부품 BlockNo</label>
+                                <input type="text" id="blockNo" class="form-control" placeholder="BlockNo 입력" value="">
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="pidName">PID 이름</label>
+                                <input type="text" id="pidName" class="form-control" placeholder="PID 입력" value="">
+                            </div>
+
+                            <div>
+                                <label class="field-label" for="Output값">Output 값</label>
+                                <input type="text" id="Output값" class="form-control" placeholder="output 입력" value="">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="flex items-center justify-end gap-2">
+                            <button type="button" class="btn-action primary" onclick="addSearchData()" title="PID 조건으로 조회">
+                                <i class="fas fa-search-plus"></i>
+                                <span>추가조회</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- =================== 결과 카드 =================== -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card card-primary modern-card fade-up delay-3">
+
+                            <div class="card-header">
+                                <div class="d-flex align-items-center justify-content-between w-100">
+                                    <h3 class="card-title">
+                                        <span class="title-badge"><i class="fas fa-table"></i></span>
+                                        조회 결과
+                                    </h3>
+                                    <div class="card-tools flex items-center gap-2">
+                                        <button type="button" class="btn-export" onclick="exportHotCsv()" title="CSV로 내보내기">
+                                            <i class="fas fa-file-csv"></i>
+                                            <span>CSV</span>
+                                        </button>
+                                        <button type="button" class="btn-export" onclick="copyHotData()" title="클립보드에 복사">
+                                            <i class="fas fa-copy"></i>
+                                            <span>COPY</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card-body p-4 md:p-5">
+
+                                <!-- 컬럼 토글 -->
+                                <div class="mb-3">
+                                    <div class="section-label mb-2"><span class="dot"></span><span>표시 컬럼</span></div>
+                                    <div id="columnToggleToolbar">
+                                        <div class="pill-toolbar" role="group" aria-label="컬럼 토글">
+                                            <button type="button" class="pill-btn" onclick="hideColumn(0, this)"><i class="fas fa-map-marker-alt text-xs"></i>현장번호</button>
+                                            <button type="button" class="pill-btn" onclick="hideColumn(1, this)"><i class="fas fa-flag text-xs"></i>상태</button>
+                                            <button type="button" class="pill-btn" onclick="hideColumn(2, this)"><i class="fas fa-trademark text-xs"></i>브랜드</button>
+                                            <button type="button" class="pill-btn" onclick="hideColumn(3, this)"><i class="fas fa-bullseye text-xs"></i>용도</button>
+                                            <button type="button" class="pill-btn" onclick="hideColumn(4, this)"><i class="fas fa-industry text-xs"></i>생산거점</button>
+                                            <button type="button" class="pill-btn" onclick="hideColumn(5, this)"><i class="fas fa-cube text-xs"></i>기종</button>
+                                            <button type="button" class="pill-btn" onclick="hideColumn(6, this)"><i class="fas fa-tachometer-alt text-xs"></i>속도</button>
+                                            <button type="button" class="pill-btn" onclick="hideColumn(7, this)"><i class="fas fa-door-open text-xs"></i>열림방식</button>
+                                            <button type="button" class="pill-btn" onclick="hideColumn(8, this)"><i class="fas fa-link text-xs"></i>ROPE/BELT본수</button>
+                                            <button type="button" class="pill-btn" onclick="hideColumn(9, this)"><i class="fas fa-train text-xs"></i>CWT RAIL</button>
+                                            <button type="button" class="pill-btn" onclick="hideColumn(10, this)"><i class="fas fa-users text-xs"></i>인승</button>
+                                            <button type="button" class="pill-btn" onclick="hideColumn(11, this)"><i class="fas fa-cog text-xs"></i>EL_ECWBG</button>
+                                            <button type="button" class="pill-btn" onclick="hideColumn(12, this)"><i class="fas fa-cogs text-xs"></i>EL_ETM(권상기)</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 숨김 처리 (JS 호환) -->
+                                <div id="hotExportBtns" style="display:none;"></div>
+
+                                <!-- Handsontable -->
+                                <div class="table-wrap">
+                                    <div id="infoTable" style="width: 100%; height: 600px; overflow: hidden;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+    </div>
+
+
+    <footer class="main-footer">
+        <div class="float-right d-none d-sm-block">
+            <b>Version</b> 1.0.0
+        </div>
+        <strong>Copyright &copy; 2026 <a href="#" class="text-indigo-600 hover:text-indigo-800 font-semibold">수배로직설계팀-김영환 M</a>.</strong> All rights reserved.
+    </footer>
+
+    <aside class="control-sidebar control-sidebar-dark"></aside>
+
+</div>
+
+
+</body>
+
+
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+
+
+
+<!-- AdminLTE App -->
+<script src="/resources/dist/js/adminlte.min.js"></script>
+
+<!-- Bootstrap 4 -->
+<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- DataTables  & Plugins -->
+<script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+
+
+<script src="/resources/dist/plugins/select2/js/select2.full.min.js"></script>
+
+<!-- Handsontable -->
+<script src="https://cdn.jsdelivr.net/npm/handsontable@14/dist/handsontable.full.min.js"></script>
+
+<script src="/resources/dist/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/jszip/jszip.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/pdfmake.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/vfs_fonts.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
+
+<script src="/resources/javascript/searchElvInfoV2.js"></script>
+<script src="/resources/javascript/commonUtil.js"></script>
+
+<script>
+    // 숨김 컬럼 인덱스 저장/로드
+    function getHiddenCols() {
+        try {
+            const val = localStorage.getItem('spf_hidden_cols');
+            return val ? JSON.parse(val) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+    function setHiddenCols(arr) {
+        try {
+            localStorage.setItem('spf_hidden_cols', JSON.stringify(arr));
+        } catch (e) {}
+    }
+
+    function applyButtonState(idx, visible) {
+        const buttons = document.querySelectorAll('#columnToggleToolbar .pill-toolbar button');
+        const btn = buttons && buttons[idx] ? buttons[idx] : null;
+        if (!btn) return;
+        if (visible) {
+            btn.classList.remove('btn-secondary');
+            btn.classList.remove('active');
+            btn.setAttribute('aria-pressed', 'false');
+        } else {
+            btn.classList.add('btn-secondary');
+            btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
+        }
+    }
+
+    function syncColumnButtons() {
+        const hot = window.hotInstance;
+        if (!hot) return;
+        const hiddenPlugin = hot.getPlugin('hiddenColumns');
+        const colCount = hot.countCols();
+        for (let i = 0; i < colCount; i++) {
+            const visible = !hiddenPlugin.isHidden(i);
+            applyButtonState(i, visible);
+        }
+    }
+
+    function hideColumn(colIndex, btn) {
+        const hot = window.hotInstance;
+        if (!hot) return;
+        const hiddenPlugin = hot.getPlugin('hiddenColumns');
+        const currentlyHidden = hiddenPlugin.isHidden(colIndex);
+
+        if (currentlyHidden) {
+            hiddenPlugin.showColumn(colIndex);
+        } else {
+            hiddenPlugin.hideColumn(colIndex);
+        }
+        hot.render();
+
+        let hidden = getHiddenCols();
+        if (!currentlyHidden) {
+            if (!hidden.includes(colIndex)) hidden.push(colIndex);
+        } else {
+            hidden = hidden.filter(i => i !== colIndex);
+        }
+        setHiddenCols(hidden);
+
+        applyButtonState(colIndex, currentlyHidden);
+    }
+
+    function exportHotCsv() {
+        const hot = window.hotInstance;
+        if (!hot) return;
+        const exportPlugin = hot.getPlugin('exportFile');
+        exportPlugin.downloadFile('csv', {
+            bom: true,
+            columnDelimiter: ',',
+            columnHeaders: true,
+            exportHiddenColumns: false,
+            exportHiddenRows: false,
+            fileExtension: 'csv',
+            filename: 'csv_Result_[YYYY]-[MM]-[DD]',
+            mimeType: 'text/csv',
+            rowDelimiter: '\r\n',
+            rowHeaders: false
+        });
+    }
+
+    function copyHotData() {
+        const hot = window.hotInstance;
+        if (!hot) return;
+        const headers = hot.getColHeader();
+        const data = hot.getData();
+        const hiddenPlugin = hot.getPlugin('hiddenColumns');
+        const visibleIdx = [];
+        for (let i = 0; i < headers.length; i++) {
+            if (!hiddenPlugin.isHidden(i)) visibleIdx.push(i);
+        }
+        const lines = [];
+        lines.push(visibleIdx.map(i => headers[i]).join('\t'));
+        for (const row of data) {
+            lines.push(visibleIdx.map(i => row[i] == null ? '' : row[i]).join('\t'));
+        }
+        const text = lines.join('\n');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('클립보드에 복사되었습니다.');
+            }).catch(() => fallbackCopy(text));
+        } else {
+            fallbackCopy(text);
+        }
+    }
+
+    function fallbackCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); alert('클립보드에 복사되었습니다.'); }
+        catch (e) { alert('복사 실패'); }
+        document.body.removeChild(ta);
+    }
+
+    window.syncColumnButtons = syncColumnButtons;
+</script>
+
+<script>
+    $(document).ready(function() {
+        setTimeout(function() {
+            if (typeof window.syncColumnButtons === 'function') {
+                window.syncColumnButtons();
+            }
+        }, 300);
+    });
+</script>
+
+</html>

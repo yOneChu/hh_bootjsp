@@ -472,11 +472,26 @@ public class SubaeController {
         return "thymeleaf/searchElvInfo";
     }
 
-
     @PostMapping("/subae/searchElvInfo")
     @ResponseBody
     public ArrayList<ElvInfoDTO> searchElvInfo(ElvWhere where) {
         System.out.println("searchElvInfo where = " + where);
+        ArrayList<ElvInfoDTO> result = new ArrayList<>();
+        result = elvInfoService.findElvSearch(where);
+
+        return result;
+    }
+
+    //공사번호 추출 V2
+    @GetMapping("/subae/searchElvInfoV2")
+    public String searchElvInfoV2() {
+        return "thymeleaf/searchElvInfoV2";
+    }
+
+    @PostMapping("/subae/searchElvInfoV2")
+    @ResponseBody
+    public ArrayList<ElvInfoDTO> searchElvInfoV2(ElvWhere where) {
+        System.out.println("searchElvInfoV2 where = " + where);
         ArrayList<ElvInfoDTO> result = new ArrayList<>();
         result = elvInfoService.findElvSearch(where);
 
