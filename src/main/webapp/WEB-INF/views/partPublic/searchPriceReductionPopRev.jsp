@@ -289,8 +289,6 @@
 
             <div class="container-fluid"> <!-- start - container-fluid -->
 
-
-
                 <div class="row">
                     <div class="col-12">
 
