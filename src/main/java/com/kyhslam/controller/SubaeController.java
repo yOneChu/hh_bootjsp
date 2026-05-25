@@ -488,6 +488,11 @@ public class SubaeController {
         return "thymeleaf/searchElvInfoV2";
     }
 
+    @GetMapping("/subae/searchElvInfoV3")
+    public String searchElvInfoV3() {
+        return "thymeleaf/searchElvInfoV3";
+    }
+
     @PostMapping("/subae/searchElvInfoV2")
     @ResponseBody
     public ArrayList<ElvInfoDTO> searchElvInfoV2(ElvWhere where) {

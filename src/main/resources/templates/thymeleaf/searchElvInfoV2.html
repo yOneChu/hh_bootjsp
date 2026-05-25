@@ -72,6 +72,75 @@
             background: linear-gradient(135deg, #312e81 0%, #581c87 100%);
         }
 
+        /* ------- Handsontable Dark Mode ------- */
+        body.dark-mode #infoTable .handsontable td {
+            background: #1e293b !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+        /* 짝수 행 */
+        body.dark-mode #infoTable .htCore > tbody > tr:nth-child(even) > td {
+            background: #0f172a !important;
+            color: #e2e8f0 !important;
+        }
+        /* hover 는 JS(setupDarkModeHover)에서 인라인 !important 로 처리 */
+        /* 행 번호 헤더 */
+        body.dark-mode #infoTable .handsontable .rowHeader,
+        body.dark-mode #infoTable .handsontable .cornerHeader {
+            background: #0f172a !important;
+            color: #64748b !important;
+            border-color: #334155 !important;
+        }
+        /* 테이블 배경(스크롤 홀더) */
+        body.dark-mode #infoTable .handsontable .wtHolder,
+        body.dark-mode #infoTable .handsontable .wtHider,
+        body.dark-mode #infoTable .handsontable .wtSpreader {
+            background: #1e293b !important;
+        }
+        /* 선택 영역 */
+        body.dark-mode #infoTable .handsontable .area {
+            background: rgba(99, 102, 241, .18) !important;
+        }
+        body.dark-mode #infoTable .handsontable .htAutofillHandle {
+            background: #6366f1 !important;
+        }
+        /* 드롭다운 필터 메뉴 */
+        body.dark-mode .htDropdownMenu,
+        body.dark-mode .htDropdownMenu .ht_master,
+        body.dark-mode .htDropdownMenu .wtHolder {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+        }
+        body.dark-mode .htDropdownMenu .htDropdownMenuTable td {
+            background: #1e293b !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+        body.dark-mode .htDropdownMenu .htDropdownMenuTable td:hover,
+        body.dark-mode .htDropdownMenu .htDropdownMenuTable td.current {
+            background: rgba(99, 102, 241, .22) !important;
+            color: #c7d2fe !important;
+        }
+        body.dark-mode .htDropdownMenu input[type="text"],
+        body.dark-mode .htDropdownMenu input[type="search"] {
+            background: #0f172a !important;
+            color: #e2e8f0 !important;
+            border: 1px solid #334155 !important;
+        }
+        /* 컨텍스트 메뉴 */
+        body.dark-mode .htContextMenu .htCore td {
+            background: #1e293b !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+        body.dark-mode .htContextMenu .htCore td:hover {
+            background: rgba(99, 102, 241, .22) !important;
+            color: #c7d2fe !important;
+        }
+        body.dark-mode .htContextMenu .htCore td.htSeparator {
+            border-top-color: #334155 !important;
+        }
+
         /* ------- Hero header card ------- */
         .hero-card {
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
@@ -476,23 +545,34 @@
             color: #94a3b8 !important;
         }
 
-        /* ------- Dark mode toggle pill ------- */
-        .dark-mode-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.4rem 0.85rem;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            border-radius: 9999px;
-            backdrop-filter: blur(10px);
+        /* ------- Theme Toggle Button ------- */
+        .theme-btn {
+            position: relative; flex-shrink: 0;
+            width: 58px; height: 30px; border-radius: 999px;
+            border: none; cursor: pointer; padding: 0; outline: none;
+            background: linear-gradient(135deg, #FFD60A 0%, #FF9500 100%);
+            box-shadow: 0 2px 10px rgba(255,149,0,.50), inset 0 1px 0 rgba(255,255,255,.35);
+            transition: background .4s, box-shadow .4s;
         }
-        .dark-mode-pill label {
-            color: #ffffff;
-            font-weight: 600;
-            font-size: 0.825rem;
-            margin: 0;
+        .theme-btn:hover { box-shadow: 0 4px 16px rgba(255,149,0,.65), inset 0 1px 0 rgba(255,255,255,.35); }
+        body.dark-mode .theme-btn {
+            background: linear-gradient(135deg, #1C1C3A 0%, #3634A3 60%, #5856D6 100%);
+            box-shadow: 0 2px 10px rgba(88,86,214,.55), inset 0 1px 0 rgba(255,255,255,.08);
         }
+        body.dark-mode .theme-btn:hover { box-shadow: 0 4px 16px rgba(88,86,214,.75), inset 0 1px 0 rgba(255,255,255,.08); }
+        .theme-btn-thumb {
+            position: absolute; top: 3px; left: 3px;
+            width: 24px; height: 24px; border-radius: 50%; background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 1px 5px rgba(0,0,0,.22);
+            transition: transform .38s cubic-bezier(.34,1.56,.64,1);
+        }
+        body.dark-mode .theme-btn-thumb { transform: translateX(28px); }
+        .icon-sun, .icon-moon { position: absolute; transition: opacity .28s, transform .28s; }
+        .icon-sun  { opacity: 1; transform: rotate(0deg) scale(1); }
+        .icon-moon { opacity: 0; transform: rotate(-50deg) scale(.5); }
+        body.dark-mode .icon-sun  { opacity: 0; transform: rotate(50deg) scale(.5); }
+        body.dark-mode .icon-moon { opacity: 1; transform: rotate(0deg) scale(1); }
 
         /* AdminLTE breadcrumb default removal */
         .breadcrumb { background: transparent; padding: 0; margin: 0; }
@@ -510,6 +590,74 @@
         .fade-up.delay-1 { animation-delay: 0.05s; }
         .fade-up.delay-2 { animation-delay: 0.1s; }
         .fade-up.delay-3 { animation-delay: 0.15s; }
+
+        /* ------- Stats Panel ------- */
+        .stat-kpi-card {
+            border-radius: 0.875rem;
+            padding: 1rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05);
+            transition: box-shadow 0.15s;
+        }
+        .stat-kpi-card:hover { box-shadow: 0 4px 12px -2px rgba(79,70,229,0.12); }
+        .stat-kpi-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #94a3b8;
+            margin-bottom: 0.3rem;
+        }
+        .stat-kpi-value {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -0.03em;
+        }
+        .stat-kpi-unit {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            margin-top: 0.2rem;
+        }
+        .stat-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.2rem 0.65rem;
+            border-radius: 9999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            background: #eef2ff;
+            color: #4338ca;
+            border: 1px solid #c7d2fe;
+            white-space: nowrap;
+        }
+        .stat-chip .chip-cnt {
+            background: #4f46e5;
+            color: #fff;
+            border-radius: 9999px;
+            padding: 0 0.38rem;
+            font-size: 0.63rem;
+            line-height: 1.5;
+        }
+        body.dark-mode .stat-kpi-card {
+            background: #0f172a !important;
+            border-color: #25314a !important;
+        }
+        body.dark-mode .stat-kpi-label { color: #64748b; }
+        body.dark-mode .stat-kpi-unit  { color: #475569; }
+        body.dark-mode .stat-chip {
+            background: rgba(99,102,241,0.14);
+            color: #c7d2fe;
+            border-color: #3730a3;
+        }
+        body.dark-mode .stat-chip .chip-cnt { background: #4f46e5; }
     </style>
 </head>
 
@@ -552,16 +700,17 @@
                                 <p class="text-white/85 m-0 text-sm md:text-[0.95rem]">엘리베이터 공사현장 데이터 분석 대시보드</p>
                             </div>
                         </div>
-                        <ol class="breadcrumb m-0">
-                            <li class="breadcrumb-item">
-                                <div class="dark-mode-pill">
-                                    <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
-                                        <input type="checkbox" class="custom-control-input" id="darkModeToggle">
-                                        <label class="custom-control-label" for="darkModeToggle">🌓 다크모드</label>
-                                    </div>
-                                </div>
-                            </li>
-                        </ol>
+                        <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="라이트 / 다크 모드 전환">
+                            <span class="theme-btn-thumb">
+                                <svg class="icon-sun" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="4"/>
+                                    <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                                </svg>
+                                <svg class="icon-moon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5856D6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/>
+                                </svg>
+                            </span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -803,6 +952,55 @@
                 </div>
 
 
+                <!-- =================== 통계 요약 패널 =================== -->
+                <div id="statsPanel" class="mb-4" style="display:none;">
+
+                    <!-- KPI 수치 -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                        <div class="stat-kpi-card">
+                            <p class="stat-kpi-label">검색 결과</p>
+                            <p class="stat-kpi-value text-indigo-600" id="stat-total">0</p>
+                            <p class="stat-kpi-unit">건</p>
+                        </div>
+                        <div class="stat-kpi-card">
+                            <p class="stat-kpi-label">브랜드 수</p>
+                            <p class="stat-kpi-value text-violet-600" id="stat-brand-cnt">0</p>
+                            <p class="stat-kpi-unit">종</p>
+                        </div>
+                        <div class="stat-kpi-card">
+                            <p class="stat-kpi-label">평균 속도</p>
+                            <p class="stat-kpi-value text-sky-500" id="stat-speed">-</p>
+                            <p class="stat-kpi-unit">m/min</p>
+                        </div>
+                        <div class="stat-kpi-card">
+                            <p class="stat-kpi-label">평균 용량</p>
+                            <p class="stat-kpi-value text-emerald-600" id="stat-capa">-</p>
+                            <p class="stat-kpi-unit">kg</p>
+                        </div>
+                    </div>
+
+                    <!-- 분포 -->
+                    <div class="card modern-card mb-0">
+                        <div class="card-body p-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                                <div>
+                                    <div class="section-label mb-2"><span class="dot"></span><span>브랜드 분포</span></div>
+                                    <div id="stat-brand-dist" class="flex flex-wrap gap-1.5"></div>
+                                </div>
+                                <div>
+                                    <div class="section-label mb-2"><span class="dot"></span><span>기종 분포</span></div>
+                                    <div id="stat-type-dist" class="flex flex-wrap gap-1.5"></div>
+                                </div>
+                                <div>
+                                    <div class="section-label mb-2"><span class="dot"></span><span>생산거점 분포</span></div>
+                                    <div id="stat-site-dist" class="flex flex-wrap gap-1.5"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
                 <!-- =================== 결과 카드 =================== -->
                 <div class="row">
                     <div class="col-12">
@@ -1037,6 +1235,18 @@
     }
 
     window.syncColumnButtons = syncColumnButtons;
+
+    /* ── 다크모드 토글 ── */
+    function toggleTheme() {
+        const isDark = document.body.classList.toggle('dark-mode');
+        localStorage.setItem('v2theme', isDark ? 'dark' : 'light');
+        if (window.hotInstance) window.hotInstance.render();
+    }
+
+    // 저장된 테마 복원
+    if (localStorage.getItem('v2theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
 </script>
 
 <script>

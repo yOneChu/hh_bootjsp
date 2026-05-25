@@ -58,10 +58,90 @@ function initHandsontable(data) {
         },
         stretchH: 'all',
         className: 'htCenter htMiddle',
-        licenseKey: 'non-commercial-and-evaluation'
+        licenseKey: 'non-commercial-and-evaluation',
+        afterRenderer(TD) {
+            if (document.body.classList.contains('dark-mode')) {
+                TD.style.removeProperty('background-color');
+                TD.style.removeProperty('color');
+            }
+        }
     });
 
     return window.hotInstance;
+}
+
+/* ─────────────────────────────────────────
+   다크모드 행 hover 처리
+   Handsontable이 JS로 인라인 스타일을 적용하므로
+   CSS !important 로는 덮을 수 없어 JS에서 강제 처리
+───────────────────────────────────────── */
+function setupDarkModeHover() {
+    var container = document.getElementById('infoTable');
+    if (!container) return;
+
+    var activeRowIdx = -1;   // 현재 hover 중인 tbody 내 행 인덱스
+
+    var HOVER_BG    = 'rgba(99,102,241,0.22)';
+    var HOVER_COLOR = '#e2e8f0';
+
+    function getCells(rowIdx) {
+        // 모든 pane(.ht_master, .ht_clone_left 등) 에서 같은 인덱스의 tr 수집
+        var cells = [];
+        container.querySelectorAll('.htCore tbody').forEach(function(tbody) {
+            var tr = tbody.children[rowIdx];
+            if (tr) {
+                cells.push.apply(cells, Array.from(tr.querySelectorAll('td, th')));
+            }
+        });
+        return cells;
+    }
+
+    function applyHover(rowIdx) {
+        getCells(rowIdx).forEach(function(cell) {
+            cell.style.setProperty('background-color', HOVER_BG, 'important');
+            cell.style.setProperty('color', HOVER_COLOR, 'important');
+        });
+    }
+
+    function clearHover(rowIdx) {
+        getCells(rowIdx).forEach(function(cell) {
+            cell.style.removeProperty('background-color');
+            cell.style.removeProperty('color');
+        });
+    }
+
+    container.addEventListener('mouseover', function(e) {
+        if (!document.body.classList.contains('dark-mode')) return;
+        var tr = e.target.closest && e.target.closest('.htCore tbody tr');
+        if (!tr) return;
+        var rowIdx = Array.from(tr.parentElement.children).indexOf(tr);
+        if (rowIdx === activeRowIdx) return;
+        if (activeRowIdx >= 0) clearHover(activeRowIdx);
+        activeRowIdx = rowIdx;
+        applyHover(rowIdx);
+    });
+
+    container.addEventListener('mouseout', function(e) {
+        if (!document.body.classList.contains('dark-mode')) return;
+        if (activeRowIdx < 0) return;
+        var to = e.relatedTarget;
+        // 마우스가 같은 tr 내부로 이동한 경우는 무시
+        var tr = e.target.closest && e.target.closest('.htCore tbody tr');
+        if (tr && to && tr.contains(to)) return;
+        // 컨테이너 밖으로 나갔을 때만 초기화
+        if (!to || !to.closest || !to.closest('#infoTable')) {
+            clearHover(activeRowIdx);
+            activeRowIdx = -1;
+        }
+    });
+
+    // 컨테이너 영역을 완전히 벗어날 때 확실히 초기화
+    container.addEventListener('mouseleave', function() {
+        if (activeRowIdx >= 0) {
+            clearHover(activeRowIdx);
+            activeRowIdx = -1;
+        }
+    });
 }
 
 function applySavedColumnVisibility() {
@@ -92,6 +172,7 @@ $(document).ready(function() {
     // Handsontable 초기 생성 (빈 데이터)
     initHandsontable([]);
     setTimeout(applySavedColumnVisibility, 100);
+    setupDarkModeHover();
 
     //엔터키 감지
     $(document).keyup(function(event) {
@@ -206,12 +287,13 @@ function search()
                 console.log("data - ", data);
 
                 if (data != null && data.length > 0) {
-                    // Handsontable에 데이터 로드 (재생성)
                     initHandsontable(data);
                     setTimeout(applySavedColumnVisibility, 50);
+                    renderStats(data);
                 } else {
                     initHandsontable([]);
                     setTimeout(applySavedColumnVisibility, 50);
+                    hideStats();
                     alert("검색결과가 없습니다.");
                 }
             },
@@ -338,6 +420,65 @@ function addSearchData() {
     alert('총 ' + sourceData.length + '행에 컬럼 [BlockNo: ' + blockNoVal + ']이(가) 추가되었습니다.');
 }
 
+
+
+/* ─────────────────────────────────────────
+   통계 요약 패널
+───────────────────────────────────────── */
+function hideStats() {
+    const panel = document.getElementById('statsPanel');
+    if (panel) panel.style.display = 'none';
+}
+
+function renderStats(data) {
+    const panel = document.getElementById('statsPanel');
+    if (!panel || !data || !data.length) { hideStats(); return; }
+
+    // 총 건수
+    document.getElementById('stat-total').textContent = data.length.toLocaleString('ko-KR');
+
+    // 평균 속도 (el_ASPD)
+    const speeds = data.map(r => parseFloat(r.el_ASPD)).filter(n => !isNaN(n) && n > 0);
+    document.getElementById('stat-speed').textContent = speeds.length
+        ? Math.round(speeds.reduce((a, b) => a + b, 0) / speeds.length)
+        : '-';
+
+    // 평균 용량 (el_ACAPA)
+    const capas = data.map(r => parseFloat(r.el_ACAPA)).filter(n => !isNaN(n) && n > 0);
+    document.getElementById('stat-capa').textContent = capas.length
+        ? Math.round(capas.reduce((a, b) => a + b, 0) / capas.length).toLocaleString('ko-KR')
+        : '-';
+
+    // 분포 집계 헬퍼 (내림차순 정렬)
+    function countDist(field) {
+        const map = {};
+        data.forEach(r => {
+            const v = (r[field] || '').trim() || '(미정)';
+            map[v] = (map[v] || 0) + 1;
+        });
+        return Object.entries(map).sort((a, b) => b[1] - a[1]);
+    }
+
+    // 브랜드 수 (미정 제외)
+    const brandDist = countDist('el_ABRAND');
+    const brandKinds = brandDist.filter(([k]) => k !== '(미정)').length;
+    document.getElementById('stat-brand-cnt').textContent = String(brandKinds);
+
+    // chip 렌더 헬퍼
+    function renderDist(id, dist) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.innerHTML = dist.map(([k, cnt]) =>
+            `<span class="stat-chip">${k}<span class="chip-cnt">${cnt}</span></span>`
+        ).join('');
+    }
+
+    renderDist('stat-brand-dist', brandDist);
+    renderDist('stat-type-dist',  countDist('el_ATYP'));
+    renderDist('stat-site-dist',  countDist('el_ASPSCD'));
+
+    panel.style.display = '';
+}
 
 
 function isStringAndNotEmptyOrWhitespace(value) {
