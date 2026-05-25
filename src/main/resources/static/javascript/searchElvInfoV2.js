@@ -270,11 +270,14 @@ function search()
             type: "post",
             crossDomain: true,
             url: "/subae/searchElvInfo",
+            //url: "/subae/searchMissPartofProduct",
             data: {
                 year: year,
                 EL_ABRAND: EL_ABRAND,
+                //brand: EL_ABRAND,
                 EL_ASPSCD: EL_ASPSCD,
                 EL_ATYP: EL_ATYP,
+                //blockNo: 'A101A',
                 EL_ASPD: EL_ASPD,
                 EL_ERPW: EL_ERPW,
                 EL_AOPEN: EL_AOPEN,
@@ -393,12 +396,16 @@ function addSearchData() {
     console.log('-------------------');
     // 모든 행 객체에 동일한 값으로 새 프로퍼티 추가
     sourceData.forEach(row => {
-        console.log(row);
+        console.log(row.productno + " > " + row.productoid);
 
         //여기에 넣자.
+        getPartInfo(row.productno, blockNoVal);
 
         if (row && typeof row === 'object') {
-            row[newKey] = blockNoVal;
+            row[newKey] = blockNoVal; // blockNoVal에 값을 넣으면 됨
+
+
+
         }
     });
 
@@ -420,6 +427,34 @@ function addSearchData() {
     alert('총 ' + sourceData.length + '행에 컬럼 [BlockNo: ' + blockNoVal + ']이(가) 추가되었습니다.');
 }
 
+
+// 제품에 연결된 blockNo의 자재 조회
+function getPartInfo(productOid, blockNo) {
+
+    $.ajax({
+        type: "post",
+        crossDomain: true,
+        url: "/dashboard/findProductInfoAsBlockNo",
+        data: {
+            productOid: productOid,
+            blockNo: blockNo
+        },
+        success: function (data) {
+            console.log("getPartInfo ---  - ", data);
+        },
+
+        error: function (xhr, status, err) {
+            console.error("AJAX error:", status, err, xhr?.responseText);
+            alert("조회 중 오류가 발생했습니다.");
+        },
+
+        // ✅ 성공/실패 상관없이 항상 마지막에 로딩 제거 (가장 안전)
+        complete: function () {
+            hideLoading();
+        }
+    });
+
+}
 
 
 /* ─────────────────────────────────────────

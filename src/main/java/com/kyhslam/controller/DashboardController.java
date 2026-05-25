@@ -2,13 +2,11 @@ package com.kyhslam.controller;
 
 import com.kyhslam.domain.PlanCDash;
 import com.kyhslam.domain.ProductPlanC;
+import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.repository.DashboardRepository;
 import com.kyhslam.service.PartPublicationService;
 import com.kyhslam.service.PlanCService;
-import com.kyhslam.util.DashboardCommonUtil;
-import com.kyhslam.util.DashboardHPB;
-import com.kyhslam.util.DashboardHPI;
-import com.kyhslam.util.DateUtil;
+import com.kyhslam.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Description;
@@ -566,5 +564,19 @@ public class DashboardController {
 
         return "floorDashboard";
     }
+
+
+
+
+    @PostMapping("/findProductInfoAsBlockNo")
+    @ResponseBody
+    public PartInfoDTO findProductInfoAsBlockNo(String productOid, String blockNo) {
+
+        PartInfoDTO result = ProductCommonUtil.findProductInfoAsBlockNo(productOid, blockNo);
+
+        return result;
+    }
+
+
 
 }
