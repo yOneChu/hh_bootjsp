@@ -900,6 +900,9 @@ public class SubaeCommonUtil {
                      , (SELECT COD(E.EL_BWALLT) FROM ELV_INFO$ID A, ELV_INFO$VF E
                        WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_BWALLT -- WALL 구조
+                     , (SELECT COD(E.EL_ECWSF) FROM ELV_INFO$ID A, ELV_INFO$VF E
+                       WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                       AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_ECWSF  -- CWT; SAFETY
                      , NP.MD$NUMBER AS PARTNO
                      , cod(NP.NATION) AS NATION
                      , NP.compen_part AS COMPEN_PART
@@ -1089,7 +1092,7 @@ public class SubaeCommonUtil {
                 String EL_ECWBG = rs.getString("EL_ECWBG") == null ? "" : rs.getString("EL_ECWBG");
                 String EL_ECBG = rs.getString("EL_ECBG") == null ? "" : rs.getString("EL_ECBG");
 
-
+                String EL_ECWSF = rs.getString("EL_ECWSF") == null ? "" : rs.getString("EL_ECWSF");
                 String PARTNO = rs.getString("PARTNO") == null ? "" : rs.getString("PARTNO");
                 String PARTNAME = rs.getString("PARTNAME") == null ? "" : rs.getString("PARTNAME");
                 String PART_VERSION = rs.getString("PART_VERSION") == null ? "" : rs.getString("PART_VERSION");
@@ -1127,6 +1130,7 @@ public class SubaeCommonUtil {
                 dto.setEcbg(EL_ECBG);
                 dto.setAspd(EL_ASPD);
 
+                dto.setEL_ECWSF(EL_ECWSF);
                 dto.setPartNo(PARTNO);
                 dto.setPartName(PARTNAME);
                 dto.setVersion(PART_VERSION);

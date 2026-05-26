@@ -15,6 +15,8 @@ const HOT_COLUMNS = [
     { data: 'ecbg',           title: 'CAR_BG' },
     { data: 'ecwbg',          title: 'CWT_BG' },
     { data: 'ecww',           title: 'CWT폭' },
+    { data: 'el_ECWSF',           title: 'CWT;SAFETY' },
+    { data: 'ucheck',           title: '수정여부' },
     { data: 'partNo',         title: '품번' },
     { data: 'partName',       title: '품명' },
     { data: 'spec',           title: 'SPEC' },
