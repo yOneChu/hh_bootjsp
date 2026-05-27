@@ -544,6 +544,58 @@
         .speed-bar      { height:100%; border-radius:9999px; background:linear-gradient(90deg,#4F46E5,#7C3AED); transition:width 0.5s ease; }
         body.dark-mode .speed-bar-wrap { background:rgba(255,255,255,0.08); }
 
+        /* ── 동적 K-V 조건 행 ── */
+        .kv-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .kv-row-num {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #8E8E93;
+            min-width: 1.2rem;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .kv-key, .kv-value { flex: 1; min-width: 0; }
+        .kv-op  { flex: 0 0 148px; min-width: 0; height: 36px;
+                  padding: 0 0.5rem 0 0.65rem; appearance: auto; cursor: pointer; }
+        .btn-remove-kv {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 1px solid rgba(220,53,69,0.25);
+            background: rgba(220,53,69,0.07);
+            color: #DC3545; cursor: pointer; font-size: 0.7rem;
+            flex-shrink: 0; transition: all 0.15s; font-family: inherit;
+        }
+        .btn-remove-kv:hover {
+            background: rgba(220,53,69,0.16);
+            border-color: rgba(220,53,69,0.5);
+            transform: scale(1.08);
+        }
+        .btn-add-kv {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.35rem 1.1rem; font-size: 0.78rem; font-weight: 700;
+            color: #4F46E5;
+            background: rgba(79,70,229,0.06);
+            border: 1.5px dashed rgba(79,70,229,0.35);
+            border-radius: 0.5rem; cursor: pointer; transition: all 0.15s;
+            font-family: inherit;
+        }
+        .btn-add-kv:hover {
+            background: rgba(79,70,229,0.13);
+            border-color: rgba(79,70,229,0.6);
+            transform: translateY(-1px);
+        }
+        body.dark-mode .btn-remove-kv {
+            background: rgba(220,53,69,0.12); border-color: rgba(220,53,69,0.2);
+        }
+        body.dark-mode .btn-add-kv {
+            background: rgba(79,70,229,0.1); border-color: rgba(79,70,229,0.3); color: #A5B4FC;
+        }
+        body.dark-mode .kv-row-num { color: #636366; }
+
         /* ── 애니메이션 ── */
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(8px); }
@@ -552,6 +604,12 @@
         .anim-1 { animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both 0.03s; }
         .anim-2 { animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both 0.08s; }
         .anim-3 { animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both 0.14s; }
+
+        @keyframes kvFadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .kv-row { animation: kvFadeIn 0.22s cubic-bezier(0.16,1,0.3,1) both; }
     </style>
 </head>
 
@@ -780,6 +838,25 @@
                                 </select>
                             </div>
                         </div>
+
+                        <!-- ▸ 동적 조건 (Key – 조건 – Value) -->
+                        <div class="section-label" style="margin-top:1.5rem;">
+                            동적 조건
+                            <span style="font-size:0.6rem;font-weight:400;color:#8E8E93;
+                                         text-transform:none;letter-spacing:0;margin-left:0.25rem;">
+                                (Key &nbsp;–&nbsp; 조건 &nbsp;–&nbsp; Value)
+                            </span>
+                        </div>
+
+                        <!-- 행 컨테이너 -->
+                        <div id="kvConditionList" class="flex flex-col gap-2 mb-3">
+                            <!-- JS로 동적 추가 -->
+                        </div>
+
+                        <!-- 추가 버튼 -->
+                        <button type="button" class="btn-add-kv" onclick="addKeyValueRow()">
+                            <i class="fas fa-plus" style="font-size:0.7rem;"></i>&ensp;조건 추가
+                        </button>
 
                     </div>
 

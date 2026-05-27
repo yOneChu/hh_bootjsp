@@ -24,4 +24,6 @@ public class PartWhere {
     String EL_ZFDA_TYPE;
     String EL_BWALLT; //WALL 구조
 
+    String kvConditions;   // JSON 배열 문자열 ex) [{"key":"SPEC","op":"like","value":"ABC"}]
+
 }

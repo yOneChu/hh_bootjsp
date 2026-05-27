@@ -3,6 +3,85 @@
    PLM 제품-자재 Analytics – DataTables 버전
 ===================================================== */
 
+/* ── 동적 K-V 조건 관리 ── */
+let _kvCounter = 0;
+
+/**
+ * Key-Value 조건 행 추가
+ * 구조: [번호] [Key 입력] [Like / Not Like 선택] [Value 입력] [삭제 버튼]
+ */
+function addKeyValueRow() {
+    _kvCounter++;
+    const id = 'kvRow_' + _kvCounter;
+
+    const row = document.createElement('div');
+    row.className = 'kv-row';
+    row.id        = id;
+    row.innerHTML =
+        '<span class="kv-row-num">1</span>' +
+
+        '<input type="text" class="spf-input kv-key"' +
+               ' placeholder="Key  (예: SPEC, CMT, BRAND …)"' +
+               ' autocomplete="off">' +
+
+        '<select class="spf-input kv-op">' +
+            '<option value="like">Like  (포함)</option>' +
+            '<option value="notlike">Not Like  (미포함)</option>' +
+            '<option value="=">=  Equal  (일치)</option>' +
+            '<option value="!=">!=  Not Equal  (불일치)</option>' +
+        '</select>' +
+
+        '<input type="text" class="spf-input kv-value"' +
+               ' placeholder="Value" autocomplete="off">' +
+
+        '<button type="button" class="btn-remove-kv"' +
+                ' onclick="removeKeyValueRow(\'' + id + '\')"' +
+                ' title="이 조건 삭제">' +
+            '<i class="fas fa-times"></i>' +
+        '</button>';
+
+    document.getElementById('kvConditionList').appendChild(row);
+    _renumberKvRows();
+
+    /* 추가된 행의 Key 입력 필드에 포커스 */
+    row.querySelector('.kv-key').focus();
+}
+
+/** K-V 행 삭제 */
+function removeKeyValueRow(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    /* 삭제 애니메이션 */
+    el.style.transition = 'opacity 0.18s, transform 0.18s';
+    el.style.opacity    = '0';
+    el.style.transform  = 'translateY(-4px)';
+    setTimeout(function() { el.remove(); _renumberKvRows(); }, 180);
+}
+
+/** 번호 재정렬 */
+function _renumberKvRows() {
+    const rows = document.querySelectorAll('#kvConditionList .kv-row');
+    rows.forEach(function(row, idx) {
+        const numEl = row.querySelector('.kv-row-num');
+        if (numEl) numEl.textContent = idx + 1;
+    });
+}
+
+/**
+ * 현재 입력된 K-V 조건 수집
+ * @returns {{ key:string, op:string, value:string }[]}
+ */
+function getKvConditions() {
+    const result = [];
+    document.querySelectorAll('#kvConditionList .kv-row').forEach(function(row) {
+        const key   = (row.querySelector('.kv-key')  .value || '').trim();
+        const op    = (row.querySelector('.kv-op')   .value || '').trim();
+        const value = (row.querySelector('.kv-value').value || '').trim();
+        if (key && value) result.push({ key: key, op: op, value: value });
+    });
+    return result;
+}
+
 /* ── localStorage 유틸 ── */
 function getHiddenCols() {
     try { const v = localStorage.getItem('spf_hidden_cols'); return v ? JSON.parse(v) : []; }
@@ -103,6 +182,9 @@ function searchPID() {
     const EL_ZFDA      = $('#EL_ZFDA').val();
     const EL_ZFDA_TYPE = $('#EL_ZFDA_TYPE').val();
 
+    /* 동적 K-V 조건 (유효한 항목만 직렬화) */
+    const kvConditions = JSON.stringify(getKvConditions());
+
     if (!partNo && !blockNo) {
         alert('PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.');
         return;
@@ -116,13 +198,17 @@ function searchPID() {
 
     showLoading();
 
+
+    console.log(kvConditions);
+
     requestAnimationFrame(() => {
         $.ajax({
             type: 'post', crossDomain: true,
             url: '/subae/searchMissPartofProduct',
             data: { partNo, year, blockNo, cmt, status, spec, brand,
                     EL_ASPSCD, EL_ATYP, EL_ETHRU, EL_COB,
-                    EL_ZFDA, EL_ZFDA_TYPE, EL_BWALLT },
+                    EL_ZFDA, EL_ZFDA_TYPE, EL_BWALLT,
+                    kvConditions },
             success(data) {
                 if (data && data.length > 0) {
                     buildTableRows(data);

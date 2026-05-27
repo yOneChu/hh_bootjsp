@@ -1,5 +1,7 @@
 package com.kyhslam.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kyhslam.dto.*;
 import com.kyhslam.service.BlockHistoryService;
 import com.kyhslam.service.ELVInfoService;
@@ -264,18 +266,38 @@ public class SubaeController {
     /**
      * 자재번호가 사용되고 있는 모든 제품 찾기
      *
-     * @param whereCond
+     * @param whereCond – 검색 조건 (kvConditions 포함)
      * @return
      */
     @PostMapping("/subae/searchMissPartofProduct")
     @ResponseBody
     @CrossOrigin
-    //public ArrayList<ProductDto> searchMissPartofProduct(String year, String partNo, String blockNo) {
     public ArrayList<ProductDto> searchMissPartofProduct(PartWhere whereCond) {
-        System.out.println("searchMissPartofProduct" + whereCond);
-        ArrayList<ProductDto> result = new ArrayList<>();
+        log.info("searchMissPartofProduct whereCond={}", whereCond);
 
-        //subaeService.findMissPart(result, partNo, con01);
+        /* ── 동적 K-V 조건 파싱 & 출력 ── */
+        String kvJson = whereCond.getKvConditions();
+        if (kvJson != null && !kvJson.isBlank()) {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                List<Map<String, String>> kvList =
+                        mapper.readValue(kvJson, new TypeReference<List<Map<String, String>>>() {});
+
+                log.info("=== KV 조건 목록 (총 {}건) ===", kvList.size());
+                for (int i = 0; i < kvList.size(); i++) {
+                    Map<String, String> kv = kvList.get(i);
+                    String key   = kv.getOrDefault("key",   "");
+                    String op    = kv.getOrDefault("op",    "");
+                    String value = kv.getOrDefault("value", "");
+                    log.info("  [{}] key={} | op={} | value={}", i + 1, key, op, value);
+                }
+                log.info("================================");
+            } catch (Exception e) {
+                log.warn("kvConditions 파싱 실패: {}", e.getMessage());
+            }
+        }
+
+        ArrayList<ProductDto> result = new ArrayList<>();
         result = subaeService.findPartOfProduct_v2(whereCond);
         return result;
     }
