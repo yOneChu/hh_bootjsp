@@ -1,349 +1,237 @@
-// Handsontable 컬럼 정의
-const HOT_COLUMNS = [
-    { data: 'productNo',      title: '제품번호' },
-    { data: 'productVersion', title: '제품버전' },
-    { data: 'productStatus',  title: '제품상태' },
-    { data: 'productModDate', title: '제품수정일' },
-    { data: 'el_ZFDA',        title: '기계구조 최초설계일' },
-    { data: 'brand',          title: '브랜드' },
-    { data: 'gisong',         title: '기종' },
-    { data: 'aspd',           title: '속도' },
-    { data: 'aspscd',         title: '생산거점' },
-    { data: 'el_ETHRU',       title: '관통' },
-    { data: 'el_COB',         title: '전망타입' },
-    { data: 'acapa',          title: '용량' },
-    { data: 'ecbg',           title: 'CAR_BG' },
-    { data: 'ecwbg',          title: 'CWT_BG' },
-    { data: 'ecww',           title: 'CWT폭' },
-    { data: 'el_ECWSF',           title: 'CWT;SAFETY' },
-    { data: 'ucheck',           title: '수정여부' },
-    { data: 'partNo',         title: '품번' },
-    { data: 'partName',       title: '품명' },
-    { data: 'spec',           title: 'SPEC' },
-    { data: 'qty',            title: 'QTY' },
-    { data: 'blockNo',        title: 'BlockNo.' },
-    { data: 'blockopt',       title: '품목' },
-    { data: 'glCode',         title: 'GL_CODE' },
-    { data: 'version',        title: '버전' },
-    { data: 'cmt',            title: 'cmt' },
-    { data: 'el_BWALLT',      title: 'WALL 구조' }
-];
+/* =====================================================
+   searchPartFinderTest.js
+   PLM 제품-자재 Analytics – DataTables 버전
+===================================================== */
 
-window.hotInstance = null;
-
+/* ── localStorage 유틸 ── */
 function getHiddenCols() {
-    try {
-        const val = localStorage.getItem('spf_hidden_cols');
-        return val ? JSON.parse(val) : [];
-    } catch (e) { return []; }
+    try { const v = localStorage.getItem('spf_hidden_cols'); return v ? JSON.parse(v) : []; }
+    catch(e) { return []; }
+}
+function setHiddenCols(arr) {
+    try { localStorage.setItem('spf_hidden_cols', JSON.stringify(arr)); } catch(e) {}
 }
 
-function initHandsontable(data) {
-    const container = document.getElementById('infoTable');
-    if (!container) return null;
-
-    if (window.hotInstance) {
-        try { window.hotInstance.destroy(); } catch (e) {}
-        window.hotInstance = null;
-    }
-
-    const hidden = getHiddenCols();
-
-    window.hotInstance = new Handsontable(container, {
-        data: Array.isArray(data) ? data : [],
-        columns: HOT_COLUMNS,
-        colHeaders: HOT_COLUMNS.map(c => c.title),
-        rowHeaders: true,
-        width: '100%',
-        height: 600,
-        manualColumnResize: true,
-        manualColumnMove: true,
-        columnSorting: true,
-        filters: true,
-        dropdownMenu: true,
-        contextMenu: true,
-        hiddenColumns: {
-            columns: hidden.slice(),
-            indicators: true
-        },
-        stretchH: 'all',
-        className: 'htCenter htMiddle',
-        licenseKey: 'non-commercial-and-evaluation',
-        afterRenderer(TD) {
-            if (document.body.classList.contains('dark-mode')) {
-                TD.style.removeProperty('background-color');
-                TD.style.removeProperty('color');
-            }
-        }
-    });
-
-    return window.hotInstance;
-}
-
-function setupDarkModeHover() {
-    const container = document.getElementById('infoTable');
-    if (!container) return;
-
-    let activeRowIdx = -1;
-    const HOVER_BG    = 'rgba(253, 224, 71, 0.22)';
-    const HOVER_COLOR = '#4a3d3d';
-
-    function getCells(rowIdx) {
-        const cells = [];
-        container.querySelectorAll('.htCore tbody').forEach(function(tbody) {
-            const tr = tbody.children[rowIdx];
-            if (tr) cells.push.apply(cells, Array.from(tr.querySelectorAll('td, th')));
-        });
-        return cells;
-    }
-
-    function applyHover(rowIdx) {
-        getCells(rowIdx).forEach(function(cell) {
-            cell.style.setProperty('background-color', HOVER_BG, 'important');
-            cell.style.setProperty('color', HOVER_COLOR, 'important');
-        });
-    }
-
-    function clearHover(rowIdx) {
-        getCells(rowIdx).forEach(function(cell) {
-            cell.style.removeProperty('background-color');
-            cell.style.removeProperty('color');
-        });
-    }
-
-    container.addEventListener('mouseover', function(e) {
-        if (!document.body.classList.contains('dark-mode')) return;
-        const tr = e.target.closest && e.target.closest('.htCore tbody tr');
-        if (!tr) return;
-        const rowIdx = Array.from(tr.parentElement.children).indexOf(tr);
-        if (rowIdx === activeRowIdx) return;
-        if (activeRowIdx >= 0) clearHover(activeRowIdx);
-        activeRowIdx = rowIdx;
-        applyHover(rowIdx);
-    });
-
-    container.addEventListener('mouseout', function(e) {
-        if (!document.body.classList.contains('dark-mode')) return;
-        if (activeRowIdx < 0) return;
-        const tr = e.target.closest && e.target.closest('.htCore tbody tr');
-        const to = e.relatedTarget;
-        if (tr && to && tr.contains(to)) return;
-        if (!to || !to.closest || !to.closest('#infoTable')) {
-            clearHover(activeRowIdx);
-            activeRowIdx = -1;
-        }
-    });
-
-    container.addEventListener('mouseleave', function() {
-        if (activeRowIdx >= 0) {
-            clearHover(activeRowIdx);
-            activeRowIdx = -1;
-        }
-    });
-}
-
+/* ── 저장된 컬럼 숨김 복원 ── */
 function applySavedColumnVisibility() {
-    const hot = window.hotInstance;
-    if (!hot) return;
-    const hiddenPlugin = hot.getPlugin('hiddenColumns');
+    if (!$.fn.DataTable.isDataTable('#infoTable')) return;
+    const table  = $('#infoTable').DataTable();
     const hidden = getHiddenCols();
-    const colCount = hot.countCols();
-    const allIdx = [];
-    for (let i = 0; i < colCount; i++) allIdx.push(i);
-    hiddenPlugin.showColumns(allIdx);
-    if (hidden.length > 0) {
-        hiddenPlugin.hideColumns(hidden.filter(i => i >= 0 && i < colCount));
-    }
-    hot.render();
-    if (typeof window.syncColumnButtons === 'function') {
-        window.syncColumnButtons();
-    }
+    table.columns().every(function(i) {
+        this.visible(hidden.indexOf(i) === -1);
+    });
+    if (typeof window.syncColumnButtons === 'function') window.syncColumnButtons();
 }
+setTimeout(applySavedColumnVisibility, 250);
 
+/* ── DOMContentLoaded ── */
 $(document).ready(function() {
-    $("#dashboard").removeClass("menu-open");
+    $('#dashboard').removeClass('menu-open');
 
-    initHandsontable([]);
-    setTimeout(applySavedColumnVisibility, 100);
-    setupDarkModeHover();
-
-    $(document).keyup(function(event) {
-        if (event.which === 13) {
-            searchPID();
-            return false;
-        }
+    /* 엔터 키로 조회 */
+    $(document).keyup(function(e) {
+        if (e.which === 13) { searchPID(); return false; }
     });
 
+    /* 코드 목록 로드 */
     codeSetting('EL_ATYP');
     codeSettingAsBrand('EL_ABRAND');
 
-    const EL_COBObj = $('#EL_COB');
-    codeSetInit('EL_COB', EL_COBObj);
-    setInput(EL_COBObj);
+    const cobObj    = $('#EL_COB');
+    codeSetInit('EL_COB', cobObj);
+    initSelect2(cobObj);
 
-    const EL_BWALLTObj = $('#EL_BWALLT');
-    codeSetInit('EL_BWALLT', EL_BWALLTObj);
-    setInput(EL_BWALLTObj);
+    const bwallObj  = $('#EL_BWALLT');
+    codeSetInit('EL_BWALLT', bwallObj);
+    initSelect2(bwallObj);
 
-    $('#EL_ASPSCD').select2({ tags: true, placeholder: "직접 입력 또는 선택", allowClear: true });
-    $('#EL_ATYP').select2({ tags: true, placeholder: "직접 입력 또는 선택", allowClear: true });
-    $('#EL_BRAND').select2({ tags: true, placeholder: "직접 입력 또는 선택", allowClear: true });
+    $('#EL_ASPSCD').select2({ tags: true, placeholder: '직접 입력 또는 선택', allowClear: true });
+    $('#EL_ATYP').select2({   tags: true, placeholder: '직접 입력 또는 선택', allowClear: true });
+    $('#EL_BRAND').select2({  tags: true, placeholder: '직접 입력 또는 선택', allowClear: true });
+    $('#status').select2({    placeholder: '선택', allowClear: true });
 });
 
-function setInput(thisObj) {
-    thisObj.select2({ tags: true, placeholder: "직접 입력 또는 선택", allowClear: true });
+function initSelect2(obj) {
+    obj.select2({ tags: true, placeholder: '직접 입력 또는 선택', allowClear: true });
 }
 
+/* ── 코드 목록 ── */
 function codeSetting(typeName) {
     $.ajax({
-        type: "post",
-        crossDomain: true,
-        url: "/subae/findCodeList",
-        data: { typeName: typeName },
-        success: function(data) {
-            if (data != null && data.length > 0) {
-                let str = "";
-                for (let i = 0; i < data.length; i++) {
-                    str += `<option value="${data[i].code}">${data[i].code} -> (${data[i].name})</option>`;
-                }
-                $("#EL_ATYP").append(str);
+        type: 'post', crossDomain: true,
+        url: '/subae/findCodeList',
+        data: { typeName },
+        success(data) {
+            if (data && data.length) {
+                const str = data.map(d => `<option value="${d.code}">${d.code} → (${d.name})</option>`).join('');
+                $('#EL_ATYP').append(str);
             }
         },
-        error: function(xhr, status, err) {
-            console.error("AJAX error:", status, err, xhr?.responseText);
-        }
+        error(xhr, status, err) { console.error('codeSetting error:', status, err); }
     });
 }
 
 function codeSettingAsBrand(typeName) {
     $.ajax({
-        type: "post",
-        crossDomain: true,
-        url: "/subae/findCodeList",
-        data: { typeName: typeName },
-        success: function(data) {
-            if (data != null && data.length > 0) {
-                let str = "";
-                for (let i = 0; i < data.length; i++) {
-                    str += `<option value="${data[i].code}">${data[i].code} -> (${data[i].name})</option>`;
-                }
-                $("#EL_BRAND").append(str);
+        type: 'post', crossDomain: true,
+        url: '/subae/findCodeList',
+        data: { typeName },
+        success(data) {
+            if (data && data.length) {
+                const str = data.map(d => `<option value="${d.code}">${d.code} → (${d.name})</option>`).join('');
+                $('#EL_BRAND').append(str);
             }
         },
-        error: function(xhr, status, err) {
-            console.error("AJAX error:", status, err, xhr?.responseText);
-        }
+        error(xhr, status, err) { console.error('codeSettingAsBrand error:', status, err); }
     });
 }
 
+/* ── 조회 ── */
 function searchPID() {
-    let year       = $("#year").val();
-    let partNo     = ($("#partNo").val() || "").trim();
-    let blockNo    = ($("#blockNo").val() || "").trim();
-    let cmt        = $("#cmt").val();
-    let status     = $("#status").val();
-    let spec       = $("#spec").val();
-    let brand      = $("#EL_BRAND").val();
-    let EL_ASPSCD  = $("#EL_ASPSCD").val();
-    let EL_ATYP    = $("#EL_ATYP").val();
-    let EL_ETHRU   = $("#EL_ETHRU").val();
-    let EL_COB     = $("#EL_COB").val();
-    let EL_BWALLT  = $("#EL_BWALLT").val();
-    let EL_ZFDA    = $("#EL_ZFDA").val();
-    let EL_ZFDA_TYPE = $("#EL_ZFDA_TYPE").val();
+    const year         = $('#year').val();
+    const partNo       = ($('#partNo').val()  || '').trim();
+    const blockNo      = ($('#blockNo').val() || '').trim();
+    const cmt          = $('#cmt').val();
+    const status       = $('#status').val();
+    const spec         = $('#spec').val();
+    const brand        = $('#EL_BRAND').val();
+    const EL_ASPSCD    = $('#EL_ASPSCD').val();
+    const EL_ATYP      = $('#EL_ATYP').val();
+    const EL_ETHRU     = $('#EL_ETHRU').val();
+    const EL_COB       = $('#EL_COB').val();
+    const EL_BWALLT    = $('#EL_BWALLT').val();
+    const EL_ZFDA      = $('#EL_ZFDA').val();
+    const EL_ZFDA_TYPE = $('#EL_ZFDA_TYPE').val();
 
     if (!partNo && !blockNo) {
-        alert("PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.");
+        alert('PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.');
         return;
     }
+
+    /* 기존 DataTable 파괴 */
+    if ($.fn.DataTable.isDataTable('#infoTable')) {
+        $('#infoTable').DataTable().clear().destroy();
+    }
+    $('#contentTable').empty();
 
     showLoading();
 
     requestAnimationFrame(() => {
         $.ajax({
-            type: "post",
-            crossDomain: true,
-            url: "/subae/searchMissPartofProduct",
+            type: 'post', crossDomain: true,
+            url: '/subae/searchMissPartofProduct',
             data: { partNo, year, blockNo, cmt, status, spec, brand,
                     EL_ASPSCD, EL_ATYP, EL_ETHRU, EL_COB,
                     EL_ZFDA, EL_ZFDA_TYPE, EL_BWALLT },
-            success: function(data) {
-                if (data != null && data.length > 0) {
-                    initHandsontable(data);
-                    setTimeout(applySavedColumnVisibility, 50);
+            success(data) {
+                if (data && data.length > 0) {
+                    buildTableRows(data);
+                    initDataTable();
                     renderStats(data);
+                    setTimeout(applySavedColumnVisibility, 50);
                 } else {
-                    initHandsontable([]);
                     hideStats();
-                    alert("검색결과가 없습니다.");
+                    alert('검색결과가 없습니다.');
                 }
             },
-            error: function(xhr, status, err) {
-                console.error("AJAX error:", status, err, xhr?.responseText);
-                alert("조회 중 오류가 발생했습니다.");
+            error(xhr, status, err) {
+                console.error('searchPID error:', status, err);
+                alert('조회 중 오류가 발생했습니다.');
             },
-            complete: function() {
-                hideLoading();
-            }
+            complete() { hideLoading(); }
         });
     });
 }
 
-/* ─────────────────────────────────────────
-   통계 요약 패널
-───────────────────────────────────────── */
-function hideStats() {
-    const panel = document.getElementById('statsPanel');
-    if (panel) panel.style.display = 'none';
+/* ── 테이블 행 렌더 ── */
+function buildTableRows(data) {
+    let html = '';
+    for (const d of data) {
+        const cmt = (d.cmt || '').replace(/-/g, '<br>-');
+        html += `<tr>
+            <td>${d.productNo       ?? ''}</td>
+            <td>${d.productVersion  ?? ''}</td>
+            <td>${d.productStatus   ?? ''}</td>
+            <td>${d.productModDate  ?? ''}</td>
+            <td>${d.el_ZFDA         ?? ''}</td>
+            <td>${d.brand           ?? ''}</td>
+            <td>${d.gisong          ?? ''}</td>
+            <td>${d.aspd            ?? ''}</td>
+            <td>${d.aspscd          ?? ''}</td>
+            <td>${d.el_ETHRU        ?? ''}</td>
+            <td>${d.el_COB          ?? ''}</td>
+            <td>${d.acapa           ?? ''}</td>
+            <td>${d.ecbg            ?? ''}</td>
+            <td>${d.ecwbg           ?? ''}</td>
+            <td>${d.ecww            ?? ''}</td>
+            <td>${d.partNo          ?? ''}</td>
+            <td>${d.partName        ?? ''}</td>
+            <td>${d.spec            ?? ''}</td>
+            <td>${d.qty             ?? ''}</td>
+            <td>${d.blockNo         ?? ''}</td>
+            <td>${d.blockopt        ?? ''}</td>
+            <td>${d.glCode          ?? ''}</td>
+            <td>${d.version         ?? ''}</td>
+            <td>${cmt}</td>
+            <td>${d.el_BWALLT       ?? ''}</td>
+        </tr>`;
+    }
+    $('#contentTable').html(html);
 }
 
-function renderStats(data) {
-    const panel = document.getElementById('statsPanel');
-    if (!panel || !data || !data.length) { hideStats(); return; }
+/* ── DataTable 초기화 ── */
+function initDataTable() {
+    $('#infoTable').DataTable({
+        responsive: true,
+        lengthChange: true,
+        pageLength: 50,
+        lengthMenu: [
+            [50, 100, -1],
+            ['50개', '100개', '전체']
+        ],
+        autoWidth: false,
+        processing: true,
+        /* B=버튼, l=페이지수 선택, f=검색창, r=처리중, t=테이블, i=정보, p=페이징 */
+        dom: '<"row align-items-center mb-2"<"col-sm-12 col-md-6 d-flex align-items-center gap-2"Bl><"col-sm-12 col-md-6"f>>rt<"row mt-2 align-items-center"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        buttons: [
+            { extend: 'csv',   charset: 'UTF-16LE', text: '<i class="fas fa-file-csv"></i> CSV',   filename: 'analytics_result' },
+            { extend: 'excel', charset: 'UTF-8',    text: '<i class="fas fa-file-excel"></i> Excel', filename: 'analytics_result' },
+            { extend: 'copy',                        text: '<i class="fas fa-copy"></i> Copy' }
+        ],
+        language: {
+            search:         '검색:',
+            lengthMenu:     '_MENU_ 표시',
+            info:           '전체 _TOTAL_ 건 중 _START_ – _END_ 건',
+            infoEmpty:      '0 건',
+            infoFiltered:   '(전체 _MAX_ 건 중 필터)',
+            paginate: {
+                first: '◀◀', last: '▶▶', next: '▶', previous: '◀'
+            }
+        }
+    }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
+}
 
-    // 총 건수
-    document.getElementById('stat-total').textContent = data.length.toLocaleString('ko-KR');
-
-    // 고유 제품 수 (productNo 기준)
-    const uniqueProducts = new Set(data.map(r => r.productNo).filter(Boolean));
-    document.getElementById('stat-product-cnt').textContent = String(uniqueProducts.size);
-
-    // 평균 속도 (aspd)
-    const speeds = data.map(r => parseFloat(r.aspd)).filter(n => !isNaN(n) && n > 0);
-    document.getElementById('stat-speed').textContent = speeds.length
-        ? Math.round(speeds.reduce((a, b) => a + b, 0) / speeds.length)
-        : '-';
-
-    // 평균 용량 (acapa)
-    const capas = data.map(r => parseFloat(r.acapa)).filter(n => !isNaN(n) && n > 0);
-    document.getElementById('stat-capa').textContent = capas.length
-        ? Math.round(capas.reduce((a, b) => a + b, 0) / capas.length).toLocaleString('ko-KR')
-        : '-';
-
-    // 분포 집계 헬퍼 (내림차순 정렬)
-    function countDist(field) {
-        const map = {};
-        data.forEach(r => {
-            const v = (r[field] || '').trim() || '(미정)';
-            map[v] = (map[v] || 0) + 1;
-        });
-        return Object.entries(map).sort((a, b) => b[1] - a[1]);
-    }
-
-    // chip 렌더 헬퍼
-    function renderDist(id, dist) {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.innerHTML = dist.map(([k, cnt]) =>
-            `<span class="stat-chip">${k}<span class="chip-cnt">${cnt}</span></span>`
-        ).join('');
-    }
-
-    renderDist('stat-brand-dist', countDist('brand'));
-    renderDist('stat-type-dist',  countDist('gisong'));
-    renderDist('stat-site-dist',  countDist('aspscd'));
-
-    panel.style.display = '';
+/* ── 로딩 오버레이 ── */
+function showLoading() {
+    if (document.getElementById('loadingOverlay')) return;
+    const html = `
+        <div id="loadingOverlay"
+             style="position:fixed;inset:0;background:rgba(0,0,0,0.45);
+                    display:flex;justify-content:center;align-items:center;z-index:2147483647;">
+            <div style="background:#fff;padding:2rem 2.5rem;border-radius:1.25rem;
+                        text-align:center;box-shadow:0 24px 56px -8px rgba(0,0,0,0.3);">
+                <div style="width:40px;height:40px;margin:0 auto 1rem;border-radius:50%;
+                            border:3px solid #F2F2F7;border-top:3px solid #4F46E5;
+                            animation:spfSpin 0.75s linear infinite;"></div>
+                <p style="margin:0;font-size:0.875rem;font-weight:600;color:#1C1C1E;letter-spacing:-0.01em;">
+                    데이터 분석 중…
+                </p>
+            </div>
+        </div>
+        <style>
+            @keyframes spfSpin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        </style>`;
+    (document.body || document.documentElement).insertAdjacentHTML('beforeend', html);
 }
 
 function hideLoading() {
@@ -351,22 +239,89 @@ function hideLoading() {
     if (el) el.remove();
 }
 
-function showLoading() {
-    if (document.getElementById('loadingOverlay')) return;
-    const target = document.body || document.documentElement;
-    target.insertAdjacentHTML('beforeend', `
-        <div id="loadingOverlay" style="
-            position:fixed;inset:0;background:rgba(0,0,0,.5);
-            display:flex;justify-content:center;align-items:center;
-            z-index:2147483647;">
-            <div style="background:white;padding:30px;border-radius:8px;
-                        text-align:center;box-shadow:0 4px 6px rgba(0,0,0,.1);">
-                <div style="border:4px solid #f3f3f3;border-top:4px solid #4f46e5;
-                            border-radius:50%;width:40px;height:40px;
-                            animation:spin 1s linear infinite;margin:0 auto 15px;"></div>
-                <p style="margin:0;font-size:16px;color:#333;">데이터 분석 중입니다...</p>
-            </div>
-        </div>
-        <style>@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>
-    `);
+/* ── 통계 패널 ── */
+function hideStats() {
+    const el = document.getElementById('statsPanel');
+    if (el) el.style.display = 'none';
+}
+
+function renderStats(data) {
+    const panel = document.getElementById('statsPanel');
+    if (!panel || !data || !data.length) { hideStats(); return; }
+
+    /* KPI: 전체 건수 */
+    const total = data.length;
+    const totalEl = document.getElementById('statTotal');
+    if (totalEl) totalEl.textContent = total.toLocaleString('ko-KR');
+    const badge = document.getElementById('statsTotalBadge');
+    if (badge) badge.textContent = '총 ' + total.toLocaleString('ko-KR') + '건';
+
+    /* KPI: 고유 제품 수 */
+    const uniqueProducts = new Set(data.map(r => r.productNo).filter(Boolean));
+    const prodEl = document.getElementById('statProducts');
+    if (prodEl) prodEl.textContent = uniqueProducts.size.toLocaleString('ko-KR');
+
+    /* KPI: 속도 (aspd) */
+    const speeds = data.map(r => parseFloat(r.aspd)).filter(n => !isNaN(n) && n > 0);
+    const avgEl  = document.getElementById('statSpeedAvg');
+    const rngEl  = document.getElementById('statSpeedRange');
+    if (speeds.length) {
+        const avg = Math.round(speeds.reduce((a, b) => a + b, 0) / speeds.length);
+        if (avgEl) avgEl.textContent = avg.toLocaleString('ko-KR');
+        if (rngEl) rngEl.textContent = Math.min(...speeds) + ' ~ ' + Math.max(...speeds);
+    } else {
+        if (avgEl) avgEl.textContent = '-';
+        if (rngEl) rngEl.textContent = '-';
+    }
+
+    /* 분포 헬퍼 */
+    function countDist(field) {
+        const map = {};
+        data.forEach(function(r) {
+            const v = ((r[field] || '') + '').trim() || '(미정)';
+            map[v] = (map[v] || 0) + 1;
+        });
+        return Object.entries(map).sort(function(a, b) { return b[1] - a[1]; });
+    }
+
+    function renderChips(id, dist) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.innerHTML = dist.map(function(item) {
+            const k = item[0], cnt = item[1];
+            return '<span class="stat-chip">' + k +
+                   '<span class="chip-cnt">' + cnt + '</span></span>';
+        }).join('');
+    }
+
+    /* 브랜드 / 기종 분포 */
+    renderChips('statBrandDist',  countDist('brand'));
+    renderChips('statGisongDist', countDist('gisong'));
+
+    /* 속도 구간 분포 */
+    const speedDistEl = document.getElementById('statSpeedDist');
+    if (speedDistEl && speeds.length) {
+        const speedMap = {};
+        speeds.forEach(function(s) {
+            const bucket = Math.floor(s / 25) * 25;
+            const label  = bucket + '~' + (bucket + 25);
+            speedMap[label] = (speedMap[label] || 0) + 1;
+        });
+        const entries = Object.entries(speedMap).sort(function(a, b) {
+            return parseInt(a[0]) - parseInt(b[0]);
+        });
+        speedDistEl.innerHTML = entries.map(function(item) {
+            const label = item[0], cnt = item[1];
+            const pct   = Math.round(cnt / speeds.length * 100);
+            return '<div class="flex items-center gap-2" style="font-size:0.72rem;">' +
+                   '<span style="width:5rem;color:#6E6E73;flex-shrink:0;">' + label + '</span>' +
+                   '<div class="speed-bar-wrap flex-1"><div class="speed-bar" style="width:' + pct + '%;"></div></div>' +
+                   '<span style="width:2.5rem;text-align:right;font-weight:600;color:#4F46E5;">' + cnt + '</span>' +
+                   '</div>';
+        }).join('');
+    } else if (speedDistEl) {
+        speedDistEl.innerHTML = '<span style="color:#8E8E93;font-size:0.8rem;">속도 데이터 없음</span>';
+    }
+
+    panel.style.display = '';
 }

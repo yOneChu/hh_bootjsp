@@ -243,6 +243,7 @@ public class SubaeController {
      * 자재 Finder 화면
      * @return
      */
+    @CrossOrigin
     @GetMapping("/subae/searchMissPartofProduct")
     public String searchMissPartofProduct() {
         //return "subaeLogic/searchPartFinder";
