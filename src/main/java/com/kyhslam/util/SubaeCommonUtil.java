@@ -1,5 +1,7 @@
 package com.kyhslam.util;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.PartWhere;
 import com.kyhslam.dto.ProductDto;
@@ -9,9 +11,7 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
 public class SubaeCommonUtil {
 
@@ -807,6 +807,36 @@ public class SubaeCommonUtil {
         PreparedStatement pstmt = null;
         ResultSet rs 			= null;
 
+
+        ArrayList<String> keyList = new ArrayList<>();
+        ArrayList<String> opList = new ArrayList<>();
+        ArrayList<String> valList = new ArrayList<>();
+
+
+        /* ── 동적 K-V 조건 파싱 & 출력 ── */
+        String kvJson = whereCond.getKvConditions();
+        if (kvJson != null && !kvJson.isBlank()) {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                List<Map<String, String>> kvList =
+                        mapper.readValue(kvJson, new TypeReference<List<Map<String, String>>>() {});
+
+                for (int i = 0; i < kvList.size(); i++) {
+                    Map<String, String> kv = kvList.get(i);
+                    String key   = kv.getOrDefault("key",   "");
+                    String op    = kv.getOrDefault("op",    "");
+                    String value = kv.getOrDefault("value", "");
+                    keyList.add(key);
+                    opList.add(op);
+                    valList.add(value);
+                    //log.info("  [{}] key={} | op={} | value={}", i + 1, key, op, value);
+                }
+                //log.info("================================");
+            } catch (Exception e) {
+                //log.warn("kvConditions 파싱 실패: {}", e.getMessage());
+            }
+        }
+
         String year = whereCond.getYear();
         String partNo =  whereCond.getPartNo();
         String pBlockNo = whereCond.getBlockNo();
@@ -1102,7 +1132,7 @@ public class SubaeCommonUtil {
                 String CMT = rs.getString("CMT") == null ? "" : rs.getString("CMT");
                 String GLCODE = rs.getString("GLCODE") == null ? "" : rs.getString("GLCODE");
                 String UCHECK = rs.getString("UCHECK") == null ? "" : rs.getString("UCHECK");
-                String PART_QTY = rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
+                //String PART_QTY = rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
                 String SPEC = rs.getString("SPEC") == null ? "" : rs.getString("SPEC");
                 String HASCHILD = rs.getString("HASCHILD") == null ? "" : rs.getString("HASCHILD");
 
@@ -1128,7 +1158,7 @@ public class SubaeCommonUtil {
                 dto.setEcww(EL_ECWW);
                 dto.setEcwbg(EL_ECWBG);
                 dto.setEcbg(EL_ECBG);
-                dto.setAspd(EL_ASPD);
+                dto.setAspd(EL_ASPD); // 속도
 
                 dto.setEL_ECWSF(EL_ECWSF);
                 dto.setPartNo(PARTNO);
@@ -1140,12 +1170,42 @@ public class SubaeCommonUtil {
                 dto.setUcheck(UCHECK);
                 dto.setQty(partQTY);
                 dto.setBlockopt(BLOCK_OPT);
-                dto.setQty(PART_QTY);
+                //dto.setQty(PART_QTY);
                 dto.setSpec(SPEC);
                 dto.setEL_ETHRU(EL_ETHRU);
                 dto.setEL_COB(EL_COB);
                 dto.setEL_ZFDA(EL_ZFDA);
                 dto.setEL_BWALLT(EL_BWALLT);
+
+
+                HashMap<String, String> dMap = new HashMap<>();
+                dMap.put("productNo", productNo);
+                dMap.put("productVersion", productVersion);
+                dMap.put("productStatus", PROD_STATUS);
+                dMap.put("productModDate", PROD_MODDATE);
+                dMap.put("el_ZFDA", EL_ZFDA);
+                dMap.put("brand", BRAND);
+                dMap.put("gisong", productNo);
+                dMap.put("aspd", EL_ASPD);
+                dMap.put("aspscd", ASPSCD);
+                dMap.put("el_ETHRU", "");
+                dMap.put("el_COB", EL_COB);
+
+                dMap.put("acapa", EL_ACAPA);
+                dMap.put("ecbg", EL_ECBG);
+                dMap.put("ecwbg", EL_ECWBG);
+                dMap.put("ecww", EL_ECWW);
+                dMap.put("partNo", PARTNO);
+
+                dMap.put("spec", spec);
+                dMap.put("qty", partQTY);
+                dMap.put("blockNo", BLOCKNO);
+                dMap.put("blockopt", BLOCK_OPT);
+                dMap.put("glCode", GLCODE);
+                dMap.put("version", PART_VERSION);
+                dMap.put("cmt", CMT);
+                dMap.put("el_BWALLT", EL_BWALLT);
+
 
 
                 if(HASCHILD != null && HASCHILD.length() > 0) {

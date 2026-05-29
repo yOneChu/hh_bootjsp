@@ -127,7 +127,7 @@ $(document).ready(function() {
     $('#EL_ASPSCD').select2({ tags: true, placeholder: '직접 입력 또는 선택', allowClear: true });
     $('#EL_ATYP').select2({   tags: true, placeholder: '직접 입력 또는 선택', allowClear: true });
     $('#EL_BRAND').select2({  tags: true, placeholder: '직접 입력 또는 선택', allowClear: true });
-    $('#status').select2({    placeholder: '선택', allowClear: true });
+    //$('#status').select2({    placeholder: '선택', allowClear: true });
 });
 
 function initSelect2(obj) {

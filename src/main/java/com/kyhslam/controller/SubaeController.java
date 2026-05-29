@@ -275,6 +275,11 @@ public class SubaeController {
     public ArrayList<ProductDto> searchMissPartofProduct(PartWhere whereCond) {
         log.info("searchMissPartofProduct whereCond={}", whereCond);
 
+        ArrayList<String> keyList = new ArrayList<>();
+        ArrayList<String> opList = new ArrayList<>();
+        ArrayList<String> valList = new ArrayList<>();
+
+
         /* ── 동적 K-V 조건 파싱 & 출력 ── */
         String kvJson = whereCond.getKvConditions();
         if (kvJson != null && !kvJson.isBlank()) {
@@ -289,6 +294,9 @@ public class SubaeController {
                     String key   = kv.getOrDefault("key",   "");
                     String op    = kv.getOrDefault("op",    "");
                     String value = kv.getOrDefault("value", "");
+                    keyList.add(key);
+                    opList.add(op);
+                    valList.add(value);
                     log.info("  [{}] key={} | op={} | value={}", i + 1, key, op, value);
                 }
                 log.info("================================");
