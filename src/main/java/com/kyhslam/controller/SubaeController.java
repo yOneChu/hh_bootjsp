@@ -318,6 +318,12 @@ public class SubaeController {
         return "thymeleaf/searchPartGraph";
     }
 
+    @GetMapping("/subae/searchInteractive")
+    public String searchInteractive() {
+
+        return "thymeleaf/searchInteractive";
+    }
+
     @PostMapping("/subae/searchPartFinder")
     @ResponseBody
     @CrossOrigin

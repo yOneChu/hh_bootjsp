@@ -1202,7 +1202,6 @@ public class SubaeCommonUtil {
                 dto.setUcheck(UCHECK);
                 dto.setQty(partQTY);
                 dto.setBlockopt(BLOCK_OPT);
-                //dto.setQty(PART_QTY);
                 dto.setSpec(SPEC);
                 dto.setEL_ETHRU(EL_ETHRU);
                 dto.setEL_COB(EL_COB);
@@ -1230,7 +1229,7 @@ public class SubaeCommonUtil {
                 dMap.put("partNo", PARTNO);
                 dMap.put("partName", PARTNAME);
 
-                dMap.put("spec", spec);
+                dMap.put("spec", SPEC);
                 dMap.put("qty", partQTY);
                 dMap.put("blockNo", BLOCKNO);
                 dMap.put("blockopt", BLOCK_OPT);
@@ -1284,6 +1283,7 @@ public class SubaeCommonUtil {
                 //dataList.add(dto);
                 dataList.add(dMap);
             } //end while
+
 
             //System.out.println("dataList.size() = " + dataList.size());
 

@@ -535,3 +535,77 @@ function searchGraph() {
         }
     });
 }
+
+
+function searchInteractive() {
+    const partNo  = ($('#partNo').val()  || '').trim();
+    const blockNo = ($('#blockNo').val() || '').trim();
+
+    if (!partNo && !blockNo) {
+        alert('PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.');
+        return;
+    }
+
+    /* 데이터 전달 상태 초기화 (팝업은 이 값이 채워질 때까지 대기) */
+    window.__spfGraphData  = null;
+    window.__spfGraphError = false;
+    try {
+        localStorage.removeItem('spf_graph_data');
+        localStorage.removeItem('spf_graph_error');
+    } catch (e) {}
+
+    /* 팝업은 클릭(사용자 제스처) 시점에 동기적으로 열어야 차단되지 않는다. */
+    const popup = window.open(
+        '/subae/searchInteractive', 'spfGraphPopup',
+        'width=1280,height=920,scrollbars=yes,resizable=yes'
+    );
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        alert('팝업이 차단되었습니다.\n브라우저 주소창의 팝업 차단을 해제한 뒤 다시 시도해주세요.');
+        return;
+    }
+    popup.focus();   // 팝업이 본 창 뒤에 가려지지 않도록
+
+    /* 조회 파라미터 (searchPID 와 동일) */
+    const year         = $('#year').val();
+    const cmt          = $('#cmt').val();
+    const status       = $('#status').val();
+    const spec         = $('#spec').val();
+    const brand        = $('#EL_BRAND').val();
+    const EL_ASPSCD    = $('#EL_ASPSCD').val();
+    const EL_ATYP      = $('#EL_ATYP').val();
+    const EL_ETHRU     = $('#EL_ETHRU').val();
+    const EL_COB       = $('#EL_COB').val();
+    const EL_BWALLT    = $('#EL_BWALLT').val();
+    const EL_ZFDA      = $('#EL_ZFDA').val();
+    const EL_ZFDA_TYPE = $('#EL_ZFDA_TYPE').val();
+    const kvConditions = JSON.stringify(getKvConditions());
+
+    $.ajax({
+        type: 'post', crossDomain: true,
+        url: '/subae/searchMissPartofProduct',
+        data: { partNo, year, blockNo, cmt, status, spec, brand,
+            EL_ASPSCD, EL_ATYP, EL_ETHRU, EL_COB,
+            EL_ZFDA, EL_ZFDA_TYPE, EL_BWALLT,
+            kvConditions },
+        success(data) {
+            if (data && data.length > 0) {
+                /* 팝업은 window.opener.__spfGraphData 또는 localStorage 로 읽어간다 */
+                window.__spfGraphData = data;
+                try { localStorage.setItem('spf_graph_data', JSON.stringify(data)); }
+                catch (e) { /* 용량 초과 시 opener 경유로 전달 */ }
+            } else {
+                window.__spfGraphError = true;
+                try { localStorage.setItem('spf_graph_error', '1'); } catch (e) {}
+                alert('검색결과가 없습니다.');
+                if (popup && !popup.closed) popup.close();
+            }
+        },
+        error(xhr, status, err) {
+            console.error('searchGraph error:', status, err);
+            window.__spfGraphError = true;
+            try { localStorage.setItem('spf_graph_error', '1'); } catch (e) {}
+            alert('조회 중 오류가 발생했습니다.');
+            if (popup && !popup.closed) popup.close();
+        }
+    });
+}
