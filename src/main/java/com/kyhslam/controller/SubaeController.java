@@ -272,7 +272,7 @@ public class SubaeController {
     @PostMapping("/subae/searchMissPartofProduct")
     @ResponseBody
     @CrossOrigin
-    public ArrayList<ProductDto> searchMissPartofProduct(PartWhere whereCond) {
+    public ArrayList<HashMap<String, String>> searchMissPartofProduct(PartWhere whereCond) {
         log.info("searchMissPartofProduct whereCond={}", whereCond);
 
         ArrayList<String> keyList = new ArrayList<>();
@@ -305,9 +305,17 @@ public class SubaeController {
             }
         }
 
-        ArrayList<ProductDto> result = new ArrayList<>();
+        //ArrayList<ProductDto> result = new ArrayList<>();
+        ArrayList<HashMap<String, String>> result = new ArrayList<>();
         result = subaeService.findPartOfProduct_v2(whereCond);
         return result;
+    }
+
+    //조회결과 그래프/통계 팝업 화면
+    @GetMapping("/subae/searchGraph")
+    public String searchGraph() {
+
+        return "thymeleaf/searchPartGraph";
     }
 
     @PostMapping("/subae/searchPartFinder")
@@ -317,7 +325,7 @@ public class SubaeController {
         System.out.println("searchPartFinder" + whereCond);
         ArrayList<ProductDto> result = new ArrayList<>();
 
-        result = subaeService.findPartOfProduct_v2(whereCond);
+        //result = subaeService.findPartOfProduct_v2(whereCond);
         return result;
     }
 

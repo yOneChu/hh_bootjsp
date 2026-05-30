@@ -77,7 +77,8 @@ function getKvConditions() {
         const key   = (row.querySelector('.kv-key')  .value || '').trim();
         const op    = (row.querySelector('.kv-op')   .value || '').trim();
         const value = (row.querySelector('.kv-value').value || '').trim();
-        if (key && value) result.push({ key: key, op: op, value: value });
+        //if (key && value) result.push({ key: key, op: op, value: value });
+        if (key) result.push({ key: key, op: op, value: value });
     });
     return result;
 }
@@ -165,6 +166,38 @@ function codeSettingAsBrand(typeName) {
     });
 }
 
+/**
+ * K-V 조건에서 중복 제거한 동적 Key 목록 추출 (입력 순서 유지)
+ * @returns {string[]}
+ */
+function getDynamicKeys() {
+    const seen = [];
+    getKvConditions().forEach(function(c) {
+        const k = (c.key || '').trim();
+        if (k && seen.indexOf(k) === -1) seen.push(k);
+    });
+    return seen;
+}
+
+/**
+ * 동적 Key 헤더(th) 동기화
+ * 이전 조회에서 추가된 동적 컬럼은 제거 후 새로 추가한다.
+ * @param {string[]} dynKeys
+ */
+function syncDynamicHeaders(dynKeys) {
+    const headRow = document.querySelector('#infoTable thead tr');
+    if (!headRow) return;
+    /* 이전 동적 헤더 제거 */
+    headRow.querySelectorAll('th.dyn-col').forEach(function(th) { th.remove(); });
+    /* 새 동적 헤더 추가 */
+    dynKeys.forEach(function(key) {
+        const th = document.createElement('th');
+        th.className   = 'dyn-col';
+        th.textContent = key;
+        headRow.appendChild(th);
+    });
+}
+
 /* ── 조회 ── */
 function searchPID() {
     const year         = $('#year').val();
@@ -183,6 +216,7 @@ function searchPID() {
     const EL_ZFDA_TYPE = $('#EL_ZFDA_TYPE').val();
 
     /* 동적 K-V 조건 (유효한 항목만 직렬화) */
+    const dynKeys      = getDynamicKeys();
     const kvConditions = JSON.stringify(getKvConditions());
 
     if (!partNo && !blockNo) {
@@ -199,7 +233,7 @@ function searchPID() {
     showLoading();
 
 
-    console.log(kvConditions);
+    //console.log(kvConditions);
 
     requestAnimationFrame(() => {
         $.ajax({
@@ -211,11 +245,12 @@ function searchPID() {
                     kvConditions },
             success(data) {
                 if (data && data.length > 0) {
-                    buildTableRows(data);
+                    buildTableRows(data, dynKeys);
                     initDataTable();
                     renderStats(data);
                     setTimeout(applySavedColumnVisibility, 50);
                 } else {
+                    syncDynamicHeaders([]);   // 이전 동적 컬럼 정리
                     hideStats();
                     alert('검색결과가 없습니다.');
                 }
@@ -230,11 +265,16 @@ function searchPID() {
 }
 
 /* ── 테이블 행 렌더 ── */
-function buildTableRows(data) {
+function buildTableRows(data, dynKeys) {
+    dynKeys = dynKeys || [];
+    /* 동적 Key 헤더를 먼저 동기화 (헤더 컬럼 수와 행 컬럼 수 일치 유지) */
+    syncDynamicHeaders(dynKeys);
+
     let html = '';
     for (const d of data) {
+        //console.log('data --- ',d)
         const cmt = (d.cmt || '').replace(/-/g, '<br>-');
-        html += `<tr>
+        let row = `<tr>
             <td>${d.productNo       ?? ''}</td>
             <td>${d.productVersion  ?? ''}</td>
             <td>${d.productStatus   ?? ''}</td>
@@ -259,8 +299,13 @@ function buildTableRows(data) {
             <td>${d.glCode          ?? ''}</td>
             <td>${d.version         ?? ''}</td>
             <td>${cmt}</td>
-            <td>${d.el_BWALLT       ?? ''}</td>
-        </tr>`;
+            <td>${d.el_BWALLT       ?? ''}</td>`;
+        /* 동적 Key 값 (백엔드가 Key명 그대로 result Map에 담아준다) */
+        for (const key of dynKeys) {
+            row += `<td>${d[key] ?? ''}</td>`;
+        }
+        row += `</tr>`;
+        html += row;
     }
     $('#contentTable').html(html);
 }
@@ -410,4 +455,83 @@ function renderStats(data) {
     }
 
     panel.style.display = '';
+}
+
+
+/* ──────────────────────────────────────────────
+   그래프/통계 팝업
+   조회 조건으로 데이터를 조회한 뒤 팝업(searchPartGraph.html)에
+   결과를 넘겨 집계·통계 그래프를 그린다.
+────────────────────────────────────────────── */
+function searchGraph() {
+    const partNo  = ($('#partNo').val()  || '').trim();
+    const blockNo = ($('#blockNo').val() || '').trim();
+
+    if (!partNo && !blockNo) {
+        alert('PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.');
+        return;
+    }
+
+    /* 데이터 전달 상태 초기화 (팝업은 이 값이 채워질 때까지 대기) */
+    window.__spfGraphData  = null;
+    window.__spfGraphError = false;
+    try {
+        localStorage.removeItem('spf_graph_data');
+        localStorage.removeItem('spf_graph_error');
+    } catch (e) {}
+
+    /* 팝업은 클릭(사용자 제스처) 시점에 동기적으로 열어야 차단되지 않는다. */
+    const popup = window.open(
+        '/subae/searchGraph', 'spfGraphPopup',
+        'width=1280,height=920,scrollbars=yes,resizable=yes'
+    );
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        alert('팝업이 차단되었습니다.\n브라우저 주소창의 팝업 차단을 해제한 뒤 다시 시도해주세요.');
+        return;
+    }
+    popup.focus();   // 팝업이 본 창 뒤에 가려지지 않도록
+
+    /* 조회 파라미터 (searchPID 와 동일) */
+    const year         = $('#year').val();
+    const cmt          = $('#cmt').val();
+    const status       = $('#status').val();
+    const spec         = $('#spec').val();
+    const brand        = $('#EL_BRAND').val();
+    const EL_ASPSCD    = $('#EL_ASPSCD').val();
+    const EL_ATYP      = $('#EL_ATYP').val();
+    const EL_ETHRU     = $('#EL_ETHRU').val();
+    const EL_COB       = $('#EL_COB').val();
+    const EL_BWALLT    = $('#EL_BWALLT').val();
+    const EL_ZFDA      = $('#EL_ZFDA').val();
+    const EL_ZFDA_TYPE = $('#EL_ZFDA_TYPE').val();
+    const kvConditions = JSON.stringify(getKvConditions());
+
+    $.ajax({
+        type: 'post', crossDomain: true,
+        url: '/subae/searchMissPartofProduct',
+        data: { partNo, year, blockNo, cmt, status, spec, brand,
+                EL_ASPSCD, EL_ATYP, EL_ETHRU, EL_COB,
+                EL_ZFDA, EL_ZFDA_TYPE, EL_BWALLT,
+                kvConditions },
+        success(data) {
+            if (data && data.length > 0) {
+                /* 팝업은 window.opener.__spfGraphData 또는 localStorage 로 읽어간다 */
+                window.__spfGraphData = data;
+                try { localStorage.setItem('spf_graph_data', JSON.stringify(data)); }
+                catch (e) { /* 용량 초과 시 opener 경유로 전달 */ }
+            } else {
+                window.__spfGraphError = true;
+                try { localStorage.setItem('spf_graph_error', '1'); } catch (e) {}
+                alert('검색결과가 없습니다.');
+                if (popup && !popup.closed) popup.close();
+            }
+        },
+        error(xhr, status, err) {
+            console.error('searchGraph error:', status, err);
+            window.__spfGraphError = true;
+            try { localStorage.setItem('spf_graph_error', '1'); } catch (e) {}
+            alert('조회 중 오류가 발생했습니다.');
+            if (popup && !popup.closed) popup.close();
+        }
+    });
 }

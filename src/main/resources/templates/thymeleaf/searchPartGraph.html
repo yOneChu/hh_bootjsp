@@ -1,0 +1,696 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="icon" type="image/png" href="/resources/favicon.ico" />
+
+    <title>PLM 제품-자재 Analytics – 통계 대시보드</title>
+
+    <link rel="stylesheet" href="/resources/dist/googleFont.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="/resources/css/dark-mode.css">
+
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: { preflight: false },
+            darkMode: ['class', 'body.dark-mode'],
+            theme: { extend: { fontFamily: {
+                sans: ['Pretendard', 'Noto Sans KR', '-apple-system', 'BlinkMacSystemFont', 'sans-serif']
+            } } }
+        }
+    </script>
+
+    <!-- Highcharts (사내망: 외부 CDN 차단 → 로컬 파일 사용) -->
+    <script src="/resources/dist/js/highcharts.js"></script>
+    <script src="/resources/dist/js/exporting.js"></script>
+
+    <style>
+        body {
+            font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #EEF1F8;
+            color: #1C1C1E;
+            margin: 0;
+        }
+        body.dark-mode { background: #0C0C10; color: #E5E5EA; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 4px; }
+        body.dark-mode ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); }
+
+        /* ── 카드 ── */
+        .spf-card {
+            background: #fff;
+            border-radius: 1.15rem;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 10px 30px -12px rgba(31,41,99,0.22), 0 2px 6px -2px rgba(0,0,0,0.05);
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .spf-card:hover { box-shadow: 0 18px 42px -14px rgba(31,41,99,0.3); }
+        body.dark-mode .spf-card { background: #17171C; border-color: rgba(255,255,255,0.06); box-shadow: 0 10px 30px -14px rgba(0,0,0,0.7); }
+
+        .spf-card-head {
+            display: flex; align-items: center; gap: 0.55rem;
+            padding: 0.9rem 1.2rem;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-size: 0.86rem; font-weight: 800; letter-spacing: -0.01em;
+        }
+        body.dark-mode .spf-card-head { border-bottom-color: rgba(255,255,255,0.06); color: #F5F5F7; }
+        .spf-card-head .ic {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 1.7rem; height: 1.7rem; border-radius: 0.55rem; color: #fff;
+            font-size: 0.72rem;
+            background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+            box-shadow: 0 4px 10px -2px rgba(99,102,241,0.5);
+        }
+        .spf-card-head .sub { font-size: 0.66rem; font-weight: 600; color: #9CA3AF; margin-left: auto; }
+        .spf-card-body { padding: 0.8rem 1rem 1.1rem; }
+
+        /* ── KPI (그라데이션) ── */
+        .kpi {
+            position: relative; overflow: hidden;
+            border-radius: 1.1rem; padding: 1.15rem 1.25rem;
+            color: #fff; min-height: 104px;
+            box-shadow: 0 14px 30px -10px rgba(0,0,0,0.35);
+        }
+        .kpi .kpi-ic {
+            position: absolute; right: -8px; bottom: -10px;
+            font-size: 3.6rem; opacity: 0.16;
+        }
+        .kpi-label { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; opacity: 0.9; }
+        .kpi-value { font-size: 2rem; font-weight: 900; line-height: 1.1; letter-spacing: -0.04em; margin-top: 0.2rem; }
+        .kpi-unit  { font-size: 0.66rem; opacity: 0.85; margin-left: 0.15rem; font-weight: 600; }
+        .g-indigo  { background: linear-gradient(135deg, #4F46E5 0%, #6D28D9 100%); }
+        .g-violet  { background: linear-gradient(135deg, #7C3AED 0%, #C026D3 100%); }
+        .g-sky     { background: linear-gradient(135deg, #0EA5E9 0%, #2563EB 100%); }
+        .g-emerald { background: linear-gradient(135deg, #10B981 0%, #0D9488 100%); }
+        .g-amber   { background: linear-gradient(135deg, #F59E0B 0%, #EA580C 100%); }
+
+        /* ── Hero ── */
+        .hero {
+            position: relative; overflow: hidden;
+            background: linear-gradient(120deg, #1E1B4B 0%, #312E81 40%, #4338CA 70%, #6D28D9 100%);
+            color: #fff;
+        }
+        .hero::after {
+            content: ''; position: absolute; top: -60%; right: -5%;
+            width: 460px; height: 460px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(139,92,246,0.35) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* ── 브랜드 필터 칩 ── */
+        .brand-chip {
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            padding: 0.32rem 0.85rem; border-radius: 9999px;
+            font-size: 0.74rem; font-weight: 700; cursor: pointer;
+            background: #fff; color: #4F46E5;
+            border: 1.5px solid rgba(79,70,229,0.25);
+            transition: all 0.15s ease;
+        }
+        .brand-chip:hover { background: #EEF0FF; }
+        .brand-chip.active {
+            background: linear-gradient(135deg, #4F46E5, #7C3AED);
+            color: #fff; border-color: transparent;
+            box-shadow: 0 6px 14px -4px rgba(79,70,229,0.5);
+        }
+        .brand-chip .cnt {
+            font-size: 0.62rem; background: rgba(79,70,229,0.12); color: #4F46E5;
+            border-radius: 9999px; padding: 0 0.4rem; font-weight: 800;
+        }
+        .brand-chip.active .cnt { background: rgba(255,255,255,0.25); color: #fff; }
+        body.dark-mode .brand-chip { background: #23232A; color: #A5B4FC; border-color: rgba(99,102,241,0.3); }
+        body.dark-mode .brand-chip:hover { background: #2C2C36; }
+
+        /* ── 테이블 ── */
+        .sum-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .sum-table thead th {
+            position: sticky; top: 0; z-index: 2;
+            background: #F4F5FB; color: #6B7280; font-weight: 800;
+            font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em;
+            padding: 0.55rem 0.7rem; text-align: left; border-bottom: 2px solid rgba(0,0,0,0.06);
+        }
+        body.dark-mode .sum-table thead th { background: #202028; color: #9CA3AF; border-bottom-color: rgba(255,255,255,0.07); }
+        .sum-table td { padding: 0.5rem 0.7rem; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        body.dark-mode .sum-table td { border-bottom-color: rgba(255,255,255,0.05); }
+        .sum-table tbody tr:hover td { background: rgba(79,70,229,0.06); }
+        body.dark-mode .sum-table tbody tr:hover td { background: rgba(99,102,241,0.12); }
+        .sum-table td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+        .brand-badge {
+            display: inline-block; padding: 0.1rem 0.5rem; border-radius: 9999px;
+            font-size: 0.66rem; font-weight: 700; color: #fff;
+        }
+        .bar-cell { position: relative; }
+        .bar-cell .bar-fill {
+            position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+            height: 60%; border-radius: 4px; opacity: 0.18;
+            background: linear-gradient(90deg, #4F46E5, #7C3AED);
+        }
+
+        /* ── 로딩 ── */
+        #spfLoading {
+            position: fixed; inset: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 1rem;
+            background: rgba(238,241,248,0.9); z-index: 9999;
+        }
+        body.dark-mode #spfLoading { background: rgba(12,12,16,0.9); }
+        .spinner {
+            width: 46px; height: 46px; border-radius: 50%;
+            border: 4px solid rgba(79,70,229,0.18); border-top-color: #4F46E5;
+            animation: spfSpin 0.75s linear infinite;
+        }
+        @keyframes spfSpin { to { transform: rotate(360deg); } }
+
+        @keyframes fadeUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform:none; } }
+        .anim { animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+    </style>
+</head>
+
+<body class="text-sm" style="zoom:95%;">
+
+    <!-- 로딩 -->
+    <div id="spfLoading">
+        <div class="spinner"></div>
+        <p style="margin:0;font-size:0.9rem;font-weight:700;">데이터 집계 중…</p>
+    </div>
+
+    <div class="px-4 py-4" style="max-width:1400px;margin:0 auto;">
+
+        <!-- Hero -->
+        <div class="hero rounded-2xl mb-4 flex items-center justify-between anim"
+             style="padding:1.4rem 1.7rem;box-shadow:0 18px 48px -10px rgba(67,56,202,0.5);">
+            <div class="flex items-center gap-3" style="position:relative;z-index:1;">
+                <div style="width:3rem;height:3rem;border-radius:0.9rem;background:rgba(255,255,255,0.14);
+                            border:1px solid rgba(255,255,255,0.22);display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-chart-line" style="font-size:1.25rem;"></i>
+                </div>
+                <div>
+                    <p style="margin:0;color:rgba(255,255,255,0.6);font-size:0.62rem;font-weight:800;
+                              text-transform:uppercase;letter-spacing:0.12em;">PLM Executive Analytics</p>
+                    <h1 style="margin:0.15rem 0 0;font-size:1.5rem;font-weight:900;letter-spacing:-0.025em;">
+                        제품-자재 통계 대시보드
+                    </h1>
+                </div>
+            </div>
+            <span id="totalBadge" style="position:relative;z-index:1;
+                  font-size:0.82rem;font-weight:800;background:rgba(255,255,255,0.16);
+                  border:1px solid rgba(255,255,255,0.28);padding:0.4rem 1.1rem;border-radius:9999px;"></span>
+        </div>
+
+        <!-- KPI -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+            <div class="kpi g-indigo anim"  style="animation-delay:0.04s;"><p class="kpi-label">전체 결과</p><p class="kpi-value" id="kpiTotal">-<span class="kpi-unit">건</span></p><i class="fas fa-layer-group kpi-ic"></i></div>
+            <div class="kpi g-violet anim"  style="animation-delay:0.08s;"><p class="kpi-label">고유 제품 수</p><p class="kpi-value" id="kpiProducts">-<span class="kpi-unit">종</span></p><i class="fas fa-boxes-stacked kpi-ic"></i></div>
+            <div class="kpi g-sky anim"     style="animation-delay:0.12s;"><p class="kpi-label">고유 자재 수</p><p class="kpi-value" id="kpiParts">-<span class="kpi-unit">개</span></p><i class="fas fa-screwdriver-wrench kpi-ic"></i></div>
+            <div class="kpi g-emerald anim" style="animation-delay:0.16s;"><p class="kpi-label">브랜드 수</p><p class="kpi-value" id="kpiBrands">-<span class="kpi-unit">개</span></p><i class="fas fa-tags kpi-ic"></i></div>
+            <div class="kpi g-amber anim"   style="animation-delay:0.20s;"><p class="kpi-label">평균 속도</p><p class="kpi-value" id="kpiSpeedAvg">-<span class="kpi-unit">m/min</span></p><i class="fas fa-gauge-high kpi-ic"></i></div>
+        </div>
+
+        <!-- 차트 그리드 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+
+            <div class="spf-card anim">
+                <div class="spf-card-head"><span class="ic"><i class="fas fa-tags"></i></span>브랜드 분포</div>
+                <div class="spf-card-body"><div id="chartBrand" style="height:300px;"></div></div>
+            </div>
+
+            <div class="spf-card anim">
+                <div class="spf-card-head"><span class="ic"><i class="fas fa-cubes"></i></span>기종 분포<span class="sub">상위 12</span></div>
+                <div class="spf-card-body"><div id="chartGisong" style="height:300px;"></div></div>
+            </div>
+
+            <div class="spf-card anim">
+                <div class="spf-card-head"><span class="ic"><i class="fas fa-gauge-high"></i></span>속도 구간 분포</div>
+                <div class="spf-card-body"><div id="chartSpeed" style="height:300px;"></div></div>
+            </div>
+
+            <div class="spf-card anim">
+                <div class="spf-card-head"><span class="ic"><i class="fas fa-industry"></i></span>생산거점 분포</div>
+                <div class="spf-card-body"><div id="chartAspscd" style="height:300px;"></div></div>
+            </div>
+
+            <div class="spf-card anim">
+                <div class="spf-card-head"><span class="ic"><i class="fas fa-eye"></i></span>전망타입 분포</div>
+                <div class="spf-card-body"><div id="chartCob" style="height:300px;"></div></div>
+            </div>
+
+            <div class="spf-card anim">
+                <div class="spf-card-head"><span class="ic"><i class="fas fa-arrows-left-right"></i></span>관통 / WALL 구조</div>
+                <div class="spf-card-body"><div id="chartEtc" style="height:300px;"></div></div>
+            </div>
+
+        </div>
+
+        <!-- ★ 브랜드별 부품 구성 (누적 막대) -->
+        <div class="spf-card anim mb-4">
+            <div class="spf-card-head">
+                <span class="ic"><i class="fas fa-layer-group"></i></span>브랜드별 부품 구성
+                <span class="sub">상위 브랜드 · 상위 부품(품명) 누적</span>
+            </div>
+            <div class="spf-card-body"><div id="chartBrandPart" style="height:460px;"></div></div>
+        </div>
+
+        <!-- ★ 브랜드별 부품 목록 (필터 + 테이블) -->
+        <div class="spf-card anim mb-4">
+            <div class="spf-card-head">
+                <span class="ic"><i class="fas fa-list-check"></i></span>브랜드별 사용 부품 목록
+                <span class="sub" id="brandPartCountInfo"></span>
+            </div>
+            <div class="spf-card-body">
+                <!-- 브랜드 필터 칩 -->
+                <div id="brandChips" class="flex flex-wrap gap-2 mb-3"></div>
+                <!-- 검색 -->
+                <div class="mb-3">
+                    <input id="partSearch" type="search" placeholder="품번 / 품명 / SPEC 검색…"
+                           style="width:100%;max-width:320px;height:34px;padding:0 0.8rem;font-size:0.8rem;
+                                  border:1px solid rgba(0,0,0,0.12);border-radius:0.55rem;outline:none;background:#F7F8FC;">
+                </div>
+                <div style="max-height:460px;overflow:auto;border-radius:0.6rem;border:1px solid rgba(0,0,0,0.05);">
+                    <table class="sum-table">
+                        <thead><tr>
+                            <th style="width:120px;">브랜드</th>
+                            <th>품번</th>
+                            <th>품명</th>
+                            <th>SPEC</th>
+                            <th style="text-align:right;width:90px;">사용 건수</th>
+                            <th style="text-align:right;width:90px;">사용 제품수</th>
+                        </tr></thead>
+                        <tbody id="brandPartBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 요약 테이블 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="spf-card anim">
+                <div class="spf-card-head"><span class="ic"><i class="fas fa-trophy"></i></span>제품별 자재 건수<span class="sub">상위 15</span></div>
+                <div class="spf-card-body" style="max-height:360px;overflow:auto;">
+                    <table class="sum-table">
+                        <thead><tr><th>제품번호</th><th>브랜드</th><th>기종</th><th style="text-align:right;">자재 건수</th></tr></thead>
+                        <tbody id="sumProductBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="spf-card anim">
+                <div class="spf-card-head"><span class="ic"><i class="fas fa-list-ol"></i></span>품명별 사용 건수<span class="sub">상위 15</span></div>
+                <div class="spf-card-body" style="max-height:360px;overflow:auto;">
+                    <table class="sum-table">
+                        <thead><tr><th>품명</th><th>품번</th><th style="text-align:right;">건수</th></tr></thead>
+                        <tbody id="sumPartBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <p style="text-align:center;color:#9CA3AF;font-size:0.7rem;margin:1.5rem 0 0.5rem;">
+            PLM 제품-자재 Analytics · Powered by Highcharts
+        </p>
+
+    </div>
+
+<script th:inline="none">
+/* ── 다크모드 동기화 ── */
+try { if (localStorage.getItem('spf_theme') === 'dark') document.body.classList.add('dark-mode'); } catch(e) {}
+const IS_DARK    = document.body.classList.contains('dark-mode');
+const AXIS_COLOR = IS_DARK ? '#9CA3AF' : '#6B7280';
+const TEXT_COLOR = IS_DARK ? '#E5E5EA' : '#1C1C1E';
+const GRID_COLOR = IS_DARK ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+
+/* 그라데이션 색상 쌍 (밝은→진한) */
+const GRAD = [
+    ['#818CF8','#4338CA'], ['#C084FC','#7C3AED'], ['#38BDF8','#0369A1'],
+    ['#34D399','#047857'], ['#FBBF24','#B45309'], ['#F87171','#B91C1C'],
+    ['#F472B6','#BE185D'], ['#2DD4BF','#0F766E'], ['#A78BFA','#5B21B6'],
+    ['#FB923C','#C2410C'], ['#22D3EE','#0E7490'], ['#A3E635','#4D7C0F'],
+    ['#60A5FA','#1D4ED8'], ['#E879F9','#A21CAF'], ['#5EEAD4','#0D9488'], ['#FCD34D','#D97706']
+];
+const SOLID = GRAD.map(g => g[1]);
+
+/* 세로 선형 그라데이션 */
+function vg(i) {
+    const g = GRAD[i % GRAD.length];
+    return { linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 }, stops: [[0, g[0]], [1, g[1]]] };
+}
+/* 가로 선형 그라데이션 */
+function hg(i) {
+    const g = GRAD[i % GRAD.length];
+    return { linearGradient: { x1: 0, y1: 0, x2: 1, y2: 0 }, stops: [[0, g[0]], [1, g[1]]] };
+}
+
+/* 브랜드 → 고정 색상 인덱스 (전 차트/테이블 일관성) */
+const _brandColorIdx = {};
+function brandColor(name) {
+    if (!(name in _brandColorIdx)) {
+        _brandColorIdx[name] = Object.keys(_brandColorIdx).length % GRAD.length;
+    }
+    return _brandColorIdx[name];
+}
+
+/* ── Highcharts 전역 테마 ── */
+if (window.Highcharts) {
+    Highcharts.setOptions({
+        colors: SOLID,
+        chart: { backgroundColor: 'transparent', style: { fontFamily: 'Pretendard, Noto Sans KR, sans-serif' }, spacing: [10, 10, 10, 10] },
+        title: { text: undefined },
+        credits: { enabled: false },
+        legend: { itemStyle: { color: AXIS_COLOR, fontWeight: '600', fontSize: '11px' }, itemHoverStyle: { color: TEXT_COLOR } },
+        xAxis: { labels: { style: { color: AXIS_COLOR, fontSize: '11px' } }, lineColor: GRID_COLOR, tickColor: GRID_COLOR },
+        yAxis: { gridLineColor: GRID_COLOR, labels: { style: { color: AXIS_COLOR, fontSize: '11px' } }, title: { style: { color: AXIS_COLOR } } },
+        tooltip: {
+            backgroundColor: IS_DARK ? 'rgba(28,28,32,0.96)' : 'rgba(255,255,255,0.98)',
+            borderWidth: 0, borderRadius: 12, shadow: true, useHTML: true,
+            style: { color: TEXT_COLOR, fontSize: '12px' }
+        },
+        plotOptions: {
+            series: { animation: { duration: 900 } },
+            pie: {
+                borderWidth: 2, borderColor: IS_DARK ? '#17171C' : '#fff',
+                dataLabels: { style: { color: TEXT_COLOR, textOutline: 'none', fontWeight: '700', fontSize: '11px' } }
+            },
+            column: { borderRadius: 6, borderWidth: 0 },
+            bar: { borderRadius: 6, borderWidth: 0 }
+        },
+        exporting: { buttons: { contextButton: { symbolStroke: AXIS_COLOR, theme: { fill: 'transparent' } } } }
+    });
+}
+
+/* ── 부모창 데이터 대기 ──
+   1순위: window.opener.__spfGraphData
+   2순위(폴백): localStorage('spf_graph_data')  — opener 가 끊긴 경우 대비 */
+(function waitForData() {
+    let tries = 0;
+    const timer = setInterval(function() {
+        tries++;
+        let opener = null;
+        try { opener = window.opener; } catch (e) {}
+
+        /* 오류/결과없음 신호 */
+        let errFlag = opener ? opener.__spfGraphError : false;
+        try { if (!errFlag && localStorage.getItem('spf_graph_error') === '1') errFlag = true; } catch (e) {}
+        if (errFlag) { clearInterval(timer); window.close(); return; }
+
+        /* 데이터: opener 우선, 없으면 localStorage */
+        let data = opener ? opener.__spfGraphData : null;
+        if (!data) {
+            try {
+                const raw = localStorage.getItem('spf_graph_data');
+                if (raw) data = JSON.parse(raw);
+            } catch (e) {}
+        }
+
+        if (data && data.length) {
+            clearInterval(timer);
+            document.getElementById('spfLoading').style.display = 'none';
+            try { renderAll(data); }
+            catch (e) { console.error(e); }
+            return;
+        }
+        if (tries > 200) {   // 약 30초 타임아웃
+            clearInterval(timer);
+            document.getElementById('spfLoading').innerHTML =
+                '<p style="font-size:0.9rem;color:#EF4444;font-weight:700;">데이터를 불러오지 못했습니다.</p>';
+        }
+    }, 150);
+})();
+
+/* ── 집계 유틸 ── */
+function esc(s) {
+    return (s == null ? '' : ('' + s)).replace(/[&<>"]/g, function(c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+}
+function val(r, f) { return ((r[f] == null ? '' : r[f]) + '').trim(); }
+function countBy(data, field) {
+    const map = {};
+    data.forEach(function(r) { const v = val(r, field) || '(미정)'; map[v] = (map[v] || 0) + 1; });
+    return Object.entries(map).sort(function(a, b) { return b[1] - a[1]; });
+}
+
+/* ── 차트 헬퍼 ── */
+function pieChart(id, dist, donut) {
+    Highcharts.chart(id, {
+        chart: { type: 'pie' },
+        tooltip: { pointFormat: '<b>{point.y:,.0f}건</b> ({point.percentage:.1f}%)' },
+        plotOptions: { pie: {
+            innerSize: donut ? '62%' : '0%',
+            depth: 35,
+            dataLabels: { enabled: true, format: '{point.name}<br><span style="opacity:0.7">{point.percentage:.1f}%</span>', distance: 14 },
+            showInLegend: false
+        } },
+        series: [{
+            name: '건수', colorByPoint: true,
+            data: dist.map(function(d, i) { return { name: d[0], y: d[1], color: vg(i) }; })
+        }]
+    });
+}
+
+function columnChart(id, dist, gi) {
+    Highcharts.chart(id, {
+        chart: { type: 'column' },
+        xAxis: { categories: dist.map(d => d[0]), labels: { rotation: dist.length > 6 ? -35 : 0 } },
+        yAxis: { title: { text: null }, allowDecimals: false },
+        tooltip: { pointFormat: '<b>{point.y:,.0f}건</b>' },
+        plotOptions: { column: { color: vg(gi || 0), dataLabels: { enabled: true, style: { color: TEXT_COLOR, textOutline: 'none', fontWeight: '700' } } } },
+        series: [{ name: '건수', data: dist.map(d => d[1]) }]
+    });
+}
+
+function areaChart(id, dist, gi) {
+    Highcharts.chart(id, {
+        chart: { type: 'areaspline' },
+        xAxis: { categories: dist.map(d => d[0]) },
+        yAxis: { title: { text: null }, allowDecimals: false },
+        tooltip: { pointFormat: '<b>{point.y:,.0f}건</b>' },
+        plotOptions: { areaspline: {
+            fillColor: { linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 }, stops: [[0, GRAD[gi || 2][0]], [1, 'rgba(56,189,248,0.03)']] },
+            color: GRAD[gi || 2][1], lineWidth: 3,
+            marker: { radius: 4, fillColor: '#fff', lineColor: GRAD[gi || 2][1], lineWidth: 2 }
+        } },
+        series: [{ name: '건수', data: dist.map(d => d[1]) }]
+    });
+}
+
+function barChart(id, dist, gi) {
+    Highcharts.chart(id, {
+        chart: { type: 'bar' },
+        xAxis: { categories: dist.map(d => d[0]) },
+        yAxis: { title: { text: null }, allowDecimals: false },
+        tooltip: { pointFormat: '<b>{point.y:,.0f}건</b>' },
+        plotOptions: { bar: { color: hg(gi || 3), dataLabels: { enabled: true, style: { color: TEXT_COLOR, textOutline: 'none', fontWeight: '700' } } } },
+        series: [{ name: '건수', data: dist.map(d => d[1]) }]
+    });
+}
+
+/* ── 전체 렌더 ── */
+let _aggBrandParts = [];
+
+function renderAll(data) {
+    const total = data.length;
+    document.getElementById('totalBadge').textContent = '총 ' + total.toLocaleString('ko-KR') + ' 건';
+    document.getElementById('kpiTotal').innerHTML    = total.toLocaleString('ko-KR') + '<span class="kpi-unit">건</span>';
+
+    const brandSet = new Set(data.map(r => val(r, 'brand')).filter(Boolean));
+    document.getElementById('kpiProducts').innerHTML = new Set(data.map(r => r.productNo).filter(Boolean)).size.toLocaleString('ko-KR') + '<span class="kpi-unit">종</span>';
+    document.getElementById('kpiParts').innerHTML    = new Set(data.map(r => r.partNo).filter(Boolean)).size.toLocaleString('ko-KR') + '<span class="kpi-unit">개</span>';
+    document.getElementById('kpiBrands').innerHTML   = brandSet.size.toLocaleString('ko-KR') + '<span class="kpi-unit">개</span>';
+
+    const speeds = data.map(r => parseFloat(r.aspd)).filter(n => !isNaN(n) && n > 0);
+    document.getElementById('kpiSpeedAvg').innerHTML =
+        (speeds.length ? Math.round(speeds.reduce((a, b) => a + b, 0) / speeds.length).toLocaleString('ko-KR') : '-') + '<span class="kpi-unit">m/min</span>';
+
+    /* 브랜드 색상 미리 고정 (분포 순) */
+    countBy(data, 'brand').forEach(d => brandColor(d[0]));
+
+    /* 차트 */
+    pieChart('chartBrand', countBy(data, 'brand'), true);
+    columnChart('chartGisong', countBy(data, 'gisong').slice(0, 12), 1);
+
+    const speedMap = {};
+    speeds.forEach(function(s) { const b = Math.floor(s / 25) * 25; const l = b + '~' + (b + 25); speedMap[l] = (speedMap[l] || 0) + 1; });
+    areaChart('chartSpeed', Object.entries(speedMap).sort((a, b) => parseInt(a[0]) - parseInt(b[0])), 2);
+
+    pieChart('chartAspscd', countBy(data, 'aspscd'), false);
+    pieChart('chartCob', countBy(data, 'el_COB'), true);
+
+    const ethru = countBy(data, 'el_ETHRU').map(d => ['관통:' + d[0], d[1]]);
+    const wall  = countBy(data, 'el_BWALLT').map(d => ['WALL:' + d[0], d[1]]);
+    barChart('chartEtc', ethru.concat(wall), 3);
+
+    /* 브랜드별 부품 */
+    _aggBrandParts = aggBrandParts(data);
+    renderBrandPartChart(_aggBrandParts);
+    buildBrandChips(_aggBrandParts);
+    renderBrandPartTable('__ALL__');
+
+    /* 요약 테이블 */
+    renderProductSummary(data);
+    renderPartSummary(data);
+
+    /* 검색 바인딩 */
+    document.getElementById('partSearch').addEventListener('input', function() {
+        renderBrandPartTable(_activeBrand);
+    });
+}
+
+/* ── 브랜드별 부품 집계 ── */
+function aggBrandParts(data) {
+    const map = {};
+    data.forEach(function(r) {
+        const brand  = val(r, 'brand') || '(미정)';
+        const partNo = val(r, 'partNo');
+        const key = brand + '' + partNo;
+        if (!map[key]) map[key] = { brand: brand, partNo: partNo, partName: val(r, 'partName'), spec: val(r, 'spec'), cnt: 0, products: new Set() };
+        map[key].cnt++;
+        if (r.productNo) map[key].products.add(r.productNo);
+    });
+    return Object.values(map).map(function(o) { o.prodCnt = o.products.size; return o; })
+        .sort(function(a, b) { return a.brand === b.brand ? b.cnt - a.cnt : a.brand.localeCompare(b.brand); });
+}
+
+/* ── 브랜드별 부품 구성 (누적 막대 — Highcharts 코어만 사용) ──
+   x축: 상위 브랜드 / 누적 세그먼트: 상위 부품(품명) + 기타
+   "어떤 브랜드에 어떤 부품이 얼마나 쓰였는지" 를 한눈에 보여준다. */
+function renderBrandPartChart(agg) {
+    /* 상위 브랜드(건수순) */
+    const brandTotal = {};
+    agg.forEach(o => brandTotal[o.brand] = (brandTotal[o.brand] || 0) + o.cnt);
+    const topBrands = Object.entries(brandTotal).sort((a, b) => b[1] - a[1]).slice(0, 10).map(e => e[0]);
+    const brandSet = new Set(topBrands);
+
+    /* 상위 브랜드 내 상위 부품(품명) → 시리즈로 사용 */
+    const partTotal = {};
+    agg.forEach(function(o) {
+        if (!brandSet.has(o.brand)) return;
+        const p = o.partName || o.partNo || '(미정)';
+        partTotal[p] = (partTotal[p] || 0) + o.cnt;
+    });
+    const topParts   = Object.entries(partTotal).sort((a, b) => b[1] - a[1]).slice(0, 12).map(e => e[0]);
+    const topPartSet = new Set(topParts);
+
+    /* 브랜드 × 부품 건수 매트릭스 */
+    const m = {};
+    topBrands.forEach(b => m[b] = {});
+    agg.forEach(function(o) {
+        if (!m[o.brand]) return;
+        const p   = o.partName || o.partNo || '(미정)';
+        const key = topPartSet.has(p) ? p : '기타';
+        m[o.brand][key] = (m[o.brand][key] || 0) + o.cnt;
+    });
+
+    const seriesNames = topParts.concat(['기타']);
+    const series = seriesNames.map(function(p, i) {
+        return {
+            name: p,
+            data: topBrands.map(b => m[b][p] || 0),
+            color: p === '기타' ? '#C7CAD1' : vg(i)
+        };
+    });
+
+    Highcharts.chart('chartBrandPart', {
+        chart: { type: 'bar' },
+        xAxis: { categories: topBrands },
+        yAxis: { title: { text: '사용 건수', style: { color: AXIS_COLOR } }, allowDecimals: false, reversedStacks: false },
+        legend: { reversed: true, maxHeight: 80 },
+        tooltip: { shared: false, headerFormat: '<b>{point.key}</b><br>', pointFormat: '{series.name}: <b>{point.y:,.0f}건</b>' },
+        plotOptions: { series: { stacking: 'normal', borderWidth: 0, groupPadding: 0.08 } },
+        series: series
+    });
+}
+
+/* ── 브랜드 필터 칩 ── */
+let _activeBrand = '__ALL__';
+function buildBrandChips(agg) {
+    const totals = {};
+    agg.forEach(o => totals[o.brand] = (totals[o.brand] || 0) + o.cnt);
+    const brands = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+    const allCnt = brands.reduce((s, b) => s + b[1], 0);
+
+    let html = '<span class="brand-chip active" data-brand="__ALL__">전체 <span class="cnt">' + allCnt + '</span></span>';
+    brands.forEach(function(b) {
+        const idx = brandColor(b[0]);
+        html += '<span class="brand-chip" data-brand="' + encodeURIComponent(b[0]) + '">' +
+                '<span style="width:9px;height:9px;border-radius:50%;background:' + SOLID[idx] + ';display:inline-block;"></span>' +
+                esc(b[0]) + ' <span class="cnt">' + b[1] + '</span></span>';
+    });
+    const box = document.getElementById('brandChips');
+    box.innerHTML = html;
+    box.querySelectorAll('.brand-chip').forEach(function(chip) {
+        chip.addEventListener('click', function() {
+            box.querySelectorAll('.brand-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            _activeBrand = chip.getAttribute('data-brand');
+            renderBrandPartTable(_activeBrand);
+        });
+    });
+}
+
+/* ── 브랜드별 부품 목록 테이블 ── */
+function renderBrandPartTable(brandKey) {
+    _activeBrand = brandKey;
+    const q = (document.getElementById('partSearch').value || '').trim().toLowerCase();
+    let rows = _aggBrandParts;
+    if (brandKey && brandKey !== '__ALL__') {
+        const b = decodeURIComponent(brandKey);
+        rows = rows.filter(o => o.brand === b);
+    }
+    if (q) {
+        rows = rows.filter(o =>
+            (o.partNo + '').toLowerCase().includes(q) ||
+            (o.partName + '').toLowerCase().includes(q) ||
+            (o.spec + '').toLowerCase().includes(q));
+    }
+    rows = rows.slice().sort((a, b) => b.cnt - a.cnt);
+    const maxCnt = rows.reduce((m, o) => Math.max(m, o.cnt), 1);
+
+    document.getElementById('brandPartCountInfo').textContent = rows.length.toLocaleString('ko-KR') + ' 개 부품';
+
+    document.getElementById('brandPartBody').innerHTML = rows.slice(0, 500).map(function(o) {
+        const idx = brandColor(o.brand);
+        const pct = Math.round(o.cnt / maxCnt * 100);
+        return '<tr>' +
+            '<td><span class="brand-badge" style="background:' + SOLID[idx] + ';">' + esc(o.brand) + '</span></td>' +
+            '<td style="font-weight:600;">' + esc(o.partNo || '-') + '</td>' +
+            '<td>' + esc(o.partName || '-') + '</td>' +
+            '<td style="color:#8E8E93;">' + esc(o.spec || '-') + '</td>' +
+            '<td class="num bar-cell"><span class="bar-fill" style="width:' + pct + '%;"></span>' + o.cnt + '</td>' +
+            '<td class="num">' + o.prodCnt + '</td>' +
+        '</tr>';
+    }).join('') || '<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:1.5rem;">데이터가 없습니다.</td></tr>';
+}
+
+/* ── 요약 테이블 ── */
+function renderProductSummary(data) {
+    const map = {};
+    data.forEach(function(r) {
+        const pno = (r.productNo || '(미정)');
+        if (!map[pno]) map[pno] = { cnt: 0, brand: val(r, 'brand'), gisong: val(r, 'gisong') };
+        map[pno].cnt++;
+    });
+    const rows = Object.entries(map).sort((a, b) => b[1].cnt - a[1].cnt).slice(0, 15);
+    document.getElementById('sumProductBody').innerHTML = rows.map(function(e) {
+        return '<tr><td style="font-weight:600;">' + esc(e[0]) + '</td><td>' + esc(e[1].brand) +
+               '</td><td>' + esc(e[1].gisong) + '</td><td class="num">' + e[1].cnt + '</td></tr>';
+    }).join('');
+}
+
+function renderPartSummary(data) {
+    const map = {};
+    data.forEach(function(r) {
+        const name = (val(r, 'partName') || '(미정)');
+        if (!map[name]) map[name] = { cnt: 0, partNo: val(r, 'partNo') };
+        map[name].cnt++;
+    });
+    const rows = Object.entries(map).sort((a, b) => b[1].cnt - a[1].cnt).slice(0, 15);
+    document.getElementById('sumPartBody').innerHTML = rows.map(function(e) {
+        return '<tr><td>' + esc(e[0]) + '</td><td style="font-weight:600;">' + esc(e[1].partNo) +
+               '</td><td class="num">' + e[1].cnt + '</td></tr>';
+    }).join('');
+}
+</script>
+
+</body>
+</html>
+

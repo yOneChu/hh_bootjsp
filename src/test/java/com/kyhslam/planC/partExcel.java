@@ -160,7 +160,7 @@ public class partExcel {
 
             PartWhere where = new PartWhere();
             where.setPartNo(list.get(i).getPartNo());
-            ArrayList<ProductDto> productList = SubaeCommonUtil.findPartOfProduct_v2(where);
+            ArrayList<ProductDto> productList = null; //SubaeCommonUtil.findPartOfProduct_v2(where);
 
             String PARTNO = "";
             int findCnt = 0;

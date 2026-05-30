@@ -801,7 +801,7 @@ public class SubaeCommonUtil {
     // 해당 자재번호를 사용하고 있는 제품 검색
     // 2.제품 하위에 해당 자재가 있는지 검사
     //public static ArrayList<ProductDto> findPartOfProduct_v2(String year, String partNo, String pBlockNo, String cmt) {
-    public static ArrayList<ProductDto> findPartOfProduct_v2(PartWhere whereCond) {
+    public static ArrayList<HashMap<String, String>> findPartOfProduct_v2(PartWhere whereCond) {
 
         Connection con 			= null;
         PreparedStatement pstmt = null;
@@ -829,11 +829,9 @@ public class SubaeCommonUtil {
                     keyList.add(key);
                     opList.add(op);
                     valList.add(value);
-                    //log.info("  [{}] key={} | op={} | value={}", i + 1, key, op, value);
                 }
-                //log.info("================================");
             } catch (Exception e) {
-                //log.warn("kvConditions 파싱 실패: {}", e.getMessage());
+
             }
         }
 
@@ -856,7 +854,8 @@ public class SubaeCommonUtil {
             pBlockNo = pBlockNo.toUpperCase();
         }
 
-        ArrayList<ProductDto> dataList = new ArrayList<ProductDto>();
+        //ArrayList<ProductDto> dataList = new ArrayList<ProductDto>();
+        ArrayList<HashMap<String, String>> dataList = new ArrayList<HashMap<String, String>>();
 
         try {
             con = PLMDBConnection.getConnection();
@@ -933,6 +932,25 @@ public class SubaeCommonUtil {
                      , (SELECT COD(E.EL_ECWSF) FROM ELV_INFO$ID A, ELV_INFO$VF E
                        WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
                        AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS EL_ECWSF  -- CWT; SAFETY
+                    """;
+
+            if(keyList != null && keyList.size() > 0) {
+                for (int k = 0; k < keyList.size(); k++) {
+                    String el_code = keyList.get(k);
+                    //String op = opList.get(k);
+                    //String codeVal = valList.get(k);
+
+                    //if(el_code != null && !"".equals(el_code.trim()) && codeVal != null && !"".equals(codeVal.trim())) {
+                    if(el_code != null && !"".equals(el_code.trim()) ) {
+                        sql += " , (SELECT COD(E." + el_code.trim() + ") FROM ELV_INFO$ID A, ELV_INFO$VF E ";
+                        sql += " WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip ";
+                        sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) AS " + el_code.trim();
+                    }
+
+                }
+            }
+
+            sql += """ 
                      , NP.MD$NUMBER AS PARTNO
                      , cod(NP.NATION) AS NATION
                      , NP.compen_part AS COMPEN_PART
@@ -1094,7 +1112,21 @@ public class SubaeCommonUtil {
             }
 
 
-            System.out.println("sql = " + sql);
+            if(keyList != null && keyList.size() > 0) {
+                for (int k = 0; k < keyList.size(); k++) {
+                    String el_code = keyList.get(k);
+                    String op = opList.get(k);
+                    String codeVal = valList.get(k);
+
+                    if(el_code != null && !"".equals(el_code.trim()) && codeVal != null && !"".equals(codeVal.trim())) {
+                        sql += "AND (SELECT COD( E." + el_code.trim() + " ) FROM ELV_INFO$ID A, ELV_INFO$VF E ";
+                        sql += "WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip";
+                        sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) " + op + " '" + codeVal + "' ";
+                    }
+                }
+            }
+
+            //System.out.println("sql = " + sql);
 
             pstmt = con.prepareStatement(sql.toString());
             //pstmt.setString(1, productOID);
@@ -1185,7 +1217,7 @@ public class SubaeCommonUtil {
                 dMap.put("productModDate", PROD_MODDATE);
                 dMap.put("el_ZFDA", EL_ZFDA);
                 dMap.put("brand", BRAND);
-                dMap.put("gisong", productNo);
+                dMap.put("gisong", GISONG);
                 dMap.put("aspd", EL_ASPD);
                 dMap.put("aspscd", ASPSCD);
                 dMap.put("el_ETHRU", "");
@@ -1196,6 +1228,7 @@ public class SubaeCommonUtil {
                 dMap.put("ecwbg", EL_ECWBG);
                 dMap.put("ecww", EL_ECWW);
                 dMap.put("partNo", PARTNO);
+                dMap.put("partName", PARTNAME);
 
                 dMap.put("spec", spec);
                 dMap.put("qty", partQTY);
@@ -1206,6 +1239,15 @@ public class SubaeCommonUtil {
                 dMap.put("cmt", CMT);
                 dMap.put("el_BWALLT", EL_BWALLT);
 
+
+                if(keyList != null && keyList.size() > 0) {
+                    for (int k = 0; k < keyList.size(); k++) {
+                        String el_code = keyList.get(k);
+                        String getVal = "";
+                        getVal = rs.getString(el_code.trim()) ==  null ? "" : rs.getString(el_code.trim());
+                        dMap.put(el_code.trim(), getVal);
+                    }
+                }
 
 
                 if(HASCHILD != null && HASCHILD.length() > 0) {
@@ -1232,14 +1274,15 @@ public class SubaeCommonUtil {
                             childDto.setEcwbg(EL_ECWBG);
                             childDto.setEcbg(EL_ECBG);
                             childDto.setAspd(EL_ASPD);
-                            dataList.add(dto);
+                            //dataList.add(dto);
                         }
                     }
 
 
                 }
 
-                dataList.add(dto);
+                //dataList.add(dto);
+                dataList.add(dMap);
             } //end while
 
             //System.out.println("dataList.size() = " + dataList.size());
@@ -1249,7 +1292,7 @@ public class SubaeCommonUtil {
         } finally {
             PLMDBConnection.disconnect(con, pstmt, rs);
         }
-        
+        System.out.println("---- 조회완료 -----");
         return dataList;
     }
 

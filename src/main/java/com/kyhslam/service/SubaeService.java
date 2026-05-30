@@ -163,7 +163,7 @@ public class SubaeService {
      * @param whereCond
      * @return
      */
-    public ArrayList<ProductDto> findPartOfProduct_v2(PartWhere whereCond) {
+    public ArrayList<HashMap<String, String>> findPartOfProduct_v2(PartWhere whereCond) {
         return SubaeCommonUtil.findPartOfProduct_v2(whereCond);
     }
 
