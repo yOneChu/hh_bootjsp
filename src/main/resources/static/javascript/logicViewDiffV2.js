@@ -18,8 +18,6 @@ function searchPIDList() {
         return;
     }
 
-    //console.log('--------searchPIDList');
-
     const $select = $('#baseVersion');
     $select.empty();
     $select.append($('<option>', { value: '', text: '버전을 선택하세요', disabled: true, selected: true }));
@@ -86,30 +84,6 @@ function searchPIDList() {
     });
 }
 
-/*
-
-function showLoading() {
-    if (document.getElementById('loadingOverlay')) return;
-    const loadingHtml = `
-        <div id="loadingOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 9999;">
-            <div style="background: white; padding: 30px; border-radius: 8px; text-align: center; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-                <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px;"></div>
-                <p style="margin: 0; font-size: 16px; color: #333;">데이터 처리 중입니다...</p>
-            </div>
-        </div>
-        <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-    `;
-    document.body.insertAdjacentHTML('beforeend', loadingHtml);
-}
-
-function hideLoading() {
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    if (loadingOverlay) loadingOverlay.remove();
-}
-*/
-
-
-
 
 
 document.getElementById('searchBtn').addEventListener('click', () => {
@@ -122,7 +96,7 @@ document.getElementById('searchBtn').addEventListener('click', () => {
     showLoading();
     $.ajax({
         type : "post",
-        url : "/subae/findPIDLineDiff",
+        url : "/diff/findPIDLineDiff",
         data : {
             pid : pid.toUpperCase().trim(),
             pidOid : v1,

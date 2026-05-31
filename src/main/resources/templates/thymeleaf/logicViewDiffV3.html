@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="/resources/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로직 비교 분석</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar { width: 15px; height: 15px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+
+        /* 커스텀 팝오버 스타일 */
+        #custom-popover {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            /*max-width: 500px;*/
+            width: max-content;   /* 내용만큼 넓어짐 */
+            min-width: 250px;     /* 너무 작아지는 것 방지 */
+            max-width: 1000px;     /* 너무 커지는 것 방지 */
+
+            font-size: 0.875rem;
+            pointer-events: none;
+            white-space: pre-line;
+        }
+
+        .selected-row {
+            background-color: #fef08a !important; /* bg-yellow-200 */
+        }
+        .selected-row td {
+            background-color: #fef08a !important; /* bg-yellow-200 */
+        }
+    </style>
+
+
+</head>
+<body class="bg-slate-50 p-6">
+
+<div class="max-w-full mx-auto bg-white rounded-xl shadow-md overflow-hidden flex flex-col h-[90vh]">
+    <div class="p-6 border-b border-gray-200 bg-slate-800 text-white flex justify-between items-center">
+        <h1 class="text-2xl font-bold">로직 비교 분석</h1>
+        <div class="flex gap-4 text-sm font-medium">
+            <!--<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-200 inline-block border border-green-500"></span> 추가됨</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-100 inline-block border border-red-400"></span> 삭제됨</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-yellow-200 inline-block border border-yellow-500"></span> 수정됨 (셀 강조)</span>-->
+        </div>
+    </div>
+
+    <div class="bg-gray-50 p-4 border-b border-gray-200 flex flex-wrap gap-4 items-end">
+        <div>
+            <label for="pidInput" class="block text-sm font-semibold text-gray-700 mb-1">Part ID (PID)</label>
+            <input type="text" id="pidInput" placeholder="예: P-001" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48">
+        </div>
+
+        <button id="searchBtnPID" onclick="searchPIDList()" class="bg-blue-600 text-white px-5 py-2 rounded-md text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
+            조회
+        </button>
+
+        <div>
+            <label for="baseVersion" class="block text-sm font-semibold text-gray-700 mb-1">기준 버전 (과거)</label>
+            <select id="baseVersion" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-32 bg-white">
+                <option value="">선택</option>
+                <!--<option value="v1.0">v1.0</option>
+                <option value="v2.0">v2.0</option>-->
+            </select>
+        </div>
+
+        <div>
+            <label for="compareVersion" class="block text-sm font-semibold text-gray-700 mb-1">비교 버전 (최신)</label>
+            <select id="compareVersion" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-32 bg-white">
+                <option value="">선택</option>
+                <!--<option value="v2.0">v2.0</option>
+                <option value="v3.0">v3.0</option>-->
+            </select>
+        </div>
+
+        <button id="searchBtn" class="bg-blue-600 text-white px-5 py-2 rounded-md text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
+            조회 및 비교
+        </button>
+
+        <button id="hide-empty-cols" class="bg-green-600 text-white px-5 py-2 rounded-md text-sm font-bold hover:bg-green-700 transition-colors shadow-sm">
+            빈 열 숨기기
+        </button>
+    </div>
+
+    <!-- 요약 + 상태 필터 -->
+    <div class="bg-white px-4 py-2 border-b border-gray-200 flex flex-wrap items-center gap-4">
+        <div id="diff-summary" class="flex flex-wrap gap-2"></div>
+        <div class="flex flex-wrap gap-3 text-xs text-gray-600 ml-auto">
+            <label class="flex items-center gap-1"><input type="checkbox" id="filter-added" checked> <span class="px-2 py-0.5 rounded bg-green-200 text-green-800">추가</span></label>
+            <label class="flex items-center gap-1"><input type="checkbox" id="filter-modified" checked> <span class="px-2 py-0.5 rounded bg-amber-200 text-amber-800">수정</span></label>
+            <label class="flex items-center gap-1"><input type="checkbox" id="filter-deleted" checked> <span class="px-2 py-0.5 rounded bg-red-200 text-red-800">삭제</span></label>
+            <label class="flex items-center gap-1"><input type="checkbox" id="filter-equal" checked> <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-600">동일</span></label>
+        </div>
+    </div>
+
+    <div class="flex-1 overflow-auto">
+        <table class="min-w-max w-full text-left text-sm whitespace-nowrap" style="zoom:77%;">
+            <thead class="bg-slate-100 sticky top-0 z-10 shadow-sm text-xs">
+                <!-- 헤더는 logicViewDiffV3.js 의 renderHeader() 가 서버 columns 기준으로 생성 -->
+                <tr id="table-header" class="text-slate-600"></tr>
+            </thead>
+            <tbody id="bom-tbody" class="divide-y divide-gray-200 border-b border-gray-200">
+                <tr><td colspan="200" class="text-center py-10 text-gray-500">PID와 버전을 선택한 후 조회 버튼을 눌러주세요.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 커스텀 팝오버 컨테이너 -->
+<div id="custom-popover" class="text-slate-700 border-slate-200"></div>
+
+
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+<script src="/resources/javascript/commonUtil.js"></script>
+<script src="/resources/javascript/logicViewDiffV3.js"></script>
+</body>
+</html>
