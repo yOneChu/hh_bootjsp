@@ -25,7 +25,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AnalysisController {
     /**
-     * PLM 기반 영업사양-제품 연계 분석
+     * PLM 기반 영업사양-제품 연계 분석(통계)
      */
 
     private final SubaeService subaeService;
