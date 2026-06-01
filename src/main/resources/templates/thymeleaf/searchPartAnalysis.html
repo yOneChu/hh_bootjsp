@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <title>PLM 제품-자재 Analytics</title>
+
+    <link rel="stylesheet" href="/resources/dist/googleFont.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+
+    <!-- DataTables -->
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+
+    <link rel="stylesheet" href="/resources/dist/plugins/select2/css/select2.min.css">
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="/resources/css/dark-mode.css">
+    <link rel="stylesheet" href="/resources/dashboard/tweak.css">
+
+    <!--searchPartFinderTest.html를 업그레이드 한 버전임-->
+
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: { preflight: false },
+            darkMode: ['class', 'body.dark-mode'],
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard', 'Noto Sans KR', '-apple-system', 'BlinkMacSystemFont', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* ============================================
+           기본 & 레이아웃
+        ============================================ */
+        body {
+            font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #F2F2F7;
+            color: #1C1C1E;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+
+        /* ── Navbar 프로스티드 글래스 ── */
+        .main-header.navbar {
+            background: rgba(255,255,255,0.78) !important;
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid rgba(0,0,0,0.07) !important;
+            box-shadow: none !important;
+        }
+        body.dark-mode .main-header.navbar {
+            background: rgba(28,28,30,0.88) !important;
+            border-bottom-color: rgba(255,255,255,0.08) !important;
+        }
+
+        /* ── 콘텐츠 래퍼 배경 ── */
+        .content-wrapper { background: #F2F2F7 !important; }
+        body.dark-mode .content-wrapper { background: #111114 !important; }
+
+        /* ── 페이지 헤더 영역 ── */
+        .content-header { padding: 1.25rem 0.5rem 0; }
+
+        /* ── 카드 공통 ── */
+        .spf-card {
+            background: #fff;
+            border-radius: 1.125rem;
+            border: 1px solid rgba(0,0,0,0.06);
+            box-shadow: 0 2px 16px -4px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .spf-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.875rem 1.375rem;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            background: #fff;
+        }
+        .spf-card-body { padding: 1.375rem; }
+        .spf-card-footer {
+            padding: 0.875rem 1.375rem;
+            border-top: 1px solid rgba(0,0,0,0.06);
+            background: #FAFAFA;
+        }
+        body.dark-mode .spf-card {
+            background: #1C1C1E !important;
+            border-color: rgba(255,255,255,0.06) !important;
+        }
+        body.dark-mode .spf-card-header,
+        body.dark-mode .spf-card-body { background: #1C1C1E !important; }
+        body.dark-mode .spf-card-footer {
+            background: #2C2C2E !important;
+            border-top-color: rgba(255,255,255,0.06) !important;
+        }
+
+        /* ── 카드 제목 ── */
+        .spf-card-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #1C1C1E;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0;
+        }
+        body.dark-mode .spf-card-title { color: #F5F5F7 !important; }
+
+        .title-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.625rem;
+            height: 1.625rem;
+            border-radius: 0.4375rem;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            color: white;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px -1px rgba(79,70,229,0.45);
+        }
+
+        /* ── 섹션 라벨 ── */
+        .section-label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #4F46E5;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.75rem;
+        }
+        .section-label::before {
+            content: '';
+            width: 0.3rem;
+            height: 0.3rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4F46E5, #7C3AED);
+            flex-shrink: 0;
+        }
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, rgba(79,70,229,0.2), transparent);
+        }
+        body.dark-mode .section-label { color: #A5B4FC; }
+        body.dark-mode .section-label::after { background: linear-gradient(to right, rgba(165,180,252,0.2), transparent); }
+
+        /* ── 필드 라벨 ── */
+        .field-label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #6E6E73;
+            margin-bottom: 0.3rem;
+            letter-spacing: 0.01em;
+        }
+        body.dark-mode .field-label { color: #98989D; }
+
+        /* ── 입력 필드 (Apple 스타일) ── */
+        .spf-input {
+            width: 100%;
+            height: 36px;
+            padding: 0 0.75rem;
+            font-size: 0.8125rem;
+            color: #1C1C1E;
+            background: #F2F2F7;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 0.5rem;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        .spf-input:hover { border-color: rgba(0,0,0,0.2); }
+        .spf-input:focus {
+            background: #fff;
+            border-color: #4F46E5;
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+        }
+        body.dark-mode .spf-input {
+            background: #2C2C2E !important;
+            border-color: rgba(255,255,255,0.1) !important;
+            color: #F5F5F7 !important;
+        }
+        body.dark-mode .spf-input:focus {
+            background: #3A3A3C !important;
+            border-color: #4F46E5 !important;
+        }
+
+        /* ── Select2 (Apple 스타일) ── */
+        .select2-container--default .select2-selection--single {
+            height: 36px !important;
+            border: 1px solid rgba(0,0,0,0.1) !important;
+            border-radius: 0.5rem !important;
+            background: #F2F2F7 !important;
+            transition: all 0.15s !important;
+        }
+        .select2-container--default .select2-selection--single:hover {
+            border-color: rgba(0,0,0,0.2) !important;
+        }
+        .select2-container--default.select2-container--focus .select2-selection--single,
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: #4F46E5 !important;
+            box-shadow: 0 0 0 3px rgba(79,70,229,0.15) !important;
+            background: #fff !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 34px !important;
+            padding-left: 12px !important;
+            color: #1C1C1E !important;
+            font-size: 0.8125rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 34px !important;
+            right: 4px !important;
+        }
+        body.dark-mode .select2-container--default .select2-selection--single {
+            background: #2C2C2E !important;
+            border-color: rgba(255,255,255,0.1) !important;
+        }
+        body.dark-mode .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #F5F5F7 !important;
+        }
+        body.dark-mode .select2-dropdown {
+            background: #2C2C2E !important;
+            border-color: rgba(255,255,255,0.08) !important;
+        }
+        body.dark-mode .select2-results__option { color: #E5E5EA; }
+        body.dark-mode .select2-results__option--highlighted[aria-selected] {
+            background: #4F46E5 !important;
+        }
+
+        /* ── 도움말 박스 ── */
+        .help-box {
+            background: rgba(255,204,0,0.08);
+            border: 1px solid rgba(255,204,0,0.25);
+            border-left: 3px solid #FFCC00;
+            border-radius: 0.75rem;
+            padding: 0.875rem 1rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+        body.dark-mode .help-box {
+            background: rgba(255,204,0,0.05);
+            border-color: rgba(255,204,0,0.15);
+            border-left-color: #FFCC00;
+        }
+        .help-box-icon {
+            width: 1.625rem;
+            height: 1.625rem;
+            border-radius: 50%;
+            background: #FFCC00;
+            color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .help-box h4 { margin: 0 0 0.25rem; font-size: 0.78rem; font-weight: 700; color: #5A3E00; }
+        .help-box p  { margin: 0 0 0.125rem; font-size: 0.75rem; color: #7A5500; }
+        .help-box p.req { color: #D00; font-weight: 600; }
+        body.dark-mode .help-box h4 { color: #FFD60A; }
+        body.dark-mode .help-box p  { color: #FFC929; }
+
+        /* ── 조회 버튼 ── */
+        .btn-search {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            border: none;
+            border-radius: 9999px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px -2px rgba(79,70,229,0.45);
+            transition: all 0.18s ease;
+            font-family: inherit;
+            -webkit-font-smoothing: antialiased;
+        }
+        .btn-search:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px -2px rgba(79,70,229,0.5);
+        }
+        .btn-search:active { transform: scale(0.98); }
+
+        /* ── 컬럼 토글 Pill 버튼 ── */
+        .pill-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            padding: 0.5rem;
+            background: #F2F2F7;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+        body.dark-mode .pill-wrap {
+            background: #2C2C2E;
+            border-color: rgba(255,255,255,0.06);
+        }
+        .pill-col-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.65rem;
+            font-size: 0.69rem;
+            font-weight: 600;
+            color: #3C3C43;
+            background: #fff;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+            line-height: 1.3;
+        }
+        .pill-col-btn:hover { background: #EEEEFF; border-color: #4F46E5; color: #4F46E5; }
+        .pill-col-btn.hidden-col {
+            background: #8E8E93 !important;
+            border-color: transparent !important;
+            color: #fff !important;
+        }
+        body.dark-mode .pill-col-btn {
+            background: #3A3A3C;
+            border-color: rgba(255,255,255,0.08);
+            color: #E5E5EA;
+        }
+        body.dark-mode .pill-col-btn:hover {
+            background: rgba(79,70,229,0.25);
+            border-color: #4F46E5;
+            color: #C7D2FE;
+        }
+
+        /* ── DataTables 스타일 오버라이드 ── */
+        #infoTable_wrapper { font-size: 0.8125rem; }
+        #infoTable { border-collapse: collapse !important; }
+        #infoTable thead th {
+            background: #F2F2F7 !important;
+            color: #3C3C43 !important;
+            font-weight: 700 !important;
+            font-size: 0.75rem !important;
+            border-bottom: 2px solid rgba(0,0,0,0.08) !important;
+            white-space: nowrap;
+            padding: 0.6rem 0.75rem !important;
+        }
+        #infoTable tbody tr { transition: background 0.1s; }
+        #infoTable tbody tr:hover td { background: rgba(79,70,229,0.05) !important; }
+        #infoTable td {
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.8rem !important;
+            border-color: rgba(0,0,0,0.06) !important;
+            white-space: nowrap;
+        }
+        #infoTable.dataTable.no-footer { border-bottom: 1px solid rgba(0,0,0,0.08) !important; }
+
+        /* DataTables 컨트롤 영역 */
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            font-size: 0.8rem;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid rgba(0,0,0,0.12);
+            border-radius: 0.5rem;
+            padding: 0.25rem 0.6rem;
+            outline: none;
+            background: #F2F2F7;
+            transition: all 0.15s;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus {
+            border-color: #4F46E5;
+            box-shadow: 0 0 0 2px rgba(79,70,229,0.15);
+            background: #fff;
+        }
+        .dataTables_wrapper .dataTables_length select {
+            border: 1px solid rgba(0,0,0,0.12);
+            border-radius: 0.5rem;
+            padding: 0.2rem 0.4rem;
+            background: #F2F2F7;
+        }
+        .paginate_button.current, .paginate_button.current:hover {
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%) !important;
+            border-color: transparent !important;
+            color: #fff !important;
+            border-radius: 0.375rem !important;
+        }
+        .paginate_button:hover {
+            background: rgba(79,70,229,0.08) !important;
+            border-color: rgba(79,70,229,0.2) !important;
+            color: #4F46E5 !important;
+            border-radius: 0.375rem !important;
+        }
+        /* DataTables 버튼 */
+        .dt-buttons .btn {
+            border-radius: 9999px !important;
+            font-size: 0.76rem !important;
+            font-weight: 600 !important;
+            padding: 0.3rem 0.85rem !important;
+            border: 1px solid rgba(79,70,229,0.25) !important;
+            background: rgba(79,70,229,0.06) !important;
+            color: #4F46E5 !important;
+            transition: all 0.15s !important;
+        }
+        .dt-buttons .btn:hover {
+            background: rgba(79,70,229,0.14) !important;
+            border-color: rgba(79,70,229,0.45) !important;
+        }
+
+        /* 다크모드 DataTables */
+        body.dark-mode #infoTable thead th {
+            background: #2C2C2E !important;
+            color: #EBEBF5 !important;
+            border-bottom-color: rgba(255,255,255,0.08) !important;
+        }
+        body.dark-mode #infoTable td {
+            background: #1C1C1E !important;
+            color: #E5E5EA !important;
+            border-color: rgba(255,255,255,0.05) !important;
+        }
+        body.dark-mode #infoTable tbody tr:nth-child(even) td {
+            background: #252527 !important;
+        }
+        body.dark-mode #infoTable tbody tr:hover td {
+            background: rgba(99,102,241,0.12) !important;
+        }
+        body.dark-mode .dataTables_wrapper { color: #E5E5EA; }
+        body.dark-mode .dataTables_wrapper .dataTables_filter input,
+        body.dark-mode .dataTables_wrapper .dataTables_length select {
+            background: #2C2C2E !important;
+            border-color: rgba(255,255,255,0.1) !important;
+            color: #E5E5EA !important;
+        }
+        body.dark-mode .paginate_button { color: #E5E5EA !important; }
+
+        /* ── 테마 토글 버튼 ── */
+        .theme-toggle {
+            position: relative;
+            width: 52px; height: 28px;
+            border-radius: 999px;
+            border: none; cursor: pointer; padding: 0; outline: none;
+            background: linear-gradient(135deg, #FFD60A 0%, #FF9500 100%);
+            box-shadow: 0 2px 8px rgba(255,149,0,0.38);
+            transition: background 0.35s, box-shadow 0.35s;
+            flex-shrink: 0;
+        }
+        .theme-toggle:hover { box-shadow: 0 4px 12px rgba(255,149,0,0.55); }
+        body.dark-mode .theme-toggle {
+            background: linear-gradient(135deg, #1C1C3A 0%, #3634A3 60%, #5856D6 100%);
+            box-shadow: 0 2px 8px rgba(88,86,214,0.5);
+        }
+        .theme-toggle-thumb {
+            position: absolute; top: 2px; left: 2px;
+            width: 24px; height: 24px; border-radius: 50%;
+            background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+            transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        body.dark-mode .theme-toggle-thumb { transform: translateX(24px); }
+        .ic-sun, .ic-moon { position: absolute; transition: opacity 0.25s, transform 0.25s; }
+        .ic-sun  { opacity: 1; transform: rotate(0deg) scale(1); }
+        .ic-moon { opacity: 0; transform: rotate(-45deg) scale(0.5); }
+        body.dark-mode .ic-sun  { opacity: 0; transform: rotate(45deg) scale(0.5); }
+        body.dark-mode .ic-moon { opacity: 1; transform: rotate(0deg) scale(1); }
+
+        /* ── 하단 Footer ── */
+        .main-footer {
+            background: #fff !important;
+            border-top: 1px solid rgba(0,0,0,0.06) !important;
+            color: #8E8E93 !important;
+            font-size: 0.78rem !important;
+        }
+        body.dark-mode .main-footer {
+            background: #1C1C1E !important;
+            border-top-color: rgba(255,255,255,0.06) !important;
+            color: #636366 !important;
+        }
+
+        /* ── 통계 KPI 카드 ── */
+        .stat-kpi-card {
+            border-radius: 0.875rem;
+            padding: 1rem 1.125rem;
+            background: #F8F8FA;
+            border: 1px solid rgba(0,0,0,0.06);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            text-align: center;
+            transition: box-shadow 0.18s, transform 0.18s;
+        }
+        .stat-kpi-card:hover {
+            box-shadow: 0 6px 20px -4px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+        .stat-kpi-label {
+            font-size: 0.63rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.08em;
+            color: #8E8E93; margin-bottom: 0.2rem;
+        }
+        .stat-kpi-value {
+            font-size: 1.875rem; font-weight: 800;
+            line-height: 1; letter-spacing: -0.04em;
+            margin-bottom: 0.15rem;
+            -webkit-font-smoothing: antialiased;
+        }
+        .stat-kpi-unit { font-size: 0.66rem; color: #8E8E93; }
+
+        /* ── 분포 Chip ── */
+        .stat-chip {
+            display: inline-flex; align-items: center; gap: 0.28rem;
+            padding: 0.22rem 0.65rem; border-radius: 9999px;
+            font-size: 0.7rem; font-weight: 600;
+            background: rgba(79,70,229,0.07); color: #4F46E5;
+            border: 1px solid rgba(79,70,229,0.15);
+            white-space: nowrap;
+        }
+        .chip-cnt {
+            background: #4F46E5; color: #fff; border-radius: 9999px;
+            padding: 0 0.32rem; font-size: 0.58rem; line-height: 1.65;
+        }
+        body.dark-mode .stat-kpi-card { background: #2C2C2E !important; border-color: rgba(255,255,255,0.06) !important; }
+        body.dark-mode .stat-kpi-label { color: #636366; }
+        body.dark-mode .stat-kpi-unit  { color: #48484A; }
+        body.dark-mode .stat-chip { background: rgba(79,70,229,0.12); color: #A5B4FC; border-color: rgba(79,70,229,0.2); }
+        body.dark-mode .chip-cnt { background: #4F46E5; }
+
+        /* ── 속도 바 ── */
+        .speed-bar-wrap { width:100%; background:rgba(0,0,0,0.06); border-radius:9999px; height:6px; overflow:hidden; }
+        .speed-bar      { height:100%; border-radius:9999px; background:linear-gradient(90deg,#4F46E5,#7C3AED); transition:width 0.5s ease; }
+        body.dark-mode .speed-bar-wrap { background:rgba(255,255,255,0.08); }
+
+        /* ── 동적 K-V 조건 행 ── */
+        .kv-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .kv-row-num {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #8E8E93;
+            min-width: 1.2rem;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .kv-key, .kv-value { flex: 1; min-width: 0; }
+        .kv-op  { flex: 0 0 148px; min-width: 0; height: 36px;
+            padding: 0 0.5rem 0 0.65rem; appearance: auto; cursor: pointer; }
+        .btn-remove-kv {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 1px solid rgba(220,53,69,0.25);
+            background: rgba(220,53,69,0.07);
+            color: #DC3545; cursor: pointer; font-size: 0.7rem;
+            flex-shrink: 0; transition: all 0.15s; font-family: inherit;
+        }
+        .btn-remove-kv:hover {
+            background: rgba(220,53,69,0.16);
+            border-color: rgba(220,53,69,0.5);
+            transform: scale(1.08);
+        }
+        .btn-add-kv {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.35rem 1.1rem; font-size: 0.78rem; font-weight: 700;
+            color: #4F46E5;
+            background: rgba(79,70,229,0.06);
+            border: 1.5px dashed rgba(79,70,229,0.35);
+            border-radius: 0.5rem; cursor: pointer; transition: all 0.15s;
+            font-family: inherit;
+        }
+        .btn-add-kv:hover {
+            background: rgba(79,70,229,0.13);
+            border-color: rgba(79,70,229,0.6);
+            transform: translateY(-1px);
+        }
+        body.dark-mode .btn-remove-kv {
+            background: rgba(220,53,69,0.12); border-color: rgba(220,53,69,0.2);
+        }
+        body.dark-mode .btn-add-kv {
+            background: rgba(79,70,229,0.1); border-color: rgba(79,70,229,0.3); color: #A5B4FC;
+        }
+        body.dark-mode .kv-row-num { color: #636366; }
+
+        /* ── 애니메이션 ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .anim-1 { animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both 0.03s; }
+        .anim-2 { animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both 0.08s; }
+        .anim-3 { animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both 0.14s; }
+
+        @keyframes kvFadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .kv-row { animation: kvFadeIn 0.22s cubic-bezier(0.16,1,0.3,1) both; }
+    </style>
+</head>
+
+
+<body class="hold-transition sidebar-mini text-sm" style="zoom:95%;">
+<div class="wrapper">
+
+    <!-- ========== Navbar ========== -->
+    <nav class="main-header navbar navbar-expand">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" data-widget="pushmenu" href="#" role="button">
+                    <i class="fas fa-bars"></i>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-widget="fullscreen" href="#" role="button">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <div th:replace="thymeleaf/fragments/sidebar :: sidebarFragment"></div>
+
+
+    <!-- ========== Content Wrapper ========== -->
+    <div class="content-wrapper">
+
+        <!-- ── 페이지 헤더 ── -->
+        <section class="content-header">
+            <div class="container-fluid px-4">
+
+                <!-- Hero Banner -->
+                <div class="anim-1 rounded-2xl overflow-hidden mb-5"
+                     style="background: linear-gradient(135deg, #1E1B4B 0%, #312E81 45%, #4338CA 75%, #6D28D9 100%);
+                            padding: 1.75rem 2rem;
+                            box-shadow: 0 16px 48px -8px rgba(67,56,202,0.4), 0 4px 12px -4px rgba(0,0,0,0.2);
+                            position: relative;">
+                    <!-- 배경 장식 -->
+                    <div style="position:absolute;top:-40%;right:-3%;width:420px;height:420px;border-radius:50%;
+                                background:radial-gradient(circle,rgba(139,92,246,0.22) 0%,transparent 70%);pointer-events:none;"></div>
+                    <div style="position:absolute;bottom:-50%;left:8%;width:320px;height:320px;border-radius:50%;
+                                background:radial-gradient(circle,rgba(79,70,229,0.18) 0%,transparent 70%);pointer-events:none;"></div>
+
+                    <div class="flex items-center justify-between relative" style="z-index:1;">
+                        <div class="flex items-center gap-4">
+                            <!-- 아이콘 타일 -->
+                            <div style="width:3rem;height:3rem;border-radius:0.875rem;
+                                        background:rgba(255,255,255,0.12);
+                                        border:1px solid rgba(255,255,255,0.2);
+                                        display:flex;align-items:center;justify-content:center;">
+                                <i class="fas fa-boxes" style="color:#fff;font-size:1.25rem;"></i>
+                            </div>
+                            <div>
+                                <p style="margin:0;color:rgba(255,255,255,0.55);font-size:0.65rem;font-weight:700;
+                                          text-transform:uppercase;letter-spacing:0.1em;">PLM Analytics</p>
+                                <h1 style="margin:0.2rem 0 0.15rem;color:#fff;font-size:1.625rem;
+                                           font-weight:800;letter-spacing:-0.025em;line-height:1.15;">
+                                    제품-자재 Analytics
+                                </h1>
+                                <p style="margin:0;color:rgba(255,255,255,0.65);font-size:0.8125rem;">
+                                    PLM에 등록된 제품-자재 연계 데이터 분석 대시보드
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 테마 토글 -->
+                        <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" title="라이트 / 다크 모드 전환">
+                            <span class="theme-toggle-thumb">
+                                <svg class="ic-sun" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                     stroke="#FF9500" stroke-width="2.5" stroke-linecap="round">
+                                    <circle cx="12" cy="12" r="4"/>
+                                    <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                                </svg>
+                                <svg class="ic-moon" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                     stroke="#5856D6" stroke-width="2.5" stroke-linecap="round">
+                                    <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/>
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- ========== Main Content ========== -->
+        <section class="content">
+            <div class="container-fluid px-4 pb-5">
+
+                <!-- ─── 검색 조건 카드 ─── -->
+                <div class="spf-card anim-2 mb-4">
+
+                    <div class="spf-card-header">
+                        <h3 class="spf-card-title">
+                            <span class="title-icon"><i class="fas fa-sliders-h"></i></span>
+                            검색 조건
+                        </h3>
+                        <div class="flex items-center gap-1">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse"
+                                    style="color:#8E8E93;" title="접기/펼치기">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="spf-card-body" id="searchConditionBody">
+
+                        <!-- 도움말 -->
+                        <div class="help-box mb-5">
+                            <div class="help-box-icon"><i class="fas fa-bullhorn" style="font-size:0.7rem;"></i></div>
+                            <div>
+                                <h4>도움말</h4>
+                                <p class="req">· PartNo 또는 BlockNo 중 하나는 필수입력 (속도 이슈)</p>
+                                <p>· 자재번호 입력 시, 해당 자재가 사용된 모든 제품을 조회합니다.</p>
+                                <p>· TEST, Q호기는 제외됩니다.</p>
+                                <p>· 사용방법: <code style="background:rgba(0,0,0,0.06);border-radius:3px;padding:0 4px;">26300551G0*</code>
+                                    → Like 검색 &nbsp;|&nbsp; <code style="background:rgba(0,0,0,0.06);border-radius:3px;padding:0 4px;">*</code> 없으면 EQUAL 검색</p>
+                            </div>
+                        </div>
+
+                        <!-- ▸ 기본 정보 -->
+                        <div class="section-label">기본 정보</div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-3 mb-6">
+                            <div>
+                                <label class="field-label">년도</label>
+                                <select id="year" class="spf-input" style="height:36px;padding:0 2rem 0 0.75rem;appearance:auto;cursor:pointer;">
+                                    <option selected>2026</option>
+                                    <option>2025</option>
+                                    <option>2024</option>
+                                    <option>2023</option>
+                                    <option>2022</option>
+                                    <option>2021</option>
+                                    <option>2020</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="field-label" for="partNo">Part No.</label>
+                                <input type="search" id="partNo" class="spf-input" placeholder="Part No.">
+                            </div>
+                            <div>
+                                <label class="field-label" for="blockNo">Block No.</label>
+                                <input type="search" id="blockNo" class="spf-input" placeholder="Block No.">
+                            </div>
+                            <div>
+                                <label class="field-label">제품 상태</label>
+                                <select id="status" class="form-control select" style="width:100%;">
+                                    <option value="">전체</option>
+                                    <option value="RLS" selected>릴리즈</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- ▸ 제품 사양 -->
+                        <div class="section-label">제품 사양</div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-3 mb-6">
+                            <div>
+                                <label class="field-label">브랜드</label>
+                                <select id="EL_BRAND" class="form-control select" style="width:100%;">
+                                    <option selected>-</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="field-label">생산거점 <span style="color:#8E8E93;font-weight:400;">(EL_ASPSCD)</span></label>
+                                <select id="EL_ASPSCD" class="form-control select" style="width:100%;">
+                                    <option selected>-</option>
+                                    <option value="KR00">국내(KR00)</option>
+                                    <option value="KC01">국내+상해(KC01)</option>
+                                    <option value="KC02">국내+상해 모듈러(KC02)</option>
+                                    <option value="IN_HYBRID01">국내_전기+인도_기계(IN_HYBRID01)</option>
+                                    <option value="HD_HD">US-[기계]HD_[전기]HD(HD_HD)</option>
+                                    <option value="GAL_INNOV">US-[기계]GAL_[전기]INNOV(GAL_INNOV)</option>
+                                    <option value="GAL_HD">US-[기계]GAL_[전기]HD(GAL_HD)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="field-label">기종 <span style="color:#8E8E93;font-weight:400;">(EL_ATYP)</span></label>
+                                <select id="EL_ATYP" class="form-control select" style="width:100%;">
+                                    <option selected>-</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="field-label">기계구조 최초설계일</label>
+                                <input type="search" id="EL_ZFDA" class="spf-input mb-1" placeholder="ex. 20260130">
+                                <select id="EL_ZFDA_TYPE" class="spf-input" style="height:32px;padding:0 1.5rem 0 0.65rem;appearance:auto;font-size:0.72rem;cursor:pointer;">
+                                    <option value="=" selected>일치 ( = )</option>
+                                    <option value=">=">이상 ( &gt;= )</option>
+                                    <option value=">">초과 ( &gt; )</option>
+                                    <option value="<=">이하 ( &lt;= )</option>
+                                    <option value="<">미만 ( &lt; )</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- ▸ 옵션 -->
+                        <div class="section-label">옵션</div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-3">
+                            <div>
+                                <label class="field-label" for="cmt">CMT</label>
+                                <input type="search" id="cmt" class="spf-input" placeholder="cmt...">
+                            </div>
+                            <div>
+                                <label class="field-label" for="spec">SPEC</label>
+                                <input type="search" id="spec" class="spf-input" placeholder="spec...">
+                            </div>
+                            <div>
+                                <label class="field-label">관통 <span style="color:#8E8E93;font-weight:400;">(EL_ETHRU)</span></label>
+                                <select id="EL_ETHRU" class="form-control select" style="width:100%;">
+                                    <option value="" selected>-</option>
+                                    <option value="Y">YES</option>
+                                    <option value="N">NO</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="field-label">전망 타입 <span style="color:#8E8E93;font-weight:400;">(EL_COB)</span></label>
+                                <select id="EL_COB" class="form-control select" style="width:100%;">
+                                    <option value="" selected>-</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="field-label">WALL 구조 <span style="color:#8E8E93;font-weight:400;">(EL_BWALLT)</span></label>
+                                <select id="EL_BWALLT" class="form-control select" style="width:100%;">
+                                    <option value="" selected>-</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- ▸ 동적 조건 (Key – 조건 – Value) -->
+                        <div class="section-label" style="margin-top:1.5rem;">
+                            동적 조건
+                            <span style="font-size:0.6rem;font-weight:400;color:#8E8E93;
+                                         text-transform:none;letter-spacing:0;margin-left:0.25rem;">
+                                (Key &nbsp;–&nbsp; 조건 &nbsp;–&nbsp; Value)
+                            </span>
+                        </div>
+
+                        <!-- 행 컨테이너 -->
+                        <div id="kvConditionList" class="flex flex-col gap-2 mb-3">
+                            <!-- JS로 동적 추가 -->
+                        </div>
+
+                        <!-- 추가 버튼 -->
+                        <button type="button" class="btn-add-kv" onclick="addKeyValueRow()">
+                            <i class="fas fa-plus" style="font-size:0.7rem;"></i>&ensp;조건 추가
+                        </button>
+
+                    </div>
+
+                    <!--
+                    <div class="spf-card-footer flex justify-end">
+                        <button type="button" class="btn-search" onclick="searchInteractive()">
+                            <i class="fas fa-search" style="font-size:0.8rem;"></i>
+                            인터렉티브
+                        </button>
+                    </div>
+                    -->
+
+                    <div class="spf-card-footer flex justify-end">
+                        <button type="button" class="btn-search" onclick="searchInteractive()">
+                            <i class="fas fa-search" style="font-size:0.8rem;"></i>
+                            인터렉티브
+                        </button>
+
+                        <button type="button" class="btn-search" onclick="searchGraph()">
+                            <i class="fas fa-search" style="font-size:0.8rem;"></i>
+                            그래프
+                        </button>
+
+                        <button type="button" class="btn-search" onclick="searchPID()">
+                            <i class="fas fa-search" style="font-size:0.8rem;"></i>
+                            분석
+                        </button>
+                    </div>
+                </div>
+
+
+                <!-- ─── 통계 패널 (조회 후 표시) ─── -->
+                <div id="statsPanel" class="spf-card mb-4" style="display:none;">
+
+                    <div class="spf-card-header">
+                        <h3 class="spf-card-title">
+                            <span class="title-icon"><i class="fas fa-chart-bar"></i></span>
+                            조회 결과 통계
+                        </h3>
+                        <span id="statsTotalBadge"
+                              style="font-size:0.72rem;font-weight:700;color:#4F46E5;
+                                     background:rgba(79,70,229,0.08);border:1px solid rgba(79,70,229,0.18);
+                                     padding:0.18rem 0.65rem;border-radius:9999px;">
+                        </span>
+                    </div>
+
+                    <div class="spf-card-body">
+
+                        <!-- KPI 수치 -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                            <div class="stat-kpi-card">
+                                <p class="stat-kpi-label">전체 결과</p>
+                                <p class="stat-kpi-value" style="color:#4F46E5;" id="statTotal">-</p>
+                                <p class="stat-kpi-unit">건</p>
+                            </div>
+                            <div class="stat-kpi-card">
+                                <p class="stat-kpi-label">고유 제품 수</p>
+                                <p class="stat-kpi-value" style="color:#7C3AED;" id="statProducts">-</p>
+                                <p class="stat-kpi-unit">종</p>
+                            </div>
+                            <div class="stat-kpi-card">
+                                <p class="stat-kpi-label">평균 속도</p>
+                                <p class="stat-kpi-value" style="color:#0EA5E9;" id="statSpeedAvg">-</p>
+                                <p class="stat-kpi-unit">m/min</p>
+                            </div>
+                            <div class="stat-kpi-card">
+                                <p class="stat-kpi-label">속도 범위</p>
+                                <p class="stat-kpi-value" style="color:#10B981;font-size:1.2rem;" id="statSpeedRange">-</p>
+                                <p class="stat-kpi-unit">m/min</p>
+                            </div>
+                        </div>
+
+                        <!-- 분포 섹션 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+
+                            <!-- 브랜드 분포 -->
+                            <div>
+                                <div class="section-label">브랜드 분포</div>
+                                <div id="statBrandDist" class="flex flex-wrap gap-1.5 mt-1"></div>
+                            </div>
+
+                            <!-- 기종 분포 -->
+                            <div>
+                                <div class="section-label">기종 분포</div>
+                                <div id="statGisongDist" class="flex flex-wrap gap-1.5 mt-1"></div>
+                            </div>
+
+                            <!-- 속도 분포 -->
+                            <div>
+                                <div class="section-label">속도 구간 분포</div>
+                                <div id="statSpeedDist" class="flex flex-col gap-1.5 mt-1"></div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- ─── 결과 카드 ─── -->
+                <div class="spf-card anim-3">
+
+                    <div class="spf-card-header">
+                        <h3 class="spf-card-title">
+                            <span class="title-icon"><i class="fas fa-table"></i></span>
+                            조회 결과
+                        </h3>
+                    </div>
+
+                    <div class="spf-card-body">
+
+                        <!-- 컬럼 토글 -->
+                        <div class="section-label">표시 컬럼</div>
+                        <div id="columnToggleToolbar" class="mb-4">
+                            <div class="pill-wrap" role="group" aria-label="컬럼 토글">
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(0,this)">제품번호</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(1,this)">제품버전</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(2,this)">제품상태</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(3,this)">제품수정일</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(4,this)">최초설계일</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(5,this)">브랜드</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(6,this)">기종</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(7,this)">속도</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(8,this)">생산거점</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(9,this)">관통</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(10,this)">전망타입</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(11,this)">용량</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(12,this)">CAR_BG</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(13,this)">CWT_BG</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(14,this)">CWT폭</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(15,this)">품번</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(16,this)">품명</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(17,this)">SPEC</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(18,this)">QTY</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(19,this)">BlockNo.</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(20,this)">품목</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(21,this)">GL_CODE</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(22,this)">버전</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(23,this)">cmt</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(24,this)">WALL 구조</button>
+                            </div>
+                        </div>
+
+                        <!-- DataTable -->
+                        <div style="border-radius:0.75rem;overflow:hidden;border:1px solid rgba(0,0,0,0.06);box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+                            <table id="infoTable"
+                                   class="table table-bordered table-hover"
+                                   style="width:100%;font-size:0.8125rem;">
+                                <thead>
+                                <tr>
+                                    <th>제품번호</th>
+                                    <th>제품버전</th>
+                                    <th>제품상태</th>
+                                    <th>제품수정일</th>
+                                    <th>기계구조 최초설계일</th>
+                                    <th>브랜드</th>
+                                    <th>기종</th>
+                                    <th>속도</th>
+                                    <th>생산거점</th>
+                                    <th>관통</th>
+                                    <th>전망타입</th>
+                                    <th>용량</th>
+                                    <th>CAR_BG</th>
+                                    <th>CWT_BG</th>
+                                    <th>CWT폭</th>
+                                    <th>품번</th>
+                                    <th>품명</th>
+                                    <th>SPEC</th>
+                                    <th>QTY</th>
+                                    <th>BlockNo.</th>
+                                    <th>품목</th>
+                                    <th>GL_CODE</th>
+                                    <th>버전</th>
+                                    <th>cmt</th>
+                                    <th>WALL 구조</th>
+                                </tr>
+                                </thead>
+                                <tbody id="contentTable"></tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </div>
+
+
+    <footer class="main-footer">
+        <div class="float-right d-none d-sm-block"><b>Version</b> 1.0.0</div>
+        <strong>Copyright &copy; 2025
+            <a href="#" style="color:#4F46E5;font-weight:600;">수배로직설계팀-김영환 M</a>.
+        </strong> All rights reserved.
+    </footer>
+
+    <aside class="control-sidebar control-sidebar-dark"></aside>
+</div>
+
+
+<!-- Scripts -->
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+<script src="/resources/dist/js/adminlte.min.js"></script>
+<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+<!-- DataTables -->
+<script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/jszip/jszip.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/pdfmake.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/vfs_fonts.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
+
+<script src="/resources/dist/plugins/select2/js/select2.full.min.js"></script>
+
+<script src="/resources/javascript/searchPartAnalysis.js"></script>
+<script src="/resources/javascript/commonUtil.js"></script>
+
+<script>
+    /* ── 컬럼 숨기기 / 복원 ── */
+    function getHiddenCols() {
+        try { const v = localStorage.getItem('spf_hidden_cols'); return v ? JSON.parse(v) : []; } catch(e) { return []; }
+    }
+    function setHiddenCols(arr) {
+        try { localStorage.setItem('spf_hidden_cols', JSON.stringify(arr)); } catch(e) {}
+    }
+
+    function applyButtonState(idx, visible) {
+        const btns = document.querySelectorAll('#columnToggleToolbar .pill-wrap button');
+        const btn  = btns && btns[idx] ? btns[idx] : null;
+        if (!btn) return;
+        if (visible) btn.classList.remove('hidden-col');
+        else         btn.classList.add('hidden-col');
+        btn.setAttribute('aria-pressed', visible ? 'false' : 'true');
+    }
+
+    function syncColumnButtons() {
+        if (!$.fn.DataTable.isDataTable('#infoTable')) return;
+        const table = $('#infoTable').DataTable();
+        table.columns().every(function(i) {
+            applyButtonState(i, this.visible());
+        });
+    }
+
+    function hideColumn(colIndex, btn) {
+        if (!$.fn.DataTable.isDataTable('#infoTable')) return;
+        const table = $('#infoTable').DataTable();
+        const nowVisible = table.column(colIndex).visible();
+        table.column(colIndex).visible(!nowVisible);
+
+        let hidden = getHiddenCols();
+        if (nowVisible) {
+            if (!hidden.includes(colIndex)) hidden.push(colIndex);
+        } else {
+            hidden = hidden.filter(i => i !== colIndex);
+        }
+        setHiddenCols(hidden);
+        applyButtonState(colIndex, !nowVisible);
+    }
+
+    window.syncColumnButtons = syncColumnButtons;
+
+    /* ── 테마 토글 ── */
+    function toggleTheme() {
+        const isDark = document.body.classList.toggle('dark-mode');
+        localStorage.setItem('spf_theme', isDark ? 'dark' : 'light');
+    }
+    if (localStorage.getItem('spf_theme') === 'dark') document.body.classList.add('dark-mode');
+
+    /* ── 초기화 ── */
+    $(document).ready(function() {
+        setTimeout(function() {
+            if (typeof window.syncColumnButtons === 'function') window.syncColumnButtons();
+        }, 250);
+    });
+</script>
+
+</body>
+</html>

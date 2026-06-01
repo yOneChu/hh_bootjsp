@@ -258,11 +258,11 @@ public class SubaeController {
      * 자재 Finder 화면 (최신)
      * @return
      */
-    @GetMapping("/subae/searchPartFinderTest")
+/*    @GetMapping("/subae/searchPartFinderTest")
     public String searchPartFinderTest() {
         //return "subaeLogic/searchPartFinder";
         return "thymeleaf/searchPartFinderTest";
-    }
+    }*/
 
 
     /**
