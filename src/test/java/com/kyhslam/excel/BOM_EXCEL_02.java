@@ -31,7 +31,7 @@ public class BOM_EXCEL_02 {
         ArrayList<String> hogiList = new ArrayList<>();
 
         //String fileName = "d:\\excel\\BOM원복리스트_2차분_102대_20260421.xlsx";
-        String fileName = "c:\\excel\\M12.XLSX";
+        String fileName = "c:\\excel\\TEST.xlsx";
 
         FileInputStream fis = null;
         FileOutputStream fos = null;
