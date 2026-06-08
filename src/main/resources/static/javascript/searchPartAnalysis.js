@@ -21,7 +21,7 @@ function addKeyValueRow() {
         '<span class="kv-row-num">1</span>' +
 
         '<input type="text" class="spf-input kv-key"' +
-        ' placeholder="Key  (예: SPEC, CMT, BRAND …)"' +
+        ' placeholder="Key  (예: EL_ECAA, EL_ECWRL …)"' +
         ' autocomplete="off">' +
 
         '<select class="spf-input kv-op">' +

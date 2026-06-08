@@ -1126,7 +1126,7 @@ public class SubaeCommonUtil {
                 }
             }
 
-            //System.out.println("sql = " + sql);
+            System.out.println("sql = " + sql);
 
             pstmt = con.prepareStatement(sql.toString());
             //pstmt.setString(1, productOID);

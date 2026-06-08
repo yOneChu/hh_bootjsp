@@ -388,6 +388,8 @@ public class SubaeService {
         apiUrl += "&isfloor=" + isfloor;
         apiUrl += "&floor=" + floor;
 
+        //http://localhost/plmetc/vault/pidExecute?PID=EL_PB186A01&hogi=208223L01&testVersion=&isfloor=N&floor=
+        //https://plmpro.hdel.co.kr/plmetc/vault/pidExecute?PID=EL_PB186A01&hogi=208223L01&testVersion=&isfloor=N&floor=
 
         try {
             // URL 객체 생성
