@@ -1,9 +1,12 @@
 package com.kyhslam.controller;
 
 import com.kyhslam.dto.PartInfoDTO;
+import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.MLBService;
 import com.kyhslam.service.SubaeService;
+import com.kyhslam.util.InventorCommonUtil;
 import com.kyhslam.util.MLBCommonUtil;
+import com.kyhslam.util.ProductCommonUtil;
 import com.kyhslam.util.SendMail;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,6 +65,22 @@ public class APIController {
         }
 
         return result;
+    }
+
+    @Description("BOM 1레벨 조회")
+    @GetMapping("/api/findProductInfo")
+    @CrossOrigin
+    @ResponseBody
+    public ArrayList<ProductDto> findProductInfo(String productNo, String key) throws Exception {
+
+        ArrayList<ProductDto> bomList = new ArrayList<ProductDto>();
+
+        if ("subae".equals(key)) {
+            //result = InventorCommonUtil.findProductInfo(productNo);
+            bomList = ProductCommonUtil.findProductInfo(productNo);
+        }
+
+        return bomList;
     }
 
 
