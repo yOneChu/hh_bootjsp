@@ -1,13 +1,11 @@
 package com.kyhslam.controller;
 
+import com.kyhslam.dto.ElvWhere;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.MLBService;
 import com.kyhslam.service.SubaeService;
-import com.kyhslam.util.InventorCommonUtil;
-import com.kyhslam.util.MLBCommonUtil;
-import com.kyhslam.util.ProductCommonUtil;
-import com.kyhslam.util.SendMail;
+import com.kyhslam.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Description;
@@ -22,7 +20,6 @@ import java.util.HashMap;
 public class APIController {
 
     private final MLBService mlbService;
-
     private final SubaeService subaeService;
 
     @Description("수량 PID 조회 로직")
@@ -38,6 +35,7 @@ public class APIController {
         return resultList;
     }
 
+
     @Description("품번으로 속성정보 조회")
     @CrossOrigin
     @GetMapping("/api/findPartOneWithPartNo")
@@ -52,7 +50,7 @@ public class APIController {
         return result;
     }
 
-    //품번으로 하위 BOM 조회
+
     @Description("품번으로 하위 BOM 조회")
     @CrossOrigin
     @GetMapping("/api/findAssyDownBOM")
@@ -66,6 +64,7 @@ public class APIController {
 
         return result;
     }
+
 
     @Description("BOM 1레벨 조회")
     @GetMapping("/api/findProductInfo")
@@ -90,10 +89,28 @@ public class APIController {
     @CrossOrigin
     public HashMap<String, String> pidExecute(String pid, String hogi, String testVersion,
                                               String floor, String isfloor, String key) {
-
         HashMap<String, String> result = new HashMap<>();
         if ("subae".equals(key)) {
             result = subaeService.pidExecute(hogi, pid, testVersion, floor, isfloor);
+        }
+
+        return  result;
+    }
+
+
+    @Description("영업사양")
+    @GetMapping("/api/findElvSearch")
+    @ResponseBody
+    @CrossOrigin
+    public ArrayList<HashMap<String, String>> findElvSearch(String key, String productNo) {
+        //http://localhost:8070/api/findElvSearch?key=subae&productNo=TEST-624822
+        ArrayList<HashMap<String, String>> result = new ArrayList<HashMap<String, String>>();
+        //ElvWhere whereCond = new ElvWhere();
+        //whereCond.setHogi(productNo);
+
+        if ("subae".equals(key)) {
+            //result = ElvInfoCommonUtil.findElvSearch(whereCond);
+            result = ElvInfoCommonUtil.getSalesInfo(productNo);
         }
 
         return  result;
@@ -110,6 +127,4 @@ public class APIController {
             SendMail.sendToSubaeMail(sender, toEmail, ccEmail, subject, htmlContent);
         }
     }
-
-
 }
