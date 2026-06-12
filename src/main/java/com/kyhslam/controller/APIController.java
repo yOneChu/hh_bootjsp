@@ -4,10 +4,7 @@ import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.MLBService;
 import com.kyhslam.service.SubaeService;
-import com.kyhslam.util.InventorCommonUtil;
-import com.kyhslam.util.MLBCommonUtil;
-import com.kyhslam.util.ProductCommonUtil;
-import com.kyhslam.util.SendMail;
+import com.kyhslam.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Description;
@@ -51,6 +48,25 @@ public class APIController {
 
         return result;
     }
+
+    @Description("영업사양")
+    @GetMapping("/api/findElvSearch")
+    @ResponseBody
+    @CrossOrigin
+    public ArrayList<HashMap<String, String>> findElvSearch(String key, String productNo) {
+        //http://localhost:8070/api/findElvSearch?key=subae&productNo=TEST-624822
+        ArrayList<HashMap<String, String>> result = new ArrayList<HashMap<String, String>>();
+        //ElvWhere whereCond = new ElvWhere();
+        //whereCond.setHogi(productNo);
+
+        if ("subae".equals(key)) {
+            //result = ElvInfoCommonUtil.findElvSearch(whereCond);
+            result = ElvInfoCommonUtil.getSalesInfo(productNo);
+        }
+
+        return  result;
+    }
+
 
     //품번으로 하위 BOM 조회
     @Description("품번으로 하위 BOM 조회")
