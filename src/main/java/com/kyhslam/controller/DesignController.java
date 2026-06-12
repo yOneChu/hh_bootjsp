@@ -48,7 +48,6 @@ public class DesignController {
     }
 
 
-
     @Description("월별 등록 및 완료 건수")
     @GetMapping("/findMonthData")
     @ResponseBody
@@ -66,7 +65,6 @@ public class DesignController {
         ArrayList<DesignRequestDTO> result = DesignReqCommonUtil.findDesignReqFromType(reqType, designType);
         return result;
     }
-
 
 
     @GetMapping("/findDashboard")
