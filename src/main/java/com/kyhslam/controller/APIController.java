@@ -52,6 +52,7 @@ public class APIController {
         return result;
     }
 
+    //품번으로 하위 BOM 조회
     @Description("품번으로 하위 BOM 조회")
     @CrossOrigin
     @GetMapping("/api/findAssyDownBOM")
