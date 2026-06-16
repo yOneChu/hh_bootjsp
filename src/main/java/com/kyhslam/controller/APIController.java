@@ -134,9 +134,7 @@ public class APIController {
         //https://vault-in.hdel.co.kr:8070/api/executeQuery?key=subae&sql=
         List<Map<String, Object>> result = new ArrayList<>();
 
-
         if("subae".equals(key)){
-
             if(sql != null && !sql.isEmpty()) {
                 if( !sql.contains("SELECT") ) {
                     Map<String, Object> row = new LinkedHashMap<>();
@@ -146,7 +144,6 @@ public class APIController {
                     return result;
                 }
             }
-
             result = SQLCommonUtil.executeQuery(sql);
         }
         return result;
