@@ -10,8 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Description;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -127,5 +126,30 @@ public class APIController {
         }
     }
 
+    @Description("쿼리 수행")
+    @GetMapping("/api/executeQuery")
+    @ResponseBody
+    @CrossOrigin
+    public List<Map<String, Object>> executeQuery(String key, String sql) {
+        //https://vault-in.hdel.co.kr:8070/api/executeQuery?key=subae&sql=
+        List<Map<String, Object>> result = new ArrayList<>();
+
+
+        if("subae".equals(key)){
+
+            if(sql != null && !sql.isEmpty()) {
+                if( !sql.contains("SELECT") ) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("MSG", "수정, 삭제 등 쿼리는 수행할 수 없습니다.");
+                    result.add(row);
+
+                    return result;
+                }
+            }
+
+            result = SQLCommonUtil.executeQuery(sql);
+        }
+        return result;
+    }
 
 }
