@@ -186,10 +186,16 @@
                                 <p>(신)전산요청 현황</p>
                             </a>
                         </li>--%>
-                        <li>
+                        <%--<li>
                             <a href="/subae/searchMissPartofProduct" class="nav-link">
-                                <%--<p>자재 실적 전체 조회(ERP 전송현장 포함)(테스트)</p>--%>
+                                &lt;%&ndash;<p>자재 실적 전체 조회(ERP 전송현장 포함)(테스트)</p>&ndash;%&gt;
                                    <p>PLM 제품·자재 데이터분석 </p>
+                            </a>
+                        </li>--%>
+
+                        <li>
+                            <a href="/dash/searchPartAnalysis" class="nav-link">
+                                <p>PLM 제품-자재 Analytics </p>
                             </a>
                         </li>
 
