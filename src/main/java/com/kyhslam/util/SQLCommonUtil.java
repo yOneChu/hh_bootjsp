@@ -23,7 +23,8 @@ public class SQLCommonUtil {
 
         try {
 
-            con = PLMDBConnection.getConnection();
+            //con = PLMDBConnection.getConnection();
+            con = PLMDBConnection.getSelectConnection(); //조회전용
             pstmt = con.prepareStatement(sql.toString());
 
             //---

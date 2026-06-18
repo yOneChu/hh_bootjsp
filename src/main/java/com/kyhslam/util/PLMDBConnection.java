@@ -8,13 +8,31 @@ public class PLMDBConnection {
 
         Connection con 			= null;
 
-
         try {
 
             Class.forName("oracle.jdbc.driver.OracleDriver");
             String url = "jdbc:oracle:thin:@newplm-prod-db.cdqjoonblwol.ap-northeast-2.rds.amazonaws.com:1521/PLMPRD";
             String id = "hdel_default";
             String pass = "hdel_default";
+
+            con = DriverManager.getConnection(url, id, pass);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return con;
+    }
+
+    public static Connection getSelectConnection() {
+
+        Connection con 			= null;
+
+        try {
+
+            Class.forName("oracle.jdbc.driver.OracleDriver");
+            String url = "jdbc:oracle:thin:@newplm-prod-db.cdqjoonblwol.ap-northeast-2.rds.amazonaws.com:1521/PLMPRD";
+            String id = "PLMUSER";
+            String pass = "PLMUSER";
 
             con = DriverManager.getConnection(url, id, pass);
 
