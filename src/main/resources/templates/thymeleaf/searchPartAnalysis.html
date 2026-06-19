@@ -812,6 +812,18 @@
                                     <option value="<">미만 ( &lt; )</option>
                                 </select>
                             </div>
+
+                            <div>
+                                <label class="field-label">전기구조 최초설계일(EL_ZFDC)</label>
+                                <input type="search" id="EL_ZFDC" class="spf-input mb-1" placeholder="ex. 20260130">
+                                <select id="EL_ZFDC_TYPE" class="spf-input" style="height:32px;padding:0 1.5rem 0 0.65rem;appearance:auto;font-size:0.72rem;cursor:pointer;">
+                                    <option value="=" selected>일치 ( = )</option>
+                                    <option value=">=">이상 ( &gt;= )</option>
+                                    <option value=">">초과 ( &gt; )</option>
+                                    <option value="<=">이하 ( &lt;= )</option>
+                                    <option value="<">미만 ( &lt; )</option>
+                                </select>
+                            </div>
                         </div>
 
                         <!-- ▸ 옵션 -->
@@ -983,7 +995,7 @@
                                 <button type="button" class="pill-col-btn" onclick="hideColumn(1,this)">제품버전</button>
                                 <button type="button" class="pill-col-btn" onclick="hideColumn(2,this)">제품상태</button>
                                 <button type="button" class="pill-col-btn" onclick="hideColumn(3,this)">제품수정일</button>
-                                <button type="button" class="pill-col-btn" onclick="hideColumn(4,this)">최초설계일</button>
+                                <button type="button" class="pill-col-btn" onclick="hideColumn(4,this)">기계구조 최초설계일</button>
                                 <button type="button" class="pill-col-btn" onclick="hideColumn(5,this)">브랜드</button>
                                 <button type="button" class="pill-col-btn" onclick="hideColumn(6,this)">기종</button>
                                 <button type="button" class="pill-col-btn" onclick="hideColumn(7,this)">속도</button>

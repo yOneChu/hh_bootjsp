@@ -31,7 +31,7 @@ public class AnalysisController {
     private final SubaeService subaeService;
 
     /**
-     * 자재 Finder 화면 (최신)
+     * 데이터분석 화면 (최신)
      * @return
      */
     @GetMapping("/dash/searchPartAnalysis")

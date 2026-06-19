@@ -849,6 +849,8 @@ public class SubaeCommonUtil {
         String vEL_COB = whereCond.getEL_COB();
         String vEL_ZFDA = whereCond.getEL_ZFDA();
         String vEL_ZFDA_TYPE = whereCond.getEL_ZFDA_TYPE();
+        String vEL_ZFDC = whereCond.getEL_ZFDC();
+        String vEL_ZFDC_TYPE = whereCond.getEL_ZFDC_TYPE();
         String vEL_BWALLT = whereCond.getEL_BWALLT();
 
         if (pBlockNo != null && !"".equals(pBlockNo)) {
@@ -1086,6 +1088,7 @@ public class SubaeCommonUtil {
                 }
             }
 
+            //기계구조 최초설계
             if (vEL_ZFDA != null && !"".equals(vEL_ZFDA.trim()) && !"-".equals(vEL_ZFDA)) {
                 vEL_ZFDA = vEL_ZFDA.trim();
 
@@ -1094,7 +1097,19 @@ public class SubaeCommonUtil {
                         WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
                         """;
 
-                sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) " + vEL_ZFDA_TYPE + "'" + vEL_ZFDA + "' ";
+                sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) " + vEL_ZFDA_TYPE + " '" + vEL_ZFDA + "' ";
+            }
+
+            //전기구조 최초설계
+            if (vEL_ZFDC != null && !"".equals(vEL_ZFDC.trim()) && !"-".equals(vEL_ZFDC)) {
+                vEL_ZFDC = vEL_ZFDC.trim();
+
+                sql += """
+                        AND (SELECT E.EL_ZFDC FROM ELV_INFO$ID A, ELV_INFO$VF E
+                        WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip
+                        """;
+
+                sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) " + vEL_ZFDC_TYPE + " '" + vEL_ZFDC + "' ";
             }
 
 

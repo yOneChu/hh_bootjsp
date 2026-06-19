@@ -22,6 +22,8 @@ public class PartWhere {
     String EL_COB; //전망타입
     String EL_ZFDA;
     String EL_ZFDA_TYPE;
+    String EL_ZFDC;
+    String EL_ZFDC_TYPE;
     String EL_BWALLT; //WALL 구조
 
     String kvConditions;   // JSON 배열 문자열 ex) [{"key":"SPEC","op":"like","value":"ABC"}]

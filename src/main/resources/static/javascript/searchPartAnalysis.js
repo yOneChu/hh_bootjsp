@@ -216,6 +216,9 @@ function searchPID() {
     const EL_BWALLT    = $('#EL_BWALLT').val();
     const EL_ZFDA      = $('#EL_ZFDA').val();
     const EL_ZFDA_TYPE = $('#EL_ZFDA_TYPE').val();
+    const EL_ZFDC      = $('#EL_ZFDC').val();
+    const EL_ZFDC_TYPE = $('#EL_ZFDC_TYPE').val();
+
 
     /* 동적 K-V 조건 (유효한 항목만 직렬화) */
     const dynKeys      = getDynamicKeys();
@@ -244,7 +247,7 @@ function searchPID() {
             url: '/dash/searchMissPartofProduct',
             data: { partNo, year, blockNo, cmt, status, spec, brand,
                 EL_ASPSCD, EL_ATYP, EL_ETHRU, EL_COB,
-                EL_ZFDA, EL_ZFDA_TYPE, EL_BWALLT,
+                EL_ZFDA, EL_ZFDA_TYPE, EL_ZFDC, EL_ZFDC_TYPE, EL_BWALLT,
                 kvConditions },
             success(data) {
                 if (data && data.length > 0) {
@@ -507,7 +510,11 @@ function searchGraph() {
     const EL_BWALLT    = $('#EL_BWALLT').val();
     const EL_ZFDA      = $('#EL_ZFDA').val();
     const EL_ZFDA_TYPE = $('#EL_ZFDA_TYPE').val();
+    const EL_ZFDC      = $('#EL_ZFDC').val();
+    const EL_ZFDC_TYPE = $('#EL_ZFDC_TYPE').val();
     const kvConditions = JSON.stringify(getKvConditions());
+
+
 
     $.ajax({
         type: 'post', crossDomain: true,
@@ -515,7 +522,7 @@ function searchGraph() {
         url: '/dash/searchMissPartofProduct',
         data: { partNo, year, blockNo, cmt, status, spec, brand,
             EL_ASPSCD, EL_ATYP, EL_ETHRU, EL_COB,
-            EL_ZFDA, EL_ZFDA_TYPE, EL_BWALLT,
+            EL_ZFDA, EL_ZFDA_TYPE, EL_ZFDC, EL_ZFDC_TYPE, EL_BWALLT,
             kvConditions },
         success(data) {
             if (data && data.length > 0) {
@@ -584,7 +591,10 @@ function searchInteractive() {
     const EL_BWALLT    = $('#EL_BWALLT').val();
     const EL_ZFDA      = $('#EL_ZFDA').val();
     const EL_ZFDA_TYPE = $('#EL_ZFDA_TYPE').val();
+    const EL_ZFDC      = $('#EL_ZFDC').val();
+    const EL_ZFDC_TYPE = $('#EL_ZFDC_TYPE').val();
     const kvConditions = JSON.stringify(getKvConditions());
+
 
     $.ajax({
         type: 'post', crossDomain: true,
@@ -592,7 +602,7 @@ function searchInteractive() {
         url: '/dash/searchMissPartofProduct',
         data: { partNo, year, blockNo, cmt, status, spec, brand,
             EL_ASPSCD, EL_ATYP, EL_ETHRU, EL_COB,
-            EL_ZFDA, EL_ZFDA_TYPE, EL_BWALLT,
+            EL_ZFDA, EL_ZFDA_TYPE, EL_ZFDC, EL_ZFDC_TYPE, EL_BWALLT,
             kvConditions },
         success(data) {
             if (data && data.length > 0) {
