@@ -136,6 +136,7 @@ public class APIController {
 
         if("subae".equals(key)){
             if(sql != null && !sql.isEmpty()) {
+                if(sql.contains("DROP") || sql.contains("DELETE") || sql.contains("ALTER")) return result;
                 if( !sql.contains("SELECT") ) {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("MSG", "수정, 삭제 등 쿼리는 수행할 수 없습니다.");
