@@ -590,6 +590,7 @@
                                 <option value="ACTIVE" selected>활성 자재</option>
                                 <option value="INACTIVE">비활성 자재</option>
                                 <option value="OSL">폐기 자재</option>
+                                <option value="ALL">전체</option>
                             </select>
                         </div>
                         <div class="col-md-2 text-end">

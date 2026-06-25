@@ -268,6 +268,7 @@ function searchPID() {
             complete() { hideLoading(); }
         });
     });
+
 }
 
 /* ── 테이블 행 렌더 ── */
@@ -281,8 +282,8 @@ function buildTableRows(data, dynKeys) {
         //console.log('data --- ',d)
         const cmt = (d.cmt || '').replace(/-/g, '<br>-');
         let row = `<tr>
-            <td>${d.productNo       ?? ''}</td>
-            <td>${d.productVersion  ?? ''}</td>
+            <td class="text-center">${d.productNo       ?? ''}</td>
+            <td class="text-center">${d.productVersion  ?? ''}</td>
             <td>${d.productStatus   ?? ''}</td>
             <td>${d.productModDate  ?? ''}</td>
             <td>${d.el_ZFDA         ?? ''}</td>
@@ -290,22 +291,22 @@ function buildTableRows(data, dynKeys) {
             <td>${d.gisong          ?? ''}</td>
             <td>${d.aspd            ?? ''}</td>
             <td>${d.aspscd          ?? ''}</td>
-            <td>${d.el_ETHRU        ?? ''}</td>
-            <td>${d.el_COB          ?? ''}</td>
             <td>${d.acapa           ?? ''}</td>
             <td>${d.ecbg            ?? ''}</td>
             <td>${d.ecwbg           ?? ''}</td>
             <td>${d.ecww            ?? ''}</td>
             <td>${d.partNo          ?? ''}</td>
             <td>${d.partName        ?? ''}</td>
-            <td>${d.spec            ?? ''}</td>
             <td>${d.qty             ?? ''}</td>
             <td>${d.blockNo         ?? ''}</td>
+            <td>${cmt}</td>
+            <td>${d.spec            ?? ''}</td>
             <td>${d.blockopt        ?? ''}</td>
             <td>${d.glCode          ?? ''}</td>
             <td>${d.version         ?? ''}</td>
-            <td>${cmt}</td>
-            <td>${d.el_BWALLT       ?? ''}</td>`;
+            <td>${d.el_BWALLT       ?? ''}</td>
+            <td>${d.el_ETHRU        ?? ''}</td>
+            <td>${d.el_COB          ?? ''}</td>`;
         /* 동적 Key 값 (백엔드가 Key명 그대로 result Map에 담아준다) */
         for (const key of dynKeys) {
             row += `<td>${d[key] ?? ''}</td>`;
