@@ -576,14 +576,11 @@
                             </select>
                         </div>--%>
 
-                        <div class="col-md-1">
-                            <label class="form-label small text-muted">기간</label>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">자재 생성일</label>
                             <select id="year" class="form-select form-control-hyundai">
-                                <option value="2026" selected>2026년</option>
-                                <option value="2025">2025년</option>
-                                <option value="2024">2024년</option>
-                                <option value="2023">2023년</option>
-                                <option value="2024">2022년</option>
+                                <option value="2023" selected>2023년_이후</option>
+                                <option value="2022">2023년_이전</option>
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -1080,25 +1077,6 @@
             let year = $('#year').val();
             let status = $('#status').val();
             let qtyLogic = $("#qtyLogic").val();
-
-            /*if (partNo.length >= 4) {
-                console.log("유효한 부품번호입니다.");
-                // 여기에 유효한 경우 실행할 코드 작성
-            } else {
-                alert("입력조건은 최소 4자리 이상 입력해야 합니다.");
-                // 필요 시 입력창 초기화 등 처리
-                $('#partNo').focus();
-            }
-
-            if (partName.length >= 4) {
-                console.log("유효한 부품번호입니다.");
-                // 여기에 유효한 경우 실행할 코드 작성
-            } else {
-                alert("입력조건은 최소 4자리 이상 입력해야 합니다.");
-                // 필요 시 입력창 초기화 등 처리
-                $('#partNo').focus();
-            }*/
-
 
             showLoading(); // 로딩바 표시
             $.ajax({

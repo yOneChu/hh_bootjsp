@@ -100,7 +100,19 @@ public class PartDashboardUtil {
                               ( select A.vf$ouid from NORMALPART$vf A, NORMALPART$id B
                                 where A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip
                                 --and ( md$number in ( '18900360G0700') )
-                                 AND SUBSTR(A.MD$CDATE, 0, 4) IN( ? )
+                                 --AND SUBSTR(A.MD$CDATE, 0, 4) IN( ? )
+                 """;
+
+            if(year != null) {
+                if (year.equals("2023")) {
+                    sql += "AND SUBSTR(A.MD$CDATE, 0, 4) >= '2023' ";
+                } else {
+                    sql += "AND SUBSTR(A.MD$CDATE, 0, 4) <= '2022' ";
+                }
+            }
+
+
+            sql += """
                               )
                   SELECT A.MD$NUMBER AS PARTNO,
                          A.MD$DESC AS PARTNAME,
@@ -172,7 +184,7 @@ public class PartDashboardUtil {
             }
 
             pstmt = con.prepareStatement(sql.toString());
-            pstmt.setString(1, year);
+            //pstmt.setString(1, year);
             //pstmt.setString(1, productOID);
 
             //System.out.println("sql.toString() = " + sql.toString());
@@ -193,6 +205,7 @@ public class PartDashboardUtil {
                 String SPEC = rs.getString("SPEC");
                 String UOM = rs.getString("UOM");
                 String PARTSIZE = rs.getString("PARTSIZE");
+                String CREATE_DATE = rs.getString("CREATE_DATE");
 
                 PartInfoDTO dto = new PartInfoDTO();
                 dto.setPartNo(PARTNO);
@@ -205,9 +218,9 @@ public class PartDashboardUtil {
                 dto.setBlockNo(BLOCKNO_NUMBER);
                 dto.setSpec(SPEC);
                 dto.setUom(UOM);
-                dto.setOriginDiv(ORIGIN_DIV);
                 dto.setPartSize(PARTSIZE);
                 dto.setOriginDiv(ORIGIN_DIV);
+                dto.setCreDate(CREATE_DATE);
 
                 result.add(dto);
 
