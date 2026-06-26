@@ -108,9 +108,13 @@ setTimeout(applySavedColumnVisibility, 250);
 $(document).ready(function() {
     $('#dashboard').removeClass('menu-open');
 
-    /* 엔터 키로 조회 */
-    $(document).keyup(function(e) {
-        if (e.which === 13) { searchPID(); return false; }
+    /* 엔터 키로 조회
+       partNo, blockNo 입력 필드에서 엔터를 친 경우에만 조회를 수행한다.
+       그 외 input/select(브랜드 등 select2 직접입력 포함)에서의 엔터는 조회 미수행 */
+    $('#partNo, #blockNo').on('keyup', function(e) {
+        if (e.which !== 13) return;
+        searchPID();
+        return false;
     });
 
     /* 코드 목록 로드 */
