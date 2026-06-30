@@ -493,7 +493,7 @@ public class SubaeController {
     @GetMapping("/subae/pidExecute")
     @ResponseBody
     @CrossOrigin
-    public HashMap<String, String> pidExecute(String pid, String hogi, String testVersion, String floor, String isfloor) {
+    public HashMap<String, String> pidExecute(String pid, String hogi, String testVersion, String floor, String isfloor, String type) {
 
         //testVersion = on
         //isfloor = Y
@@ -503,7 +503,7 @@ public class SubaeController {
 
         HashMap<String, String> result = new HashMap<>();
 
-        result = subaeService.pidExecute(hogi, pid, testVersion, floor, isfloor);
+        result = subaeService.pidExecute(hogi, pid, testVersion, floor, isfloor, type);
 
         return result;
     }

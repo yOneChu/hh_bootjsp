@@ -374,7 +374,7 @@ public class SubaeService {
      * @param floor
      * @return
      */
-    public HashMap<String, String> pidExecute(String hogi, String pid, String testVersion, String floor, String isfloor) {
+    public HashMap<String, String> pidExecute(String hogi, String pid, String testVersion, String floor, String isfloor, String type) {
 
         System.out.println("pidExecute ==============");
         HashMap<String, String> resultMap = new HashMap<>(); //mapper.readValue(jsonString, List.class);
@@ -387,6 +387,7 @@ public class SubaeService {
         apiUrl += "&testVersion=" + testVersion;
         apiUrl += "&isfloor=" + isfloor;
         apiUrl += "&floor=" + floor;
+        apiUrl += "&type=" + type;
 
         //http://localhost/plmetc/vault/pidExecute?PID=EL_PB186A01&hogi=208223L01&testVersion=&isfloor=N&floor=
         //https://plmpro.hdel.co.kr/plmetc/vault/pidExecute?PID=EL_PB186A01&hogi=208223L01&testVersion=&isfloor=N&floor=

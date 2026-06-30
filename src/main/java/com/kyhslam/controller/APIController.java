@@ -104,15 +104,17 @@ public class APIController {
     @ResponseBody
     @CrossOrigin
     public HashMap<String, String> pidExecute(String pid, String hogi, String testVersion,
-                                              String floor, String isfloor, String key) {
+                                              String floor, String isfloor, String key, String type) {
 
         HashMap<String, String> result = new HashMap<>();
         if ("subae".equals(key)) {
-            result = subaeService.pidExecute(hogi, pid, testVersion, floor, isfloor);
+            result = subaeService.pidExecute(hogi, pid, testVersion, floor, isfloor, type);
         }
 
         return  result;
     }
+
+
 
 
     @Description("메일 발송")
