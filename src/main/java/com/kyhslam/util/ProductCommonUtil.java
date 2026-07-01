@@ -276,11 +276,14 @@ public class ProductCommonUtil {
                 String UCHECK = rs.getString("UCHECK");
                 String USERNAME = rs.getString("USERNAME");
                 String USERID = rs.getString("USERID");
+                String UOM = rs.getString("UOM");
                 String HASCHILD = rs.getString("HASCHILD");
+
 
                 ProductDto dto = new ProductDto();
                 dto.setProductOid(PRODUCTOUID);
                 dto.setProductNo(PARENTNO);
+                dto.setUom(UOM);
 
                 dto.setSeq(SEQ);
                 dto.setPartNo(PARTNO);
@@ -1159,7 +1162,7 @@ public class ProductCommonUtil {
                 String BLOCKNO = rs.getString("BLOCKNO");
                 String BLOCKNAME = rs.getString("BLOCKNAME");
                 String BLOCK_OPT = rs.getString("BLOCK_OPT");
-                String UOM = rs.getString("PARTNAME");
+                String UOM = rs.getString("UOM");
                 String QTY = rs.getString("QTY");
                 String DIV = rs.getString("DIV");
                 String UCHECK = rs.getString("UCHECK");

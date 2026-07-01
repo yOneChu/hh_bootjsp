@@ -101,11 +101,11 @@ public class APIController {
     @CrossOrigin
     @ResponseBody
     public ArrayList<ProductDto> findProductBOM(String productNo, String key) throws Exception {
-
+        //https://vault-in.hdel.co.kr:8070/api/findProductBOM?key=subae&productNo=N27748L02
         ArrayList<ProductDto> bomList = new ArrayList<ProductDto>();
 
         if ("subae".equals(key)) {
-            bomList = ProductCommonUtil.findProductBOM("N27748L02");
+            bomList = ProductCommonUtil.findProductBOM(productNo);
         }
 
         return bomList;
@@ -118,6 +118,7 @@ public class APIController {
     @CrossOrigin
     public HashMap<String, String> pidExecute(String pid, String hogi, String testVersion,
                                               String floor, String isfloor, String key, String type) {
+
 
         HashMap<String, String> result = new HashMap<>();
         if ("subae".equals(key)) {
@@ -134,6 +135,7 @@ public class APIController {
     @CrossOrigin
     public void sendSubaeMail(String sender, String toEmail, String ccEmail, String subject,
                               String htmlContent, String key) {
+        https://vault-in.hdel.co.kr:8070/api/sendMail?key=subae&sender=younghwan.kim@hyundaielevator.com&toEmail=younghwan.kim@hyundaielevator.com&ccEmail=&subject=123&htmlContent=1111
         if("subae".equals(key)){
             SendMail.sendToSubaeMail(sender, toEmail, ccEmail, subject, htmlContent);
         }
