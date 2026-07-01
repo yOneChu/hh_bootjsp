@@ -87,12 +87,25 @@ public class APIController {
     @CrossOrigin
     @ResponseBody
     public ArrayList<ProductDto> findProductInfo(String productNo, String key) throws Exception {
-
         ArrayList<ProductDto> bomList = new ArrayList<ProductDto>();
 
         if ("subae".equals(key)) {
             //result = InventorCommonUtil.findProductInfo(productNo);
             bomList = ProductCommonUtil.findProductInfo(productNo);
+        }
+        return bomList;
+    }
+
+    @Description("BOM 1레벨 및 하위 전체")
+    @GetMapping("/api/findProductBOM")
+    @CrossOrigin
+    @ResponseBody
+    public ArrayList<ProductDto> findProductBOM(String productNo, String key) throws Exception {
+
+        ArrayList<ProductDto> bomList = new ArrayList<ProductDto>();
+
+        if ("subae".equals(key)) {
+            bomList = ProductCommonUtil.findProductBOM("N27748L02");
         }
 
         return bomList;
@@ -113,8 +126,6 @@ public class APIController {
 
         return  result;
     }
-
-
 
 
     @Description("메일 발송")

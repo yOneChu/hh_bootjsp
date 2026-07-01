@@ -8,6 +8,7 @@ import lombok.Setter;
 @Data
 public class ProductDto {
 
+    private String lev;
     private String productOid;
     private String productNo;
     private String productName;
@@ -57,6 +58,7 @@ public class ProductDto {
     private String userId;
     private String modDate; //수정일자
     private String workQty;
+    private String workCmt;
 
     //품목구분별 카운트
     private String mCount;
