@@ -1,5 +1,6 @@
 package com.kyhslam.util;
 
+import com.kyhslam.dto.BomDTO;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 
@@ -170,10 +171,10 @@ public class ProductCommonUtil {
      * @param productNo
      * @return
      */
-    public static ArrayList<ProductDto> findProductBOM(String productNo) {
+    public static ArrayList<BomDTO> findProductBOM(String productNo) {
         //System.out.println("PartCommonUtil findProductInfo start ==-" + productNo );
 
-        ArrayList<ProductDto> list = new ArrayList<>();
+        ArrayList<BomDTO> list = new ArrayList<>();
 
         Connection con = null;
         PreparedStatement stmt = null;
@@ -280,7 +281,8 @@ public class ProductCommonUtil {
                 String HASCHILD = rs.getString("HASCHILD");
 
 
-                ProductDto dto = new ProductDto();
+                //ProductDto dto = new ProductDto();
+                BomDTO dto = new BomDTO();
                 dto.setProductOid(PRODUCTOUID);
                 dto.setProductNo(PARENTNO);
                 dto.setUom(UOM);
@@ -1072,7 +1074,7 @@ public class ProductCommonUtil {
      * @param productOid
      * @param partOid
      */
-    public static ArrayList<ProductDto> findProductDownLevelBOM(String productOid, String partOid, ArrayList<ProductDto> list) {
+    public static ArrayList<BomDTO> findProductDownLevelBOM(String productOid, String partOid, ArrayList<BomDTO> list) {
 
         Connection con = null;
         PreparedStatement stmt = null;
@@ -1169,7 +1171,8 @@ public class ProductCommonUtil {
                 String WORK_QTY = rs.getString("WORK_QTY");
                 String WORK_CMT = rs.getString("WORK_CMT");
 
-                ProductDto dto = new ProductDto();
+                //ProductDto dto = new ProductDto();
+                BomDTO dto = new BomDTO();
                 dto.setLev(LEV);
                 dto.setPartNo(PARTNO);
                 dto.setPartName(PARTNAME);

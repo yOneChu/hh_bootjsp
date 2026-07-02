@@ -1,5 +1,6 @@
 package com.kyhslam.controller;
 
+import com.kyhslam.dto.BomDTO;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.MLBService;
@@ -100,9 +101,9 @@ public class APIController {
     @GetMapping("/api/findProductBOM")
     @CrossOrigin
     @ResponseBody
-    public ArrayList<ProductDto> findProductBOM(String productNo, String key) throws Exception {
+    public ArrayList<BomDTO> findProductBOM(String productNo, String key) throws Exception {
         //https://vault-in.hdel.co.kr:8070/api/findProductBOM?key=subae&productNo=N27748L02
-        ArrayList<ProductDto> bomList = new ArrayList<ProductDto>();
+        ArrayList<BomDTO> bomList = new ArrayList<BomDTO>();
 
         if ("subae".equals(key)) {
             bomList = ProductCommonUtil.findProductBOM(productNo);
