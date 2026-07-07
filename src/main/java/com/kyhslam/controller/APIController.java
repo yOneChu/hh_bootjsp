@@ -166,4 +166,19 @@ public class APIController {
         return result;
     }
 
+    @Description("영업사양 추출")
+    @GetMapping("/api/getSalesInfo")
+    @ResponseBody
+    @CrossOrigin
+    public ArrayList<HashMap<String, String>> getSalesInfo(String key, String hogi) {
+        //https://vault-in.hdel.co.kr:8070/api/getSalesInfo?key=subae&hogi=
+
+        ArrayList<HashMap<String, String>> elvData = null;
+
+        if ("subae".equals(key)) {
+            elvData = ElvInfoCommonUtil.getSalesInfo(hogi);
+        }
+        return elvData;
+    }
+
 }
