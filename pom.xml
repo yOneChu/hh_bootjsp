@@ -139,7 +139,11 @@
             <optional>true</optional>
         </dependency>
 
-
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>3.2.1</version>
+        </dependency>
 
     </dependencies>
 
