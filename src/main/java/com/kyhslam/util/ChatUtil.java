@@ -8,6 +8,8 @@ public class ChatUtil {
 
         String content = "";
 
+        //MD$STATUS(상태: RLS=검토완료, CRT=작성중),
+
         content = """
                 [비표준 사양검토 SQL 생성 가이드 - HDEL_DEFAULT.dutyreview$sf]
                 
@@ -23,7 +25,7 @@ public class ChatUtil {
                 7. 사용 DB는 ORACLE
                 
                 [주요 컬럼]
-                - 요청기본: MD$NUMBER(요청번호), MD$CDATE(등록일), MD$MDATE(수정일), MD$STATUS(상태: RLS=검토완료, CRT=작성중), REQTIME(의뢰일), DUTYTITLE1(제목), DIVISION(등록부서*), USER1(사용자)
+                - 요청기본: MD$NUMBER(요청번호), MD$CDATE(등록일), MD$MDATE(수정일), REQTIME(의뢰일), DUTYTITLE1(제목), DIVISION(등록부서*), USER1(사용자)
                 - 수주/현장: SUJUSTAT(수주상태*), SUJUNUM(호기번호), SUJUVER(계약변경차수), QUOTENUM/QUOTEVER/QUOTESERIAL(견적번호/차수/일련번호), FILEDNAME(현장명), PAY_EST_DATE(납기예정일), NATION(국내/해외*), EL_DKEY(교체공사여부*)
                 - 제품/승강로: PRODUCT_TYPE01(기종), PRODUCT_TYPE02(용도*), OVERHEAD, TRAVEL_HT, EL_ACAPA(용량), PIT, EL_ASPD(속도), TOTAL_HT, FLOOR(층수), STOPFLOOR(정지층수)
                 - 카/도어: EL_ECWTP(CWT위치), EL_BWCAD(풍음대책), EL_ADRV(운행방식), EL_BWALLT(WALL구조), DOORTYPE(도어열림방식), ECCA/ECCB/ECCH/ECHH/ECJJ, EL_CDFR(방화도어*)
@@ -42,7 +44,6 @@ public class ChatUtil {
                 - 호기 조회 → D.SUJUNUM = '값'
                 - 현장명 조회 → D.FILEDNAME LIKE '%값%'
                 - 견적번호 → D.QUOTENUM = '값'
-                - 담당자 → D.MANAGER = '값'
                 - 작업상태 → HDEL_DEFAULT.CODN(D.STAT) 기준
                 - 완료 건 → STAT 또는 D.FINTIME 기준, 미완료 → D.FINTIME IS NULL
                 - 연/월별 조회 → SUBSTR(D.MD$CDATE,1,4/6)='값'
