@@ -81,7 +81,6 @@ public class GeminiSqlService {
 
     /**
      * 쿼리 실행 결과를 Gemini 로 분석해 상세 인사이트 리포트를 생성한다.
-     *
      * @param question   사용자의 원래 자연어 질문
      * @param sql        실행된 SELECT 쿼리
      * @param resultJson executeQuery 가 반환한 조회 결과(JSON 문자열)
@@ -102,7 +101,6 @@ public class GeminiSqlService {
                   "처리 속도가 느리다·지연됐다" 등 개인의 업무량·성과·역량으로 해석될 수 있는 표현을 summary, keyFindings, insights, recommendations 어디에도 쓰지 마라.
                   분석과 시사점은 개인이 아닌 작업구분·유형·기간·프로세스 관점으로만 도출하라.
                 - 결과가 0건이면 그 사실과 가능한 원인(조회 조건, 기간 등)을 설명하라.
-                - 결과가 용량 제한으로 일부만 제공된 경우, 제공된 범위 내 분석임을 summary 에 명시하라.
                 - 모든 텍스트는 마크다운 인라인 서식을 활용하라: 핵심 수치·건수·비율은 **굵게**,
                   컬럼명·상태코드 등 데이터 항목은 `인라인 코드` 로 강조해 임원 보고서 수준의 가독성을 확보하라.
                 - 1,000 이상의 모든 수치는 천 단위 콤마로 표기하라(예: **7,082건**, **1,914**). dataTable 안의 수치도 동일하게 적용하라.

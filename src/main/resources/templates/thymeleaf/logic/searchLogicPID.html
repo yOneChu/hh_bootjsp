@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>로직 PID Analytics</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+
+    <script>
+        // 페이지 렌더 전 다크모드 적용 (깜빡임 방지) — 기본값: 다크
+        if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: {
+                            blue:  '#0071E3',
+                            blueD: '#0A84FF',
+                            ink:   '#1D1D1F',
+                            gray1: '#8E8E93',
+                            gray5: '#E5E5EA',
+                            gray6: '#F5F5F7',
+                            card:  '#FFFFFF',
+                            darkBg:   '#000000',
+                            darkCard: '#1C1C1E',
+                            darkLine: '#38383A',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard Variable', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Helvetica Neue', 'Arial', 'sans-serif']
+                    },
+                    boxShadow: {
+                        card: '0 2px 20px rgba(0,0,0,.05)',
+                        cardD: '0 2px 20px rgba(0,0,0,.45)',
+                        btn: '0 2px 10px rgba(0,113,227,.35)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html { -webkit-font-smoothing: antialiased; }
+        body { font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif; }
+
+        /* ── Form controls ── */
+        .field-label {
+            display: block; font-size: 11px; font-weight: 600;
+            letter-spacing: .05em; text-transform: uppercase;
+            color: #86868B; margin-bottom: 6px;
+        }
+        .dark .field-label { color: #98989D; }
+
+        .form-input, .form-select {
+            width: 100%; height: 40px; padding: 0 13px;
+            font-size: 14px; color: #1D1D1F;
+            background: #fff; border: 1.5px solid #E5E5EA; border-radius: 11px;
+            outline: none; transition: border-color .18s, box-shadow .18s, background .18s;
+        }
+        .form-select {
+            appearance: none; padding-right: 34px; cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238E8E93' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 13px center;
+        }
+        .form-input:focus, .form-select:focus {
+            border-color: #0071E3; box-shadow: 0 0 0 3.5px rgba(0,113,227,.14);
+        }
+        .form-input:read-only {
+            background: #F5F5F7; color: #AEAEB2; cursor: not-allowed;
+        }
+        .dark .form-input, .dark .form-select {
+            background: #2C2C2E; border-color: #38383A; color: #F5F5F7;
+        }
+        .dark .form-input:focus, .dark .form-select:focus {
+            border-color: #0A84FF; box-shadow: 0 0 0 3.5px rgba(10,132,255,.22);
+        }
+        .dark .form-input:read-only { background: #1C1C1E; color: #545456; }
+        .dark .form-select option { background: #2C2C2E; }
+
+        /* ── Buttons ── */
+        .btn-primary {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            height: 42px; padding: 0 26px; border-radius: 11px;
+            background: #0071E3; color: #fff; font-size: 14px; font-weight: 600;
+            border: none; cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,113,227,.35);
+            transition: background .15s, transform .1s, box-shadow .15s;
+        }
+        .btn-primary:hover  { background: #0077ED; box-shadow: 0 4px 16px rgba(0,113,227,.45); }
+        .btn-primary:active { transform: scale(.97); }
+
+        .btn-ghost {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            height: 42px; padding: 0 20px; border-radius: 11px;
+            background: transparent; color: #0071E3; font-size: 14px; font-weight: 600;
+            border: 1.5px solid #D2D2D7; cursor: pointer;
+            transition: background .15s, border-color .15s;
+        }
+        .btn-ghost:hover { background: rgba(0,113,227,.06); border-color: #0071E3; }
+        .dark .btn-ghost { color: #0A84FF; border-color: #48484A; }
+        .dark .btn-ghost:hover { background: rgba(10,132,255,.12); border-color: #0A84FF; }
+
+        .btn-mini {
+            display: inline-flex; align-items: center; gap: 5px;
+            height: 32px; padding: 0 13px; border-radius: 9px;
+            font-size: 12.5px; font-weight: 600; cursor: pointer;
+            background: #F5F5F7; color: #1D1D1F; border: 1px solid transparent;
+            transition: background .15s;
+        }
+        .btn-mini:hover { background: #E8E8ED; }
+        .dark .btn-mini { background: #2C2C2E; color: #F5F5F7; }
+        .dark .btn-mini:hover { background: #3A3A3C; }
+
+        /* ── Segmented control (AND join) ── */
+        .seg {
+            display: inline-flex; background: #E8E8ED; border-radius: 10px; padding: 3px;
+        }
+        .dark .seg { background: #2C2C2E; }
+        .seg button {
+            height: 30px; padding: 0 18px; border-radius: 8px; border: none;
+            font-size: 13px; font-weight: 600; color: #6E6E73; cursor: pointer;
+            background: transparent; transition: all .18s;
+        }
+        .dark .seg button { color: #98989D; }
+        .seg button.on {
+            background: #fff; color: #1D1D1F;
+            box-shadow: 0 1px 4px rgba(0,0,0,.12);
+        }
+        .dark .seg button.on { background: #636366; color: #fff; }
+
+        /* ── Table ── */
+        .tbl-wrap { overflow: auto; max-height: 68vh; border-radius: 14px; }
+        .tbl-wrap::-webkit-scrollbar { height: 10px; width: 10px; }
+        .tbl-wrap::-webkit-scrollbar-thumb { background: #C7C7CC; border-radius: 8px; }
+        .dark .tbl-wrap::-webkit-scrollbar-thumb { background: #48484A; }
+        .tbl-wrap::-webkit-scrollbar-track { background: transparent; }
+
+        table.pid-tbl { border-collapse: separate; border-spacing: 0; font-size: 12.5px; min-width: 100%; }
+        .pid-tbl thead th {
+            position: sticky; top: 0; z-index: 5;
+            background: #FAFAFC; color: #6E6E73;
+            font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+            padding: 10px 12px; text-align: left; white-space: nowrap;
+            border-bottom: 1.5px solid #E5E5EA; cursor: pointer; user-select: none;
+        }
+        .pid-tbl thead th:hover { color: #0071E3; }
+        .dark .pid-tbl thead th { background: #232325; color: #98989D; border-color: #38383A; }
+        .dark .pid-tbl thead th:hover { color: #0A84FF; }
+
+        .pid-tbl tbody td {
+            padding: 9px 12px; white-space: nowrap;
+            color: #1D1D1F; border-bottom: 1px solid #F0F0F2;
+        }
+        .dark .pid-tbl tbody td { color: #E5E5EA; border-color: #2C2C2E; }
+        .pid-tbl tbody tr { transition: background .1s; }
+        .pid-tbl tbody tr:hover { background: rgba(0,113,227,.055); }
+        .dark .pid-tbl tbody tr:hover { background: rgba(10,132,255,.10); }
+
+        /* 앞 4개 고정 컬럼 강조 */
+        .pid-tbl td.key-col { font-weight: 600; }
+        .pid-tbl td.dim { color: #C7C7CC; }
+        .dark .pid-tbl td.dim { color: #48484A; }
+
+        th .sort-mark { margin-left: 4px; font-size: 9px; color: #0071E3; }
+
+        /* ── Row tooltip (KEY/VAL 요약) ── */
+        #rowTip {
+            position: fixed; z-index: 60; pointer-events: none;
+            max-width: 420px; padding: 12px 15px; border-radius: 13px;
+            background: rgba(28,28,30,.94); color: #F5F5F7;
+            font-size: 12px; line-height: 1.65;
+            backdrop-filter: blur(14px);
+            box-shadow: 0 10px 36px rgba(0,0,0,.35);
+            opacity: 0; transition: opacity .12s;
+        }
+        #rowTip.show { opacity: 1; }
+        #rowTip .tip-k { color: #64D2FF; font-weight: 600; }
+
+        /* ── Toast ── */
+        #toast {
+            position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%) translateY(16px);
+            z-index: 90; padding: 12px 22px; border-radius: 999px;
+            background: rgba(28,28,30,.92); color: #fff; font-size: 13.5px; font-weight: 500;
+            backdrop-filter: blur(12px); box-shadow: 0 8px 30px rgba(0,0,0,.3);
+            opacity: 0; pointer-events: none; transition: all .25s;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ── Loading overlay ── */
+        #loading {
+            position: fixed; inset: 0; z-index: 80; display: none;
+            align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+            background: rgba(245,245,247,.6); backdrop-filter: blur(6px);
+        }
+        .dark #loading { background: rgba(0,0,0,.55); }
+        #loading.show { display: flex; }
+        .spinner {
+            width: 42px; height: 42px; border-radius: 50%;
+            border: 3.5px solid rgba(0,113,227,.18); border-top-color: #0071E3;
+            animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* iOS 스타일 토글 스위치 */
+        .ios-switch { position: relative; width: 46px; height: 27px; cursor: pointer; }
+        .ios-switch input { display: none; }
+        .ios-switch .track {
+            position: absolute; inset: 0; border-radius: 999px;
+            background: #D2D2D7; transition: background .2s;
+        }
+        .dark .ios-switch .track { background: #38383A; }
+        .ios-switch input:checked + .track { background: #34C759; }
+        .ios-switch .knob {
+            position: absolute; top: 2.5px; left: 2.5px; width: 22px; height: 22px;
+            border-radius: 50%; background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: transform .2s;
+        }
+        .ios-switch input:checked ~ .knob { transform: translateX(19px); }
+
+        details.help summary { list-style: none; cursor: pointer; }
+        details.help summary::-webkit-details-marker { display: none; }
+        details.help[open] .chev { transform: rotate(90deg); }
+        .chev { transition: transform .18s; }
+    </style>
+</head>
+
+<body class="bg-apple-gray6 dark:bg-apple-darkBg text-apple-ink dark:text-apple-gray6 min-h-screen">
+
+<!-- ═══════════ Top Bar ═══════════ -->
+<header class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-black/60 border-b border-black/5 dark:border-white/10">
+    <div class="max-w-[1700px] mx-auto px-6 h-[58px] flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
+                    <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-[16px] font-bold tracking-tight leading-none">로직 PID Analytics</h1>
+                <p class="text-[11px] text-apple-gray1 leading-none mt-[3px]">Logic Design Intelligence Platform</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-5">
+            <span class="hidden md:inline-flex items-center gap-1.5 text-[12px] font-medium text-apple-gray1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
+            </span>
+            <div class="flex items-center gap-2">
+                <span class="text-[12.5px] font-medium text-apple-gray1" id="themeLabel">다크모드</span>
+                <label class="ios-switch">
+                    <input type="checkbox" id="darkModeToggle">
+                    <span class="track"></span><span class="knob"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-[1700px] mx-auto px-6 py-8 space-y-6">
+
+    <!-- ═══════════ Hero ═══════════ -->
+    <section class="pt-2 pb-1">
+        <h2 class="text-[30px] font-bold tracking-tight leading-tight">PID 상세 검색</h2>
+        <p class="text-[14.5px] text-apple-gray1 mt-1">SPEC · CON · KEY · VAL · REMARKS 조건으로 로직 PID 데이터를 정밀 조회합니다.</p>
+    </section>
+
+    <!-- ═══════════ 도움말 ═══════════ -->
+    <details class="help bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06]">
+        <summary class="flex items-center gap-3 px-6 py-4">
+            <span class="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center text-[13px]">💡</span>
+            <span class="text-[14px] font-semibold flex-1">도움말 · 검색 조건 안내</span>
+            <svg class="chev text-apple-gray1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+        <ul class="px-7 pb-5 pt-1 space-y-2 text-[13px] leading-relaxed text-[#515154] dark:text-[#AEAEB2]">
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span class="font-semibold text-apple-blue dark:text-apple-blueD">10,000건 이상</span>의 경우 "EXCEL Download"로 받으시기 바랍니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>현재 Excel 다운로드 시 숫자인식 관련 문제가 있어 Copy로 복사 후, EXCEL에 붙여넣기 하시기 바랍니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>조건1에 REMARKS로 검색 시, 조건2의 PID는 검색할 수 없습니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>PID-02 조건이 공백이라면 해당 조건은 포함되지 않고 조회됩니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>PID-03,04,05는 앞 부분이 입력되어야 뒷부분을 입력 가능합니다. (ex. PID04만 입력불가(03누락), PID03,05만 입력불가(04누락))</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>PID-GROUP을 EQUAL, LIKE 입력 시 PID03,04,05는 <b>OR</b> 조건, NOT EQUAL, NOT LIKE 입력 시 <b>AND</b> 조건으로 동작합니다.</li>
+        </ul>
+    </details>
+
+    <!-- ═══════════ 검색 조건 카드 ═══════════ -->
+    <section class="bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] overflow-hidden">
+        <div class="px-6 pt-5 pb-1 flex items-center gap-2.5">
+            <span class="w-7 h-7 rounded-[8px] bg-blue-50 dark:bg-blue-500/15 flex items-center justify-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0071E3" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+            </span>
+            <h3 class="text-[15px] font-bold">검색 조건</h3>
+        </div>
+
+        <div class="px-6 py-5 space-y-5">
+
+            <!-- 조건 01 -->
+            <div class="rounded-xl bg-apple-gray6/70 dark:bg-white/[.04] p-4">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="inline-flex items-center h-[22px] px-2.5 rounded-md bg-apple-blue text-white text-[11px] font-bold tracking-wide">조건 01</span>
+                    <span class="text-[12px] text-apple-gray1">필수 조건</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="field-label">Field</label>
+                        <select id="spec-01" class="form-select">
+                            <option selected>SPEC</option>
+                            <option>CON</option>
+                            <option>KEY</option>
+                            <option>VAL</option>
+                            <option>REMARKS</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label">Operator</label>
+                        <select id="link-01" class="form-select">
+                            <option selected>LIKE</option>
+                            <option>EQUAL</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label">Value</label>
+                        <input type="search" id="pidVal" class="form-input" placeholder="PID-01 값 입력" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Join operator -->
+            <div class="flex items-center justify-center gap-4">
+                <div class="h-px flex-1 bg-apple-gray5 dark:bg-apple-darkLine"></div>
+                <div class="flex items-center gap-3">
+                    <div class="seg" id="joinSeg">
+                        <button type="button" data-val="F" class="on">단독</button>
+                        <button type="button" data-val="AND">AND</button>
+                    </div>
+                    <span class="text-[12px] text-apple-gray1 hidden sm:inline">AND 선택 시 조건1·2 모두 만족하는 행 조회</span>
+                </div>
+                <div class="h-px flex-1 bg-apple-gray5 dark:bg-apple-darkLine"></div>
+            </div>
+            <input type="hidden" id="joinOp" value="F">
+
+            <!-- 조건 02 -->
+            <div class="rounded-xl bg-apple-gray6/70 dark:bg-white/[.04] p-4">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="inline-flex items-center h-[22px] px-2.5 rounded-md bg-[#5856D6] text-white text-[11px] font-bold tracking-wide">조건 02</span>
+                    <span class="text-[12px] text-apple-gray1">선택 조건</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="field-label">Field</label>
+                        <select id="spec-02" class="form-select">
+                            <option selected>SPEC</option>
+                            <option>CON</option>
+                            <option>KEY</option>
+                            <option>VAL</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label">Operator</label>
+                        <select id="link-02" class="form-select">
+                            <option selected>LIKE</option>
+                            <option>NOT LIKE</option>
+                            <option>EQUAL</option>
+                            <option>NOT_EQUAL</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label">Value</label>
+                        <input type="search" id="pidVal02" class="form-input" placeholder="PID-02 값 입력" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+
+            <!-- PID-GROUP -->
+            <div class="rounded-xl bg-apple-gray6/70 dark:bg-white/[.04] p-4">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="inline-flex items-center h-[22px] px-2.5 rounded-md bg-teal-600 text-white text-[11px] font-bold tracking-wide">PID GROUP</span>
+                    <span class="text-[12px] text-apple-gray1">PID-03 → 04 → 05 순차 입력</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="field-label">Operator</label>
+                        <select id="con-05" class="form-select">
+                            <option selected>LIKE</option>
+                            <option>NOT LIKE</option>
+                            <option>EQUAL</option>
+                            <option>NOT EQUAL</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label">PID-03</label>
+                        <input type="search" id="pidVal03" class="form-input" placeholder="PID-03" autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="field-label">PID-04</label>
+                        <input type="search" id="pidVal04" class="form-input" placeholder="PID-04" readonly autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="field-label">PID-05</label>
+                        <input type="search" id="pidVal05" class="form-input" placeholder="PID-05" readonly autocomplete="off">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- footer actions -->
+        <div class="px-6 py-4 bg-apple-gray6/50 dark:bg-white/[.03] border-t border-black/[.04] dark:border-white/[.06] flex items-center justify-between flex-wrap gap-3">
+            <span class="text-[12px] text-apple-gray1">Enter 키로 바로 검색할 수 있습니다.</span>
+            <div class="flex items-center gap-2.5">
+                <button type="button" class="btn-ghost" onclick="searchExcel()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                    EXCEL Download
+                </button>
+                <button type="button" class="btn-primary" onclick="searchPID()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                    검색
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 검색 결과 카드 ═══════════ -->
+    <section id="resultCard" class="bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] overflow-hidden hidden">
+
+        <div class="px-6 pt-5 pb-4 flex items-center justify-between flex-wrap gap-3 border-b border-black/[.04] dark:border-white/[.06]">
+            <div class="flex items-center gap-3">
+                <span class="w-7 h-7 rounded-[8px] bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+                </span>
+                <h3 class="text-[15px] font-bold">검색 결과</h3>
+                <span id="resultStat" class="inline-flex items-center h-[24px] px-3 rounded-full bg-apple-blue/10 dark:bg-apple-blueD/20 text-apple-blue dark:text-apple-blueD text-[12px] font-bold"></span>
+                <span id="elapsedStat" class="text-[12px] text-apple-gray1"></span>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+                <!-- 결과 내 필터 -->
+                <div class="relative">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-apple-gray1" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input type="search" id="tblFilter" class="form-input !h-[34px] !w-[210px] !pl-8 !text-[13px]" placeholder="결과 내 검색" autocomplete="off">
+                </div>
+
+                <label class="btn-mini !cursor-pointer select-none">
+                    <input type="checkbox" id="hideEmptyCols" class="accent-[#0071E3]" checked>
+                    빈 컬럼 숨기기
+                </label>
+
+                <button type="button" class="btn-mini" onclick="exportCSV()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+                    CSV
+                </button>
+                <button type="button" class="btn-mini" onclick="copyToClipboard()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    Copy
+                </button>
+
+                <select id="pageSize" class="form-select !h-[34px] !w-[110px] !text-[13px]">
+                    <option value="25">25행 보기</option>
+                    <option value="50" selected>50행 보기</option>
+                    <option value="100">100행 보기</option>
+                    <option value="200">200행 보기</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="tbl-wrap">
+            <table class="pid-tbl" id="infoTable">
+                <thead><tr id="headerInfo"></tr></thead>
+                <tbody id="contentTable"></tbody>
+            </table>
+        </div>
+
+        <!-- pagination -->
+        <div class="px-6 py-4 flex items-center justify-between flex-wrap gap-3 border-t border-black/[.04] dark:border-white/[.06]">
+            <span id="pageInfo" class="text-[12.5px] text-apple-gray1"></span>
+            <div class="flex items-center gap-1.5" id="pager"></div>
+        </div>
+    </section>
+
+    <!-- 빈 상태 -->
+    <section id="emptyState" class="bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] py-20 flex flex-col items-center justify-center gap-4">
+        <div class="w-16 h-16 rounded-full bg-apple-gray6 dark:bg-white/[.06] flex items-center justify-center">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#AEAEB2" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        </div>
+        <div class="text-center">
+            <p class="text-[15px] font-semibold">검색 결과가 여기에 표시됩니다</p>
+            <p class="text-[13px] text-apple-gray1 mt-1">조건을 입력하고 검색 버튼을 눌러주세요.</p>
+        </div>
+    </section>
+
+    <footer class="pt-4 pb-8 text-center">
+        <p class="text-[12px] text-apple-gray1">Copyright © 2026 <b>수배로직설계팀 · 김영환 M</b>. All rights reserved. · Version 1.0.0</p>
+    </footer>
+</main>
+
+<!-- floating tooltip / toast / loading -->
+<div id="rowTip"></div>
+<div id="toast"></div>
+<div id="loading">
+    <div class="spinner"></div>
+    <p class="text-[13.5px] font-semibold text-apple-gray1">데이터를 조회하고 있습니다…</p>
+</div>
+
+
+<script>
+/* ═══════════════════════════════════════════════
+   로직 PID Analytics — vanilla JS (jQuery-free)
+   ═══════════════════════════════════════════════ */
+'use strict';
+
+const $id = (s) => document.getElementById(s);
+
+/* ── 컬럼 정의: PID, NO, ADDR, REMARKS + SPEC/CON 1..20 + KEY/VAL 1..20 ── */
+const COLUMNS = ['PID', 'NO', 'ADDR', 'REMARKS'];
+for (let i = 1; i <= 20; i++) COLUMNS.push('SPEC' + i, 'CON' + i);
+for (let i = 1; i <= 20; i++) COLUMNS.push('KEY' + i, 'VAL' + i);
+
+/* ── 상태 ── */
+let rawData = [];        // 서버 원본
+let viewData = [];       // 필터/정렬 적용본
+let visibleCols = [...COLUMNS];
+let curPage = 1;
+let sortCol = null, sortDir = 1;
+
+/* ══════════ 다크모드 ══════════ */
+(function initTheme() {
+    const dark = localStorage.getItem('theme') !== 'light'; // 기본 다크모드
+    document.documentElement.classList.toggle('dark', dark);
+    $id('darkModeToggle').checked = dark;
+    $id('themeLabel').textContent = dark ? '🌙 다크모드' : '☀️ 라이트모드';
+    if (dark) localStorage.setItem('theme', 'dark');
+})();
+$id('darkModeToggle').addEventListener('change', function () {
+    document.documentElement.classList.toggle('dark', this.checked);
+    localStorage.setItem('theme', this.checked ? 'dark' : 'light');
+    $id('themeLabel').textContent = this.checked ? '🌙 다크모드' : '☀️ 라이트모드';
+});
+
+/* ══════════ UI 유틸 ══════════ */
+function showLoading() { $id('loading').classList.add('show'); }
+function hideLoading() { $id('loading').classList.remove('show'); }
+
+let toastTimer = null;
+function toast(msg) {
+    const t = $id('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ══════════ 입력 체이닝: PID03 → 04 → 05 ══════════ */
+$id('pidVal03').addEventListener('input', function () {
+    if (this.value.trim() !== '') {
+        $id('pidVal04').readOnly = false;
+    } else {
+        $id('pidVal04').readOnly = true; $id('pidVal04').value = '';
+        $id('pidVal05').readOnly = true; $id('pidVal05').value = '';
+    }
+});
+$id('pidVal04').addEventListener('input', function () {
+    if (this.value.trim() !== '') {
+        $id('pidVal05').readOnly = false;
+    } else {
+        $id('pidVal05').readOnly = true; $id('pidVal05').value = '';
+    }
+});
+
+/* ══════════ Join 세그먼트 (단독 / AND) ══════════ */
+$id('joinSeg').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    document.querySelectorAll('#joinSeg button').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    $id('joinOp').value = btn.dataset.val;
+});
+
+/* ══════════ 엔터키 검색 ══════════ */
+document.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter' && e.target.id !== 'tblFilter') searchPID();
+});
+
+/* ══════════ 검색 파라미터 수집 ══════════ */
+function collectParams() {
+    return {
+        pid:     $id('pidVal').value,
+        FIELD:   $id('spec-01').value,
+        GUBUN:   $id('link-01').value,
+        SPEC02:  $id('spec-02').value,
+        GUBUN02: $id('link-02').value,
+        PID02:   $id('pidVal02').value,
+        CON05:   $id('con-05').value,
+        PID03:   $id('pidVal03').value,
+        PID04:   $id('pidVal04').value,
+        PID05:   $id('pidVal05').value,
+        join:    $id('joinOp').value
+    };
+}
+
+function validate(p) {
+    if (!p.pid || p.pid.trim() === '') {
+        toast('PID 값을 입력하세요.');
+        $id('pidVal').focus();
+        return false;
+    }
+    if (p.FIELD === 'REMARKS' && p.PID02 !== '') {
+        toast('조건1을 REMARKS로 검색 시, 조건2의 PID는 검색할 수 없습니다.');
+        return false;
+    }
+    return true;
+}
+
+/* ══════════ 검색 ══════════ */
+async function searchPID() {
+    const p = collectParams();
+    if (!validate(p)) return;
+
+    showLoading();
+    const t0 = performance.now();
+    try {
+        const res = await fetch('/pid/searchPIDSpecViewJson', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(p)
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        hideLoading();
+
+        if (data && data[0] && data[0].msg) { toast(data[0].msg); return; }
+        if (!data || data.length === 0) { toast('검색결과가 없습니다.'); return; }
+
+        rawData = data;
+        sortCol = null; sortDir = 1;
+        $id('tblFilter').value = '';
+        $id('elapsedStat').textContent = ((performance.now() - t0) / 1000).toFixed(2) + '초 소요';
+
+        $id('emptyState').classList.add('hidden');
+        $id('resultCard').classList.remove('hidden');
+        rebuildView();
+        $id('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+        hideLoading();
+        console.error(err);
+        toast('조회 중 오류가 발생했습니다.');
+    }
+}
+
+/* ══════════ EXCEL 다운로드 (서버 생성) ══════════ */
+async function searchExcel() {
+    const p = collectParams();
+    if (!validate(p)) return;
+
+    showLoading();
+    try {
+        const res = await fetch('/excel/searchPIDExcel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(p)
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+
+        const disposition = res.headers.get('Content-Disposition');
+        let filename = 'excel.xlsx';
+        if (disposition && disposition.includes('filename=')) {
+            filename = disposition.split('filename=')[1].replace(/"/g, '');
+        }
+        const blob = await res.blob();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        hideLoading();
+        toast('엑셀 다운로드가 시작되었습니다.');
+    } catch (err) {
+        hideLoading();
+        console.error(err);
+        toast('엑셀 다운로드 중 오류가 발생했습니다.');
+    }
+}
+
+/* ══════════ 뷰 재구성 (필터 → 정렬 → 컬럼 → 렌더) ══════════ */
+function rebuildView() {
+    const q = $id('tblFilter').value.trim().toLowerCase();
+
+    viewData = !q ? [...rawData] : rawData.filter(row =>
+        COLUMNS.some(c => String(row[c] ?? '').toLowerCase().includes(q))
+    );
+
+    if (sortCol) {
+        const col = sortCol, dir = sortDir;
+        viewData.sort((a, b) =>
+            String(a[col] ?? '').localeCompare(String(b[col] ?? ''), undefined, { numeric: true }) * dir
+        );
+    }
+
+    computeVisibleCols();
+    curPage = 1;
+    renderTable();
+}
+
+function isEmptyVal(v) {
+    return v === null || v === undefined || v === '' || v === '-';
+}
+
+function computeVisibleCols() {
+    if (!$id('hideEmptyCols').checked || viewData.length === 0) {
+        visibleCols = [...COLUMNS];
+        return;
+    }
+    visibleCols = COLUMNS.filter((c, idx) =>
+        idx < 4 || viewData.some(row => !isEmptyVal(row[c]))
+    );
+}
+
+/* ══════════ 렌더링 ══════════ */
+function renderTable() {
+    // header
+    const hd = $id('headerInfo');
+    hd.innerHTML = visibleCols.map(c => {
+        const mark = (sortCol === c) ? `<span class="sort-mark">${sortDir === 1 ? '▲' : '▼'}</span>` : '';
+        return `<th data-col="${c}">${c}${mark}</th>`;
+    }).join('');
+
+    // body (현재 페이지만)
+    const pageSize = parseInt($id('pageSize').value, 10);
+    const totalPages = Math.max(1, Math.ceil(viewData.length / pageSize));
+    if (curPage > totalPages) curPage = totalPages;
+    const start = (curPage - 1) * pageSize;
+    const pageRows = viewData.slice(start, start + pageSize);
+
+    const html = pageRows.map((row, i) => {
+        const cells = visibleCols.map((c, ci) => {
+            const v = row[c] ?? '';
+            const cls = ci < 4 ? 'key-col' : (isEmptyVal(v) ? 'dim' : '');
+            return `<td class="${cls}">${escapeHtml(v)}</td>`;
+        }).join('');
+        return `<tr data-idx="${start + i}">${cells}</tr>`;
+    }).join('');
+    $id('contentTable').innerHTML = html;
+
+    // stats
+    $id('resultStat').textContent = viewData.length.toLocaleString() + '건';
+    $id('pageInfo').textContent = viewData.length === 0 ? '표시할 데이터가 없습니다'
+        : `${(start + 1).toLocaleString()} – ${Math.min(start + pageSize, viewData.length).toLocaleString()} / 총 ${viewData.length.toLocaleString()}건 · 컬럼 ${visibleCols.length}/${COLUMNS.length}개 표시`;
+
+    renderPager(totalPages);
+}
+
+function escapeHtml(v) {
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderPager(totalPages) {
+    const pager = $id('pager');
+    const mk = (label, page, opts = {}) => {
+        const dis = opts.disabled ? 'opacity-30 pointer-events-none' : '';
+        const on = opts.active
+            ? 'bg-apple-blue text-white shadow-btn'
+            : 'bg-apple-gray6 dark:bg-white/[.06] hover:bg-apple-gray5 dark:hover:bg-white/[.12]';
+        return `<button type="button" class="min-w-[32px] h-[32px] px-2 rounded-[9px] text-[12.5px] font-semibold transition ${on} ${dis}" data-page="${page}">${label}</button>`;
+    };
+
+    let pages = [];
+    const win = 2;
+    for (let p = 1; p <= totalPages; p++) {
+        if (p === 1 || p === totalPages || Math.abs(p - curPage) <= win) pages.push(p);
+    }
+    let html = mk('‹', curPage - 1, { disabled: curPage === 1 });
+    let prev = 0;
+    for (const p of pages) {
+        if (p - prev > 1) html += `<span class="text-apple-gray1 px-1">…</span>`;
+        html += mk(p, p, { active: p === curPage });
+        prev = p;
+    }
+    html += mk('›', curPage + 1, { disabled: curPage === totalPages });
+    pager.innerHTML = html;
+}
+
+$id('pager').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-page]');
+    if (!btn) return;
+    curPage = parseInt(btn.dataset.page, 10);
+    renderTable();
+});
+
+/* 헤더 클릭 정렬 */
+$id('headerInfo').addEventListener('click', (e) => {
+    const th = e.target.closest('th[data-col]');
+    if (!th) return;
+    const col = th.dataset.col;
+    if (sortCol === col) { sortDir *= -1; } else { sortCol = col; sortDir = 1; }
+    rebuildView();
+});
+
+/* 결과 내 필터 / 페이지크기 / 빈컬럼 토글 */
+let filterTimer = null;
+$id('tblFilter').addEventListener('input', () => {
+    clearTimeout(filterTimer);
+    filterTimer = setTimeout(rebuildView, 200);
+});
+$id('pageSize').addEventListener('change', () => { curPage = 1; renderTable(); });
+$id('hideEmptyCols').addEventListener('change', () => { computeVisibleCols(); renderTable(); });
+
+/* ══════════ Row hover 툴팁: KEY→VAL 요약 ══════════ */
+const tipEl = $id('rowTip');
+$id('contentTable').addEventListener('mouseover', (e) => {
+    const tr = e.target.closest('tr[data-idx]');
+    if (!tr) return;
+    const row = viewData[parseInt(tr.dataset.idx, 10)];
+    if (!row) return;
+
+    let lines = [];
+    for (let k = 1; k <= 20; k++) {
+        const key = row['KEY' + k], val = row['VAL' + k];
+        if (key && key !== '-' && val && val !== '-') {
+            lines.push(`<div><span class="tip-k">KEY${k}</span> ${escapeHtml(key)} <span class="opacity-50">→</span> ${escapeHtml(val)}</div>`);
+        }
+    }
+    if (lines.length === 0) { tipEl.classList.remove('show'); return; }
+    tipEl.innerHTML = `<div class="font-bold mb-1 text-[12.5px]">${escapeHtml(row.PID ?? '')} · KEY/VAL 요약</div>` + lines.join('');
+    tipEl.classList.add('show');
+});
+$id('contentTable').addEventListener('mousemove', (e) => {
+    if (!tipEl.classList.contains('show')) return;
+    const pad = 16;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    const r = tipEl.getBoundingClientRect();
+    if (x + r.width > window.innerWidth - 8) x = e.clientX - r.width - pad;
+    if (y + r.height > window.innerHeight - 8) y = e.clientY - r.height - pad;
+    tipEl.style.left = x + 'px';
+    tipEl.style.top = y + 'px';
+});
+$id('contentTable').addEventListener('mouseleave', () => tipEl.classList.remove('show'));
+
+/* ══════════ 내보내기 (필터 적용본 전체, 전체 컬럼) ══════════ */
+function buildRows(delim) {
+    const esc = (v) => {
+        let s = String(v ?? '');
+        if (delim === ',' && /[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+        return s;
+    };
+    const lines = [COLUMNS.join(delim)];
+    for (const row of viewData) {
+        lines.push(COLUMNS.map(c => esc(row[c])).join(delim));
+    }
+    return lines.join('\r\n');
+}
+
+function exportCSV() {
+    if (viewData.length === 0) { toast('내보낼 데이터가 없습니다.'); return; }
+    // UTF-8 BOM: 엑셀에서 한글 깨짐 방지
+    const blob = new Blob(['﻿' + buildRows(',')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'csv_Result.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+    toast('CSV 파일이 다운로드되었습니다.');
+}
+
+async function copyToClipboard() {
+    if (viewData.length === 0) { toast('복사할 데이터가 없습니다.'); return; }
+    try {
+        await navigator.clipboard.writeText(buildRows('\t'));
+        toast(viewData.length.toLocaleString() + '건이 클립보드에 복사되었습니다. 엑셀에 붙여넣기 하세요.');
+    } catch (err) {
+        // http 환경 등 clipboard API 미지원 시 폴백
+        const ta = document.createElement('textarea');
+        ta.value = buildRows('\t');
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast(viewData.length.toLocaleString() + '건이 클립보드에 복사되었습니다.');
+    }
+}
+</script>
+
+</body>
+</html>

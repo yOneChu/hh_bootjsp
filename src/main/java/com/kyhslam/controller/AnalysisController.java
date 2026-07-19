@@ -108,6 +108,14 @@ public class AnalysisController {
         return result;
     }
 
+    /**
+     * 데이터분석 화면 (최신)
+     * @return
+     */
+    @GetMapping("/dash/logic")
+    public String logic() {
+        return "thymeleaf/logic/searchLogicPID";
+    }
 
 
 }
