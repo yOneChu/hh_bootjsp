@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>newSideBar fragment</title>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     newSideBar fragment — Apple 스타일 왼쪽 사이드바 (자체완결형)
+     CSS / HTML / JS 포함. 사용하는 페이지 요구사항:
+       1. 본문을 <div id="appContent"> 로 감쌀 것 (사이드바 폭만큼 밀림)
+       2. 헤더에 토글 버튼 <button id="sbToggle"> 배치 (선택)
+       3. 깜빡임 방지가 필요하면 head 에서:
+          if (localStorage.getItem('sbCollapsed') === '1')
+              document.documentElement.classList.add('sb-collapsed');
+     include 방법:
+       <div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+     ═══════════════════════════════════════════════════════════════ -->
+<div th:fragment="newSideBarFragment">
+
+    <style>
+        /* ── Left Sidebar ── */
+        #sidebar {
+            position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+            width: 264px; display: flex; flex-direction: column;
+            background: rgba(255,255,255,.82);
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border-right: 1px solid rgba(0,0,0,.06);
+            transform: translateX(-100%);
+            transition: transform .28s cubic-bezier(.4,0,.2,1);
+        }
+        .dark #sidebar {
+            background: rgba(22,22,24,.88);
+            border-right-color: rgba(255,255,255,.08);
+        }
+        #appContent { transition: padding-left .28s cubic-bezier(.4,0,.2,1); }
+
+        /* 데스크톱: 기본 열림, html.sb-collapsed 로 접기 */
+        @media (min-width: 768px) {
+            #sidebar { transform: translateX(0); }
+            #appContent { padding-left: 264px; }
+            html.sb-collapsed #sidebar { transform: translateX(-100%); }
+            html.sb-collapsed #appContent { padding-left: 0; }
+        }
+        /* 모바일: 기본 닫힘, html.sb-open 으로 오버레이 열기 */
+        @media (max-width: 767.98px) {
+            html.sb-open #sidebar { transform: translateX(0); }
+        }
+        #sbOverlay {
+            position: fixed; inset: 0; z-index: 45;
+            background: rgba(0,0,0,.4); backdrop-filter: blur(2px);
+            opacity: 0; pointer-events: none; transition: opacity .25s;
+        }
+        html.sb-open #sbOverlay { opacity: 1; pointer-events: auto; }
+        @media (min-width: 768px) { #sbOverlay { display: none; } }
+
+        .sb-nav { flex: 1; overflow-y: auto; padding: 10px 14px 20px; }
+        .sb-nav::-webkit-scrollbar { width: 5px; }
+        .sb-nav::-webkit-scrollbar-thumb { background: rgba(0,0,0,.14); border-radius: 8px; }
+        .dark .sb-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); }
+
+        details.sb-group summary { list-style: none; cursor: pointer; }
+        details.sb-group summary::-webkit-details-marker { display: none; }
+        .sb-group-head {
+            display: flex; align-items: center; gap: 9px;
+            padding: 8px 10px; margin-top: 8px; border-radius: 9px;
+            font-size: 12px; font-weight: 700; letter-spacing: .05em;
+            color: #6E6E73; text-transform: uppercase; user-select: none;
+            transition: background .15s, color .15s;
+        }
+        .sb-group-head:hover { background: rgba(0,0,0,.04); color: #1D1D1F; }
+        .dark .sb-group-head { color: #98989D; }
+        .dark .sb-group-head:hover { background: rgba(255,255,255,.06); color: #F5F5F7; }
+        .sb-group-head .sb-chev { margin-left: auto; transition: transform .18s; }
+        details.sb-group[open] .sb-group-head .sb-chev { transform: rotate(90deg); }
+
+        .sb-items { padding: 2px 0 4px; display: flex; flex-direction: column; gap: 1px; }
+        .sb-link {
+            display: flex; align-items: center; gap: 8px;
+            padding: 7px 10px 7px 33px; border-radius: 9px;
+            font-size: 13px; font-weight: 500; line-height: 1.35;
+            color: #3C3C43; text-decoration: none;
+            transition: background .13s, color .13s;
+        }
+        .sb-link:hover { background: rgba(0,0,0,.05); color: #1D1D1F; }
+        .dark .sb-link { color: #AEAEB2; }
+        .dark .sb-link:hover { background: rgba(255,255,255,.07); color: #F5F5F7; }
+        .sb-link.active {
+            background: #0071E3; color: #fff; font-weight: 600;
+            box-shadow: 0 2px 10px rgba(0,113,227,.35);
+        }
+        .dark .sb-link.active { background: #0A84FF; box-shadow: 0 2px 10px rgba(10,132,255,.4); }
+        .sb-link.active:hover { background: #0077ED; color: #fff; }
+    </style>
+
+    <!-- ═══════════ Left Sidebar ═══════════ -->
+    <aside id="sidebar">
+        <!-- brand -->
+        <div class="flex items-center gap-3 px-5 h-[58px] shrink-0 border-b border-black/5 dark:border-white/[.07]">
+            <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn shrink-0">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
+                    <path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>
+                </svg>
+            </div>
+            <div class="min-w-0">
+                <p class="text-[14px] font-bold tracking-tight leading-none truncate">로직 분석시스템</p>
+                <p class="text-[11px] text-apple-gray1 leading-none mt-[4px]">수배로직설계팀</p>
+            </div>
+        </div>
+
+        <!-- menu -->
+        <nav class="sb-nav">
+            <details class="sb-group" open>
+                <summary>
+                    <div class="sb-group-head">
+                        <span class="text-[14px]">📊</span> Dashboard
+                        <svg class="sb-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+                    </div>
+                </summary>
+                <div class="sb-items">
+                    <a href="/dashboard/planDashboard" class="sb-link">BOM수배율 품목별 비교</a>
+                    <a href="/subae/bomOPTDashboard" class="sb-link">Block별 수정건 분석</a>
+                    <a href="/subae/bomDashboardV2" class="sb-link">Block별 BOM수배율 분석</a>
+                    <a href="/subae/bomDashboard" class="sb-link">BOM 수배율 부품 현황(월별)</a>
+                    <a href="/subae/partDashboard" class="sb-link">PLM 자재 현황 및 Excel 다운로드</a>
+                </div>
+            </details>
+
+            <details class="sb-group" open>
+                <summary>
+                    <div class="sb-group-head">
+                        <span class="text-[14px]">🖥️</span> SAP
+                        <svg class="sb-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+                    </div>
+                </summary>
+                <div class="sb-items">
+                    <a href="/sap/searchProductingStatus" class="sb-link">(SAP)품목별 공정진행현황</a>
+                    <a href="/sap/getExportDate" class="sb-link">(SAP)출하예정일</a>
+                </div>
+            </details>
+
+            <details class="sb-group" open>
+                <summary>
+                    <div class="sb-group-head">
+                        <span class="text-[14px]">🔍</span> 수배로직
+                        <svg class="sb-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+                    </div>
+                </summary>
+                <div class="sb-items">
+                    <a href="/pid/searchPIDDetail" class="sb-link active">로직 PID 분석</a>
+                    <a href="/dash/searchPartAnalysis" class="sb-link">PLM 제품-자재 Analytics</a>
+                    <a href="/mlb/searchPartQtyPid" class="sb-link">로직 수량-PID 분석</a>
+                    <a href="#" class="sb-link" onclick="window.open('/subae/logicView', 'firstPopup', 'width=1200,height=1000'); return false;">로직 특성값 View</a>
+                    <a href="#" class="sb-link" onclick="window.open('/subae/elevatorSpecDiff', 'firstPopup', 'width=1000,height=1000'); return false;">호기 영업사양 비교</a>
+                    <a href="/pid/pidDashboard" class="sb-link">PID 작업 현황</a>
+                    <a href="/subae/comparePartCN" class="sb-link">본사/법인 자재비교(CN)</a>
+                    <a href="/subae/searchStandardList" class="sb-link">법인자재 1LV 표준수배자재리스트</a>
+                    <a href="/subae/searchBlockStandardView" class="sb-link">Block 기준정보 이력관리</a>
+                    <a href="/subae/searchCNPart" class="sb-link">법인자재 조회(PLM)</a>
+                    <a href="/designReq/searchDesignReq" class="sb-link">전산작업요청Excel</a>
+                </div>
+            </details>
+
+            <details class="sb-group" open>
+                <summary>
+                    <div class="sb-group-head">
+                        <span class="text-[14px]">✍️</span> MLB
+                        <svg class="sb-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+                    </div>
+                </summary>
+                <div class="sb-items">
+                    <a href="/mlb/searchPartQtyPid" class="sb-link">수량-PID 조회</a>
+                    <a href="/subae/searchByBlockNo" class="sb-link">부품 하위 추출</a>
+                    <a href="/subae/searchByBlockNo" class="sb-link">제품 전 레벨 BOM추출</a>
+                </div>
+            </details>
+
+            <details class="sb-group" open>
+                <summary>
+                    <div class="sb-group-head">
+                        <span class="text-[14px]">📡</span> 3D
+                        <svg class="sb-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+                    </div>
+                </summary>
+                <div class="sb-items">
+                    <a href="/download/manualDashView" class="sb-link">3D 설정파일 및 메뉴얼</a>
+                    <a href="/vault/moduleDesignView" class="sb-link">모듈러구조개발팀</a>
+                </div>
+            </details>
+        </nav>
+
+        <!-- sidebar footer -->
+        <div class="shrink-0 px-5 py-4 border-t border-black/5 dark:border-white/[.07]">
+            <p class="text-[11px] text-apple-gray1 leading-relaxed">© 2026 수배로직설계팀<br>Version 1.0.0</p>
+        </div>
+    </aside>
+    <div id="sbOverlay"></div>
+
+    <script>
+        /* 사이드바 토글 — #sbToggle 은 페이지 헤더에 있으므로(DOM 순서 무관하게 동작하도록) 위임 방식 사용 */
+        (function () {
+            'use strict';
+
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('#sbToggle')) return;
+                const html = document.documentElement;
+                if (window.innerWidth >= 768) {
+                    const collapsed = html.classList.toggle('sb-collapsed');
+                    localStorage.setItem('sbCollapsed', collapsed ? '1' : '0');
+                } else {
+                    html.classList.toggle('sb-open');
+                }
+            });
+
+            document.getElementById('sbOverlay').addEventListener('click', function () {
+                document.documentElement.classList.remove('sb-open');
+            });
+
+            // 모바일에서 메뉴 이동 시 오프캔버스 닫기
+            document.querySelectorAll('#sidebar .sb-link').forEach(function (a) {
+                a.addEventListener('click', function () {
+                    if (window.innerWidth < 768) document.documentElement.classList.remove('sb-open');
+                });
+            });
+        })();
+    </script>
+
+</div><!-- /newSideBarFragment -->
+
+</body>
+</html>

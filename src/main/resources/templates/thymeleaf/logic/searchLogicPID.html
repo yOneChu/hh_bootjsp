@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -7,8 +7,9 @@
     <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
 
     <script>
-        // 페이지 렌더 전 다크모드 적용 (깜빡임 방지) — 기본값: 다크
+        // 페이지 렌더 전 다크모드/사이드바 상태 적용 (깜빡임 방지) — 기본값: 다크
         if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed');
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -228,15 +229,33 @@
         details.help summary::-webkit-details-marker { display: none; }
         details.help[open] .chev { transform: rotate(90deg); }
         .chev { transition: transform .18s; }
+
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 9px; border: none; cursor: pointer;
+            background: transparent; color: #1D1D1F;
+            transition: background .15s;
+        }
+        .icon-btn:hover { background: rgba(0,0,0,.06); }
+        .dark .icon-btn { color: #F5F5F7; }
+        .dark .icon-btn:hover { background: rgba(255,255,255,.1); }
     </style>
 </head>
 
 <body class="bg-apple-gray6 dark:bg-apple-darkBg text-apple-ink dark:text-apple-gray6 min-h-screen">
 
+<!-- ═══════════ Left Sidebar (fragments/newSideBar.html) ═══════════ -->
+<div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+
+<div id="appContent">
+
 <!-- ═══════════ Top Bar ═══════════ -->
 <header class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-black/60 border-b border-black/5 dark:border-white/10">
     <div class="max-w-[1700px] mx-auto px-6 h-[58px] flex items-center justify-between">
         <div class="flex items-center gap-3">
+            <button type="button" id="sbToggle" class="icon-btn -ml-2" title="사이드바 열기/닫기">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
             <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
                     <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>
@@ -496,6 +515,8 @@
         <p class="text-[12px] text-apple-gray1">Copyright © 2026 <b>수배로직설계팀 · 김영환 M</b>. All rights reserved. · Version 1.0.0</p>
     </footer>
 </main>
+
+</div><!-- /#appContent -->
 
 <!-- floating tooltip / toast / loading -->
 <div id="rowTip"></div>
