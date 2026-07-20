@@ -7,7 +7,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class ChatController {
 
     @GetMapping("/chat")
-    public String home() {
+    public String chat() {
         return "thymeleaf/chatMain";
+    }
+
+
+    @GetMapping("/chatBotMain")
+    public String chatBotMain() {
+        return "thymeleaf/chatbot/chatBotMain";
     }
 }

@@ -177,8 +177,20 @@
 
                     <ul class="nav nav-treeview">
                         <li>
+                            <a href="/chatBotMain" class="nav-link">
+                                <p>데이터 분석 ChatBOT</p>
+                            </a>
+                        </li>
+
+                        <li>
                             <a href="/pid/searchPIDDetail" class="nav-link">
-                                <p>PID-상세조회</p>
+                                <p>로직 PID 분석</p>
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="/pid/searchPIDDetail" class="nav-link">
+                                <p>로직 PID 분석(개선)</p>
                             </a>
                         </li>
                         <%--<li>

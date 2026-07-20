@@ -561,6 +561,11 @@ $id('darkModeToggle').addEventListener('change', function () {
     $id('themeLabel').textContent = this.checked ? '🌙 다크모드' : '☀️ 라이트모드';
 });
 
+
+document.querySelectorAll('#sidebar .sb-link').forEach(a => a.classList.remove('active'));
+document.querySelector('#sidebar a[href="/pid/logicpid"]')?.classList.add('active');
+
+
 /* ══════════ UI 유틸 ══════════ */
 function showLoading() { $id('loading').classList.add('show'); }
 function hideLoading() { $id('loading').classList.remove('show'); }
