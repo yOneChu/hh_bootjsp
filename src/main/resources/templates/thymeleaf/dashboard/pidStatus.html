@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>PID 작업 현황</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+
+    <script>
+        // 페이지 렌더 전 다크모드/사이드바 상태 적용 (깜빡임 방지) — 기본값: 다크
+        if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: {
+                            blue:  '#0071E3',
+                            blueD: '#0A84FF',
+                            ink:   '#1D1D1F',
+                            gray1: '#8E8E93',
+                            gray5: '#E5E5EA',
+                            gray6: '#F5F5F7',
+                            card:  '#FFFFFF',
+                            darkBg:   '#000000',
+                            darkCard: '#1C1C1E',
+                            darkLine: '#38383A',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard Variable', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Helvetica Neue', 'Arial', 'sans-serif']
+                    },
+                    boxShadow: {
+                        card: '0 2px 20px rgba(0,0,0,.05)',
+                        cardD: '0 2px 20px rgba(0,0,0,.45)',
+                        btn: '0 2px 10px rgba(0,113,227,.35)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html { -webkit-font-smoothing: antialiased; }
+        body { font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif; }
+
+        /* ── Buttons ── */
+        .btn-mini {
+            display: inline-flex; align-items: center; gap: 5px;
+            height: 32px; padding: 0 13px; border-radius: 9px;
+            font-size: 12.5px; font-weight: 600; cursor: pointer;
+            background: #F5F5F7; color: #1D1D1F; border: 1px solid transparent;
+            transition: background .15s;
+        }
+        .btn-mini:hover { background: #E8E8ED; }
+        .dark .btn-mini { background: #2C2C2E; color: #F5F5F7; }
+        .dark .btn-mini:hover { background: #3A3A3C; }
+
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 9px; border: none; cursor: pointer;
+            background: transparent; color: #1D1D1F;
+            transition: background .15s;
+        }
+        .icon-btn:hover { background: rgba(0,0,0,.06); }
+        .dark .icon-btn { color: #F5F5F7; }
+        .dark .icon-btn:hover { background: rgba(255,255,255,.1); }
+
+        /* ── Segmented control ── */
+        .seg { display: inline-flex; background: #E8E8ED; border-radius: 10px; padding: 3px; }
+        .dark .seg { background: #2C2C2E; }
+        .seg button {
+            height: 28px; padding: 0 14px; border-radius: 8px; border: none;
+            font-size: 12.5px; font-weight: 600; color: #6E6E73; cursor: pointer;
+            background: transparent; transition: all .18s;
+        }
+        .dark .seg button { color: #98989D; }
+        .seg button.on { background: #fff; color: #1D1D1F; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+        .dark .seg button.on { background: #636366; color: #fff; }
+
+        /* ── 검색 입력 ── */
+        .form-input {
+            width: 100%; height: 34px; padding: 0 13px;
+            font-size: 13px; color: #1D1D1F;
+            background: #fff; border: 1.5px solid #E5E5EA; border-radius: 10px;
+            outline: none; transition: border-color .18s, box-shadow .18s;
+        }
+        .form-input:focus { border-color: #0071E3; box-shadow: 0 0 0 3.5px rgba(0,113,227,.14); }
+        .dark .form-input { background: #2C2C2E; border-color: #38383A; color: #F5F5F7; }
+        .dark .form-input:focus { border-color: #0A84FF; box-shadow: 0 0 0 3.5px rgba(10,132,255,.22); }
+
+        /* ── KPI 카드 ── */
+        .stat-card { position: relative; overflow: hidden; }
+        .stat-card::after {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(120% 120% at 100% 0%, rgba(0,113,227,.08), transparent 55%);
+            pointer-events: none;
+        }
+        .dark .stat-card::after {
+            background: radial-gradient(120% 120% at 100% 0%, rgba(10,132,255,.16), transparent 55%);
+        }
+        .stat-value {
+            font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1;
+            font-variant-numeric: tabular-nums;
+        }
+        .delta {
+            display: inline-flex; align-items: center; gap: 3px;
+            height: 21px; padding: 0 8px; border-radius: 999px;
+            font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+        }
+        .delta.up   { background: rgba(52,199,89,.14);  color: #248A3D; }
+        .delta.down { background: rgba(255,59,48,.14);  color: #D70015; }
+        .delta.flat { background: rgba(142,142,147,.16); color: #6E6E73; }
+        .dark .delta.up   { background: rgba(48,209,88,.20);  color: #30D158; }
+        .dark .delta.down { background: rgba(255,69,58,.20);  color: #FF453A; }
+        .dark .delta.flat { background: rgba(142,142,147,.22); color: #AEAEB2; }
+
+        /* ── Table ── */
+        .tbl-wrap { overflow: auto; max-height: 420px; }
+        .tbl-wrap::-webkit-scrollbar { height: 10px; width: 10px; }
+        .tbl-wrap::-webkit-scrollbar-thumb { background: #C7C7CC; border-radius: 8px; }
+        .dark .tbl-wrap::-webkit-scrollbar-thumb { background: #48484A; }
+        .tbl-wrap::-webkit-scrollbar-track { background: transparent; }
+
+        table.pid-tbl { border-collapse: separate; border-spacing: 0; font-size: 12.5px; width: 100%; }
+        .pid-tbl thead th {
+            position: sticky; top: 0; z-index: 5;
+            background: #FAFAFC; color: #6E6E73;
+            font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+            padding: 10px 14px; text-align: left; white-space: nowrap;
+            border-bottom: 1.5px solid #E5E5EA; cursor: pointer; user-select: none;
+        }
+        .pid-tbl thead th:hover { color: #0071E3; }
+        .dark .pid-tbl thead th { background: #232325; color: #98989D; border-color: #38383A; }
+        .dark .pid-tbl thead th:hover { color: #0A84FF; }
+
+        .pid-tbl tbody td {
+            padding: 9px 14px; white-space: nowrap;
+            color: #1D1D1F; border-bottom: 1px solid #F0F0F2;
+        }
+        .dark .pid-tbl tbody td { color: #E5E5EA; border-color: #2C2C2E; }
+        .pid-tbl tbody tr { transition: background .1s; }
+        .pid-tbl tbody tr:hover { background: rgba(0,113,227,.055); }
+        .dark .pid-tbl tbody tr:hover { background: rgba(10,132,255,.10); }
+
+        .pid-tbl td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+        .pid-tbl th.num { text-align: right; }
+        th .sort-mark { margin-left: 4px; font-size: 9px; color: #0071E3; }
+
+        /* TOP 50 순위 배지 + 막대 */
+        .rank {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 22px; height: 20px; padding: 0 6px; border-radius: 6px;
+            background: #E8E8ED; color: #6E6E73; font-size: 11px; font-weight: 800;
+            font-variant-numeric: tabular-nums;
+        }
+        .dark .rank { background: #3A3A3C; color: #AEAEB2; }
+        .rank.top1 { background: #0071E3; color: #fff; }
+        .rank.top2 { background: #5856D6; color: #fff; }
+        .rank.top3 { background: #34C759; color: #fff; }
+
+        .bar-track { width: 100%; min-width: 90px; height: 6px; border-radius: 999px; background: #E8E8ED; overflow: hidden; }
+        .dark .bar-track { background: #3A3A3C; }
+        .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #0071E3, #5856D6); }
+
+        /* ── 스켈레톤 ── */
+        .skel { background: linear-gradient(90deg, #EDEDF0 25%, #F7F7F9 50%, #EDEDF0 75%); background-size: 200% 100%; animation: shimmer 1.3s infinite; border-radius: 8px; }
+        .dark .skel { background: linear-gradient(90deg, #2A2A2C 25%, #343436 50%, #2A2A2C 75%); background-size: 200% 100%; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* ── Toast ── */
+        #toast {
+            position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%) translateY(16px);
+            z-index: 90; padding: 12px 22px; border-radius: 999px;
+            background: rgba(28,28,30,.92); color: #fff; font-size: 13.5px; font-weight: 500;
+            backdrop-filter: blur(12px); box-shadow: 0 8px 30px rgba(0,0,0,.3);
+            opacity: 0; pointer-events: none; transition: all .25s;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* iOS 스타일 토글 스위치 */
+        .ios-switch { position: relative; width: 46px; height: 27px; cursor: pointer; }
+        .ios-switch input { display: none; }
+        .ios-switch .track { position: absolute; inset: 0; border-radius: 999px; background: #D2D2D7; transition: background .2s; }
+        .dark .ios-switch .track { background: #38383A; }
+        .ios-switch input:checked + .track { background: #34C759; }
+        .ios-switch .knob {
+            position: absolute; top: 2.5px; left: 2.5px; width: 22px; height: 22px;
+            border-radius: 50%; background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: transform .2s;
+        }
+        .ios-switch input:checked ~ .knob { transform: translateX(19px); }
+
+        details.help summary { list-style: none; cursor: pointer; }
+        details.help summary::-webkit-details-marker { display: none; }
+        details.help[open] .chev { transform: rotate(90deg); }
+        .chev { transition: transform .18s; }
+
+        .spin { animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+
+<body class="bg-apple-gray6 dark:bg-apple-darkBg text-apple-ink dark:text-apple-gray6 min-h-screen">
+
+<!-- ═══════════ Left Sidebar (fragments/newSideBar.html) ═══════════ -->
+<div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+
+<div id="appContent">
+
+<!-- ═══════════ Top Bar ═══════════ -->
+<header class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-black/60 border-b border-black/5 dark:border-white/10">
+    <div class="max-w-[1700px] mx-auto px-6 h-[58px] flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <button type="button" id="sbToggle" class="icon-btn -ml-2" title="사이드바 열기/닫기">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
+            <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+            </div>
+            <div>
+                <h1 class="text-[16px] font-bold tracking-tight leading-none">PID 작업 현황</h1>
+                <p class="text-[11px] text-apple-gray1 leading-none mt-[3px]">PID Work Status Dashboard</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-5">
+            <span class="hidden md:inline-flex items-center gap-1.5 text-[12px] font-medium text-apple-gray1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
+            </span>
+            <div class="flex items-center gap-2">
+                <span class="text-[12.5px] font-medium text-apple-gray1" id="themeLabel">다크모드</span>
+                <label class="ios-switch">
+                    <input type="checkbox" id="darkModeToggle">
+                    <span class="track"></span><span class="knob"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-[1700px] mx-auto px-6 py-8 space-y-6">
+
+    <!-- ═══════════ Hero ═══════════ -->
+    <section class="pt-2 pb-1 flex items-end justify-between flex-wrap gap-4">
+        <div>
+            <h2 class="text-[30px] font-bold tracking-tight leading-tight">PID 작업 현황</h2>
+            <p class="text-[14.5px] text-apple-gray1 mt-1">PID 개발 및 수정 추이를 한눈에 확인합니다. 집계는 매일 오후 6시 30분에 갱신됩니다.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span id="lastSync" class="text-[12px] text-apple-gray1"></span>
+            <button type="button" class="btn-mini" id="btnRefresh">
+                <svg id="refreshIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+                새로고침
+            </button>
+        </div>
+    </section>
+
+    <!-- ═══════════ 도움말 ═══════════ -->
+    <details class="help bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06]">
+        <summary class="flex items-center gap-3 px-6 py-4">
+            <span class="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center text-[13px]">💡</span>
+            <span class="text-[14px] font-semibold flex-1">도움말 · 지표 설명</span>
+            <svg class="chev text-apple-gray1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+        <ul class="px-7 pb-5 pt-1 space-y-2 text-[13px] leading-relaxed text-[#515154] dark:text-[#AEAEB2]">
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><b class="text-apple-blue dark:text-apple-blueD">PID 전체 라인 수</b> — 작업한 전체 라인 수 (매일 집계)</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><b class="text-apple-blue dark:text-apple-blueD">PID 개수</b> — 등록된 PID 개수 (매일 집계)</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><b class="text-apple-blue dark:text-apple-blueD">PID별 라인 수</b> — 각 PID(최신 버전)에 연결된 라인 총 수, 라인 수 상위 50개 (주 1회 집계)</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>집계 시간은 매일 오후 <b>6시 30분</b>입니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>표의 머리글을 클릭하면 정렬되고, 각 카드의 <b>CSV</b> · <b>Copy</b> 로 데이터를 내보낼 수 있습니다.</li>
+        </ul>
+    </details>
+
+    <!-- ═══════════ KPI 카드 ═══════════ -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" id="kpiRow">
+        <!-- JS 렌더 -->
+    </section>
+
+    <!-- ═══════════ 추이 차트 ═══════════ -->
+    <section class="bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] overflow-hidden">
+        <div class="px-6 pt-5 pb-4 flex items-center justify-between flex-wrap gap-3 border-b border-black/[.04] dark:border-white/[.06]">
+            <div class="flex items-center gap-3">
+                <span class="w-7 h-7 rounded-[8px] bg-blue-50 dark:bg-blue-500/15 flex items-center justify-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0071E3" stroke-width="2.2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+                </span>
+                <h3 class="text-[15px] font-bold">추이 분석</h3>
+                <span id="chartStat" class="text-[12px] text-apple-gray1"></span>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <div class="seg" id="metricSeg">
+                    <button type="button" data-val="lines" class="on">전체 라인 수</button>
+                    <button type="button" data-val="counts">PID 개수</button>
+                </div>
+                <div class="seg" id="rangeSeg">
+                    <button type="button" data-val="7" class="on">7일</button>
+                    <button type="button" data-val="14">14일</button>
+                    <button type="button" data-val="30">30일</button>
+                    <button type="button" data-val="0">전체</button>
+                </div>
+            </div>
+        </div>
+        <div class="px-4 py-4">
+            <div id="cpContainer" style="height: 380px;"></div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 표 3종 ═══════════ -->
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+        <!-- PID 전체 라인 수 -->
+        <div class="bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] overflow-hidden flex flex-col">
+            <div class="px-6 pt-5 pb-4 flex items-center justify-between flex-wrap gap-3 border-b border-black/[.04] dark:border-white/[.06]">
+                <div class="flex items-center gap-3">
+                    <span class="w-7 h-7 rounded-[8px] bg-rose-50 dark:bg-rose-500/15 flex items-center justify-center">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E11D48" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+                    </span>
+                    <h3 class="text-[15px] font-bold">PID 전체 라인 수</h3>
+                    <span class="text-[12px] text-apple-gray1" data-count="lines"></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="btn-mini" data-export="csv" data-table="lines">CSV</button>
+                    <button type="button" class="btn-mini" data-export="copy" data-table="lines">Copy</button>
+                </div>
+            </div>
+            <div class="tbl-wrap flex-1"><table class="pid-tbl" data-table="lines"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+        <!-- PID 개수 -->
+        <div class="bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] overflow-hidden flex flex-col">
+            <div class="px-6 pt-5 pb-4 flex items-center justify-between flex-wrap gap-3 border-b border-black/[.04] dark:border-white/[.06]">
+                <div class="flex items-center gap-3">
+                    <span class="w-7 h-7 rounded-[8px] bg-teal-50 dark:bg-teal-500/15 flex items-center justify-center">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0D9488" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                    </span>
+                    <h3 class="text-[15px] font-bold">PID 개수</h3>
+                    <span class="text-[12px] text-apple-gray1" data-count="counts"></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="btn-mini" data-export="csv" data-table="counts">CSV</button>
+                    <button type="button" class="btn-mini" data-export="copy" data-table="counts">Copy</button>
+                </div>
+            </div>
+            <div class="tbl-wrap flex-1"><table class="pid-tbl" data-table="counts"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+        <!-- PID별 라인 수 TOP 50 -->
+        <div class="bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] overflow-hidden xl:col-span-2 flex flex-col">
+            <div class="px-6 pt-5 pb-4 flex items-center justify-between flex-wrap gap-3 border-b border-black/[.04] dark:border-white/[.06]">
+                <div class="flex items-center gap-3">
+                    <span class="w-7 h-7 rounded-[8px] bg-indigo-50 dark:bg-indigo-500/15 flex items-center justify-center">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2.2" stroke-linecap="round"><path d="M6 20V10M12 20V4M18 20v-6"/></svg>
+                    </span>
+                    <h3 class="text-[15px] font-bold">PID별 라인 수 TOP 50</h3>
+                    <span class="text-[12px] text-apple-gray1" data-count="top"></span>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <div class="relative">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-apple-gray1" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                        <input type="search" id="topFilter" class="form-input !w-[210px] !pl-8" placeholder="PID 검색" autocomplete="off">
+                    </div>
+                    <button type="button" class="btn-mini" data-export="csv" data-table="top">CSV</button>
+                    <button type="button" class="btn-mini" data-export="copy" data-table="top">Copy</button>
+                </div>
+            </div>
+            <div class="tbl-wrap flex-1" style="max-height: 560px;"><table class="pid-tbl" data-table="top"><thead></thead><tbody></tbody></table></div>
+        </div>
+    </section>
+
+    <footer class="pt-2 pb-8 text-center">
+        <p class="text-[12px] text-apple-gray1">Copyright © 2026 <b>수배로직설계팀 · 김영환 M</b>. All rights reserved. · Version 1.0.0</p>
+    </footer>
+</main>
+
+</div><!-- /#appContent -->
+
+<div id="toast"></div>
+
+<!-- Highcharts (사내망: 로컬 정적 리소스 사용) -->
+<script src="/resources/dist/js/highcharts.js"></script>
+<script src="/resources/dist/js/accessibility.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════════
+   PID 작업 현황 대시보드 — vanilla JS (jQuery-free)
+   데이터: /pid/findType01 (전체 라인 수, 일별)
+           /pid/findType02 (PID 개수, 일별)
+           /pid/findType03 (PID별 라인 수 TOP 50)
+   ═══════════════════════════════════════════════ */
+'use strict';
+
+const $id = (s) => document.getElementById(s);
+const nf = (n) => Number(n).toLocaleString();
+
+/* ── 테이블 정의 ── */
+const TABLES = {
+    lines: {
+        rows: [], sortCol: 'DATE', sortDir: -1,
+        cols: [
+            { key: 'DATE',  label: '날짜' },
+            { key: 'COUNT', label: '전체 라인 수', num: true },
+        ],
+    },
+    counts: {
+        rows: [], sortCol: 'DATE', sortDir: -1,
+        cols: [
+            { key: 'DATE',  label: '날짜' },
+            { key: 'COUNT', label: 'PID 개수', num: true },
+        ],
+    },
+    top: {
+        rows: [], sortCol: 'COUNT', sortDir: -1, filter: '',
+        cols: [
+            { key: '_rank', label: '순위', rank: true },
+            { key: 'PID',   label: 'PID 이름' },
+            { key: 'COUNT', label: '라인 수', num: true },
+            { key: '_bar',  label: '비중', bar: true },
+        ],
+    },
+};
+
+let chart = null;
+
+/* ══════════ 다크모드 ══════════ */
+(function initTheme() {
+    const dark = localStorage.getItem('theme') !== 'light'; // 기본 다크모드
+    document.documentElement.classList.toggle('dark', dark);
+    $id('darkModeToggle').checked = dark;
+    $id('themeLabel').textContent = dark ? '🌙 다크모드' : '☀️ 라이트모드';
+    if (dark) localStorage.setItem('theme', 'dark');
+})();
+$id('darkModeToggle').addEventListener('change', function () {
+    document.documentElement.classList.toggle('dark', this.checked);
+    localStorage.setItem('theme', this.checked ? 'dark' : 'light');
+    $id('themeLabel').textContent = this.checked ? '🌙 다크모드' : '☀️ 라이트모드';
+    renderChart(); // 차트는 테마 색을 직접 굽기 때문에 다시 그린다
+});
+
+document.querySelectorAll('#sidebar .sb-link').forEach(a => a.classList.remove('active'));
+document.querySelector('#sidebar a[href="/pid/pidDashboard"]')?.classList.add('active');
+
+/* ══════════ UI 유틸 ══════════ */
+let toastTimer = null;
+function toast(msg) {
+    const t = $id('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function escapeHtml(v) {
+    return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+const num = (v) => {
+    const n = Number(String(v ?? '').replace(/,/g, ''));
+    return Number.isFinite(n) ? n : 0;
+};
+
+/* ══════════ 데이터 로드 ══════════ */
+async function getJson(url) {
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error(url + ' → HTTP ' + res.status);
+    return res.json();
+}
+
+function skeletonKpis() {
+    $id('kpiRow').innerHTML = Array.from({ length: 4 }, () => `
+        <div class="bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] p-5">
+            <div class="skel h-3 w-24 mb-4"></div>
+            <div class="skel h-8 w-32 mb-3"></div>
+            <div class="skel h-3 w-20"></div>
+        </div>`).join('');
+}
+
+async function loadAll() {
+    const icon = $id('refreshIcon');
+    icon.classList.add('spin');
+    skeletonKpis();
+
+    try {
+        const [t1, t2, t3] = await Promise.all([
+            getJson('/pid/findType01'),
+            getJson('/pid/findType02'),
+            getJson('/pid/findType03'),
+        ]);
+
+        // 날짜 오름차순으로 정규화해 두면 추이/증감 계산이 단순해진다
+        TABLES.lines.rows  = normalizeSeries(t1);
+        TABLES.counts.rows = normalizeSeries(t2);
+        TABLES.top.rows    = (t3 || []).map(r => ({ DATE: r.DATE ?? '', PID: r.PID ?? '', COUNT: num(r.COUNT) }))
+                                       .sort((a, b) => b.COUNT - a.COUNT);
+
+        renderKpis();
+        renderChart();
+        ['lines', 'counts', 'top'].forEach(renderTable);
+        updateLastSync();
+    } catch (err) {
+        console.error(err);
+        $id('kpiRow').innerHTML = `
+            <div class="sm:col-span-2 xl:col-span-4 bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] py-14 flex flex-col items-center gap-3">
+                <div class="w-14 h-14 rounded-full bg-rose-50 dark:bg-rose-500/15 flex items-center justify-center">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E11D48" stroke-width="2" stroke-linecap="round"><path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                </div>
+                <p class="text-[15px] font-semibold">데이터를 불러오지 못했습니다</p>
+                <p class="text-[13px] text-apple-gray1">${escapeHtml(err.message)}</p>
+            </div>`;
+        toast('데이터 조회 중 오류가 발생했습니다.');
+    } finally {
+        icon.classList.remove('spin');
+    }
+}
+
+function normalizeSeries(arr) {
+    return (arr || [])
+        .map(r => ({ DATE: r.DATE ?? '', COUNT: num(r.COUNT) }))
+        .filter(r => r.DATE !== '')
+        .sort((a, b) => a.DATE.localeCompare(b.DATE));
+}
+
+function updateLastSync() {
+    const last = TABLES.lines.rows.at(-1)?.DATE || TABLES.counts.rows.at(-1)?.DATE || '';
+    $id('lastSync').textContent = last ? `최종 집계 ${last}` : '';
+}
+
+/* ══════════ KPI ══════════ */
+function deltaChip(cur, prev) {
+    if (prev === null || prev === undefined) return '<span class="delta flat">–</span>';
+    const d = cur - prev;
+    if (d === 0) return '<span class="delta flat">변동 없음</span>';
+    const cls = d > 0 ? 'up' : 'down';
+    const arrow = d > 0 ? '▲' : '▼';
+    return `<span class="delta ${cls}">${arrow} ${nf(Math.abs(d))}</span>`;
+}
+
+function statCard(label, value, sub, accent) {
+    return `
+        <div class="stat-card bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] p-5">
+            <div class="flex items-center gap-2 mb-3 relative z-[1]">
+                <span class="w-6 h-6 rounded-[7px] ${accent} flex items-center justify-center text-[11px]">●</span>
+                <span class="text-[11.5px] font-semibold tracking-wide uppercase text-apple-gray1">${label}</span>
+            </div>
+            <div class="stat-value relative z-[1]">${value}</div>
+            <div class="mt-2.5 flex items-center gap-2 relative z-[1]">${sub}</div>
+        </div>`;
+}
+
+function renderKpis() {
+    const L = TABLES.lines.rows, C = TABLES.counts.rows;
+    const lCur = L.at(-1), lPrev = L.at(-2);
+    const cCur = C.at(-1), cPrev = C.at(-2);
+
+    // 최근 7영업일(=최근 7개 집계) 구간의 순증
+    const win = L.slice(-7);
+    const weekGrow = win.length >= 2 ? win.at(-1).COUNT - win[0].COUNT : null;
+
+    const topOne = TABLES.top.rows[0];
+
+    $id('kpiRow').innerHTML = [
+        statCard('전체 라인 수',
+            lCur ? nf(lCur.COUNT) : '–',
+            `${deltaChip(lCur?.COUNT ?? 0, lPrev?.COUNT)} <span class="text-[11.5px] text-apple-gray1">직전 집계 대비</span>`,
+            'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'),
+
+        statCard('PID 개수',
+            cCur ? nf(cCur.COUNT) : '–',
+            `${deltaChip(cCur?.COUNT ?? 0, cPrev?.COUNT)} <span class="text-[11.5px] text-apple-gray1">직전 집계 대비</span>`,
+            'bg-teal-100 text-teal-600 dark:bg-teal-500/20 dark:text-teal-400'),
+
+        statCard('최근 7집계 순증',
+            weekGrow === null ? '–' : (weekGrow >= 0 ? '+' : '−') + nf(Math.abs(weekGrow)),
+            `<span class="text-[11.5px] text-apple-gray1">${win.length >= 2 ? win[0].DATE + ' → ' + win.at(-1).DATE : '데이터 부족'}</span>`,
+            'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400'),
+
+        statCard('최다 라인 PID',
+            topOne ? escapeHtml(topOne.PID) : '–',
+            `<span class="text-[11.5px] text-apple-gray1">${topOne ? nf(topOne.COUNT) + ' 라인' : '데이터 없음'}</span>`,
+            'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400'),
+    ].join('');
+}
+
+/* ══════════ 차트 ══════════ */
+function currentMetric() {
+    return document.querySelector('#metricSeg button.on').dataset.val;
+}
+function currentRange() {
+    return parseInt(document.querySelector('#rangeSeg button.on').dataset.val, 10);
+}
+
+function renderChart() {
+    if (typeof Highcharts === 'undefined') return;
+
+    const metric = currentMetric();
+    const range = currentRange();
+    const src = TABLES[metric].rows;
+    const rows = range > 0 ? src.slice(-range) : src;
+
+    const dark = document.documentElement.classList.contains('dark');
+    const ink = dark ? '#E5E5EA' : '#1D1D1F';
+    const muted = dark ? '#98989D' : '#6E6E73';
+    const grid = dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)';
+    const accent = metric === 'lines' ? (dark ? '#FF453A' : '#E11D48') : (dark ? '#30D158' : '#0D9488');
+
+    const label = metric === 'lines' ? '전체 라인 수' : 'PID 개수';
+    $id('chartStat').textContent = rows.length
+        ? `${rows[0].DATE} ~ ${rows.at(-1).DATE} · ${rows.length}개 집계`
+        : '표시할 데이터가 없습니다';
+
+    if (chart) { chart.destroy(); chart = null; }
+
+    chart = Highcharts.chart('cpContainer', {
+        chart: {
+            type: 'areaspline',
+            backgroundColor: 'transparent',
+            style: { fontFamily: "'Pretendard Variable', -apple-system, sans-serif" },
+            spacing: [10, 6, 6, 6],
+        },
+        title: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: {
+            categories: rows.map(r => r.DATE.slice(5)), // MM-DD
+            lineColor: grid,
+            tickColor: grid,
+            labels: { style: { color: muted, fontSize: '11px' } },
+            crosshair: { color: grid },
+        },
+        yAxis: {
+            title: { text: label, style: { color: muted, fontSize: '11px' } },
+            gridLineColor: grid,
+            labels: {
+                style: { color: muted, fontSize: '11px' },
+                formatter: function () { return this.value.toLocaleString(); },
+            },
+        },
+        tooltip: {
+            backgroundColor: dark ? 'rgba(28,28,30,.95)' : 'rgba(255,255,255,.97)',
+            borderColor: accent,
+            borderRadius: 12,
+            style: { color: ink, fontSize: '12.5px' },
+            shadow: false,
+            formatter: function () {
+                const full = rows[this.point.index]?.DATE ?? '';
+                return `<b>${full}</b><br/>${label} <b>${this.y.toLocaleString()}</b>`;
+            },
+        },
+        plotOptions: {
+            areaspline: {
+                lineWidth: 2.5,
+                color: accent,
+                fillColor: {
+                    linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+                    stops: [
+                        [0, Highcharts.color(accent).setOpacity(dark ? 0.34 : 0.24).get('rgba')],
+                        [1, Highcharts.color(accent).setOpacity(0).get('rgba')],
+                    ],
+                },
+                marker: { radius: 3.5, fillColor: '#fff', lineColor: accent, lineWidth: 2, symbol: 'circle' },
+                states: { hover: { lineWidth: 3 } },
+            },
+        },
+        series: [{ name: label, data: rows.map(r => r.COUNT) }],
+    });
+}
+
+document.querySelectorAll('#metricSeg, #rangeSeg').forEach(seg => {
+    seg.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+        renderChart();
+    });
+});
+
+/* ══════════ 표 ══════════ */
+function viewRows(key) {
+    const t = TABLES[key];
+    let rows = [...t.rows];
+
+    if (key === 'top' && t.filter) {
+        const q = t.filter.toLowerCase();
+        rows = rows.filter(r => String(r.PID).toLowerCase().includes(q));
+    }
+
+    const col = t.sortCol, dir = t.sortDir;
+    const isNum = t.cols.find(c => c.key === col)?.num;
+    rows.sort((a, b) => isNum
+        ? (a[col] - b[col]) * dir
+        : String(a[col]).localeCompare(String(b[col]), undefined, { numeric: true }) * dir);
+    return rows;
+}
+
+function renderTable(key) {
+    const t = TABLES[key];
+    const table = document.querySelector(`table[data-table="${key}"]`);
+    const rows = viewRows(key);
+    const max = Math.max(1, ...rows.map(r => num(r.COUNT)));
+
+    table.querySelector('thead').innerHTML = '<tr>' + t.cols.map(c => {
+        const sortable = !c.rank && !c.bar;
+        const mark = (t.sortCol === c.key) ? `<span class="sort-mark">${t.sortDir === 1 ? '▲' : '▼'}</span>` : '';
+        return `<th class="${c.num ? 'num' : ''}" ${sortable ? `data-col="${c.key}"` : 'style="cursor:default"'}>${c.label}${mark}</th>`;
+    }).join('') + '</tr>';
+
+    table.querySelector('tbody').innerHTML = rows.length === 0
+        ? `<tr><td colspan="${t.cols.length}" class="!text-center !py-10 text-apple-gray1">표시할 데이터가 없습니다</td></tr>`
+        : rows.map((r, i) => '<tr>' + t.cols.map(c => {
+            if (c.rank) {
+                const cls = i === 0 ? 'rank top1' : i === 1 ? 'rank top2' : i === 2 ? 'rank top3' : 'rank';
+                return `<td><span class="${cls}">${i + 1}</span></td>`;
+            }
+            if (c.bar) {
+                const pct = (num(r.COUNT) / max) * 100;
+                return `<td style="width:34%"><div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%"></div></div></td>`;
+            }
+            const v = c.num ? nf(r[c.key]) : escapeHtml(r[c.key]);
+            return `<td class="${c.num ? 'num' : ''}">${v}</td>`;
+        }).join('') + '</tr>').join('');
+
+    const badge = document.querySelector(`[data-count="${key}"]`);
+    if (badge) badge.textContent = rows.length ? `${nf(rows.length)}건` : '';
+}
+
+// 머리글 클릭 정렬
+document.querySelectorAll('table.pid-tbl').forEach(table => {
+    table.querySelector('thead').addEventListener('click', (e) => {
+        const th = e.target.closest('th[data-col]');
+        if (!th) return;
+        const key = table.dataset.table, t = TABLES[key];
+        if (t.sortCol === th.dataset.col) t.sortDir *= -1;
+        else { t.sortCol = th.dataset.col; t.sortDir = 1; }
+        renderTable(key);
+    });
+});
+
+// TOP 50 검색
+let filterTimer = null;
+$id('topFilter').addEventListener('input', function () {
+    clearTimeout(filterTimer);
+    const v = this.value.trim();
+    filterTimer = setTimeout(() => { TABLES.top.filter = v; renderTable('top'); }, 180);
+});
+
+/* ══════════ 내보내기 ══════════ */
+function buildRows(key, delim) {
+    const t = TABLES[key];
+    const cols = t.cols.filter(c => !c.rank && !c.bar);
+    const esc = (v) => {
+        let s = String(v ?? '');
+        if (delim === ',' && /[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+        return s;
+    };
+    const lines = [cols.map(c => c.label).join(delim)];
+    for (const r of viewRows(key)) lines.push(cols.map(c => esc(r[c.key])).join(delim));
+    return lines.join('\r\n');
+}
+
+document.querySelectorAll('[data-export]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const key = btn.dataset.table;
+        if (TABLES[key].rows.length === 0) { toast('내보낼 데이터가 없습니다.'); return; }
+
+        if (btn.dataset.export === 'csv') {
+            // UTF-8 BOM: 엑셀에서 한글 깨짐 방지
+            const blob = new Blob(['﻿' + buildRows(key, ',')], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `pidStatus_${key}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            toast('CSV 파일이 다운로드되었습니다.');
+            return;
+        }
+
+        const text = buildRows(key, '\t');
+        try {
+            await navigator.clipboard.writeText(text);
+            toast('클립보드에 복사되었습니다. 엑셀에 붙여넣기 하세요.');
+        } catch (err) {
+            // http 환경 등 clipboard API 미지원 시 폴백
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            toast('클립보드에 복사되었습니다.');
+        }
+    });
+});
+
+/* ══════════ 새로고침 / 최초 로드 ══════════ */
+$id('btnRefresh').addEventListener('click', loadAll);
+window.addEventListener('resize', () => { if (chart) chart.reflow(); });
+
+loadAll();
+</script>
+
+</body>
+</html>

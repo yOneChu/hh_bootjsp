@@ -84,6 +84,12 @@ public class PIDController {
         return "dashboard/pidStatusDashboard";
     }
 
+    @Description("PID 대시보드 화면 개선")
+    @GetMapping("/pid/pidDashboardV2")
+    public String pidDashboardV2() {
+        return "thymeleaf/dashboard/pidStatus";
+    }
+
     @Description("PID 작업한 총 라인 수")
     @GetMapping("/pid/findType01")
     @ResponseBody
