@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>수량-PID 조회</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+
+    <script>
+        // 페이지 렌더 전 다크모드/사이드바 상태 적용 (깜빡임 방지) — 기본값: 다크
+        if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+    </script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+
+    <!-- DataTables -->
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+
+    <link rel="stylesheet" href="/resources/dist/plugins/select2/css/select2.min.css">
+
+    <!-- Theme style (DataTables / 결과 테이블 렌더링용) -->
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="/resources/dashboard/tweak.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            corePlugins: { preflight: false }, // 기존 Bootstrap/AdminLTE/DataTables 스타일과 충돌 방지
+            theme: {
+                extend: {
+                    colors: {
+                        apple: {
+                            blue:  '#0071E3',
+                            blueD: '#0A84FF',
+                            ink:   '#1D1D1F',
+                            gray1: '#8E8E93',
+                            gray5: '#E5E5EA',
+                            gray6: '#F5F5F7',
+                            card:  '#FFFFFF',
+                            darkBg:   '#000000',
+                            darkCard: '#1C1C1E',
+                            darkLine: '#38383A',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard Variable', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Helvetica Neue', 'Arial', 'sans-serif']
+                    },
+                    boxShadow: {
+                        card: '0 2px 20px rgba(0,0,0,.05)',
+                        cardD: '0 2px 20px rgba(0,0,0,.45)',
+                        btn: '0 2px 10px rgba(0,113,227,.35)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html { -webkit-font-smoothing: antialiased; }
+        body { font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif; }
+
+        /* ── Form controls ── */
+        .field-label {
+            display: block; font-size: 11px; font-weight: 600;
+            letter-spacing: .05em; text-transform: uppercase;
+            color: #86868B; margin-bottom: 6px;
+        }
+        .dark .field-label { color: #98989D; }
+
+        .form-input, .form-select {
+            width: 100%; height: 40px; padding: 0 13px;
+            font-size: 14px; color: #1D1D1F;
+            background: #fff; border: 1.5px solid #E5E5EA; border-radius: 11px;
+            outline: none; transition: border-color .18s, box-shadow .18s, background .18s;
+        }
+        .form-select {
+            appearance: none; padding-right: 34px; cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238E8E93' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 13px center;
+        }
+        .form-input:focus, .form-select:focus {
+            border-color: #0071E3; box-shadow: 0 0 0 3.5px rgba(0,113,227,.14);
+        }
+        .dark .form-input, .dark .form-select {
+            background: #2C2C2E; border-color: #38383A; color: #F5F5F7;
+        }
+        .dark .form-input:focus, .dark .form-select:focus {
+            border-color: #0A84FF; box-shadow: 0 0 0 3.5px rgba(10,132,255,.22);
+        }
+        .dark .form-select option { background: #2C2C2E; }
+
+        /* ── Buttons ── */
+        .btn-primary {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            height: 42px; padding: 0 26px; border-radius: 11px;
+            background: #0071E3; color: #fff; font-size: 14px; font-weight: 600;
+            border: none; cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,113,227,.35);
+            transition: background .15s, transform .1s, box-shadow .15s;
+        }
+        .btn-primary:hover  { background: #0077ED; box-shadow: 0 4px 16px rgba(0,113,227,.45); }
+        .btn-primary:active { transform: scale(.97); }
+
+        .btn-ghost {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            height: 42px; padding: 0 20px; border-radius: 11px;
+            background: transparent; color: #0071E3; font-size: 14px; font-weight: 600;
+            border: 1.5px solid #D2D2D7; cursor: pointer;
+            transition: background .15s, border-color .15s;
+        }
+        .btn-ghost:hover { background: rgba(0,113,227,.06); border-color: #0071E3; }
+        .dark .btn-ghost { color: #0A84FF; border-color: #48484A; }
+        .dark .btn-ghost:hover { background: rgba(10,132,255,.12); border-color: #0A84FF; }
+
+        details.help summary { list-style: none; cursor: pointer; }
+        details.help summary::-webkit-details-marker { display: none; }
+        details.help[open] .chev { transform: rotate(90deg); }
+        .chev { transition: transform .18s; }
+
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 9px; border: none; cursor: pointer;
+            background: transparent; color: #1D1D1F;
+            transition: background .15s;
+        }
+        .icon-btn:hover { background: rgba(0,0,0,.06); }
+        .dark .icon-btn { color: #F5F5F7; }
+        .dark .icon-btn:hover { background: rgba(255,255,255,.1); }
+
+        /* iOS 스타일 토글 스위치 */
+        .ios-switch { position: relative; width: 46px; height: 27px; cursor: pointer; }
+        .ios-switch input { display: none; }
+        .ios-switch .track {
+            position: absolute; inset: 0; border-radius: 999px;
+            background: #D2D2D7; transition: background .2s;
+        }
+        .dark .ios-switch .track { background: #38383A; }
+        .ios-switch input:checked + .track { background: #34C759; }
+        .ios-switch .knob {
+            position: absolute; top: 2.5px; left: 2.5px; width: 22px; height: 22px;
+            border-radius: 50%; background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: transform .2s;
+        }
+        .ios-switch input:checked ~ .knob { transform: translateX(19px); }
+
+        /* ── 결과 테이블 카드 안쪽 여백 ── */
+        #qtyResultCard .card-body { padding: 0; }
+        #qtyResultCard table.table { margin-bottom: 0; font-size: 13px; }
+        #qtyResultCard thead tr th { white-space: nowrap; }
+    </style>
+</head>
+
+<body class="bg-apple-gray6 dark:bg-apple-darkBg text-apple-ink dark:text-apple-gray6 min-h-screen">
+
+<!-- ═══════════ Left Sidebar (fragments/newSideBar.html) ═══════════ -->
+<div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+
+<div id="appContent">
+
+<!-- ═══════════ Top Bar ═══════════ -->
+<header class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-black/60 border-b border-black/5 dark:border-white/10">
+    <div class="max-w-[1700px] mx-auto px-6 h-[58px] flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <button type="button" id="sbToggle" class="icon-btn -ml-2" title="사이드바 열기/닫기">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
+            <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
+                    <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-[16px] font-bold tracking-tight leading-none">수량-PID 조회</h1>
+                <p class="text-[11px] text-apple-gray1 leading-none mt-[3px]">MLB Quantity-PID Lookup</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-5">
+            <span class="hidden md:inline-flex items-center gap-1.5 text-[12px] font-medium text-apple-gray1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
+            </span>
+            <div class="flex items-center gap-2">
+                <span class="text-[12.5px] font-medium text-apple-gray1" id="themeLabel">다크모드</span>
+                <label class="ios-switch">
+                    <input type="checkbox" id="darkModeToggle">
+                    <span class="track"></span><span class="knob"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-[1700px] mx-auto px-6 py-8 space-y-6">
+
+    <!-- ═══════════ Hero ═══════════ -->
+    <section class="pt-2 pb-1">
+        <h2 class="text-[30px] font-bold tracking-tight leading-tight">수량 PID 상세 검색</h2>
+        <p class="text-[14.5px] text-apple-gray1 mt-1">년도 · BlockNo · 수량 PID 조건으로 부품 수량 데이터를 조회합니다.</p>
+    </section>
+
+    <!-- ═══════════ 도움말 ═══════════ -->
+    <details class="help bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06]">
+        <summary class="flex items-center gap-3 px-6 py-4">
+            <span class="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center text-[13px]">💡</span>
+            <span class="text-[14px] font-semibold flex-1">도움말 · 검색 조건 안내</span>
+            <svg class="chev text-apple-gray1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+        <ul class="px-7 pb-5 pt-1 space-y-2 text-[13px] leading-relaxed text-[#515154] dark:text-[#AEAEB2]">
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>주석과 수량 중 <span class="font-semibold text-apple-blue dark:text-apple-blueD">'조건 수량 PID'</span> 값이 있는 부품을 조회합니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>수량 PID는 <span class="font-semibold text-apple-blue dark:text-apple-blueD">LIKE</span> 조건으로 검색됩니다.</li>
+        </ul>
+    </details>
+
+    <!-- ═══════════ 검색 조건 카드 ═══════════ -->
+    <section class="bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] overflow-hidden">
+        <div class="px-6 pt-5 pb-1 flex items-center gap-2.5">
+            <span class="w-7 h-7 rounded-[8px] bg-blue-50 dark:bg-blue-500/15 flex items-center justify-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0071E3" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+            </span>
+            <h3 class="text-[15px] font-bold">검색 조건</h3>
+        </div>
+
+        <div class="px-6 py-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="field-label">년도</label>
+                    <select id="dateFilter" class="form-select">
+                        <option selected="selected" value="2026">2026</option>
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                        <option value="2020">2020</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="field-label">BlockNo</label>
+                    <input type="search" id="searchBlockNo" class="form-input" placeholder="BlockNo. 입력하세요" autocomplete="off">
+                </div>
+                <div>
+                    <label class="field-label">수량 PID</label>
+                    <input type="search" id="searchPID" class="form-input" placeholder="수량 PID 입력하세요" onkeydown="keyCodeCheck('key pressed')" autocomplete="off">
+                </div>
+            </div>
+        </div>
+
+        <!-- footer actions -->
+        <div class="px-6 py-4 bg-apple-gray6/50 dark:bg-white/[.03] border-t border-black/[.04] dark:border-white/[.06] flex items-center justify-between flex-wrap gap-3">
+            <span class="text-[12px] text-apple-gray1">Enter 키로 바로 검색할 수 있습니다.</span>
+            <div class="flex items-center gap-2.5">
+                <button type="button" class="btn-ghost" onclick="excelData()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                    EXCEL Download
+                </button>
+                <button type="button" class="btn-primary" onclick="filterData()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                    검색
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 검색 결과 카드 ═══════════ -->
+    <section id="qtyResultCard" class="bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] overflow-hidden">
+        <div class="px-6 pt-5 pb-4 flex items-center gap-3 border-b border-black/[.04] dark:border-white/[.06]">
+            <span class="w-7 h-7 rounded-[8px] bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+            </span>
+            <h3 class="text-[15px] font-bold">검색 결과</h3>
+        </div>
+
+        <div class="card-body px-2 py-3">
+            <table id="infoTable" class="table table-bordered table-hover">
+                <thead>
+                <tr class="bg-secondary">
+                    <th>상위품번</th>
+                    <th>상위파트명</th>
+                    <th>blockNo</th>
+
+                    <th>자재번호</th>
+                    <th>자재명</th>
+                    <th>BlockNo</th>
+
+                    <th>SPEC</th>
+                    <th>QTY</th>
+                    <th>CMT</th>
+                </tr>
+                </thead>
+
+                <tbody id="contentTable">
+
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <footer class="pt-4 pb-8 text-center">
+        <p class="text-[12px] text-apple-gray1">Copyright © 2026 <b>수배로직설계팀 · 김영환 M</b>. All rights reserved. · Version 1.0.0</p>
+    </footer>
+</main>
+
+</div><!-- /#appContent -->
+
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script src="/resources/javascript/commonUtil.js"></script>
+<script src="/resources/javascript/StringUtil.js"></script>
+
+<script src="/resources/javascript/searchPartQtyPid.js"></script>
+
+
+<!-- AdminLTE App -->
+<script src="/resources/dist/js/adminlte.min.js"></script>
+
+
+<!-- DataTables & Plugins -->
+<script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+
+<script src="/resources/dist/plugins/select2/js/select2.full.min.js"></script>
+
+<script src="/resources/dist/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/jszip/jszip.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/pdfmake.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/vfs_fonts.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
+
+<script>
+    'use strict';
+    // 새 UI 셸 전용: 다크모드(html.dark) / 사이드바 활성 메뉴 표시
+    // (기존 commonUtil.js 의 body.dark-mode 토글은 DataTables/AdminLTE 다크 스타일용으로 그대로 유지됨)
+    const $id = (s) => document.getElementById(s);
+
+    (function initTheme() {
+        const dark = localStorage.getItem('theme') !== 'light'; // 기본 다크모드
+        document.documentElement.classList.toggle('dark', dark);
+        $id('darkModeToggle').checked = dark;
+        $id('themeLabel').textContent = dark ? '🌙 다크모드' : '☀️ 라이트모드';
+        if (dark) localStorage.setItem('theme', 'dark');
+    })();
+    $id('darkModeToggle').addEventListener('change', function () {
+        document.documentElement.classList.toggle('dark', this.checked);
+        localStorage.setItem('theme', this.checked ? 'dark' : 'light');
+        $id('themeLabel').textContent = this.checked ? '🌙 다크모드' : '☀️ 라이트모드';
+    });
+
+    document.querySelectorAll('#sidebar .sb-link').forEach(a => a.classList.remove('active'));
+    document.querySelector('#sidebar a[href="/mlb/searchLogicQty"]')?.classList.add('active');
+</script>
+
+</body>
+</html>

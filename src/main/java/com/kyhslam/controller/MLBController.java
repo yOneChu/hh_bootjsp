@@ -27,6 +27,13 @@ public class MLBController {
         return "thymeleaf/searchPartQtyPid";
     }
 
+    @Description("수량 PID 조회 화면 개선")
+    @GetMapping("/searchLogicQty")
+    public String searchLogicQty() {
+        //return "mlb/searchPartQtyPid";
+        return "thymeleaf/logic/searchLogicQtyPID";
+    }
+
 
     @Description("수량 PID 조회 로직")
     @PostMapping("/searchPartQtyPid")

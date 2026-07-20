@@ -189,7 +189,7 @@
                         </li>
 
                         <li>
-                            <a href="/pid/searchPIDDetail" class="nav-link">
+                            <a href="/pid/logicpid" class="nav-link">
                                 <p>로직 PID 분석(개선)</p>
                             </a>
                         </li>

@@ -117,5 +117,4 @@ public class AnalysisController {
         return "thymeleaf/logic/searchLogicPID";
     }
 
-
 }

@@ -47,6 +47,12 @@ public class PIDController {
         return "thymeleaf/logic/searchLogicPID";
     }
 
+    @Description("PID 상세 조회 화면 개선 v2")
+    @GetMapping("/pid/logicpidv2")
+    public String logicpidv2() {
+        return "thymeleaf/logic/searchLogicPIDv2";
+    }
+
     /**
      * PID 상세조회
      * @param pid
