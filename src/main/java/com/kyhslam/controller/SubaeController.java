@@ -5,10 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kyhslam.dto.*;
 import com.kyhslam.service.BlockHistoryService;
 import com.kyhslam.service.ELVInfoService;
+import com.kyhslam.service.PartDashService;
 import com.kyhslam.service.SubaeHogiService;
 import com.kyhslam.service.SubaeService;
+import com.kyhslam.util.DateUtil;
 import com.kyhslam.util.ElvInfoCommonUtil;
 import com.kyhslam.util.PIDCommonUtil;
+import com.kyhslam.util.PartDashboardUtil;
+import com.kyhslam.util.UtilCommonAPI;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +26,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -40,6 +47,8 @@ public class SubaeController {
     private final ELVInfoService elvInfoService;
 
     private final SubaeHogiService subaeHogiService;
+
+    private final PartDashService partDashService;
 
 
     //본사-법인 자재비교
@@ -235,11 +244,50 @@ public class SubaeController {
 
     // 자재 대시보드 및 엑셀다운로드 화면
     @GetMapping("/subae/partDashboard")
-    public String partDashboard() {
-        //subaeService.findSubaeProductNo("");
+    public String partDashboard(Model model) {
 
-        //partDashboard
-        return "dashboard/partDashboardv2";
+        // 배치는 평일에만 돌기 때문에 주말이면 직전 금요일 집계를 기준일로 삼는다
+        LocalDate baseDate = LocalDate.now();
+        if (baseDate.getDayOfWeek() == DayOfWeek.SATURDAY) {
+            baseDate = baseDate.minusDays(1);
+        } else if (baseDate.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            baseDate = baseDate.minusDays(2);
+        }
+        String baseDateStr = baseDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        PartDashboardDTO param = new PartDashboardDTO();
+        param.setBatchDate(baseDateStr);
+        PartDashboardDTO dto = partDashService.findPartDashboard(param);
+
+        model.addAttribute("baseDate", baseDateStr);
+        model.addAttribute("allCnt", dto == null ? null : UtilCommonAPI.formatNumberWithCommas(dto.getPartALL()));
+        model.addAttribute("activeCnt", dto == null ? null : UtilCommonAPI.formatNumberWithCommas(dto.getPartActive()));
+        model.addAttribute("inactiveCnt", dto == null ? null : UtilCommonAPI.formatNumberWithCommas(dto.getPartInactive()));
+        model.addAttribute("olsCnt", dto == null ? null : UtilCommonAPI.formatNumberWithCommas(dto.getOls()));
+
+        //TOP 10 Block (화면에서 상위 10건만 표시)
+        model.addAttribute("topList", PartDashboardUtil.findTopBlockPart());
+
+        // 일별 추이 — getLast7BusinessDays() 는 최신일이 앞이므로 화면용으로 오름차순 정렬한다
+        List<String> dateKeyList = new ArrayList<>();
+        List<String> countList = new ArrayList<>();
+        List<String> businessDays = DateUtil.getLast7BusinessDays();
+        for (int i = businessDays.size() - 1; i >= 0; i--) {
+            String day = businessDays.get(i);
+            if (day == null || day.isEmpty()) continue;
+
+            PartDashboardDTO dayParam = new PartDashboardDTO();
+            dayParam.setBatchDate(day);
+            PartDashboardDTO dayDto = partDashService.findPartDashboard(dayParam);
+            if (dayDto != null && dayDto.getPartALL() != null) {
+                dateKeyList.add(day);
+                countList.add(dayDto.getPartALL());
+            }
+        }
+        model.addAttribute("dateKeyList", dateKeyList);
+        model.addAttribute("countList", countList);
+
+        return "thymeleaf/dashboard/partDashboard";
     }
 
 

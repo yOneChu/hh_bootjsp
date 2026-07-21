@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>PLM 자재 현황</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+
+    <script>
+        // 페이지 렌더 전 다크모드/사이드바 상태 적용 (깜빡임 방지) — 기본값: 다크
+        if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: {
+                            blue:  '#0071E3',
+                            blueD: '#0A84FF',
+                            ink:   '#1D1D1F',
+                            gray1: '#8E8E93',
+                            gray5: '#E5E5EA',
+                            gray6: '#F5F5F7',
+                            card:  '#FFFFFF',
+                            darkBg:   '#000000',
+                            darkCard: '#1C1C1E',
+                            darkLine: '#38383A',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard Variable', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Helvetica Neue', 'Arial', 'sans-serif']
+                    },
+                    boxShadow: {
+                        card: '0 2px 20px rgba(0,0,0,.05)',
+                        cardD: '0 2px 20px rgba(0,0,0,.45)',
+                        btn: '0 2px 10px rgba(0,113,227,.35)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html { -webkit-font-smoothing: antialiased; }
+        body { font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, sans-serif; }
+
+        /* ── Form controls ── */
+        .field-label {
+            display: block; font-size: 11px; font-weight: 600;
+            letter-spacing: .05em; text-transform: uppercase;
+            color: #86868B; margin-bottom: 6px;
+        }
+        .dark .field-label { color: #98989D; }
+
+        .form-input, .form-select {
+            width: 100%; height: 40px; padding: 0 13px;
+            font-size: 14px; color: #1D1D1F;
+            background: #fff; border: 1.5px solid #E5E5EA; border-radius: 11px;
+            outline: none; transition: border-color .18s, box-shadow .18s, background .18s;
+        }
+        .form-select {
+            appearance: none; padding-right: 34px; cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238E8E93' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 13px center;
+        }
+        .form-input:focus, .form-select:focus {
+            border-color: #0071E3; box-shadow: 0 0 0 3.5px rgba(0,113,227,.14);
+        }
+        .dark .form-input, .dark .form-select {
+            background: #2C2C2E; border-color: #38383A; color: #F5F5F7;
+        }
+        .dark .form-input:focus, .dark .form-select:focus {
+            border-color: #0A84FF; box-shadow: 0 0 0 3.5px rgba(10,132,255,.22);
+        }
+        .dark .form-select option { background: #2C2C2E; }
+
+        /* ── Buttons ── */
+        .btn-primary {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            height: 42px; padding: 0 26px; border-radius: 11px;
+            background: #0071E3; color: #fff; font-size: 14px; font-weight: 600;
+            border: none; cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,113,227,.35);
+            transition: background .15s, transform .1s, box-shadow .15s;
+        }
+        .btn-primary:hover  { background: #0077ED; box-shadow: 0 4px 16px rgba(0,113,227,.45); }
+        .btn-primary:active { transform: scale(.97); }
+
+        .btn-ghost {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            height: 42px; padding: 0 20px; border-radius: 11px;
+            background: transparent; color: #0071E3; font-size: 14px; font-weight: 600;
+            border: 1.5px solid #D2D2D7; cursor: pointer;
+            transition: background .15s, border-color .15s;
+        }
+        .btn-ghost:hover { background: rgba(0,113,227,.06); border-color: #0071E3; }
+        .dark .btn-ghost { color: #0A84FF; border-color: #48484A; }
+        .dark .btn-ghost:hover { background: rgba(10,132,255,.12); border-color: #0A84FF; }
+
+        .btn-mini {
+            display: inline-flex; align-items: center; gap: 5px;
+            height: 32px; padding: 0 13px; border-radius: 9px;
+            font-size: 12.5px; font-weight: 600; cursor: pointer;
+            background: #F5F5F7; color: #1D1D1F; border: 1px solid transparent;
+            transition: background .15s;
+        }
+        .btn-mini:hover { background: #E8E8ED; }
+        .dark .btn-mini { background: #2C2C2E; color: #F5F5F7; }
+        .dark .btn-mini:hover { background: #3A3A3C; }
+
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 9px; border: none; cursor: pointer;
+            background: transparent; color: #1D1D1F;
+            transition: background .15s;
+        }
+        .icon-btn:hover { background: rgba(0,0,0,.06); }
+        .dark .icon-btn { color: #F5F5F7; }
+        .dark .icon-btn:hover { background: rgba(255,255,255,.1); }
+
+        /* ── KPI 카드 ── */
+        .stat-card { position: relative; overflow: hidden; }
+        .stat-card::after {
+            content: ''; position: absolute; inset: 0; pointer-events: none;
+            background: radial-gradient(120% 120% at 100% 0%, rgba(0,113,227,.08), transparent 55%);
+        }
+        .dark .stat-card::after {
+            background: radial-gradient(120% 120% at 100% 0%, rgba(10,132,255,.16), transparent 55%);
+        }
+        .stat-value {
+            font-size: 32px; font-weight: 800; letter-spacing: -.025em; line-height: 1.1;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-icon {
+            width: 38px; height: 38px; border-radius: 12px;
+            display: inline-flex; align-items: center; justify-content: center; flex: none;
+        }
+        .share {
+            display: inline-flex; align-items: center; gap: 4px;
+            height: 21px; padding: 0 9px; border-radius: 999px;
+            font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+            background: rgba(142,142,147,.16); color: #6E6E73;
+        }
+        .dark .share { background: rgba(142,142,147,.22); color: #AEAEB2; }
+
+        /* ── TOP 10 리스트 ── */
+        .top-row {
+            display: flex; align-items: center; gap: 12px;
+            padding: 11px 12px; border-radius: 13px;
+            transition: background .13s;
+        }
+        .top-row:hover { background: rgba(0,113,227,.055); }
+        .dark .top-row:hover { background: rgba(10,132,255,.10); }
+
+        .rank {
+            display: inline-flex; align-items: center; justify-content: center; flex: none;
+            width: 24px; height: 24px; border-radius: 8px;
+            font-size: 11.5px; font-weight: 800;
+            background: #E8E8ED; color: #6E6E73;
+        }
+        .dark .rank { background: #2C2C2E; color: #98989D; }
+        .rank.top1 { background: #0071E3; color: #fff; }
+        .rank.top2 { background: rgba(0,113,227,.22); color: #0071E3; }
+        .rank.top3 { background: rgba(0,113,227,.13); color: #0071E3; }
+        .dark .rank.top1 { background: #0A84FF; }
+        .dark .rank.top2 { background: rgba(10,132,255,.3); color: #66B5FF; }
+        .dark .rank.top3 { background: rgba(10,132,255,.18); color: #66B5FF; }
+
+        .block-code {
+            font-size: 12.5px; font-weight: 700; letter-spacing: .01em;
+            font-variant-numeric: tabular-nums;
+        }
+        .bar-track {
+            width: 100%; height: 6px; border-radius: 999px;
+            background: #E8E8ED; overflow: hidden; margin-top: 7px;
+        }
+        .dark .bar-track { background: #2C2C2E; }
+        .bar-fill {
+            height: 100%; border-radius: 999px; width: 0;
+            background: linear-gradient(90deg, #0071E3, #5AC8FA);
+            transition: width .9s cubic-bezier(.4,0,.2,1);
+        }
+        .dark .bar-fill { background: linear-gradient(90deg, #0A84FF, #64D2FF); }
+
+        /* ── 도움말 ── */
+        details.help summary { list-style: none; cursor: pointer; }
+        details.help summary::-webkit-details-marker { display: none; }
+        details.help[open] .chev { transform: rotate(90deg); }
+        .chev { transition: transform .18s; }
+
+        .code-chip {
+            display: inline-block; padding: 1px 7px; border-radius: 6px;
+            background: rgba(0,113,227,.10); color: #0071E3;
+            font-size: 12px; font-weight: 700; font-family: 'SF Mono', Menlo, Consolas, monospace;
+        }
+        .dark .code-chip { background: rgba(10,132,255,.18); color: #66B5FF; }
+
+        /* ── Toast ── */
+        #toast {
+            position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%) translateY(16px);
+            z-index: 90; padding: 12px 22px; border-radius: 999px;
+            background: rgba(28,28,30,.92); color: #fff; font-size: 13.5px; font-weight: 500;
+            backdrop-filter: blur(12px); box-shadow: 0 8px 30px rgba(0,0,0,.3);
+            opacity: 0; pointer-events: none; transition: all .25s;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ── Loading overlay ── */
+        #loading {
+            position: fixed; inset: 0; z-index: 80; display: none;
+            align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+            background: rgba(245,245,247,.6); backdrop-filter: blur(6px);
+        }
+        .dark #loading { background: rgba(0,0,0,.55); }
+        #loading.show { display: flex; }
+        .spinner {
+            width: 42px; height: 42px; border-radius: 50%;
+            border: 3.5px solid rgba(0,113,227,.18); border-top-color: #0071E3;
+            animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* iOS 스타일 토글 스위치 */
+        .ios-switch { position: relative; width: 46px; height: 27px; cursor: pointer; }
+        .ios-switch input { display: none; }
+        .ios-switch .track {
+            position: absolute; inset: 0; border-radius: 999px;
+            background: #D2D2D7; transition: background .2s;
+        }
+        .dark .ios-switch .track { background: #38383A; }
+        .ios-switch input:checked + .track { background: #34C759; }
+        .ios-switch .knob {
+            position: absolute; top: 2.5px; left: 2.5px; width: 22px; height: 22px;
+            border-radius: 50%; background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: transform .2s;
+        }
+        .ios-switch input:checked ~ .knob { transform: translateX(19px); }
+    </style>
+</head>
+
+<body class="bg-apple-gray6 dark:bg-apple-darkBg text-apple-ink dark:text-apple-gray6 min-h-screen">
+
+<!-- ═══════════ Left Sidebar (fragments/newSideBar.html) ═══════════ -->
+<div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+
+<div id="appContent">
+
+<!-- ═══════════ Top Bar ═══════════ -->
+<header class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-black/60 border-b border-black/5 dark:border-white/10">
+    <div class="max-w-[1700px] mx-auto px-6 h-[58px] flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <button type="button" id="sbToggle" class="icon-btn -ml-2" title="사이드바 열기/닫기">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
+            <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12l8.73-5.04M12 22V12"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-[16px] font-bold tracking-tight leading-none">PLM 자재 현황</h1>
+                <p class="text-[11px] text-apple-gray1 leading-none mt-[3px]">Material Master Intelligence</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-5">
+            <span class="hidden md:inline-flex items-center gap-1.5 text-[12px] font-medium text-apple-gray1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
+            </span>
+            <div class="flex items-center gap-2">
+                <span class="text-[12.5px] font-medium text-apple-gray1" id="themeLabel">다크모드</span>
+                <label class="ios-switch">
+                    <input type="checkbox" id="darkModeToggle">
+                    <span class="track"></span><span class="knob"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-[1700px] mx-auto px-6 py-8 space-y-6">
+
+    <!-- ═══════════ Hero ═══════════ -->
+    <section class="pt-2 pb-1 flex items-end justify-between flex-wrap gap-3">
+        <div>
+            <h2 class="text-[30px] font-bold tracking-tight leading-tight">PLM 자재 현황 및 Excel 다운로드</h2>
+            <p class="text-[14.5px] text-apple-gray1 mt-1">활성 · 비활성 · 폐기 자재 집계와 Block 별 상위 자재 분포를 한 눈에 확인합니다.</p>
+        </div>
+        <span class="inline-flex items-center gap-2 h-[30px] px-3.5 rounded-full bg-white dark:bg-apple-darkCard border border-black/[.06] dark:border-white/[.08] text-[12.5px] font-semibold text-apple-gray1">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+            기준일 <b class="text-apple-ink dark:text-apple-gray6" th:text="${baseDate} ?: '-'">2026-07-20</b>
+        </span>
+    </section>
+
+    <!-- ═══════════ 도움말 ═══════════ -->
+    <details class="help bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06]">
+        <summary class="flex items-center gap-3 px-6 py-4">
+            <span class="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center text-[13px]">💡</span>
+            <span class="text-[14px] font-semibold flex-1">도움말 · 집계 기준과 검색 예시</span>
+            <svg class="chev text-apple-gray1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+        <div class="px-7 pb-6 pt-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+                <p class="text-[12px] font-bold tracking-wide uppercase text-apple-gray1 mb-2">집계 기준</p>
+                <ul class="space-y-2 text-[13px] leading-relaxed text-[#515154] dark:text-[#AEAEB2]">
+                    <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>중국법인 자재 제외</li>
+                    <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>최신 릴리즈 기준</li>
+                    <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>엘리베이터 자재 (BlockNo 1, 2, 3)</li>
+                    <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>일별 집계는 주말을 제외한 최근 영업일 기준입니다.</li>
+                </ul>
+            </div>
+            <div>
+                <p class="text-[12px] font-bold tracking-wide uppercase text-apple-gray1 mb-2">검색 예시</p>
+                <ul class="space-y-2 text-[13px] leading-relaxed text-[#515154] dark:text-[#AEAEB2]">
+                    <li class="flex gap-2"><span class="code-chip">201153*</span> 자재번호가 201153 으로 시작하는 자재</li>
+                    <li class="flex gap-2"><span class="code-chip">*100325G02*</span> 자재번호에 100325G02 가 포함된 자재</li>
+                    <li class="flex gap-2"><span class="code-chip">*G*HB*</span> G 와 HB 가 순서대로 포함된 자재</li>
+                    <li class="flex gap-2"><span class="code-chip">HATCH DOOR ASSY</span> 자재명이 정확히 일치하는 자재</li>
+                    <li class="flex gap-2"><span class="code-chip">HATCH*</span> 자재명이 HATCH 로 시작하는 자재</li>
+                </ul>
+            </div>
+        </div>
+    </details>
+
+    <!-- ═══════════ 검색 / 다운로드 카드 ═══════════ -->
+    <section class="bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] overflow-hidden">
+        <div class="px-6 pt-5 pb-1 flex items-center gap-2.5 flex-wrap">
+            <span class="w-7 h-7 rounded-[8px] bg-blue-50 dark:bg-blue-500/15 flex items-center justify-center">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0071E3" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+            </span>
+            <h3 class="text-[15px] font-bold">자재 검색 조건</h3>
+            <button type="button" class="btn-mini ml-auto" id="btnReset">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+                초기화
+            </button>
+        </div>
+
+        <div class="px-6 py-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div>
+                    <label class="field-label" for="partNo">자재번호</label>
+                    <input type="search" id="partNo" class="form-input" placeholder="예: 201153* · *G*HB*" autocomplete="off">
+                </div>
+                <div>
+                    <label class="field-label" for="partName">자재명</label>
+                    <input type="search" id="partName" class="form-input" placeholder="예: HATCH DOOR ASSY · HATCH*" autocomplete="off">
+                </div>
+                <div>
+                    <label class="field-label" for="year">자재 생성일</label>
+                    <select id="year" class="form-select">
+                        <option value="2023" selected>2023년 이후</option>
+                        <option value="2022">2023년 이전</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="field-label" for="status">상태</label>
+                    <select id="status" class="form-select">
+                        <option value="ACTIVE" selected>활성 자재</option>
+                        <option value="INACTIVE">비활성 자재</option>
+                        <option value="OSL">폐기 자재</option>
+                        <option value="ALL">전체</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-6 py-4 bg-apple-gray6/50 dark:bg-white/[.03] border-t border-black/[.04] dark:border-white/[.06] flex items-center justify-between flex-wrap gap-3">
+            <span class="text-[12px] text-apple-gray1">Enter 키로 바로 다운로드할 수 있습니다. 조건이 비어 있으면 전체 자재가 내려받아집니다.</span>
+            <button type="button" class="btn-primary" id="partExcel">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                EXCEL 다운로드
+            </button>
+        </div>
+    </section>
+
+    <!-- ═══════════ KPI ═══════════ -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+
+        <div class="stat-card bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] p-5">
+            <div class="flex items-start justify-between gap-3 relative z-[1]">
+                <div class="min-w-0">
+                    <p class="text-[12.5px] font-semibold text-apple-gray1">총 자재 수</p>
+                    <p class="stat-value mt-1.5" data-kpi="all" th:text="${allCnt} ?: '-'">-</p>
+                </div>
+                <span class="stat-icon bg-blue-50 dark:bg-blue-500/15">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0071E3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12l8.73-5.04M12 22V12"/></svg>
+                </span>
+            </div>
+            <p class="text-[12px] text-apple-gray1 mt-3 relative z-[1]">PLM 등록 자재 전체</p>
+        </div>
+
+        <div class="stat-card bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] p-5">
+            <div class="flex items-start justify-between gap-3 relative z-[1]">
+                <div class="min-w-0">
+                    <p class="text-[12.5px] font-semibold text-apple-gray1">활성 자재</p>
+                    <p class="stat-value mt-1.5" data-kpi="active" th:text="${activeCnt} ?: '-'">-</p>
+                </div>
+                <span class="stat-icon bg-emerald-50 dark:bg-emerald-500/15">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </span>
+            </div>
+            <div class="mt-3 relative z-[1]"><span class="share" data-share="active">전체 대비 –</span></div>
+        </div>
+
+        <div class="stat-card bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] p-5">
+            <div class="flex items-start justify-between gap-3 relative z-[1]">
+                <div class="min-w-0">
+                    <p class="text-[12.5px] font-semibold text-apple-gray1">비활성 자재</p>
+                    <p class="stat-value mt-1.5" data-kpi="inactive" th:text="${inactiveCnt} ?: '-'">-</p>
+                </div>
+                <span class="stat-icon bg-amber-50 dark:bg-amber-500/15">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                </span>
+            </div>
+            <div class="mt-3 relative z-[1]"><span class="share" data-share="inactive">전체 대비 –</span></div>
+        </div>
+
+        <div class="stat-card bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] p-5">
+            <div class="flex items-start justify-between gap-3 relative z-[1]">
+                <div class="min-w-0">
+                    <p class="text-[12.5px] font-semibold text-apple-gray1">폐기 자재</p>
+                    <p class="stat-value mt-1.5" data-kpi="ols" th:text="${olsCnt} ?: '-'">-</p>
+                </div>
+                <span class="stat-icon bg-rose-50 dark:bg-rose-500/15">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E11D48" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+                </span>
+            </div>
+            <div class="mt-3 relative z-[1]"><span class="share" data-share="ols">전체 대비 –</span></div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 차트 + TOP 10 ═══════════ -->
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+        <!-- 일별 추이 -->
+        <div class="xl:col-span-2 bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] overflow-hidden">
+            <div class="px-6 pt-5 pb-4 flex items-center gap-3 flex-wrap border-b border-black/[.04] dark:border-white/[.06]">
+                <span class="w-7 h-7 rounded-[8px] bg-blue-50 dark:bg-blue-500/15 flex items-center justify-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0071E3" stroke-width="2.2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+                </span>
+                <h3 class="text-[15px] font-bold">일별 총 자재 추이</h3>
+                <span class="text-[12px] text-apple-gray1">최근 영업일 기준</span>
+                <span id="trendStat" class="ml-auto text-[12px] font-semibold text-apple-gray1"></span>
+            </div>
+            <div class="px-3 py-4">
+                <div id="trendChart" class="w-full h-[340px]"></div>
+                <p id="chartEmpty" class="hidden py-24 text-center text-[13px] text-apple-gray1">표시할 일별 집계 데이터가 없습니다.</p>
+            </div>
+        </div>
+
+        <!-- TOP 10 Block -->
+        <div class="bg-white dark:bg-apple-darkCard rounded-2xl shadow-card dark:shadow-cardD border border-black/[.04] dark:border-white/[.06] overflow-hidden flex flex-col">
+            <div class="px-6 pt-5 pb-4 flex items-center gap-3 flex-wrap border-b border-black/[.04] dark:border-white/[.06]">
+                <span class="w-7 h-7 rounded-[8px] bg-amber-50 dark:bg-amber-500/15 flex items-center justify-center text-[13px]">🏆</span>
+                <div class="min-w-0">
+                    <h3 class="text-[15px] font-bold leading-tight">TOP 10 Block</h3>
+                    <p class="text-[11.5px] text-apple-gray1 mt-[2px]">활성 자재 기준 · 2024 ~ 2025</p>
+                </div>
+            </div>
+
+            <div class="p-3 flex-1" id="topList">
+                <div class="top-row" th:each="row, st : ${topList}" th:if="${st.index &lt; 10}"
+                     th:attr="data-count=${row['BLOCKNO_COUNT']}">
+                    <span class="rank"
+                          th:classappend="${st.index == 0} ? ' top1' : (${st.index == 1} ? ' top2' : (${st.index == 2} ? ' top3' : ''))"
+                          th:text="${st.count}">1</span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-baseline justify-between gap-3">
+                            <span class="block-code truncate" th:text="${row['BLOCKNO']}">100000</span>
+                            <span class="text-[12.5px] font-bold text-apple-blue dark:text-apple-blueD tabular-nums whitespace-nowrap">
+                                <span th:text="${row['BLOCKNO_COUNT']}">0</span>개
+                            </span>
+                        </div>
+                        <p class="text-[11.5px] text-apple-gray1 truncate mt-[2px]" th:text="${row['BLOCKNAME']}">BLOCK NAME</p>
+                        <div class="bar-track"><div class="bar-fill"></div></div>
+                    </div>
+                </div>
+
+                <p th:if="${topList == null or #lists.isEmpty(topList)}"
+                   class="py-20 text-center text-[13px] text-apple-gray1">집계된 Block 데이터가 없습니다.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="pt-4 pb-8 text-center">
+        <p class="text-[12px] text-apple-gray1">Copyright © 2026 <b>수배로직설계팀 · 김영환 M</b>. All rights reserved. · Version 1.0.0</p>
+    </footer>
+</main>
+
+</div><!-- /#appContent -->
+
+<div id="toast"></div>
+<div id="loading">
+    <div class="spinner"></div>
+    <p class="text-[13.5px] font-semibold text-apple-gray1" id="loadingText">엑셀 파일을 준비하고 있습니다…</p>
+</div>
+
+<script src="/resources/dist/js/highcharts.js"></script>
+
+<script th:inline="javascript">
+/* ═══════════════════════════════════════════════
+   PLM 자재 현황 — vanilla JS (jQuery-free)
+   ═══════════════════════════════════════════════ */
+'use strict';
+
+const $id = (s) => document.getElementById(s);
+
+/* 서버 모델 → 화면 (오래된 날짜 → 최신 날짜 순으로 정렬해 전달할 것)
+   모델에 값이 없으면 null 이 들어오므로 사용하는 쪽에서 빈 배열로 대체한다 */
+const CHART_LABELS = /*[[${dateKeyList}]]*/ [];
+const CHART_VALUES = /*[[${countList}]]*/ [];
+
+/* ══════════ 다크모드 ══════════ */
+(function initTheme() {
+    const dark = localStorage.getItem('theme') !== 'light'; // 기본 다크모드
+    document.documentElement.classList.toggle('dark', dark);
+    $id('darkModeToggle').checked = dark;
+    $id('themeLabel').textContent = dark ? '🌙 다크모드' : '☀️ 라이트모드';
+    if (dark) localStorage.setItem('theme', 'dark');
+})();
+$id('darkModeToggle').addEventListener('change', function () {
+    document.documentElement.classList.toggle('dark', this.checked);
+    localStorage.setItem('theme', this.checked ? 'dark' : 'light');
+    $id('themeLabel').textContent = this.checked ? '🌙 다크모드' : '☀️ 라이트모드';
+    renderChart(); // 차트는 테마 색을 직접 굽기 때문에 다시 그린다
+});
+
+/* 사이드바 현재 메뉴 강조 */
+document.querySelectorAll('#sidebar .sb-link').forEach(a => a.classList.remove('active'));
+document.querySelector('#sidebar a[href="/subae/partDashboard"]')?.classList.add('active');
+
+/* ══════════ UI 유틸 ══════════ */
+function showLoading(msg) {
+    if (msg) $id('loadingText').textContent = msg;
+    $id('loading').classList.add('show');
+}
+function hideLoading() { $id('loading').classList.remove('show'); }
+
+let toastTimer = null;
+function toast(msg) {
+    const t = $id('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* 서버가 콤마를 넣어 내려주므로 계산 전에는 숫자만 남긴다 */
+function toNum(v) {
+    const n = parseFloat(String(v ?? '').replace(/[^0-9.-]/g, ''));
+    return isNaN(n) ? 0 : n;
+}
+
+/* ══════════ KPI 비중 계산 ══════════ */
+(function renderShares() {
+    const total = toNum(document.querySelector('[data-kpi="all"]')?.textContent);
+    ['active', 'inactive', 'ols'].forEach(k => {
+        const el = document.querySelector(`[data-share="${k}"]`);
+        const v = toNum(document.querySelector(`[data-kpi="${k}"]`)?.textContent);
+        if (!el) return;
+        el.textContent = total > 0 ? `전체 대비 ${(v / total * 100).toFixed(1)}%` : '전체 대비 –';
+    });
+})();
+
+/* ══════════ TOP 10 막대 ══════════ */
+(function renderTopBars() {
+    const rows = Array.from(document.querySelectorAll('#topList .top-row'));
+    if (rows.length === 0) return;
+    const max = Math.max(...rows.map(r => toNum(r.dataset.count)), 1);
+    requestAnimationFrame(() => {
+        rows.forEach(r => {
+            const pct = Math.max(4, toNum(r.dataset.count) / max * 100);
+            r.querySelector('.bar-fill').style.width = pct.toFixed(1) + '%';
+        });
+    });
+})();
+
+/* ══════════ 일별 추이 차트 ══════════ */
+function renderChart() {
+    const labels = (CHART_LABELS || []).map(d => String(d).replace(/-/g, '.'));
+    const values = (CHART_VALUES || []).map(toNum);
+
+    if (labels.length === 0 || values.length === 0) {
+        $id('trendChart').classList.add('hidden');
+        $id('chartEmpty').classList.remove('hidden');
+        return;
+    }
+
+    const dark = document.documentElement.classList.contains('dark');
+    const accent = dark ? '#0A84FF' : '#0071E3';
+    const text = dark ? '#98989D' : '#6E6E73';
+    const grid = dark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.06)';
+
+    // 최신일과 직전일의 증감을 헤더에 함께 표기
+    if (values.length >= 2) {
+        const diff = values[values.length - 1] - values[values.length - 2];
+        const sign = diff > 0 ? '▲' : (diff < 0 ? '▼' : '—');
+        $id('trendStat').textContent =
+            `최신 ${values[values.length - 1].toLocaleString()}건 · 전일 대비 ${sign} ${Math.abs(diff).toLocaleString()}`;
+    }
+
+    Highcharts.chart('trendChart', {
+        chart: { type: 'areaspline', backgroundColor: 'transparent', spacing: [10, 10, 6, 4], style: { fontFamily: 'Pretendard Variable, -apple-system, sans-serif' } },
+        title: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: {
+            categories: labels,
+            lineColor: grid, tickColor: grid,
+            labels: { style: { color: text, fontSize: '11px' } }
+        },
+        yAxis: {
+            title: { text: null },
+            gridLineColor: grid,
+            labels: { style: { color: text, fontSize: '11px' }, formatter: function () { return this.value.toLocaleString(); } }
+        },
+        tooltip: {
+            backgroundColor: dark ? 'rgba(28,28,30,.94)' : 'rgba(255,255,255,.96)',
+            borderWidth: 0, borderRadius: 12, shadow: true,
+            style: { color: dark ? '#F5F5F7' : '#1D1D1F', fontSize: '12.5px' },
+            headerFormat: '<b>{point.key}</b><br>',
+            pointFormatter: function () { return '총 자재 <b>' + this.y.toLocaleString() + '</b>건'; }
+        },
+        plotOptions: {
+            areaspline: {
+                lineWidth: 2.5,
+                color: accent,
+                fillColor: {
+                    linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+                    stops: [
+                        [0, dark ? 'rgba(10,132,255,.35)' : 'rgba(0,113,227,.24)'],
+                        [1, dark ? 'rgba(10,132,255,0)' : 'rgba(0,113,227,0)']
+                    ]
+                },
+                marker: { radius: 3.5, fillColor: '#fff', lineColor: accent, lineWidth: 2, symbol: 'circle' },
+                states: { hover: { lineWidth: 3 } }
+            }
+        },
+        series: [{ name: '총 자재 수', data: values }]
+    });
+}
+renderChart();
+
+/* ══════════ 검색 조건 ══════════ */
+function collectParams() {
+    return {
+        partNo:   $id('partNo').value.trim(),
+        partName: $id('partName').value.trim(),
+        year:     $id('year').value,
+        status:   $id('status').value,
+        qtyLogic: ''
+    };
+}
+
+$id('btnReset').addEventListener('click', () => {
+    $id('partNo').value = '';
+    $id('partName').value = '';
+    $id('year').selectedIndex = 0;
+    $id('status').selectedIndex = 0;
+    $id('partNo').focus();
+    toast('검색 조건을 초기화했습니다.');
+});
+
+/* 엔터키 다운로드 */
+document.addEventListener('keyup', (e) => {
+    if (e.key !== 'Enter') return;
+    if (e.target.tagName === 'BUTTON') return;
+    if (!e.target.closest('#partNo, #partName, #year, #status')) return;
+    downloadExcel();
+});
+
+/* ══════════ EXCEL 다운로드 ══════════ */
+async function downloadExcel() {
+    showLoading('엑셀 파일을 준비하고 있습니다…');
+    try {
+        const res = await fetch('/excel/searchPart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(collectParams())
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+
+        const disposition = res.headers.get('Content-Disposition');
+        let filename = 'excel.xlsx';
+        if (disposition && disposition.includes('filename=')) {
+            filename = decodeURIComponent(disposition.split('filename=')[1].replace(/"/g, '').trim());
+        }
+        const blob = await res.blob();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        hideLoading();
+        toast('엑셀 다운로드가 시작되었습니다.');
+    } catch (err) {
+        hideLoading();
+        console.error(err);
+        toast('엑셀 다운로드 중 오류가 발생했습니다. 김영환 M 에게 문의해 주세요.');
+    }
+}
+$id('partExcel').addEventListener('click', downloadExcel);
+</script>
+
+</body>
+</html>
