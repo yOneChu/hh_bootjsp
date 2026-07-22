@@ -262,6 +262,8 @@ public class ElvInfoCommonUtil {
             // 응답 타입 설정 (JSON, XML 등 필요에 맞게 변경 가능)
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
+            conn.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9");
+
             // 응답 코드 확인
             int responseCode = conn.getResponseCode();
             System.out.println("Response Code : " + responseCode);
@@ -289,7 +291,7 @@ public class ElvInfoCommonUtil {
                 JSONObject obj = jsonArray.getJSONObject(i);
 
                 HashMap<String, String> map = new HashMap<>();
-                //map.put("SPEC_VALUE", obj.optString("SPEC_VALUE")); // 특성명
+                map.put("SPEC_VALUE", obj.optString("SPEC_VALUE")); // 특성명
                 map.put("SPEC_CODE", obj.optString("SPEC_CODE")); // 특성코드
                 map.put("VALUE", obj.optString("VALUE")); // 특성값
                 //map.put("TYPE", obj.optString("TYPE")); // tab명
