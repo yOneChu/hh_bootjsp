@@ -1,6 +1,7 @@
 package com.kyhslam.controller;
 
 import com.kyhslam.dto.BomDTO;
+import com.kyhslam.dto.PartDTO;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.MLBService;
@@ -39,11 +40,12 @@ public class APIController {
     @CrossOrigin
     @GetMapping("/api/findPartOneWithPartNo")
     @ResponseBody
-    public PartInfoDTO findPartOneWithPartNo(String partNo,String key) {
-        PartInfoDTO result =  new PartInfoDTO();
+    public PartDTO findPartOneWithPartNo(String partNo, String key) {
+        PartDTO result =  new PartDTO();
 
         if ("subae".equals(key)) {
-            result = MLBCommonUtil.findPartOneWithPartNo(partNo);
+            //result = MLBCommonUtil.findPartOneWithPartNo(partNo);
+            result = MLBCommonUtil.findPartOneWithPartNoV2(partNo);
         }
 
         return result;

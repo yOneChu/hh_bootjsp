@@ -1,5 +1,6 @@
 package com.kyhslam.util;
 
+import com.kyhslam.dto.PartDTO;
 import com.kyhslam.dto.PartInfoDTO;
 import org.springframework.context.annotation.Description;
 
@@ -27,12 +28,6 @@ public class MLBCommonUtil {
         try {
             con = PLMDBConnection.getConnection();
             String sql = """
-                  with ouid as
-                     ( select A.vf$ouid from NORMALPART$vf A, NORMALPART$id B
-                       where A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip
-                       --and ( md$number in ( '18900360G0700') )
-                        --AND SUBSTR(A.MD$CDATE, 0, 8) IN( ? )
-                     )
                 SELECT
                 A.VF$OUID AS OID,
                 A.MD$NUMBER AS PARTNO,
@@ -49,12 +44,15 @@ public class MLBCommonUtil {
                 CODN(A.ORIGIN_DIV) AS ORIGIN_DIV,
                 A.BLOCKNO_NUMBER AS BLOCKNO,
                 A.SPEC AS SPEC,
-                A.PART_SIZE AS PARTSIZE
+                A.PART_SIZE AS PARTSIZE,
+                SUBSTR(A.MD$CDATE, 0, 8) AS CREDATE,
+                SUBSTR(A.MD$MDATE, 0, 8) AS MODDATE
                 --A.*
                 FROM NORMALPART$VF A
-                WHERE A.VF$OUID IN (SELECT * FROM OUID)
+                --WHERE A.VF$OUID IN (SELECT * FROM OUID)
+                WHERE A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip 
                 AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
-                AND A.PART_STATUS = '2466425004'
+                --AND A.PART_STATUS = '2466425004'
                 AND A.MD$NUMBER = ?
                 """;
 
@@ -76,6 +74,7 @@ public class MLBCommonUtil {
                 String PART_STATUS = rs.getString("PART_STATUS");
                 String NATION = rs.getString("NATION");
                 String GLCODE = rs.getString("GL_CODE");
+                String UOM =  rs.getString("UOM");
 
                 //PartInfoDTO dto  = new PartInfoDTO();
                 result.setOid(OID);
@@ -88,6 +87,7 @@ public class MLBCommonUtil {
                 result.setVersion(VERSION);
                 result.setStatus(PART_STATUS);
                 result.setNation(NATION);
+                result.setUom(UOM);
 
                 //result.add(dto);
             } //end while
@@ -191,6 +191,106 @@ public class MLBCommonUtil {
         }
         return result;
     }
+
+
+    /**
+     * @apiNote 품번으로 속성정보 조회
+     * @param partNo
+     * @return
+     */
+    public static PartDTO findPartOneWithPartNoV2(String partNo) {
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        PartDTO result = new PartDTO();
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                SELECT
+                A.VF$OUID AS OID,
+                A.MD$NUMBER AS PARTNO,
+                A.MD$DESC AS PARTNAME,
+                A.G_L_CODE AS GL_CODE,
+                --A.MD$CDATE,
+                --DATEFORMAT(A.MD$CDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS CREATE_DATE,
+                CODN(A.PART_STATUS) AS PART_STATUS,
+                COD(A.UOM) AS UOM,
+                A.VF$VERSION AS VERSION,
+                CODN(A.NATION) AS NATION,
+                COD(A.DESIGN_USE) AS DESIGN_USE,
+                COD(A.COST_USE) AS COST_USE,
+                CODN(A.ORIGIN_DIV) AS ORIGIN_DIV,
+                A.BLOCKNO_NUMBER AS BLOCKNO,
+                A.SPEC AS SPEC,
+                A.PART_SIZE AS PARTSIZE,
+                SUBSTR(A.MD$CDATE, 0, 8) AS CREDATE,
+                SUBSTR(A.MD$MDATE, 0, 8) AS MODDATE
+                --A.*
+                FROM NORMALPART$VF A
+                --WHERE A.VF$OUID IN (SELECT * FROM OUID)
+                WHERE A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip 
+                AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
+                --AND A.PART_STATUS = '2466425004'
+                AND A.MD$NUMBER = ?
+                """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, partNo.trim());
+            //pstmt.setString(2, partName);
+            //pstmt.setString(1, productOID);
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String OID = rs.getString("OID");
+                String PARTNO = rs.getString("PARTNO");
+                String PARTNAME = rs.getString("PARTNAME");
+                String BLOCKNO = rs.getString("BLOCKNO");
+                String SPEC = rs.getString("SPEC");
+                String PARTSIZE = rs.getString("PARTSIZE");
+                String VERSION = rs.getString("VERSION");
+                String PART_STATUS = rs.getString("PART_STATUS");
+                String NATION = rs.getString("NATION");
+                String GLCODE = rs.getString("GL_CODE");
+                String UOM =  rs.getString("UOM");
+                String DESIGN_USE = rs.getString("DESIGN_USE");
+                String COST_USE = rs.getString("COST_USE");
+                String CREDATE =  rs.getString("CREDATE");
+                String MODDATE = rs.getString("MODDATE");
+                String ORIGIN_DIV = rs.getString("ORIGIN_DIV");
+
+
+                //PartInfoDTO dto  = new PartInfoDTO();
+                result.setOid(OID);
+                result.setPartNo(PARTNO);
+                result.setPartName(PARTNAME);
+                result.setPartSize(PARTSIZE);
+                result.setBlockNo(BLOCKNO);
+                result.setSpec(SPEC);
+                result.setGlCode(GLCODE);
+                result.setVersion(VERSION);
+                result.setStatus(PART_STATUS);
+                result.setNation(NATION);
+                result.setUom(UOM);
+                result.setCreDate(CREDATE);
+                result.setModDate(MODDATE);
+                result.setDesign(DESIGN_USE);
+                result.setCost(COST_USE);
+                result.setOriginDiv(ORIGIN_DIV);
+
+                //result.add(dto);
+            } //end while
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
+    }
+
 
 
 
