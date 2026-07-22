@@ -17,7 +17,6 @@ public class PartDTO {
     private String glCode;
     private String spec;
 
-    private String qty;
     private String uom; // 단위
     private String partSize;
 
