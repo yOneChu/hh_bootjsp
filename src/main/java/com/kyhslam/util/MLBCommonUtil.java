@@ -1,5 +1,6 @@
 package com.kyhslam.util;
 
+import com.kyhslam.dto.CodeInfoDTO;
 import com.kyhslam.dto.PartDTO;
 import com.kyhslam.dto.PartInfoDTO;
 import org.springframework.context.annotation.Description;
@@ -1348,6 +1349,66 @@ public class MLBCommonUtil {
                 result.add(curDto);
                 //}
             } //end while
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        return result;
+    }
+
+    //특성값
+
+    /**
+     * 특성코드 조회
+     * @return
+     */
+    public static ArrayList<CodeInfoDTO> getCodeList() {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<CodeInfoDTO> result = new  ArrayList<>();
+
+
+        try {
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                    ELECT a.name AS CODE,
+                    a.TIT AS CODENAME, 
+                    c.NAME AS TYPENAME, 
+                    c.DES AS TYPEVAL,
+                    --c.ouid,
+                    b.name AS NAME
+                    FROM HDEL_SYSTEM.dosfld a
+                        INNER JOIN HDEL_SYSTEM.doscod b
+                        ON a.TYPECLAS  = b.OUID
+                        INNER JOIN HDEL_SYSTEM.DOSCODITM c
+                        ON c.DOSCOD = b.OUID
+                        WHERE TYPE=24 AND DOSCLAS=2248993771
+                    """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            while(rs.next()) {
+                String CODE = rs.getString("CODE");
+                String CODENAME = rs.getString("CODENAME");
+                String TYPENAME = rs.getString("TYPENAME");
+                String TYPEVAL = rs.getString("TYPEVAL");
+                String NAME = rs.getString("NAME");
+
+                CodeInfoDTO dto = new  CodeInfoDTO();
+                dto.setCode(CODE);
+                dto.setName(CODENAME);
+                dto.setTypeName(TYPENAME);
+                dto.setTypeVal(TYPEVAL);
+                dto.setCode(NAME);
+
+                result.add(dto);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();

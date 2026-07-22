@@ -1,9 +1,6 @@
 package com.kyhslam.controller;
 
-import com.kyhslam.dto.BomDTO;
-import com.kyhslam.dto.PartDTO;
-import com.kyhslam.dto.PartInfoDTO;
-import com.kyhslam.dto.ProductDto;
+import com.kyhslam.dto.*;
 import com.kyhslam.service.MLBService;
 import com.kyhslam.service.SubaeService;
 import com.kyhslam.util.*;
@@ -183,4 +180,19 @@ public class APIController {
         return elvData;
     }
 
+    //특성값
+    @Description("특성값 추출")
+    @GetMapping("/api/getCodeList")
+    @ResponseBody
+    @CrossOrigin
+    public ArrayList<CodeInfoDTO> getCodeList(String key) {
+        //https://vault-in.hdel.co.kr:8070/api/getSalesInfo?key=subae&hogi=
+
+        ArrayList<CodeInfoDTO> result = new ArrayList<>();
+
+        if ("subae".equals(key)) {
+            result = MLBCommonUtil.getCodeList();
+        }
+        return result;
+    }
 }
