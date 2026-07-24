@@ -912,9 +912,25 @@ function validate(p) {
     return true;
 }
 
+/* ══════════ 결과 초기화 (검색결과 없음/오류 시) ══════════ */
+function clearResult() {
+    rawData = [];
+    viewData = [];
+    sortCol = null; sortDir = 1;
+    $id('contentTable').innerHTML = '';
+    $id('headerInfo').innerHTML = '';
+    $id('resultStat').textContent = '';
+    $id('elapsedStat').textContent = '';
+    $id('resultCard').classList.add('hidden');
+    $id('emptyState').classList.remove('hidden');
+}
+
 /* ══════════ 검색 ══════════ */
 async function searchPID() {
     const p = collectParams();
+
+    console.log(p);
+
     if (!validate(p)) return;
 
     showLoading();
@@ -927,10 +943,11 @@ async function searchPID() {
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
+        console.log('data --- ', data);
         hideLoading();
 
-        if (data && data[0] && data[0].msg) { toast(data[0].msg); return; }
-        if (!data || data.length === 0) { toast('검색결과가 없습니다.'); return; }
+        if (data && data[0] && data[0].msg) { toast(data[0].msg); clearResult(); return; }
+        if (!data || data.length === 0) { toast('검색결과가 없습니다.'); clearResult(); return; }
 
         rawData = data;
         pushHist(p);

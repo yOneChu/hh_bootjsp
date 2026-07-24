@@ -38,7 +38,8 @@ public class PIDController {
     @Description("PID 상세 조회 화면 v1")
     @GetMapping("/pid/searchPIDDetail")
     public String searchPIDDetail() {
-        return "subaeLogic/searchPIDDetail";
+        //return "subaeLogic/searchPIDDetail";
+        return "thymeleaf/logic/searchLogicPIDv2";
     }
 
     @Description("PID 상세 조회 화면 개선 v2")

@@ -262,7 +262,7 @@ public class ElvInfoCommonUtil {
             // 응답 타입 설정 (JSON, XML 등 필요에 맞게 변경 가능)
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
-            conn.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9");
+            conn.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7");
 
             // 응답 코드 확인
             int responseCode = conn.getResponseCode();
