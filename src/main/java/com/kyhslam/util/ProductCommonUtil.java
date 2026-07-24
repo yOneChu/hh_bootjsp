@@ -1,6 +1,7 @@
 package com.kyhslam.util;
 
 import com.kyhslam.dto.BomDTO;
+import com.kyhslam.dto.BomPartDTO;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.ProductDto;
 
@@ -171,10 +172,10 @@ public class ProductCommonUtil {
      * @param productNo
      * @return
      */
-    public static ArrayList<BomDTO> findProductBOM(String productNo) {
+    public static ArrayList<BomPartDTO> findProductBOM(String productNo) {
         //System.out.println("PartCommonUtil findProductInfo start ==-" + productNo );
 
-        ArrayList<BomDTO> list = new ArrayList<>();
+        ArrayList<BomPartDTO> list = new ArrayList<>();
 
         Connection con = null;
         PreparedStatement stmt = null;
@@ -282,8 +283,8 @@ public class ProductCommonUtil {
 
 
                 //ProductDto dto = new ProductDto();
-                BomDTO dto = new BomDTO();
-                dto.setProductOid(PRODUCTOUID);
+                BomPartDTO dto = new BomPartDTO();
+                //dto.setProductOid(PRODUCTOUID);
                 dto.setProductNo(PARENTNO);
                 dto.setUom(UOM);
 
@@ -310,7 +311,7 @@ public class ProductCommonUtil {
 
                 list.add(dto);
 
-                System.out.println(PARTNO + " > " + PARTNAME + " > " + QTY + " > " + WORK_QTY);
+                //System.out.println(PARTNO + " > " + PARTNAME + " > " + QTY + " > " + WORK_QTY);
 
                 if(HASCHILD.equals("1")) {
                     findProductDownLevelBOM(PRODUCTOUID, PARTOUID, list);
@@ -1074,7 +1075,7 @@ public class ProductCommonUtil {
      * @param productOid
      * @param partOid
      */
-    public static ArrayList<BomDTO> findProductDownLevelBOM(String productOid, String partOid, ArrayList<BomDTO> list) {
+    public static ArrayList<BomPartDTO> findProductDownLevelBOM(String productOid, String partOid, ArrayList<BomPartDTO> list) {
 
         Connection con = null;
         PreparedStatement stmt = null;
@@ -1172,7 +1173,7 @@ public class ProductCommonUtil {
                 String WORK_CMT = rs.getString("WORK_CMT");
 
                 //ProductDto dto = new ProductDto();
-                BomDTO dto = new BomDTO();
+                BomPartDTO dto = new BomPartDTO();
                 dto.setLev(LEV);
                 dto.setPartNo(PARTNO);
                 dto.setPartName(PARTNAME);
@@ -1193,7 +1194,7 @@ public class ProductCommonUtil {
                 if (QTY.contains("CE") && WORK_QTY.equals("0")) {
 
                 } else {
-                    System.out.println(LEV + ">" + PARTNO + " > " + PARTNAME + " > " + QTY + " > " + WORK_QTY);
+                    //System.out.println(LEV + ">" + PARTNO + " > " + PARTNAME + " > " + QTY + " > " + WORK_QTY);
 
                     list.add(dto);
                 }

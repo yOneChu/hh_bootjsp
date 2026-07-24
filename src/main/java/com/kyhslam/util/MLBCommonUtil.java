@@ -1393,6 +1393,8 @@ public class MLBCommonUtil {
                     """;
 
             pstmt = con.prepareStatement(sql.toString());
+            rs = pstmt.executeQuery();
+
             while(rs.next()) {
                 String CODE = rs.getString("CODE");
                 String CODENAME = rs.getString("CODENAME");

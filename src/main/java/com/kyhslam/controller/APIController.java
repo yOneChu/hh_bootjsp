@@ -100,9 +100,9 @@ public class APIController {
     @GetMapping("/api/findProductBOM")
     @CrossOrigin
     @ResponseBody
-    public ArrayList<BomDTO> findProductBOM(String productNo, String key) throws Exception {
+    public ArrayList<BomPartDTO> findProductBOM(String productNo, String key) throws Exception {
         //https://vault-in.hdel.co.kr:8070/api/findProductBOM?key=subae&productNo=N27748L02
-        ArrayList<BomDTO> bomList = new ArrayList<BomDTO>();
+        ArrayList<BomPartDTO> bomList = new ArrayList<BomPartDTO>();
 
         if ("subae".equals(key)) {
             bomList = ProductCommonUtil.findProductBOM(productNo);
