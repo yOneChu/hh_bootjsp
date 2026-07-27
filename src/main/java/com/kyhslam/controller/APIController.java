@@ -9,6 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Description;
 import org.springframework.web.bind.annotation.*;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.*;
 
 @RestController
@@ -192,6 +195,47 @@ public class APIController {
 
         if ("subae".equals(key)) {
             result = MLBCommonUtil.getCodeList();
+        }
+        return result;
+    }
+
+    @GetMapping("/api/getSalesMetaInfo")
+    @ResponseBody
+    @CrossOrigin
+    public String getSalesMetaInfo(String key) {
+        //https://vault-in.hdel.co.kr:8070/api/getSalesInf?key=subae&hogi=
+
+        String result = "";
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        Connection con = null;
+
+        if ("subae".equals(key)) {
+
+            try {
+                con = VaultDBConnection.getConnection();
+
+                StringBuffer sql = new StringBuffer();
+                sql.append(" SELECT A.CATEGORY, A.CONTENT ");
+                sql.append(" FROM PLM_LLM_METADATA A ");
+                sql.append(" WHERE A.CATEGORY = 'SALES_QUERY' ");
+
+                pstmt = con.prepareStatement(sql.toString());
+
+                rs = pstmt.executeQuery();
+
+                while (rs.next()) {
+                    String CATEGORY = rs.getString("CATEGORY") == null ? "" : rs.getString("CATEGORY");
+                    result = rs.getString("CONTENT") == null ? "" : rs.getString("CONTENT");
+                }
+
+                System.out.println("result = " + result);
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                VaultDBConnection.disconnect(con, pstmt, rs);
+            }
+
         }
         return result;
     }
