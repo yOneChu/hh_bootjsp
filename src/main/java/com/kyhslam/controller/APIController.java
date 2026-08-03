@@ -121,7 +121,6 @@ public class APIController {
     public HashMap<String, String> pidExecute(String pid, String hogi, String testVersion,
                                               String floor, String isfloor, String key, String type) {
 
-
         HashMap<String, String> result = new HashMap<>();
         if ("subae".equals(key)) {
             result = subaeService.pidExecute(hogi, pid, testVersion, floor, isfloor, type);
@@ -207,16 +206,19 @@ public class APIController {
     @ResponseBody
     @CrossOrigin
     public String getSalesMetaInfo(String key) {
-        //https://vault-in.hdel.co.kr:8070/api/getSalesInf?key=subae&hogi=
+        //https://vault-in.hdel.co.kr:8070/api/getSalesMetaInfo?key=subae
 
         String result = "";
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
-        Connection con = null;
+        //PreparedStatement pstmt = null;
+        //ResultSet rs = null;
+        //Connection con = null;
 
         if ("subae".equals(key)) {
+            //result = PLM_DB_Definition.getPLM_DB_MetaData("SALES_QUERY");
 
-            try {
+            result = PLM_DB_Definition.getSales_Definition();
+
+            /*try {
                 con = VaultDBConnection.getConnection();
 
                 StringBuffer sql = new StringBuffer();
@@ -238,9 +240,47 @@ public class APIController {
                 e.printStackTrace();
             } finally {
                 VaultDBConnection.disconnect(con, pstmt, rs);
-            }
+            }*/
 
         }
+        return result;
+    }
+
+    /**
+     * 비표준사양 DB 정의서
+     * @param key
+     * @return
+     */
+    @GetMapping("/getDutyMetaInfo")
+    @ResponseBody
+    @CrossOrigin
+    public String getDutyMetaInfo(String key) {
+        //https://vault-in.hdel.co.kr:8070/api/getDutyMetaInfo?key=subae
+
+        String result = "";
+        if ("subae".equals(key)) {
+            result = PLM_DB_Definition.getDuty_Definition();
+        }
+
+        return result;
+    }
+
+    /**
+     * PID DB 정의서
+     * @param key
+     * @return
+     */
+    @GetMapping("/getPIDMetaInfo")
+    @ResponseBody
+    @CrossOrigin
+    public String getPIDMetaInfo(String key) {
+        //https://vault-in.hdel.co.kr:8070/api/getPIDMetaInfo?key=subae
+
+        String result = "";
+        if ("subae".equals(key)) {
+            result = PLM_DB_Definition.getPID_DB_MetaData();
+        }
+
         return result;
     }
 }
