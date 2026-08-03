@@ -12,4 +12,6 @@ public class CodeInfoDTO {
     private String typeName; //특성명
     private String typeVal; //특성값
     private String name;
+
+
 }

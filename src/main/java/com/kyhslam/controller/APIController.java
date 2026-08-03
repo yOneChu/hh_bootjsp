@@ -14,7 +14,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.*;
 
-@RestController
+@RestController("/api")
 @RequiredArgsConstructor
 @Slf4j
 public class APIController {
@@ -24,7 +24,7 @@ public class APIController {
     private final SubaeService subaeService;
 
     @Description("수량 PID 조회 로직")
-    @PostMapping("/api/searchPartQtyPid")
+    @PostMapping("/searchPartQtyPid")
     @CrossOrigin
     @ResponseBody
     public ArrayList<PartInfoDTO> searchPartQtyPid(String year, String blockNo, String qtyPid, String key) {
@@ -38,7 +38,7 @@ public class APIController {
 
     @Description("품번으로 속성정보 조회")
     @CrossOrigin
-    @GetMapping("/api/findPartOneWithPartNo")
+    @GetMapping("/findPartOneWithPartNo")
     @ResponseBody
     public PartDTO findPartOneWithPartNo(String partNo, String key) {
         PartDTO result =  new PartDTO();
@@ -52,7 +52,7 @@ public class APIController {
     }
 
     @Description("영업사양")
-    @GetMapping("/api/findElvSearch")
+    @GetMapping("/findElvSearch")
     @ResponseBody
     @CrossOrigin
     public ArrayList<HashMap<String, String>> findElvSearch(String key, String productNo) {
@@ -69,11 +69,10 @@ public class APIController {
         return  result;
     }
 
-
     //품번으로 하위 BOM 조회
     @Description("품번으로 하위 BOM 조회")
     @CrossOrigin
-    @GetMapping("/api/findAssyDownBOM")
+    @GetMapping("/findAssyDownBOM")
     @ResponseBody
     public ArrayList<PartInfoDTO> findAssyDownBOM(String partNo, String key) {
 
@@ -86,7 +85,7 @@ public class APIController {
     }
 
     @Description("BOM 1레벨 조회")
-    @GetMapping("/api/findProductInfo")
+    @GetMapping("/findProductInfo")
     @CrossOrigin
     @ResponseBody
     public ArrayList<ProductDto> findProductInfo(String productNo, String key) throws Exception {
@@ -100,7 +99,7 @@ public class APIController {
     }
 
     @Description("BOM 1레벨 및 하위 전체")
-    @GetMapping("/api/findProductBOM")
+    @GetMapping("/findProductBOM")
     @CrossOrigin
     @ResponseBody
     public ArrayList<BomPartDTO> findProductBOM(String productNo, String key) throws Exception {
@@ -116,7 +115,7 @@ public class APIController {
 
 
     @Description("시물레이터 결과만 추출")
-    @GetMapping("/api/pidExecute")
+    @GetMapping("/pidExecute")
     @ResponseBody
     @CrossOrigin
     public HashMap<String, String> pidExecute(String pid, String hogi, String testVersion,
@@ -133,7 +132,7 @@ public class APIController {
 
 
     @Description("메일 발송")
-    @GetMapping("/api/sendMail")
+    @GetMapping("/sendMail")
     @ResponseBody
     @CrossOrigin
     public void sendSubaeMail(String sender, String toEmail, String ccEmail, String subject,
@@ -145,7 +144,7 @@ public class APIController {
     }
 
     @Description("쿼리 수행")
-    @GetMapping("/api/executeQuery")
+    @GetMapping("/executeQuery")
     @ResponseBody
     @CrossOrigin
     public List<Map<String, Object>> executeQuery(String key, String sql) {
@@ -169,7 +168,7 @@ public class APIController {
     }
 
     @Description("영업사양 추출")
-    @GetMapping("/api/getSalesInfo")
+    @GetMapping("/getSalesInfo")
     @ResponseBody
     @CrossOrigin
     public ArrayList<HashMap<String, String>> getSalesInfo(String key, String hogi) {
@@ -185,7 +184,7 @@ public class APIController {
 
     //특성값
     @Description("특성값 추출")
-    @GetMapping("/api/getCodeList")
+    @GetMapping("/getCodeList")
     @ResponseBody
     @CrossOrigin
     public ArrayList<CodeInfoDTO> getCodeList(String key) {
@@ -199,7 +198,12 @@ public class APIController {
         return result;
     }
 
-    @GetMapping("/api/getSalesMetaInfo")
+    /**
+     * 영업사양 DB명세서
+     * @param key
+     * @return
+     */
+    @GetMapping("/getSalesMetaInfo")
     @ResponseBody
     @CrossOrigin
     public String getSalesMetaInfo(String key) {
