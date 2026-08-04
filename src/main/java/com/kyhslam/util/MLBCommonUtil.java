@@ -1374,7 +1374,6 @@ public class MLBCommonUtil {
 
         ArrayList<CodeInfoDTO> result = new  ArrayList<>();
 
-
         try {
             con = PLMDBConnection.getConnection();
 
@@ -1425,13 +1424,11 @@ public class MLBCommonUtil {
 
     //공사정보 필드 리스트 - 육상
     public static ArrayList<HashMap<String, String>> getCodeField() {
-
         Connection con 			= null;
         PreparedStatement pstmt = null;
         ResultSet rs 			= null;
 
         ArrayList<HashMap<String, String>> result = new  ArrayList<>();
-
 
         try {
             con = PLMDBConnection.getConnection();
