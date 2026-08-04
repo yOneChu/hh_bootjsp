@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 
 public class MLBCommonUtil {
@@ -1362,7 +1363,7 @@ public class MLBCommonUtil {
     //특성값
 
     /**
-     * 특성코드 조회
+     * 특성코드 리스트
      * @return
      */
     public static ArrayList<CodeInfoDTO> getCodeList() {
@@ -1378,7 +1379,7 @@ public class MLBCommonUtil {
             con = PLMDBConnection.getConnection();
 
             String sql = """
-                    ELECT a.name AS CODE,
+                    SELECT a.name AS CODE,
                     a.TIT AS CODENAME, 
                     c.NAME AS TYPENAME, 
                     c.DES AS TYPEVAL,
@@ -1410,6 +1411,55 @@ public class MLBCommonUtil {
                 dto.setCode(NAME);
 
                 result.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        return result;
+    }
+
+
+    //공사정보 필드 리스트 - 육상
+    public static ArrayList<HashMap<String, String>> getCodeField() {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<HashMap<String, String>> result = new  ArrayList<>();
+
+
+        try {
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                    SELECT 
+                    a.name AS CODE,
+                    a.TIT AS CODENAME 
+                    --c.NAME AS TYPENAME, 
+                    --c.DES AS TYPEVAL,
+                    --c.ouid,
+                    --b.name AS NAME
+                    FROM HDEL_SYSTEM.dosfld a
+                        where a.dosclas=2248993771
+                    """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String CODE = rs.getString("CODE");
+                String CODENAME = rs.getString("CODENAME");
+
+                HashMap<String, String> map = new HashMap<>();
+                map.put("NAME", CODE);
+                map.put("TIT", CODENAME);
+
+                result.add(map);
             }
 
         } catch (Exception e) {

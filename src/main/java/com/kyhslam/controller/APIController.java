@@ -14,7 +14,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.*;
 
-@RestController("/api")
+@RestController()
+@RequestMapping("/api")
 @RequiredArgsConstructor
 @Slf4j
 public class APIController {
@@ -166,7 +167,7 @@ public class APIController {
         return result;
     }
 
-    @Description("영업사양 추출")
+    @Description("호기의 영업사양 추출")
     @GetMapping("/getSalesInfo")
     @ResponseBody
     @CrossOrigin
@@ -182,7 +183,7 @@ public class APIController {
     }
 
     //특성값
-    @Description("특성값 추출")
+    @Description("특성코드 리스트 - 육상")
     @GetMapping("/getCodeList")
     @ResponseBody
     @CrossOrigin
@@ -196,6 +197,22 @@ public class APIController {
         }
         return result;
     }
+
+    @Description("공사정보 필드 리스트 - 육상")
+    @GetMapping("/getCodeField")
+    @ResponseBody
+    @CrossOrigin
+    public ArrayList<HashMap<String, String>> getCodeField(String key) {
+        //https://vault-in.hdel.co.kr:8070/api/getCodeField?key=subae
+
+        ArrayList<HashMap<String, String>> result = new ArrayList<>();
+
+        if ("subae".equals(key)) {
+            result = MLBCommonUtil.getCodeField();
+        }
+        return result;
+    }
+
 
     /**
      * 영업사양 DB명세서
