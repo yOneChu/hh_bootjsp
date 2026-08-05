@@ -10,6 +10,9 @@ public class BomPartDTO {
     private String lev;
     private String seq;
     private String productNo;
+    private String pCreator;
+    private String pEmail;
+
     //private String parentNo;
     private String partNo;
     private String partNoOID;

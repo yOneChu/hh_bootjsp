@@ -17,6 +17,9 @@ public class ProductDto {
     private String productModDate;
     private String productAppdate;
     private String productStatus; //상태
+    private String productCreator;
+    private String productEmail;
+
     private String aspd; // 속도 EL_ASPD
     private String aspscd; //샌상거점
     private String acapa; //용량

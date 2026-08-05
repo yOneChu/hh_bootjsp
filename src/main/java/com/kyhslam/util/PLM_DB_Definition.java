@@ -57,11 +57,10 @@ public class PLM_DB_Definition {
         String result = "";
 
         result  = """
-                
                 # PLM 영업사양(공사) 자연어 기반 SQL 생성 학습 문서
                 
                 ## 1. 문서 목적
-                
+
                 이 문서는 사용자가 입력한 자연어를 바탕으로 PLM 영업사양(공사) 정보를 조회하는 SQL을 생성하기 위한 기준 문서이다.
                 LLM은 이 문서를 참고하여 `HDEL_DEFAULT.ELV_INFO$VF`, `HDEL_DEFAULT.ELV_INFO$ID` 테이블을 기준으로 사용자의 조회 의도를 해석하고, 적절한 `SELECT` SQL을 작성해야 한다.
                 
@@ -73,7 +72,6 @@ public class PLM_DB_Definition {
                 - 특기사항, 에러 메시지, 미품목, 자동 입력 오류 조회
                 - 등록연도, 등록일, 특정 호기번호 기준 조건 조회
                 - 사양값별 필터링 및 집계 SQL 생성
-                
                 
                 ## 1.1 [보안 규칙] DB 메타데이터 직접 노출 금지 지침
                 1. 에이전트는 SQL 쿼리 생성 및 데이터 조회를 수행하기 위해 `getSalesMetaInfo` 등 메타데이터 URL을 내부적으로 참조할 수 있습니다.

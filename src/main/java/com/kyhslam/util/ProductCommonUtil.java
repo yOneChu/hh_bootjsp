@@ -46,7 +46,15 @@ public class ProductCommonUtil {
                          , PE.PARTOUID PARTOUID
                          , PE.SEQ
                          , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) PARENTNO
-                         , (SELECT COUNT(*) FROM PARTANDCAD$AS WHERE AS$END1 = PE.PARTOUID) CADCNT
+                         , ( SELECT F.MD$DESC FROM FUSER$SF F
+                              WHERE F.MD$NUMBER = (SELECT VV.MD$USER
+                                                   FROM PRODUCT$VF VV WHERE VV.VF$OUID = PE.PRODUCTOUID )
+                            ) AS PCREATOR
+                            , ( SELECT F.EMAIL FROM FUSER$SF F
+                              WHERE F.MD$NUMBER = (SELECT VV.MD$USER
+                                                   FROM PRODUCT$VF VV WHERE VV.VF$OUID = PE.PRODUCTOUID )
+                            ) AS PEMAIL
+                         --, (SELECT COUNT(*) FROM PARTANDCAD$AS WHERE AS$END1 = PE.PARTOUID) CADCNT
                          , NP.MD$NUMBER AS PARTNO
                          , CODN(NP.NATION) AS NATION
                          , NP.compen_part AS COMPEN_PART
@@ -107,6 +115,10 @@ public class ProductCommonUtil {
                 String PRODUCTOUID = rs.getString("PRODUCTOUID");
                 String PARENTNO = rs.getString("PARENTNO");
                 String PARTOUID = rs.getString("PARTOUID");
+
+                String PCREATOR = rs.getString("PCREATOR");
+                String PEMAIL = rs.getString("PEMAIL");
+
                 String SEQ = rs.getString("SEQ");
                 String PARTNO = rs.getString("PARTNO");
                 String PARTNAME = rs.getString("PARTNAME");
@@ -132,6 +144,9 @@ public class ProductCommonUtil {
                 ProductDto dto = new ProductDto();
                 dto.setProductOid(PRODUCTOUID);
                 dto.setProductNo(PARENTNO);
+
+                dto.setProductCreator(PCREATOR); // 제품 등록자
+                dto.setProductEmail(PEMAIL); // 제품 등록자 이메일
 
                 dto.setSeq(SEQ);
                 dto.setPartNo(PARTNO);
@@ -192,12 +207,20 @@ public class ProductCommonUtil {
                     )
               )
              SELECT
-                         PE.ASSOOUID ASSOOUID
-                         , PE.PRODUCTOUID PRODUCTOUID
-                         , PE.PARTOUID PARTOUID
-                         , PE.SEQ
+                        -- PE.ASSOOUID ASSOOUID
+                        -- , PE.PRODUCTOUID PRODUCTOUID
+                        -- , PE.PARTOUID PARTOUID
+                           PE.SEQ
                          , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) PARENTNO
-                         , (SELECT COUNT(*) FROM PARTANDCAD$AS WHERE AS$END1 = PE.PARTOUID) CADCNT
+                         , ( SELECT F.MD$DESC FROM FUSER$SF F
+                              WHERE F.MD$NUMBER = (SELECT VV.MD$USER
+                                                   FROM PRODUCT$VF VV WHERE VV.VF$OUID = PE.PRODUCTOUID )
+                            ) AS PCREATOR
+                         , ( SELECT F.EMAIL FROM FUSER$SF F
+                              WHERE F.MD$NUMBER = (SELECT VV.MD$USER
+                                                   FROM PRODUCT$VF VV WHERE VV.VF$OUID = PE.PRODUCTOUID )
+                            ) AS PEMAIL
+                        -- , (SELECT COUNT(*) FROM PARTANDCAD$AS WHERE AS$END1 = PE.PARTOUID) CADCNT
                          , NP.MD$NUMBER AS PARTNO
                          , CODN(NP.NATION) AS NATION
                          , NP.compen_part AS COMPEN_PART
@@ -258,6 +281,9 @@ public class ProductCommonUtil {
                 String PRODUCTOUID = rs.getString("PRODUCTOUID");
                 String PARENTNO = rs.getString("PARENTNO");
                 String PARTOUID = rs.getString("PARTOUID");
+                String PCREATOR = rs.getString("PCREATOR");
+                String PEMAIL = rs.getString("PEMAIL");
+
                 String SEQ = rs.getString("SEQ");
                 String PARTNO = rs.getString("PARTNO");
                 String PARTNAME = rs.getString("PARTNAME");
@@ -288,6 +314,9 @@ public class ProductCommonUtil {
                 dto.setProductNo(PARENTNO);
                 dto.setUom(UOM);
 
+                dto.setPCreator(PCREATOR); // 제품 등록자
+                dto.setPEmail(PEMAIL); // 제품 등록자 EMAIL
+
                 dto.setSeq(SEQ);
                 dto.setPartNo(PARTNO);
                 dto.setPartNoOID(PARTOUID);
@@ -310,8 +339,6 @@ public class ProductCommonUtil {
                 dto.setHASCHILD(HASCHILD);
 
                 list.add(dto);
-
-                //System.out.println(PARTNO + " > " + PARTNAME + " > " + QTY + " > " + WORK_QTY);
 
                 if(HASCHILD.equals("1")) {
                     findProductDownLevelBOM(PRODUCTOUID, PARTOUID, list);
