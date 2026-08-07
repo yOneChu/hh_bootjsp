@@ -309,7 +309,16 @@ public class PIDCommonUtil {
             sql.append(" NVL(D.SPEC18, '-') AS SPEC18, NVL(D.CON18, '-') AS CON18,    ");
             sql.append(" NVL(D.SPEC19, '-') AS SPEC19, NVL(D.CON19, '-') AS CON19,    ");
             sql.append(" NVL(D.SPEC20, '-') AS SPEC20, NVL(D.CON20, '-') AS CON20,    ");
-
+            sql.append(" NVL(D.SPEC21, '-') AS SPEC21, NVL(D.CON21, '-') AS CON21,    ");
+            sql.append(" NVL(D.SPEC22, '-') AS SPEC22, NVL(D.CON22, '-') AS CON22,    ");
+            sql.append(" NVL(D.SPEC23, '-') AS SPEC23, NVL(D.CON23, '-') AS CON23,    ");
+            sql.append(" NVL(D.SPEC24, '-') AS SPEC24, NVL(D.CON24, '-') AS CON24,    ");
+            sql.append(" NVL(D.SPEC25, '-') AS SPEC25, NVL(D.CON25, '-') AS CON25,    ");
+            sql.append(" NVL(D.SPEC26, '-') AS SPEC26, NVL(D.CON26, '-') AS CON26,    ");
+            sql.append(" NVL(D.SPEC27, '-') AS SPEC27, NVL(D.CON27, '-') AS CON27,    ");
+            sql.append(" NVL(D.SPEC28, '-') AS SPEC28, NVL(D.CON28, '-') AS CON28,    ");
+            sql.append(" NVL(D.SPEC29, '-') AS SPEC29, NVL(D.CON29, '-') AS CON29,    ");
+            sql.append(" NVL(D.SPEC30, '-') AS SPEC30, NVL(D.CON30, '-') AS CON30,    ");
 
             //KEY, VAL
             sql.append(" NVL(D.KEY1, '-') AS KEY1,  NVL(D.VAL1, '-') AS VAL1 ,      ");
@@ -489,6 +498,16 @@ public class PIDCommonUtil {
                 tmpObject.put("SPEC18", String.valueOf(rs2.getString("SPEC18"))); tmpObject.put("CON18", String.valueOf(rs2.getString("CON18")));
                 tmpObject.put("SPEC19", String.valueOf(rs2.getString("SPEC19"))); tmpObject.put("CON19", String.valueOf(rs2.getString("CON19")));
                 tmpObject.put("SPEC20", String.valueOf(rs2.getString("SPEC20"))); tmpObject.put("CON20", String.valueOf(rs2.getString("CON20")));
+                tmpObject.put("SPEC21", String.valueOf(rs2.getString("SPEC21"))); tmpObject.put("CON21", String.valueOf(rs2.getString("CON21")));
+                tmpObject.put("SPEC22", String.valueOf(rs2.getString("SPEC22"))); tmpObject.put("CON22", String.valueOf(rs2.getString("CON22")));
+                tmpObject.put("SPEC23", String.valueOf(rs2.getString("SPEC23"))); tmpObject.put("CON23", String.valueOf(rs2.getString("CON23")));
+                tmpObject.put("SPEC24", String.valueOf(rs2.getString("SPEC24"))); tmpObject.put("CON24", String.valueOf(rs2.getString("CON24")));
+                tmpObject.put("SPEC25", String.valueOf(rs2.getString("SPEC25"))); tmpObject.put("CON25", String.valueOf(rs2.getString("CON25")));
+                tmpObject.put("SPEC26", String.valueOf(rs2.getString("SPEC26"))); tmpObject.put("CON26", String.valueOf(rs2.getString("CON26")));
+                tmpObject.put("SPEC27", String.valueOf(rs2.getString("SPEC27"))); tmpObject.put("CON27", String.valueOf(rs2.getString("CON27")));
+                tmpObject.put("SPEC28", String.valueOf(rs2.getString("SPEC28"))); tmpObject.put("CON28", String.valueOf(rs2.getString("CON28")));
+                tmpObject.put("SPEC29", String.valueOf(rs2.getString("SPEC29"))); tmpObject.put("CON29", String.valueOf(rs2.getString("CON29")));
+                tmpObject.put("SPEC30", String.valueOf(rs2.getString("SPEC30"))); tmpObject.put("CON30", String.valueOf(rs2.getString("CON30")));
 
 
                 tmpObject.put("KEY1", String.valueOf(rs2.getString("KEY1"))); tmpObject.put("VAL1", String.valueOf(rs2.getString("VAL1")));
@@ -524,6 +543,17 @@ public class PIDCommonUtil {
         return result;
     }
 
+    /**
+     * variant_d 의 항목별 컬럼 개수. SPEC/CON 은 30개까지 늘어났지만 KEY/VAL 은 20개까지만 있다.
+     * 없는 컬럼을 SQL 에 넣으면 ORA-00904 가 나므로 반복문 상한으로 사용한다.
+     */
+    public static int maxSlot(String field) {
+        if(field == null) return 20;
+        String f = field.trim().toUpperCase();
+        if(f.equals("SPEC") || f.equals("CON")) return 30;
+        return 20; // KEY, VAL
+    }
+
     public static StringBuffer makeQueryVAL(StringBuffer temSql, String pid, String field, String gubun) {
 
         String param1 = "";
@@ -554,6 +584,7 @@ public class PIDCommonUtil {
         temSql.append(" or d.VAL15 " + gubun + " " + param1 + " or " + " d.VAL16 " + gubun + " " + param1);
         temSql.append(" or d.VAL17 " + gubun + " " + param1 + " or " + " d.VAL18 " + gubun + " " + param1);
         temSql.append(" or d.VAL19 " + gubun + " " + param1 + " or " + " d.VAL20 " + gubun + " " + param1);
+
         //temSql.append(" ) ORDER BY PID, NO ");
 
         //System.out.println("makeQueryVAL == " + temSql.toString());//all part - pick이 하나 이상있는거
@@ -593,6 +624,11 @@ public class PIDCommonUtil {
         temSql.append(" or d.CON15 " + gubun + " " + param1 + " or " + " d.CON16 " + gubun + " " + param1);
         temSql.append(" or d.CON17 " + gubun + " " + param1 + " or " + " d.CON18 " + gubun + " " + param1);
         temSql.append(" or d.CON19 " + gubun + " " + param1 + " or " + " d.CON20 " + gubun + " " + param1);
+        temSql.append(" or d.CON21 " + gubun + " " + param1 + " or " + " d.CON22 " + gubun + " " + param1);
+        temSql.append(" or d.CON23 " + gubun + " " + param1 + " or " + " d.CON24 " + gubun + " " + param1);
+        temSql.append(" or d.CON25 " + gubun + " " + param1 + " or " + " d.CON26 " + gubun + " " + param1);
+        temSql.append(" or d.CON27 " + gubun + " " + param1 + " or " + " d.CON28 " + gubun + " " + param1);
+        temSql.append(" or d.CON29 " + gubun + " " + param1 + " or " + " d.CON30 " + gubun + " " + param1);
         //temSql.append(" ) ORDER BY PID, NO ");
 
         return temSql;
@@ -641,6 +677,13 @@ public class PIDCommonUtil {
         temSql.append(" or d.SPEC15 " + gubun + " " + param1 + " or " + " d.SPEC16 " + gubun + " " + param1);
         temSql.append(" or d.SPEC17 " + gubun + " " + param1 + " or " + " d.SPEC18 " + gubun + " " + param1);
         temSql.append(" or d.SPEC19 " + gubun + " " + param1 + " or " + " d.SPEC20 " + gubun + " " + param1);
+        temSql.append(" or d.SPEC21 " + gubun + " " + param1 + " or " + " d.SPEC22 " + gubun + " " + param1);
+        temSql.append(" or d.SPEC23 " + gubun + " " + param1 + " or " + " d.SPEC24 " + gubun + " " + param1);
+        temSql.append(" or d.SPEC25 " + gubun + " " + param1 + " or " + " d.SPEC26 " + gubun + " " + param1);
+        temSql.append(" or d.SPEC27 " + gubun + " " + param1 + " or " + " d.SPEC28 " + gubun + " " + param1);
+        temSql.append(" or d.SPEC29 " + gubun + " " + param1 + " or " + " d.SPEC30 " + gubun + " " + param1);
+
+
         //temSql.append(" ) ORDER BY PID, NO ");
 
         System.out.println("makeQuerySPEC == " + temSql.toString());
@@ -763,8 +806,11 @@ public class PIDCommonUtil {
         temSql.append(" AND (  ");
 
 
-        for(int i=1; i <= 20; i++) {
-            if (i == 20) {
+        // 같은 번호끼리 짝지어 비교하므로 두 항목 중 컬럼 수가 적은 쪽(KEY/VAL=20)까지만 돈다
+        int last = Math.min(maxSlot(field), maxSlot(field02));
+
+        for(int i=1; i <= last; i++) {
+            if (i == last) {
                 temSql.append(" (d." + field + String.valueOf(i) + " " + gubun01 + " " + param1 );
                 temSql.append(" AND d." + field02 + String.valueOf(i) + " " + gubun02 + " " + param2 + ")" );
 
@@ -833,8 +879,12 @@ public class PIDCommonUtil {
         temSql.append(" AND h.HOUID =d.HOUID  ");
         temSql.append(" AND (  ");
 
-        for(int i=1; i <= 20; i++) {
-            if (i == 20) {
+        // 조건1·2 를 각각 독립적으로 훑으므로 항목별 컬럼 수(SPEC/CON=30, KEY/VAL=20)를 따로 적용한다
+        int last01 = maxSlot(spec01);
+        int last02 = maxSlot(spec02);
+
+        for(int i=1; i <= last01; i++) {
+            if (i == last01) {
                 //temSql.append(" (d." + spec01 + String.valueOf(i) + " " + gubun01 + " " + param1);
                 //temSql.append(" AND d." + spec02 + String.valueOf(i) + " " + gubun02 + " " + param2 + ")");
                 temSql.append(" d." + spec01 + String.valueOf(i) + " " + link01 + " " + param1);
@@ -846,8 +896,8 @@ public class PIDCommonUtil {
 
         temSql.append(" ) " + join + " (");
 
-        for(int i=1; i <= 20; i++) {
-            if (i == 20) {
+        for(int i=1; i <= last02; i++) {
+            if (i == last02) {
                 temSql.append(" d." + spec02 + String.valueOf(i) + " " + link02 + " " + param2 );
 
             } else {
