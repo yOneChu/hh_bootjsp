@@ -15,7 +15,7 @@ import java.sql.ResultSet;
 import java.util.*;
 
 @RestController()
-@RequestMapping("/api")
+@RequestMapping("/apiv2")
 @RequiredArgsConstructor
 @Slf4j
 public class APIController {
