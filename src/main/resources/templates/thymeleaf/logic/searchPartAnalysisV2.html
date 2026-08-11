@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>PLM 제품-자재 Analytics</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+
+    <script>
+        // 페이지 렌더 전 다크모드/사이드바 상태 적용 (깜빡임 방지) — 기본값: 다크
+        if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+    </script>
+
+    <!-- 기능 유지용 플러그인 CSS (DataTables / Select2 / FontAwesome / Bootstrap grid) -->
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/select2/css/select2.min.css">
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/resources/dist/googleFont.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <script>
+        tailwind.config = {
+            // Bootstrap(adminlte) 기반 DataTables / Select2 마크업을 쓰므로 preflight 는 끈다
+            corePlugins: { preflight: false },
+            // Bootstrap 유틸리티(.bg-white, .border, .p-4 …)가 !important 라서 dark: 변형을 눌러버린다.
+            // Tailwind 쪽에도 !important 를 부여해 우선순위를 되찾는다.
+            important: true,
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: {
+                            blue:  '#0071E3',
+                            blueD: '#0A84FF',
+                            ink:   '#1D1D1F',
+                            gray1: '#8E8E93',
+                            gray5: '#E5E5EA',
+                            gray6: '#F5F5F7',
+                            card:  '#FFFFFF',
+                            darkBg:   '#000000',
+                            darkCard: '#1C1C1E',
+                            darkLine: '#38383A',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard Variable', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Helvetica Neue', 'Arial', 'sans-serif']
+                    },
+                    boxShadow: {
+                        card: '0 2px 20px rgba(0,0,0,.05)',
+                        cardD: '0 2px 20px rgba(0,0,0,.45)',
+                        btn: '0 2px 10px rgba(0,113,227,.35)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html { -webkit-font-smoothing: antialiased; }
+        body {
+            font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #F5F5F7;
+        }
+        .dark body { background: #000; }
+
+        /* preflight 를 끈 상태(Bootstrap reboot 유지)이므로 셸 영역 타이포 여백만 직접 정리.
+           클래스 규칙이 이기도록 반드시 엘리먼트 셀렉터로만 작성한다. */
+        h1, h2, h3, h4, h5 { margin: 0; }
+        main p, header p, footer p, aside p { margin: 0; }
+        main ul { margin: 0; padding-left: 0; list-style: none; }
+        main label { margin-bottom: 0; }
+
+        /* ══════════════════════════════════════════════════════════
+           표면(Surface) — 라이트/다크 elevation 단계
+             바탕 #F5F5F7 / #000  →  패널 #FFF / #1C1C1E
+             → 내부 카드 #F7F7F9 / rgba(255,255,255,.045)
+             → 입력 #FFF / #2C2C2E
+           Bootstrap 의 .bg-white·.border(!important) 와 충돌하지 않도록
+           유틸리티 대신 전용 클래스로 칠한다.
+           ══════════════════════════════════════════════════════════ */
+        .panel {
+            background: #fff;
+            border: 1px solid rgba(0,0,0,.05);
+            border-radius: 16px;
+            box-shadow: 0 2px 20px rgba(0,0,0,.05);
+            overflow: hidden;
+        }
+        .dark .panel {
+            background: #1C1C1E;
+            border-color: rgba(255,255,255,.07);
+            box-shadow: 0 2px 20px rgba(0,0,0,.45);
+        }
+        .panel-head {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+            padding: 20px 24px 16px;
+        }
+        .panel-head.divider { border-bottom: 1px solid rgba(0,0,0,.05); }
+        .dark .panel-head.divider { border-bottom-color: rgba(255,255,255,.07); }
+        .panel-body { padding: 20px 24px; }
+        .panel-foot {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px; padding: 16px 24px;
+            background: #FAFAFC; border-top: 1px solid rgba(0,0,0,.05);
+        }
+        .dark .panel-foot {
+            background: rgba(255,255,255,.03);
+            border-top-color: rgba(255,255,255,.07);
+        }
+        .panel-title { font-size: 15px; font-weight: 700; }
+
+        /* 아이콘 타일 */
+        .tile {
+            width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .tile-blue   { background: rgba(0,113,227,.10); }
+        .tile-indigo { background: rgba(88,86,214,.10); }
+        .tile-green  { background: rgba(52,199,89,.12); }
+        .tile-amber  { background: rgba(255,159,10,.14); font-size: 13px; }
+        .dark .tile-blue   { background: rgba(10,132,255,.18); }
+        .dark .tile-indigo { background: rgba(94,92,230,.20); }
+        .dark .tile-green  { background: rgba(48,209,88,.18); }
+        .dark .tile-amber  { background: rgba(255,159,10,.20); }
+
+        /* ── Form controls ── */
+        .field-label {
+            display: block; font-size: 11px; font-weight: 600;
+            letter-spacing: .05em; text-transform: uppercase;
+            color: #86868B; margin-bottom: 6px;
+        }
+        .dark .field-label { color: #98989D; }
+
+        .form-input, .form-select, .spf-input, select.spf-input {
+            width: 100%; height: 40px; padding: 0 13px;
+            font-size: 14px; color: #1D1D1F;
+            background: #fff; border: 1.5px solid #E5E5EA; border-radius: 11px;
+            outline: none; transition: border-color .18s, box-shadow .18s, background .18s;
+            font-family: inherit; box-sizing: border-box;
+        }
+        .form-select, select.spf-input {
+            appearance: none; -webkit-appearance: none; padding-right: 34px; cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238E8E93' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 13px center;
+        }
+        .form-input:focus, .form-select:focus, .spf-input:focus {
+            border-color: #0071E3; box-shadow: 0 0 0 3.5px rgba(0,113,227,.14);
+        }
+        .form-input:read-only { background: #F5F5F7; color: #AEAEB2; cursor: not-allowed; }
+        .dark .form-input, .dark .form-select, .dark .spf-input {
+            background: #2C2C2E; border-color: #38383A; color: #F5F5F7;
+        }
+        .dark .form-input:focus, .dark .form-select:focus, .dark .spf-input:focus {
+            border-color: #0A84FF; box-shadow: 0 0 0 3.5px rgba(10,132,255,.22);
+        }
+        .dark .form-select option, .dark select.spf-input option { background: #2C2C2E; }
+        .form-input::placeholder, .spf-input::placeholder { color: #AEAEB2; }
+        .dark .form-input::placeholder, .dark .spf-input::placeholder { color: #636366; }
+        /* 다크모드에서 검색 입력의 X 버튼이 검게 묻히는 문제 */
+        .dark input[type="search"]::-webkit-search-cancel-button { filter: invert(1) opacity(.55); }
+
+        /* 보조 셀렉트 (설계일 비교 연산자) */
+        .form-select.sub, select.spf-input.sub {
+            height: 34px; font-size: 12.5px; border-radius: 9px; margin-top: 6px;
+        }
+
+        /* ── Buttons ── */
+        .btn-primary {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            height: 42px; padding: 0 26px; border-radius: 11px;
+            background: #0071E3; color: #fff; font-size: 14px; font-weight: 600;
+            border: none; cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,113,227,.35);
+            transition: background .15s, transform .1s, box-shadow .15s;
+        }
+        .btn-primary:hover  { background: #0077ED; color: #fff; box-shadow: 0 4px 16px rgba(0,113,227,.45); }
+        .btn-primary:active { transform: scale(.97); }
+
+        .btn-ghost {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            height: 42px; padding: 0 20px; border-radius: 11px;
+            background: transparent; color: #0071E3; font-size: 14px; font-weight: 600;
+            border: 1.5px solid #D2D2D7; cursor: pointer;
+            transition: background .15s, border-color .15s;
+        }
+        .btn-ghost:hover { background: rgba(0,113,227,.06); border-color: #0071E3; color: #0071E3; }
+        .dark .btn-ghost { color: #0A84FF; border-color: #48484A; }
+        .dark .btn-ghost:hover { background: rgba(10,132,255,.12); border-color: #0A84FF; }
+
+        .btn-mini {
+            display: inline-flex; align-items: center; gap: 5px;
+            height: 32px; padding: 0 13px; border-radius: 9px;
+            font-size: 12.5px; font-weight: 600; cursor: pointer;
+            background: #F5F5F7; color: #1D1D1F; border: 1px solid transparent;
+            transition: background .15s;
+        }
+        .btn-mini:hover { background: #E8E8ED; }
+        .dark .btn-mini { background: #2C2C2E; color: #F5F5F7; }
+        .dark .btn-mini:hover { background: #3A3A3C; }
+
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 9px; border: none; cursor: pointer;
+            background: transparent; color: #1D1D1F;
+            transition: background .15s;
+        }
+        .icon-btn:hover { background: rgba(0,0,0,.06); }
+        .dark .icon-btn { color: #F5F5F7; }
+        .dark .icon-btn:hover { background: rgba(255,255,255,.1); }
+
+        /* iOS 스타일 토글 스위치 */
+        .ios-switch { position: relative; width: 46px; height: 27px; cursor: pointer; margin: 0; }
+        .ios-switch input { display: none; }
+        .ios-switch .track {
+            position: absolute; inset: 0; border-radius: 999px;
+            background: #D2D2D7; transition: background .2s;
+        }
+        .dark .ios-switch .track { background: #38383A; }
+        .ios-switch input:checked + .track { background: #34C759; }
+        .ios-switch .knob {
+            position: absolute; top: 2.5px; left: 2.5px; width: 22px; height: 22px;
+            border-radius: 50%; background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: transform .2s;
+        }
+        .ios-switch input:checked ~ .knob { transform: translateX(19px); }
+
+        details.help summary { list-style: none; cursor: pointer; }
+        details.help summary::-webkit-details-marker { display: none; }
+        details.help[open] .chev { transform: rotate(90deg); }
+        .chev { transition: transform .18s; }
+
+        /* ── 조건 카드 (패널 내부 한 단계 위 표면) ── */
+        .cond-card {
+            background: #F7F7F9;
+            border: 1px solid rgba(0,0,0,.03);
+            border-radius: 12px;
+            padding: 16px;
+            transition: opacity .18s;
+        }
+        .dark .cond-card {
+            background: rgba(255,255,255,.045);
+            border-color: rgba(255,255,255,.06);
+        }
+        .cond-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .cond-badge {
+            display: inline-flex; align-items: center; height: 22px; padding: 0 10px;
+            border-radius: 6px; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .02em;
+        }
+        .cond-note { font-size: 12px; color: #8E8E93; }
+        .cond-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 640px)  { .cond-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+        @media (min-width: 1024px) { .cond-grid.c4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+                                     .cond-grid.c5 { grid-template-columns: repeat(5, minmax(0,1fr)); } }
+
+        /* ── Select2 (Apple 스타일) ── */
+        .select2-container { width: 100% !important; }
+        .select2-container--default .select2-selection--single {
+            height: 40px !important;
+            border: 1.5px solid #E5E5EA !important;
+            border-radius: 11px !important;
+            background: #fff !important;
+            transition: border-color .18s, box-shadow .18s !important;
+        }
+        .select2-container--default.select2-container--focus .select2-selection--single,
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: #0071E3 !important;
+            box-shadow: 0 0 0 3.5px rgba(0,113,227,.14) !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 37px !important;
+            padding-left: 13px !important;
+            color: #1D1D1F !important;
+            font-size: 14px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 37px !important; right: 6px !important;
+        }
+        .select2-dropdown {
+            border-radius: 12px !important; border-color: #E5E5EA !important;
+            box-shadow: 0 12px 40px rgba(0,0,0,.14);
+        }
+        .select2-container--default .select2-results__option { font-size: 13.5px; }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background: #0071E3 !important;
+        }
+        .dark .select2-container--default .select2-selection--single {
+            background: #2C2C2E !important; border-color: #38383A !important;
+        }
+        .dark .select2-container--default .select2-selection--single .select2-selection__rendered { color: #F5F5F7 !important; }
+        .dark .select2-container--default.select2-container--focus .select2-selection--single,
+        .dark .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: #0A84FF !important; box-shadow: 0 0 0 3.5px rgba(10,132,255,.22) !important;
+        }
+        .dark .select2-dropdown { background: #2C2C2E !important; border-color: #48484A !important; }
+        .dark .select2-results__option { color: #E5E5EA; }
+        .dark .select2-search--dropdown .select2-search__field {
+            background: #1C1C1E; border-color: #48484A; color: #F5F5F7;
+        }
+        .dark .select2-container--default .select2-selection__placeholder { color: #636366 !important; }
+        .dark .select2-container--default .select2-selection--single .select2-selection__arrow b { border-top-color: #8E8E93; }
+        .dark .select2-container--default .select2-results__option[aria-selected="true"] { background: #3A3A3C; }
+
+        /* ── 동적 K-V 조건 행 (searchPartAnalysis.js 가 생성) ── */
+        .kv-row { display: flex; align-items: center; gap: 8px; }
+        .kv-row-num {
+            font-size: 11px; font-weight: 700; color: #8E8E93;
+            min-width: 18px; text-align: right; flex-shrink: 0;
+        }
+        .dark .kv-row-num { color: #636366; }
+        .kv-key, .kv-value { flex: 1; min-width: 0; }
+        .kv-op { flex: 0 0 168px; min-width: 0; }
+        .btn-remove-kv {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px; border-radius: 50%;
+            border: 1px solid rgba(255,59,48,.25);
+            background: rgba(255,59,48,.08);
+            color: #FF3B30; cursor: pointer; font-size: 11px;
+            flex-shrink: 0; transition: all .15s; font-family: inherit;
+        }
+        .btn-remove-kv:hover {
+            background: rgba(255,59,48,.18); border-color: rgba(255,59,48,.5);
+            transform: scale(1.08);
+        }
+        .dark .btn-remove-kv { background: rgba(255,69,58,.14); border-color: rgba(255,69,58,.24); color: #FF453A; }
+        .btn-add-kv {
+            display: inline-flex; align-items: center; gap: 6px;
+            height: 34px; padding: 0 16px; font-size: 13px; font-weight: 600;
+            color: #0071E3; background: rgba(0,113,227,.06);
+            border: 1.5px dashed rgba(0,113,227,.35);
+            border-radius: 10px; cursor: pointer; transition: all .15s;
+            font-family: inherit;
+        }
+        .btn-add-kv:hover { background: rgba(0,113,227,.13); border-color: rgba(0,113,227,.6); }
+        .dark .btn-add-kv { background: rgba(10,132,255,.12); border-color: rgba(10,132,255,.35); color: #0A84FF; }
+
+        /* ── 컬럼 토글 Pill ── */
+        .pill-wrap {
+            display: flex; flex-wrap: wrap; gap: 6px;
+            padding: 10px; border-radius: 12px;
+            background: #F5F5F7; border: 1px solid rgba(0,0,0,.04);
+        }
+        .dark .pill-wrap { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.06); }
+        .pill-col-btn {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 5px 12px; font-size: 11.5px; font-weight: 600;
+            color: #3C3C43; background: #fff;
+            border: 1px solid #E5E5EA; border-radius: 999px;
+            cursor: pointer; transition: all .15s; font-family: inherit; line-height: 1.3;
+        }
+        .pill-col-btn:hover { background: rgba(0,113,227,.08); border-color: #0071E3; color: #0071E3; }
+        .pill-col-btn.hidden-col {
+            background: #8E8E93 !important; border-color: transparent !important; color: #fff !important;
+        }
+        .dark .pill-col-btn { background: #2C2C2E; border-color: #38383A; color: #E5E5EA; }
+        .dark .pill-col-btn:hover { background: rgba(10,132,255,.2); border-color: #0A84FF; color: #9CD0FF; }
+
+        /* ── 통계 KPI ── */
+        .stat-kpi-card {
+            border-radius: 14px; padding: 16px 18px;
+            background: #F5F5F7; border: 1px solid rgba(0,0,0,.04);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; transition: box-shadow .18s, transform .18s;
+        }
+        .stat-kpi-card:hover { box-shadow: 0 6px 20px -4px rgba(0,0,0,.1); transform: translateY(-1px); }
+        .dark .stat-kpi-card { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.06); }
+        .stat-kpi-label {
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+            color: #8E8E93; margin-bottom: 4px;
+        }
+        .stat-kpi-value {
+            font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -.04em; margin-bottom: 3px;
+        }
+        .stat-kpi-unit { font-size: 11px; color: #8E8E93; }
+        .dark .stat-kpi-unit { color: #636366; }
+        /* KPI 강조색 — 다크에서는 채도를 올린 iOS 시스템 컬러로 교체 */
+        .kpi-blue   { color: #0071E3; }
+        .kpi-indigo { color: #5856D6; }
+        .kpi-cyan   { color: #0EA5E9; }
+        .kpi-green  { color: #248A3D; }
+        .dark .kpi-blue   { color: #0A84FF; }
+        .dark .kpi-indigo { color: #7D7AFF; }
+        .dark .kpi-cyan   { color: #64D2FF; }
+        .dark .kpi-green  { color: #30D158; }
+
+        /* 분포 Chip / 속도 바 (searchPartAnalysis.js 가 생성) */
+        .stat-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 11px; border-radius: 999px;
+            font-size: 11.5px; font-weight: 600;
+            background: rgba(0,113,227,.08); color: #0071E3;
+            border: 1px solid rgba(0,113,227,.16); white-space: nowrap;
+        }
+        .chip-cnt {
+            background: #0071E3; color: #fff; border-radius: 999px;
+            padding: 0 6px; font-size: 10px; line-height: 1.7;
+        }
+        .dark .stat-chip { background: rgba(10,132,255,.14); color: #6FB6FF; border-color: rgba(10,132,255,.24); }
+        .dark .chip-cnt { background: #0A84FF; }
+        .speed-bar-wrap { width: 100%; background: rgba(0,0,0,.07); border-radius: 999px; height: 6px; overflow: hidden; }
+        .speed-bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg,#0071E3,#5856D6); transition: width .5s ease; }
+        .dark .speed-bar-wrap { background: rgba(255,255,255,.1); }
+
+        /* ── 섹션 라벨 ── */
+        .section-label {
+            display: flex; align-items: center; gap: 7px;
+            font-size: 11px; font-weight: 700; color: #0071E3;
+            text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px;
+        }
+        .section-label::after {
+            content: ''; flex: 1; height: 1px;
+            background: linear-gradient(to right, rgba(0,113,227,.2), transparent);
+        }
+        .dark .section-label { color: #0A84FF; }
+        .dark .section-label::after { background: linear-gradient(to right, rgba(10,132,255,.25), transparent); }
+
+        /* ── DataTables (Apple 스타일 오버라이드) ── */
+        .tbl-scroll { overflow-x: auto; }
+        .tbl-scroll::-webkit-scrollbar { height: 10px; width: 10px; }
+        .tbl-scroll::-webkit-scrollbar-thumb { background: #C7C7CC; border-radius: 8px; }
+        .dark .tbl-scroll::-webkit-scrollbar-thumb { background: #48484A; }
+
+        #infoTable_wrapper { font-size: 13px; }
+        #infoTable { border-collapse: separate !important; border-spacing: 0; min-width: 100%; }
+        #infoTable thead th {
+            background: #FAFAFC !important; color: #6E6E73 !important;
+            font-size: 11px !important; font-weight: 700 !important;
+            letter-spacing: .04em; text-transform: uppercase;
+            padding: 10px 12px !important; text-align: left; white-space: nowrap;
+            border-top: none !important; border-left: none !important; border-right: none !important;
+            border-bottom: 1.5px solid #E5E5EA !important;
+        }
+        #infoTable tbody td {
+            padding: 9px 12px !important; font-size: 12.5px !important;
+            color: #1D1D1F; white-space: nowrap;
+            border-top: none !important; border-left: none !important; border-right: none !important;
+            border-bottom: 1px solid #F0F0F2 !important;
+        }
+        #infoTable tbody tr { transition: background .1s; }
+        #infoTable tbody tr:hover td { background: rgba(0,113,227,.055) !important; }
+        .dark #infoTable thead th { background: #232325 !important; color: #98989D !important; border-bottom-color: #38383A !important; }
+        .dark #infoTable tbody td { background: #1C1C1E !important; color: #E5E5EA; border-bottom-color: #2C2C2E !important; }
+        .dark #infoTable tbody tr:hover td { background: rgba(10,132,255,.10) !important; }
+
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate { font-size: 12.5px; }
+        .dataTables_wrapper .dataTables_filter input,
+        .dataTables_wrapper .dataTables_length select {
+            height: 34px; border: 1.5px solid #E5E5EA; border-radius: 10px;
+            padding: 0 11px; outline: none; background: #fff; transition: all .15s;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus,
+        .dataTables_wrapper .dataTables_length select:focus {
+            border-color: #0071E3; box-shadow: 0 0 0 3.5px rgba(0,113,227,.14);
+        }
+        .dataTables_wrapper .page-link { border: none !important; border-radius: 9px !important; color: #1D1D1F !important; font-size: 12.5px; font-weight: 600; }
+        .dataTables_wrapper .page-item.active .page-link {
+            background: #0071E3 !important; color: #fff !important; box-shadow: 0 2px 10px rgba(0,113,227,.35);
+        }
+        .dataTables_wrapper .page-link:hover { background: rgba(0,113,227,.08) !important; }
+        .dataTables_wrapper .page-item.disabled .page-link { color: #C7C7CC !important; background: transparent !important; }
+        .dt-buttons .btn {
+            height: 32px; display: inline-flex; align-items: center; gap: 5px;
+            border-radius: 9px !important; font-size: 12.5px !important; font-weight: 600 !important;
+            padding: 0 13px !important; border: 1px solid transparent !important;
+            background: #F5F5F7 !important; color: #1D1D1F !important; transition: background .15s !important;
+        }
+        .dt-buttons .btn:hover { background: #E8E8ED !important; }
+        .dark .dataTables_wrapper { color: #E5E5EA; }
+        .dark .dataTables_wrapper .dataTables_filter input,
+        .dark .dataTables_wrapper .dataTables_length select {
+            background: #2C2C2E; border-color: #38383A; color: #F5F5F7;
+        }
+        .dark .dataTables_wrapper .page-link { color: #E5E5EA !important; background: transparent !important; }
+        .dark .dataTables_wrapper .page-item.active .page-link { background: #0A84FF !important; color: #fff !important; }
+        .dark .dt-buttons .btn { background: #2C2C2E !important; color: #F5F5F7 !important; }
+        .dark .dt-buttons .btn:hover { background: #3A3A3C !important; }
+        .dark .dataTables_wrapper .dataTables_paginate .paginate_button.disabled { color: #48484A !important; }
+        .dark #infoTable.dataTable.no-footer { border-bottom-color: #2C2C2E !important; }
+        .dark #infoTable tbody tr { background: transparent !important; }
+        /* processing: true 로 뜨는 "처리중" 박스 (기본이 흰 그라데이션) */
+        .dataTables_wrapper .dataTables_processing {
+            border: none !important; border-radius: 12px;
+            background: rgba(255,255,255,.94) !important;
+            color: #1D1D1F; font-weight: 600; font-size: 13px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.12);
+        }
+        .dark .dataTables_wrapper .dataTables_processing {
+            background: rgba(44,44,46,.96) !important;
+            color: #F5F5F7; box-shadow: 0 8px 30px rgba(0,0,0,.5);
+        }
+        /* Responsive 축소 시 펼쳐지는 child row */
+        .dark #infoTable td .dtr-title { color: #98989D; }
+
+        /* ══════════════════════════════════════════════════════════
+           searchPartAnalysis.js 가 인라인 style 로 찍는 요소들의 테마 보정
+           (JS 는 건드리지 않으므로 !important 로 덮는다)
+           ══════════════════════════════════════════════════════════ */
+        /* 속도 구간 분포 행: [구간 라벨] [바] [건수] */
+        #statSpeedDist > div > span:last-child { color: #0071E3 !important; }
+        .dark #statSpeedDist > div > span:first-child { color: #98989D !important; }
+        .dark #statSpeedDist > div > span:last-child  { color: #0A84FF !important; }
+
+        /* 조회 중 로딩 오버레이 */
+        #loadingOverlay > div > div { border-top-color: #0071E3 !important; }
+        .dark #loadingOverlay { background: rgba(0,0,0,.62) !important; }
+        .dark #loadingOverlay > div {
+            background: #1C1C1E !important;
+            box-shadow: 0 24px 56px -8px rgba(0,0,0,.65) !important;
+        }
+        .dark #loadingOverlay > div > div {
+            border-color: rgba(255,255,255,.12) !important;
+            border-top-color: #0A84FF !important;
+        }
+        .dark #loadingOverlay p { color: #F5F5F7 !important; }
+    </style>
+</head>
+
+<body class="bg-apple-gray6 dark:bg-apple-darkBg text-apple-ink dark:text-apple-gray6 min-h-screen">
+
+<!-- ═══════════ Left Sidebar (fragments/newSideBar.html) ═══════════ -->
+<div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+
+<div id="appContent">
+
+<!-- ═══════════ Top Bar ═══════════ -->
+<header class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-black/60 border-b border-black/5 dark:border-white/10">
+    <div class="w-full px-5 xl:px-8 h-[58px] flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <button type="button" id="sbToggle" class="icon-btn -ml-2" title="사이드바 열기/닫기">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
+            <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    <path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-[16px] font-bold tracking-tight leading-none">PLM 제품-자재 Analytics</h1>
+                <p class="text-[11px] text-apple-gray1 leading-none mt-[3px]">Logic Design Intelligence Platform</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-5">
+            <span class="hidden md:inline-flex items-center gap-1.5 text-[12px] font-medium text-apple-gray1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
+            </span>
+            <div class="flex items-center gap-2">
+                <span class="text-[12.5px] font-medium text-apple-gray1" id="themeLabel">다크모드</span>
+                <label class="ios-switch">
+                    <input type="checkbox" id="darkModeToggle">
+                    <span class="track"></span><span class="knob"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- 폭 제한 없이 창 전체를 사용 (컬럼이 많아 가로 공간이 넓을수록 유리) -->
+<main class="w-full px-5 xl:px-8 py-8 space-y-6">
+
+    <!-- ═══════════ Hero ═══════════ -->
+    <section class="pt-2 pb-1">
+        <h2 class="text-[30px] font-bold tracking-tight leading-tight">제품-자재 Analytics</h2>
+        <p class="text-[14.5px] text-apple-gray1 mt-1">PLM 데이터 기반으로 제품-자재 연계 데이터를 분석하고 역추적합니다.</p>
+    </section>
+
+    <!-- ═══════════ 도움말 ═══════════ -->
+    <details class="help panel">
+        <summary class="panel-head">
+            <span class="tile tile-amber" style="border-radius:999px;">💡</span>
+            <span class="text-[14px] font-semibold flex-1">도움말 · 검색 조건 안내</span>
+            <svg class="chev text-apple-gray1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+        <ul class="px-7 pb-5 pt-1 space-y-2 text-[13px] leading-relaxed text-[#515154] dark:text-[#AEAEB2]">
+            <li class="flex gap-2"><span class="text-rose-500 font-bold">·</span><span class="font-semibold text-rose-500">PartNo 또는 BlockNo 중 하나는 필수입력</span> 입니다. (속도 이슈)</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>자재번호 or BlockNo 입력 시, 해당 자재를 사용하는 모든 현장을 역추적 조회합니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>TEST, Q호기는 제외됩니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>사용방법 —
+                <b>26300551G0*</b> → Like 검색 · <b>*</b> 없으면 EQUAL 검색</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>주요기능 1 — 특정 자재가 어떤 제품에 사용되었는지 역추적</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>주요기능 2 — 다중 조건 필터링을 통한 교차 검색 및 분석</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>주요기능 3 — 브랜드별 부품 구성 Mix 분석</li>
+        </ul>
+    </details>
+
+    <!-- ═══════════ 검색 조건 카드 ═══════════ -->
+    <section class="panel">
+        <div class="panel-head">
+            <span class="tile tile-blue">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="text-apple-blue dark:text-apple-blueD"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+            </span>
+            <h3 class="panel-title">검색 조건</h3>
+        </div>
+
+        <div id="condRoot" class="panel-body space-y-4" style="padding-top:4px;">
+
+            <!-- ▸ 기본 정보 -->
+            <div class="cond-card">
+                <div class="cond-head">
+                    <span class="cond-badge" style="background:#0071E3;">기본 정보</span>
+                    <span class="cond-note">Part No. 또는 Block No. 필수</span>
+                </div>
+                <div class="cond-grid c4">
+                    <div>
+                        <label class="field-label" for="year">년도</label>
+                        <select id="year" class="form-select">
+                            <option selected>2026</option>
+                            <option>2025</option>
+                            <option>2024</option>
+                            <option>2023</option>
+                            <option>2022</option>
+                            <option>2021</option>
+                            <option>2020</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label" for="partNo">Part No.</label>
+                        <input type="search" id="partNo" class="form-input" placeholder="Part No." autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="field-label" for="blockNo">Block No.</label>
+                        <input type="search" id="blockNo" class="form-input" placeholder="Block No." autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="field-label" for="status">제품 상태</label>
+                        <select id="status" class="form-select">
+                            <option value="">전체</option>
+                            <option value="RLS" selected>릴리즈</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ▸ 제품 사양 -->
+            <div class="cond-card">
+                <div class="cond-head">
+                    <span class="cond-badge" style="background:#5856D6;">제품 사양</span>
+                    <span class="cond-note">선택</span>
+                </div>
+                <div class="cond-grid c5">
+                    <div>
+                        <label class="field-label">브랜드</label>
+                        <select id="EL_BRAND" class="form-control select">
+                            <option selected>-</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label">생산거점 <span class="text-apple-gray1 font-normal normal-case">(EL_ASPSCD)</span></label>
+                        <select id="EL_ASPSCD" class="form-control select">
+                            <option selected>-</option>
+                            <option value="KR00">국내(KR00)</option>
+                            <option value="KC01">국내+상해(KC01)</option>
+                            <option value="KC02">국내+상해 모듈러(KC02)</option>
+                            <option value="IN_HYBRID01">국내_전기+인도_기계(IN_HYBRID01)</option>
+                            <option value="HD_HD">US-[기계]HD_[전기]HD(HD_HD)</option>
+                            <option value="GAL_INNOV">US-[기계]GAL_[전기]INNOV(GAL_INNOV)</option>
+                            <option value="GAL_HD">US-[기계]GAL_[전기]HD(GAL_HD)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label">기종 <span class="text-apple-gray1 font-normal normal-case">(EL_ATYP)</span></label>
+                        <select id="EL_ATYP" class="form-control select">
+                            <option selected>-</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label" for="EL_ZFDA">기계구조 최초설계일 <span class="text-apple-gray1 font-normal normal-case">(EL_ZFDA)</span></label>
+                        <input type="search" id="EL_ZFDA" class="form-input" placeholder="ex. 20260130" autocomplete="off">
+                        <select id="EL_ZFDA_TYPE" class="form-select sub">
+                            <option value="=" selected>일치 ( = )</option>
+                            <option value=">=">이상 ( &gt;= )</option>
+                            <option value=">">초과 ( &gt; )</option>
+                            <option value="&lt;=">이하 ( &lt;= )</option>
+                            <option value="&lt;">미만 ( &lt; )</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label" for="EL_ZFDC">전기구조 최초설계일 <span class="text-apple-gray1 font-normal normal-case">(EL_ZFDC)</span></label>
+                        <input type="search" id="EL_ZFDC" class="form-input" placeholder="ex. 20260130" autocomplete="off">
+                        <select id="EL_ZFDC_TYPE" class="form-select sub">
+                            <option value="=" selected>일치 ( = )</option>
+                            <option value=">=">이상 ( &gt;= )</option>
+                            <option value=">">초과 ( &gt; )</option>
+                            <option value="&lt;=">이하 ( &lt;= )</option>
+                            <option value="&lt;">미만 ( &lt; )</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ▸ 옵션 -->
+            <div class="cond-card">
+                <div class="cond-head">
+                    <span class="cond-badge" style="background:#0F9B8E;">옵션</span>
+                    <span class="cond-note">선택</span>
+                </div>
+                <div class="cond-grid c5">
+                    <div>
+                        <label class="field-label" for="cmt">CMT</label>
+                        <input type="search" id="cmt" class="form-input" placeholder="cmt…" autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="field-label" for="spec">SPEC</label>
+                        <input type="search" id="spec" class="form-input" placeholder="spec…" autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="field-label" for="EL_ETHRU">관통 <span class="text-apple-gray1 font-normal normal-case">(EL_ETHRU)</span></label>
+                        <select id="EL_ETHRU" class="form-select">
+                            <option value="" selected>-</option>
+                            <option value="Y">YES</option>
+                            <option value="N">NO</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label">전망 타입 <span class="text-apple-gray1 font-normal normal-case">(EL_COB)</span></label>
+                        <select id="EL_COB" class="form-control select">
+                            <option value="" selected>-</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label">WALL 구조 <span class="text-apple-gray1 font-normal normal-case">(EL_BWALLT)</span></label>
+                        <select id="EL_BWALLT" class="form-control select">
+                            <option value="" selected>-</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ▸ 동적 조건 (Key – 조건 – Value) -->
+            <div class="cond-card">
+                <div class="cond-head">
+                    <span class="cond-badge" style="background:#AF52DE;">동적 조건</span>
+                    <span class="cond-note">선택 · Key – 조건 – Value</span>
+                </div>
+
+                <!-- 행 컨테이너 (JS로 동적 추가) -->
+                <div id="kvConditionList" class="flex flex-col gap-2 mb-3"></div>
+
+                <button type="button" class="btn-add-kv" onclick="addKeyValueRow()">
+                    <i class="fas fa-plus" style="font-size:11px;"></i> 조건 추가
+                </button>
+            </div>
+        </div>
+
+        <!-- footer actions -->
+        <div class="panel-foot">
+            <span class="text-[12px] text-apple-gray1">Part No. / Block No. 입력 후 Enter 키로 바로 조회할 수 있습니다.</span>
+            <div class="flex items-center gap-2.5">
+                <button type="button" class="btn-ghost" onclick="searchInteractive()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+                    인터렉티브
+                </button>
+                <button type="button" class="btn-ghost" onclick="searchGraph()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+                    그래프
+                </button>
+                <button type="button" class="btn-primary" onclick="searchPID()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                    분석
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 통계 패널 (조회 후 표시) ═══════════ -->
+    <section id="statsPanel" class="panel" style="display:none;">
+
+        <div class="panel-head divider">
+            <span class="tile tile-indigo">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="kpi-indigo"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            </span>
+            <h3 class="panel-title">조회 결과 통계</h3>
+            <span id="statsTotalBadge"
+                  class="inline-flex items-center h-[24px] px-3 rounded-full bg-apple-blue/10 dark:bg-apple-blueD/20 text-apple-blue dark:text-apple-blueD text-[12px] font-bold"></span>
+        </div>
+
+        <div class="panel-body">
+            <!-- KPI 수치 -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                <div class="stat-kpi-card">
+                    <p class="stat-kpi-label">전체 결과</p>
+                    <p class="stat-kpi-value kpi-blue" id="statTotal">-</p>
+                    <p class="stat-kpi-unit">건</p>
+                </div>
+                <div class="stat-kpi-card">
+                    <p class="stat-kpi-label">고유 제품 수</p>
+                    <p class="stat-kpi-value kpi-indigo" id="statProducts">-</p>
+                    <p class="stat-kpi-unit">종</p>
+                </div>
+                <div class="stat-kpi-card">
+                    <p class="stat-kpi-label">평균 속도</p>
+                    <p class="stat-kpi-value kpi-cyan" id="statSpeedAvg">-</p>
+                    <p class="stat-kpi-unit">m/min</p>
+                </div>
+                <div class="stat-kpi-card">
+                    <p class="stat-kpi-label">속도 범위</p>
+                    <p class="stat-kpi-value kpi-green" style="font-size:20px;" id="statSpeedRange">-</p>
+                    <p class="stat-kpi-unit">m/min</p>
+                </div>
+            </div>
+
+            <!-- 분포 섹션 -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div>
+                    <div class="section-label">브랜드 분포</div>
+                    <div id="statBrandDist" class="flex flex-wrap gap-1.5 mt-1"></div>
+                </div>
+                <div>
+                    <div class="section-label">기종 분포</div>
+                    <div id="statGisongDist" class="flex flex-wrap gap-1.5 mt-1"></div>
+                </div>
+                <div>
+                    <div class="section-label">속도 구간 분포</div>
+                    <div id="statSpeedDist" class="flex flex-col gap-1.5 mt-1"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 조회 결과 카드 ═══════════ -->
+    <section class="panel">
+
+        <div class="panel-head divider">
+            <span class="tile tile-green">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="kpi-green"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+            </span>
+            <h3 class="panel-title">조회 결과</h3>
+        </div>
+
+        <div class="panel-body">
+
+            <!-- 컬럼 토글 -->
+            <div class="section-label">표시 컬럼</div>
+            <div id="columnToggleToolbar" class="mb-5">
+                <div class="pill-wrap" role="group" aria-label="컬럼 토글">
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(0,this)">제품번호</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(1,this)">제품버전</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(2,this)">제품상태</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(3,this)">제품수정일</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(4,this)">기계구조 최초설계일</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(5,this)">브랜드</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(6,this)">기종</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(7,this)">속도</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(8,this)">생산거점</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(9,this)">용량</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(10,this)">CAR_BG</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(11,this)">CWT_BG</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(12,this)">CWT폭</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(13,this)">품번</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(14,this)">품명</button>
+
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(15,this)">QTY</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(16,this)">BlockNo.</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(17,this)">cmt</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(18,this)">SPEC</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(19,this)">품목</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(20,this)">GL_CODE</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(21,this)">버전</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(22,this)">WALL 구조</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(23,this)">관통</button>
+                    <button type="button" class="pill-col-btn" onclick="hideColumn(24,this)">전망타입</button>
+                </div>
+            </div>
+
+            <!-- DataTable -->
+            <div class="tbl-scroll">
+                <table id="infoTable" class="table table-hover" style="width:100%;">
+                    <thead>
+                    <tr>
+                        <th class="text-center">제품번호</th>
+                        <th>제품버전</th>
+                        <th>제품상태</th>
+                        <th>제품수정일</th>
+                        <th>기계구조<br>최초설계일</th>
+                        <th>브랜드</th>
+                        <th>기종</th>
+                        <th>속도</th>
+                        <th>생산거점</th>
+                        <th>용량</th>
+                        <th>CAR_BG</th>
+                        <th>CWT_BG</th>
+                        <th>CWT폭</th>
+                        <th>품번</th>
+                        <th>품명</th>
+
+                        <th>QTY</th>
+                        <th>BlockNo.</th>
+                        <th>cmt</th>
+                        <th>SPEC</th>
+                        <th>품목</th>
+                        <th>GL_CODE</th>
+                        <th>버전</th>
+                        <th>WALL 구조</th>
+                        <th>관통</th>
+                        <th>전망타입</th>
+                    </tr>
+                    </thead>
+                    <tbody id="contentTable"></tbody>
+                </table>
+            </div>
+
+        </div>
+    </section>
+
+    <footer class="pt-4 pb-8 text-center">
+        <p class="text-[12px] text-apple-gray1">Copyright © 2026 <b>수배로직설계팀 · 김영환 M</b>. All rights reserved. · Version 1.0.0</p>
+    </footer>
+</main>
+
+</div><!-- /#appContent -->
+
+
+<!-- Scripts -->
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+<!-- DataTables -->
+<script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/jszip/jszip.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/pdfmake.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/vfs_fonts.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
+
+<script src="/resources/dist/plugins/select2/js/select2.full.min.js"></script>
+
+<script src="/resources/javascript/searchPartAnalysis.js"></script>
+<script src="/resources/javascript/commonUtil.js"></script>
+
+<script>
+    /* ── 컬럼 숨기기 / 복원 ── */
+    function getHiddenCols() {
+        try { const v = localStorage.getItem('spf_hidden_cols'); return v ? JSON.parse(v) : []; } catch(e) { return []; }
+    }
+    function setHiddenCols(arr) {
+        try { localStorage.setItem('spf_hidden_cols', JSON.stringify(arr)); } catch(e) {}
+    }
+
+    function applyButtonState(idx, visible) {
+        const btns = document.querySelectorAll('#columnToggleToolbar .pill-wrap button');
+        const btn  = btns && btns[idx] ? btns[idx] : null;
+        if (!btn) return;
+        if (visible) btn.classList.remove('hidden-col');
+        else         btn.classList.add('hidden-col');
+        btn.setAttribute('aria-pressed', visible ? 'false' : 'true');
+    }
+
+    function syncColumnButtons() {
+        if (!$.fn.DataTable.isDataTable('#infoTable')) return;
+        const table = $('#infoTable').DataTable();
+        table.columns().every(function(i) {
+            applyButtonState(i, this.visible());
+        });
+    }
+
+    function hideColumn(colIndex, btn) {
+        if (!$.fn.DataTable.isDataTable('#infoTable')) return;
+        const table = $('#infoTable').DataTable();
+        const nowVisible = table.column(colIndex).visible();
+        table.column(colIndex).visible(!nowVisible);
+
+        let hidden = getHiddenCols();
+        if (nowVisible) {
+            if (!hidden.includes(colIndex)) hidden.push(colIndex);
+        } else {
+            hidden = hidden.filter(i => i !== colIndex);
+        }
+        setHiddenCols(hidden);
+        applyButtonState(colIndex, !nowVisible);
+    }
+
+    window.syncColumnButtons = syncColumnButtons;
+
+    /* ── 다크모드 (searchLogicPIDv3 와 동일 · localStorage 키 'theme' 공유) ── */
+    (function initTheme() {
+        const dark = localStorage.getItem('theme') !== 'light'; // 기본 다크모드
+        document.documentElement.classList.toggle('dark', dark);
+        document.getElementById('darkModeToggle').checked = dark;
+        document.getElementById('themeLabel').textContent = dark ? '🌙 다크모드' : '☀️ 라이트모드';
+        if (dark) localStorage.setItem('theme', 'dark');
+    })();
+    document.getElementById('darkModeToggle').addEventListener('change', function () {
+        document.documentElement.classList.toggle('dark', this.checked);
+        localStorage.setItem('theme', this.checked ? 'dark' : 'light');
+        document.getElementById('themeLabel').textContent = this.checked ? '🌙 다크모드' : '☀️ 라이트모드';
+    });
+
+    /* ── 사이드바 현재 메뉴 활성화 ── */
+    document.querySelectorAll('#sidebar .sb-link').forEach(a => a.classList.remove('active'));
+    document.querySelector('#sidebar a[href="/dash/searchPartAnalysis"]')?.classList.add('active');
+
+    /* ── 초기화 ── */
+    $(document).ready(function() {
+        setTimeout(function() {
+            if (typeof window.syncColumnButtons === 'function') window.syncColumnButtons();
+        }, 250);
+    });
+</script>
+
+</body>
+</html>

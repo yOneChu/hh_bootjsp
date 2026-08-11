@@ -48,7 +48,6 @@ public class APIController {
             //result = MLBCommonUtil.findPartOneWithPartNo(partNo);
             result = MLBCommonUtil.findPartOneWithPartNoV2(partNo);
         }
-
         return result;
     }
 
@@ -100,7 +99,7 @@ public class APIController {
     }
 
     @Description("BOM 1레벨 및 하위 전체")
-    @GetMapping("/findProductBOM")
+    //@GetMapping("/findProductBOM")
     @CrossOrigin
     @ResponseBody
     public ArrayList<BomPartDTO> findProductBOM(String productNo, String key) throws Exception {

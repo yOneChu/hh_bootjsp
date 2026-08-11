@@ -37,7 +37,8 @@ public class AnalysisController {
     @GetMapping("/dash/searchPartAnalysis")
     public String searchPartFinderTest() {
         //return "subaeLogic/searchPartFinder";
-        return "thymeleaf/searchPartAnalysis";
+        //return "thymeleaf/searchPartAnalysis";
+        return "thymeleaf/logic/searchPartAnalysisV2";
     }
 
     @PostMapping("/dash/findCodeList")
