@@ -99,7 +99,7 @@ public class APIController {
     }
 
     @Description("BOM 1레벨 및 하위 전체")
-    //@GetMapping("/findProductBOM")
+    @GetMapping("/findProductBOM")
     @CrossOrigin
     @ResponseBody
     public ArrayList<BomPartDTO> findProductBOM(String productNo, String key) throws Exception {
@@ -176,7 +176,10 @@ public class APIController {
         ArrayList<HashMap<String, String>> elvData = null;
 
         if ("subae".equals(key)) {
-            elvData = ElvInfoCommonUtil.getSalesInfo(hogi);
+            //elvData = ElvInfoCommonUtil.getSalesInfo(hogi);
+            elvData = ElvInfoCommonUtil.findElvSearchInfoV2(hogi); // 영업사양 추출 개선
+
+
         }
         return elvData;
     }

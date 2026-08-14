@@ -12,6 +12,8 @@ import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 
 public class ElvInfoCommonUtil {
@@ -825,7 +827,7 @@ public class ElvInfoCommonUtil {
                   V.vf$identity = A.id$ouid and V.vf$ouid = A.id$wip 
                   --AND V.MD$NUMBER NOT LIKE 'Q%'
                   --AND V.MD$NUMBER NOT LIKE '%TEST%'
-                  AND V.MD$NUMBER NOT LIKE ?
+                  AND V.MD$NUMBER = ?
                 """;
 
             System.out.println("sql = " + sql);
@@ -907,6 +909,170 @@ public class ElvInfoCommonUtil {
         }
 
         return dataList;
+    }
+
+    /**
+     * 영업사양 값 추출 개선
+     * @param searchMdNumber
+     * @return
+     */
+    public static ArrayList<HashMap<String, String>> findElvSearchInfoV2(String searchMdNumber) {
+        //Connection con = null;
+        //PreparedStatement pstmt = null;
+        //ResultSet rs = null;
+
+        //ArrayList<ElvInfoDTO> dataList = new ArrayList<ElvInfoDTO>();
+        ArrayList<HashMap<String, String>> resultList = new ArrayList<>();
+
+
+        String query = """
+                SELECT V.*
+                FROM ELV_INFO$VF V, ELV_INFO$ID A 
+                  WHERE 
+                      V.vf$identity = A.id$ouid and V.vf$ouid = A.id$wip 
+                      --AND V.MD$NUMBER NOT LIKE 'Q%'
+                      --AND V.MD$NUMBER NOT LIKE '%TEST%'
+                      AND V.MD$NUMBER = ?
+            """;
+
+
+        /*try (Connection conn = PLMDBConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query) ) {*/
+        try (Connection conn = PLMDBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+
+            // 5. 쿼리의 '?' 위치에 파라미터 값 바인딩 (첫 번째 '?' 이므로 인덱스 1)
+            // 주석 처리된 부분의 조건(LIKE 'Q%')을 볼 때 문자열로 추정되어 setString 사용
+            pstmt.setString(1, searchMdNumber);
+
+            // 6. 쿼리 실행 후 ResultSet은 내부에 중첩 try-with-resources로 감싸기
+            try (ResultSet rs = pstmt.executeQuery()) {
+
+                // --- [여기서부터 컬럼명 동적 추출 및 데이터 출력 로직] ---
+
+               /* ResultSetMetaData rsmd = rs.getMetaData();
+                int columnCount = rsmd.getColumnCount();
+
+                System.out.println("========================================= 조회 결과 =========================================");
+
+                // 컬럼명 먼저 쫙 출력
+                for (int i = 1; i <= columnCount; i++) {
+                    System.out.print(rsmd.getColumnLabel(i) + "\t|\t");
+                }
+                System.out.println("\n---------------------------------------------------------------------------------------------");
+
+                // 실제 로우(Row) 데이터 출력
+                boolean hasData = false;
+                while (rs.next()) {
+                    hasData = true;
+                    for (int i = 1; i <= columnCount; i++) {
+                        // DB 컬럼 타입이 숫자든 날짜든 콘솔 출력을 위해 일괄 getString() 호출
+                        System.out.print(rs.getString(i) + "\t|\t");
+                    }
+                    System.out.println(); // 한 행이 끝나면 줄바꿈
+                }
+
+                if (!hasData) {
+                    System.out.println("조건에 맞는 데이터가 존재하지 않습니다.");
+                }
+                System.out.println("=============================================================================================");
+*/
+                ResultSetMetaData rsmd = rs.getMetaData();
+                int columnCount = rsmd.getColumnCount();
+
+                // 🌟 핵심 로직: ResultSet을 순회하며 Map으로 변환
+                while (rs.next()) {
+                    // 컬럼 순서를 유지하기 위해 LinkedHashMap 사용
+                    HashMap<String, String> rowMap = new LinkedHashMap<>();
+
+                    for (int i = 1; i <= columnCount; i++) {
+                        String columnName = rsmd.getColumnLabel(i); // Key: 컬럼명
+                        String columnValue = rs.getString(i);       // Value: 데이터
+
+                        // Map에 데이터 적재 (만약 DB 값이 NULL이면 columnValue도 null이 들어감)
+                        rowMap.put(columnName, columnValue);
+                    }
+
+                    // 완성된 1줄(Row)의 Map을 List에 추가
+                    resultList.add(rowMap);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return resultList;
+    }
+
+    //영업 사양 값 매칭
+    /**
+     * @apiNote 영업 사양 값 매칭
+     * @param ouid
+     * @return
+     */
+    public static String findCodeValue(String ouid) {
+
+        String result = "";
+
+        String query = """
+                select NAME, DES, MSRTITLECODE from doscoditm
+                WHERE OUID = ?
+                """;
+
+
+        try (Connection conn = PLMDBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setString(1, ouid);
+
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+
+                while (rs.next()) {
+                    // 컬럼명으로 데이터 추출 (데이터 타입에 맞춰 getString, getInt 등 사용)
+                    String name = rs.getString("NAME");
+                    String tit = rs.getString("DES");
+                    String msrTitleCode = rs.getString("MSRTITLECODE");
+
+                    // 추출한 데이터를 Map에 담기
+                    //Map<String, String> row = new HashMap<>();
+                    //row.put("NAME", name);
+                    //row.put("DES", tit);
+                    //row.put("MSRTITLECODE", msrTitleCode);
+
+                    //msrtitlecode NULL이면 DES(COD)을 값으로 한다.
+                    //msrtitlecode 값이 있으면 name(CODN)을 값으로 한다.
+                    result = tit;
+                    if(msrTitleCode != null && !msrTitleCode.isEmpty()) {
+                        result = name;
+                    }
+
+                    // 디버깅용 출력
+                    //System.out.println("NAME: " + name + ", TIT: " + tit + ", MSRTITLECODE: " + msrTitleCode);
+                }
+
+            }
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+
+    public static boolean isNumeric(String str) {
+        // null 이거나 빈 문자열이면 false 반환
+        if (str == null || str.isEmpty()) {
+            return false;
+        }
+
+        // 정규표현식: 오직 0~9의 숫자로만 이루어져 있는지 확인
+        // "^[0-9]+$" 또는 "\\d+" 를 사용할 수 있습니다.
+        return str.matches("^[0-9]+$");
     }
 
 }
