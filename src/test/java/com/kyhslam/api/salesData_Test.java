@@ -34,11 +34,6 @@ public class salesData_Test {
                 if(ElvInfoCommonUtil.isNumeric(entry.getValue())) {
                     String resultVal = ElvInfoCommonUtil.findCodeValue(entry.getValue());
 
-                   /* if (entry.getKey().equals("EL_AVOLT")) {
-                        System.out.println("resultVal===" + resultVal);
-                        System.out.println(entry.getKey() + " : " + entry.getValue());
-                    }*/
-
                     if(resultVal != null && !resultVal.isEmpty()) {
                         System.out.println(entry.getKey() + " : " + resultVal);
                     } else {

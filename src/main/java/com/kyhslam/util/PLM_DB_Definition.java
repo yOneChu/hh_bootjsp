@@ -1424,17 +1424,7 @@ public class PLM_DB_Definition {
                        NVL(D.KEY17, '-') AS KEY17, NVL(D.VAL17, '-') AS VAL17,
                        NVL(D.KEY18, '-') AS KEY18, NVL(D.VAL18, '-') AS VAL18,
                        NVL(D.KEY19, '-') AS KEY19, NVL(D.VAL19, '-') AS VAL19,
-                       NVL(D.KEY20, '-') AS KEY20, NVL(D.VAL20, '-') AS VAL20,
-                       NVL(D.KEY21, '-') AS KEY21, NVL(D.VAL21, '-') AS VAL21,
-                       NVL(D.KEY22, '-') AS KEY22, NVL(D.VAL22, '-') AS VAL22,
-                       NVL(D.KEY23, '-') AS KEY23, NVL(D.VAL23, '-') AS VAL23,
-                       NVL(D.KEY24, '-') AS KEY24, NVL(D.VAL24, '-') AS VAL24,
-                       NVL(D.KEY25, '-') AS KEY25, NVL(D.VAL25, '-') AS VAL25,
-                       NVL(D.KEY26, '-') AS KEY26, NVL(D.VAL26, '-') AS VAL26,
-                       NVL(D.KEY27, '-') AS KEY27, NVL(D.VAL27, '-') AS VAL27,
-                       NVL(D.KEY28, '-') AS KEY28, NVL(D.VAL28, '-') AS VAL28,
-                       NVL(D.KEY29, '-') AS KEY29, NVL(D.VAL29, '-') AS VAL29,
-                       NVL(D.KEY30, '-') AS KEY30, NVL(D.VAL30, '-') AS VAL30
+                       NVL(D.KEY20, '-') AS KEY20, NVL(D.VAL20, '-') AS VAL20
                  FROM HDEL_DEFAULT.VARIANT_D D,
                       HDEL_DEFAULT.VARIANT_H H,
                       HDEL_DEFAULT.VARIANT_ID ID

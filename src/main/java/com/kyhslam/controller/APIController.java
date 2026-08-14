@@ -7,6 +7,7 @@ import com.kyhslam.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Description;
+import org.springframework.util.StopWatch;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Connection;
@@ -51,20 +52,65 @@ public class APIController {
         return result;
     }
 
-    @Description("영업사양")
+    @Description("영업 사양")
     @GetMapping("/findElvSearch")
     @ResponseBody
     @CrossOrigin
     public ArrayList<HashMap<String, String>> findElvSearch(String key, String productNo) {
-        //http://localhost:8070/api/findElvSearch?key=subae&productNo=TEST-624822
+        //http://localhost:8070/apiv2/findElvSearch?key=subae&productNo=211704L17
         ArrayList<HashMap<String, String>> result = new ArrayList<HashMap<String, String>>();
         //ElvWhere whereCond = new ElvWhere();
         //whereCond.setHogi(productNo);
 
+        // 약 1분 30초
+        StopWatch sw = new StopWatch();
+        sw.start();
+
+        HashMap<String, String> rMap = new HashMap<String, String>();
+
         if ("subae".equals(key)) {
             //result = ElvInfoCommonUtil.findElvSearch(whereCond);
-            result = ElvInfoCommonUtil.getSalesInfo(productNo);
+            //result = ElvInfoCommonUtil.getSalesInfo(productNo); // PLM API 연계 추출
+
+            ArrayList<HashMap<String, String>> resultData = ElvInfoCommonUtil.findElvSearchInfoV2(productNo);
+
+            for (Map<String, String> row : resultData) {
+                System.out.println("--------------------------------------------------");
+                // Map을 순회하며 Key(컬럼명)와 Value(데이터) 출력
+                for (Map.Entry<String, String> entry : row.entrySet()) {
+                    //System.out.println(entry.getKey() + " : " + entry.getValue());
+
+                    if(ElvInfoCommonUtil.isNumeric(entry.getValue())) {
+                        String resultVal = ElvInfoCommonUtil.findCodeValue(entry.getValue());
+
+                        if(resultVal != null && !resultVal.isEmpty()) {
+                            System.out.println(entry.getKey() + " : " + resultVal);
+                            rMap.put(entry.getKey(), resultVal);
+                        } else {
+                            System.out.println(entry.getKey() + " : " + entry.getValue());
+                            rMap.put(entry.getKey(), entry.getValue());
+                        }
+
+                    } else {
+                        System.out.println(entry.getKey() + " : " + entry.getValue());
+                        rMap.put(entry.getKey(), entry.getValue());
+                    }
+
+                    result.add(rMap);
+                }
+            }
         }
+
+        sw.stop();
+
+        long millis = sw.getTotalTimeMillis();
+
+        double seconds = millis / 1000.0;
+        double minutes = seconds / 60.0;
+
+        System.out.println("⏱ 수행 시간:");
+        System.out.printf("   - %.3f 초%n", seconds);
+        System.out.printf("   - %.3f 분%n", minutes);
 
         return  result;
     }
@@ -91,10 +137,25 @@ public class APIController {
     public ArrayList<ProductDto> findProductInfo(String productNo, String key) throws Exception {
         ArrayList<ProductDto> bomList = new ArrayList<ProductDto>();
 
+        StopWatch sw = new StopWatch();
+        sw.start();
+
         if ("subae".equals(key)) {
             //result = InventorCommonUtil.findProductInfo(productNo);
             bomList = ProductCommonUtil.findProductInfo(productNo);
         }
+
+        sw.stop();
+
+        long millis = sw.getTotalTimeMillis();
+
+        double seconds = millis / 1000.0;
+        double minutes = seconds / 60.0;
+
+        System.out.println("⏱ 수행 시간:");
+        System.out.printf("   - %.3f 초%n", seconds);
+        System.out.printf("   - %.3f 분%n", minutes);
+
         return bomList;
     }
 
@@ -103,12 +164,31 @@ public class APIController {
     @CrossOrigin
     @ResponseBody
     public ArrayList<BomPartDTO> findProductBOM(String productNo, String key) throws Exception {
-        //https://vault-in.hdel.co.kr:8070/api/findProductBOM?key=subae&productNo=N27748L02
+        //http://localhost:8070/apiv2/findProductBOM?key=subae&productNo=212133L02
+
+        //https://vault-in.hdel.co.kr:8070/apiv2/findProductBOM?key=subae&productNo=N27748L02
         ArrayList<BomPartDTO> bomList = new ArrayList<BomPartDTO>();
+
+        System.out.println("findProductBOM ==========");
+
+        // 약 4초
+        StopWatch sw = new StopWatch();
+        sw.start();
 
         if ("subae".equals(key)) {
             bomList = ProductCommonUtil.findProductBOM(productNo);
         }
+
+        sw.stop();
+
+        long millis = sw.getTotalTimeMillis();
+
+        double seconds = millis / 1000.0;
+        double minutes = seconds / 60.0;
+
+        System.out.println("⏱ 수행 시간:");
+        System.out.printf("   - %.3f 초%n", seconds);
+        System.out.printf("   - %.3f 분%n", minutes);
 
         return bomList;
     }

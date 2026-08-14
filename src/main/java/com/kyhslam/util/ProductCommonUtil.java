@@ -207,10 +207,10 @@ public class ProductCommonUtil {
                     )
               )
              SELECT
-                        -- PE.ASSOOUID ASSOOUID
-                        -- , PE.PRODUCTOUID PRODUCTOUID
-                        -- , PE.PARTOUID PARTOUID
-                           PE.SEQ
+                        -- PE.ASSOOUID ASSOOUID,
+                          PE.PRODUCTOUID PRODUCTOUID
+                         , PE.PARTOUID PARTOUID
+                         ,  PE.SEQ
                          , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) PARENTNO
                          , ( SELECT F.MD$DESC FROM FUSER$SF F
                               WHERE F.MD$NUMBER = (SELECT VV.MD$USER
