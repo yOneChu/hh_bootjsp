@@ -305,17 +305,17 @@ public class APIController {
     @ResponseBody
     @CrossOrigin
     public String getSalesMetaInfo(String key) {
-        //https://vault-in.hdel.co.kr:8070/api/getSalesMetaInfo?key=subae
+        //https://vault-in.hdel.co.kr:8070/apiv2/getSalesMetaInfo?key=subae
 
         String result = "";
-        //PreparedStatement pstmt = null;
-        //ResultSet rs = null;
-        //Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        Connection con = null;
 
         if ("subae".equals(key)) {
-            //result = PLM_DB_Definition.getPLM_DB_MetaData("SALES_QUERY");
+            result = PLM_DB_Definition.getPLM_DB_MetaData("SALES_QUERY");
 
-            result = PLM_DB_Definition.getSales_Definition();
+            //result = PLM_DB_Definition.getSales_Definition();
 
             /*try {
                 con = VaultDBConnection.getConnection();
@@ -341,6 +341,24 @@ public class APIController {
                 VaultDBConnection.disconnect(con, pstmt, rs);
             }*/
 
+        }
+        return result;
+    }
+
+
+    @GetMapping("/getLogicWriteAsDB")
+    @ResponseBody
+    @CrossOrigin
+    public String getLogicWriteAsDB(String key) {
+        //https://vault-in.hdel.co.kr:8070/apiv2/getSalesMetaInfo?key=subae
+
+        String result = "";
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        Connection con = null;
+
+        if ("subae".equals(key)) {
+            result = PLM_DB_Definition.getPLM_DB_MetaData("LOGIC_WRITE");
         }
         return result;
     }
@@ -373,7 +391,8 @@ public class APIController {
     @ResponseBody
     @CrossOrigin
     public String getPIDMetaInfo(String key) {
-        //https://vault-in.hdel.co.kr:8070/api/getPIDMetaInfo?key=subae
+        //http://localhost:8070/apiv2/getPIDMetaInfo?key=subae
+        //https://vault-in.hdel.co.kr:8070/apiv2/getPIDMetaInfo?key=subae
 
         String result = "";
         if ("subae".equals(key)) {
