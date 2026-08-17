@@ -21,6 +21,9 @@ import java.util.*;
 @Slf4j
 public class APIController {
 
+
+    private final PLM_DB_Definition plmDBDefinition;
+
     private final MLBService mlbService;
 
     private final SubaeService subaeService;
@@ -295,9 +298,8 @@ public class APIController {
         return result;
     }
 
-
     /**
-     * 영업사양 DB명세서
+     * 영업사양 DB명세서 - 공유X
      * @param key
      * @return
      */
@@ -313,39 +315,18 @@ public class APIController {
         Connection con = null;
 
         if ("subae".equals(key)) {
-            result = PLM_DB_Definition.getPLM_DB_MetaData("SALES_QUERY");
+            //result = PLM_DB_Definition.getPLM_DB_MetaData("SALES_QUERY");
 
-            //result = PLM_DB_Definition.getSales_Definition();
-
-            /*try {
-                con = VaultDBConnection.getConnection();
-
-                StringBuffer sql = new StringBuffer();
-                sql.append(" SELECT A.CATEGORY, A.CONTENT ");
-                sql.append(" FROM PLM_LLM_METADATA A ");
-                sql.append(" WHERE A.CATEGORY = 'SALES_QUERY' ");
-
-                pstmt = con.prepareStatement(sql.toString());
-
-                rs = pstmt.executeQuery();
-
-                while (rs.next()) {
-                    String CATEGORY = rs.getString("CATEGORY") == null ? "" : rs.getString("CATEGORY");
-                    result = rs.getString("CONTENT") == null ? "" : rs.getString("CONTENT");
-                }
-
-                System.out.println("result = " + result);
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                VaultDBConnection.disconnect(con, pstmt, rs);
-            }*/
-
-        }
+            result = PLM_DB_Definition.getSales_Definition(); // String 형식
+                    }
         return result;
     }
 
 
+    /**
+     * 로직작성 정의서-DB
+     * @return
+     */
     @GetMapping("/getLogicWriteAsDB")
     @ResponseBody
     @CrossOrigin
@@ -361,6 +342,45 @@ public class APIController {
             result = PLM_DB_Definition.getPLM_DB_MetaData("LOGIC_WRITE");
         }
         return result;
+    }
+
+    /**
+     * 로직검증 정의서-DB
+     * @return
+     */
+    @GetMapping("/getLogicVerifyAsDB")
+    @ResponseBody
+    @CrossOrigin
+    public String getLogicVerifyAsDB(String key, String type) {
+        //https://vault-in.hdel.co.kr:8070/apiv2/getSalesMetaInfo?key=subae
+
+        //LOGIC_VERIFY
+        String result = "";
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        Connection con = null;
+
+        if ("subae".equals(key)) {
+            result = PLM_DB_Definition.getPLM_DB_MetaData(type);
+        }
+        return result;
+    }
+
+    @PostMapping("/update_PLM_DB_MetaData")
+    @CrossOrigin
+    public String update_PLM_DB_MetaData(String key, String type, String updatedContent) {
+        //https://vault-in.hdel.co.kr:8070/apiv2/update_PLM_DB_MetaData?key=subae
+        //http://localhost:8070/apiv2/update_PLM_DB_MetaData?key=subae
+
+
+        //LOGIC_WRITE
+        log.info("updatedContent = " + updatedContent);
+        if ("subae".equals(key)) {
+            //result = PLM_DB_Definition.getPLM_DB_MetaData("LOGIC_WRITE");
+            plmDBDefinition.update_PLM_DB_MetaData(updatedContent, type);
+        }
+
+        return updatedContent;
     }
 
     /**

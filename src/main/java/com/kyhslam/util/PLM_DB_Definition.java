@@ -1,14 +1,23 @@
 package com.kyhslam.util;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
+@Repository
+@Slf4j
+@RequiredArgsConstructor
 public class PLM_DB_Definition {
 
+    private final JdbcTemplate basicTemplate;
 
     /**
-     * 영업사양 DB정의서
+     * DB정의서 조회
      * @param catagory
      * @return
      */
@@ -46,6 +55,24 @@ public class PLM_DB_Definition {
         }
 
         return result;
+    }
+
+    /**
+     * DB정의서 수정
+     * @param catagory
+     * @return
+     */
+    public void update_PLM_DB_MetaData(String content, String catagory) {
+
+        String sql = """
+            update PLM_LLM_METADATA set CONTENT = ?
+             where CATEGORY = ?
+        """;
+
+        basicTemplate.update(sql,
+                content,
+                catagory
+        );
     }
 
 
