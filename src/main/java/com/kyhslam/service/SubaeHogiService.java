@@ -180,7 +180,7 @@ public class SubaeHogiService {
 
             //2026 01
             //설계완료일자로 호기 조회
-//            List<SubaeHogi> hogiList = findSubaeHogiAsCodat("20260101");
+            //List<SubaeHogi> hogiList = findSubaeHogiAsCodat("20260101");
             List<SubaeHogi> hogiList = findSubaeHogiAsCodat(todayVal);
             //List<SubaeHogi> hogiList = findSubaeHogiLikeCodat("202603");
 
@@ -203,7 +203,6 @@ public class SubaeHogiService {
                     String cmt = dto.getCmt();
                     String spec = dto.getSpec();
                     String ucheck = dto.getUcheck();
-
 
                     SubaeHogiBOM b = new  SubaeHogiBOM();
                     b.setHogi(hogi);

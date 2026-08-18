@@ -7,6 +7,7 @@ import com.kyhslam.dto.PartWhere;
 import com.kyhslam.dto.ProductDto;
 import com.kyhslam.service.SubaeService;
 import com.kyhslam.util.ElvInfoCommonUtil;
+import com.kyhslam.util.PLM_DB_Definition;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -107,6 +108,16 @@ public class AnalysisController {
         ArrayList<HashMap<String, String>> result = new ArrayList<>();
         result = subaeService.findPartOfProduct_v2(whereCond);
         return result;
+    }
+
+    @GetMapping("/dash/viewLogic")
+    @CrossOrigin
+    public String viewLogic(String key) {
+        //http://localhost:8070/dash/viewLogic
+        //https://vault-in.hdel.co.kr:8070/apiv2/getPIDMetaInfo?key=subae
+
+
+        return "thymeleaf/logic/readDBFile";
     }
 
 }

@@ -1351,9 +1351,9 @@ public class ProductCommonUtil {
                 String BLOCKNO_NUMBER = rs.getString("BLOCKNO_NUMBER");
                 String block_opt = rs.getString("block_opt");
                 String ucheck = rs.getString("UCHECK");
-                String qty = rs.getString("qty");
+                String qty = rs.getString("QTY");
                 String cdate = rs.getString("cdate");
-                String cmt = rs.getString("cmt");
+                String cmt = rs.getString("CMT");
 
                 ProductDto dto = new ProductDto();
                 dto.setProductNo(hogi);
@@ -1365,6 +1365,8 @@ public class ProductCommonUtil {
                 dto.setBlockNo(BLOCKNO_NUMBER);
                 dto.setBlockopt(block_opt);
                 dto.setUcheck(ucheck);
+                dto.setQty(qty);
+                dto.setCmt(cmt);
 
                 list.add(dto);
             }
