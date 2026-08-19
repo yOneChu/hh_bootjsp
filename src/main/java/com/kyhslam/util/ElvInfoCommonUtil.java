@@ -989,7 +989,7 @@ public class ElvInfoCommonUtil {
 
                     for (int i = 1; i <= columnCount; i++) {
                         String columnName = rsmd.getColumnLabel(i); // Key: 컬럼명
-                        String columnValue = rs.getString(i);       // Value: 데이터
+                        String columnValue = rs.getString(i) == null ? "" : rs.getString(i);       // Value: 데이터
 
                         // Map에 데이터 적재 (만약 DB 값이 NULL이면 columnValue도 null이 들어감)
                         rowMap.put(columnName, columnValue);

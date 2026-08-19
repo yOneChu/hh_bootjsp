@@ -259,8 +259,8 @@ public class APIController {
         ArrayList<HashMap<String, String>> elvData = null;
 
         if ("subae".equals(key)) {
-            //elvData = ElvInfoCommonUtil.getSalesInfo(hogi);
-            elvData = ElvInfoCommonUtil.findElvSearchInfoV2(hogi); // 영업사양 추출 개선
+            elvData = ElvInfoCommonUtil.getSalesInfo(hogi);
+            //elvData = ElvInfoCommonUtil.findElvSearchInfoV2(hogi); // 영업사양 추출 개선
 
 
         }
