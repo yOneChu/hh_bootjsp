@@ -55,12 +55,13 @@ public class APIController {
         return result;
     }
 
-    @Description("영업 사양")
+    @Description("영업 사양 - 개선")
     @GetMapping("/findElvSearch")
     @ResponseBody
     @CrossOrigin
     public ArrayList<HashMap<String, String>> findElvSearch(String key, String productNo) {
         //http://localhost:8070/apiv2/findElvSearch?key=subae&productNo=211704L17
+        //https://vault-in.hdel.co.kr:8070/api/findElvSearch?key=subae&productNo=211704L17
         ArrayList<HashMap<String, String>> result = new ArrayList<HashMap<String, String>>();
         //ElvWhere whereCond = new ElvWhere();
         //whereCond.setHogi(productNo);
@@ -334,9 +335,6 @@ public class APIController {
         //https://vault-in.hdel.co.kr:8070/apiv2/getSalesMetaInfo?key=subae
 
         String result = "";
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
-        Connection con = null;
 
         if ("subae".equals(key)) {
             result = PLM_DB_Definition.getPLM_DB_MetaData("LOGIC_WRITE");
