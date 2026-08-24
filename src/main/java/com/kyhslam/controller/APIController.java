@@ -75,6 +75,15 @@ public class APIController {
             //result = ElvInfoCommonUtil.findElvSearch(whereCond);
             //result = ElvInfoCommonUtil.getSalesInfo(productNo); // PLM API 연계 추출
 
+
+            // 5초 대기
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
+
             ArrayList<HashMap<String, String>> resultData = ElvInfoCommonUtil.findElvSearchInfoV2(productNo);
 
             for (Map<String, String> row : resultData) {
