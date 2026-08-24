@@ -61,8 +61,6 @@ public class APIController {
     @CrossOrigin
     public ArrayList<HashMap<String, String>> findElvSearch(String key, String productNo) {
         //http://localhost:8070/apiv2/findElvSearch?key=subae&productNo=211704L17
-        //https://vault-in.hdel.co.kr:8070/api/findElvSearch?key=subae&productNo=212133L02
-
         ArrayList<HashMap<String, String>> result = new ArrayList<HashMap<String, String>>();
         //ElvWhere whereCond = new ElvWhere();
         //whereCond.setHogi(productNo);
@@ -76,14 +74,6 @@ public class APIController {
         if ("subae".equals(key)) {
             //result = ElvInfoCommonUtil.findElvSearch(whereCond);
             //result = ElvInfoCommonUtil.getSalesInfo(productNo); // PLM API 연계 추출
-
-            // 3초 대기
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
-            }
 
             ArrayList<HashMap<String, String>> resultData = ElvInfoCommonUtil.findElvSearchInfoV2(productNo);
 
@@ -179,7 +169,7 @@ public class APIController {
     public ArrayList<BomPartDTO> findProductBOM(String productNo, String key) throws Exception {
         //http://localhost:8070/apiv2/findProductBOM?key=subae&productNo=212133L02
 
-        //https://vault-in.hdel.co.kr:8070/apiv2/findProductBOM?key=subae&productNo=212133L02
+        //https://vault-in.hdel.co.kr:8070/apiv2/findProductBOM?key=subae&productNo=N27748L02
         ArrayList<BomPartDTO> bomList = new ArrayList<BomPartDTO>();
 
         System.out.println("findProductBOM ==========");
