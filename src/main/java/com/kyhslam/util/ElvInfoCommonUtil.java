@@ -917,11 +917,8 @@ public class ElvInfoCommonUtil {
      * @return
      */
     public static ArrayList<HashMap<String, String>> findElvSearchInfoV2(String searchMdNumber) {
-        //Connection con = null;
-        //PreparedStatement pstmt = null;
-        //ResultSet rs = null;
 
-        //ArrayList<ElvInfoDTO> dataList = new ArrayList<ElvInfoDTO>();
+
         ArrayList<HashMap<String, String>> resultList = new ArrayList<>();
 
 
