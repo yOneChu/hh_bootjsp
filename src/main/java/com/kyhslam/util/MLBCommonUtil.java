@@ -8,9 +8,11 @@ import org.springframework.context.annotation.Description;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 
 public class MLBCommonUtil {
 
@@ -230,7 +232,7 @@ public class MLBCommonUtil {
                 SUBSTR(A.MD$CDATE, 0, 8) AS CREDATE,
                 SUBSTR(A.MD$MDATE, 0, 8) AS MODDATE
                 --A.*
-                FROM NORMALPART$VF A
+                FROM NORMALPART$VF A, NORMALPART$id B
                 --WHERE A.VF$OUID IN (SELECT * FROM OUID)
                 WHERE A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip 
                 AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
@@ -294,6 +296,259 @@ public class MLBCommonUtil {
     }
 
 
+    /**
+     * @apiNote 품번 목록으로 속성정보 조회 (다건)
+     * @param PartNoList 품번들을 ','로 연결한 문자열 (예: "A1234,B5678,C9012")
+     * @return ArrayList<PartDTO>
+     */
+    public static ArrayList<PartDTO> findPartInfoWithList(String PartNoList) {
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<PartDTO> result = new ArrayList<PartDTO>();
+
+        if (PartNoList == null || PartNoList.trim().isEmpty()) {
+            return result;
+        }
+
+        // 1. ','로 분리 후 공백 제거 / 빈값, 중복 제외
+        ArrayList<String> partNoArr = new ArrayList<String>();
+        for (String partNo : PartNoList.split(",")) {
+            String trimPartNo = partNo.trim();
+            if (!trimPartNo.isEmpty() && !partNoArr.contains(trimPartNo)) {
+                partNoArr.add(trimPartNo);
+            }
+        }
+
+        if (partNoArr.isEmpty()) {
+            return result;
+        }
+
+        // 2. IN 조건절에 사용할 바인딩 변수 생성 (?, ?, ...)
+        StringBuilder inParams = new StringBuilder();
+        for (int i = 0; i < partNoArr.size(); i++) {
+            if (i > 0) {
+                inParams.append(", ");
+            }
+            inParams.append("?");
+        }
+
+        try {
+            con = PLMDBConnection.getConnection();
+            String sql = """
+                SELECT
+                A.VF$OUID AS OID,
+                A.MD$NUMBER AS PARTNO,
+                A.MD$DESC AS PARTNAME,
+                A.G_L_CODE AS GL_CODE,
+                --A.MD$CDATE,
+                --DATEFORMAT(A.MD$CDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS CREATE_DATE,
+                CODN(A.PART_STATUS) AS PART_STATUS,
+                COD(A.UOM) AS UOM,
+                A.VF$VERSION AS VERSION,
+                CODN(A.NATION) AS NATION,
+                COD(A.DESIGN_USE) AS DESIGN_USE,
+                COD(A.COST_USE) AS COST_USE,
+                CODN(A.ORIGIN_DIV) AS ORIGIN_DIV,
+                A.BLOCKNO_NUMBER AS BLOCKNO,
+                A.SPEC AS SPEC,
+                A.PART_SIZE AS PARTSIZE,
+                SUBSTR(A.MD$CDATE, 0, 8) AS CREDATE,
+                SUBSTR(A.MD$MDATE, 0, 8) AS MODDATE
+                --A.*
+                FROM NORMALPART$VF A, NORMALPART$id B
+                --WHERE A.VF$OUID IN (SELECT * FROM OUID)
+                WHERE A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip 
+                AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
+                """
+                + "AND A.MD$NUMBER IN (" + inParams.toString() + ")\n";
+
+            pstmt = con.prepareStatement(sql);
+
+            // 3. 품번 파라미터 바인딩
+            for (int i = 0; i < partNoArr.size(); i++) {
+                pstmt.setString(i + 1, partNoArr.get(i));
+            }
+
+            System.out.println("sql.toString() = " + sql.toString());
+            
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String OID = rs.getString("OID");
+                String PARTNO = rs.getString("PARTNO");
+                String PARTNAME = rs.getString("PARTNAME");
+                String BLOCKNO = rs.getString("BLOCKNO");
+                String SPEC = rs.getString("SPEC");
+                String PARTSIZE = rs.getString("PARTSIZE");
+                String VERSION = rs.getString("VERSION");
+                String PART_STATUS = rs.getString("PART_STATUS");
+                String NATION = rs.getString("NATION");
+                String GLCODE = rs.getString("GL_CODE");
+                String UOM =  rs.getString("UOM");
+                String DESIGN_USE = rs.getString("DESIGN_USE");
+                String COST_USE = rs.getString("COST_USE");
+                String CREDATE =  rs.getString("CREDATE");
+                String MODDATE = rs.getString("MODDATE");
+                String ORIGIN_DIV = rs.getString("ORIGIN_DIV");
+
+                PartDTO dto = new PartDTO();
+                dto.setOid(OID);
+                dto.setPartNo(PARTNO);
+                dto.setPartName(PARTNAME);
+                dto.setPartSize(PARTSIZE);
+                dto.setBlockNo(BLOCKNO);
+                dto.setSpec(SPEC);
+                dto.setGlCode(GLCODE);
+                dto.setVersion(VERSION);
+                dto.setStatus(PART_STATUS);
+                dto.setNation(NATION);
+                dto.setUom(UOM);
+                dto.setCreDate(CREDATE);
+                dto.setModDate(MODDATE);
+                dto.setDesign(DESIGN_USE);
+                dto.setCost(COST_USE);
+                dto.setOriginDiv(ORIGIN_DIV);
+
+                result.add(dto);
+            } //end while
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        return result;
+    }
+
+
+    /**
+     * @apiNote 품번 목록으로 속성정보 조회 (다건) - CONNECTION 개선한 방법
+     * @param PartNoList 품번들을 ','로 연결한 문자열 (예: "A1234,B5678,C9012")
+     * @return ArrayList<PartDTO>
+     */
+    public static ArrayList<PartDTO> findPartInfoWithList_v2(String PartNoList) {
+
+        ArrayList<PartDTO> result = new ArrayList<PartDTO>();
+
+        if (PartNoList == null || PartNoList.trim().isEmpty()) {
+            return result;
+        }
+
+        // 1. ','로 분리 후 공백 제거 / 빈값, 중복 제외
+        ArrayList<String> partNoArr = new ArrayList<String>();
+        for (String partNo : PartNoList.split(",")) {
+            String trimPartNo = partNo.trim();
+            if (!trimPartNo.isEmpty() && !partNoArr.contains(trimPartNo)) {
+                partNoArr.add(trimPartNo);
+            }
+        }
+
+        if (partNoArr.isEmpty()) {
+            return result;
+        }
+
+        // 2. IN 조건절에 사용할 바인딩 변수 생성 (?, ?, ...)
+        StringBuilder inParams = new StringBuilder();
+        for (int i = 0; i < partNoArr.size(); i++) {
+            if (i > 0) {
+                inParams.append(", ");
+            }
+            inParams.append("?");
+        }
+
+        String sql = """
+                SELECT
+                A.VF$OUID AS OID,
+                A.MD$NUMBER AS PARTNO,
+                A.MD$DESC AS PARTNAME,
+                A.G_L_CODE AS GL_CODE,
+                --A.MD$CDATE,
+                --DATEFORMAT(A.MD$CDATE, 'YYYYMMDDHH24MISS', 'YYYY-MM-DD HH24:MI:SS') AS CREATE_DATE,
+                CODN(A.PART_STATUS) AS PART_STATUS,
+                COD(A.UOM) AS UOM,
+                A.VF$VERSION AS VERSION,
+                CODN(A.NATION) AS NATION,
+                COD(A.DESIGN_USE) AS DESIGN_USE,
+                COD(A.COST_USE) AS COST_USE,
+                CODN(A.ORIGIN_DIV) AS ORIGIN_DIV,
+                A.BLOCKNO_NUMBER AS BLOCKNO,
+                A.SPEC AS SPEC,
+                A.PART_SIZE AS PARTSIZE,
+                SUBSTR(A.MD$CDATE, 0, 8) AS CREDATE,
+                SUBSTR(A.MD$MDATE, 0, 8) AS MODDATE
+                FROM NORMALPART$VF A, NORMALPART$id B
+                WHERE A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip 
+                AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
+                """
+                + "AND A.MD$NUMBER IN (" + inParams.toString() + ")\n";
+
+
+
+        try (Connection conn = PLMDBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            // 3. 품번 파라미터 바인딩
+            for (int i = 0; i < partNoArr.size(); i++) {
+                pstmt.setString(i + 1, partNoArr.get(i));
+            }
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+
+
+
+                // 🌟 핵심 로직: ResultSet을 순회하며 Map으로 변환
+                while (rs.next()) {
+
+                    String OID = rs.getString("OID");
+                    String PARTNO = rs.getString("PARTNO");
+                    String PARTNAME = rs.getString("PARTNAME");
+                    String BLOCKNO = rs.getString("BLOCKNO");
+                    String SPEC = rs.getString("SPEC");
+                    String PARTSIZE = rs.getString("PARTSIZE");
+                    String VERSION = rs.getString("VERSION");
+                    String PART_STATUS = rs.getString("PART_STATUS");
+                    String NATION = rs.getString("NATION");
+                    String GLCODE = rs.getString("GL_CODE");
+                    String UOM =  rs.getString("UOM");
+                    String DESIGN_USE = rs.getString("DESIGN_USE");
+                    String COST_USE = rs.getString("COST_USE");
+                    String CREDATE =  rs.getString("CREDATE");
+                    String MODDATE = rs.getString("MODDATE");
+                    String ORIGIN_DIV = rs.getString("ORIGIN_DIV");
+
+                    PartDTO dto = new PartDTO();
+                    dto.setOid(OID);
+                    dto.setPartNo(PARTNO);
+                    dto.setPartName(PARTNAME);
+                    dto.setPartSize(PARTSIZE);
+                    dto.setBlockNo(BLOCKNO);
+                    dto.setSpec(SPEC);
+                    dto.setGlCode(GLCODE);
+                    dto.setVersion(VERSION);
+                    dto.setStatus(PART_STATUS);
+                    dto.setNation(NATION);
+                    dto.setUom(UOM);
+                    dto.setCreDate(CREDATE);
+                    dto.setModDate(MODDATE);
+                    dto.setDesign(DESIGN_USE);
+                    dto.setCost(COST_USE);
+                    dto.setOriginDiv(ORIGIN_DIV);
+
+                    result.add(dto);
+                }
+            }
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+        return result;
+    }
 
 
 

@@ -55,6 +55,20 @@ public class APIController {
         return result;
     }
 
+    @Description("품번을 ,로 구분하여 속성정보 조회")
+    @CrossOrigin
+    @PostMapping("/findPartInfoWithList")
+    @ResponseBody
+    public ArrayList<PartDTO> findPartInfoWithList(String key, String PartNoList) {
+        ArrayList<PartDTO> resultList = new ArrayList<>();
+
+        if ("subae".equals(key)) {
+            resultList = MLBCommonUtil.findPartInfoWithList_v2(PartNoList);
+        }
+
+        return resultList;
+    }
+
     @Description("영업 사양")
     @GetMapping("/findElvSearch")
     @ResponseBody
