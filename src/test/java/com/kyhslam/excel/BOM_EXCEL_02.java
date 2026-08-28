@@ -13,6 +13,7 @@ import org.springframework.util.StopWatch;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class BOM_EXCEL_02 {
 
@@ -31,7 +32,7 @@ public class BOM_EXCEL_02 {
         ArrayList<String> hogiList = new ArrayList<>();
 
         //String fileName = "d:\\excel\\BOM원복리스트_2차분_102대_20260421.xlsx";
-        String fileName = "c:\\excel\\TEST.xlsx";
+        String fileName = "c:\\excel\\호기리스트_DATA.xlsx";
 
         FileInputStream fis = null;
         FileOutputStream fos = null;
@@ -52,18 +53,46 @@ public class BOM_EXCEL_02 {
             for (int i = 1; i < rowCnt; i++) {
                 Row row = sheet.getRow(i);
 
-                Cell cell0 = row.getCell(1);
+                Cell cell0 = row.getCell(0);
                 String hogi = cell0.getStringCellValue();
 
-                if( !hogiList.contains(hogi) ){
-                    hogiList.add(hogi);
-                    System.out.println("hogi = " + hogi);
+
+                Cell cell3 = row.getCell(3);
+                String getPartNo = cell3.getStringCellValue();
+
+                if (hogi.isEmpty()) {
+                    break;
                 }
+
+                //HashMap<String, String> dto = ProductCommonUtil.getProductInfo(hogi.trim());
+
+                ArrayList<ProductDto> dtoList = ProductCommonUtil.findProductInfo(hogi.trim());
+
+                for(int k=0; k < dtoList.size(); k++) {
+                    ProductDto dto = dtoList.get(k);
+
+                    String partNo = dto.getPartNo();
+
+                    if(getPartNo.trim().equals(partNo)) {
+                        row.createCell(7).setCellValue(dto.getUsername());
+                        row.createCell(8).setCellValue(dto.getProductCreDate());
+                        row.createCell(9).setCellValue(dto.getProductModDate());
+                    }
+
+
+                }
+
+
+
+//
+  //              hogiList.add(hogi);
+    //            System.out.println("hogi = " + hogi);
+
             }
 
-            System.out.println("hogiList.size() = " + hogiList.size());
+            //System.out.println("hogiList.size() = " + hogiList.size());
 
-            writeBOM(workbook, hogiList);
+            //writeBOM(workbook,sheet, hogiList);
 
             fis.close();
             fos = new FileOutputStream(fileName);
@@ -93,12 +122,12 @@ public class BOM_EXCEL_02 {
     }
 
 
-    public static void writeBOM(Workbook workbook, ArrayList<String> hogiList) {
+    public static void writeBOM(Workbook workbook, Sheet sheet, ArrayList<String> hogiList) {
 
         try {
 
             //Sheet sheet = workbook.createSheet("BOM_List");
-            Sheet sheet = workbook.createSheet("BOM_List");
+            //Sheet sheet = workbook.createSheet("BOM_List");
 
             int rowCnt = 1;
 
@@ -106,31 +135,18 @@ public class BOM_EXCEL_02 {
 
                 String hogi = hogiList.get(i);
 
-                PartInfoDTO dto = ProductCommonUtil.findProductInfoAsBlockNo(hogi.trim(), "B182G03");
+                //PartInfoDTO dto = ProductCommonUtil.findProductInfoAsBlockNo(hogi.trim(), "B182G03");
 
+                ArrayList<ProductDto> dtoList = ProductCommonUtil.findProductInfo(hogi.trim());
 
-                String partNo = dto.getPartNo();
-                String partName = dto.getPartName();
-                String nation = dto.getNation();
-                String blockNo = dto.getBlockNo();
-                String spec =  dto.getSpec();
-                String qty = dto.getQty();
-                String ucheck = dto.getUCheck();
-                String cmt =  dto.getCmt();
+                for (int k = 0; k < dtoList.size(); k++) {
+                    ProductDto dto = dtoList.get(i);
 
+                    String PCREATOR = dto.getProductCreator();
+                    String MDATE = dto.getProductModDate();
+                    String CDATE = dto.getProductCreDate();
 
-
-                Row row = sheet.createRow(rowCnt);
-                row.createCell(1).setCellValue(hogi);
-                row.createCell(2).setCellValue(partNo);
-                row.createCell(3).setCellValue(partName);
-                row.createCell(4).setCellValue(nation);
-                row.createCell(5).setCellValue(blockNo);
-                row.createCell(6).setCellValue(spec);
-                row.createCell(7).setCellValue(qty);
-                row.createCell(8).setCellValue(ucheck);
-                row.createCell(9).setCellValue(cmt);
-
+                }
                 rowCnt++;
             }
 

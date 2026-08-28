@@ -9,11 +9,72 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * 제품 관련 함수 모음
  */
 public class ProductCommonUtil {
+
+
+    public static HashMap<String, String> getProductInfo(String productNo) {
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        HashMap<String, String> productInfo = new HashMap<>();
+
+        try {
+
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                    select V.vf$ouid AS VFOID,
+                           --V.MD$MDATE,
+                           --V.MD$CDATE,
+                           TO_CHAR(TO_DATE(V.MD$CDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS CREDATE,
+                           TO_CHAR(TO_DATE(V.MD$MDATE, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') AS MDATE,
+                           V.MD$NUMBER,
+                           ( SELECT F.MD$DESC FROM FUSER$SF F
+                                                  WHERE F.MD$NUMBER = (SELECT VV.MD$USER
+                                                                       FROM PRODUCT$VF VV WHERE VV.VF$OUID = V.VF$OUID )
+                                                ) AS PCREATOR
+                    from product$vf V, product$id A
+                    where V.vf$identity = A.id$ouid and V.vf$ouid = A.id$wip
+                    and (
+                          md$number = ?
+                        )
+                    """;
+
+            stmt = con.prepareStatement(sql.toString());
+            stmt.setString(1, productNo);
+            rs = stmt.executeQuery();
+
+            while(rs.next()) {
+
+                //PRODUCTOUID
+                String CREDATE = rs.getString("CREDATE");
+                String MDATE = rs.getString("MDATE");
+                String PCREATOR = rs.getString("PCREATOR");
+                String MD$NUMBER = rs.getString("MD$NUMBER");
+
+
+                productInfo.put("CREDATE", CREDATE);
+                productInfo.put("MDATE", MDATE);
+                productInfo.put("PCREATOR", PCREATOR);
+                productInfo.put("MD$NUMBER", MD$NUMBER);
+
+
+            }
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, stmt, rs);
+        }
+        return productInfo;
+    }
 
 
     /**
@@ -22,7 +83,7 @@ public class ProductCommonUtil {
      * @return
      */
     public static ArrayList<ProductDto> findProductInfo(String productNo) {
-        System.out.println("PartCommonUtil findProductInfo start ==-" + productNo );
+        //System.out.println("PartCommonUtil findProductInfo start ==-" + productNo );
 
         ArrayList<ProductDto> list = new ArrayList<>();
 
@@ -91,8 +152,10 @@ public class ProductCommonUtil {
                          , VP.UCHECK
                          , VP.MCHECK
                          , NVL(COD(NP.PART_DIVISION), '') AS PART_DIVISION
-                         , PE.CDATE
-                         , VP.MDATE
+                         --, PE.CDATE
+                         --, VP.MDATE
+                         , TO_CHAR(TO_DATE(PE.CDATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS CDATE
+                         , TO_CHAR(TO_DATE(VP.MDATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS MDATE
                          , VP.user5
                          , (SELECT COUNT(1) FROM PARTOFPART$AC WHERE AS$END1=NP.VF$OUID AND ROWNUM=1) AS HASCHILD
                     FROM
@@ -141,6 +204,11 @@ public class ProductCommonUtil {
                 String USERID = rs.getString("USERID");
                 String HASCHILD = rs.getString("HASCHILD");
 
+                String CDATE = rs.getString("CDATE");
+                String MDATE = rs.getString("MDATE");
+                String CUSERNAME = rs.getString("CUSERNAME");
+
+
                 ProductDto dto = new ProductDto();
                 dto.setProductOid(PRODUCTOUID);
                 dto.setProductNo(PARENTNO);
@@ -159,15 +227,19 @@ public class ProductCommonUtil {
                 dto.setWorkQty(WORK_QTY);
                 dto.setWorkCmt(WORK_CMT);
 
+                dto.setProductCreDate(CDATE);
+                dto.setProductModDate(MDATE);
+
                 dto.setNation(NATION);
                 dto.setSpec(SPEC);
                 dto.setPart_size(PART_SIZE);
                 dto.setQty(QTY);
                 dto.setCmt(CMT);
                 dto.setUcheck(UCHECK);
-                dto.setUsername(USERNAME);
+                dto.setUsername(CUSERNAME);
                 dto.setUserId(USERID);
                 dto.setHASCHILD(HASCHILD);
+
 
                 list.add(dto);
             }

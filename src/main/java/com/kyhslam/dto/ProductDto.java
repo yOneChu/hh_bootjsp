@@ -63,6 +63,9 @@ public class ProductDto {
     private String workQty;
     private String workCmt;
 
+    private String partCreDate; // 자재 등록일
+    private String partModDate; // 자재 수정일
+
     //품목구분별 카운트
     private String mCount;
     private String m_ModCount;
