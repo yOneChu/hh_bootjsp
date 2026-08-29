@@ -179,7 +179,7 @@ public class ProductCommonUtil {
                 String PARENTNO = rs.getString("PARENTNO");
                 String PARTOUID = rs.getString("PARTOUID");
 
-                String PCREATOR = rs.getString("PCREATOR");
+                String PCREATOR = rs.getString("PCREATOR"); // 제품 생성자
                 String PEMAIL = rs.getString("PEMAIL");
 
                 String SEQ = rs.getString("SEQ");
@@ -204,9 +204,9 @@ public class ProductCommonUtil {
                 String USERID = rs.getString("USERID");
                 String HASCHILD = rs.getString("HASCHILD");
 
-                String CDATE = rs.getString("CDATE");
-                String MDATE = rs.getString("MDATE");
-                String CUSERNAME = rs.getString("CUSERNAME");
+                String CDATE = rs.getString("CDATE"); // 자재 생성일
+                String MDATE = rs.getString("MDATE"); // 자재 수정일
+                String CUSERNAME = rs.getString("CUSERNAME"); // 등록자
 
 
                 ProductDto dto = new ProductDto();

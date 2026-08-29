@@ -4,6 +4,7 @@ import com.kyhslam.dto.*;
 import com.kyhslam.service.MLBService;
 import com.kyhslam.service.SubaeService;
 import com.kyhslam.util.*;
+import com.kyhslam.util.user.UserCommonUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Description;
@@ -60,6 +61,9 @@ public class APIController {
     @PostMapping("/findPartInfoWithList")
     @ResponseBody
     public ArrayList<PartDTO> findPartInfoWithList(String key, String PartNoList) {
+
+        //https://vault-in.hdel.co.kr:8070/api/findPartInfoWithList
+
         ArrayList<PartDTO> resultList = new ArrayList<>();
 
         if ("subae".equals(key)) {
@@ -445,5 +449,41 @@ public class APIController {
         return result;
     }
 
+
+    @GetMapping("/getPIDMetaInfo")
+    @ResponseBody
+    @CrossOrigin
+    public String getUserInfo(String key) {
+        //http://localhost:8070/apiv2/getPIDMetaInfo?key=subae
+        //https://vault-in.hdel.co.kr:8070/apiv2/getPIDMetaInfo?key=subae
+
+        String result = "";
+        if ("subae".equals(key)) {
+            result = PLM_DB_Definition.getPID_DB_MetaData();
+        }
+
+        return result;
+    }
+
+    /**
+     * 사용자 정보 리스트
+     * @param key
+     * @return
+     */
+    @GetMapping("/getUserInfoList")
+    @ResponseBody
+    @CrossOrigin
+    public ArrayList<UserDTO> getUserInfoList(String key) {
+        //http://localhost:8070/apiv2/getPIDMetaInfo?key=subae
+        //https://vault-in.hdel.co.kr:8070/apiv2/getPIDMetaInfo?key=subae
+
+        ArrayList<UserDTO> userList = new ArrayList<>();
+
+        if ("subae".equals(key)) {
+            userList = UserCommonUtil.getUserInfo();
+        }
+
+        return userList;
+    }
 
 }
