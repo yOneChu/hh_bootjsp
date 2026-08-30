@@ -513,8 +513,8 @@ public class MLBCommonUtil {
                     String NATION = rs.getString("NATION");
                     String GLCODE = rs.getString("GL_CODE");
                     String UOM =  rs.getString("UOM");
-                    String DESIGN_USE = rs.getString("DESIGN_USE");
-                    String COST_USE = rs.getString("COST_USE");
+                    String DESIGN_USE = rs.getString("DESIGN_USE"); // 설계사용
+                    String COST_USE = rs.getString("COST_USE"); // 견적사용
                     String CREDATE =  rs.getString("CREDATE");
                     String MODDATE = rs.getString("MODDATE");
                     String ORIGIN_DIV = rs.getString("ORIGIN_DIV");

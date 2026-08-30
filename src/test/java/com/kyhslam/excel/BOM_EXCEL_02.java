@@ -78,11 +78,7 @@ public class BOM_EXCEL_02 {
                         row.createCell(8).setCellValue(dto.getProductCreDate());
                         row.createCell(9).setCellValue(dto.getProductModDate());
                     }
-
-
                 }
-
-
 
 //
   //              hogiList.add(hogi);
@@ -126,7 +122,6 @@ public class BOM_EXCEL_02 {
 
         try {
 
-            //Sheet sheet = workbook.createSheet("BOM_List");
             //Sheet sheet = workbook.createSheet("BOM_List");
 
             int rowCnt = 1;

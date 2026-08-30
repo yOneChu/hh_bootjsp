@@ -126,26 +126,26 @@ public class ProductCommonUtil {
                          , NVL(NP.PART_SIZE, '') AS PART_SIZE
                          , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCKNO
                          , (SELECT NVL(LOSSRATE, '') FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) LOSSRATE
-                         , (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCK_OPT
+                         , (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCK_OPT -- 품목구분
                          , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.UPPERBLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.UPPERBLOCKNO, 12))))) UPPERBLOCKNO
-                         , NVL(COD(NP.UOM), '') AS UOM
+                         , NVL(COD(NP.UOM), '') AS UOM -- 단위
                          , PE.QTY
-                         , VP.WORK_QTY
+                         , VP.WORK_QTY -- 공사수량
                          , PE.CMT
                          , VP.WORK_CMT
                          , PE.COLOR
                          , VP.WORK_COLOR
-                         , NVL(CODN(NP.ORIGIN_DIV), '') DIV
-                         , NVL(PE.MBOM, '') MBOM
-                         , NVL(COD(NP.PART_MBOM), '') PART_MBOM
-                         , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = NP.MD$USER) USERNAME
+                         , NVL(CODN(NP.ORIGIN_DIV), '') AS DIV -- 최초구분 : (외주(ROH) / 내작(HALB_E)
+                         , NVL(PE.MBOM, '') AS MBOM
+                         , NVL(COD(NP.PART_MBOM), '') AS PART_MBOM
+                         , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = NP.MD$USER) USERNAME -- 자재 생성자
                          , NP.MD$USER USERID
                          , NP.OLD_CODE
                          , NP.OLD_CODE2
                          , NP.OLD_CODE3
                          , COD(NP.SPT) SPT
                          , COD(NP.PARTMPCHECK) PARTMPCHECK
-                         , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = PE.CUSER) CUSERNAME
+                         , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = PE.CUSER) CUSERNAME -- 자재 등록자
                          , PE.CUSER CUSERID
                          , 1 LEV
                          , 'F' ISLEAF
@@ -154,10 +154,10 @@ public class ProductCommonUtil {
                          , NVL(COD(NP.PART_DIVISION), '') AS PART_DIVISION
                          --, PE.CDATE
                          --, VP.MDATE
-                         , TO_CHAR(TO_DATE(PE.CDATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS CDATE
-                         , TO_CHAR(TO_DATE(VP.MDATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS MDATE
+                         , TO_CHAR(TO_DATE(PE.CDATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS CDATE -- 자재 등록일
+                         , TO_CHAR(TO_DATE(VP.MDATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS MDATE -- 자재 수정일
                          , VP.user5
-                         , (SELECT COUNT(1) FROM PARTOFPART$AC WHERE AS$END1=NP.VF$OUID AND ROWNUM=1) AS HASCHILD
+                         , (SELECT COUNT(1) FROM PARTOFPART$AC WHERE AS$END1=NP.VF$OUID AND ROWNUM=1) AS HASCHILD -- 하위 자재 존재 여부
                     FROM
                  PARTOFEBOM PE
                 INNER JOIN NORMALPART$VF NP ON PE.PARTOUID = NP.VF$OUID
@@ -187,8 +187,9 @@ public class ProductCommonUtil {
                 String PARTNAME = rs.getString("PARTNAME");
                 String VERSION = rs.getString("VERSION");
 
+                String DIV = rs.getString("DIV") == null ? "" : rs.getString("DIV");
                 String BLOCKNO = rs.getString("BLOCKNO");
-                String BLOCK_OPT = rs.getString("BLOCK_OPT"); //내작외작
+                String BLOCK_OPT = rs.getString("BLOCK_OPT"); //품목구분 (M,C,1,2,3)
                 String GLCODE = rs.getString("GLCODE");
 
                 String NATION = rs.getString("NATION");
@@ -200,13 +201,13 @@ public class ProductCommonUtil {
                 String WORK_QTY = rs.getString("WORK_QTY");
                 String WORK_CMT = rs.getString("WORK_CMT");
                 String UCHECK = rs.getString("UCHECK");
-                String USERNAME = rs.getString("USERNAME");
+                String USERNAME = rs.getString("USERNAME"); //자재 생성자 (=채번)
                 String USERID = rs.getString("USERID");
-                String HASCHILD = rs.getString("HASCHILD");
+                String HASCHILD = rs.getString("HASCHILD"); //하위 자재 존재 여부
 
-                String CDATE = rs.getString("CDATE"); // 자재 생성일
-                String MDATE = rs.getString("MDATE"); // 자재 수정일
-                String CUSERNAME = rs.getString("CUSERNAME"); // 등록자
+                String CDATE = rs.getString("CDATE"); // 자재 등록일(BOM에 구성된 날짜)
+                String MDATE = rs.getString("MDATE"); // 자재 수정일(BOM의 자재 수정일)
+                String CUSERNAME = rs.getString("CUSERNAME"); // 자재 등록자
 
 
                 ProductDto dto = new ProductDto();
@@ -226,6 +227,7 @@ public class ProductCommonUtil {
                 dto.setGlCode(GLCODE);
                 dto.setWorkQty(WORK_QTY);
                 dto.setWorkCmt(WORK_CMT);
+                dto.setDiv(DIV); // 최초구분 : (외주(ROH) / 내작(HALB_E)
 
                 dto.setProductCreDate(CDATE);
                 dto.setProductModDate(MDATE);
