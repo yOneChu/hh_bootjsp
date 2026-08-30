@@ -265,6 +265,34 @@ npm run deploy
  *                예) { content: 'updatedContent' } → 본문을 updatedContent 로 보냄
  * ------------------------------------------------------------------ */
 const DB_SPEC_TYPES = [
+
+    //ECO_VERIFY
+    {
+        id: 'LOGIC_WRITE', name: 'ECO 검증-WorkFlow', icon: 'pen-tool',
+        //readUrl: 'http://localhost:8070/apiv2/getLogicWriteAsDB?key=subae&type=LOGIC_WRITE',
+        readUrl: '/apiv2/getLogicWriteAsDB?key=subae&type=ECO_VERIFY',
+        //saveUrl: 'http://localhost:8070/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_WRITE',
+        saveUrl: '/apiv2/update_PLM_DB_MetaData?key=subae&type=ECO_VERIFY',
+        saveMethod: 'POST',
+        // 컨트롤러: update_PLM_DB_MetaData(String key, String updatedContent)
+        //   → 애노테이션 없는 String = @RequestParam 이므로 JSON body 는 읽지 못함(null).
+        //     form 전송 + 본문 파라미터명을 updatedContent 로 맞춘다.
+        saveFormat: 'form',
+        saveFields: { content: 'updatedContent'},
+    },
+    {
+        id: 'LOGIC_WRITE', name: '로직 검증-WorkFlow', icon: 'pen-tool',
+        //readUrl: 'http://localhost:8070/apiv2/getLogicWriteAsDB?key=subae&type=LOGIC_WRITE',
+        readUrl: '/apiv2/getLogicWriteAsDB?key=subae&type=LOGIC_VERIFY',
+        //saveUrl: 'http://localhost:8070/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_WRITE',
+        saveUrl: '/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_VERIFY',
+        saveMethod: 'POST',
+        // 컨트롤러: update_PLM_DB_MetaData(String key, String updatedContent)
+        //   → 애노테이션 없는 String = @RequestParam 이므로 JSON body 는 읽지 못함(null).
+        //     form 전송 + 본문 파라미터명을 updatedContent 로 맞춘다.
+        saveFormat: 'form',
+        saveFields: { content: 'updatedContent'},
+    },
     {
         id: 'ECO_VERIFY', name: 'ECO 검증', icon: 'shield-check',
         readUrl: null,   // TODO: 예) 'http://localhost:8070/apiv2/getEcoMetaInfo?key=subae'

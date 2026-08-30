@@ -372,7 +372,7 @@ public class APIController {
     }
 
     /**
-     * 로직검증 정의서-DB
+     * 로직 정의서-DB - 조회
      * @return
      */
     @GetMapping("/getLogicVerifyAsDB")
@@ -393,6 +393,13 @@ public class APIController {
         return result;
     }
 
+    /**
+     * 로직 정의서 - 수정
+     * @param key
+     * @param type
+     * @param updatedContent
+     * @return
+     */
     @PostMapping("/update_PLM_DB_MetaData")
     @CrossOrigin
     public String update_PLM_DB_MetaData(String key, String type, String updatedContent) {
