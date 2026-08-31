@@ -30,7 +30,7 @@ public class PIDTest {
             // 요청 데이터 (userid, password)
             Map<String, String> data = new HashMap<>();
             data.put("userId", "2035570");
-            data.put("password", "del1375a!");
+            data.put("password", "gel1375a!");
 
             // 요청 데이터(JSON 변환 후 전송)
             ObjectMapper mapper = new ObjectMapper();
