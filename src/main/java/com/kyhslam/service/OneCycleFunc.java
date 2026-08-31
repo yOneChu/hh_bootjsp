@@ -2,6 +2,7 @@ package com.kyhslam.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kyhslam.util.PLMDBConnection;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -16,6 +17,9 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,29 +71,37 @@ public class OneCycleFunc {
     // ================================================================
 
     /**
-     * 원사이클 실행 : 로그인 -> WIP 생성 -> 종속사양 산출
+     * 원사이클 실행 : 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> WIP 생성 -> 종속사양 산출
      *
-     * @param vfOuid 영업사양 ouid. "ac45dd18" 처럼 ouid만 넘겨도 되고 "elv_info$vf@ac45dd18" 전체를 넘겨도 된다.
+     * @param productNo 프로젝트호기번호 (ELV_INFO$VF.MD$NUMBER)
      */
-    public OneCycleResult runOneCycle(String vfOuid) {
-        return runOneCycle(vfOuid, plmUserId, plmPassword);
+    public OneCycleResult runOneCycle(String productNo) {
+        return runOneCycle(productNo, plmUserId, plmPassword);
     }
 
     /**
-     * 원사이클 실행 : 로그인 -> WIP 생성 -> 종속사양 산출
+     * 원사이클 실행 : 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> WIP 생성 -> 종속사양 산출
      *
-     * @param vfOuid 영업사양 ouid
-     * @param userid PLM 사용자 ID
-     * @param pwd    PLM 비밀번호
+     * @param productNo 프로젝트호기번호 (ELV_INFO$VF.MD$NUMBER)
+     * @param userid    PLM 사용자 ID
+     * @param pwd       PLM 비밀번호
      */
-    public OneCycleResult runOneCycle(String vfOuid, String userid, String pwd) {
+    public OneCycleResult runOneCycle(String productNo, String userid, String pwd) {
 
         long startTime = System.currentTimeMillis();
         OneCycleResult result = new OneCycleResult();
-        result.setObjectOuid(toObjectOuid(vfOuid));
+        result.setProductNo(productNo);
 
         try {
-            // 1) 로그인 (세션 쿠키 확보)
+            // 1) 프로젝트호기번호 -> 영업사양 ouid (elv_info$vf@xxxxxxxx)
+            String vfOuid = toObjectOuid(productNo);
+            if (vfOuid == null || vfOuid.isBlank()) {
+                result.setMessage("프로젝트호기번호에 해당하는 영업사양(WIP)을 찾지 못했습니다. productNo = " + productNo);
+                return result;
+            }
+            result.setObjectOuid(vfOuid);
+
+            // 2) 로그인 (세션 쿠키 확보)
             PlmSession session = login(userid, pwd);
             if (session == null) {
                 result.setMessage("PLM 로그인 실패. 아이디/비밀번호를 확인하세요.");
@@ -97,11 +109,11 @@ public class OneCycleFunc {
             }
             result.setLoginSuccess(true);
 
-            // 2) WIP 생성
+            // 3) WIP 생성
             //    이미 WIP 인 경우 등 실패하더라도 종속사양 산출은 시도해본다. (산출 결과 메시지로 원인 판단)
             result.setMakeWipMessage(makeWip(session, vfOuid));
 
-            // 3) 종속사양 산출
+            // 4) 종속사양 산출
             String message = executeJongsoksung(session, vfOuid);
             result.setJongsoksungMessage(message);
             result.setSuccess(message != null);
@@ -167,31 +179,33 @@ public class OneCycleFunc {
     /**
      * WIP 생성 (POST /SalesObject.do, cmd=makeWip)
      *
+     * @param vfOuid {@link #toObjectOuid(String)} 로 조회한 영업사양 ouid (elv_info$vf@xxxxxxxx)
      * @return 처리 결과 메시지 (서버가 json 을 주면 message 값, 오류 페이지를 주면 오류 요약)
      */
     public String makeWip(PlmSession session, String vfOuid) {
 
         Map<String, String> data = new LinkedHashMap<>();
         data.put("cmd", "makeWip");
-        data.put("objectOuid", toObjectOuid(vfOuid));
+        data.put("objectOuid", vfOuid);
 
         PlmResponse response = post(session, baseUrl + "/SalesObject.do", data, baseUrl + "/");
         String message = describe(response);
 
-        System.out.println("[WIP 생성] objectOuid = " + data.get("objectOuid") + ", message = " + message);
+        System.out.println("[WIP 생성] objectOuid = " + vfOuid + ", message = " + message);
         return message;
     }
 
     /**
      * 종속사양 산출 (POST /Object.do, cmd=executeAction, actionOuid=9507f844)
      *
-     * @return 응답 json 의 message 값. 응답이 json 이 아니면(세션 만료 등) 재로그인 후 재시도하고, 끝내 실패하면 null
+     * @param vfOuid {@link #toObjectOuid(String)} 로 조회한 영업사양 ouid (elv_info$vf@xxxxxxxx)
+     * @return 응답 json 의 message 값. 응답이 json 이 아니면(세션 만료 등) 재시도하고, 끝내 실패하면 null
      */
     public String executeJongsoksung(PlmSession session, String vfOuid) {
 
         Map<String, String> data = new LinkedHashMap<>();
         data.put("cmd", "executeAction");
-        data.put("objectOuid", toObjectOuid(vfOuid));
+        data.put("objectOuid", vfOuid);
         data.put("actionOuid", ACTION_OUID_JONGSOKSUNG);
 
         for (int i = 1; i <= MAX_RETRY; i++) {
@@ -199,7 +213,7 @@ public class OneCycleFunc {
             PlmResponse response = post(session, baseUrl + "/Object.do", data, baseUrl + "/");
             String message = getMessage(response.getBody());
 
-            System.out.println("[종속사양 산출 " + i + "회차] objectOuid = " + data.get("objectOuid")
+            System.out.println("[종속사양 산출 " + i + "회차] objectOuid = " + vfOuid
                     + ", message = " + message);
 
             if (message != null) {
@@ -216,14 +230,62 @@ public class OneCycleFunc {
         return null;
     }
 
-    /** "ac45dd18" -> "elv_info$vf@ac45dd18" (이미 prefix 가 붙어 있으면 그대로 사용) */
-    public static String toObjectOuid(String vfOuid) {
-        if (vfOuid == null) {
-            return null;
+    /**
+     * 프로젝트호기번호(MD$NUMBER) 로 WIP 상태인 영업사양 ouid 를 조회한다.
+     *
+     * @param productNo 프로젝트호기번호
+     * @return "elv_info$vf@ac45dd18" 형태의 영업사양 ouid. 대상이 없으면 빈 문자열
+     */
+    public static String toObjectOuid(String productNo) {
+
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        String vfOuid = "";
+
+        try {
+
+            con = PLMDBConnection.getConnection();
+
+            //CONCAT('elv_info$vf@', LOWER(DECTOHEX(V.vf$ouid)))
+
+            String sql = """
+                    select CONCAT('%s', LOWER(DECTOHEX(V.vf$ouid))) AS VFOBJ,
+                            V.MD$NUMBER AS HOGI,
+                            V.MD$STATUS AS STATUS,
+                            V.VF$VERSION AS VERSION
+                            --,V.*
+                     from ELV_INFO$VF V, ELV_INFO$id A
+                     where V.vf$identity = A.id$ouid and V.vf$ouid = A.id$wip
+                       AND V.md$number = ?
+                    """.formatted(VF_PREFIX);
+
+            stmt = con.prepareStatement(sql);
+            stmt.setString(1, productNo);
+            rs = stmt.executeQuery();
+
+            while (rs.next()) {
+
+                vfOuid = rs.getString("VFOBJ");
+
+                System.out.println("[영업사양 조회] productNo = " + productNo
+                        + ", objectOuid = " + vfOuid
+                        + ", status = " + rs.getString("STATUS")
+                        + ", version = " + rs.getString("VERSION"));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, stmt, rs);
         }
-        String ouid = vfOuid.trim();
-        return ouid.startsWith(VF_PREFIX) ? ouid : VF_PREFIX + ouid;
+
+        return vfOuid;
     }
+
+
+
 
 
     // ================================================================
@@ -483,7 +545,10 @@ public class OneCycleFunc {
         /** 로그인 성공 여부 */
         private boolean loginSuccess;
 
-        /** 대상 영업사양 (elv_info$vf@xxxxxxxx) */
+        /** 요청한 프로젝트호기번호 */
+        private String productNo;
+
+        /** 프로젝트호기번호로 조회한 대상 영업사양 (elv_info$vf@xxxxxxxx) */
         private String objectOuid;
 
         /** WIP 생성 결과 메시지 */

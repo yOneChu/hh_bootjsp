@@ -456,22 +456,6 @@ public class APIController {
         return result;
     }
 
-
-    @GetMapping("/getPIDMetaInfo")
-    @ResponseBody
-    @CrossOrigin
-    public String getUserInfo(String key) {
-        //http://localhost:8070/apiv2/getPIDMetaInfo?key=subae
-        //https://vault-in.hdel.co.kr:8070/apiv2/getPIDMetaInfo?key=subae
-
-        String result = "";
-        if ("subae".equals(key)) {
-            result = PLM_DB_Definition.getPID_DB_MetaData();
-        }
-
-        return result;
-    }
-
     /**
      * 사용자 정보 리스트
      * @param key

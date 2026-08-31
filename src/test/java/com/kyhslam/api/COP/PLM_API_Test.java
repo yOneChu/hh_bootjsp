@@ -1,6 +1,7 @@
 package com.kyhslam.api.COP;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kyhslam.util.PLMDBConnection;
 import org.springframework.util.StopWatch;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -13,6 +14,9 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -101,13 +105,62 @@ public class PLM_API_Test {
         }
     }
 
-    // 영업사양 객체 생성
-    public static void getProductOuid(String productNo) {
+    // 영업사양 최신 객체 OID
+    public static String getProductOuid(String productNo) {
 
         //SELECT CONCAT('elv_info$vf@', LOWER(DECTOHEX(V.vf$ouid))) , V.* FROM ELV_INFO$VF V WHERE V.MD$NUMBER = 'N28866L01';
         String ouid = "elv_info$vf@AC443BE1";
 
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
 
+        HashMap<String, String> result = new HashMap<>();
+
+        String resultOid = "";
+
+        try {
+
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                    select CONCAT('elv_info$vf@', LOWER(DECTOHEX(V.vf$ouid))) AS VFOBJ,
+                            V.MD$NUMBER AS HOGI,
+                            V.MD$STATUS AS STATUS,
+                            V.VF$VERSION AS VERSION
+                            --,V.*
+                     from ELV_INFO$VF V, ELV_INFO$id A
+                     where V.vf$identity = A.id$ouid and V.vf$ouid = A.id$wip
+                       AND V.md$number = ?
+                    """;
+
+            stmt = con.prepareStatement(sql.toString());
+            stmt.setString(1, productNo);
+            rs = stmt.executeQuery();
+
+            while(rs.next()) {
+
+                //PRODUCTOUID
+                String VFOBJ = rs.getString("VFOBJ");
+                String STATUS = rs.getString("STATUS");
+                String HOGI = rs.getString("HOGI");
+                String VERSION = rs.getString("VERSION");
+
+
+                result.put("VFOBJ", VFOBJ);
+                result.put("STATUS", STATUS);
+                result.put("HOGI", HOGI);
+                result.put("VERSION", VERSION);
+
+                resultOid = VFOBJ;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, stmt, rs);
+        }
+        return resultOid;
     }
 
 
