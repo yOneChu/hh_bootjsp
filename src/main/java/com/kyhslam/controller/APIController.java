@@ -381,6 +381,10 @@ public class APIController {
     public String getLogicVerifyAsDB(String key, String type) {
         //https://vault-in.hdel.co.kr:8070/apiv2/getSalesMetaInfo?key=subae
 
+
+        //PID_DB_DOCUMENT : PID DB 정의서
+        //https://vault-in.hdel.co.kr:8070/apiv2/getSalesMetaInfo?key=subae&type=PID_DB_DOCUMENT
+
         //LOGIC_VERIFY
         String result = "";
         PreparedStatement pstmt = null;

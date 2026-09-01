@@ -16,22 +16,27 @@
     let searchTerm = '';
 
     // ★ DB 명세서 상태
+    let specGroups = [];       // 사이드바 카테고리 [{id,name,icon,color}, ...]
     let specs = [];            // [{id,name,icon}, ...]
     let currentSpecId = null;  // 현재 보고 있는 명세서 id
     let editorMode = 'doc';    // 'doc' | 'spec' — 에디터가 무엇을 편집 중인지
+    const expandedSpecs = new Set();   // 하위 명세서를 펼쳐 둔 상위 명세서 id
 
     /* --------------------- 마크다운 렌더 --------------------- */
     marked.setOptions({
         breaks: true,
         gfm: true,
-        highlight(code, lang) {
-            try {
-                if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value;
-                return hljs.highlightAuto(code).value;
-            } catch { return code; }
-        },
     });
     const renderMarkdown = (md) => DOMPurify.sanitize(marked.parse(md || ''));
+
+    /* marked v5 부터 highlight 옵션이 제거되어 렌더 중에는 하이라이팅을 걸 수 없다.
+       그래서 DOM 에 넣은 뒤 코드블록마다 직접 적용한다. */
+    function highlightIn(root) {
+        if (!window.hljs || !root) return;
+        root.querySelectorAll('pre code').forEach(el => {
+            try { hljs.highlightElement(el); } catch { /* 미지원 언어는 그대로 둔다 */ }
+        });
+    }
 
     /* --------------------- 아이콘 새로고침 --------------------- */
     const icons = () => window.lucide && lucide.createIcons();
@@ -53,37 +58,103 @@
     }
 
     /* ============================================================== *
-     * ★ DB 명세서 (ECO 검증 / 로직 작성 / 로직 검증)
+     * ★ 명세서 카테고리 (DB 명세서 / API 정의서 / 기타 규칙)
      * ============================================================== */
     async function loadSpecs() {
-        specs = await specStore.getSpecTypes();
+        [specGroups, specs] = await Promise.all([
+            specStore.getSpecGroups(),
+            specStore.getSpecTypes(),
+        ]);
     }
 
-    function renderSpecTree() {
-        const term = searchTerm.trim().toLowerCase();
-        const list = specs.filter(s => !term || s.name.toLowerCase().includes(term));
+    /* 카테고리별 색상 — Tailwind 가 인식하도록 클래스 전체를 문자열로 둔다 */
+    const GROUP_STYLES = {
+        blue:   { icon: 'text-apple-blue',  activeBg: 'bg-apple-blue/10',  activeText: 'text-apple-blue' },
+        violet: { icon: 'text-violet-500',  activeBg: 'bg-violet-500/10',  activeText: 'text-violet-600 dark:text-violet-400' },
+        amber:  { icon: 'text-amber-500',   activeBg: 'bg-amber-500/10',   activeText: 'text-amber-600 dark:text-amber-400' },
+    };
+    const styleOf = (g) => GROUP_STYLES[g?.color] || GROUP_STYLES.blue;
+    const groupOf = (specId) => {
+        const s = specs.find(x => x.id === specId);
+        return specGroups.find(g => g.id === s?.group) || specGroups[0] || { name: '문서', icon: 'folder' };
+    };
+    /** 하위 명세서 목록 (parent 로 연결된 항목들) */
+    const childrenOf = (specId) => specs.filter(s => s.parent === specId);
+    /** 상위 명세서 — 최상위 항목이면 null */
+    const parentOf = (specId) => {
+        const s = specs.find(x => x.id === specId);
+        return (s && s.parent && specs.find(x => x.id === s.parent)) || null;
+    };
 
-        if (!specs.length) {
-            $('#specTree').innerHTML = `<div class="pl-4 pr-2 py-1 text-xs text-red-500">명세서를 불러오지 못했습니다.</div>`;
-            return;
-        }
-        if (!list.length) {
-            $('#specTree').innerHTML = `<div class="pl-4 pr-2 py-1 text-xs text-apple-gray/60 italic">검색 결과 없음</div>`;
-            return;
-        }
+    /** 명세서 한 줄 렌더 — 하위 명세서가 있으면 접기/펼치기 버튼을 붙인다 */
+    function renderSpecRow(s, st, term) {
+        const active = s.id === currentSpecId;
+        const selfMatch = !term || s.name.toLowerCase().includes(term);
+        // 상위 이름이 검색어와 맞으면 하위 전체를, 아니면 검색어에 맞는 하위만 보여준다
+        const kids = childrenOf(s.id)
+            .filter(k => selfMatch || k.name.toLowerCase().includes(term));
+        const open = kids.length > 0 &&
+            (!!term || expandedSpecs.has(s.id) || kids.some(k => k.id === currentSpecId));
 
-        $('#specTree').innerHTML = list.map(s => {
-            const active = s.id === currentSpecId;
-            return `
+        const toggle = kids.length
+            ? `<button data-toggle="${escapeHtml(s.id)}" title="하위 명세서 ${open ? '접기' : '펼치기'}"
+                       class="shrink-0 -ml-3 p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition">
+                   <i data-lucide="${open ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3"></i>
+               </button>`
+            : '';
+
+        const row = `
             <a href="#" data-spec="${escapeHtml(s.id)}"
-               class="flex items-center gap-2 pl-4 pr-2 py-1.5 rounded-lg text-[13.5px] transition ${
-                active ? 'bg-apple-blue/10 text-apple-blue font-medium'
+               class="flex items-center gap-2 ${s.parent ? 'pl-9' : 'pl-4'} pr-2 py-1.5 rounded-lg text-[13.5px] transition ${
+                active ? `${st.activeBg} ${st.activeText} font-medium`
                        : 'text-apple-ink dark:text-gray-300 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'}">
-                <i data-lucide="${escapeAttr(s.icon || 'file-text')}" class="w-3.5 h-3.5 shrink-0"></i>
+                ${toggle}
+                <i data-lucide="${escapeAttr(s.icon || 'file-text')}" class="w-3.5 h-3.5 shrink-0 ${active ? '' : st.icon}"></i>
                 <span class="truncate flex-1">${escapeHtml(s.name)}</span>
                 ${s.live ? `<span title="실제 DB API 연결됨" class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>` : ''}
             </a>`;
+
+        return row + (open ? kids.map(k => renderSpecRow(k, st, term)).join('') : '');
+    }
+
+    /** 카테고리(DB 명세서 / API 정의서 / 기타 규칙)별로 사이드바를 렌더링 */
+    function renderSpecTree() {
+        const root = $('#specGroups');
+        const term = searchTerm.trim().toLowerCase();
+
+        if (!specs.length) {
+            root.innerHTML = `<div class="px-2.5 py-1 text-xs text-red-500">명세서를 불러오지 못했습니다.</div>`;
+            return;
+        }
+
+        // 검색 중에는 자기 이름이 맞거나, 하위 명세서가 맞는 항목만 남긴다
+        const matches = (s) => !term || s.name.toLowerCase().includes(term)
+            || childrenOf(s.id).some(k => k.name.toLowerCase().includes(term));
+
+        const html = specGroups.map(g => {
+            const st = styleOf(g);
+            const items = specs.filter(s => s.group === g.id && !s.parent && matches(s));
+            if (term && !items.length) return '';   // 검색 중이면 빈 카테고리는 숨김
+
+            const rows = items.length
+                ? items.map(s => renderSpecRow(s, st, term)).join('')
+                : `<div class="pl-4 pr-2 py-1 text-xs text-apple-gray/60 italic">항목 없음</div>`;
+
+            return `
+            <div data-group="${escapeHtml(g.id)}">
+                <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-apple-gray">
+                    <i data-lucide="${escapeAttr(g.icon || 'folder')}" class="w-3.5 h-3.5 ${st.icon}"></i>
+                    <span class="flex-1 truncate text-[13px] font-semibold">${escapeHtml(g.name)}</span>
+                    <button data-reload="${escapeHtml(g.id)}" title="다시 불러오기"
+                            class="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition">
+                        <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                    </button>
+                </div>
+                <nav class="mt-0.5 space-y-0.5">${rows}</nav>
+            </div>`;
         }).join('');
+
+        root.innerHTML = html || `<div class="px-2.5 py-1 text-xs text-apple-gray/60 italic">검색 결과 없음</div>`;
         icons();
     }
 
@@ -95,12 +166,17 @@
 
         showView('viewer');
         const meta = specs.find(s => s.id === id);
+        const grp = groupOf(id);
+        const st = styleOf(grp);
+        const par = parentOf(id);
+        if (par) expandedSpecs.add(par.id);   // 하위 명세서를 열면 상위를 펼쳐 둔다
 
         $('#breadcrumb').innerHTML = `
             <span class="inline-flex items-center gap-1.5">
-                <i data-lucide="database" class="w-3.5 h-3.5"></i>
-                DB 명세서
+                <i data-lucide="${escapeAttr(grp.icon || 'folder')}" class="w-3.5 h-3.5 ${st.icon}"></i>
+                ${escapeHtml(grp.name)}
                 <i data-lucide="chevron-right" class="w-3.5 h-3.5 opacity-50"></i>
+                ${par ? `${escapeHtml(par.name)}<i data-lucide="chevron-right" class="w-3.5 h-3.5 opacity-50"></i>` : ''}
                 <span class="text-apple-ink dark:text-gray-200 font-medium">${escapeHtml(meta?.name || id)}</span>
             </span>`;
         $('#viewActions').innerHTML = '';
@@ -146,7 +222,9 @@
 
         const head = `
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-apple-gray mb-8 pb-6 border-b border-apple-line dark:border-neutral-800">
-                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-apple-blue/10 text-apple-blue text-xs font-medium">DB 명세서</span>
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md ${st.activeBg} ${st.activeText} text-xs font-medium">
+                    <i data-lucide="${escapeAttr(grp.icon || 'folder')}" class="w-3 h-3"></i> ${escapeHtml(grp.name)}
+                </span>
                 ${badge}
                 <span class="inline-flex items-center gap-1.5"><i data-lucide="user" class="w-4 h-4"></i> ${escapeHtml(spec.author || '미상')}</span>
                 <span class="inline-flex items-center gap-1.5"><i data-lucide="clock" class="w-4 h-4"></i> ${formatDate(spec.updatedAt)} 수정</span>
@@ -157,6 +235,7 @@
             : `<p class="text-apple-gray">내용이 비어 있습니다. <b>편집</b> 버튼을 눌러 작성하세요.</p>`;
 
         $('#viewer').innerHTML = head + body;
+        highlightIn($('#viewer'));
         $('#viewer').classList.remove('fade-up'); void $('#viewer').offsetWidth; $('#viewer').classList.add('fade-up');
 
         buildTOC();
@@ -187,7 +266,9 @@
         $('#editContent').value = spec.content || '';
         updatePreview();
 
-        $('#breadcrumb').innerHTML = `<span class="inline-flex items-center gap-1.5"><i data-lucide="database" class="w-3.5 h-3.5"></i> DB 명세서 편집 — ${escapeHtml(spec.name)}</span>`;
+        const grp = groupOf(id);
+        const par = parentOf(id);
+        $('#breadcrumb').innerHTML = `<span class="inline-flex items-center gap-1.5"><i data-lucide="${escapeAttr(grp.icon || 'folder')}" class="w-3.5 h-3.5 ${styleOf(grp).icon}"></i> ${escapeHtml(grp.name)} 편집 — ${par ? escapeHtml(par.name) + ' / ' : ''}${escapeHtml(spec.name)}</span>`;
         $('#viewActions').innerHTML = '';
         icons();
         $('#editContent').focus();
@@ -317,6 +398,7 @@
                 <span class="inline-flex items-center gap-1.5"><i data-lucide="clock" class="w-4 h-4"></i> ${formatDate(doc.updatedAt)} 수정</span>
             </div>`;
         $('#viewer').innerHTML = meta + renderMarkdown(doc.content);
+        highlightIn($('#viewer'));
         $('#viewer').classList.remove('fade-up'); void $('#viewer').offsetWidth; $('#viewer').classList.add('fade-up');
 
         buildTOC();
@@ -376,6 +458,7 @@
 
     function updatePreview() {
         $('#editPreview').innerHTML = renderMarkdown($('#editContent').value);
+        highlightIn($('#editPreview'));
     }
 
     async function saveDoc() {
@@ -509,20 +592,35 @@
             if (link) { e.preventDefault(); openDoc(link.dataset.doc); }
         });
 
-        // ★ DB 명세서 클릭 / 새로고침
-        $('#specTree').addEventListener('click', (e) => {
+        // ★ 카테고리별 명세서 클릭 / 새로고침 (동적 렌더링이므로 이벤트 위임)
+        $('#specGroups').addEventListener('click', async (e) => {
+            // 하위 명세서 접기/펼치기 — 본문은 열지 않는다
+            const toggle = e.target.closest('[data-toggle]');
+            if (toggle) {
+                e.preventDefault();
+                const pid = toggle.dataset.toggle;
+                if (expandedSpecs.has(pid)) expandedSpecs.delete(pid); else expandedSpecs.add(pid);
+                renderSpecTree();
+                return;
+            }
+            const reload = e.target.closest('[data-reload]');
+            if (reload) {
+                e.preventDefault();
+                try {
+                    await loadSpecs();
+                    renderSpecTree();
+                    // 현재 열려 있는 문서가 이 카테고리 소속이면 본문도 다시 읽는다
+                    if (currentSpecId && groupOf(currentSpecId).id === reload.dataset.reload) {
+                        await openSpec(currentSpecId);
+                    }
+                    toast('다시 불러왔습니다.', 'refresh-cw');
+                } catch (err) {
+                    toast('불러오기 실패: ' + err.message, 'alert-circle');
+                }
+                return;
+            }
             const link = e.target.closest('[data-spec]');
             if (link) { e.preventDefault(); openSpec(link.dataset.spec); }
-        });
-        $('#reloadSpecsBtn').addEventListener('click', async () => {
-            try {
-                await loadSpecs();
-                renderSpecTree();
-                if (currentSpecId) await openSpec(currentSpecId);
-                toast('명세서를 다시 불러왔습니다.', 'refresh-cw');
-            } catch (err) {
-                toast('불러오기 실패: ' + err.message, 'alert-circle');
-            }
         });
 
         $('#searchInput').addEventListener('input', (e) => { searchTerm = e.target.value; renderTree(); renderSpecTree(); });

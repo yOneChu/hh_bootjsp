@@ -253,8 +253,24 @@ npm run deploy
  * ===========================================================================*/
 
 /* ------------------------------------------------------------------ *
- * ▼▼▼ 명세서 3종 설정 — API가 준비되는 대로 여기만 채우면 됩니다 ▼▼▼
+ * ▼▼▼ 사이드바 카테고리(그룹) 정의 ▼▼▼
  *
+ *   id    : DB_SPEC_TYPES 의 group 값과 연결됩니다
+ *   icon  : lucide 아이콘 이름 (카테고리마다 다른 아이콘을 지정하세요)
+ *   color : 'blue' | 'violet' | 'amber'  — app.js 가 아이콘/활성 색상으로 사용
+ * ------------------------------------------------------------------ */
+const SPEC_GROUPS = [
+    { id: 'db',   name: 'DB 명세서',   icon: 'database',    color: 'blue'   },
+    { id: 'api',  name: 'API 정의서',  icon: 'webhook',     color: 'violet' },
+    { id: 'rule', name: '기타 규칙',   icon: 'scroll-text', color: 'amber'  },
+];
+
+/* ------------------------------------------------------------------ *
+ * ▼▼▼ 명세서 설정 — API가 준비되는 대로 여기만 채우면 됩니다 ▼▼▼
+ *
+ *   group      : 위 SPEC_GROUPS 의 id (사이드바에서 묶일 카테고리)
+ *   parent     : (선택) 상위 명세서의 id — 지정하면 그 명세서 하위에 접기/펼치기 되는
+ *                하위 항목으로 표시됩니다. group 은 상위와 동일하게 맞춰 주세요.
  *   readUrl    : 마크다운 본문을 가져올 GET URL (전체 주소)
  *   saveUrl    : 수정 내용을 저장할 URL. null 이면 읽기 전용으로 동작
  *   saveMethod : 저장 시 HTTP 메서드 (기본 'POST')
@@ -268,9 +284,9 @@ const DB_SPEC_TYPES = [
 
     //ECO_VERIFY
     {
-        id: 'LOGIC_WRITE', name: 'ECO 검증-WorkFlow', icon: 'pen-tool',
+        id: 'ECO_WORKFLOW', name: 'ECO 검증-WorkFlow', icon: 'git-branch', group: 'db',
         //readUrl: 'http://localhost:8070/apiv2/getLogicWriteAsDB?key=subae&type=LOGIC_WRITE',
-        readUrl: '/apiv2/getLogicWriteAsDB?key=subae&type=ECO_VERIFY',
+        readUrl: '/apiv2/getLogicVerifyAsDB?key=subae&type=ECO_VERIFY',
         //saveUrl: 'http://localhost:8070/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_WRITE',
         saveUrl: '/apiv2/update_PLM_DB_MetaData?key=subae&type=ECO_VERIFY',
         saveMethod: 'POST',
@@ -281,11 +297,11 @@ const DB_SPEC_TYPES = [
         saveFields: { content: 'updatedContent'},
     },
     {
-        id: 'LOGIC_WRITE', name: '로직 검증-WorkFlow', icon: 'pen-tool',
+        id: 'LOGIC_WORKFLOW', name: '로직 검증-WorkFlow', icon: 'workflow', group: 'db',
         //readUrl: 'http://localhost:8070/apiv2/getLogicWriteAsDB?key=subae&type=LOGIC_WRITE',
-        readUrl: '/apiv2/getLogicWriteAsDB?key=subae&type=LOGIC_VERIFY',
+        readUrl: '/apiv2/getLogicVerifyAsDB?key=subae&type=LOGIC_VERIFY_WORKFLOW',
         //saveUrl: 'http://localhost:8070/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_WRITE',
-        saveUrl: '/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_VERIFY',
+        saveUrl: '/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_VERIFY_WORKFLOW',
         saveMethod: 'POST',
         // 컨트롤러: update_PLM_DB_MetaData(String key, String updatedContent)
         //   → 애노테이션 없는 String = @RequestParam 이므로 JSON body 는 읽지 못함(null).
@@ -294,13 +310,13 @@ const DB_SPEC_TYPES = [
         saveFields: { content: 'updatedContent'},
     },
     {
-        id: 'ECO_VERIFY', name: 'ECO 검증', icon: 'shield-check',
+        id: 'ECO_VERIFY', name: 'ECO 검증', icon: 'shield-check', group: 'db',
         readUrl: null,   // TODO: 예) 'http://localhost:8070/apiv2/getEcoMetaInfo?key=subae'
         saveUrl: null,   // TODO: 저장 API 주소
         saveMethod: 'POST',
     },
     {
-        id: 'LOGIC_WRITE', name: '로직 작성', icon: 'pen-tool',
+        id: 'LOGIC_WRITE', name: '로직 작성', icon: 'pen-tool', group: 'db',
         //readUrl: 'http://localhost:8070/apiv2/getLogicWriteAsDB?key=subae&type=LOGIC_WRITE',
         readUrl: '/apiv2/getLogicWriteAsDB?key=subae&type=LOGIC_WRITE',
         //saveUrl: 'http://localhost:8070/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_WRITE',
@@ -313,7 +329,7 @@ const DB_SPEC_TYPES = [
         saveFields: { content: 'updatedContent'},
     },
     {
-        id: 'LOGIC_VERIFY', name: '로직 검증', icon: 'check-check',
+        id: 'LOGIC_VERIFY', name: '로직 검증', icon: 'check-check', group: 'db',
         // ★ 연결 완료 — text/plain 마크다운 원문을 그대로 반환하는 API
         //readUrl: 'http://localhost:8070/apiv2/getLogicVerifyAsDB?key=subae&type=LOGIC_VERIFY',
         readUrl: '/apiv2/getLogicVerifyAsDB?key=subae&type=LOGIC_VERIFY',
@@ -322,6 +338,56 @@ const DB_SPEC_TYPES = [
         saveMethod: 'POST',
         saveFormat: 'form',
         saveFields: { content: 'updatedContent' },
+    },
+    /* '로직 검증' 하위 명세서 — parent 로 상위 명세서 id 를 지정하면 사이드바에서
+     * '로직 검증' 아래에 접기/펼치기 되는 하위 항목으로 표시됩니다.
+     * 항목을 더 늘리려면 아래 블록을 복사해 id/name 만 바꾸세요. */
+    {
+        id: 'LOGIC_VERIFY_SAMPLE', name: '샘플 명세서', icon: 'file-text',
+        group: 'db', parent: 'LOGIC_VERIFY',
+        readUrl: null,   // TODO: 조회 API 주소 (없으면 localStorage 목업으로 동작)
+        saveUrl: null,   // TODO: 저장 API 주소
+        saveMethod: 'POST',
+    },
+
+    /* ---------------- API 정의서 ---------------- */
+    {
+        id: 'API_COMMON', name: '공통 API 규격', icon: 'plug', group: 'api',
+        readUrl: null,   // TODO: 조회 API 주소
+        saveUrl: null,   // TODO: 저장 API 주소
+        saveMethod: 'POST',
+    },
+    {
+        id: 'API_LOGIC', name: '수배로직 API', icon: 'network', group: 'api',
+        readUrl: null,
+        saveUrl: null,
+        saveMethod: 'POST',
+    },
+    {
+        id: 'API_ERROR', name: '에러 코드 정의', icon: 'alert-circle', group: 'api',
+        readUrl: null,
+        saveUrl: null,
+        saveMethod: 'POST',
+    },
+
+    /* ---------------- 기타 규칙 ---------------- */
+    {
+        id: 'RULE_CODING', name: '코딩 컨벤션', icon: 'braces', group: 'rule',
+        readUrl: null,
+        saveUrl: null,
+        saveMethod: 'POST',
+    },
+    {
+        id: 'RULE_NAMING', name: '명명 규칙', icon: 'case-sensitive', group: 'rule',
+        readUrl: null,
+        saveUrl: null,
+        saveMethod: 'POST',
+    },
+    {
+        id: 'RULE_DEPLOY', name: '배포 / 운영 규칙', icon: 'rocket', group: 'rule',
+        readUrl: null,
+        saveUrl: null,
+        saveMethod: 'POST',
     },
 ];
 
@@ -352,7 +418,13 @@ class SpecStore {
     constructor({ headers = {}, mockKey = 'teamdocs.specs.v1' } = {}) {
         this.headers = headers;                 // 필요 시 { Authorization: 'Bearer ...' }
         this.KEY = mockKey;
-        if (!localStorage.getItem(this.KEY)) localStorage.setItem(this.KEY, JSON.stringify(SPEC_SEED));
+        // 시드에만 있는(새로 추가된) 명세서를 채운다 — 이미 저장된 내용은 그대로 보존
+        const saved = this._readMock();
+        let dirty = false;
+        for (const [k, v] of Object.entries(SPEC_SEED)) {
+            if (!saved[k]) { saved[k] = v; dirty = true; }
+        }
+        if (dirty) this._writeMock(saved);
     }
 
     _type(id) { return DB_SPEC_TYPES.find(t => t.id === id); }
@@ -388,9 +460,15 @@ class SpecStore {
         };
     }
 
+    /** 사이드바 카테고리(그룹) 목록 */
+    async getSpecGroups() {
+        return SPEC_GROUPS.map(g => ({ ...g }));
+    }
+
     async getSpecTypes() {
         return DB_SPEC_TYPES.map(t => ({
-            id: t.id, name: t.name, icon: t.icon,
+            id: t.id, name: t.name, icon: t.icon, group: t.group || SPEC_GROUPS[0].id,
+            parent: t.parent || null,             // 하위 명세서면 상위 명세서 id
             live: !!t.readUrl,                    // 실 API 연결 여부 (사이드바 표시용)
             readOnly: !!t.readUrl && !t.saveUrl,  // 조회만 가능한 상태
         }));
@@ -401,7 +479,8 @@ class SpecStore {
         if (!t) throw new Error('알 수 없는 명세서: ' + id);
 
         const base = {
-            id, name: t.name, icon: t.icon,
+            id, name: t.name, icon: t.icon, group: t.group || SPEC_GROUPS[0].id,
+            parent: t.parent || null,
             live: !!t.readUrl,
             readOnly: !!t.readUrl && !t.saveUrl,
         };
@@ -460,6 +539,137 @@ class SpecStore {
  * 항상 실제 API 에서 내용을 가져옵니다.
  * ------------------------------------------------------------------ */
 const SPEC_SEED = {
+    /* ---------------- API 정의서 ---------------- */
+    API_COMMON: {
+        author: '관리자', updatedAt: nowISO(),
+        content: `# 공통 API 규격
+
+> 이 문서는 **목업 데이터**입니다. 실제 API 연결 후 DB 내용으로 대체됩니다.
+
+## 1. 기본 규칙
+| 항목 | 규격 |
+|---|---|
+| Base Path | \`/apiv2\` |
+| 인코딩 | UTF-8 |
+| 인증 | 쿼리 파라미터 \`key\` |
+
+## 2. 공통 응답 형식
+\`\`\`json
+{ "result": "OK", "message": "", "data": {} }
+\`\`\`
+`,
+    },
+    API_LOGIC: {
+        author: '관리자', updatedAt: nowISO(),
+        content: `# 수배로직 API
+
+> 이 문서는 **목업 데이터**입니다. 실제 API 연결 후 DB 내용으로 대체됩니다.
+
+## 엔드포인트
+| Method | Path | 설명 |
+|---|---|---|
+| GET | \`/apiv2/getLogicWriteAsDB\` | 로직 작성 문서 조회 |
+| GET | \`/apiv2/getLogicVerifyAsDB\` | 로직 검증 문서 조회 |
+| POST | \`/apiv2/update_PLM_DB_MetaData\` | 문서 저장 |
+`,
+    },
+    API_ERROR: {
+        author: '관리자', updatedAt: nowISO(),
+        content: `# 에러 코드 정의
+
+> 이 문서는 **목업 데이터**입니다. 실제 API 연결 후 DB 내용으로 대체됩니다.
+
+| 코드 | 의미 | 조치 |
+|---|---|---|
+| 400 | 필수 파라미터 누락 | 요청 파라미터 확인 |
+| 401 | 인증 키 오류 | \`key\` 값 확인 |
+| 500 | 서버 내부 오류 | 로그 확인 후 담당자 문의 |
+`,
+    },
+
+    /* ---------------- 기타 규칙 ---------------- */
+    RULE_CODING: {
+        author: '관리자', updatedAt: nowISO(),
+        content: `# 코딩 컨벤션
+
+> 이 문서는 **목업 데이터**입니다. 자유롭게 편집해 팀 규칙으로 채우세요.
+
+## 공통
+- 들여쓰기 4칸, 탭 금지
+- 파일 인코딩 UTF-8
+
+## Java
+- 클래스 \`PascalCase\`, 메서드/변수 \`camelCase\`
+- Controller → Service → Mapper 계층 준수
+
+## JavaScript
+- 세미콜론 사용, \`const\` 우선
+`,
+    },
+    RULE_NAMING: {
+        author: '관리자', updatedAt: nowISO(),
+        content: `# 명명 규칙
+
+> 이 문서는 **목업 데이터**입니다. 자유롭게 편집해 팀 규칙으로 채우세요.
+
+| 대상 | 규칙 | 예시 |
+|---|---|---|
+| 테이블 | 대문자 + 언더스코어 | \`VARIANT_H\` |
+| 컬럼 | 대문자 + 언더스코어 | \`CREATE_DATE\` |
+| API | camelCase 동사+명사 | \`getLogicWriteAsDB\` |
+| 브랜치 | \`feature/기능명\` | \`feature/bom-calc\` |
+`,
+    },
+    RULE_DEPLOY: {
+        author: '관리자', updatedAt: nowISO(),
+        content: `# 배포 / 운영 규칙
+
+> 이 문서는 **목업 데이터**입니다. 자유롭게 편집해 팀 규칙으로 채우세요.
+
+## 1. 배포 전 점검
+- [ ] 로컬 빌드 성공 확인
+- [ ] DB 스크립트 반영 여부 확인
+
+## 2. 절차
+\`\`\`bash
+git pull origin master
+./gradlew clean build
+\`\`\`
+
+## 3. 배포 후
+- 애플리케이션 로그 확인
+- 주요 화면 스모크 테스트
+`,
+    },
+
+    /* ---------------- 로직 검증 하위 명세서 ---------------- */
+    LOGIC_VERIFY_SAMPLE: {
+        author: '관리자', updatedAt: nowISO(),
+        content: `# 로직 검증 - 샘플 명세서
+
+> '로직 검증' 카테고리 하위에 추가된 **샘플 명세서**입니다.
+> api.js 의 \`DB_SPEC_TYPES\` 에서 \`parent: 'LOGIC_VERIFY'\` 로 연결되어 있습니다.
+
+## 1. 하위 명세서 추가 방법
+1. \`api.js\` → \`DB_SPEC_TYPES\` 에 항목을 추가한다.
+2. \`group\` 은 상위와 동일하게(\`db\`), \`parent\` 에 상위 명세서 id(\`LOGIC_VERIFY\`)를 넣는다.
+3. 조회/저장 API가 준비되면 \`readUrl\` / \`saveUrl\` 을 채운다.
+   - 둘 다 비어 있으면 브라우저 localStorage 목업으로 편집·저장된다.
+
+## 2. 예시
+\`\`\`javascript
+{
+    id: 'LOGIC_VERIFY_STEP1', name: '1단계 검증 규칙', icon: 'file-text',
+    group: 'db', parent: 'LOGIC_VERIFY',
+    readUrl: '/apiv2/getLogicVerifyAsDB?key=subae&type=LOGIC_VERIFY_STEP1',
+    saveUrl: '/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_VERIFY_STEP1',
+    saveMethod: 'POST', saveFormat: 'form',
+    saveFields: { content: 'updatedContent' },
+}
+\`\`\`
+`,
+    },
+
     ECO_VERIFY: {
         author: '관리자', updatedAt: nowISO(),
         content: `# ECO 검증 명세서
