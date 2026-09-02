@@ -286,9 +286,9 @@ const DB_SPEC_TYPES = [
     {
         id: 'ECO_WORKFLOW', name: 'ECO 검증-WorkFlow', icon: 'git-branch', group: 'db',
         //readUrl: 'http://localhost:8070/apiv2/getLogicWriteAsDB?key=subae&type=LOGIC_WRITE',
-        readUrl: '/apiv2/getLogicVerifyAsDB?key=subae&type=ECO_VERIFY',
+        readUrl: '/api/getLogicVerifyAsDB?key=subae&type=ECO_VERIFY',
         //saveUrl: 'http://localhost:8070/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_WRITE',
-        saveUrl: '/apiv2/update_PLM_DB_MetaData?key=subae&type=ECO_VERIFY',
+        saveUrl: '/api/update_PLM_DB_MetaData?key=subae&type=ECO_VERIFY',
         saveMethod: 'POST',
         // 컨트롤러: update_PLM_DB_MetaData(String key, String updatedContent)
         //   → 애노테이션 없는 String = @RequestParam 이므로 JSON body 는 읽지 못함(null).
@@ -299,9 +299,9 @@ const DB_SPEC_TYPES = [
     {
         id: 'LOGIC_WORKFLOW', name: '로직 검증-WorkFlow', icon: 'workflow', group: 'db',
         //readUrl: 'http://localhost:8070/apiv2/getLogicWriteAsDB?key=subae&type=LOGIC_WRITE',
-        readUrl: '/apiv2/getLogicVerifyAsDB?key=subae&type=LOGIC_VERIFY_WORKFLOW',
+        readUrl: '/api/getLogicVerifyAsDB?key=subae&type=LOGIC_VERIFY_WORKFLOW',
         //saveUrl: 'http://localhost:8070/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_WRITE',
-        saveUrl: '/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_VERIFY_WORKFLOW',
+        saveUrl: '/api/update_PLM_DB_MetaData?key=subae&type=LOGIC_VERIFY_WORKFLOW',
         saveMethod: 'POST',
         // 컨트롤러: update_PLM_DB_MetaData(String key, String updatedContent)
         //   → 애노테이션 없는 String = @RequestParam 이므로 JSON body 는 읽지 못함(null).
@@ -318,9 +318,9 @@ const DB_SPEC_TYPES = [
     {
         id: 'LOGIC_WRITE', name: '로직 작성', icon: 'pen-tool', group: 'db',
         //readUrl: 'http://localhost:8070/apiv2/getLogicWriteAsDB?key=subae&type=LOGIC_WRITE',
-        readUrl: '/apiv2/getLogicWriteAsDB?key=subae&type=LOGIC_WRITE',
+        readUrl: '/api/getLogicVerifyAsDB?key=subae&type=LOGIC_WRITE',
         //saveUrl: 'http://localhost:8070/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_WRITE',
-        saveUrl: '/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_WRITE',
+        saveUrl: '/api/update_PLM_DB_MetaData?key=subae&type=LOGIC_WRITE',
         saveMethod: 'POST',
         // 컨트롤러: update_PLM_DB_MetaData(String key, String updatedContent)
         //   → 애노테이션 없는 String = @RequestParam 이므로 JSON body 는 읽지 못함(null).
@@ -329,12 +329,39 @@ const DB_SPEC_TYPES = [
         saveFields: { content: 'updatedContent'},
     },
     {
+        id: 'WRITE_KYH', name: '작성_김영환', icon: 'file-text',
+        group: 'db', parent: 'LOGIC_WRITE',
+        readUrl: '/api/getLogicVerifyAsDB?key=subae&type=WRITE_KYH',
+        saveUrl: '/api/update_PLM_DB_MetaData?key=subae&type=WRITE_KYH',
+        saveMethod: 'POST',
+        saveFormat: 'form',
+        saveFields: { content: 'updatedContent'},
+    },
+    {
+        id: 'WRITE_KJH', name: '작성_김지현', icon: 'file-text',
+        group: 'db', parent: 'LOGIC_WRITE',
+        readUrl: '/api/getLogicVerifyAsDB?key=subae&type=WRITE_KJH',
+        saveUrl: '/api/update_PLM_DB_MetaData?key=subae&type=WRITE_KJH',
+        saveMethod: 'POST',
+        saveFormat: 'form',
+        saveFields: { content: 'updatedContent'},
+    },
+    {
+        id: 'WRITE_LJY', name: '작성_이지은', icon: 'file-text',
+        group: 'db', parent: 'LOGIC_WRITE',
+        readUrl: '/api/getLogicVerifyAsDB?key=subae&type=WRITE_LJY',
+        saveUrl: '/api/update_PLM_DB_MetaData?key=subae&type=WRITE_LJY',
+        saveMethod: 'POST',
+        saveFormat: 'form',
+        saveFields: { content: 'updatedContent'},
+    },
+    {
         id: 'LOGIC_VERIFY', name: '로직 검증', icon: 'check-check', group: 'db',
         // ★ 연결 완료 — text/plain 마크다운 원문을 그대로 반환하는 API
         //readUrl: 'http://localhost:8070/apiv2/getLogicVerifyAsDB?key=subae&type=LOGIC_VERIFY',
-        readUrl: '/apiv2/getLogicVerifyAsDB?key=subae&type=LOGIC_VERIFY',
+        readUrl: '/api/getLogicVerifyAsDB?key=subae&type=LOGIC_VERIFY',
         //saveUrl: 'http://localhost:8070/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_VERIFY',   // TODO: 저장 API를 만들면 여기에 주소를 넣으세요 (그 순간 편집 가능해집니다)
-        saveUrl: '/apiv2/update_PLM_DB_MetaData?key=subae&type=LOGIC_VERIFY',
+        saveUrl: '/api/update_PLM_DB_MetaData?key=subae&type=LOGIC_VERIFY',
         saveMethod: 'POST',
         saveFormat: 'form',
         saveFields: { content: 'updatedContent' },

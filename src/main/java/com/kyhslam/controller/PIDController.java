@@ -39,16 +39,34 @@ public class PIDController {
     @GetMapping("/pid/searchPIDDetail")
     public String searchPIDDetail() {
         //return "subaeLogic/searchPIDDetail";
-        return "thymeleaf/logic/searchLogicPIDv4";
+        return "thymeleaf/logic/searchLogicPIDv3";
     }
 
     @Description("PID 상세 조회 화면 개선 v2")
     @GetMapping("/pid/logicpid")
     public String logicpid() {
         //return "thymeleaf/logic/searchLogicPID";
+        return "thymeleaf/logic/searchLogicPIDv3";
+    }
+
+    @Description("PID 상세 조회 화면 v4")
+    @GetMapping("/pid/searchPIDTotal")
+    public String searchPIDTotal() {
+        //return "subaeLogic/searchPIDDetail";
         return "thymeleaf/logic/searchLogicPIDv4";
     }
 
+    @Description("최초등록 PID — PID 조건 없이 전체를 대상으로 조회한다.")
+    @PostMapping("/pid/findFirstPID")
+    @ResponseBody
+    public ArrayList<HashMap<String,String>> findFirstPID(String pid, String word) {
+        //return "subaeLogic/searchPIDDetail";
+        //return "thymeleaf/logic/searchLogicPIDv4";
+
+        ArrayList<HashMap<String,String>> result = PIDCommonUtil.findFirstPID(word, pid);
+
+        return result;
+    }
 
     /**
      * PID 상세조회
