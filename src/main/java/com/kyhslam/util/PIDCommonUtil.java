@@ -2156,6 +2156,10 @@ public class PIDCommonUtil {
         sql.append("     SELECT d.NO, h.PID, h.NAME, ");
         sql.append("            TO_CHAR(h.REG_DATE, 'YYYY-MM-DD HH24:MI:SS') AS REG_DATE, ");
         sql.append("            h.VERSION, h.REMARKS, ");
+
+        sql.append(" ( SELECT F.MD$DESC FROM FUSER$SF F WHERE F.MD$NUMBER = h.USERID ) AS USERNAME, ");
+
+
         // 가장 먼저 등록된 건이 1위. VERSION 은 문자열이라 단독으로 정렬하면 '10' 이 '2' 보다 앞서므로 REG_DATE 를 앞에 둔다.
         sql.append("            RANK() OVER (ORDER BY h.REG_DATE ASC, h.VERSION ASC) AS rnk ");
         sql.append("     FROM variant_d d, ");
@@ -2168,7 +2172,7 @@ public class PIDCommonUtil {
         sql.append("       AND ( " + valCondition.toString() + " ) ");
         sql.append("       AND h.VERSION != '-1' ");
         sql.append(" ) ");
-        sql.append(" SELECT NO, PID, NAME, REG_DATE, VERSION, REMARKS ");
+        sql.append(" SELECT NO, PID, NAME, REG_DATE, VERSION, USERNAME, REMARKS ");
         sql.append(" FROM TARGET_DATA ");
         sql.append(" WHERE rnk = 1 ");
         sql.append(" ORDER BY NO ");
@@ -2195,6 +2199,7 @@ public class PIDCommonUtil {
                 oMap.put("REG_DATE", rs.getString("REG_DATE"));
                 oMap.put("VERSION", rs.getString("VERSION"));
                 oMap.put("REMARKS", rs.getString("REMARKS"));
+                oMap.put("USERNAME", rs.getString("USERNAME"));
 
                 result.add(oMap);
             }

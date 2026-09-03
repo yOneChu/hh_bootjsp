@@ -253,7 +253,27 @@ npm run deploy
  * ===========================================================================*/
 
 /* ------------------------------------------------------------------ *
- * ▼▼▼ 사이드바 카테고리(그룹) 정의 ▼▼▼
+ * ▼▼▼ 사이드바 메뉴 관리 API (PLM_DOC_MENU 테이블) ▼▼▼
+ *
+ *   사이드바의 카테고리(대분류)와 명세서 목록은 이제 DB에서 가져옵니다.
+ *   화면에서 추가/이름변경/삭제하면 즉시 DB에 반영됩니다.
+ *
+ *     GET  /api/docmenu?key=subae        → { groups:[...], specs:[...] }
+ *     POST /api/docmenu/create           → 추가
+ *     POST /api/docmenu/update           → 이름·아이콘 변경
+ *     POST /api/docmenu/delete           → 삭제
+ *
+ *   ※ 테이블 생성 스크립트 : src/main/resources/sql/PLM_DOC_MENU.sql
+ *     이 API 호출이 실패하면(테이블 미생성·서버 미기동 등) 아래 SPEC_GROUPS /
+ *     DB_SPEC_TYPES 하드코딩 값으로 자동 대체되어 화면은 그대로 동작합니다.
+ * ------------------------------------------------------------------ */
+const MENU_API = {
+    base: '/api/docmenu',
+    key: 'subae',
+};
+
+/* ------------------------------------------------------------------ *
+ * ▼▼▼ 사이드바 카테고리(그룹) — DB 조회 실패 시 사용하는 기본값 ▼▼▼
  *
  *   id    : DB_SPEC_TYPES 의 group 값과 연결됩니다
  *   icon  : lucide 아이콘 이름 (카테고리마다 다른 아이콘을 지정하세요)
@@ -266,7 +286,10 @@ const SPEC_GROUPS = [
 ];
 
 /* ------------------------------------------------------------------ *
- * ▼▼▼ 명세서 설정 — API가 준비되는 대로 여기만 채우면 됩니다 ▼▼▼
+ * ▼▼▼ 명세서 기본값 — DB(PLM_DOC_MENU) 조회 실패 시에만 사용됩니다 ▼▼▼
+ *
+ *   평소에는 이 배열이 아니라 DB 의 PLM_DOC_MENU 내용이 표시됩니다.
+ *   (화면 사이드바에서 직접 추가/삭제하세요)
  *
  *   group      : 위 SPEC_GROUPS 의 id (사이드바에서 묶일 카테고리)
  *   parent     : (선택) 상위 명세서의 id — 지정하면 그 명세서 하위에 접기/펼치기 되는
@@ -439,93 +462,6 @@ const DB_SPEC_TYPES = [
 ];
 
 /* ------------------------------------------------------------------ *
- * ▼▼▼ 카테고리별 API 링크 — 여기만 채우면 화면 제목 아래에 표시됩니다 ▼▼▼
- *
- *   화면 상단(문서 제목 바로 아래)에 "이 카테고리에서 쓸 수 있는 API" 목록을
- *   카드로 보여 줍니다. 주소를 복사하거나 새 탭에서 바로 호출할 수 있습니다.
- *
- *   [키(key) 규칙] — 아래 3가지를 모두 쓸 수 있고, 있는 것끼리 합쳐서 표시됩니다.
- *     · SPEC_GROUPS 의 id ('db' / 'api' / 'rule')
- *         → 그 카테고리에 속한 모든 명세서 화면에 공통으로 표시
- *     · 상위 명세서 id (예: 'LOGIC_WRITE')
- *         → 그 하위 명세서(작성_김영환 등) 화면에도 함께 표시
- *     · 명세서 id (예: 'LOGIC_VERIFY')
- *         → 그 명세서 화면에서만 표시
- *     표시 순서: 카테고리 공통 → 상위 명세서 → 해당 명세서
- *
- *   [링크 한 건의 형식]
- *     {
- *       name  : '화면에 보일 이름',            // 필수
- *       method: 'GET',                        // 선택 (기본 GET) — GET/POST/PUT/PATCH/DELETE
- *       url   : '/api/xxx?key=subae',          // 필수 — 상대경로/전체주소 모두 가능
- *       desc  : '설명 (한 줄)',                // 선택
- *     }
- *   ※ url 이 없는 항목은 무시됩니다. 목록이 비어 있으면 카드 자체가 표시되지 않습니다.
- * ------------------------------------------------------------------ */
-const SPEC_API_LINKS = {
-
-    /* ---------------- 카테고리(그룹) 공통 ---------------- */
-    // 'db' 카테고리의 모든 명세서 화면에 표시됩니다.
-    db: [
-         //{ name: '로직 문서 조회', method: 'GET',  url: '/api/getLogicVerifyAsDB?key=subae&type=LOGIC_WRITE', desc: 'type 값으로 문서 종류를 지정합니다.' },
-        // { name: '문서 저장',     method: 'POST', url: '/api/update_PLM_DB_MetaData?key=subae&type=LOGIC_WRITE', desc: 'updatedContent 파라미터로 마크다운 본문을 전송합니다.' },
-    ],
-    api: [
-        // { name: '공통 API 목록', method: 'GET', url: '/api/...', desc: '' },
-    ],
-    rule: [
-        // { name: '규칙 조회', method: 'GET', url: '/api/...', desc: '' },
-    ],
-
-    /* ---------------- 화면(명세서)별 — 페이지마다 다른 API 주소를 여기에 ----------------
-     * 키 = DB_SPEC_TYPES 의 id. 그 화면을 열었을 때만 표시됩니다.
-     * 목록이 빈 배열([])이면 그 화면에는 API 카드가 나오지 않습니다.
-     * 아래는 모든 화면의 id 를 미리 적어 둔 것이니, 해당 줄 안에만 채우면 됩니다.
-     * -------------------------------------------------------------------------------- */
-
-    /* ── DB 명세서 ── */
-    ECO_WORKFLOW: [        // ECO 검증-WorkFlow
-        // { name: '조회', method: 'GET',  url: '/api/getLogicVerifyAsDB?key=subae&type=ECO_VERIFY', desc: '' },
-        // { name: '저장', method: 'POST', url: '/api/update_PLM_DB_MetaData?key=subae&type=ECO_VERIFY', desc: '' },
-    ],
-    LOGIC_WORKFLOW: [      // 로직 검증-WorkFlow
-    ],
-    ECO_VERIFY: [          // ECO 검증
-    ],
-    LOGIC_WRITE: [         // 로직 작성  (하위 화면 작성_OOO 에도 함께 표시됩니다)
-    ],
-    WRITE_KYH: [           // 작성_김영환
-        { name: '로직 검증 조회', method: 'GET', url: '/api/getLogicVerifyAsDB?key=subae&type=WRITE_KYH' },
-    ],
-    WRITE_KJH: [           // 작성_김지현
-        { name: '로직 검증 조회', method: 'GET', url: '/api/getLogicVerifyAsDB?key=subae&type=WRITE_KJH' },
-    ],
-    WRITE_LJY: [           // 작성_이지은
-        { name: '로직 검증 조회', method: 'GET', url: '/api/getLogicVerifyAsDB?key=subae&type=WRITE_LJY' },
-    ],
-    LOGIC_VERIFY: [        // 로직 검증  (하위 화면에도 함께 표시됩니다)
-    ],
-    LOGIC_VERIFY_SAMPLE: [ // 샘플 명세서
-    ],
-
-    /* ── API 정의서 ── */
-    API_COMMON: [          // 공통 API 규격
-    ],
-    API_LOGIC: [           // 수배로직 API
-    ],
-    API_ERROR: [           // 에러 코드 정의
-    ],
-
-    /* ── 기타 규칙 ── */
-    RULE_CODING: [         // 코딩 컨벤션
-    ],
-    RULE_NAMING: [         // 명명 규칙
-    ],
-    RULE_DEPLOY: [         // 배포 / 운영 규칙
-    ],
-};
-
-/* ------------------------------------------------------------------ *
  * Spec 데이터 모델 (app.js 가 기대하는 형태)
  *   Spec { id, name, icon, content(markdown), author, updatedAt(ISO), readOnly }
  * ------------------------------------------------------------------ */
@@ -552,6 +488,14 @@ class SpecStore {
     constructor({ headers = {}, mockKey = 'teamdocs.specs.v1' } = {}) {
         this.headers = headers;                 // 필요 시 { Authorization: 'Bearer ...' }
         this.KEY = mockKey;
+
+        /* --- 사이드바 메뉴 상태 (DB: PLM_DOC_MENU) --- */
+        this._menuPromise = null;   // 중복 호출 방지용 (getSpecGroups/getSpecTypes 동시 호출)
+        this._groups = null;        // 카테고리(대분류)
+        this._types = null;         // 명세서
+        this.menuLive = false;      // true = DB에서 읽음, false = api.js 기본값으로 대체됨
+        this.menuError = '';
+
         // 시드에만 있는(새로 추가된) 명세서를 채운다 — 이미 저장된 내용은 그대로 보존
         const saved = this._readMock();
         let dirty = false;
@@ -561,7 +505,7 @@ class SpecStore {
         if (dirty) this._writeMock(saved);
     }
 
-    _type(id) { return DB_SPEC_TYPES.find(t => t.id === id); }
+    _type(id) { return (this._types || DB_SPEC_TYPES).find(t => t.id === id); }
     _readMock()      { try { return JSON.parse(localStorage.getItem(this.KEY)) || {}; } catch { return {}; } }
     _writeMock(data) { localStorage.setItem(this.KEY, JSON.stringify(data)); }
 
@@ -594,52 +538,136 @@ class SpecStore {
         };
     }
 
+    /* ============================================================== *
+     * 사이드바 메뉴 — DB(PLM_DOC_MENU) 연동
+     * ============================================================== */
+
+    /** 메뉴를 한 번만 읽어 캐시한다. force=true 면 DB에서 다시 읽는다. */
+    async _loadMenu(force = false) {
+        if (force) this._menuPromise = null;
+        if (!this._menuPromise) this._menuPromise = this._fetchMenu();
+        return this._menuPromise;
+    }
+
+    async _fetchMenu() {
+        try {
+            const res = await fetch(`${MENU_API.base}?key=${encodeURIComponent(MENU_API.key)}`,
+                                    { headers: this.headers });
+            if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+            const j = await res.json();
+            if (j.result !== 'OK') throw new Error(j.message || '메뉴를 불러오지 못했습니다.');
+            if (!Array.isArray(j.groups) || !j.groups.length) throw new Error('등록된 카테고리가 없습니다.');
+
+            this._groups = j.groups.map(g => ({
+                id: g.id, name: g.name,
+                icon: g.icon || 'folder',
+                color: g.color || 'blue',
+                readUrl: g.readUrl || null,      // 카테고리 고유 주소 (문서 목록 API)
+            }));
+            this._types = (j.specs || []).map(s => ({
+                id: s.id, name: s.name,
+                icon: s.icon || 'file-text',
+                group: s.groupId,
+                parent: s.parentId || null,
+                readUrl: s.readUrl || null,
+                saveUrl: s.saveUrl || null,
+                saveMethod: s.saveMethod || 'POST',
+                saveFormat: s.saveFormat || 'form',
+                saveFields: { content: s.saveField || 'updatedContent' },
+            }));
+            this.menuLive = true;
+            this.menuError = '';
+        } catch (err) {
+            // DB를 못 읽어도 화면은 떠야 하므로 api.js 기본값으로 대체한다
+            console.warn('[TeamDocs] 메뉴를 DB에서 불러오지 못해 api.js 기본값으로 표시합니다:', err.message);
+            this._groups = SPEC_GROUPS.map(g => ({ ...g }));
+            this._types = DB_SPEC_TYPES.map(t => ({ ...t }));
+            this.menuLive = false;
+            this.menuError = err.message;
+        }
+        return { groups: this._groups, specs: this._types };
+    }
+
+    /** 메뉴를 DB에서 다시 읽는다 (추가/삭제 후, 새로고침 버튼) */
+    async refreshMenu() { return this._loadMenu(true); }
+
+    /** 메뉴 변경 요청 공통 — 성공하면 캐시를 새로 채운다 */
+    async _menuPost(path, params) {
+        const body = new URLSearchParams();
+        Object.entries(params).forEach(([k, v]) => body.append(k, v ?? ''));
+
+        const res = await fetch(`${MENU_API.base}${path}?key=${encodeURIComponent(MENU_API.key)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', ...this.headers },
+            body: body.toString(),
+        });
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+
+        const j = await res.json().catch(() => ({}));
+        if (j.result !== 'OK') {
+            const err = new Error(j.message || '요청이 처리되지 않았습니다.');
+            err.detail = j;                       // { children: n } 등 추가 정보
+            throw err;
+        }
+        await this._loadMenu(true);
+        return j;
+    }
+
+    /** 카테고리(대분류) 추가 */
+    async createGroup({ name, icon, color } = {}) {
+        return this._menuPost('/create', { menuType: 'GROUP', name, icon, color });
+    }
+    /** 명세서 추가 — parentId 를 주면 그 명세서의 하위로 등록 */
+    async createSpec({ name, id, icon, groupId, parentId } = {}) {
+        return this._menuPost('/create', { menuType: 'SPEC', id, name, icon, groupId, parentId });
+    }
+    /** 이름(아이콘) 변경 — 카테고리·명세서 공통 */
+    async renameMenu(id, { name, icon } = {}) {
+        return this._menuPost('/update', { id, name, icon });
+    }
+    /** 삭제 — 하위 항목이 있으면 force:true 로 다시 호출해야 지워진다 */
+    async deleteMenu(id, { force = false } = {}) {
+        return this._menuPost('/delete', { id, force: force ? 'Y' : 'N' });
+    }
+
     /** 사이드바 카테고리(그룹) 목록 */
     async getSpecGroups() {
-        return SPEC_GROUPS.map(g => ({ ...g }));
+        await this._loadMenu();
+        return this._groups.map(g => ({ ...g }));
     }
 
     async getSpecTypes() {
-        return DB_SPEC_TYPES.map(t => ({
-            id: t.id, name: t.name, icon: t.icon, group: t.group || SPEC_GROUPS[0].id,
+        await this._loadMenu();
+        return this._types.map(t => ({
+            id: t.id, name: t.name, icon: t.icon, group: t.group || this._groups[0].id,
             parent: t.parent || null,             // 하위 명세서면 상위 명세서 id
             live: !!t.readUrl,                    // 실 API 연결 여부 (사이드바 표시용)
             readOnly: !!t.readUrl && !t.saveUrl,  // 조회만 가능한 상태
         }));
     }
 
-    /** 명세서 화면 상단에 표시할 API 링크 목록
-     *  (SPEC_API_LINKS 의 '카테고리 공통 → 상위 명세서 → 해당 명세서' 순으로 합칩니다) */
+    /** 화면 상단에 표시할 API 링크 — 이 문서의 '조회' 주소 하나만 돌려준다.
+     *  (주소는 DB PLM_DOC_MENU.READ_URL 값. 없으면 카드를 표시하지 않는다) */
     async getApiLinks(id) {
+        await this._loadMenu();
         const t = this._type(id);
-        const groupId = t?.group || SPEC_GROUPS[0].id;
-        const pick = (key) => (key && Array.isArray(SPEC_API_LINKS[key]) ? SPEC_API_LINKS[key] : []);
+        if (!t || !t.readUrl) return [];
 
-        const merged = [...pick(groupId), ...pick(t?.parent), ...pick(id)];
-
-        const seen = new Set();
-        return merged
-            .filter(l => l && l.url)
-            .map(l => ({
-                name:   l.name || l.url,
-                method: String(l.method || 'GET').toUpperCase(),
-                url:    l.url,
-                desc:   l.desc || '',
-            }))
-            .filter(l => {                       // 같은 주소가 중복 지정된 경우 한 번만
-                const k = l.method + ' ' + l.url;
-                if (seen.has(k)) return false;
-                seen.add(k);
-                return true;
-            });
+        return [{
+            name: `문서 조회 — ${t.name}`,
+            method: 'GET',
+            url: t.readUrl,
+            desc: '마크다운 본문을 그대로 반환합니다.',
+        }];
     }
 
     async getSpec(id) {
+        await this._loadMenu();
         const t = this._type(id);
         if (!t) throw new Error('알 수 없는 명세서: ' + id);
 
         const base = {
-            id, name: t.name, icon: t.icon, group: t.group || SPEC_GROUPS[0].id,
+            id, name: t.name, icon: t.icon, group: t.group || this._groups[0].id,
             parent: t.parent || null,
             live: !!t.readUrl,
             readOnly: !!t.readUrl && !t.saveUrl,
@@ -667,6 +695,7 @@ class SpecStore {
     }
 
     async saveSpec(id, { content, author }) {
+        await this._loadMenu();
         const t = this._type(id);
         if (!t) throw new Error('알 수 없는 명세서: ' + id);
 
@@ -680,7 +709,7 @@ class SpecStore {
 
         /* --- 실 API 인데 저장 주소가 없는 경우 --- */
         if (!t.saveUrl) {
-            throw new Error(`'${t.name}' 저장 API가 아직 없습니다. api.js 의 DB_SPEC_TYPES 에서 saveUrl 을 지정하세요.`);
+            throw new Error(`'${t.name}' 은(는) 저장 주소가 없어 읽기 전용입니다. (PLM_DOC_MENU.SAVE_URL 확인)`);
         }
 
         /* --- 실 API 저장 --- */

@@ -69,10 +69,20 @@ public class PLM_DB_Definition {
              where CATEGORY = ?
         """;
 
-        basicTemplate.update(sql,
+        int updated = basicTemplate.update(sql,
                 content,
                 catagory
         );
+
+        // 화면에서 새로 만든 명세서는 아직 본문 행이 없다 → 이때는 새로 넣어 준다
+        if (updated == 0) {
+            String insertSql = """
+                insert into PLM_LLM_METADATA (CATEGORY, CONTENT)
+                values (?, ?)
+            """;
+            basicTemplate.update(insertSql, catagory, content);
+            log.info("PLM_LLM_METADATA 신규 등록 : CATEGORY = {}", catagory);
+        }
     }
 
 
