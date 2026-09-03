@@ -21,6 +21,8 @@
     let currentSpecId = null;  // 현재 보고 있는 명세서 id
     let editorMode = 'doc';    // 'doc' | 'spec' — 에디터가 무엇을 편집 중인지
     const expandedSpecs = new Set();   // 하위 명세서를 펼쳐 둔 상위 명세서 id
+    const collapsedGroups = new Set(); // 접어 둔 명세서 카테고리(그룹) id
+    const collapsedCats = new Set();   // 접어 둔 문서 카테고리 id
 
     /* --------------------- 마크다운 렌더 --------------------- */
     marked.setOptions({
@@ -140,21 +142,123 @@
                 ? items.map(s => renderSpecRow(s, st, term)).join('')
                 : `<div class="pl-4 pr-2 py-1 text-xs text-apple-gray/60 italic">항목 없음</div>`;
 
+            // 검색 중에는 접힌 카테고리도 결과를 보여준다
+            const gOpen = !!term || !collapsedGroups.has(g.id);
+
             return `
             <div data-group="${escapeHtml(g.id)}">
-                <div class="flex items-center gap-1.5 px-2.5 py-1.5 text-apple-gray">
+                <div data-group-toggle="${escapeHtml(g.id)}" title="카테고리 ${gOpen ? '접기' : '펼치기'}"
+                     class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-apple-gray cursor-pointer select-none hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition">
+                    <i data-lucide="${gOpen ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 shrink-0"></i>
                     <i data-lucide="${escapeAttr(g.icon || 'folder')}" class="w-3.5 h-3.5 ${st.icon}"></i>
                     <span class="flex-1 truncate text-[13px] font-semibold">${escapeHtml(g.name)}</span>
+                    ${gOpen ? '' : `<span class="text-[11px] text-apple-gray/70">${items.length}</span>`}
                     <button data-reload="${escapeHtml(g.id)}" title="다시 불러오기"
                             class="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition">
                         <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                     </button>
                 </div>
-                <nav class="mt-0.5 space-y-0.5">${rows}</nav>
+                ${gOpen ? `<nav class="mt-0.5 space-y-0.5">${rows}</nav>` : ''}
             </div>`;
         }).join('');
 
         root.innerHTML = html || `<div class="px-2.5 py-1 text-xs text-apple-gray/60 italic">검색 결과 없음</div>`;
+        icons();
+    }
+
+    /* ============================================================== *
+     * ★ 카테고리별 API 링크 — 문서 제목 바로 아래에 카드로 표시
+     *   링크 내용은 api.js 의 SPEC_API_LINKS 에서 가져옵니다.
+     * ============================================================== */
+    const METHOD_STYLES = {
+        GET:    'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+        POST:   'bg-apple-blue/10 text-apple-blue',
+        PUT:    'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+        PATCH:  'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+        DELETE: 'bg-red-500/10 text-red-600 dark:text-red-400',
+    };
+
+    /** 상대경로를 현재 서버 기준 전체 주소로 — 복사 시 바로 쓸 수 있게 */
+    function absoluteUrl(u) {
+        try { return new URL(u, location.href).href; } catch { return u; }
+    }
+
+    /** 클립보드 복사 (구형 브라우저는 textarea 방식으로 대체) */
+    function copyText(text, msg = '복사했습니다.') {
+        const fallback = () => {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.cssText = 'position:fixed;top:-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); toast(msg, 'copy'); }
+            catch { toast('복사에 실패했습니다.', 'alert-circle'); }
+            document.body.removeChild(ta);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => toast(msg, 'copy')).catch(fallback);
+        } else fallback();
+    }
+
+    function apiLinkPanelHtml(links) {
+        const rows = links.map(l => {
+            const mStyle = METHOD_STYLES[l.method] || METHOD_STYLES.GET;
+            const abs = absoluteUrl(l.url);
+            return `
+            <div class="flex items-start gap-3 px-4 py-2.5">
+                <span class="shrink-0 mt-0.5 px-2 py-0.5 rounded-md text-[11px] font-semibold tracking-wide ${mStyle}">${escapeHtml(l.method)}</span>
+                <div class="min-w-0 flex-1">
+                    <div class="text-[13.5px] font-medium leading-snug">${escapeHtml(l.name)}</div>
+                    <div class="text-xs text-apple-gray break-all font-mono mt-0.5" style="font-family:'SF Mono',ui-monospace,monospace">${escapeHtml(l.url)}</div>
+                    ${l.desc ? `<div class="text-xs text-apple-gray mt-0.5">${escapeHtml(l.desc)}</div>` : ''}
+                </div>
+                <button type="button" data-api-copy="${escapeHtml(abs)}" title="주소 복사"
+                        class="shrink-0 h-7 w-7 flex items-center justify-center rounded-lg text-apple-gray hover:bg-black/[0.06] dark:hover:bg-white/[0.08] transition">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                </button>
+                <a href="${escapeHtml(l.url)}" target="_blank" rel="noopener" title="새 탭에서 열기"
+                   class="shrink-0 h-7 w-7 flex items-center justify-center rounded-lg text-apple-gray hover:bg-black/[0.06] dark:hover:bg-white/[0.08] transition no-underline">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>`;
+        }).join('');
+
+        return `
+        <details id="apiLinkPanel" open
+                 class="not-prose my-6 rounded-xl border border-apple-line dark:border-neutral-800 bg-[#fbfbfd] dark:bg-neutral-950 overflow-hidden">
+            <summary class="flex items-center gap-2 px-4 h-11 cursor-pointer select-none list-none">
+                <i data-lucide="webhook" class="w-4 h-4 text-apple-blue shrink-0"></i>
+                <span class="text-[13.5px] font-semibold">API 링크</span>
+                <span class="text-xs text-apple-gray">${links.length}개</span>
+                <span class="flex-1"></span>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-apple-gray shrink-0"></i>
+            </summary>
+            <div class="border-t border-apple-line dark:border-neutral-800 divide-y divide-apple-line/60 dark:divide-neutral-800">${rows}</div>
+        </details>`;
+    }
+
+    /** 현재 명세서의 API 링크를 제목(H1) 아래에 끼워 넣는다 */
+    async function renderApiLinks(specId) {
+        let links = [];
+        try { links = await specStore.getApiLinks(specId); } catch { links = []; }
+        if (currentSpecId !== specId || !links.length) return;
+
+        const viewer = $('#viewer');
+        const wrap = document.createElement('div');
+        wrap.innerHTML = apiLinkPanelHtml(links);
+        const panel = wrap.firstElementChild;
+
+        // 본문 제목(H1)이 있으면 그 바로 아래, 없으면 상단 메타 영역 아래에 배치
+        const anchor = viewer.querySelector('h1') || viewer.firstElementChild;
+        if (anchor) anchor.insertAdjacentElement('afterend', panel);
+        else viewer.appendChild(panel);
+
+        panel.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-api-copy]');
+            if (!btn) return;
+            e.preventDefault();
+            copyText(btn.dataset.apiCopy, 'API 주소를 복사했습니다.');
+        });
         icons();
     }
 
@@ -235,6 +339,7 @@
             : `<p class="text-apple-gray">내용이 비어 있습니다. <b>편집</b> 버튼을 눌러 작성하세요.</p>`;
 
         $('#viewer').innerHTML = head + body;
+        await renderApiLinks(id);            // 카테고리별 API 링크 (제목 아래)
         highlightIn($('#viewer'));
         $('#viewer').classList.remove('fade-up'); void $('#viewer').offsetWidth; $('#viewer').classList.add('fade-up');
 
@@ -329,16 +434,22 @@
             const catDocs = docs.filter(d => d.categoryId === cat.id && matches(d));
             if (term && catDocs.length === 0) continue;
 
+            // 검색 중에는 접힌 카테고리도 결과를 보여준다
+            const catOpen = !!term || !collapsedCats.has(cat.id);
+
             html += `
             <div class="mb-1" data-cat="${cat.id}">
-                <div class="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-apple-gray">
+                <div data-cat-toggle="${cat.id}" title="카테고리 ${catOpen ? '접기' : '펼치기'}"
+                     class="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide text-apple-gray cursor-pointer select-none hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition">
+                    <i data-lucide="${catOpen ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 shrink-0"></i>
                     <i data-lucide="${escapeAttr(cat.icon || 'folder')}" class="w-3.5 h-3.5"></i>
                     <span class="flex-1 truncate normal-case tracking-normal text-[13px]">${escapeHtml(cat.name)}</span>
+                    ${catOpen ? '' : `<span class="text-[11px] normal-case tracking-normal text-apple-gray/70">${catDocs.length}</span>`}
                     <button data-delcat="${cat.id}" title="카테고리 삭제" class="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition">
                         <i data-lucide="trash-2" class="w-3 h-3"></i>
                     </button>
                 </div>
-                <div class="mt-0.5 space-y-0.5">`;
+                <div class="mt-0.5 space-y-0.5 ${catOpen ? '' : 'hidden'}">`;
 
             if (catDocs.length === 0) {
                 html += `<div class="pl-8 pr-2 py-1 text-xs text-apple-gray/60 italic">문서 없음</div>`;
@@ -588,6 +699,15 @@
         $('#docTree').addEventListener('click', (e) => {
             const del = e.target.closest('[data-delcat]');
             if (del) { e.preventDefault(); deleteCategory(del.dataset.delcat); return; }
+            // 카테고리 제목을 누르면 그 안의 문서 목록을 접거나 펼친다
+            const catToggle = e.target.closest('[data-cat-toggle]');
+            if (catToggle) {
+                e.preventDefault();
+                const cid = catToggle.dataset.catToggle;
+                if (collapsedCats.has(cid)) collapsedCats.delete(cid); else collapsedCats.add(cid);
+                renderTree();
+                return;
+            }
             const link = e.target.closest('[data-doc]');
             if (link) { e.preventDefault(); openDoc(link.dataset.doc); }
         });
@@ -619,8 +739,24 @@
                 }
                 return;
             }
+            const groupToggle = e.target.closest('[data-group-toggle]');
+            if (groupToggle) {
+                e.preventDefault();
+                const gid = groupToggle.dataset.groupToggle;
+                if (collapsedGroups.has(gid)) collapsedGroups.delete(gid); else collapsedGroups.add(gid);
+                renderSpecTree();
+                return;
+            }
             const link = e.target.closest('[data-spec]');
-            if (link) { e.preventDefault(); openSpec(link.dataset.spec); }
+            if (link) {
+                e.preventDefault();
+                const sid = link.dataset.spec;
+                // 상위 항목을 누르면 하위 목록도 같이 펼쳐지거나 접힌다
+                if (childrenOf(sid).length) {
+                    if (expandedSpecs.has(sid)) expandedSpecs.delete(sid); else expandedSpecs.add(sid);
+                }
+                openSpec(sid);
+            }
         });
 
         $('#searchInput').addEventListener('input', (e) => { searchTerm = e.target.value; renderTree(); renderSpecTree(); });

@@ -376,6 +376,26 @@ const DB_SPEC_TYPES = [
         saveUrl: null,   // TODO: 저장 API 주소
         saveMethod: 'POST',
     },
+    {
+        id: 'VERIFY_SDJ', name: '검증_서동기', icon: 'check-check', group: 'db',
+        // ★ 연결 완료 — text/plain 마크다운 원문을 그대로 반환하는 API
+        group: 'db', parent: 'LOGIC_VERIFY',
+        readUrl: '/api/getLogicVerifyAsDB?key=subae&type=VERIFY_SEO',
+        saveUrl: '/api/update_PLM_DB_MetaData?key=subae&type=VERIFY_SEO',
+        saveMethod: 'POST',
+        saveFormat: 'form',
+        saveFields: { content: 'updatedContent' },
+    },
+    {
+        id: 'VERIFY_SJW', name: '검증_손정원', icon: 'check-check', group: 'db',
+        // ★ 연결 완료 — text/plain 마크다운 원문을 그대로 반환하는 API
+        group: 'db', parent: 'LOGIC_VERIFY',
+        readUrl: '/api/getLogicVerifyAsDB?key=subae&type=VERIFY_SEO',
+        saveUrl: '/api/update_PLM_DB_MetaData?key=subae&type=VERIFY_SEO',
+        saveMethod: 'POST',
+        saveFormat: 'form',
+        saveFields: { content: 'updatedContent' },
+    },
 
     /* ---------------- API 정의서 ---------------- */
     {
@@ -417,6 +437,93 @@ const DB_SPEC_TYPES = [
         saveMethod: 'POST',
     },
 ];
+
+/* ------------------------------------------------------------------ *
+ * ▼▼▼ 카테고리별 API 링크 — 여기만 채우면 화면 제목 아래에 표시됩니다 ▼▼▼
+ *
+ *   화면 상단(문서 제목 바로 아래)에 "이 카테고리에서 쓸 수 있는 API" 목록을
+ *   카드로 보여 줍니다. 주소를 복사하거나 새 탭에서 바로 호출할 수 있습니다.
+ *
+ *   [키(key) 규칙] — 아래 3가지를 모두 쓸 수 있고, 있는 것끼리 합쳐서 표시됩니다.
+ *     · SPEC_GROUPS 의 id ('db' / 'api' / 'rule')
+ *         → 그 카테고리에 속한 모든 명세서 화면에 공통으로 표시
+ *     · 상위 명세서 id (예: 'LOGIC_WRITE')
+ *         → 그 하위 명세서(작성_김영환 등) 화면에도 함께 표시
+ *     · 명세서 id (예: 'LOGIC_VERIFY')
+ *         → 그 명세서 화면에서만 표시
+ *     표시 순서: 카테고리 공통 → 상위 명세서 → 해당 명세서
+ *
+ *   [링크 한 건의 형식]
+ *     {
+ *       name  : '화면에 보일 이름',            // 필수
+ *       method: 'GET',                        // 선택 (기본 GET) — GET/POST/PUT/PATCH/DELETE
+ *       url   : '/api/xxx?key=subae',          // 필수 — 상대경로/전체주소 모두 가능
+ *       desc  : '설명 (한 줄)',                // 선택
+ *     }
+ *   ※ url 이 없는 항목은 무시됩니다. 목록이 비어 있으면 카드 자체가 표시되지 않습니다.
+ * ------------------------------------------------------------------ */
+const SPEC_API_LINKS = {
+
+    /* ---------------- 카테고리(그룹) 공통 ---------------- */
+    // 'db' 카테고리의 모든 명세서 화면에 표시됩니다.
+    db: [
+         //{ name: '로직 문서 조회', method: 'GET',  url: '/api/getLogicVerifyAsDB?key=subae&type=LOGIC_WRITE', desc: 'type 값으로 문서 종류를 지정합니다.' },
+        // { name: '문서 저장',     method: 'POST', url: '/api/update_PLM_DB_MetaData?key=subae&type=LOGIC_WRITE', desc: 'updatedContent 파라미터로 마크다운 본문을 전송합니다.' },
+    ],
+    api: [
+        // { name: '공통 API 목록', method: 'GET', url: '/api/...', desc: '' },
+    ],
+    rule: [
+        // { name: '규칙 조회', method: 'GET', url: '/api/...', desc: '' },
+    ],
+
+    /* ---------------- 화면(명세서)별 — 페이지마다 다른 API 주소를 여기에 ----------------
+     * 키 = DB_SPEC_TYPES 의 id. 그 화면을 열었을 때만 표시됩니다.
+     * 목록이 빈 배열([])이면 그 화면에는 API 카드가 나오지 않습니다.
+     * 아래는 모든 화면의 id 를 미리 적어 둔 것이니, 해당 줄 안에만 채우면 됩니다.
+     * -------------------------------------------------------------------------------- */
+
+    /* ── DB 명세서 ── */
+    ECO_WORKFLOW: [        // ECO 검증-WorkFlow
+        // { name: '조회', method: 'GET',  url: '/api/getLogicVerifyAsDB?key=subae&type=ECO_VERIFY', desc: '' },
+        // { name: '저장', method: 'POST', url: '/api/update_PLM_DB_MetaData?key=subae&type=ECO_VERIFY', desc: '' },
+    ],
+    LOGIC_WORKFLOW: [      // 로직 검증-WorkFlow
+    ],
+    ECO_VERIFY: [          // ECO 검증
+    ],
+    LOGIC_WRITE: [         // 로직 작성  (하위 화면 작성_OOO 에도 함께 표시됩니다)
+    ],
+    WRITE_KYH: [           // 작성_김영환
+        { name: '로직 검증 조회', method: 'GET', url: '/api/getLogicVerifyAsDB?key=subae&type=WRITE_KYH' },
+    ],
+    WRITE_KJH: [           // 작성_김지현
+        { name: '로직 검증 조회', method: 'GET', url: '/api/getLogicVerifyAsDB?key=subae&type=WRITE_KJH' },
+    ],
+    WRITE_LJY: [           // 작성_이지은
+        { name: '로직 검증 조회', method: 'GET', url: '/api/getLogicVerifyAsDB?key=subae&type=WRITE_LJY' },
+    ],
+    LOGIC_VERIFY: [        // 로직 검증  (하위 화면에도 함께 표시됩니다)
+    ],
+    LOGIC_VERIFY_SAMPLE: [ // 샘플 명세서
+    ],
+
+    /* ── API 정의서 ── */
+    API_COMMON: [          // 공통 API 규격
+    ],
+    API_LOGIC: [           // 수배로직 API
+    ],
+    API_ERROR: [           // 에러 코드 정의
+    ],
+
+    /* ── 기타 규칙 ── */
+    RULE_CODING: [         // 코딩 컨벤션
+    ],
+    RULE_NAMING: [         // 명명 규칙
+    ],
+    RULE_DEPLOY: [         // 배포 / 운영 규칙
+    ],
+};
 
 /* ------------------------------------------------------------------ *
  * Spec 데이터 모델 (app.js 가 기대하는 형태)
@@ -499,6 +606,32 @@ class SpecStore {
             live: !!t.readUrl,                    // 실 API 연결 여부 (사이드바 표시용)
             readOnly: !!t.readUrl && !t.saveUrl,  // 조회만 가능한 상태
         }));
+    }
+
+    /** 명세서 화면 상단에 표시할 API 링크 목록
+     *  (SPEC_API_LINKS 의 '카테고리 공통 → 상위 명세서 → 해당 명세서' 순으로 합칩니다) */
+    async getApiLinks(id) {
+        const t = this._type(id);
+        const groupId = t?.group || SPEC_GROUPS[0].id;
+        const pick = (key) => (key && Array.isArray(SPEC_API_LINKS[key]) ? SPEC_API_LINKS[key] : []);
+
+        const merged = [...pick(groupId), ...pick(t?.parent), ...pick(id)];
+
+        const seen = new Set();
+        return merged
+            .filter(l => l && l.url)
+            .map(l => ({
+                name:   l.name || l.url,
+                method: String(l.method || 'GET').toUpperCase(),
+                url:    l.url,
+                desc:   l.desc || '',
+            }))
+            .filter(l => {                       // 같은 주소가 중복 지정된 경우 한 번만
+                const k = l.method + ' ' + l.url;
+                if (seen.has(k)) return false;
+                seen.add(k);
+                return true;
+            });
     }
 
     async getSpec(id) {
