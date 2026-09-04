@@ -677,7 +677,7 @@
     /* ══════════════════════════════════════════════════════════════
      * ★ 최초 등록 조회 (화면 하단 접이식 패널)
      *   검색 조건은 문구(필수) + PID(선택) 뿐이다.
-     *   → 그 문구가 처음 등록된 PID · 버전 · 행(NO) · 날짜를 팝업 표시
+     *   → 그 문구가 처음 등록된 PID · 버전 · 행(NO) · 날짜 · 로직수정자를 팝업 표시
      * ════════════════════════════════════════════════════════════ */
     const FR_MODAL_MAX_ROWS = 200;   // 모달 이력 테이블에 그릴 최대 행
     let frLast = null;               // 마지막 조회 결과 (복사 기능용)
@@ -757,7 +757,8 @@
                 <div class="fr-tile accent"><div class="k">PID</div><div class="v">${dash(first.pid)}</div></div>
                 <div class="fr-tile"><div class="k">버전</div><div class="v">${dash(first.version)}</div></div>
                 <div class="fr-tile"><div class="k">행 (NO)</div><div class="v">${noLabel}</div></div>
-                <div class="fr-tile"><div class="k">등록일</div><div class="v">${dash(first.regDate)}</div></div>
+                <div class="fr-tile"><div class="k">등록일</div><div class="v tight">${dash(first.regDate)}</div></div>
+                <div class="fr-tile"><div class="k">로직수정자</div><div class="v">${dash(first.username)}</div></div>
             </div>`;
 
         const metaRow = (k, v) =>
@@ -781,6 +782,7 @@
                 <td>${dash(r.pid)}</td>
                 <td>${dash(r.version)}</td>
                 <td>${dash(r.regDate)}</td>
+                <td class="whitespace-nowrap">${dash(r.username)}</td>
                 <td class="max-w-[280px] truncate" title="${escapeHtml(r.remarks)}">${dash(r.remarks)}</td>
             </tr>`).join('');
 
@@ -792,7 +794,7 @@
                 </div>
                 <div class="fr-tbl-wrap">
                     <table class="fr-tbl">
-                        <thead><tr><th>행 (NO)</th><th>PID</th><th>버전</th><th>등록일</th><th>REMARKS</th></tr></thead>
+                        <thead><tr><th>행 (NO)</th><th>PID</th><th>버전</th><th>등록일</th><th>로직수정자</th><th>REMARKS</th></tr></thead>
                         <tbody>${listRows}</tbody>
                     </table>
                 </div>
@@ -856,9 +858,9 @@
     /* 모달 결과 복사 (엑셀 붙여넣기용 TSV) */
     $id('frCopy').addEventListener('click', async () => {
         if (!frLast || !frLast.result || !frLast.result.rows.length) { toast('복사할 결과가 없습니다.'); return; }
-        const lines = ['PID\t버전\t행(NO)\t등록일\tPID명\tREMARKS'];
+        const lines = ['PID\t버전\t행(NO)\t등록일\t로직수정자\tPID명\tREMARKS'];
         frLast.result.rows.forEach(r => {
-            lines.push([r.pid, r.version, r.no, r.regDate, r.name, r.remarks].map(v => String(v ?? '')).join('\t'));
+            lines.push([r.pid, r.version, r.no, r.regDate, r.username, r.name, r.remarks].map(v => String(v ?? '')).join('\t'));
         });
         await copyText(lines.join('\r\n'));
         toast(frLast.result.rows.length.toLocaleString() + '건이 클립보드에 복사되었습니다.');

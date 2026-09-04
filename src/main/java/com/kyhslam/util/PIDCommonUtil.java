@@ -2101,7 +2101,7 @@ public class PIDCommonUtil {
      * @return NO, PID, NAME, REG_DATE, VERSION, REMARKS 를 담은 목록.
      *         같은 버전에서 여러 행이 걸리면 그 행들이 모두 담긴다. 없으면 빈 목록.
      */
-    @Description("문구가 최초 등록된 PID·버전·행·등록일 조회")
+    @Description("문구가 최초 등록된 PID·버전·행·등록일 조회 - VAL1 ~ VAL20 컬럼 조회")
     public static ArrayList<HashMap<String,String>> findFirstPID(String word, String PID) {
 
         ArrayList<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
@@ -2185,6 +2185,153 @@ public class PIDCommonUtil {
                 pstmt.setString(idx++, PID.trim());
             }
             for(int i = 1; i <= valMax; i++) {
+                pstmt.setString(idx++, word);
+            }
+
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+
+                HashMap<String, String> oMap = new HashMap<>();
+                oMap.put("NO", rs.getString("NO"));
+                oMap.put("PID", rs.getString("PID"));
+                oMap.put("NAME", rs.getString("NAME"));
+                oMap.put("REG_DATE", rs.getString("REG_DATE"));
+                oMap.put("VERSION", rs.getString("VERSION"));
+                oMap.put("REMARKS", rs.getString("REMARKS"));
+                oMap.put("USERNAME", rs.getString("USERNAME"));
+
+                result.add(oMap);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(null, pstmt, rs);
+        }
+
+        return result;
+    }
+
+
+
+    /**
+     * findFirstPIDAsALLColumn 이 훑는 항목들.
+     * 컬럼 개수는 항목마다 다르므로(SPEC/CON=30, KEY/VAL=20) 상한은 {@link #maxSlot(String)} 로 정한다.
+     */
+    private static final String[] FIRST_PID_ALL_FIELDS = { "SPEC", "CON", "KEY", "VAL" };
+
+    /**
+     * 최초등록 PID(전 컬럼) — PID 조건 없이 전체를 대상으로 조회한다.
+     * @param word 찾을 문구
+     */
+    @Description("문구가 최초 등록된 PID·버전·행·등록일 조회 - SPEC1~SPEC30, CON1~CON30, KEY1~KEY20, VAL1~VAL20 컬럼 중")
+    public static ArrayList<HashMap<String,String>> findFirstPIDAsALLColumn(String word) {
+        return findFirstPIDAsALLColumn(word, "");
+    }
+
+    /**
+     * 최초등록 PID(전 컬럼) — 문구가 처음 등록된 PID / 버전 / 행(NO) / 등록일을 조회한다.
+     *
+     * {@link #findFirstPID(String, String)} 과 동작은 같고, 조회 대상 컬럼만 다르다.
+     * VAL1~VAL20 뿐 아니라 SPEC1~SPEC30, CON1~CON30, KEY1~KEY20 까지 함께 훑는다.
+     *
+     * 기준일({@link #FIRST_PID_BASE_DATE}) 이전 데이터에서 먼저 찾고,
+     * 결과가 없을 때만 기준일 이후 데이터에서 다시 찾는다.
+     *
+     * @param word 찾을 문구 (필수)
+     * @param PID  PID (선택). 비우면 전체 PID 를 대상으로 조회한다.
+     * @return NO, PID, NAME, REG_DATE, VERSION, USERNAME, REMARKS 를 담은 목록.
+     *         같은 버전에서 여러 행이 걸리면 그 행들이 모두 담긴다. 없으면 빈 목록.
+     */
+    @Description("문구가 최초 등록된 PID·버전·행·등록일 조회 - SPEC1~SPEC30, CON1~CON30, KEY1~KEY20, VAL1~VAL20 컬럼 중")
+    public static ArrayList<HashMap<String,String>> findFirstPIDAsALLColumn(String word, String PID) {
+
+        ArrayList<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
+
+        if(word == null || "".equals(word.trim())) return result;
+
+        Connection con = null;
+
+        try {
+            con = PLMDBConnection.getConnection();
+
+            //1. 기준일 이전에 등록된 것이 있는지 먼저 조회
+            result = selectFirstPIDAsAllColumn(con, word.trim(), PID, "<");
+
+            //2. 기준일 이전에 없으니, 기준일 이후에 있는지 조회
+            if(result.isEmpty()) {
+                result = selectFirstPIDAsAllColumn(con, word.trim(), PID, ">=");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, null, null);
+        }
+
+        return result;
+    }
+
+    /**
+     * findFirstPIDAsALLColumn 의 실제 조회. 기준일 비교 연산자만 바꿔 두 번 재사용한다.
+     * @param dateOp 기준일 비교 연산자 ("<" : 기준일 이전, ">=" : 기준일 이후)
+     */
+    private static ArrayList<HashMap<String,String>> selectFirstPIDAsAllColumn(Connection con, String word, String PID, String dateOp) {
+
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
+
+        boolean usePid = (PID != null && !"".equals(PID.trim()));
+
+        // SPEC1~30, CON1~30, KEY1~20, VAL1~20 을 OR 로 묶는다.
+        // 값은 전부 바인딩이라 문구에 따옴표가 있어도 안전하다.
+        StringBuffer wordCondition = new StringBuffer();
+        int bindCount = 0;
+        for(String field : FIRST_PID_ALL_FIELDS) {
+            int last = maxSlot(field);
+            for(int i = 1; i <= last; i++) {
+                if(bindCount > 0) wordCondition.append(" OR ");
+                wordCondition.append(" d." + field + i + " LIKE '%' || ? || '%' ");
+                bindCount++;
+            }
+        }
+
+        StringBuffer sql = new StringBuffer();
+        sql.append(" WITH TARGET_DATA AS ( ");
+        sql.append("     SELECT d.NO, h.PID, h.NAME, ");
+        sql.append("            TO_CHAR(h.REG_DATE, 'YYYY-MM-DD HH24:MI:SS') AS REG_DATE, ");
+        sql.append("            h.VERSION, h.REMARKS, ");
+
+        sql.append(" ( SELECT F.MD$DESC FROM FUSER$SF F WHERE F.MD$NUMBER = h.USERID ) AS USERNAME, ");
+
+        // 가장 먼저 등록된 건이 1위. VERSION 은 문자열이라 단독으로 정렬하면 '10' 이 '2' 보다 앞서므로 REG_DATE 를 앞에 둔다.
+        sql.append("            RANK() OVER (ORDER BY h.REG_DATE ASC, h.VERSION ASC) AS rnk ");
+        sql.append("     FROM variant_d d, ");
+        sql.append("          variant_h h ");
+        sql.append("     WHERE h.HOUID = d.HOUID ");
+        sql.append("       AND h.REG_DATE " + dateOp + " TO_DATE('" + FIRST_PID_BASE_DATE + "', 'YYYYMMDD') ");
+        if(usePid) {
+            sql.append("       AND h.PID = ? ");
+        }
+        sql.append("       AND ( " + wordCondition.toString() + " ) ");
+        sql.append("       AND h.VERSION != '-1' ");
+        sql.append(" ) ");
+        sql.append(" SELECT NO, PID, NAME, REG_DATE, VERSION, USERNAME, REMARKS ");
+        sql.append(" FROM TARGET_DATA ");
+        sql.append(" WHERE rnk = 1 ");
+        sql.append(" ORDER BY NO ");
+
+        try {
+            pstmt = con.prepareStatement(sql.toString());
+
+            int idx = 1;
+            if(usePid) {
+                pstmt.setString(idx++, PID.trim());
+            }
+            for(int i = 0; i < bindCount; i++) {
                 pstmt.setString(idx++, word);
             }
 

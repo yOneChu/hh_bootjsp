@@ -56,7 +56,7 @@ public class PIDController {
         return "thymeleaf/logic/searchLogicPIDv4";
     }
 
-    @Description("최초등록 PID — PID 조건 없이 전체를 대상으로 조회한다.")
+    @Description("최초등록 PID — PID 조건 없이 전체를 대상으로 조회 - VAL")
     @PostMapping("/pid/findFirstPID")
     @ResponseBody
     public ArrayList<HashMap<String,String>> findFirstPID(String pid, String word) {
@@ -64,6 +64,18 @@ public class PIDController {
         //return "thymeleaf/logic/searchLogicPIDv4";
 
         ArrayList<HashMap<String,String>> result = PIDCommonUtil.findFirstPID(word, pid);
+
+        return result;
+    }
+
+    @Description("최초등록 PID — PID 조건 없이 전체를 대상으로 조회 - SPEC,CON,KEY,VAL")
+    @PostMapping("/pid/findFirstPIDAsALLColumn")
+    @ResponseBody
+    public ArrayList<HashMap<String,String>> findFirstPIDAsALLColumn(String pid, String word) {
+        //return "subaeLogic/searchPIDDetail";
+        //return "thymeleaf/logic/searchLogicPIDv4";
+
+        ArrayList<HashMap<String,String>> result = PIDCommonUtil.findFirstPIDAsALLColumn(word, pid);
 
         return result;
     }

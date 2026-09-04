@@ -19,7 +19,8 @@
  *       word : 찾을 문구 (필수) — variant_d 의 VAL1~VAL20 을 LIKE 검색
  *       pid  : PID (선택) — 비우면 전체 PID 대상
  *   response (application/json)
- *       [ { NO, PID, NAME, REG_DATE, VERSION, REMARKS }, ... ]
+ *       [ { NO, PID, NAME, REG_DATE, VERSION, USERNAME, REMARKS }, ... ]
+ *       · USERNAME : 로직수정자 (variant_h.USERID → FUSER$SF.MD$DESC)
  *       · 서버(PIDCommonUtil.findFirstPID)가 기준일 20250101 이전을 먼저 보고,
  *         없을 때만 이후를 조회해 "가장 먼저 등록된 버전"의 행들만 돌려준다.
  *       · 같은 버전에서 여러 줄이 걸리면 그 줄이 모두 담겨 온다.
@@ -87,6 +88,8 @@
             regDate: pick(raw, ['REG_DATE', 'REGDATE', 'DATE', 'CREATE_DATE']),
             remarks: pick(raw, ['REMARKS', 'REMARK', 'NOTE']),
             userid:  pick(raw, ['USERID', 'USER_ID', 'REG_USER']),
+            // 로직수정자 — 서버가 USERID 를 사용자명(MD$DESC)으로 변환해 USERNAME 으로 내려준다
+            username: pick(raw, ['USERNAME', 'USER_NAME', 'USERNM']),
         };
     }
 

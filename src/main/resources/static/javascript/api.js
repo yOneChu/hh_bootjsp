@@ -188,6 +188,84 @@ const SEED_DATA = {
 2. 제목과 카테고리를 정하고 마크다운으로 내용을 씁니다.
 3. **저장**하면 팀원 모두가 볼 수 있습니다.
 
+## 카테고리 아이콘 지정하기
+
+사이드바 **명세서** 영역의 카테고리(대분류)는 <i data-lucide="folder-plus" class="inline w-4 h-4 align-text-bottom"></i> 버튼으로 추가합니다.
+아이콘은 추가한 뒤 카테고리 이름 위에 마우스를 올렸을 때 나오는 <i data-lucide="pencil" class="inline w-4 h-4 align-text-bottom"></i> **(이름 변경)** 버튼에서 지정합니다.
+
+1. <i data-lucide="pencil" class="inline w-4 h-4 align-text-bottom"></i> 을 누르면 먼저 **이름 변경** 입력창이 뜹니다.
+2. 확인을 누르면 **아이콘 (lucide 이름)** 입력창이 이어서 뜹니다.
+3. 여기에 아래 표의 **입력값**을 그대로 적으면 옆의 아이콘이 사이드바에 표시됩니다.
+
+> ⚠️ 아이콘 이름은 **모두 소문자 + 하이픈(-)** 형식입니다. (\`scroll-text\` O / \`ScrollText\`·\`scroll text\` X)
+> 표에 없는 이름을 넣으면 아이콘 자리가 **빈칸**으로 보이니, 아래 목록에서 골라 쓰는 것을 권장합니다.
+> 입력값을 비워 두면 기본값 — 카테고리는 \`folder\`, 명세서는 \`file-text\` 가 적용됩니다.
+
+### 문서 · 폴더
+
+| 입력값 | 표시 아이콘 | 추천 용도 |
+|---|:---:|---|
+| \`folder\` | <i data-lucide="folder" class="w-5 h-5"></i> | 일반 카테고리(기본값) |
+| \`folder-open\` | <i data-lucide="folder-open" class="w-5 h-5"></i> | 진행 중 / 열린 분류 |
+| \`folder-tree\` | <i data-lucide="folder-tree" class="w-5 h-5"></i> | 계층이 깊은 분류 |
+| \`file-text\` | <i data-lucide="file-text" class="w-5 h-5"></i> | 일반 명세서(기본값) |
+| \`files\` | <i data-lucide="files" class="w-5 h-5"></i> | 문서 묶음 |
+| \`file-code\` | <i data-lucide="file-code" class="w-5 h-5"></i> | 소스 · 스크립트 문서 |
+| \`file-spreadsheet\` | <i data-lucide="file-spreadsheet" class="w-5 h-5"></i> | 엑셀 · 데이터 시트 |
+| \`book-open\` | <i data-lucide="book-open" class="w-5 h-5"></i> | 매뉴얼 · 가이드 |
+| \`scroll-text\` | <i data-lucide="scroll-text" class="w-5 h-5"></i> | 규칙 · 정책 |
+| \`clipboard-list\` | <i data-lucide="clipboard-list" class="w-5 h-5"></i> | 체크리스트 · 절차 |
+
+### 데이터 · 시스템
+
+| 입력값 | 표시 아이콘 | 추천 용도 |
+|---|:---:|---|
+| \`database\` | <i data-lucide="database" class="w-5 h-5"></i> | DB 명세서 |
+| \`table\` | <i data-lucide="table" class="w-5 h-5"></i> | 테이블 정의 |
+| \`server\` | <i data-lucide="server" class="w-5 h-5"></i> | 서버 · 인프라 |
+| \`hard-drive\` | <i data-lucide="hard-drive" class="w-5 h-5"></i> | 저장소 · 백업 |
+| \`webhook\` | <i data-lucide="webhook" class="w-5 h-5"></i> | API 정의서 |
+| \`plug\` | <i data-lucide="plug" class="w-5 h-5"></i> | 외부 연계 · 인터페이스 |
+| \`network\` | <i data-lucide="network" class="w-5 h-5"></i> | 시스템 구성도 |
+| \`globe\` | <i data-lucide="globe" class="w-5 h-5"></i> | 대외 · 사이트 |
+| \`cpu\` | <i data-lucide="cpu" class="w-5 h-5"></i> | 설비 · 장비 |
+| \`layers\` | <i data-lucide="layers" class="w-5 h-5"></i> | 계층 · 버전 |
+
+### 개발 · 업무
+
+| 입력값 | 표시 아이콘 | 추천 용도 |
+|---|:---:|---|
+| \`code\` | <i data-lucide="code" class="w-5 h-5"></i> | 개발 매뉴얼 |
+| \`terminal\` | <i data-lucide="terminal" class="w-5 h-5"></i> | 명령어 · 배치 |
+| \`git-branch\` | <i data-lucide="git-branch" class="w-5 h-5"></i> | 형상관리 · 브랜치 전략 |
+| \`bug\` | <i data-lucide="bug" class="w-5 h-5"></i> | 오류 · 이슈 정리 |
+| \`settings\` | <i data-lucide="settings" class="w-5 h-5"></i> | 환경설정 · 운영 |
+| \`wrench\` | <i data-lucide="wrench" class="w-5 h-5"></i> | 유지보수 |
+| \`package\` | <i data-lucide="package" class="w-5 h-5"></i> | 배포 · 패키지 |
+| \`boxes\` | <i data-lucide="boxes" class="w-5 h-5"></i> | 자재 · BOM |
+| \`factory\` | <i data-lucide="factory" class="w-5 h-5"></i> | 생산 · 공장 |
+| \`users\` | <i data-lucide="users" class="w-5 h-5"></i> | 조직 · 담당자 |
+
+### 상태 · 강조
+
+| 입력값 | 표시 아이콘 | 추천 용도 |
+|---|:---:|---|
+| \`rocket\` | <i data-lucide="rocket" class="w-5 h-5"></i> | 시작 가이드 |
+| \`star\` | <i data-lucide="star" class="w-5 h-5"></i> | 중요 문서 |
+| \`bookmark\` | <i data-lucide="bookmark" class="w-5 h-5"></i> | 자주 보는 문서 |
+| \`flag\` | <i data-lucide="flag" class="w-5 h-5"></i> | 진행 중 · 확인 필요 |
+| \`alert-triangle\` | <i data-lucide="alert-triangle" class="w-5 h-5"></i> | 주의 사항 |
+| \`check-circle\` | <i data-lucide="check-circle" class="w-5 h-5"></i> | 완료 · 확정본 |
+| \`shield\` | <i data-lucide="shield" class="w-5 h-5"></i> | 보안 · 권한 |
+| \`lock\` | <i data-lucide="lock" class="w-5 h-5"></i> | 대외비 |
+| \`calendar\` | <i data-lucide="calendar" class="w-5 h-5"></i> | 일정 · 이력 |
+| \`bar-chart-3\` | <i data-lucide="bar-chart-3" class="w-5 h-5"></i> | 통계 · 리포트 |
+
+> 🔎 표에 없는 아이콘이 필요하면 [lucide.dev/icons](https://lucide.dev/icons) 에서 원하는 아이콘을 찾아
+> 이름을 그대로 입력하면 됩니다. (본 화면은 lucide 0.417 버전을 사용합니다)
+>
+> 💡 아이콘 미리보기는 **저장 후 문서 화면**에서만 보입니다. 편집 화면의 오른쪽 미리보기에서는 빈칸으로 표시됩니다.
+
 > 💡 이 문서도 편집할 수 있어요. 상단의 편집 버튼을 눌러보세요.`,
         },
         {
