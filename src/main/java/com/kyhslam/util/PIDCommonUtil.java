@@ -946,7 +946,7 @@ public class PIDCommonUtil {
                 result = rs.getString("VAL");
             }
 
-            System.out.println(result);
+            //System.out.println(result);
 
 
         } catch (Exception e) {
