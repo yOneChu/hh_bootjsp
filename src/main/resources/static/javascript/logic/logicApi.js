@@ -12,11 +12,14 @@
  *   POST /pid/searchPIDSpecViewJson   PID 상세 검색
  *   POST /excel/searchPIDExcel        엑셀 다운로드
  *   GET  /pid/findPIDList?pid=        PID 전체 버전
- *   POST /pid/findFirstPID            최초 등록 조회
+ *   POST /pid/findFirstPID            최초 등록 조회 (VAL1~VAL20)
+ *   POST /pid/findFirstPIDAsALLColumn 최초 등록 조회 (SPEC/CON/KEY/VAL 전체 컬럼)
  *
- * ── 최초 등록 조회 (PIDController.findFirstPID) ───────────────────────
+ * ── 최초 등록 조회 (PIDController.findFirstPID / findFirstPIDAsALLColumn) ──
  *   request  (application/x-www-form-urlencoded)
- *       word : 찾을 문구 (필수) — variant_d 의 VAL1~VAL20 을 LIKE 검색
+ *       word : 찾을 문구 (필수)
+ *              · /pid/findFirstPID            → variant_d 의 VAL1~VAL20 을 LIKE 검색
+ *              · /pid/findFirstPIDAsALLColumn → SPEC1~30, CON1~30, KEY1~20, VAL1~20 을 LIKE 검색
  *       pid  : PID (선택) — 비우면 전체 PID 대상
  *   response (application/json)
  *       [ { NO, PID, NAME, REG_DATE, VERSION, USERNAME, REMARKS }, ... ]
@@ -35,6 +38,8 @@
         excel:    '/excel/searchPIDExcel',
         pidList:  '/pid/findPIDList',
         firstPid: '/pid/findFirstPID',
+        /* 전체 컬럼(SPEC/CON/KEY/VAL) 대상 최초 등록 조회 — 응답 형태는 firstPid 와 동일 */
+        firstPidAll: '/pid/findFirstPIDAsALLColumn',
     };
 
     /* ── 내부 유틸 ── */
@@ -144,6 +149,8 @@
 
     /* ══════════════════════════════════════════════════════════════
      * 4) 최초 등록 조회 — 조건은 문구(필수) + PID(선택) 뿐이다
+     *    opt.allColumn 이 true 면 SPEC/CON/KEY/VAL 전체 컬럼을 대상으로 조회한다.
+     *    (기본 false — VAL1~VAL20 만 대상. 두 엔드포인트의 응답 형태는 같다)
      *    반환 { first, rows, msg }
      *      first : 최초 등록 건 (대표 1건, 없으면 null)
      *      rows  : 같은 버전에서 걸린 행 전체 (NO 오름차순)
@@ -153,7 +160,7 @@
         const pid  = String(opt.pid || '').trim();
         if (!word) return { first: null, rows: [] };
 
-        const res = await postForm(EP.firstPid, { word, pid });
+        const res = await postForm(opt.allColumn ? EP.firstPidAll : EP.firstPid, { word, pid });
         const data = await res.json();
 
         let list = Array.isArray(data) ? data

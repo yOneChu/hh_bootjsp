@@ -676,11 +676,19 @@
 
     /* ══════════════════════════════════════════════════════════════
      * ★ 최초 등록 조회 (화면 하단 접이식 패널)
-     *   검색 조건은 문구(필수) + PID(선택) 뿐이다.
+     *   검색 조건은 문구(필수) + PID(필수) 뿐이다.
      *   → 그 문구가 처음 등록된 PID · 버전 · 행(NO) · 날짜 · 로직수정자를 팝업 표시
+     *
+     *   조회 대상 컬럼은 버튼에 따라 갈린다.
+     *     · [조회]             → VAL1~VAL20            (/pid/findFirstPID)
+     *     · [전체컬럼대상조회] → SPEC/CON/KEY/VAL 전체 (/pid/findFirstPIDAsALLColumn)
      * ════════════════════════════════════════════════════════════ */
     const FR_MODAL_MAX_ROWS = 200;   // 모달 이력 테이블에 그릴 최대 행
     let frLast = null;               // 마지막 조회 결과 (복사 기능용)
+
+    /* 조회 대상 컬럼 라벨 — 모달 부제 / 요약에 그대로 노출된다 */
+    const FR_SCOPE_VAL = 'VAL1~VAL20';
+    const FR_SCOPE_ALL = 'SPEC1~30 · CON1~30 · KEY1~20 · VAL1~20';
 
     const modal = $id('firstRegModal');
     const frPanel = $id('frPanel');
@@ -743,7 +751,7 @@
         return '';
     }
 
-    function renderFirstReg(word, pid, result) {
+    function renderFirstReg(word, pid, result, scopeLabel) {
         const first = result.first;
         const rows = result.rows || [];
 
@@ -770,6 +778,7 @@
         const meta = `
             <div class="mt-4 rounded-[14px] border border-black/[.06] dark:border-white/[.08] px-4 py-1 text-[12.5px]">
                 ${metaRow('검색 문구', `<b>${escapeHtml(word)}</b>`)}
+                ${metaRow('검색 대상', escapeHtml(scopeLabel || FR_SCOPE_VAL))}
                 ${metaRow('PID 조건', pid ? escapeHtml(pid) : '<span class="text-apple-gray1">전체 PID</span>')}
                 ${metaRow('PID 명', dash(first.name))}
                 ${metaRow('REMARKS', dash(first.remarks))}
@@ -812,7 +821,11 @@
             : '최초 등록 1건';
     }
 
-    async function runFirstRegistered(preset) {
+    /**
+     * @param preset    {word, pid} — 결과 표 더블클릭 등으로 넘어온 조건 (없으면 입력값 사용)
+     * @param allColumn true 면 SPEC/CON/KEY/VAL 전체 컬럼 대상으로 조회한다
+     */
+    async function runFirstRegistered(preset, allColumn) {
         // 결과 표 더블클릭 등으로 값을 넘겨받으면 접힌 패널을 펴고 조건을 채운다
         if (preset && preset.word !== undefined) {
             frPanel.open = true;
@@ -836,18 +849,20 @@
             return;
         }
 
-        $id('frModalSub').textContent = `"${word}" · PID ${pid}`;
+        const scopeLabel = allColumn ? FR_SCOPE_ALL : FR_SCOPE_VAL;
+
+        $id('frModalSub').textContent = `"${word}" · PID ${pid} · 대상 ${scopeLabel}`;
         frSkeleton();
         openModal();
 
         try {
-            const result = await api.findFirstRegistered({ word, pid });
-            frLast = { word, pid, result };
+            const result = await api.findFirstRegistered({ word, pid, allColumn: !!allColumn });
+            frLast = { word, pid, result, scopeLabel };
 
             if (result.msg) { frEmpty(word, result.msg); return; }
             if (!result.first) { frEmpty(word); return; }
 
-            renderFirstReg(word, pid, result);
+            renderFirstReg(word, pid, result, scopeLabel);
         } catch (err) {
             console.error(err);
             frEmpty(word, '조회 중 오류가 발생했습니다 (' + (err && err.message ? err.message : '알 수 없는 오류') + ')');
@@ -884,6 +899,7 @@
     $id('btnExcel').addEventListener('click', searchExcel);
     $id('btnCSV').addEventListener('click', exportCSV);
     $id('btnCopy').addEventListener('click', copyToClipboard);
-    $id('btnFirstReg').addEventListener('click', () => runFirstRegistered());
+    $id('btnFirstReg').addEventListener('click', () => runFirstRegistered(null, false));
+    $id('btnFirstRegAll').addEventListener('click', () => runFirstRegistered(null, true));
 
 })();

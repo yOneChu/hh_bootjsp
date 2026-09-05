@@ -311,7 +311,7 @@ AND (SELECT COD(E.EL_ATYP) FROM ELV_INFO$ID A, ELV_INFO$VF E
 | `status` | 제품 상태 | `AND A.MD$STATUS = 'RLS'` | WITH 절 내부. **값이 무엇이든 항상 `'RLS'` 로 고정 적용됨** |
 | `partNo` | Part No. | `AND NP.MD$NUMBER = '2117040001'` | `*` 포함 시 `%` 로 치환 후 `LIKE` (예: `2117*` → `LIKE '2117%'`) |
 | `blockNo` | Block No. | `AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID = DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = 'P117040'` | 입력값은 **대문자로 변환**됨 |
-| `cmt` | CMT | `AND UPPER(PE.CMT) LIKE '%ABC%'` | 대소문자 무시 부분일치 |
+| `cmt` | CMT | `AND REGEXP_REPLACE(PE.CMT, '[a-z]', UPPER('\0')) LIKE '%ABC%'` | 원본 코드 표현. **실제로는 소문자를 제거하는 동작**이라 `UPPER()` 와 결과가 다르다. 15장 13번 참고 |
 | `spec` | SPEC | `AND NP.SPEC LIKE '%SS400%'` | 비교값을 **대문자로 변환**하여 부분일치 |
 | `brand` | 브랜드 | `AND (…COD(E.EL_ABRAND)…) = 'HDEL'` | `*` 포함 시 `LIKE` |
 | `EL_ASPSCD` | 생산거점(설계) | `AND (…COD(E.EL_ASPSCD)…) = 'KR00'` | 완전일치만 |
@@ -351,7 +351,7 @@ AND (SELECT COD(E.EL_ATYP) FROM ELV_INFO$ID A, ELV_INFO$VF E
 | `블록번호 P117040 자재` | 블록 서브쿼리 `= 'P117040'` |
 | `2026년 제품 기준` | `SUBSTR(A.MD$MDATE, 0, 4) = '2026'` (WITH 절) |
 | `릴리즈된 제품만` | `AND A.MD$STATUS = 'RLS'` (WITH 절) |
-| `CMT 에 ABC 가 들어간 BOM` | `AND UPPER(PE.CMT) LIKE '%ABC%'` |
+| `CMT 에 ABC 가 들어간 BOM` | `AND UPPER(PE.CMT) LIKE '%ABC%'` (SQL 직접 생성 시 권장형. 화면 재현이 목적이면 9장의 원본 표현을 사용) |
 | `SPEC 이 SS400 인 자재` | `AND NP.SPEC LIKE '%SS400%'` |
 | `MRL 기종` | `COD(E.EL_ATYP) = 'MRL'` |
 | `기종이 MRL 로 시작` | `COD(E.EL_ATYP) LIKE 'MRL%'` |
@@ -622,6 +622,17 @@ kvConditions=[{"key":"EL_ECAA","op":"like","value":"%1600%"},{"key":"EL_ECCB","o
 10. 오류 발생 시 원본 로직은 예외를 삼키고 **빈 배열**을 반환한다. 결과 0건이 "데이터 없음"인지 "오류"인지 구분되지 않으므로, 0건일 때는 조건(특히 연도·상태·자재번호)을 재확인하도록 안내한다.
 11. 조건 없이 전체를 조회하면 수십만 행이 될 수 있다. **자재번호 또는 블록번호 조건 없이 조회하지 않는다.**
 12. `PE.QTY`, `EL_ZFDA` 등은 문자열 컬럼이다. 숫자·날짜 비교 시 형변환 또는 문자열 비교 규칙을 지킨다.
+13. **[코드 불일치] CMT 조건의 대소문자 처리.** 원본 코드(`SubaeCommonUtil#findPartOfProduct_v2`)는 `UPPER(PE.CMT)` 가 아니라
+    `REGEXP_REPLACE(PE.CMT, '[a-z]', UPPER('\0')) LIKE '%값%'` 을 생성한다.
+    Java 문자열 `"\0"` 은 NUL 문자이므로 이 식은 **CMT 에서 소문자를 제거한 뒤 비교**하는 동작이 된다.
+    - 즉 CMT 값이 `optA` 처럼 소문자를 포함하면 화면 조회 결과와 `UPPER()` 기반 SQL 결과가 **서로 다르다.**
+    - SQL을 직접 생성할 때는 `UPPER(PE.CMT) LIKE '%값%'` 을 쓰는 것이 의도에 맞다. 다만 **화면과 동일한 결과를 재현해야 하는 경우에는 원본 표현을 그대로 사용**한다.
+    - 비교값은 두 경우 모두 **대문자로 변환**해서 넣는다.
+14. **[코드 불일치] 동적 조건(kvConditions)의 `COD()` 적용이 SELECT 절과 WHERE 절에서 다르다.**
+    - SELECT 절 : 6.3 치수형 코드(`EL_ECAA`, `EL_ECCA`, `EL_ECCB` 등)는 `COD()` **없이** 출력한다.
+    - WHERE 절 : `key` 가 무엇이든 **항상 `COD(E.{key})`** 로 감싼다. (치수형도 예외 없음)
+    - 따라서 치수형 코드에 값 조건을 걸면 화면은 `COD()` 적용값과 비교하므로, `COD()` 없이 작성한 SQL과 결과가 어긋날 수 있다.
+    - **화면 재현이 목적이면 WHERE 절에도 `COD()` 를 붙이고**, 데이터상 올바른 조회가 목적이면 치수형은 `COD()` 없이 비교한다. 어느 쪽을 택했는지 답변에 명시한다.
 
 ---
 
@@ -630,3 +641,80 @@ kvConditions=[{"key":"EL_ECAA","op":"like","value":"%1600%"},{"key":"EL_ECCB","o
 | 날짜 | 작성자 | 내용 |
 |---|---|---|
 | 2026-09-05 | - | 최초 작성 (`searchMissPartofProduct` / `findPartOfProduct_v2` 기준) |
+| 2026-09-05 | - | 17장(동일 결과 재현용 프롬프트 템플릿) 추가, CMT 조건식·kv `COD()` 적용 불일치 2건 반영(9·10·15장) |
+
+---
+
+## 17. 동일 결과 재현용 프롬프트 템플릿
+
+화면(`/dash/searchPartAnalysis`) → `POST /dash/searchMissPartofProduct` 와 **동일한 결과**를 자연어 요청으로 얻기 위한 입력 양식이다.
+
+> **사용자 배포용 양식은 `docs/제품자재_BOM조회_프롬프트.md` 로 분리되어 있다.** 실제 요청 시에는 그 파일을 복사해서 사용한다.
+
+자연어만으로는 드러나지 않지만 결과를 바꾸는 요소가 3가지 있으므로, 아래 항목은 **반드시 명시**한다.
+
+| 화면 로직 | 명시하지 않으면 생기는 문제 |
+|---|---|
+| `year` 미지정 시 **`'2025'` 로 고정** | LLM이 당해년도로 SQL을 만들어 결과가 완전히 달라진다 |
+| `status` 는 값이 있기만 하면 **무조건 `MD$STATUS = 'RLS'`** | 상태 조건이 누락되어 건수가 더 많이 나온다 |
+| SELECT 컬럼이 **고정 세트** (사양 9종 + 자재/BOM/블록 전체) | 11장 지침("요청한 사양만 넣는다") 때문에 컬럼이 빠진다 |
+
+### 17.1 프롬프트 템플릿
+
+```
+[제품-자재(BOM) 사용처 조회]
+명세서: 제품자재_BOM조회_명세서.md 기준으로 SQL을 생성하고 실행해줘.
+재현모드: 화면동일        ← /dash/searchPartAnalysis 화면과 결과가 같아야 함
+
+■ 필수
+- 년도(제품 수정일 MD$MDATE 기준): 2026    ← 생략 시 화면은 '2025' 로 동작함
+- 제품상태: 릴리즈(RLS)만 / 전체           ← 둘 중 하나
+- 자재번호(Part No.): 2117040001           ← 자재번호 / 블록번호 중 최소 1개 필수
+- 블록번호(Block No.): -
+
+■ 선택 조건 (없으면 '-' 로 둘 것. '-' 와 빈 값은 조건을 생성하지 않음)
+- CMT(적용조건, 부분일치): -
+- SPEC(부분일치): -
+- 브랜드(EL_ABRAND): -
+- 생산거점 EL_ASPSCD: -
+- 기종 EL_ATYP: -
+- 관통 EL_ETHRU: -
+- 전망 EL_COB: -
+- WALL구조 EL_BWALLT: -
+- 기계구조 최초설계일 EL_ZFDA: -   (연산자: >= , 값: 20260101)
+- 전기구조 최초설계일 EL_ZFDC: -   (연산자: -  , 값: -)
+- 추가 사양조건(kv): EL_ECAA like %1600% / EL_ECCB = 1350
+- 값 없이 컬럼만 추가: EL_ECCA, EL_ECHH
+
+■ 출력
+- 화면 기본 그리드 컬럼 전체
+  (PARENTNO, PARENT_VER, PROD_STATUS, PROD_MODDATE, GISONG, BRAND, EL_ASPD,
+   ASPSCD, EL_ACAPA, PARTNO, PARTNAME, PART_VERSION, SPEC, GLCODE, PART_QTY,
+   CMT, BLOCKNO, BLOCK_OPT, UCHECK) + 위 kv 코드
+- ORDER BY 없음 (원본 쿼리와 동일)
+```
+
+### 17.2 짧게 쓰는 예시
+
+> 명세서 기준으로 **2026년 수정 제품, 릴리즈(RLS)만**, 자재번호 `2117040001` 을 쓰는 제품 목록을
+> 화면 기본 그리드 컬럼으로 조회해줘. 화면(`searchPartAnalysis`)과 동일한 결과여야 해. ORDER BY 는 넣지 마.
+
+> 명세서 기준으로 **2026년, 릴리즈만**, 블록번호 `P117040`, 기종 `MRL`, CMT 에 `OPT-A` 가 포함된 BOM 을
+> 화면 기본 컬럼으로 조회하고, `EL_ECAA` 는 값 조건 없이 컬럼만 추가해줘.
+
+### 17.3 에이전트가 지켜야 할 재현 규칙
+
+1. 년도가 없으면 **임의로 만들지 않고 되묻는다.** 화면 기본값이 `'2025'` 라는 사실도 함께 안내한다.
+2. `NOT LIKE 'TEST%'`, `NOT LIKE 'Q%'`, `PE.PRODUCTOUID IN (SELECT VFOID FROM ouid)` 는 제거하지 않는다.
+3. 값이 비었거나 `-` 인 항목은 **조건을 생성하지 않는다.**
+4. `*` → `%` 치환 후 `LIKE` 로 처리하는 항목은 `partNo`, `brand`, `EL_ATYP`, `EL_COB`, `EL_BWALLT` 뿐이다.
+   `blockNo`, `EL_ASPSCD`, `EL_ETHRU` 는 **완전일치만** 지원한다.
+5. `blockNo`, `spec`, `brand` 의 비교값은 **대문자로 변환**한다.
+6. `재현모드: 화면동일` 인 경우
+   - kv 조건은 **치수형 코드를 포함해 WHERE 절에서 전부 `COD()`** 로 감싼다. (15장 14번)
+   - CMT 조건은 9장의 **원본 표현**(`REGEXP_REPLACE(...)`)을 그대로 사용한다. (15장 13번)
+   - SELECT 절은 11장 기본 템플릿 컬럼을 모두 포함한다.
+7. `재현모드` 가 `데이터정확` 이거나 지정이 없으면
+   - 치수형 kv 조건은 `COD()` 없이 비교하고, CMT 는 `UPPER(PE.CMT) LIKE '%값%'` 을 사용한다.
+   - SELECT 절에는 **요청한 사양 컬럼만** 넣는다. (11장 하단 성능 주의 참고)
+   - 어느 쪽 기준으로 작성했는지 답변에 명시한다.
