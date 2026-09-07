@@ -704,7 +704,7 @@ kvConditions=[{"key":"EL_ECAA","op":"like","value":"%1600%"},{"key":"EL_ECCB","o
 
 ### 17.3 에이전트가 지켜야 할 재현 규칙
 
-1. 년도가 없으면 **임의로 만들지 않고 되묻는다.** 화면 기본값이 `'2025'` 라는 사실도 함께 안내한다.
+1. 년도가 없으면 **임의로 만들지 않고 되묻는다.** 화면 기본값이 `'2026'` 라는 사실도 함께 안내한다.
 2. `NOT LIKE 'TEST%'`, `NOT LIKE 'Q%'`, `PE.PRODUCTOUID IN (SELECT VFOID FROM ouid)` 는 제거하지 않는다.
 3. 값이 비었거나 `-` 인 항목은 **조건을 생성하지 않는다.**
 4. `*` → `%` 치환 후 `LIKE` 로 처리하는 항목은 `partNo`, `brand`, `EL_ATYP`, `EL_COB`, `EL_BWALLT` 뿐이다.

@@ -942,18 +942,19 @@
         });
 
         $('#searchInput').addEventListener('input', (e) => { searchTerm = e.target.value; renderTree(); renderSpecTree(); });
-        $('#newDocBtn').addEventListener('click', () => {
+        // 버튼이 주석 처리되어 있을 수 있으므로 있을 때만 연결한다 (readDBFile.html)
+        $('#newDocBtn')?.addEventListener('click', () => {
             if (!categories.length) { toast('먼저 카테고리를 만들어 주세요.', 'alert-circle'); return; }
             startEdit(null);
         });
-        $('#newCatBtn').addEventListener('click', newCategory);
+        $('#newCatBtn')?.addEventListener('click', newCategory);
         $('#newSpecGroupBtn')?.addEventListener('click', addGroup);   // ★ 명세서 카테고리 추가(DB)
         $('#saveDoc').addEventListener('click', handleSave);
         $('#cancelEdit').addEventListener('click', handleCancel);
         $('#editContent').addEventListener('input', updatePreview);
-        $('#exportBtn').addEventListener('click', exportJSON);
-        $('#importBtn').addEventListener('click', importJSON);
-        $('#importFile').addEventListener('change', handleImport);
+        $('#exportBtn')?.addEventListener('click', exportJSON);
+        $('#importBtn')?.addEventListener('click', importJSON);
+        $('#importFile')?.addEventListener('change', handleImport);
         $('#themeBtn').addEventListener('click', toggleTheme);
 
         // 모바일 사이드바 토글

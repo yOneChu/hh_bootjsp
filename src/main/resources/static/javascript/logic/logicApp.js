@@ -881,18 +881,19 @@
         toast(frLast.result.rows.length.toLocaleString() + '건이 클립보드에 복사되었습니다.');
     });
 
-    /* 결과 테이블 셀 더블클릭 → 그 값 + 그 행의 PID 로 최초 등록 조회 (PID 도 필수라 함께 채운다) */
-    $id('contentTable').addEventListener('dblclick', (e) => {
-        const td = e.target.closest('td[data-col]');
-        if (!td) return;
-        const text = td.textContent.trim();
-        if (!text || text === '-') return;
-        if (td.dataset.col === 'PID') return;           // PID 컬럼은 문구가 아니다
-
-        const tr = td.closest('tr[data-idx]');
-        const row = tr ? viewData[parseInt(tr.dataset.idx, 10)] : null;
-        runFirstRegistered({ word: text, pid: row ? String(row.PID ?? '').trim() : '' });
-    });
+    /* [비활성화 2026-09-07] 결과 테이블 셀 더블클릭 → 최초 등록 조회 기능. 재사용 시 아래 주석 해제 */
+//     /* 결과 테이블 셀 더블클릭 → 그 값 + 그 행의 PID 로 최초 등록 조회 (PID 도 필수라 함께 채운다) */
+//     $id('contentTable').addEventListener('dblclick', (e) => {
+//         const td = e.target.closest('td[data-col]');
+//         if (!td) return;
+//         const text = td.textContent.trim();
+//         if (!text || text === '-') return;
+//         if (td.dataset.col === 'PID') return;           // PID 컬럼은 문구가 아니다
+// 
+//         const tr = td.closest('tr[data-idx]');
+//         const row = tr ? viewData[parseInt(tr.dataset.idx, 10)] : null;
+//         runFirstRegistered({ word: text, pid: row ? String(row.PID ?? '').trim() : '' });
+//     });
 
     /* ══════════ 버튼 바인딩 ══════════ */
     $id('btnSearch').addEventListener('click', searchPID);
