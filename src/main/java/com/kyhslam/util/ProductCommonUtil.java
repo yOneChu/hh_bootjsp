@@ -117,7 +117,7 @@ public class ProductCommonUtil {
                             ) AS PEMAIL
                          --, (SELECT COUNT(*) FROM PARTANDCAD$AS WHERE AS$END1 = PE.PARTOUID) CADCNT
                          , NP.MD$NUMBER AS PARTNO
-                         , CODN(NP.NATION) AS NATION
+                         , CODN(NP.NATION) AS NATION -- 자재코드(Ownership)
                          , NP.compen_part AS COMPEN_PART
                          , NP.MD$DESC AS PARTNAME
                          , NP.VF$VERSION AS VERSION
@@ -138,7 +138,7 @@ public class ProductCommonUtil {
                          , NVL(CODN(NP.ORIGIN_DIV), '') AS DIV -- 최초구분 : (외주(ROH) / 내작(HALB_E)
                          , NVL(PE.MBOM, '') AS MBOM
                          , NVL(COD(NP.PART_MBOM), '') AS PART_MBOM
-                         , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = NP.MD$USER) USERNAME -- 자재 생성자
+                         , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = NP.MD$USER) USERNAME -- 자재 생성자(채번자)
                          , NP.MD$USER USERID
                          , NP.OLD_CODE
                          , NP.OLD_CODE2
