@@ -287,7 +287,8 @@ public class SubaeController {
         model.addAttribute("dateKeyList", dateKeyList);
         model.addAttribute("countList", countList);
 
-        return "thymeleaf/dashboard/partDashboard";
+        //return "thymeleaf/dashboard/partDashboard";
+        return "thymeleaf/dashboard/partDashboardV2";
     }
 
 
@@ -396,7 +397,8 @@ public class SubaeController {
     @GetMapping("/subae/bomDashboardV2")
     public String bomOPTDashboard() {
         //return "dashboard/bomSubaeDashboard";
-        return "thymeleaf/bomOPTDashboard";
+        //return "thymeleaf/bomOPTDashboard";
+        return "thymeleaf/dashboard/bomOPTDashboardV2";
     }
 
     //BOM수배 데이터 조회
