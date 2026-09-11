@@ -16,7 +16,8 @@ public class SapController {
     @GetMapping("/sap/searchProductingStatus")
     public String searchProductingStatusViwe() {
 
-        return "/sap/searchProductingStatus";
+        //return "/sap/searchProductingStatus";
+        return "thymeleaf/sap/searchProductingStatus";
     }
 
     @PostMapping("/sap/getProductIngStatus")
@@ -39,7 +40,8 @@ public class SapController {
     @GetMapping("/sap/getExportDate")
     public String getExportDate() {
 
-        return "/sap/searchExportIngStatus";
+        //return "/sap/searchExportIngStatus";
+        return "thymeleaf/sap/searchExportIngStatus";
     }
 
 

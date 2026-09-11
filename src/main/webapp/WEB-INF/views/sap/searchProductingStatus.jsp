@@ -2,10 +2,6 @@
 <%  request.setCharacterEncoding("utf-8"); %>
 
 
-<%
-
-
-%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
