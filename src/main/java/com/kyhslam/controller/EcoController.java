@@ -18,11 +18,11 @@ import java.util.ArrayList;
 public class EcoController {
 
 
-    @Description("수량 PID 조회 로직")
-    @PostMapping("/searchPartQtyPid")
+    @Description("금일 승인완료된 ECO 리스트")
+    @PostMapping("/getECOList")
     @CrossOrigin
     @ResponseBody
-    public ArrayList<EcoDTO> searchPartQtyPid(String date, String key) {
+    public ArrayList<EcoDTO> getECOList(String date, String key) {
         ArrayList<EcoDTO> resultList = new ArrayList<>();
 
         if ("subae".equals(key)) {

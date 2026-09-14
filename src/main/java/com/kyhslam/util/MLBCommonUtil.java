@@ -508,8 +508,8 @@ public class MLBCommonUtil {
                     String BLOCKNO = rs.getString("BLOCKNO");
                     String SPEC = rs.getString("SPEC");
                     String PARTSIZE = rs.getString("PARTSIZE");
-                    String VERSION = rs.getString("VERSION");
-                    String PART_STATUS = rs.getString("PART_STATUS");
+                    String VERSION = rs.getString("VERSION"); //자재코드 Ownership
+                    String PART_STATUS = rs.getString("PART_STATUS"); // 활성상태
                     String NATION = rs.getString("NATION");
                     String GLCODE = rs.getString("GL_CODE");
                     String UOM =  rs.getString("UOM");
@@ -517,7 +517,7 @@ public class MLBCommonUtil {
                     String COST_USE = rs.getString("COST_USE"); // 견적사용
                     String CREDATE =  rs.getString("CREDATE");
                     String MODDATE = rs.getString("MODDATE");
-                    String ORIGIN_DIV = rs.getString("ORIGIN_DIV");
+                    String ORIGIN_DIV = rs.getString("ORIGIN_DIV"); // 최초구분
 
                     PartDTO dto = new PartDTO();
                     dto.setOid(OID);
