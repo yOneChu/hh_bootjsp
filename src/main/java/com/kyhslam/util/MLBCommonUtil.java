@@ -486,7 +486,6 @@ public class MLBCommonUtil {
                 + "AND A.MD$NUMBER IN (" + inParams.toString() + ")\n";
 
 
-
         try (Connection conn = PLMDBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 

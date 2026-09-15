@@ -19,6 +19,8 @@
     let specGroups = [];       // 사이드바 카테고리 [{id,name,icon,color}, ...]
     let specs = [];            // [{id,name,icon}, ...]
     let currentSpecId = null;  // 현재 보고 있는 명세서 id
+    let currentMarkdown = '';  // 조회 화면에 열려 있는 문서의 Markdown 원문 (머리말의 복사/다운로드 버튼이 사용)
+    let currentDocName = '';   // 그 문서의 이름 — .md 다운로드 파일명으로 쓴다
     let editorMode = 'doc';    // 'doc' | 'spec' — 에디터가 무엇을 편집 중인지
     const expandedSpecs = new Set();   // 하위 명세서를 펼쳐 둔 상위 명세서 id
     const collapsedGroups = new Set(); // 접어 둔 명세서 카테고리(그룹) id
@@ -119,15 +121,18 @@
         //  여기서 '현재 경로'를 강제로 펼치면 사용자가 접을 수 없게 된다)
         const open = kids.length > 0 && (!!term || expandedSpecs.has(s.id));
 
-        // 단계마다 14px 씩 들여쓴다 (너무 깊어지면 더 이상 밀리지 않도록 상한)
-        const indent = 16 + Math.min(depth, 8) * 14;
+        // 들여쓰기 — 카테고리 헤더 아래 가이드선(renderSpecTree 의 nav) 을 기준으로 잡는다.
+        // 최상위(depth 0)도 한 칸 들여써 카테고리 헤더와 확실히 구분되게 한다.
+        // 단계마다 14px 씩 (너무 깊어지면 더 이상 밀리지 않도록 상한)
+        const indent = 8 + Math.min(depth, 8) * 14;
 
+        // 접기 버튼 자리는 하위가 없는 행에도 똑같이 비워 둔다 — 같은 단계끼리 아이콘이 어긋나지 않도록
         const toggle = kids.length
             ? `<button data-toggle="${escapeHtml(s.id)}" title="하위 명세서 ${open ? '접기' : '펼치기'}"
-                       class="shrink-0 -ml-3 p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition">
+                       class="shrink-0 w-4 h-4 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 transition">
                    <i data-lucide="${open ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3"></i>
                </button>`
-            : '';
+            : `<span class="shrink-0 w-4 h-4"></span>`;
 
         // 마우스를 올렸을 때만 보이는 편집 버튼 (하위 추가 · 이름변경 · 삭제)
         // — 하위 추가는 단계 제한 없이 모든 행에 붙는다
@@ -152,7 +157,7 @@
                 active ? `${st.activeBg} ${st.activeText} font-medium`
                        : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'}">
                 <a href="#" data-spec="${escapeHtml(s.id)}" style="padding-left:${indent}px"
-                   class="flex items-center gap-2 min-w-0 flex-1 pr-1 py-1.5 text-[13.5px] ${
+                   class="flex items-center gap-1.5 min-w-0 flex-1 pr-1 py-1.5 text-[13.5px] ${
                     active ? '' : 'text-apple-ink dark:text-gray-300'}">
                     ${toggle}
                     <i data-lucide="${escapeAttr(s.icon || 'file-text')}" class="w-3.5 h-3.5 shrink-0 ${active ? '' : st.icon}"></i>
@@ -186,7 +191,7 @@
 
             const rows = items.length
                 ? items.map(s => renderSpecRow(s, st, term)).join('')
-                : `<div class="pl-4 pr-2 py-1 text-xs text-apple-gray/60 italic">항목 없음</div>`;
+                : `<div class="pl-2 pr-2 py-1 text-xs text-apple-gray/60 italic">항목 없음</div>`;
 
             // 검색 중에는 접힌 카테고리도 결과를 보여준다
             const gOpen = !!term || !collapsedGroups.has(g.id);
@@ -194,29 +199,29 @@
             return `
             <div data-group="${escapeHtml(g.id)}">
                 <div data-group-toggle="${escapeHtml(g.id)}" title="카테고리 ${gOpen ? '접기' : '펼치기'}"
-                     class="group/hdr flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-apple-gray cursor-pointer select-none hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition">
-                    <i data-lucide="${gOpen ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 shrink-0"></i>
-                    <i data-lucide="${escapeAttr(g.icon || 'folder')}" class="w-3.5 h-3.5 ${st.icon}"></i>
-                    <span class="flex-1 truncate text-[13px] font-semibold">${escapeHtml(g.name)}</span>
+                     class="group/hdr flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-apple-ink dark:text-gray-200 cursor-pointer select-none hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition">
+                    <i data-lucide="${gOpen ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3 shrink-0 text-apple-gray"></i>
+                    <i data-lucide="${escapeAttr(g.icon || 'folder')}" class="w-4 h-4 ${st.icon}"></i>
+                    <span class="flex-1 truncate text-[13.5px] font-bold tracking-tight">${escapeHtml(g.name)}</span>
                     ${gOpen ? '' : `<span class="text-[11px] text-apple-gray/70">${items.length}</span>`}
                     <button data-add-spec="${escapeHtml(g.id)}" title="명세서 추가"
-                            class="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition">
+                            class="p-0.5 rounded text-apple-gray hover:bg-black/10 dark:hover:bg-white/10 transition">
                         <i data-lucide="plus" class="w-3 h-3"></i>
                     </button>
                     <button data-rename-menu="${escapeHtml(g.id)}" title="카테고리 이름 변경"
-                            class="p-0.5 rounded opacity-0 group-hover/hdr:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 transition">
+                            class="p-0.5 rounded text-apple-gray opacity-0 group-hover/hdr:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 transition">
                         <i data-lucide="pencil" class="w-3 h-3"></i>
                     </button>
                     <button data-del-menu="${escapeHtml(g.id)}" title="카테고리 삭제"
-                            class="p-0.5 rounded opacity-0 group-hover/hdr:opacity-100 hover:bg-red-500/10 hover:text-red-500 transition">
+                            class="p-0.5 rounded text-apple-gray opacity-0 group-hover/hdr:opacity-100 hover:bg-red-500/10 hover:text-red-500 transition">
                         <i data-lucide="trash-2" class="w-3 h-3"></i>
                     </button>
                     <button data-reload="${escapeHtml(g.id)}" title="다시 불러오기"
-                            class="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition">
+                            class="p-0.5 rounded text-apple-gray hover:bg-black/10 dark:hover:bg-white/10 transition">
                         <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                     </button>
                 </div>
-                ${gOpen ? `<nav class="mt-0.5 space-y-0.5">${rows}</nav>` : ''}
+                ${gOpen ? `<nav class="mt-1 mb-0.5 ml-4 pl-px space-y-0.5 border-l border-apple-line/70 dark:border-neutral-800">${rows}</nav>` : ''}
             </div>`;
         }).join('');
 
@@ -369,6 +374,71 @@
         } else fallback();
     }
 
+    /** 파일명으로 쓸 수 없는 문자를 걸러 낸다 (윈도우 기준) */
+    function safeFileName(name) {
+        const bad = ['/', ':', '*', '?', '"', '<', '>', '|', String.fromCharCode(92)];
+        let out = String(name || '').trim();
+        bad.forEach(ch => { out = out.split(ch).join('_'); });
+        return out.trim() || 'document';
+    }
+
+    /** 열려 있는 문서의 Markdown 원문을 .md 파일로 저장한다.
+     *  서버를 거치지 않고 브라우저에서 Blob 으로 바로 내려받는다. */
+    function downloadMarkdown() {
+        if (!currentMarkdown.trim()) { toast('저장할 내용이 없습니다.', 'alert-circle'); return; }
+
+        const fileName = safeFileName(currentDocName) + '.md';
+        const blob = new Blob([currentMarkdown], { type: 'text/markdown;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName;
+        document.body.appendChild(a);       // 일부 브라우저는 문서에 붙어 있어야 click() 이 먹는다
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        toast(fileName + ' 파일로 저장했습니다.', 'download');
+    }
+
+    /** 조회 화면 머리말(수정일 줄) 오른쪽에 붙는 복사 버튼.
+     *  머리말은 문서를 열 때마다 다시 그려지므로, 클릭은 #viewer 위임으로 처리한다. */
+    const docCopyButtonsHtml = () => `
+        <span class="inline-flex items-center gap-1 ml-auto">
+            <button type="button" data-copy-doc="text" title="보이는 텍스트만 복사 (마크다운 기호 제외)"
+                    class="h-7 px-2.5 text-xs rounded-lg border border-apple-line dark:border-neutral-700 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-apple-ink dark:hover:text-gray-100 transition inline-flex items-center gap-1.5">
+                <i data-lucide="type" class="w-3.5 h-3.5"></i> 텍스트
+            </button>
+            <button type="button" data-copy-doc="md" title="이 문서의 Markdown 원문 복사"
+                    class="h-7 px-2.5 text-xs rounded-lg border border-apple-line dark:border-neutral-700 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-apple-ink dark:hover:text-gray-100 transition inline-flex items-center gap-1.5">
+                <i data-lucide="code" class="w-3.5 h-3.5"></i> MARKDOWN
+            </button>
+            <button type="button" data-copy-doc="download" title="이 문서를 .md 파일로 저장"
+                    class="h-7 px-2.5 text-xs rounded-lg border border-apple-line dark:border-neutral-700 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-apple-ink dark:hover:text-gray-100 transition inline-flex items-center gap-1.5">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i> MD 다운로드
+            </button>
+        </span>`;
+
+    /** 렌더된 문서에서 '보이는 텍스트' 만 뽑아 복사한다 (마크다운 기호 없음).
+     *  innerText 는 화면에 붙어 있어야 줄바꿈이 살아나므로,
+     *  복사본을 화면 밖(left:-9999px)에 잠깐 붙였다가 떼어 낸다. */
+    function copyVisibleText(node, msg) {
+        node.removeAttribute('id');                 // 원본과 id 가 겹치지 않도록
+        const host = document.createElement('div');
+        host.style.cssText = 'position:fixed;left:-9999px;top:0;width:900px';
+        host.appendChild(node);
+        document.body.appendChild(host);
+        const raw = node.innerText || '';
+        document.body.removeChild(host);
+
+        const text = raw
+            .replace(/\u00a0/g, ' ')      // 렌더 과정에서 들어간 &nbsp; 는 일반 공백으로
+            .replace(/[ \t]+$/gm, '')     // 줄 끝 공백 제거
+            .replace(/\n{3,}/g, '\n\n')   // 빈 줄이 3줄 이상 이어지면 2줄로 정리
+            .trim();
+
+        if (!text) { toast('복사할 내용이 없습니다.', 'alert-circle'); return; }
+        copyText(text, `${msg} (${text.length.toLocaleString()}자)`);
+    }
+
     /** 상단 카드 — 이 페이지의 조회 API 한 줄 */
     function apiLinkPanelHtml(links) {
         const l = links[0];
@@ -424,6 +494,8 @@
         currentSpecId = id;
         currentDocId = null;
         editingId = null;
+        currentMarkdown = '';      // 불러오기 전까지는 직전 문서의 원문이 남지 않게 비워 둔다
+        currentDocName = '';
 
         showView('viewer');
         const meta = specs.find(s => s.id === id);
@@ -481,8 +553,12 @@
             ? `<span class="inline-flex items-center gap-1 text-xs"><i data-lucide="lock" class="w-3 h-3"></i> 읽기 전용</span>`
             : '';
 
+        currentMarkdown = spec.content || '';   // 머리말의 [MARKDOWN] 복사 · [MD 다운로드] 용 원문
+        currentDocName = spec.name || meta?.name || id;
+
+        // data-doc-meta : 본문이 아닌 머리말 — [텍스트] 복사 시 제외한다
         const head = `
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-apple-gray mb-8 pb-6 border-b border-apple-line dark:border-neutral-800">
+            <div data-doc-meta class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-apple-gray mb-8 pb-6 border-b border-apple-line dark:border-neutral-800">
                 <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md ${st.activeBg} ${st.activeText} text-xs font-medium">
                     <i data-lucide="${escapeAttr(grp.icon || 'folder')}" class="w-3 h-3"></i> ${escapeHtml(grp.name)}
                 </span>
@@ -490,6 +566,7 @@
                 <span class="inline-flex items-center gap-1.5"><i data-lucide="user" class="w-4 h-4"></i> ${escapeHtml(spec.author || '미상')}</span>
                 <span class="inline-flex items-center gap-1.5"><i data-lucide="clock" class="w-4 h-4"></i> ${formatDate(spec.updatedAt)} 수정</span>
                 ${roBadge}
+                ${docCopyButtonsHtml()}
             </div>`;
         const body = spec.content
             ? renderMarkdown(spec.content)
@@ -637,6 +714,8 @@
         currentDocId = id;
         currentSpecId = null;
         editingId = null;
+        currentMarkdown = '';
+        currentDocName = '';
 
         showView('viewer');
         const cat = categories.find(c => c.id === doc.categoryId);
@@ -660,10 +739,15 @@
             </button>`;
 
         // 본문
+        currentMarkdown = doc.content || '';    // 머리말의 [MARKDOWN] 복사 · [MD 다운로드] 용 원문
+        currentDocName = doc.title || '';
+
+        // data-doc-meta : 본문이 아닌 머리말 — [텍스트] 복사 시 제외한다
         const meta = `
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-apple-gray mb-8 pb-6 border-b border-apple-line dark:border-neutral-800">
+            <div data-doc-meta class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-apple-gray mb-8 pb-6 border-b border-apple-line dark:border-neutral-800">
                 <span class="inline-flex items-center gap-1.5"><i data-lucide="user" class="w-4 h-4"></i> ${escapeHtml(doc.author || '미상')}</span>
                 <span class="inline-flex items-center gap-1.5"><i data-lucide="clock" class="w-4 h-4"></i> ${formatDate(doc.updatedAt)} 수정</span>
+                ${docCopyButtonsHtml()}
             </div>`;
         $('#viewer').innerHTML = meta + renderMarkdown(doc.content);
         highlightIn($('#viewer'));
@@ -822,6 +906,8 @@
         $('#emptyState').classList.add('flex');
         $('#breadcrumb').innerHTML = '';
         $('#viewActions').innerHTML = '';
+        currentMarkdown = '';
+        currentDocName = '';
     }
 
     /* --------------------- 테마 --------------------- */
@@ -952,6 +1038,41 @@
         $('#saveDoc').addEventListener('click', handleSave);
         $('#cancelEdit').addEventListener('click', handleCancel);
         $('#editContent').addEventListener('input', updatePreview);
+
+        // Markdown 원문 전체 복사 — 편집 중인 내용을 그대로 클립보드에 담는다
+        // (편집 패널 헤더 · 미리보기 패널 헤더 두 곳에서 같은 동작)
+        const copyMarkdownSource = () => {
+            const text = $('#editContent').value;
+            if (!text.trim()) { toast('복사할 내용이 없습니다.', 'alert-circle'); return; }
+            copyText(text, `Markdown 전체를 복사했습니다. (${text.length.toLocaleString()}자)`);
+        };
+        $('#copyMarkdownBtn')?.addEventListener('click', copyMarkdownSource);
+        $('#copyPreviewMdBtn')?.addEventListener('click', copyMarkdownSource);
+
+        // 미리보기 텍스트 복사 — 마크다운 기호 없이 화면에 보이는 글만 담는다
+        $('#copyPreviewTextBtn')?.addEventListener('click', () => {
+            copyVisibleText($('#editPreview').cloneNode(true), '미리보기 텍스트를 복사했습니다.');
+        });
+
+        // 조회 화면 복사 — 머리말의 버튼은 문서를 열 때마다 다시 그려지므로 위임으로 받는다
+        $('#viewer').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-copy-doc]');
+            if (!btn) return;
+            e.preventDefault();
+
+            if (btn.dataset.copyDoc === 'download') { downloadMarkdown(); return; }
+
+            if (btn.dataset.copyDoc === 'md') {
+                if (!currentMarkdown.trim()) { toast('복사할 내용이 없습니다.', 'alert-circle'); return; }
+                copyText(currentMarkdown, `Markdown 원문을 복사했습니다. (${currentMarkdown.length.toLocaleString()}자)`);
+                return;
+            }
+            // 머리말(작성자·수정일·복사 버튼)과 API 링크 카드는 본문이 아니므로 복사본에서 덜어낸다
+            const clone = $('#viewer').cloneNode(true);
+            clone.querySelectorAll('[data-doc-meta], #apiLinkPanel').forEach(el => el.remove());
+            copyVisibleText(clone, '문서 텍스트를 복사했습니다.');
+        });
+
         $('#exportBtn')?.addEventListener('click', exportJSON);
         $('#importBtn')?.addEventListener('click', importJSON);
         $('#importFile')?.addEventListener('change', handleImport);

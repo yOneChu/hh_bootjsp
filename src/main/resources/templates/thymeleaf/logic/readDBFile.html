@@ -104,7 +104,8 @@
 <div id="app" class="flex h-full">
 
     <!-- ===================== 사이드바 ===================== -->
-    <aside id="sidebar" class="w-72 shrink-0 border-r border-apple-line dark:border-neutral-800 flex flex-col bg-[#fbfbfd] dark:bg-neutral-950 transition-transform">
+    <!-- 트리 단계가 깊어져도 이름이 잘리지 않도록 사이드바 폭을 넓게 잡는다 (기본 320px / 큰 화면 360px) -->
+    <aside id="sidebar" class="w-80 xl:w-[360px] shrink-0 border-r border-apple-line dark:border-neutral-800 flex flex-col bg-[#fbfbfd] dark:bg-neutral-950 transition-transform">
         <!-- 로고 -->
         <div class="h-16 flex items-center gap-2.5 px-5 border-b border-apple-line/70 dark:border-neutral-800">
             <div class="w-8 h-8 rounded-lg bg-apple-blue flex items-center justify-center text-white shrink-0">
@@ -112,7 +113,7 @@
             </div>
             <div class="leading-tight">
                 <div class="font-semibold text-[15px] tracking-tight">TeamDocs</div>
-                <div class="text-[11px] text-apple-gray">업무 매뉴얼</div>
+                <div class="text-[11px] text-apple-gray">수배로직 업무 매뉴얼</div>
             </div>
         </div>
 
@@ -139,7 +140,7 @@
             <!-- 카테고리별 명세서 목록 — app.js 의 renderSpecTree() 가 렌더링
                  (메뉴 구조는 DB 테이블 PLM_DOC_MENU 에서 읽어오며, 사이드바에서
                   카테고리/명세서를 바로 추가·이름변경·삭제할 수 있음) -->
-            <div id="specGroups" class="space-y-3"></div>
+            <div id="specGroups" class="space-y-4"></div>
 
             <div class="mx-2.5 my-3 border-t border-apple-line/70 dark:border-neutral-800"></div>
 
@@ -178,6 +179,8 @@
             </button>
             <div id="breadcrumb" class="text-sm text-apple-gray truncate flex-1"></div>
             <div class="flex items-center gap-2">
+                <!-- 조회 화면의 복사 버튼(텍스트 · MARKDOWN)은 상단바가 아니라
+                     본문 머리말(수정일 오른쪽)에 붙는다 — app.js 의 docCopyButtonsHtml() -->
                 <!-- 문서/명세서별 액션(편집·새로고침 등) -->
                 <div id="viewActions" class="flex items-center gap-2"></div>
                 <!-- 테마 전환 — 항상 오른쪽 끝에 고정 -->
@@ -224,6 +227,11 @@
                     <div class="flex flex-col rounded-xl border border-apple-line dark:border-neutral-800 overflow-hidden">
                         <div class="h-10 shrink-0 flex items-center px-4 text-xs font-medium text-apple-gray border-b border-apple-line dark:border-neutral-800 bg-[#fbfbfd] dark:bg-neutral-950">
                             <i data-lucide="pen-line" class="w-3.5 h-3.5 mr-1.5"></i> Markdown
+                            <!-- 편집 중인 Markdown 원문 전체를 클립보드로 복사 (app.js 에서 바인딩) -->
+                            <button id="copyMarkdownBtn" type="button" title="Markdown 전체 복사"
+                                    class="ml-auto flex items-center gap-1 h-7 px-2.5 rounded-lg text-apple-gray hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:text-apple-ink dark:hover:text-gray-100 transition">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i> 전체 복사
+                            </button>
                         </div>
                         <textarea id="editContent" spellcheck="false"
                                   class="flex-1 w-full p-4 resize-none outline-none bg-white dark:bg-black text-sm leading-relaxed font-mono"
@@ -232,6 +240,19 @@
                     <div class="flex flex-col rounded-xl border border-apple-line dark:border-neutral-800 overflow-hidden">
                         <div class="h-10 shrink-0 flex items-center px-4 text-xs font-medium text-apple-gray border-b border-apple-line dark:border-neutral-800 bg-[#fbfbfd] dark:bg-neutral-950">
                             <i data-lucide="eye" class="w-3.5 h-3.5 mr-1.5"></i> 미리보기
+                            <!-- 미리보기 복사 (app.js 에서 바인딩)
+                                 · 텍스트   : 화면에 보이는 그대로의 글(마크다운 기호 없음)
+                                 · MARKDOWN : 이 미리보기를 만든 Markdown 원문 -->
+                            <div class="ml-auto flex items-center gap-1">
+                                <button id="copyPreviewTextBtn" type="button" title="보이는 텍스트만 복사 (마크다운 기호 제외)"
+                                        class="flex items-center gap-1 h-7 px-2.5 rounded-lg text-apple-gray hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:text-apple-ink dark:hover:text-gray-100 transition">
+                                    <i data-lucide="type" class="w-3.5 h-3.5"></i> 텍스트
+                                </button>
+                                <button id="copyPreviewMdBtn" type="button" title="Markdown 원문 전체 복사"
+                                        class="flex items-center gap-1 h-7 px-2.5 rounded-lg text-apple-gray hover:bg-black/[0.06] dark:hover:bg-white/[0.08] hover:text-apple-ink dark:hover:text-gray-100 transition">
+                                    <i data-lucide="code" class="w-3.5 h-3.5"></i> MARKDOWN
+                                </button>
+                            </div>
                         </div>
                         <div id="editPreview" class="prose-doc flex-1 overflow-y-auto p-5 text-[15px]"></div>
                     </div>

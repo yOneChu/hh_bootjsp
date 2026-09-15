@@ -4,6 +4,7 @@ import com.kyhslam.dto.*;
 import com.kyhslam.service.MLBService;
 import com.kyhslam.service.SubaeService;
 import com.kyhslam.util.*;
+import com.kyhslam.util.dbDoc.Doc_SalesBOM;
 import com.kyhslam.util.user.UserCommonUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -480,5 +481,28 @@ public class APIController {
 
         return userList;
     }
+
+
+    /**
+     * 영업사양-BOM 분석
+     * @param key
+     * @return
+     */
+    @GetMapping("/getSaleBOM_Define")
+    @ResponseBody
+    @CrossOrigin
+    public String getSaleBOM_Define(String key) {
+        //http://localhost:8070/apiv2/getPIDMetaInfo?key=subae
+        //https://vault-in.hdel.co.kr:8070/api/getSaleBOM_Define?key=subae
+
+        String result = "";
+
+        if ("subae".equals(key)) {
+            result = Doc_SalesBOM.getSaleBOM_Define();
+        }
+
+        return result;
+    }
+
 
 }
