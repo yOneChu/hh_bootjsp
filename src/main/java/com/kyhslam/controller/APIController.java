@@ -62,9 +62,7 @@ public class APIController {
     @PostMapping("/findPartInfoWithList")
     @ResponseBody
     public ArrayList<PartDTO> findPartInfoWithList(String key, String PartNoList) {
-
         //https://vault-in.hdel.co.kr:8070/api/findPartInfoWithList
-
         ArrayList<PartDTO> resultList = new ArrayList<>();
 
         if ("subae".equals(key)) {
