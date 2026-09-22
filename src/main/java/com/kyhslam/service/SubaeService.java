@@ -319,7 +319,7 @@ public class SubaeService {
             String value2 = displayValue(row2.get(column), codeMap);
 
             // 양쪽 모두 값이 없는 사양은 비교 의미가 없으므로 제외한다.
-            if (value1.trim().isEmpty() && value2.trim().isEmpty()) continue;
+            //if (value1.trim().isEmpty() && value2.trim().isEmpty()) continue;
 
             String title = titleMap.get(column.toUpperCase());
 
