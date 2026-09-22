@@ -920,10 +920,7 @@ public class ElvInfoCommonUtil {
      * @return
      */
     public static ArrayList<HashMap<String, String>> findElvSearchInfoV2(String searchMdNumber) {
-
-
         ArrayList<HashMap<String, String>> resultList = new ArrayList<>();
-
 
         String query = """
                 SELECT V.*
