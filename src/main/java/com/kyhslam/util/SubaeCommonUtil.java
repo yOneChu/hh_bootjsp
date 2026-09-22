@@ -946,11 +946,12 @@ public class SubaeCommonUtil {
             lineCodeList.add("EL_ECBG");
             lineCodeList.add("EL_ECCA"); // CAR 내부가로 ; CA
             lineCodeList.add("EL_ECCB"); //	CAR 내부세로 ; CB
-            lineCodeList.add("EL_ECCC");
+            //lineCodeList.add("EL_ECCC");
             lineCodeList.add("EL_ECCH");
             lineCodeList.add("EL_ECHH"); //	도어높이;HH
 
 
+            //출력
             if (keyList != null && keyList.size() > 0) {
                 for (int k = 0; k < keyList.size(); k++) {
                     String el_code = keyList.get(k);
@@ -961,6 +962,7 @@ public class SubaeCommonUtil {
                     //if(el_code != null && !"".equals(el_code.trim()) && codeVal != null && !"".equals(codeVal.trim())) {
                     if (el_code != null && !"".equals(el_code.trim())) {
                         //if("EL_ECEE".equals(el_code.trim()) || "EL_ECCB".equals(el_code.trim())) {
+
                         if(lineCodeList.contains(el_code.trim())) {
                             sql += " , (SELECT E." + el_code.trim() + " FROM ELV_INFO$ID A, ELV_INFO$VF E ";
                             sql += " WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip ";
@@ -1153,6 +1155,7 @@ public class SubaeCommonUtil {
             }
 
 
+            //조건
             if (keyList != null && keyList.size() > 0) {
                 for (int k = 0; k < keyList.size(); k++) {
                     String el_code = keyList.get(k);
@@ -1164,6 +1167,7 @@ public class SubaeCommonUtil {
                         sql += "WHERE A.ID$OUID = E.VF$IDENTITY AND E.vf$ouid = A.id$wip";
                         sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) " + op + " '" + codeVal + "' ";
                     }
+
                 }
             }
 
