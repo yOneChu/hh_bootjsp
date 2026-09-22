@@ -8,6 +8,7 @@ import com.kyhslam.dto.ProductDto;
 import com.kyhslam.repository.SubaeRepository;
 import com.kyhslam.repository.mybatis.SubaeMapper;
 import com.kyhslam.util.ElvInfoCommonUtil;
+import com.kyhslam.util.MLBCommonUtil;
 import com.kyhslam.util.PIDCommonUtil;
 import com.kyhslam.util.SubaeCommonUtil;
 import lombok.RequiredArgsConstructor;
@@ -249,48 +250,146 @@ public class SubaeService {
 
 
     /**
-     * @apiNote 호기의 영업사양 값 추출
-     * @param ho1, ho2
-     * @return
+     * @apiNote 두 호기의 영업사양 값 비교
+     *          값 추출/코드 변환은 APIController.findElvSearch 와 동일한 경로를 사용한다.
+     *          (ElvInfoCommonUtil.findElvSearchInfoV2 로 PLM DB 원본 추출
+     *           -> 숫자 코드값은 doscoditm 매칭값으로 변환)
+     * @param ho1 비교 호기 1
+     * @param ho2 비교 호기 2
+     * @return TYPE(그룹) / SPEC_VALUE(특성명) / SPEC_CODE(특성코드) / VALUE(호기1) / VALUE2(호기2)
      */
     public ArrayList<HashMap<String, String>> getSalesInfo(String ho1, String ho2) {
+
         ArrayList<HashMap<String, String>> result = new ArrayList<>();
 
-        System.out.println(ho1 + " " + ho2);
+        String hogi1 = ho1 == null ? "" : ho1.trim().toUpperCase();
+        String hogi2 = ho2 == null ? "" : ho2.trim().toUpperCase();
 
-        ArrayList<HashMap<String, String>> v01 = new ArrayList<>();
-        ArrayList<HashMap<String, String>> v02 = new ArrayList<>();
+        log.info("getSalesInfo - hogi1 = {}, hogi2 = {}", hogi1, hogi2);
 
-        if(ho1 != null && !"".equals(ho1)) {
-            //result = ElvInfoCommonUtil.getSalesInfo(ho1);
-            v01 = ElvInfoCommonUtil.getSalesInfo(ho1.trim());
+        if (hogi1.isEmpty() || hogi2.isEmpty()) {
+            result.add(messageRow("비교할 두 호기를 모두 입력하세요."));
+            return result;
         }
 
-        if(ho2 != null && !"".equals(ho2)) {
-            //result = ElvInfoCommonUtil.getSalesInfo(ho2);
-            v02 = ElvInfoCommonUtil.getSalesInfo(ho2.trim());
+        // ① 호기별 영업사양 원본 추출 (findElvSearch 내부 기능)
+        Map<String, String> row1 = findElvInfoRow(hogi1);
+        Map<String, String> row2 = findElvInfoRow(hogi2);
+
+        if (row1.isEmpty() && row2.isEmpty()) {
+            result.add(messageRow("두 호기 모두 영업사양 정보를 찾을 수 없습니다. (" + hogi1 + ", " + hogi2 + ")"));
+            return result;
+        }
+        if (row1.isEmpty()) {
+            result.add(messageRow("호기 " + hogi1 + " 의 영업사양 정보를 찾을 수 없습니다."));
+            return result;
+        }
+        if (row2.isEmpty()) {
+            result.add(messageRow("호기 " + hogi2 + " 의 영업사양 정보를 찾을 수 없습니다."));
+            return result;
         }
 
-        if(v01 != null && v02 != null) {
-            diffSum(v01, v02, result);
+        // ② 비교 대상 컬럼 = 두 호기 컬럼의 합집합 (DB 컬럼 순서 유지)
+        LinkedHashSet<String> columns = new LinkedHashSet<>(row1.keySet());
+        columns.addAll(row2.keySet());
+
+        // ③ 숫자 코드값은 한 번에 표시값으로 변환 (컬럼 수만큼 단건 조회하면 느리다)
+        ArrayList<String> codeTargets = new ArrayList<>();
+        for (String column : columns) {
+            codeTargets.add(row1.get(column));
+            codeTargets.add(row2.get(column));
         }
+        HashMap<String, String> codeMap = ElvInfoCommonUtil.findCodeValues(codeTargets);
+
+        // ④ 특성코드 -> 한글 특성명
+        HashMap<String, String> titleMap = new HashMap<>();
+        for (HashMap<String, String> field : MLBCommonUtil.getCodeField()) {
+            String name = field.get("NAME");
+            String tit = field.get("TIT");
+            if (name != null && tit != null && !tit.isEmpty()) {
+                titleMap.put(name.toUpperCase(), tit);
+            }
+        }
+
+        for (String column : columns) {
+
+            if (isInternalColumn(column)) continue;
+
+            String value1 = displayValue(row1.get(column), codeMap);
+            String value2 = displayValue(row2.get(column), codeMap);
+
+            // 양쪽 모두 값이 없는 사양은 비교 의미가 없으므로 제외한다.
+            if (value1.trim().isEmpty() && value2.trim().isEmpty()) continue;
+
+            String title = titleMap.get(column.toUpperCase());
+
+            HashMap<String, String> map = new LinkedHashMap<>();
+            map.put("TYPE", specGroup(column, title));                                  // 그룹
+            map.put("SPEC_VALUE", (title == null || title.isEmpty()) ? column : title);  // 특성명
+            map.put("SPEC_CODE", column);                                               // 특성코드
+            map.put("VALUE", value1);                                                   // 호기1 값
+            map.put("VALUE2", value2);                                                  // 호기2 값
+
+            result.add(map);
+        }
+
+        log.info("getSalesInfo - 비교 항목 수 = {}", result.size());
 
         return result;
     }
 
-    public void diffSum(ArrayList<HashMap<String, String>> v01, ArrayList<HashMap<String, String>> v02
-                        , ArrayList<HashMap<String, String>> result) {
-
-        for(int i=0; i < v01.size(); i++) {
-
-            HashMap<String, String> temp01 = v01.get(i);
-            HashMap<String, String> temp02 = v02.get(i);
-
-            temp01.put("VALUE2", temp02.get("VALUE"));
-
-            result.add(temp01);
+    /**
+     * @apiNote 호기 1건의 영업사양 원본(컬럼 -> 값) 추출
+     */
+    private Map<String, String> findElvInfoRow(String hogi) {
+        ArrayList<HashMap<String, String>> rows = ElvInfoCommonUtil.findElvSearchInfoV2(hogi);
+        if (rows == null || rows.isEmpty() || rows.get(0) == null) {
+            return new LinkedHashMap<>();
         }
+        return rows.get(0);
+    }
 
+    /**
+     * @apiNote 숫자형 코드값이면 매칭된 표시값으로, 아니면 원본값 그대로
+     *          (findElvSearch 의 isNumeric -> findCodeValue 판정과 동일)
+     */
+    private String displayValue(String value, HashMap<String, String> codeMap) {
+        if (value == null) return "";
+        if (ElvInfoCommonUtil.isNumeric(value)) {
+            String matched = codeMap.get(value);
+            if (matched != null && !matched.isEmpty()) {
+                return matched;
+            }
+        }
+        return value;
+    }
+
+    /**
+     * @apiNote 비교에서 제외할 내부 키 컬럼 (객체 OUID 등 - 호기마다 항상 달라 의미가 없다)
+     */
+    private boolean isInternalColumn(String column) {
+        if (column == null || column.isEmpty()) return true;
+        String upper = column.toUpperCase();
+        return upper.startsWith("VF$") || upper.startsWith("ID$");
+    }
+
+    /**
+     * @apiNote 화면 그룹(TAB) 구분 - MD$ 는 기본정보, 한글명이 정의된 코드는 영업사양
+     */
+    private String specGroup(String column, String title) {
+        String upper = column == null ? "" : column.toUpperCase();
+        if (upper.startsWith("MD$")) return "기본정보";
+        if (title != null && !title.isEmpty()) return "영업사양";
+        return "기타";
+    }
+
+    /**
+     * @apiNote 화면에서 alert 처리하는 메시지 행
+     */
+    private HashMap<String, String> messageRow(String msg) {
+        HashMap<String, String> map = new HashMap<>();
+        map.put("msg", msg);
+        return map;
     }
 
     /**

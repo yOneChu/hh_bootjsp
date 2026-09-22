@@ -11,8 +11,11 @@ import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 
 
@@ -1003,6 +1006,84 @@ public class ElvInfoCommonUtil {
 
         return resultList;
     }
+
+    /**
+     * @apiNote 영업 사양 값(OUID) 일괄 매칭 - findCodeValue 의 배치 버전
+     *          사양 컬럼 수만큼 단건 조회하면 느리므로 IN 절로 한 번에 조회한다.
+     *          값 결정 규칙은 findCodeValue 와 동일하다.
+     *          (MSRTITLECODE 가 있으면 NAME, 없으면 DES)
+     * @param ouidList 변환할 OUID 목록 (숫자형 문자열만 대상)
+     * @return OUID -> 표시값
+     */
+    public static HashMap<String, String> findCodeValues(Collection<String> ouidList) {
+
+        HashMap<String, String> result = new LinkedHashMap<>();
+
+        if (ouidList == null || ouidList.isEmpty()) {
+            return result;
+        }
+
+        // 숫자형 값만 대상으로 중복 제거
+        LinkedHashSet<String> targets = new LinkedHashSet<>();
+        for (String ouid : ouidList) {
+            if (isNumeric(ouid)) {
+                targets.add(ouid);
+            }
+        }
+
+        if (targets.isEmpty()) {
+            return result;
+        }
+
+        ArrayList<String> all = new ArrayList<>(targets);
+        int chunkSize = 900; // Oracle IN 절 1000개 제한
+
+        for (int start = 0; start < all.size(); start += chunkSize) {
+
+            List<String> chunk = all.subList(start, Math.min(start + chunkSize, all.size()));
+
+            StringBuilder binds = new StringBuilder();
+            for (int i = 0; i < chunk.size(); i++) {
+                binds.append(i == 0 ? "?" : ",?");
+            }
+
+            String query = "select OUID, NAME, DES, MSRTITLECODE from doscoditm where OUID in (" + binds + ")";
+
+            try (Connection conn = PLMDBConnection.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+                for (int i = 0; i < chunk.size(); i++) {
+                    pstmt.setString(i + 1, chunk.get(i));
+                }
+
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    while (rs.next()) {
+                        String ouid = rs.getString("OUID");
+                        String name = rs.getString("NAME");
+                        String des = rs.getString("DES");
+                        String msrTitleCode = rs.getString("MSRTITLECODE");
+
+                        //msrtitlecode NULL이면 DES(COD)을 값으로 한다.
+                        //msrtitlecode 값이 있으면 name(CODN)을 값으로 한다.
+                        String value = des;
+                        if (msrTitleCode != null && !msrTitleCode.isEmpty()) {
+                            value = name;
+                        }
+
+                        if (ouid != null && value != null && !value.isEmpty()) {
+                            result.put(ouid, value);
+                        }
+                    }
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return result;
+    }
+
 
     //영업 사양 값 매칭
     /**

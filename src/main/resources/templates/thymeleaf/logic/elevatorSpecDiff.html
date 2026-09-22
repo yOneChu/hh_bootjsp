@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>호기 영업사양 비교</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+
+    <script>
+        // 페이지 렌더 전 다크모드/사이드바 상태 적용 (깜빡임 방지) — 기본값: 다크
+        if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+    </script>
+
+    <!-- 기능 유지용 플러그인 CSS (DataTables / FontAwesome / Bootstrap grid) -->
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/resources/dist/googleFont.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <script>
+        tailwind.config = {
+            // Bootstrap(adminlte) 기반 DataTables 마크업을 쓰므로 preflight 는 끈다
+            corePlugins: { preflight: false },
+            // Bootstrap 유틸리티가 !important 라서 dark: 변형을 눌러버린다. Tailwind 에도 !important 부여.
+            important: true,
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: {
+                            blue:  '#0071E3',
+                            blueD: '#0A84FF',
+                            ink:   '#1D1D1F',
+                            gray1: '#8E8E93',
+                            gray5: '#E5E5EA',
+                            gray6: '#F5F5F7',
+                            card:  '#FFFFFF',
+                            darkBg:   '#000000',
+                            darkCard: '#1C1C1E',
+                            darkLine: '#38383A',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard Variable', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Helvetica Neue', 'Arial', 'sans-serif']
+                    },
+                    boxShadow: {
+                        card: '0 2px 20px rgba(0,0,0,.05)',
+                        cardD: '0 2px 20px rgba(0,0,0,.45)',
+                        btn: '0 2px 10px rgba(0,113,227,.35)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html { -webkit-font-smoothing: antialiased; }
+        body {
+            font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #F5F5F7;
+        }
+        .dark body { background: #000; }
+
+        /* preflight 를 끈 상태(Bootstrap reboot 유지)이므로 셸 영역 타이포 여백만 직접 정리. */
+        h1, h2, h3, h4, h5 { margin: 0; }
+        main p, header p, footer p, aside p { margin: 0; }
+        main ul { margin: 0; padding-left: 0; list-style: none; }
+        main label { margin-bottom: 0; }
+
+        /* ══════════════════════════════════════════════════════════
+           표면(Surface) — 라이트/다크 elevation 단계
+           ══════════════════════════════════════════════════════════ */
+        .panel {
+            background: #fff;
+            border: 1px solid rgba(0,0,0,.05);
+            border-radius: 16px;
+            box-shadow: 0 2px 20px rgba(0,0,0,.05);
+            overflow: hidden;
+        }
+        .dark .panel {
+            background: #1C1C1E;
+            border-color: rgba(255,255,255,.07);
+            box-shadow: 0 2px 20px rgba(0,0,0,.45);
+        }
+        .panel-head {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+            padding: 20px 24px 16px;
+        }
+        .panel-head.divider { border-bottom: 1px solid rgba(0,0,0,.05); }
+        .dark .panel-head.divider { border-bottom-color: rgba(255,255,255,.07); }
+        .panel-body { padding: 20px 24px; }
+        .panel-foot {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px; padding: 16px 24px;
+            background: #FAFAFC; border-top: 1px solid rgba(0,0,0,.05);
+        }
+        .dark .panel-foot {
+            background: rgba(255,255,255,.03);
+            border-top-color: rgba(255,255,255,.07);
+        }
+        .panel-title { font-size: 15px; font-weight: 700; }
+
+        /* 아이콘 타일 */
+        .tile {
+            width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .tile-blue   { background: rgba(0,113,227,.10); }
+        .tile-indigo { background: rgba(88,86,214,.10); }
+        .tile-green  { background: rgba(52,199,89,.12); }
+        .tile-amber  { background: rgba(255,159,10,.14); font-size: 13px; }
+        .dark .tile-blue   { background: rgba(10,132,255,.18); }
+        .dark .tile-indigo { background: rgba(94,92,230,.20); }
+        .dark .tile-green  { background: rgba(48,209,88,.18); }
+        .dark .tile-amber  { background: rgba(255,159,10,.20); }
+
+        /* ── Form controls ── */
+        .field-label {
+            display: block; font-size: 11px; font-weight: 600;
+            letter-spacing: .05em; text-transform: uppercase;
+            color: #86868B; margin-bottom: 6px;
+        }
+        .dark .field-label { color: #98989D; }
+
+        .form-input, .form-select {
+            width: 100%; height: 40px; padding: 0 13px;
+            font-size: 14px; color: #1D1D1F;
+            background: #fff; border: 1.5px solid #E5E5EA; border-radius: 11px;
+            outline: none; transition: border-color .18s, box-shadow .18s, background .18s;
+            font-family: inherit; box-sizing: border-box;
+        }
+        .form-input:focus, .form-select:focus {
+            border-color: #0071E3; box-shadow: 0 0 0 3.5px rgba(0,113,227,.14);
+        }
+        .dark .form-input, .dark .form-select {
+            background: #2C2C2E; border-color: #38383A; color: #F5F5F7;
+        }
+        .dark .form-input:focus, .dark .form-select:focus {
+            border-color: #0A84FF; box-shadow: 0 0 0 3.5px rgba(10,132,255,.22);
+        }
+        .form-input::placeholder { color: #AEAEB2; }
+        .dark .form-input::placeholder { color: #636366; }
+        /* 다크모드에서 검색 입력의 X 버튼이 검게 묻히는 문제 */
+        .dark input[type="search"]::-webkit-search-cancel-button { filter: invert(1) opacity(.55); }
+
+        /* ── Buttons ── */
+        .btn-primary {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            height: 42px; padding: 0 26px; border-radius: 11px;
+            background: #0071E3; color: #fff; font-size: 14px; font-weight: 600;
+            border: none; cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,113,227,.35);
+            transition: background .15s, transform .1s, box-shadow .15s;
+        }
+        .btn-primary:hover  { background: #0077ED; color: #fff; box-shadow: 0 4px 16px rgba(0,113,227,.45); }
+        .btn-primary:active { transform: scale(.97); }
+
+        .btn-ghost {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            height: 42px; padding: 0 20px; border-radius: 11px;
+            background: transparent; color: #0071E3; font-size: 14px; font-weight: 600;
+            border: 1.5px solid #D2D2D7; cursor: pointer;
+            transition: background .15s, border-color .15s;
+        }
+        .btn-ghost:hover { background: rgba(0,113,227,.06); border-color: #0071E3; color: #0071E3; }
+        .dark .btn-ghost { color: #0A84FF; border-color: #48484A; }
+        .dark .btn-ghost:hover { background: rgba(10,132,255,.12); border-color: #0A84FF; }
+
+        .btn-mini {
+            display: inline-flex; align-items: center; gap: 5px;
+            height: 32px; padding: 0 13px; border-radius: 9px;
+            font-size: 12.5px; font-weight: 600; cursor: pointer;
+            background: #F5F5F7; color: #1D1D1F; border: 1px solid transparent;
+            transition: background .15s; font-family: inherit;
+        }
+        .btn-mini:hover { background: #E8E8ED; }
+        .dark .btn-mini { background: #2C2C2E; color: #F5F5F7; }
+        .dark .btn-mini:hover { background: #3A3A3C; }
+
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 9px; border: none; cursor: pointer;
+            background: transparent; color: #1D1D1F;
+            transition: background .15s;
+        }
+        .icon-btn:hover { background: rgba(0,0,0,.06); }
+        .dark .icon-btn { color: #F5F5F7; }
+        .dark .icon-btn:hover { background: rgba(255,255,255,.1); }
+
+        /* iOS 스타일 토글 스위치 */
+        .ios-switch { position: relative; display: inline-block; width: 46px; height: 27px; cursor: pointer; margin: 0; flex-shrink: 0; }
+        .ios-switch input { display: none; }
+        .ios-switch .track {
+            position: absolute; inset: 0; border-radius: 999px;
+            background: #D2D2D7; transition: background .2s;
+        }
+        .dark .ios-switch .track { background: #38383A; }
+        .ios-switch input:checked + .track { background: #34C759; }
+        .ios-switch .knob {
+            position: absolute; top: 2.5px; left: 2.5px; width: 22px; height: 22px;
+            border-radius: 50%; background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: transform .2s;
+        }
+        .ios-switch input:checked ~ .knob { transform: translateX(19px); }
+
+        /* 작은 스위치 (차이만 보기) */
+        .ios-switch.sm { width: 38px; height: 22px; }
+        .ios-switch.sm .knob { width: 18px; height: 18px; top: 2px; left: 2px; }
+        .ios-switch.sm input:checked ~ .knob { transform: translateX(16px); }
+
+        details.help summary { list-style: none; cursor: pointer; }
+        details.help summary::-webkit-details-marker { display: none; }
+        details.help[open] .chev { transform: rotate(90deg); }
+        .chev { transition: transform .18s; }
+
+        /* ── 조건 카드 ── */
+        .cond-card {
+            background: #F7F7F9;
+            border: 1px solid rgba(0,0,0,.03);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .dark .cond-card {
+            background: rgba(255,255,255,.045);
+            border-color: rgba(255,255,255,.06);
+        }
+        .cond-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .cond-badge {
+            display: inline-flex; align-items: center; height: 22px; padding: 0 10px;
+            border-radius: 6px; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .02em;
+        }
+        .cond-note { font-size: 12px; color: #8E8E93; }
+        .cond-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 640px) { .cond-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+
+        /* ── 섹션 라벨 ── */
+        .section-label {
+            display: flex; align-items: center; gap: 7px;
+            font-size: 11px; font-weight: 700; color: #0071E3;
+            text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px;
+        }
+        .section-label::after {
+            content: ''; flex: 1; height: 1px;
+            background: linear-gradient(to right, rgba(0,113,227,.2), transparent);
+        }
+        .dark .section-label { color: #0A84FF; }
+        .dark .section-label::after { background: linear-gradient(to right, rgba(10,132,255,.25), transparent); }
+        .section-label .sl-cnt {
+            background: rgba(0,113,227,.12); color: #0071E3; border-radius: 999px;
+            padding: 1px 8px; font-size: 10.5px; letter-spacing: 0;
+        }
+        .dark .section-label .sl-cnt { background: rgba(10,132,255,.2); color: #6FB6FF; }
+
+        /* ── 통계 KPI ── */
+        .stat-kpi-card {
+            border-radius: 14px; padding: 16px 18px;
+            background: #F5F5F7; border: 1px solid rgba(0,0,0,.04);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; transition: box-shadow .18s, transform .18s;
+        }
+        .stat-kpi-card:hover { box-shadow: 0 6px 20px -4px rgba(0,0,0,.1); transform: translateY(-1px); }
+        .dark .stat-kpi-card { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.06); }
+        .stat-kpi-label {
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+            color: #8E8E93; margin-bottom: 4px;
+        }
+        .stat-kpi-value {
+            font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -.04em; margin-bottom: 3px;
+        }
+        .stat-kpi-unit { font-size: 11px; color: #8E8E93; }
+        .dark .stat-kpi-unit { color: #636366; }
+        .kpi-blue   { color: #0071E3; }
+        .kpi-red    { color: #D70015; }
+        .kpi-green  { color: #248A3D; }
+        .kpi-indigo { color: #5856D6; }
+        .dark .kpi-blue   { color: #0A84FF; }
+        .dark .kpi-red    { color: #FF453A; }
+        .dark .kpi-green  { color: #30D158; }
+        .dark .kpi-indigo { color: #7D7AFF; }
+
+        /* ══════════════════════════════════════════════════════════
+           차이점 요약 — 상단에 한눈에 모아 보는 영역
+           ══════════════════════════════════════════════════════════ */
+
+        /* 비교 대상 호기 배지 */
+        .hogi-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            height: 28px; padding: 0 12px; border-radius: 999px;
+            font-size: 12.5px; font-weight: 700;
+            background: rgba(0,113,227,.09); color: #0071E3;
+            border: 1px solid rgba(0,113,227,.18);
+        }
+        .hogi-pill.b { background: rgba(88,86,214,.09); color: #5856D6; border-color: rgba(88,86,214,.18); }
+        .dark .hogi-pill   { background: rgba(10,132,255,.16); color: #6FB6FF; border-color: rgba(10,132,255,.26); }
+        .dark .hogi-pill.b { background: rgba(94,92,230,.18); color: #A5A3FF; border-color: rgba(94,92,230,.28); }
+        .hogi-pill .cap { font-size: 10px; font-weight: 700; opacity: .7; letter-spacing: .06em; }
+
+        /* TAB 필터 칩 */
+        .tab-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 12px; font-size: 11.5px; font-weight: 600;
+            color: #3C3C43; background: #fff;
+            border: 1px solid #E5E5EA; border-radius: 999px;
+            cursor: pointer; transition: all .15s; font-family: inherit; line-height: 1.3;
+        }
+        .tab-chip:hover { background: rgba(0,113,227,.08); border-color: #0071E3; color: #0071E3; }
+        .tab-chip.active {
+            background: #0071E3 !important; border-color: transparent !important; color: #fff !important;
+            box-shadow: 0 2px 10px rgba(0,113,227,.3);
+        }
+        .dark .tab-chip { background: #2C2C2E; border-color: #38383A; color: #E5E5EA; }
+        .dark .tab-chip:hover { background: rgba(10,132,255,.2); border-color: #0A84FF; color: #9CD0FF; }
+        .dark .tab-chip.active { background: #0A84FF !important; color: #fff !important; }
+        .tab-chip .chip-cnt {
+            background: rgba(0,0,0,.07); border-radius: 999px;
+            padding: 0 6px; font-size: 10px; line-height: 1.7;
+        }
+        .tab-chip.active .chip-cnt { background: rgba(255,255,255,.25); }
+        .dark .tab-chip .chip-cnt { background: rgba(255,255,255,.12); }
+
+        /* 차이 항목 카드 */
+        .diff-list {
+            display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 22px;
+        }
+        @media (min-width: 1280px) { .diff-list { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+
+        .diff-item {
+            border-radius: 12px; padding: 12px 14px;
+            background: #FFF9F0;
+            border: 1px solid rgba(255,159,10,.22);
+            border-left: 3px solid #FF9F0A;
+            transition: box-shadow .18s, transform .18s;
+        }
+        .diff-item:hover { box-shadow: 0 6px 18px -6px rgba(0,0,0,.14); transform: translateY(-1px); }
+        .dark .diff-item {
+            background: rgba(255,159,10,.07);
+            border-color: rgba(255,159,10,.2);
+            border-left-color: #FF9F0A;
+        }
+
+        .diff-item-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 9px; }
+        .diff-name { font-size: 13.5px; font-weight: 700; color: #1D1D1F; }
+        .dark .diff-name { color: #F5F5F7; }
+        .diff-code {
+            font-size: 11px; font-weight: 600; color: #8E8E93;
+            background: rgba(0,0,0,.05); border-radius: 6px; padding: 1px 7px;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+        }
+        .dark .diff-code { background: rgba(255,255,255,.08); color: #98989D; }
+        .diff-tab {
+            font-size: 10.5px; font-weight: 700; color: #0071E3;
+            background: rgba(0,113,227,.09); border-radius: 6px; padding: 1px 7px;
+        }
+        .dark .diff-tab { background: rgba(10,132,255,.16); color: #6FB6FF; }
+
+        /* 구분 배지 — 요약/테이블 공용 */
+        .kind-badge {
+            display: inline-flex; align-items: center; height: 20px; padding: 0 9px;
+            border-radius: 6px; font-size: 10.5px; font-weight: 700;
+            letter-spacing: .02em; white-space: nowrap;
+        }
+        .kind-changed { background: rgba(255,159,10,.16); color: #B25E00; }
+        .kind-only1   { background: rgba(255,59,48,.13);  color: #C7000B; }
+        .kind-only2   { background: rgba(88,86,214,.13);  color: #4B49BE; }
+        .kind-same    { background: rgba(0,0,0,.05);      color: #8E8E93; }
+        .dark .kind-changed { background: rgba(255,159,10,.2); color: #FFB340; }
+        .dark .kind-only1   { background: rgba(255,69,58,.18); color: #FF6961; }
+        .dark .kind-only2   { background: rgba(94,92,230,.22); color: #A5A3FF; }
+        .dark .kind-same    { background: rgba(255,255,255,.08); color: #98989D; }
+
+        /* 값 비교 (호기1 → 호기2) */
+        .diff-vals { display: flex; align-items: stretch; gap: 8px; }
+        .val-box {
+            flex: 1; min-width: 0; border-radius: 9px; padding: 7px 10px;
+            background: #fff; border: 1px solid rgba(0,0,0,.06);
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        .dark .val-box { background: rgba(0,0,0,.28); border-color: rgba(255,255,255,.08); }
+        .val-cap {
+            font-size: 9.5px; font-weight: 700; letter-spacing: .08em;
+            text-transform: uppercase; color: #8E8E93;
+        }
+        .val-a .val-cap { color: #0071E3; }
+        .val-b .val-cap { color: #5856D6; }
+        .dark .val-a .val-cap { color: #6FB6FF; }
+        .dark .val-b .val-cap { color: #A5A3FF; }
+        .val-text {
+            font-size: 13px; font-weight: 600; color: #1D1D1F;
+            word-break: break-all; line-height: 1.4;
+        }
+        .dark .val-text { color: #F5F5F7; }
+        .val-empty { color: #AEAEB2; font-weight: 500; font-style: italic; }
+        .dark .val-empty { color: #636366; }
+        .val-arrow {
+            display: flex; align-items: center; color: #FF9F0A; flex-shrink: 0;
+        }
+
+        /* 차이 없음 안내 */
+        .diff-empty {
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            padding: 34px 20px; border-radius: 14px;
+            background: rgba(52,199,89,.07); border: 1px dashed rgba(52,199,89,.35);
+            text-align: center;
+        }
+        .dark .diff-empty { background: rgba(48,209,88,.09); border-color: rgba(48,209,88,.3); }
+
+        /* ── DataTables (Apple 스타일 오버라이드) ── */
+        .tbl-scroll { overflow-x: auto; }
+        .tbl-scroll::-webkit-scrollbar { height: 10px; width: 10px; }
+        .tbl-scroll::-webkit-scrollbar-thumb { background: #C7C7CC; border-radius: 8px; }
+        .dark .tbl-scroll::-webkit-scrollbar-thumb { background: #48484A; }
+
+        #infoTable_wrapper { font-size: 13px; }
+        #infoTable { border-collapse: separate !important; border-spacing: 0; min-width: 100%; }
+        #infoTable thead th {
+            background: #FAFAFC !important; color: #6E6E73 !important;
+            font-size: 11px !important; font-weight: 700 !important;
+            letter-spacing: .04em; text-transform: uppercase;
+            padding: 10px 12px !important; text-align: left; white-space: nowrap;
+            border-top: none !important; border-left: none !important; border-right: none !important;
+            border-bottom: 1.5px solid #E5E5EA !important;
+        }
+        #infoTable tbody td {
+            padding: 9px 12px !important; font-size: 12.5px !important;
+            color: #1D1D1F; vertical-align: middle;
+            border-top: none !important; border-left: none !important; border-right: none !important;
+            border-bottom: 1px solid #F0F0F2 !important;
+        }
+        #infoTable tbody td.cell-val { white-space: normal; word-break: break-all; }
+        #infoTable tbody tr { transition: background .1s; }
+        #infoTable tbody tr:hover td { background: rgba(0,113,227,.055) !important; }
+        .dark #infoTable thead th { background: #232325 !important; color: #98989D !important; border-bottom-color: #38383A !important; }
+        .dark #infoTable tbody td { background: #1C1C1E !important; color: #E5E5EA; border-bottom-color: #2C2C2E !important; }
+        .dark #infoTable tbody tr:hover td { background: rgba(10,132,255,.10) !important; }
+
+        /* 비교 대상 호기번호 (테이블 헤더) */
+        #infoTable thead th .th-hogi-no {
+            display: block; margin-top: 2px;
+            font-size: 11.5px; font-weight: 700; color: #0071E3;
+            text-transform: none; letter-spacing: 0;
+        }
+        #infoTable thead th .th-hogi-no.b { color: #5856D6; }
+        #infoTable thead th .th-hogi-no:empty { display: none; }
+        .dark #infoTable thead th .th-hogi-no   { color: #6FB6FF; }
+        .dark #infoTable thead th .th-hogi-no.b { color: #A5A3FF; }
+
+        /* 차이 행 강조 (기존 pink 대체 — 다크모드에서도 읽힌다) */
+        #infoTable tbody tr.row-diff td { background: rgba(255,159,10,.10) !important; }
+        #infoTable tbody tr.row-diff:hover td { background: rgba(255,159,10,.18) !important; }
+        .dark #infoTable tbody tr.row-diff td { background: rgba(255,159,10,.09) !important; }
+        .dark #infoTable tbody tr.row-diff:hover td { background: rgba(255,159,10,.16) !important; }
+
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info { font-size: 12.5px; }
+        .dataTables_wrapper .dataTables_filter input {
+            height: 34px; border: 1.5px solid #E5E5EA; border-radius: 10px;
+            padding: 0 11px; outline: none; background: #fff; transition: all .15s; min-width: 220px;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus {
+            border-color: #0071E3; box-shadow: 0 0 0 3.5px rgba(0,113,227,.14);
+        }
+        .dt-buttons .btn {
+            height: 32px; display: inline-flex; align-items: center; gap: 5px;
+            border-radius: 9px !important; font-size: 12.5px !important; font-weight: 600 !important;
+            padding: 0 13px !important; border: 1px solid transparent !important;
+            background: #F5F5F7 !important; color: #1D1D1F !important; transition: background .15s !important;
+        }
+        .dt-buttons .btn:hover { background: #E8E8ED !important; }
+        .dark .dataTables_wrapper { color: #E5E5EA; }
+        .dark .dataTables_wrapper .dataTables_filter input {
+            background: #2C2C2E; border-color: #38383A; color: #F5F5F7;
+        }
+        .dark .dt-buttons .btn { background: #2C2C2E !important; color: #F5F5F7 !important; }
+        .dark .dt-buttons .btn:hover { background: #3A3A3C !important; }
+        .dark #infoTable.dataTable.no-footer { border-bottom-color: #2C2C2E !important; }
+        .dark #infoTable tbody tr { background: transparent !important; }
+        .dataTables_wrapper .dataTables_processing {
+            border: none !important; border-radius: 12px;
+            background: rgba(255,255,255,.94) !important;
+            color: #1D1D1F; font-weight: 600; font-size: 13px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.12);
+        }
+        .dark .dataTables_wrapper .dataTables_processing {
+            background: rgba(44,44,46,.96) !important;
+            color: #F5F5F7; box-shadow: 0 8px 30px rgba(0,0,0,.5);
+        }
+
+        /* DataTables 툴바 배치 — 버튼(좌) / 검색(우) */
+        #tableToolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        #infoTable_wrapper .dataTables_filter { float: right; text-align: right; margin-bottom: 10px; }
+        #infoTable_wrapper .dataTables_filter label { margin-bottom: 0; font-weight: 600; }
+
+        /* 조회 중 로딩 오버레이 (elevatorSpecDiffV2.js 가 인라인 style 로 생성) */
+        .dark #loadingOverlay { background: rgba(0,0,0,.62) !important; }
+        .dark #loadingOverlay > div {
+            background: #1C1C1E !important;
+            box-shadow: 0 24px 56px -8px rgba(0,0,0,.65) !important;
+        }
+        .dark #loadingOverlay > div > div {
+            border-color: rgba(255,255,255,.12) !important;
+            border-top-color: #0A84FF !important;
+        }
+        .dark #loadingOverlay p { color: #F5F5F7 !important; }
+    </style>
+</head>
+
+<body class="bg-apple-gray6 dark:bg-apple-darkBg text-apple-ink dark:text-apple-gray6 min-h-screen">
+
+<!-- ═══════════ Left Sidebar (fragments/newSideBar.html) ═══════════ -->
+<div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+
+<div id="appContent">
+
+<!-- ═══════════ Top Bar ═══════════ -->
+<header class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-black/60 border-b border-black/5 dark:border-white/10">
+    <div class="w-full px-5 xl:px-8 h-[58px] flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <button type="button" id="sbToggle" class="icon-btn -ml-2" title="사이드바 열기/닫기">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
+            <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-[16px] font-bold tracking-tight leading-none">호기 영업사양 비교</h1>
+                <p class="text-[11px] text-apple-gray1 leading-none mt-[3px]">Logic Design Intelligence Platform</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-5">
+            <span class="hidden md:inline-flex items-center gap-1.5 text-[12px] font-medium text-apple-gray1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
+            </span>
+            <div class="flex items-center gap-2">
+                <span class="text-[12.5px] font-medium text-apple-gray1" id="themeLabel">다크모드</span>
+                <label class="ios-switch">
+                    <input type="checkbox" id="darkModeToggle">
+                    <span class="track"></span><span class="knob"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="w-full px-5 xl:px-8 py-8 space-y-6">
+
+    <!-- ═══════════ Hero ═══════════ -->
+    <section class="pt-2 pb-1">
+        <h2 class="text-[30px] font-bold tracking-tight leading-tight">영업사양 비교</h2>
+        <p class="text-[14.5px] text-apple-gray1 mt-1">두 호기의 영업사양 특성값을 대조하여 서로 다른 항목만 상단에 모아 보여줍니다.</p>
+    </section>
+
+    <!-- ═══════════ 도움말 ═══════════ -->
+    <details class="help panel">
+        <summary class="panel-head">
+            <span class="tile tile-amber" style="border-radius:999px;">💡</span>
+            <span class="text-[14px] font-semibold flex-1">도움말 · 사용 안내</span>
+            <svg class="chev text-apple-gray1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+        <ul class="px-7 pb-5 pt-1 space-y-2 text-[13px] leading-relaxed text-[#515154] dark:text-[#AEAEB2]">
+            <li class="flex gap-2"><span class="text-rose-500 font-bold">·</span><span class="font-semibold text-rose-500">호기-01, 호기-02 모두 필수입력</span> 입니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>조회 후 <b>차이점 요약</b> 영역에 서로 다른 사양만 구분별로 묶어서 표시됩니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>구분 — <b>값 상이</b>(양쪽 값이 다름) · <b>호기 1만 존재</b> · <b>호기 2만 존재</b></li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>사양값은 PLM <b>ELV_INFO</b> 원본을 직접 읽어와 코드값을 표시값으로 변환한 결과입니다. (findElvSearch 와 동일 경로)</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>그룹 — <b>기본정보</b>(MD$ 컬럼) · <b>영업사양</b>(한글 특성명이 정의된 코드) · <b>기타</b></li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>값 비교는 앞뒤 공백·대소문자를 무시하며, 빈 값 / <b>-</b> / null 은 모두 "없음" 으로 취급합니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>두 호기 모두 값이 비어있는 사양과 내부키 컬럼(VF$·ID$)은 비교 대상에서 제외됩니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>하단 전체 비교 결과에서 <b>차이만 보기</b> 스위치로 동일 항목을 숨길 수 있습니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>입력창에서 Enter 키로 바로 조회됩니다.</li>
+        </ul>
+    </details>
+
+    <!-- ═══════════ 검색 조건 ═══════════ -->
+    <section class="panel">
+        <div class="panel-head">
+            <span class="tile tile-blue">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="text-apple-blue dark:text-apple-blueD"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+            </span>
+            <h3 class="panel-title">검색 조건</h3>
+        </div>
+
+        <div class="panel-body" style="padding-top:4px;">
+            <div class="cond-card">
+                <div class="cond-head">
+                    <span class="cond-badge" style="background:#0071E3;">비교 대상</span>
+                    <span class="cond-note">두 호기 모두 필수</span>
+                </div>
+                <div class="cond-grid">
+                    <div>
+                        <label class="field-label" for="hogi-01">호기 - 01</label>
+                        <input type="search" id="hogi-01" class="form-input" placeholder="호기-01" autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="field-label" for="hogi-02">호기 - 02</label>
+                        <input type="search" id="hogi-02" class="form-input" placeholder="호기-02" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-foot">
+            <span class="text-[12px] text-apple-gray1">호기 입력 후 Enter 키로 바로 조회할 수 있습니다.</span>
+            <div class="flex items-center gap-2.5">
+                <button type="button" class="btn-primary" onclick="searchPID()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                    비교
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ ① 차이점 요약 (조회 후 표시) ═══════════ -->
+    <section id="diffSummaryPanel" class="panel" style="display:none;">
+
+        <div class="panel-head divider">
+            <span class="tile tile-amber">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+            </span>
+            <h3 class="panel-title">차이점 요약</h3>
+            <span id="diffTotalBadge"
+                  class="inline-flex items-center h-[24px] px-3 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[12px] font-bold"></span>
+
+            <div class="flex items-center gap-2 ml-auto flex-wrap">
+                <span class="hogi-pill"><span class="cap">호기 1</span><span id="sumHogi1">-</span></span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                <span class="hogi-pill b"><span class="cap">호기 2</span><span id="sumHogi2">-</span></span>
+                <button type="button" class="btn-mini ml-1" onclick="copyDiffSummary()" title="차이 목록을 텍스트로 복사">
+                    <i class="fas fa-copy" style="font-size:11px;"></i> 요약 복사
+                </button>
+            </div>
+        </div>
+
+        <div class="panel-body">
+
+            <!-- KPI -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                <div class="stat-kpi-card">
+                    <p class="stat-kpi-label">차이 항목</p>
+                    <p class="stat-kpi-value kpi-red" id="statDiff">-</p>
+                    <p class="stat-kpi-unit">건</p>
+                </div>
+                <div class="stat-kpi-card">
+                    <p class="stat-kpi-label">동일 항목</p>
+                    <p class="stat-kpi-value kpi-green" id="statSame">-</p>
+                    <p class="stat-kpi-unit">건</p>
+                </div>
+                <div class="stat-kpi-card">
+                    <p class="stat-kpi-label">전체 사양</p>
+                    <p class="stat-kpi-value kpi-blue" id="statTotal">-</p>
+                    <p class="stat-kpi-unit">건</p>
+                </div>
+                <div class="stat-kpi-card">
+                    <p class="stat-kpi-label">일치율</p>
+                    <p class="stat-kpi-value kpi-indigo" id="statRate">-</p>
+                    <p class="stat-kpi-unit">동일 / 전체</p>
+                </div>
+            </div>
+
+            <!-- 차이 없음 -->
+            <div id="diffEmpty" class="diff-empty" style="display:none;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                <p class="text-[15px] font-bold">두 호기의 영업사양이 완전히 동일합니다.</p>
+                <p class="text-[12.5px] text-apple-gray1">차이가 있는 사양값이 없습니다.</p>
+            </div>
+
+            <!-- TAB 필터 -->
+            <div id="diffTabFilter" class="flex flex-wrap gap-1.5 mb-5" style="display:none;"></div>
+
+            <!-- TAB 별 차이 카드 -->
+            <div id="diffGroups"></div>
+        </div>
+    </section>
+
+    <!-- ═══════════ ② 전체 비교 결과 ═══════════ -->
+    <section class="panel">
+
+        <div class="panel-head divider">
+            <span class="tile tile-green">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="kpi-green"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+            </span>
+            <h3 class="panel-title">전체 비교 결과</h3>
+
+            <label class="flex items-center gap-2 ml-auto cursor-pointer select-none">
+                <span class="text-[12.5px] font-medium text-apple-gray1">차이만 보기</span>
+                <span class="ios-switch sm">
+                    <input type="checkbox" id="diffOnlyToggle">
+                    <span class="track"></span><span class="knob"></span>
+                </span>
+            </label>
+        </div>
+
+        <div class="panel-body">
+
+            <!-- DataTables 버튼(CSV/EXCEL/COPY) 이 붙는 자리 -->
+            <div id="tableToolbar" class="mb-3"></div>
+
+            <div class="tbl-scroll">
+                <table id="infoTable" class="table table-hover" style="width:100%;">
+                    <thead>
+                    <tr>
+                        <th>구분</th>
+                        <th>그룹</th>
+                        <th>특성명</th>
+                        <th>특성코드</th>
+                        <th>호기 1<span class="th-hogi-no" id="thHogi1No"></span></th>
+                        <th>호기 2<span class="th-hogi-no b" id="thHogi2No"></span></th>
+                    </tr>
+                    </thead>
+                    <tbody id="contentTable"></tbody>
+                </table>
+            </div>
+
+        </div>
+    </section>
+
+    <footer class="pt-4 pb-8 text-center">
+        <p class="text-[12px] text-apple-gray1">Copyright © 2026 <b>수배로직설계팀 · 김영환 M</b>. All rights reserved. · Version 1.0.0</p>
+    </footer>
+</main>
+
+</div><!-- /#appContent -->
+
+
+<!-- Scripts -->
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+<!-- DataTables -->
+<script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
+<script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
+<script src="/resources/dist/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
+<script src="/resources/dist/plugins/jszip/jszip.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/pdfmake.min.js"></script>
+<script src="/resources/dist/plugins/pdfmake/vfs_fonts.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
+<script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
+
+<script src="/resources/javascript/elevatorSpecDiffV2.js"></script>
+
+<script>
+    /* ── 다크모드 (searchPartAnalysisV2 와 동일 · localStorage 키 'theme' 공유) ── */
+    (function initTheme() {
+        const dark = localStorage.getItem('theme') !== 'light'; // 기본 다크모드
+        document.documentElement.classList.toggle('dark', dark);
+        document.getElementById('darkModeToggle').checked = dark;
+        document.getElementById('themeLabel').textContent = dark ? '🌙 다크모드' : '☀️ 라이트모드';
+        if (dark) localStorage.setItem('theme', 'dark');
+    })();
+    document.getElementById('darkModeToggle').addEventListener('change', function () {
+        document.documentElement.classList.toggle('dark', this.checked);
+        localStorage.setItem('theme', this.checked ? 'dark' : 'light');
+        document.getElementById('themeLabel').textContent = this.checked ? '🌙 다크모드' : '☀️ 라이트모드';
+    });
+
+    /* ── 사이드바 현재 메뉴 활성화 ── */
+    document.querySelectorAll('#sidebar .sb-link').forEach(function (a) {
+        a.classList.remove('active');
+        var target = (a.getAttribute('href') || '') + ' ' + (a.getAttribute('onclick') || '');
+        if (target.indexOf('/subae/elevatorSpecDiff') > -1) a.classList.add('active');
+    });
+</script>
+
+</body>
+</html>

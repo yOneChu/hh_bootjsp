@@ -492,7 +492,7 @@ public class SubaeController {
     @GetMapping("/subae/elevatorSpecDiff")
     public String elevatorSpecDiff() {
         log.info("========== subae elevatorSpecDiff");
-        return "subaeLogic/elevatorSpecDiff";
+        return "thymeleaf/logic/elevatorSpecDiff";
     }
 
     @PostMapping("/subae/elevatorSpecDiff")
