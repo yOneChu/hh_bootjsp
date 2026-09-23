@@ -228,10 +228,10 @@ function searchPID() {
     const dynKeys      = getDynamicKeys();
     const kvConditions = JSON.stringify(getKvConditions());
 
-    if (!partNo && !blockNo) {
+    /*if (!partNo && !blockNo) {
         alert('PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.');
         return;
-    }
+    }*/
 
     /* 기존 DataTable 파괴 */
     if ($.fn.DataTable.isDataTable('#infoTable')) {
@@ -258,7 +258,13 @@ function searchPID() {
                     buildTableRows(data, dynKeys);
                     initDataTable();
                     renderStats(data);
-                    setTimeout(applySavedColumnVisibility, 50);
+                    setTimeout(function() {
+                        applySavedColumnVisibility();
+                        /* PartNo / BlockNo 둘 다 미입력이면 0~4, 15~21 컬럼 자동 숨김 */
+                        if (typeof window.applyAutoHideBySearchKey === 'function') {
+                            window.applyAutoHideBySearchKey();
+                        }
+                    }, 50);
                 } else {
                     syncDynamicHeaders([]);   // 이전 동적 컬럼 정리
                     hideStats();
@@ -479,8 +485,8 @@ function searchGraph() {
     const blockNo = ($('#blockNo').val() || '').trim();
 
     if (!partNo && !blockNo) {
-        alert('PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.');
-        return;
+        //alert('PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.');
+        //return;
     }
 
     /* 데이터 전달 상태 초기화 (팝업은 이 값이 채워질 때까지 대기) */

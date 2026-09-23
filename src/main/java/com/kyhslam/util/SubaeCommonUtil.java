@@ -1036,6 +1036,11 @@ public class SubaeCommonUtil {
                 }
             }
 
+            if (pBlockNo != null && !"".equals(pBlockNo)) {
+                sql += " AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID = DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = '" + pBlockNo + "' ";
+            }
+
+
             if (vEL_ETHRU != null && !"".equals(vEL_ETHRU) && !"-".equals(vEL_ETHRU)) {
                 sql += """
                         AND (SELECT COD(E.EL_ETHRU) FROM ELV_INFO$ID A, ELV_INFO$VF E
@@ -1044,10 +1049,6 @@ public class SubaeCommonUtil {
                 sql += " AND E.MD$NUMBER = (SELECT F.MD$NUMBER FROM PRODUCT$VF F WHERE F.VF$OUID = PE.PRODUCTOUID) ) = '" + vEL_ETHRU + "' ";
             }
 
-
-            if (pBlockNo != null && !"".equals(pBlockNo)) {
-                sql += " AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID = DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = '" + pBlockNo + "' ";
-            }
 
             if (cmt != null && !"".equals(cmt)) {
                 //sql += " AND PE.CMT LIKE '%" + cmt + "%' ";
@@ -1171,6 +1172,11 @@ public class SubaeCommonUtil {
                 }
             }
 
+            //만약 partNo, pBlockNo : 둘 다 입력되지 않았을 때의 조건
+            if ((partNo == null || partNo.isBlank()) && (pBlockNo == null || pBlockNo.isBlank())) {
+                sql = createElvQuery(whereCond);
+            }
+
             System.out.println("sql = " + sql);
 
             pstmt = con.prepareStatement(sql.toString());
@@ -1180,14 +1186,53 @@ public class SubaeCommonUtil {
             rs = pstmt.executeQuery();
 
             while (rs.next()) {
-                String PRODUCT_ID = rs.getString("PRODUCT_ID");
-                String PARTEND2_OID = rs.getString("PARTEND2_OID");
-                String productNo = rs.getString("PARENTNO"); //제품번호
-                String productVersion = rs.getString("PARENT_VER") == null ? "" : rs.getString("PARENT_VER"); //제품버전
-                String PROD_STATUS = rs.getString("PROD_STATUS") == null ? "" : rs.getString("PROD_STATUS");
-                String PROD_CREDATE = rs.getString("PROD_CREDATE") == null ? "" : rs.getString("PROD_CREDATE"); //제품 등록일
-                String PROD_MODDATE = rs.getString("PROD_MODDATE") == null ? "" : rs.getString("PROD_MODDATE"); //제품 수정일
-                String PROD_APP_DATE = rs.getString("PROD_APP_DATE") == null ? "" : rs.getString("PROD_APP_DATE"); //제품 승인일
+                //String PRODUCT_ID = rs.getString("PRODUCT_ID") == null ? "" : rs.getString("PRODUCT_ID");
+                //String PARTEND2_OID = rs.getString("PARTEND2_OID") == null ? "" : rs.getString("PARTEND2_OID");
+
+                String productNo = ""; //제품번호
+                String productVersion = ""; //제품버전
+                String PROD_STATUS = "";
+                String PROD_CREDATE = "";
+                String PROD_MODDATE = "";
+                String PROD_APP_DATE = "";
+                String PARTNO = "";;
+                String PARTNAME = "";
+                String PART_VERSION = "";
+                String BLOCKNO = "";
+                String partQTY = "";
+                String BLOCK_OPT = "";
+                String CMT = "";
+                String GLCODE = "";
+                String UCHECK = "" ;
+                //String PART_QTY = rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
+                String SPEC = "";
+                String HASCHILD = "";
+
+                //partNo, pBlockNo : 둘 중 하나라도 입력되었으면
+                if ((partNo != null && !partNo.isBlank()) || (pBlockNo != null && !pBlockNo.isBlank())) {
+                    //System.out.println("partNo = " + partNo);
+                    //System.out.println("pBlockNo = " + pBlockNo);
+                    productNo = rs.getString("PARENTNO") == null ? "" : rs.getString("PARENTNO"); //제품번호
+                    productVersion = rs.getString("PARENT_VER") == null ? "" : rs.getString("PARENT_VER"); //제품버전
+                    PROD_STATUS = rs.getString("PROD_STATUS") == null ? "" : rs.getString("PROD_STATUS");
+                    PROD_CREDATE = rs.getString("PROD_CREDATE") == null ? "" : rs.getString("PROD_CREDATE"); //제품 등록일
+                    PROD_MODDATE = rs.getString("PROD_MODDATE") == null ? "" : rs.getString("PROD_MODDATE"); //제품 수정일
+                    PROD_APP_DATE = rs.getString("PROD_APP_DATE") == null ? "" : rs.getString("PROD_APP_DATE"); //제품 승인일
+                    PARTNO = rs.getString("PARTNO") == null ? "" : rs.getString("PARTNO");
+                    PARTNAME = rs.getString("PARTNAME") == null ? "" : rs.getString("PARTNAME");
+                    PART_VERSION = rs.getString("PART_VERSION") == null ? "" : rs.getString("PART_VERSION");
+                    BLOCKNO = rs.getString("BLOCKNO") == null ? "" : rs.getString("BLOCKNO");
+                    partQTY = rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
+                    BLOCK_OPT = rs.getString("BLOCK_OPT") == null ? "" : rs.getString("BLOCK_OPT");
+                    CMT = rs.getString("CMT") == null ? "" : rs.getString("CMT");
+                    GLCODE = rs.getString("GLCODE") == null ? "" : rs.getString("GLCODE");
+                    UCHECK = rs.getString("UCHECK") == null ? "" : rs.getString("UCHECK");
+                    //PART_QTY = rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
+                    SPEC = rs.getString("SPEC") == null ? "" : rs.getString("SPEC");
+                    HASCHILD = rs.getString("HASCHILD") == null ? "" : rs.getString("HASCHILD");
+                }
+
+
                 String GISONG = rs.getString("GISONG") == null ? "" : rs.getString("GISONG");
                 String BRAND = rs.getString("BRAND") == null ? "" : rs.getString("BRAND");
                 String EL_ASPD = rs.getString("EL_ASPD") == null ? "" : rs.getString("EL_ASPD");
@@ -1199,21 +1244,11 @@ public class SubaeCommonUtil {
                 String EL_ECWBG = rs.getString("EL_ECWBG") == null ? "" : rs.getString("EL_ECWBG");
                 String EL_ECBG = rs.getString("EL_ECBG") == null ? "" : rs.getString("EL_ECBG");
 
-                String EL_ECWSF = rs.getString("EL_ECWSF") == null ? "" : rs.getString("EL_ECWSF");
-                String PARTNO = rs.getString("PARTNO") == null ? "" : rs.getString("PARTNO");
-                String PARTNAME = rs.getString("PARTNAME") == null ? "" : rs.getString("PARTNAME");
-                String PART_VERSION = rs.getString("PART_VERSION") == null ? "" : rs.getString("PART_VERSION");
-                String BLOCKNO = rs.getString("BLOCKNO") == null ? "" : rs.getString("BLOCKNO");
-                String partQTY = rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
-                String BLOCK_OPT = rs.getString("BLOCK_OPT") == null ? "" : rs.getString("BLOCK_OPT");
-                String CMT = rs.getString("CMT") == null ? "" : rs.getString("CMT");
-                String GLCODE = rs.getString("GLCODE") == null ? "" : rs.getString("GLCODE");
-                String UCHECK = rs.getString("UCHECK") == null ? "" : rs.getString("UCHECK");
-                //String PART_QTY = rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
-                String SPEC = rs.getString("SPEC") == null ? "" : rs.getString("SPEC");
-                String HASCHILD = rs.getString("HASCHILD") == null ? "" : rs.getString("HASCHILD");
+                String EL_ECWSF = "";
+                String EL_ETHRU = "";
 
-                String EL_ETHRU = rs.getString("EL_ETHRU") == null ? "" : rs.getString("EL_ETHRU");
+                EL_ECWSF = rs.getString("EL_ECWSF") == null ? "" : rs.getString("EL_ECWSF");
+                //EL_ETHRU = rs.getString("EL_ETHRU") == null ? "" : rs.getString("EL_ETHRU");
                 String EL_COB = rs.getString("EL_COB") == null ? "" : rs.getString("EL_COB");
                 String EL_ZFDA = rs.getString("EL_ZFDA") == null ? "" : rs.getString("EL_ZFDA");
                 String EL_BWALLT = rs.getString("EL_BWALLT") == null ? "" : rs.getString("EL_BWALLT");
@@ -1221,7 +1256,7 @@ public class SubaeCommonUtil {
                 //System.out.println(GISONG + " ===== " + productNo +">" + productVersion + " >>> " + PARTNO + " > " + BLOCK_OPT);
 
 
-                ProductDto dto = new ProductDto();
+               /* ProductDto dto = new ProductDto();
                 dto.setProductNo(productNo); //제품번호
                 dto.setProductVersion(productVersion); //제품버전
                 dto.setProductStatus(PROD_STATUS);
@@ -1251,7 +1286,7 @@ public class SubaeCommonUtil {
                 dto.setEL_ETHRU(EL_ETHRU);
                 dto.setEL_COB(EL_COB);
                 dto.setEL_ZFDA(EL_ZFDA);
-                dto.setEL_BWALLT(EL_BWALLT);
+                dto.setEL_BWALLT(EL_BWALLT);*/
 
 
                 HashMap<String, String> dMap = new HashMap<>();
@@ -1264,7 +1299,7 @@ public class SubaeCommonUtil {
                 dMap.put("gisong", GISONG);
                 dMap.put("aspd", EL_ASPD);
                 dMap.put("aspscd", ASPSCD);
-                dMap.put("el_ETHRU", "");
+                //dMap.put("el_ETHRU", "");
                 dMap.put("el_COB", EL_COB);
 
                 dMap.put("acapa", EL_ACAPA);
@@ -1597,6 +1632,245 @@ public class SubaeCommonUtil {
             PLMDBConnection.disconnect(con, pstmt, rs);
         }
         return result;
+    }
+
+
+
+    //영업사양 조회 쿼리 생성
+    public static String createElvQuery(PartWhere whereCond) {
+
+        ArrayList<String> keyList = new ArrayList<>();
+        ArrayList<String> opList = new ArrayList<>();
+        ArrayList<String> valList = new ArrayList<>();
+
+        /* ── 동적 K-V 조건 파싱 & 출력 ── */
+        String kvJson = whereCond.getKvConditions();
+        if (kvJson != null && !kvJson.isBlank()) {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                List<Map<String, String>> kvList =
+                        mapper.readValue(kvJson, new TypeReference<List<Map<String, String>>>() {
+                        });
+
+                for (int i = 0; i < kvList.size(); i++) {
+                    Map<String, String> kv = kvList.get(i);
+                    String key = kv.getOrDefault("key", "");
+                    String op = kv.getOrDefault("op", "");
+                    String value = kv.getOrDefault("value", "");
+                    keyList.add(key);
+                    opList.add(op);
+                    valList.add(value);
+                }
+            } catch (Exception e) {
+
+            }
+        }
+
+        String year = whereCond.getYear();
+        String partNo = whereCond.getPartNo();
+        String pBlockNo = whereCond.getBlockNo();
+        String status = whereCond.getStatus();
+        String cmt = whereCond.getCmt();
+        String spec = whereCond.getSpec();
+        String brand = whereCond.getBrand();
+        String EL_ASPSCD = whereCond.getEL_ASPSCD();
+        String EL_ATYP = whereCond.getEL_ATYP();
+        String vEL_ETHRU = whereCond.getEL_ETHRU();
+        String vEL_COB = whereCond.getEL_COB();
+        String vEL_ZFDA = whereCond.getEL_ZFDA();
+        String vEL_ZFDA_TYPE = whereCond.getEL_ZFDA_TYPE();
+        String vEL_ZFDC = whereCond.getEL_ZFDC();
+        String vEL_ZFDC_TYPE = whereCond.getEL_ZFDC_TYPE();
+        String vEL_BWALLT = whereCond.getEL_BWALLT();
+
+        if (pBlockNo != null && !"".equals(pBlockNo)) {
+            pBlockNo = pBlockNo.toUpperCase();
+        }
+
+        String sql = """
+                SELECT V.MD$DESC, V.MD$NUMBER AS PRODUCTNO,
+                       COD(V.EL_AOPEN) AS EL_AOPEN, -- 열림방식 
+                       CODN(v.EL_AUSE) AS EL_AUSE, --용도 
+                       V.EL_ECWBUFBH, --CWT BUFFER BLOCKING 높이 
+                       V.EL_ECAA AS EL_ECAA,  -- CAR 외부가로 ; AA
+                       V.EL_ECBB AS EL_ECBB,  -- CAR 외부세로 ; BB
+                       V.EL_ECCA AS EL_ECCA,  -- CAR 내부가로 ; CA      
+                       V.EL_ECCB AS EL_ECCB,  -- CAR 내부세로 ; CB
+                       COD(V.EL_ECCC) AS EL_ECCC,  -- ◎ CAR;CC
+                       V.EL_ECCH, --CAR 높이; CH 
+                       V.EL_ECBG, --CAR:BG 
+                       V.EL_ECEE, --CAR 무게중심;EE 
+                       V.EL_ECJJ, --도어폭;JJ 
+                       V.EL_EPPX AS EL_EPPX, -- ROPE ; X 가로 
+                       V.EL_EPPY AS EL_EPPY, -- ROPE ; Y 가로
+                       COD(V.EL_BMOPB) AS EL_BMOPB, --MAIN OPB사양 
+                       COD(V.EL_BMOPBM) AS EL_BMOPBM, --MAIN OPB 재질 
+                       COD(V.EL_BMOPBO) AS EL_BMOPBO, --MAIN OPB 열림 방향 
+                       COD(V.EL_ECWRL) AS EL_ECWRL, --CWT RAIL(K) 
+                       COD(V.EL_ETM) AS EL_ETM, --권상기 
+                       COD(V.EL_COB) AS EL_COB,
+                       V.EL_ECWBG, --CWT; BG 
+                       V.EL_ECWW, --CWT;폭 
+                       COD(V.EL_ECSF) AS EL_ECSF, --CAR; SAFETY
+                       COD(V.EL_ECWSF ) AS EL_ECWSF,
+                       COD(V.EL_ASPC) AS EL_ASPC, --시방서 
+                       COD(V.EL_ETHRU) AS EL_ETHRU,
+                       COD(V.EL_ASPCD) AS EL_ASPCD, -- 시방서 DEVIATION 여부 
+                       COD(V.EL_BCL) AS EL_BCL, -- 천장종류 
+                       COD(V.EL_ZFDA) AS EL_ZFDA, --  
+                       COD(V.EL_BWALLT) AS EL_BWALLT, --  
+                       V.EL_AMAN AS EL_AMAN, --인승 
+                       COD(V.EL_ASPSCD) AS ASPSCD, --생산거점(설계) 
+                       CONCAT('elv_info$vf@', LOWER(DECTOHEX(V.vf$ouid))) OUID,   -- 영업사양 객체 
+                       CODN(V.EL_ABRAND) AS BRAND, -- 브랜드 
+                       CODN(V.EL_ATYP) AS GISONG, -- 기종 
+                       CODN (V.EL_ASPD) AS EL_ASPD, -- 속도 
+                       CODN (V.EL_ACAPA) AS EL_ACAPA --용량
+                      -- V.EL_ZTEXT_B, --가내 특기사항 
+                      -- V.EL_ZTEXT_C, --승장 특기사항 
+                      -- V.EL_ZTEXT_D, --옵션 특기사항 
+                      -- V.EL_ZTEXT_E, --L/O 특기사항 
+                      -- V.EL_ZERR_M3_1, --기계 에러 메시지 
+                      -- V.EL_ZERR_E3_1, --전기 에러 메시지 
+                      -- V.EL_ZERR_M5_1, --기계 미품목, 
+                      -- V.EL_ZERR_E5_1, --전기 미품목 
+                      -- V.EL_ZERR_C_1, --공통 에러 메시지 
+                      -- V.EL_ZERR_A_1, --자동 입력 오류 
+                      -- V.MD$USER,  --등록자
+                      -- V.MD$CDATE, --등록일
+                      -- V.MANAGER_E, --전기담당자
+                	  -- V.MANAGER_M  --기계담당자
+                      -- ,V.*
+                """;
+
+
+        ArrayList<String> lineCodeList = new ArrayList<String>();
+        lineCodeList.add("EL_ECEE");
+        lineCodeList.add("EL_ECAA");
+        lineCodeList.add("EL_ECBA"); //	CWT; BALANCE
+        lineCodeList.add("EL_ECBB");
+        lineCodeList.add("EL_ECBG");
+        lineCodeList.add("EL_ECCA"); // CAR 내부가로 ; CA
+        lineCodeList.add("EL_ECCB"); //	CAR 내부세로 ; CB
+        //lineCodeList.add("EL_ECCC");
+        lineCodeList.add("EL_ECCH");
+        lineCodeList.add("EL_ECHH"); //	도어높이;HH
+
+
+        System.out.println("keyList = " + keyList);
+
+        if (keyList != null && keyList.size() > 0) {
+            for (int k = 0; k < keyList.size(); k++) {
+                String el_code = keyList.get(k);
+                //String op = opList.get(k);
+                //String codeVal = valList.get(k);
+
+                if (el_code != null && !"".equals(el_code.trim())) {
+                    if(lineCodeList.contains(el_code.trim())) {
+                        sql += " , V." + el_code.trim()  + " AS " + el_code.trim();
+                    } else {
+                        sql += " , COD(V." + el_code.trim() + ") AS " + el_code.trim();
+                    }
+                }
+            }
+        }
+
+
+        sql += """
+                         
+                FROM ELV_INFO$VF V, ELV_INFO$ID A 
+                WHERE 
+                    V.vf$identity = A.id$ouid and V.vf$ouid = A.id$wip 
+                """;
+
+        if (year != null && !"".equals(year)) {
+            sql += " AND SUBSTR(V.MD$MDATE, 0, 4) = '" + year + "' ";
+        } else {
+            sql += " AND SUBSTR(V.MD$MDATE, 0, 4) = '2026' ";
+        }
+
+
+        if (vEL_ETHRU != null && !"".equals(vEL_ETHRU) && !"-".equals(vEL_ETHRU)) {
+            sql += " AND COD(E.EL_ETHRU) = '" + vEL_ETHRU + "' ";
+        }
+
+        //brand
+        if (brand != null && !"".equals(brand) && !"-".equals(brand)) {
+            brand = brand.toUpperCase();
+
+            if (brand.contains("*")) {
+                brand = brand.replace("*", "%");
+                sql += " AND COD(V.EL_ABRAND) LIKE '" + brand + "' ";
+            } else {
+                sql += " AND COD(V.EL_ABRAND) = '" + brand + "' ";
+            }
+        }
+
+        //생산거점(설계)
+        if (EL_ASPSCD != null && !"".equals(EL_ASPSCD) && !"-".equals(EL_ASPSCD)) {
+            sql += " AND COD(V.EL_ASPSCD) = '" + EL_ASPSCD + "' ";
+        }
+
+        //기종
+        if (EL_ATYP != null && !"".equals(EL_ATYP) && !"-".equals(EL_ATYP)) {
+            if (EL_ATYP.contains("*")) {
+                EL_ATYP = EL_ATYP.replace("*", "%");
+                sql += " AND COD(V.EL_ATYP) LIKE '" + EL_ATYP + "' ";
+            } else {
+                sql += " AND COD(V.EL_ATYP) = '" + EL_ATYP + "' ";
+            }
+        }
+
+        //vEL_COB
+        if (vEL_COB != null && !"".equals(vEL_COB) && !"-".equals(vEL_COB)) {
+
+            if (vEL_COB.contains("*")) {
+                vEL_COB = vEL_COB.replace("*", "%");
+                sql += " AND COD(V.vEL_COB) LIKE '" + vEL_COB + "' ";
+            } else {
+                sql += " AND COD(V.vEL_COB) = '" + vEL_COB + "' ";
+            }
+        }
+
+        //기계구조 최초설계
+        if (vEL_ZFDA != null && !"".equals(vEL_ZFDA.trim()) && !"-".equals(vEL_ZFDA)) {
+            vEL_ZFDA = vEL_ZFDA.trim();
+
+            sql += " AND COD(V.EL_ZFDA) " + vEL_ZFDA_TYPE + " '" + vEL_ZFDA + "' ";
+        }
+
+        //전기구조 최초설계
+        if (vEL_ZFDC != null && !"".equals(vEL_ZFDC.trim()) && !"-".equals(vEL_ZFDC)) {
+            vEL_ZFDC = vEL_ZFDC.trim();
+
+            sql += " AND COD(V.EL_ZFDC) " + vEL_ZFDC_TYPE + " '" + vEL_ZFDC + "' ";
+        }
+
+
+        if (vEL_BWALLT != null && !"".equals(vEL_BWALLT) && !"-".equals(vEL_BWALLT)) {
+
+            if (vEL_BWALLT.contains("*")) {
+                vEL_BWALLT = vEL_BWALLT.replace("*", "%");
+                sql += " AND COD(V.EL_BWALLT) LIKE '" + vEL_BWALLT + "' ";
+            } else {
+                sql += " AND COD(V.EL_BWALLT) = '" + vEL_BWALLT + "' ";
+            }
+        }
+
+        if (keyList != null && keyList.size() > 0) {
+            for (int k = 0; k < keyList.size(); k++) {
+                String el_code = keyList.get(k);
+                String op = opList.get(k);
+                String codeVal = valList.get(k);
+
+                if (el_code != null && !"".equals(el_code.trim()) && codeVal != null && !"".equals(codeVal.trim())) {
+                    sql += "AND COD( V." + el_code.trim() + " ) " + op + " '" + codeVal + "' ";
+                }
+
+            }
+        }
+
+        return sql;
 
     }
 

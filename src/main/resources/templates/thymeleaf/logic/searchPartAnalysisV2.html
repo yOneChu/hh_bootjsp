@@ -851,6 +851,7 @@
                     <button type="button" class="pill-col-btn" onclick="hideColumn(7,this)">속도</button>
                     <button type="button" class="pill-col-btn" onclick="hideColumn(8,this)">생산거점</button>
                     <button type="button" class="pill-col-btn" onclick="hideColumn(9,this)">용량</button>
+
                     <button type="button" class="pill-col-btn" onclick="hideColumn(10,this)">CAR_BG</button>
                     <button type="button" class="pill-col-btn" onclick="hideColumn(11,this)">CWT_BG</button>
                     <button type="button" class="pill-col-btn" onclick="hideColumn(12,this)">CWT폭</button>
@@ -981,9 +982,89 @@
         }
         setHiddenCols(hidden);
         applyButtonState(colIndex, !nowVisible);
+
+        // 사용자가 직접 조작한 컬럼은 자동 숨김 관리 대상에서 제외
+        autoHiddenCols = autoHiddenCols.filter(i => i !== colIndex);
     }
 
     window.syncColumnButtons = syncColumnButtons;
+
+    /* ══════════════════════════════════════════════════════════
+       PartNo / BlockNo 미입력 조회 시 자동 컬럼 숨김
+         - 두 값이 모두 비어 있는 상태로 조회하면 0~4, 15~21 열을
+           컬럼 토글의 '숨김' 상태로 만든다.
+         - 둘 중 하나라도 값이 입력되면 자동 숨김을 해제한다.
+         - 사용자가 직접 숨겨둔 컬럼(localStorage)은 건드리지 않으며,
+           자동 숨김은 localStorage 에 저장하지 않는다.
+       ══════════════════════════════════════════════════════════ */
+    /* 자동 숨김 대상 컬럼 = 0~4, 15~21
+       (Thymeleaf 가 script 안의 이중 대괄호를 인라인 표현식으로 해석하므로
+        중첩 배열 리터럴을 쓰지 않고 인덱스를 직접 나열한다) */
+    const AUTO_HIDE_COLS = [0, 1, 2, 3, 4, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+
+    /* 자동으로 숨긴 컬럼 목록 (수동 숨김과 구분하기 위해 별도 보관) */
+    let autoHiddenCols = [];
+
+    function isSearchKeyEmpty() {
+        const partNo  = ($('#partNo').val()  || '').trim();
+        const blockNo = ($('#blockNo').val() || '').trim();
+        return !partNo && !blockNo;
+    }
+
+    /* 자동 숨김 적용 */
+    function applyAutoHiddenColumns() {
+        if (!$.fn.DataTable.isDataTable('#infoTable')) return;
+        const table   = $('#infoTable').DataTable();
+        const colCnt  = table.columns().count();
+        const manual  = getHiddenCols();
+        const applied = [];
+
+        AUTO_HIDE_COLS.forEach(function(idx) {
+            if (idx >= colCnt) return;             // 컬럼 수보다 큰 인덱스 방어
+            if (manual.indexOf(idx) !== -1) return; // 이미 수동 숨김 → 해제 대상 아님
+            if (table.column(idx).visible()) {
+                table.column(idx).visible(false, false);
+                applyButtonState(idx, false);
+            }
+            applied.push(idx);
+        });
+
+        autoHiddenCols = applied;
+        if (applied.length) table.columns.adjust().draw(false);
+    }
+
+    /* 자동 숨김 해제 (수동 숨김은 그대로 유지) */
+    function releaseAutoHiddenColumns() {
+        if (!autoHiddenCols.length) return;
+        if (!$.fn.DataTable.isDataTable('#infoTable')) { autoHiddenCols = []; return; }
+
+        const table  = $('#infoTable').DataTable();
+        const colCnt = table.columns().count();
+
+        autoHiddenCols.forEach(function(idx) {
+            if (idx >= colCnt) return;
+            table.column(idx).visible(true, false);
+            applyButtonState(idx, true);
+        });
+        autoHiddenCols = [];
+        table.columns.adjust().draw(false);
+    }
+
+    /* 조회 시점에 호출 — 조건에 따라 자동 숨김 적용/해제 */
+    function applyAutoHideBySearchKey() {
+        if (isSearchKeyEmpty()) applyAutoHiddenColumns();
+        else                    releaseAutoHiddenColumns();
+    }
+
+    window.applyAutoHideBySearchKey  = applyAutoHideBySearchKey;
+    window.releaseAutoHiddenColumns  = releaseAutoHiddenColumns;
+
+    /* PartNo / BlockNo 에 값이 들어오면 즉시 자동 숨김 해제 */
+    $(function() {
+        $('#partNo, #blockNo').on('input change', function() {
+            if (!isSearchKeyEmpty()) releaseAutoHiddenColumns();
+        });
+    });
 
     /* ── 다크모드 (searchLogicPIDv3 와 동일 · localStorage 키 'theme' 공유) ── */
     (function initTheme() {
