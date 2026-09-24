@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="ko" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TeamWiki — 팀 지식 공유 게시판</title>
+
+    <!-- TailwindCSS (Play CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        // Apple 시스템 팔레트 (readDBFile.html 과 동일)
+                        apple: {
+                            blue: '#0071e3',
+                            bluehover: '#0077ed',
+                            gray: '#86868b',
+                            ink: '#1d1d1f',
+                            line: '#d2d2d7',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"Pretendard"', '"Apple SD Gothic Neo"', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        soft: '0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)',
+                    },
+                },
+            },
+        };
+    </script>
+
+    <!-- 오픈소스 라이브러리 -->
+    <!-- 마크다운 렌더링 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+    <!-- XSS 방지 -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+    <!-- 코드 하이라이팅 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/styles/github.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.10.0/highlight.min.js"></script>
+    <!-- 아이콘 -->
+    <script src="https://unpkg.com/lucide@0.417.0/dist/umd/lucide.min.js"></script>
+
+    <style>
+        /* 부드러운 스크롤 & 폰트 렌더링 */
+        html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+        * { scroll-behavior: smooth; }
+
+        /* GitBook 스타일 문서 타이포그래피 (readDBFile.html 과 동일) */
+        .prose-doc { color: #1d1d1f; line-height: 1.7; font-size: 17px; }
+        .dark .prose-doc { color: #f5f5f7; }
+        .prose-doc h1 { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 1.2rem; }
+        .prose-doc h2 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; margin: 2.4rem 0 1rem; padding-top: 0.6rem; }
+        .prose-doc h3 { font-size: 1.25rem; font-weight: 600; margin: 1.8rem 0 0.8rem; }
+        .prose-doc h4 { font-size: 1.05rem; font-weight: 600; margin: 1.4rem 0 0.6rem; }
+        .prose-doc p { margin: 0 0 1.1rem; }
+        .prose-doc a { color: #0071e3; text-decoration: none; }
+        .prose-doc a:hover { text-decoration: underline; }
+        .prose-doc ul, .prose-doc ol { margin: 0 0 1.1rem; padding-left: 1.5rem; }
+        .prose-doc li { margin: 0.35rem 0; }
+        .prose-doc ul { list-style: disc; }
+        .prose-doc ol { list-style: decimal; }
+        .prose-doc blockquote { border-left: 3px solid #0071e3; background: #f5f5f7; margin: 1.4rem 0; padding: 0.8rem 1.2rem; border-radius: 0 10px 10px 0; color: #515154; }
+        .dark .prose-doc blockquote { background: #1c1c1e; color: #a1a1a6; }
+        .prose-doc code:not(pre code) { background: #f5f5f7; color: #d6336c; padding: 0.15em 0.4em; border-radius: 6px; font-size: 0.88em; font-family: 'SF Mono', ui-monospace, monospace; }
+        .dark .prose-doc code:not(pre code) { background: #2c2c2e; color: #ff8fab; }
+        .prose-doc pre { background: #f5f5f7; border: 1px solid #e5e5ea; border-radius: 12px; padding: 1.1rem 1.3rem; overflow-x: auto; margin: 0 0 1.3rem; font-size: 0.9rem; }
+        .dark .prose-doc pre { background: #1c1c1e; border-color: #2c2c2e; }
+        .prose-doc pre code { font-family: 'SF Mono', ui-monospace, monospace; }
+        .dark .prose-doc pre code, .dark .prose-doc pre { color: #f5f5f7; }
+        .prose-doc table { width: 100%; border-collapse: collapse; margin: 0 0 1.3rem; font-size: 0.95rem; }
+        .prose-doc th, .prose-doc td { border: 1px solid #d2d2d7; padding: 0.6rem 0.9rem; text-align: left; }
+        .prose-doc th { background: #f5f5f7; font-weight: 600; }
+        .dark .prose-doc th, .dark .prose-doc td { border-color: #2c2c2e; }
+        .dark .prose-doc th { background: #1c1c1e; }
+        .prose-doc img { max-width: 100%; border-radius: 12px; margin: 1rem 0; }
+        .prose-doc hr { border: none; border-top: 1px solid #d2d2d7; margin: 2rem 0; }
+        .dark .prose-doc hr { border-color: #2c2c2e; }
+
+        /* 커스텀 스크롤바 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #c7c7cc; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #aeaeb2; }
+        .dark ::-webkit-scrollbar-thumb { background: #3a3a3c; }
+
+        /* 진입 애니메이션 */
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-up { animation: fadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+
+        /* 두 줄 말줄임 */
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        /* 에디터 드래그&드롭 강조 */
+        #editDropZone.drag-over { outline: 2px dashed #0071e3; outline-offset: -6px; background: rgba(0,113,227,0.04); }
+    </style>
+</head>
+<body class="h-full bg-white dark:bg-black text-apple-ink dark:text-gray-100 font-sans">
+
+<div id="app" class="flex h-full">
+
+    <!-- 모바일 사이드바 배경 -->
+    <div id="sidebarBackdrop" class="hidden fixed inset-0 z-30 bg-black/30 lg:hidden"></div>
+
+    <!-- ===================== 사이드바 ===================== -->
+    <aside id="sidebar"
+           class="fixed lg:static inset-y-0 left-0 z-40 w-80 xl:w-[320px] shrink-0 border-r border-apple-line dark:border-neutral-800 flex flex-col bg-[#fbfbfd] dark:bg-neutral-950 transition-transform -translate-x-full lg:translate-x-0">
+        <!-- 로고 -->
+        <div class="h-16 flex items-center gap-2.5 px-5 border-b border-apple-line/70 dark:border-neutral-800">
+            <div class="w-8 h-8 rounded-lg bg-apple-blue flex items-center justify-center text-white shrink-0">
+                <i data-lucide="library-big" class="w-[18px] h-[18px]"></i>
+            </div>
+            <div class="leading-tight">
+                <div class="font-semibold text-[15px] tracking-tight">TeamWiki</div>
+                <div class="text-[11px] text-apple-gray">팀 지식 공유 게시판</div>
+            </div>
+        </div>
+
+        <!-- 검색 -->
+        <div class="px-4 pt-4 pb-2">
+            <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-apple-gray pointer-events-none"></i>
+                <input id="searchInput" type="text" placeholder="제목 · 내용 · 작성자 검색…"
+                       class="w-full h-9 pl-9 pr-3 text-sm rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-transparent focus:border-apple-blue focus:bg-white dark:focus:bg-neutral-900 outline-none transition placeholder:text-apple-gray">
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-2 py-2">
+            <!-- 전체 글 -->
+            <button type="button" data-cat="__ALL__"
+                    class="cat-item w-full flex items-center gap-2 px-2.5 h-9 rounded-lg text-sm transition">
+                <i data-lucide="layers" class="w-4 h-4 shrink-0"></i>
+                <span class="flex-1 text-left truncate">전체 글</span>
+                <span id="allCount" class="text-[11px] text-apple-gray tabular-nums"></span>
+            </button>
+
+            <div class="mx-2.5 my-3 border-t border-apple-line/70 dark:border-neutral-800"></div>
+
+            <!-- 카테고리 헤더 — 최상위 카테고리 추가 -->
+            <div class="flex items-center gap-1 px-2.5 pb-1.5">
+                <span class="flex-1 text-[11px] font-semibold uppercase tracking-wider text-apple-gray">카테고리</span>
+                <button id="newCatBtn" type="button" title="최상위 카테고리 추가"
+                        class="flex items-center gap-1 h-6 px-2 rounded-md text-[11px] font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition">
+                    <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i> 카테고리
+                </button>
+            </div>
+
+            <!-- 카테고리 · 글 트리 — renderTree() 가 렌더링
+                 · 카테고리(폴더) 에 마우스를 올리면 [글 작성] [하위 카테고리 추가] [삭제] 버튼이 나타난다 -->
+            <nav id="catTree" class="space-y-px"></nav>
+
+            <!-- 아이콘 범례 -->
+            <div class="mt-4 mx-2.5 px-3 py-2.5 rounded-lg bg-black/[0.03] dark:bg-white/[0.04] text-[11px] text-apple-gray space-y-1">
+                <div class="flex items-center gap-1.5"><i data-lucide="folder" class="w-3.5 h-3.5 text-amber-500"></i> 카테고리 &nbsp;·&nbsp; <i data-lucide="file-text" class="w-3.5 h-3.5 text-apple-blue"></i> 글</div>
+                <div>카테고리에 마우스를 올리면
+                    <i data-lucide="file-plus" class="inline w-3 h-3 text-apple-blue -mt-0.5"></i> 글 작성 ·
+                    <i data-lucide="folder-plus" class="inline w-3 h-3 text-amber-500 -mt-0.5"></i> 하위 카테고리
+                    버튼이 나타나요.</div>
+            </div>
+        </div>
+
+        <!-- 하단 액션 — 글 작성(파랑) / 카테고리 추가(호박색) 를 색으로 구분 -->
+        <div class="border-t border-apple-line/70 dark:border-neutral-800 p-3 flex gap-2">
+            <button id="newPostBtn" type="button"
+                    class="flex-1 flex items-center justify-center gap-2 px-3 h-9 rounded-lg text-sm font-medium bg-apple-blue text-white hover:bg-apple-bluehover transition">
+                <i data-lucide="file-plus" class="w-4 h-4"></i> 새 글 작성
+            </button>
+            <button id="newCatBtn2" type="button" title="최상위 카테고리 추가"
+                    class="flex items-center justify-center gap-1.5 px-3 h-9 rounded-lg text-sm font-medium border border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition">
+                <i data-lucide="folder-plus" class="w-4 h-4"></i> 카테고리
+            </button>
+        </div>
+    </aside>
+
+    <!-- ===================== 메인 ===================== -->
+    <main class="flex-1 flex flex-col min-w-0">
+        <!-- 상단바 -->
+        <header class="h-16 shrink-0 border-b border-apple-line dark:border-neutral-800 flex items-center justify-between px-6 gap-4 bg-white/80 dark:bg-black/80 backdrop-blur-xl sticky top-0 z-20">
+            <button id="toggleSidebar" type="button" class="lg:hidden p-2 -ml-2 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06]">
+                <i data-lucide="panel-left" class="w-5 h-5"></i>
+            </button>
+            <div id="breadcrumb" class="text-sm text-apple-gray truncate flex-1"></div>
+            <div class="flex items-center gap-2">
+                <!-- 화면별 액션(수정·삭제 등) -->
+                <div id="viewActions" class="flex items-center gap-2"></div>
+                <!-- 테마 전환 — 항상 오른쪽 끝에 고정 -->
+                <button id="themeBtn" type="button" title="테마 전환"
+                        class="h-9 w-9 flex items-center justify-center rounded-lg border border-apple-line dark:border-neutral-700 text-apple-gray hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition">
+                    <i data-lucide="moon" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- 콘텐츠 영역 -->
+        <div class="flex-1 overflow-y-auto" id="scrollArea">
+
+            <!-- ============ 글 목록 ============ -->
+            <section id="listRoot" class="max-w-[1100px] mx-auto px-6 lg:px-10 py-10">
+                <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+                    <div>
+                        <h1 id="listTitle" class="text-[2rem] font-bold tracking-tight leading-tight"></h1>
+                        <p id="listDesc" class="mt-1 text-sm text-apple-gray"></p>
+                    </div>
+                    <!-- 정렬 -->
+                    <div class="flex items-center p-0.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-sm">
+                        <button type="button" data-sort="recent" class="sort-btn h-8 px-3 rounded-md transition">최신순</button>
+                        <button type="button" data-sort="views" class="sort-btn h-8 px-3 rounded-md transition">조회순</button>
+                    </div>
+                </div>
+                <!-- 하위 카테고리 카드 -->
+                <div id="subCatGrid" class="hidden grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-8"></div>
+                <div id="postList" class="divide-y divide-apple-line/70 dark:divide-neutral-800 border-y border-apple-line/70 dark:border-neutral-800"></div>
+
+                <!-- 빈 상태 -->
+                <div id="emptyState" class="hidden flex-col items-center justify-center text-center px-6 py-24">
+                    <div class="w-16 h-16 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center mb-5">
+                        <i data-lucide="notebook-pen" class="w-8 h-8 text-apple-gray"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold mb-2">아직 작성된 글이 없어요</h2>
+                    <p class="text-apple-gray text-sm max-w-sm">알고 있는 내용을 팀원들과 나눠보세요. <span class="text-apple-blue font-medium">새 글 작성</span>으로 시작할 수 있어요.</p>
+                </div>
+            </section>
+
+            <!-- ============ 글 보기 ============ -->
+            <section id="viewerRoot" class="hidden max-w-[1100px] mx-auto px-6 lg:px-10 py-10 flex gap-10">
+                <div class="flex-1 min-w-0 fade-up">
+                    <!-- 글 머리말 -->
+                    <div id="postHeader" class="mb-8 pb-6 border-b border-apple-line/70 dark:border-neutral-800"></div>
+                    <article id="viewer" class="prose-doc"></article>
+                </div>
+                <!-- 목차(TOC) -->
+                <aside id="tocPanel" class="hidden xl:block w-56 shrink-0">
+                    <div class="sticky top-24">
+                        <div class="text-[11px] font-semibold uppercase tracking-wider text-apple-gray mb-3 flex items-center gap-1.5">
+                            <i data-lucide="list" class="w-3.5 h-3.5"></i> 이 글 목차
+                        </div>
+                        <ul id="toc" class="space-y-1.5 text-sm border-l border-apple-line dark:border-neutral-800"></ul>
+                    </div>
+                </aside>
+            </section>
+
+            <!-- ============ 글 작성 / 수정 ============ -->
+            <section id="editorRoot" class="hidden max-w-[1400px] mx-auto px-6 lg:px-10 py-6">
+                <div class="mb-4 flex flex-wrap items-center gap-3">
+                    <input id="editTitle" type="text" placeholder="글 제목을 입력하세요"
+                           class="flex-1 min-w-[240px] text-2xl font-bold bg-transparent outline-none placeholder:text-apple-gray/60 tracking-tight">
+                </div>
+                <div class="mb-4 flex flex-wrap items-center gap-3">
+                    <select id="editCategory" class="h-9 px-3 text-sm rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-transparent focus:border-apple-blue outline-none"></select>
+                    <input id="editAuthor" type="text" placeholder="작성자"
+                           class="h-9 px-3 w-40 text-sm rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-transparent focus:border-apple-blue outline-none">
+                    <div class="flex-1"></div>
+                    <button id="cancelEdit" type="button" class="h-9 px-4 text-sm rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition">취소</button>
+                    <button id="savePost" type="button" class="h-9 px-5 text-sm font-medium rounded-lg bg-apple-blue text-white hover:bg-apple-bluehover transition flex items-center gap-1.5">
+                        <i data-lucide="check" class="w-4 h-4"></i> 저장
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100vh-260px)] min-h-[420px]">
+                    <!-- Markdown 입력 -->
+                    <div class="flex flex-col rounded-xl border border-apple-line dark:border-neutral-800 overflow-hidden">
+                        <div class="h-10 shrink-0 flex items-center px-2 gap-0.5 text-xs font-medium text-apple-gray border-b border-apple-line dark:border-neutral-800 bg-[#fbfbfd] dark:bg-neutral-950">
+                            <span class="flex items-center px-2 mr-1"><i data-lucide="pen-line" class="w-3.5 h-3.5 mr-1.5"></i> Markdown</span>
+                            <!-- 서식 툴바 -->
+                            <button type="button" data-md="heading" title="제목" class="md-btn"><i data-lucide="heading-2" class="w-3.5 h-3.5"></i></button>
+                            <button type="button" data-md="bold" title="굵게" class="md-btn"><i data-lucide="bold" class="w-3.5 h-3.5"></i></button>
+                            <button type="button" data-md="code" title="코드 블록" class="md-btn"><i data-lucide="code-xml" class="w-3.5 h-3.5"></i></button>
+                            <button type="button" data-md="link" title="링크" class="md-btn"><i data-lucide="link" class="w-3.5 h-3.5"></i></button>
+                            <button type="button" data-md="table" title="표" class="md-btn"><i data-lucide="table" class="w-3.5 h-3.5"></i></button>
+                            <span class="w-px h-4 bg-apple-line dark:bg-neutral-700 mx-1"></span>
+                            <!-- 이미지 업로드 -->
+                            <button id="imageUploadBtn" type="button" title="이미지 업로드 (드래그 · 붙여넣기 가능)"
+                                    class="flex items-center gap-1 h-7 px-2.5 rounded-lg text-apple-blue hover:bg-apple-blue/10 transition">
+                                <i data-lucide="image-plus" class="w-3.5 h-3.5"></i> 이미지
+                            </button>
+                            <input id="imageFile" type="file" accept="image/*" multiple class="hidden">
+                        </div>
+                        <div id="editDropZone" class="relative flex-1 flex flex-col min-h-0 transition">
+                            <textarea id="editContent" spellcheck="false"
+                                      placeholder="Markdown 으로 작성하세요. 이미지는 끌어다 놓거나 붙여넣을 수 있어요."
+                                      class="flex-1 w-full p-4 resize-none outline-none bg-transparent text-sm leading-relaxed font-mono placeholder:text-apple-gray/60"
+                                      style="font-family:'SF Mono',ui-monospace,monospace"></textarea>
+                        </div>
+                        <!-- 첨부 이미지 목록 -->
+                        <div id="attachBar" class="hidden shrink-0 border-t border-apple-line dark:border-neutral-800 bg-[#fbfbfd] dark:bg-neutral-950 px-3 py-2">
+                            <div class="text-[11px] font-medium text-apple-gray mb-1.5 flex items-center gap-1">
+                                <i data-lucide="paperclip" class="w-3 h-3"></i> 첨부 이미지 <span id="attachCount"></span>
+                            </div>
+                            <div id="attachList" class="flex gap-2 overflow-x-auto pb-1"></div>
+                        </div>
+                    </div>
+
+                    <!-- 미리보기 -->
+                    <div class="flex flex-col rounded-xl border border-apple-line dark:border-neutral-800 overflow-hidden">
+                        <div class="h-10 shrink-0 flex items-center px-4 text-xs font-medium text-apple-gray border-b border-apple-line dark:border-neutral-800 bg-[#fbfbfd] dark:bg-neutral-950">
+                            <i data-lucide="eye" class="w-3.5 h-3.5 mr-1.5"></i> 미리보기
+                        </div>
+                        <div id="editPreview" class="prose-doc flex-1 overflow-y-auto p-5 text-[15px]"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<!-- 카테고리 삭제 확인 모달 -->
+<div id="confirmModal" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/30 backdrop-blur-sm px-4">
+    <div class="w-full max-w-sm rounded-2xl bg-white dark:bg-neutral-900 shadow-soft p-6 fade-up">
+        <div class="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center mb-4">
+            <i data-lucide="trash-2" class="w-5 h-5"></i>
+        </div>
+        <h3 id="confirmTitle" class="text-base font-semibold mb-1.5"></h3>
+        <p id="confirmMsg" class="text-sm text-apple-gray mb-6"></p>
+        <div class="flex justify-end gap-2">
+            <button id="confirmCancel" type="button" class="h-9 px-4 text-sm rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition">취소</button>
+            <button id="confirmOk" type="button" class="h-9 px-4 text-sm font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition">삭제</button>
+        </div>
+    </div>
+</div>
+
+<!-- 토스트 -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 hidden">
+    <div class="bg-apple-ink dark:bg-white text-white dark:text-apple-ink text-sm font-medium px-4 py-2.5 rounded-xl shadow-soft flex items-center gap-2"></div>
+</div>
+
+<style>
+    .md-btn { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; transition: background .15s; }
+    .md-btn:hover { background: rgba(0,0,0,0.06); color: #1d1d1f; }
+    .dark .md-btn:hover { background: rgba(255,255,255,0.08); color: #f5f5f7; }
+</style>
+
+<script th:inline="none">
+    /*
+     * ※ 화면(UI) 확인용 스크립트
+     *    - 데이터는 메모리의 샘플(state)만 사용하며 새로고침 시 초기화된다.
+     *    - 서버 연동 시 TODO(API) 표시된 부분을 교체한다.
+     */
+    (function () {
+        const $ = (id) => document.getElementById(id);
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const icons = () => window.lucide && lucide.createIcons();
+
+        // ---------------- 샘플 데이터 ----------------
+        const state = {
+            // parentId 가 null 이면 최상위 카테고리
+            categories: [
+                { id: 'g1', name: 'A101', parentId: null },
+                { id: 'c1', name: 'A101A', parentId: 'g1' },
+                { id: 'c2', name: 'A101B', parentId: 'g1' },
+                { id: 'g2', name: 'A102', parentId: null },
+                { id: 'c3', name: 'A102A', parentId: 'g2' },
+                { id: 'c4', name: '공통 · 업무팁', parentId: null },
+            ],
+            posts: [
+                {
+                    id: 'p1', catId: 'c1', title: 'A101A PID 구성 요소 정리', author: '김영현', date: '2026-09-22', views: 128,
+                    content: '# A101A PID 구성 요소 정리\n\nA101A 는 기본형 PID 로, 아래 항목들로 구성됩니다.\n\n## 주요 사양\n\n| 항목 | 값 | 비고 |\n|---|---|---|\n| 속도 | 60 m/min | 표준 |\n| 적재 | 1,000 kg | |\n\n## 주의사항\n\n> 사양 변경 시 반드시 **A101B** 와의 호환 여부를 먼저 확인하세요.\n\n```sql\nSELECT * FROM PLM_PID WHERE PID = \'A101A\';\n```\n'
+                },
+                {
+                    id: 'p2', catId: 'c2', title: 'A101B 와 A101A 차이점', author: '이수진', date: '2026-09-20', views: 76,
+                    content: '# A101B 와 A101A 차이점\n\n## 요약\n\n- 도어 구성이 다릅니다.\n- 제어반 위치가 변경되었습니다.\n\n## 상세\n\n자세한 비교표는 아래를 참고하세요.\n'
+                },
+                {
+                    id: 'p3', catId: 'c4', title: '마크다운 작성 가이드', author: '박지훈', date: '2026-09-18', views: 201,
+                    content: '# 마크다운 작성 가이드\n\n## 제목\n\n`#` 개수로 제목 단계를 구분합니다.\n\n## 이미지\n\n에디터에 이미지를 **끌어다 놓거나 붙여넣으면** 자동으로 업로드됩니다.\n\n## 코드\n\n```js\nconsole.log(\'hello\');\n```\n'
+                },
+            ],
+            currentCat: '__ALL__',
+            currentPost: null,
+            sort: 'recent',
+            keyword: '',
+            view: 'list',          // list | viewer | editor
+            editingId: null,
+            attachments: [],       // { name, url }
+            expanded: new Set(['g1', 'c1', 'g2']),   // 펼쳐진 카테고리
+            addingUnder: null,     // 카테고리 추가 입력창 위치 ('__ROOT__' | 상위 카테고리 id)
+        };
+
+        // ---------------- 마크다운 ----------------
+        function renderMd(md) {
+            const html = window.marked ? marked.parse(md || '') : esc(md);
+            return window.DOMPurify ? DOMPurify.sanitize(html) : html;
+        }
+        function highlight(root) {
+            if (window.hljs) root.querySelectorAll('pre code').forEach((el) => hljs.highlightElement(el));
+        }
+
+        // ---------------- 테마 ----------------
+        function applyTheme(dark) {
+            document.documentElement.classList.toggle('dark', dark);
+            $('themeBtn').innerHTML = `<i data-lucide="${dark ? 'sun' : 'moon'}" class="w-4 h-4"></i>`;
+            icons();
+        }
+        let dark = false;
+        try { dark = localStorage.getItem('teamwiki-theme') === 'dark'; } catch (e) {}
+        $('themeBtn').addEventListener('click', () => {
+            dark = !dark;
+            try { localStorage.setItem('teamwiki-theme', dark ? 'dark' : 'light'); } catch (e) {}
+            applyTheme(dark);
+        });
+
+        // ---------------- 모바일 사이드바 ----------------
+        function setSidebar(open) {
+            $('sidebar').classList.toggle('-translate-x-full', !open);
+            $('sidebarBackdrop').classList.toggle('hidden', !open);
+        }
+        $('toggleSidebar').addEventListener('click', () => setSidebar(true));
+        $('sidebarBackdrop').addEventListener('click', () => setSidebar(false));
+
+        // ---------------- 토스트 ----------------
+        let toastTimer;
+        function toast(msg, icon = 'check-circle-2') {
+            const t = $('toast');
+            t.firstElementChild.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i>${esc(msg)}`;
+            t.classList.remove('hidden');
+            icons();
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.add('hidden'), 2000);
+        }
+
+        // ---------------- 확인 모달 ----------------
+        function confirmBox(title, msg) {
+            return new Promise((resolve) => {
+                $('confirmTitle').textContent = title;
+                $('confirmMsg').textContent = msg;
+                const m = $('confirmModal');
+                m.classList.remove('hidden'); m.classList.add('flex');
+                const close = (v) => { m.classList.add('hidden'); m.classList.remove('flex'); resolve(v); };
+                $('confirmOk').onclick = () => close(true);
+                $('confirmCancel').onclick = () => close(false);
+                m.onclick = (e) => { if (e.target === m) close(false); };
+            });
+        }
+
+        // ---------------- 카테고리 (트리) ----------------
+        const catById = (id) => state.categories.find((c) => c.id === id);
+        const catName = (id) => (catById(id) || {}).name || '미분류';
+        const childCats = (pid) => state.categories.filter((c) => (c.parentId || null) === (pid || null));
+        // 자기 자신 + 모든 하위 카테고리 id
+        const descendantIds = (id) => [id, ...childCats(id).flatMap((c) => descendantIds(c.id))];
+        const countOf = (id) => { const ids = descendantIds(id); return state.posts.filter((p) => ids.includes(p.catId)).length; };
+        // 최상위 → 현재 카테고리 경로
+        const catChain = (id) => { const out = []; let c = catById(id); while (c) { out.unshift(c); c = catById(c.parentId); } return out; };
+        const catPath = (id) => catChain(id).map((c) => c.name).join(' / ') || '미분류';
+        // 트리 순서로 펼친 목록 (에디터 select 용)
+        const flatCats = (pid = null, depth = 0) => childCats(pid).flatMap((c) => [{ ...c, depth }, ...flatCats(c.id, depth + 1)]);
+
+        const indent = (depth) => `padding-left:${8 + depth * 16}px`;
+        const actBtn = 'p-1 rounded-md transition';
+
+        function addFormHtml(depth, parentId) {
+            const where = parentId ? `'${esc(catName(parentId))}' 하위` : '최상위';
+            return `
+                <form data-add-form class="py-1 pr-1" style="${indent(depth)}">
+                    <div class="text-[10px] text-amber-600 dark:text-amber-400 mb-1 pl-1 flex items-center gap-1"><i data-lucide="folder-plus" class="w-3 h-3"></i>${where} 카테고리 추가</div>
+                    <div class="flex items-center gap-1">
+                        <input data-add-input type="text" maxlength="40" placeholder="예) A101C"
+                               class="flex-1 min-w-0 h-8 px-2.5 text-sm rounded-lg bg-white dark:bg-neutral-900 border border-amber-500 outline-none">
+                        <button type="submit" title="추가" class="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition">
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button type="button" data-add-cancel title="취소" class="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg text-apple-gray hover:bg-black/[0.06] dark:hover:bg-white/[0.08] transition">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </form>`;
+        }
+
+        function catRowHtml(c, depth) {
+            const open = state.expanded.has(c.id);
+            const hasChild = childCats(c.id).length || state.posts.some((p) => p.catId === c.id);
+            const on = state.view === 'list' && state.currentCat === c.id;
+            return `
+                <div class="group relative">
+                    <div data-cat="${c.id}" style="${indent(depth)}"
+                         class="flex items-center gap-1.5 pr-[86px] h-9 rounded-lg text-sm cursor-pointer select-none transition ${on ? 'bg-apple-blue/10 text-apple-blue font-medium' : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'}">
+                        <span data-toggle="${c.id}" class="w-4 h-4 shrink-0 flex items-center justify-center rounded text-apple-gray hover:text-apple-ink dark:hover:text-gray-100 ${hasChild ? '' : 'invisible'}">
+                            <i data-lucide="chevron-right" class="w-3.5 h-3.5 transition-transform ${open ? 'rotate-90' : ''}"></i>
+                        </span>
+                        <i data-lucide="${open ? 'folder-open' : 'folder'}" class="w-4 h-4 shrink-0 text-amber-500"></i>
+                        <span class="flex-1 truncate">${esc(c.name)}</span>
+                        <span class="absolute right-2.5 text-[11px] text-apple-gray tabular-nums group-hover:opacity-0 transition">${countOf(c.id)}</span>
+                    </div>
+                    <div class="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
+                        <button type="button" data-add-post="${c.id}" title="이 카테고리에 글 작성"
+                                class="${actBtn} text-apple-blue hover:bg-apple-blue/10"><i data-lucide="file-plus" class="w-3.5 h-3.5"></i></button>
+                        <button type="button" data-add-cat="${c.id}" title="하위 카테고리 추가"
+                                class="${actBtn} text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"><i data-lucide="folder-plus" class="w-3.5 h-3.5"></i></button>
+                        <button type="button" data-del-cat="${c.id}" title="카테고리 삭제"
+                                class="${actBtn} text-apple-gray hover:text-red-500 hover:bg-red-500/10"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                    </div>
+                </div>`;
+        }
+
+        function postRowHtml(p, depth) {
+            const on = state.view === 'viewer' && state.currentPost === p.id;
+            return `
+                <div data-open-post="${p.id}" style="${indent(depth)}" title="${esc(p.title)}"
+                     class="flex items-center gap-1.5 pr-2.5 h-8 rounded-lg text-[13px] cursor-pointer select-none transition ${on ? 'bg-apple-blue/10 text-apple-blue font-medium' : 'text-[#515154] dark:text-neutral-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-apple-ink dark:hover:text-gray-100'}">
+                    <span class="w-4 h-4 shrink-0"></span>
+                    <i data-lucide="file-text" class="w-3.5 h-3.5 shrink-0 text-apple-blue/80"></i>
+                    <span class="flex-1 truncate">${esc(p.title)}</span>
+                </div>`;
+        }
+
+        // 한 단계(parentId) 아래의 [추가 입력창] → [하위 카테고리] → [글] 순으로 그린다
+        function treeHtml(parentId, depth) {
+            let html = '';
+            if (state.addingUnder === (parentId || '__ROOT__')) html += addFormHtml(depth, parentId);
+            childCats(parentId).forEach((c) => {
+                html += catRowHtml(c, depth);
+                if (state.expanded.has(c.id)) html += treeHtml(c.id, depth + 1);
+            });
+            state.posts.filter((p) => (p.catId || null) === (parentId || null))
+                .sort((a, b) => a.title.localeCompare(b.title))
+                .forEach((p) => { html += postRowHtml(p, depth); });
+            return html;
+        }
+
+        function renderCategories() {
+            $('allCount').textContent = state.posts.length;
+            $('catTree').innerHTML = treeHtml(null, 0)
+                || '<div class="px-3 py-6 text-center text-xs text-apple-gray">카테고리를 추가해 보세요.</div>';
+            // '전체 글' 선택 상태
+            const all = document.querySelector('.cat-item[data-cat="__ALL__"]');
+            const on = state.view === 'list' && state.currentCat === '__ALL__';
+            all.classList.toggle('bg-apple-blue/10', on);
+            all.classList.toggle('text-apple-blue', on);
+            all.classList.toggle('font-medium', on);
+            all.classList.toggle('hover:bg-black/[0.04]', !on);
+            all.classList.toggle('dark:hover:bg-white/[0.06]', !on);
+            icons();
+            const input = $('catTree').querySelector('[data-add-input]');
+            if (input) input.focus();
+        }
+
+        // 카테고리 추가 입력창 열기 (parentId 없으면 최상위)
+        function startAddCat(parentId) {
+            state.addingUnder = parentId || '__ROOT__';
+            if (parentId) catChain(parentId).forEach((c) => state.expanded.add(c.id));
+            setSidebar(true);
+            renderCategories();
+        }
+        // 특정 카테고리에 새 글 작성
+        function startAddPost(catId) {
+            state.currentCat = catId || state.currentCat;
+            state.editingId = null;
+            setSidebar(false);
+            go('editor');
+        }
+
+        async function deleteCat(id) {
+            const c = catById(id);
+            const subCnt = childCats(id).length;
+            const postCnt = state.posts.filter((p) => p.catId === id).length;
+            const dest = c.parentId ? `상위 '${catName(c.parentId)}'` : "'미분류'";
+            const moved = [subCnt && `하위 카테고리 ${subCnt}개`, postCnt && `글 ${postCnt}개`].filter(Boolean).join('와 ');
+            const ok = await confirmBox(`'${c.name}' 카테고리를 삭제할까요?`,
+                moved ? `${moved}는 ${dest}(으)로 이동합니다.` : '삭제한 카테고리는 되돌릴 수 없습니다.');
+            if (!ok) return;
+            // TODO(API): 카테고리 삭제 — 하위 카테고리/글은 상위로 이동
+            state.categories.forEach((x) => { if (x.parentId === id) x.parentId = c.parentId; });
+            state.posts.forEach((p) => { if (p.catId === id) p.catId = c.parentId; });
+            state.categories = state.categories.filter((x) => x.id !== id);
+            if (state.currentCat === id) state.currentCat = c.parentId || '__ALL__';
+            toast('카테고리를 삭제했어요');
+            go(state.view === 'editor' ? 'list' : state.view);
+        }
+
+        $('sidebar').addEventListener('click', (e) => {
+            const t = (sel) => e.target.closest(sel);
+            let el;
+            if ((el = t('[data-add-post]'))) return startAddPost(el.dataset.addPost);
+            if ((el = t('[data-add-cat]'))) return startAddCat(el.dataset.addCat);
+            if ((el = t('[data-del-cat]'))) return deleteCat(el.dataset.delCat);
+            if (t('[data-add-cancel]')) { state.addingUnder = null; return renderCategories(); }
+            if (t('[data-add-form]')) return;
+            if ((el = t('[data-toggle]'))) {
+                const id = el.dataset.toggle;
+                state.expanded.has(id) ? state.expanded.delete(id) : state.expanded.add(id);
+                return renderCategories();
+            }
+            if ((el = t('[data-open-post]'))) {
+                const p = state.posts.find((x) => x.id === el.dataset.openPost);
+                p.views++;
+                state.currentPost = p.id;
+                setSidebar(false);
+                return go('viewer');
+            }
+            if ((el = t('[data-cat]'))) {
+                state.currentCat = el.dataset.cat;
+                if (state.currentCat !== '__ALL__') state.expanded.add(state.currentCat);
+                setSidebar(false);
+                go('list');
+            }
+        });
+
+        $('catTree').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = e.target.querySelector('[data-add-input]').value.trim();
+            if (!name) return;
+            const parentId = state.addingUnder === '__ROOT__' ? null : state.addingUnder;
+            if (childCats(parentId).some((c) => c.name === name)) { toast('같은 위치에 이미 있는 카테고리예요', 'alert-circle'); return; }
+            // TODO(API): 카테고리 추가 (parentId 포함)
+            const id = 'c' + Date.now();
+            state.categories.push({ id, name, parentId });
+            state.addingUnder = null;
+            state.currentCat = id;
+            toast(`'${name}' 카테고리를 추가했어요`);
+            go('list');
+        });
+        $('catTree').addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && e.target.matches('[data-add-input]')) { state.addingUnder = null; renderCategories(); }
+        });
+
+        $('newCatBtn').addEventListener('click', () => startAddCat(null));
+        $('newCatBtn2').addEventListener('click', () => startAddCat(null));
+
+        // ---------------- 목록 ----------------
+        function filteredPosts() {
+            const kw = state.keyword.toLowerCase();
+            // 선택한 카테고리 + 하위 카테고리의 글
+            const ids = state.currentCat === '__ALL__' ? null : descendantIds(state.currentCat);
+            let list = state.posts.filter((p) => !ids || ids.includes(p.catId));
+            if (kw) list = list.filter((p) => (p.title + p.content + p.author).toLowerCase().includes(kw));
+            return list.sort((a, b) => state.sort === 'views' ? b.views - a.views : b.date.localeCompare(a.date));
+        }
+        function excerpt(md) {
+            return md.replace(/```[\s\S]*?```/g, '').replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+                .replace(/[#>*`|_-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 140);
+        }
+
+        function renderList() {
+            const all = state.currentCat === '__ALL__';
+            $('listTitle').textContent = all ? '전체 글' : catName(state.currentCat);
+            $('listDesc').textContent = state.keyword
+                ? `'${state.keyword}' 검색 결과`
+                : (all ? '팀원들이 공유한 모든 지식을 모아봤어요.' : `${catPath(state.currentCat)} — 하위 카테고리의 글까지 함께 보여줘요.`);
+
+            // 하위 카테고리 카드 + [하위 카테고리 추가] 카드
+            const subs = all || state.keyword ? [] : childCats(state.currentCat);
+            $('subCatGrid').classList.toggle('hidden', all || !!state.keyword);
+            $('subCatGrid').innerHTML = all || state.keyword ? '' : subs.map((c) => `
+                <button type="button" data-sub-cat="${c.id}"
+                        class="text-left p-4 rounded-xl border border-apple-line/80 dark:border-neutral-800 hover:border-amber-500/60 hover:shadow-soft transition">
+                    <i data-lucide="folder" class="w-5 h-5 text-amber-500 mb-2"></i>
+                    <div class="text-sm font-semibold truncate">${esc(c.name)}</div>
+                    <div class="text-xs text-apple-gray mt-0.5">하위 ${childCats(c.id).length} · 글 ${countOf(c.id)}</div>
+                </button>`).join('') + `
+                <button type="button" data-sub-add="${state.currentCat}"
+                        class="flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl border border-dashed border-amber-500/50 text-amber-600 dark:text-amber-400 hover:bg-amber-500/5 transition text-sm">
+                    <i data-lucide="folder-plus" class="w-5 h-5"></i> 하위 카테고리 추가
+                </button>`;
+            document.querySelectorAll('.sort-btn').forEach((b) => {
+                const on = b.dataset.sort === state.sort;
+                b.classList.toggle('bg-white', on);
+                b.classList.toggle('dark:bg-neutral-800', on);
+                b.classList.toggle('shadow-sm', on);
+                b.classList.toggle('font-medium', on);
+                b.classList.toggle('text-apple-gray', !on);
+            });
+
+            const list = filteredPosts();
+            $('postList').classList.toggle('hidden', !list.length);
+            $('emptyState').classList.toggle('hidden', !!list.length);
+            $('emptyState').classList.toggle('flex', !list.length);
+            $('postList').innerHTML = list.map((p) => {
+                const imgCnt = (p.content.match(/!\[[^\]]*\]\(/g) || []).length;
+                return `
+                <button type="button" data-post="${p.id}" class="w-full text-left py-5 px-3 -mx-3 rounded-xl hover:bg-black/[0.025] dark:hover:bg-white/[0.04] transition group">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <span class="inline-flex items-center h-5 px-2 rounded-md text-[11px] font-medium bg-apple-blue/10 text-apple-blue">${esc(catPath(p.catId))}</span>
+                        ${imgCnt ? `<span class="inline-flex items-center gap-1 text-[11px] text-apple-gray"><i data-lucide="image" class="w-3 h-3"></i>${imgCnt}</span>` : ''}
+                    </div>
+                    <div class="text-[17px] font-semibold tracking-tight group-hover:text-apple-blue transition">${esc(p.title)}</div>
+                    <p class="mt-1 text-sm text-apple-gray line-clamp-2">${esc(excerpt(p.content))}</p>
+                    <div class="mt-2.5 flex items-center gap-3 text-xs text-apple-gray">
+                        <span class="flex items-center gap-1"><i data-lucide="user-round" class="w-3.5 h-3.5"></i>${esc(p.author)}</span>
+                        <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5"></i>${esc(p.date)}</span>
+                        <span class="flex items-center gap-1"><i data-lucide="eye" class="w-3.5 h-3.5"></i>${p.views}</span>
+                    </div>
+                </button>`;
+            }).join('');
+        }
+
+        $('postList').addEventListener('click', (e) => {
+            const b = e.target.closest('[data-post]');
+            if (!b) return;
+            const p = state.posts.find((x) => x.id === b.dataset.post);
+            p.views++;
+            state.currentPost = p.id;
+            go('viewer');
+        });
+        $('subCatGrid').addEventListener('click', (e) => {
+            const add = e.target.closest('[data-sub-add]');
+            if (add) return startAddCat(add.dataset.subAdd);
+            const c = e.target.closest('[data-sub-cat]');
+            if (c) { state.currentCat = c.dataset.subCat; state.expanded.add(state.currentCat); go('list'); }
+        });
+        document.querySelectorAll('.sort-btn').forEach((b) => b.addEventListener('click', () => { state.sort = b.dataset.sort; renderList(); icons(); }));
+        $('searchInput').addEventListener('input', (e) => {
+            state.keyword = e.target.value.trim();
+            if (state.view !== 'list') go('list'); else { renderList(); icons(); }
+        });
+
+        // ---------------- 글 보기 ----------------
+        function renderViewer() {
+            const p = state.posts.find((x) => x.id === state.currentPost);
+            if (!p) return go('list');
+            // 사이드바 트리에서 이 글이 보이도록 상위 카테고리를 펼친다
+            catChain(p.catId).forEach((c) => state.expanded.add(c.id));
+            $('postHeader').innerHTML = `
+                <span class="inline-flex items-center h-6 px-2.5 rounded-md text-xs font-medium bg-apple-blue/10 text-apple-blue">${esc(catPath(p.catId))}</span>
+                <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-apple-gray">
+                    <span class="flex items-center gap-1.5"><i data-lucide="user-round" class="w-4 h-4"></i>${esc(p.author)}</span>
+                    <span class="flex items-center gap-1.5"><i data-lucide="calendar" class="w-4 h-4"></i>${esc(p.date)}</span>
+                    <span class="flex items-center gap-1.5"><i data-lucide="eye" class="w-4 h-4"></i>조회 ${p.views}</span>
+                </div>`;
+            $('viewer').innerHTML = renderMd(p.content);
+            highlight($('viewer'));
+
+            // 목차
+            const heads = [...$('viewer').querySelectorAll('h2, h3')];
+            heads.forEach((h, i) => { h.id = 'sec-' + i; });
+            $('toc').innerHTML = heads.map((h) => `
+                <li><a href="#${h.id}" class="block -ml-px border-l border-transparent hover:border-apple-ink dark:hover:border-gray-100 text-apple-gray hover:text-apple-ink dark:hover:text-gray-100 transition ${h.tagName === 'H3' ? 'pl-6' : 'pl-3'}">${esc(h.textContent)}</a></li>`).join('');
+            $('tocPanel').style.visibility = heads.length ? 'visible' : 'hidden';
+        }
+
+        // ---------------- 에디터 ----------------
+        function openEditor(post) {
+            state.editingId = post ? post.id : null;
+            state.attachments = [];
+            $('editTitle').value = post ? post.title : '';
+            $('editAuthor').value = post ? post.author : '';
+            $('editContent').value = post ? post.content : '';
+            $('editCategory').innerHTML = flatCats().map((c) => `<option value="${c.id}">${'   '.repeat(c.depth)}${c.depth ? '└ ' : ''}${esc(c.name)}</option>`).join('');
+            $('editCategory').value = post ? post.catId : (state.currentCat !== '__ALL__' ? state.currentCat : (state.categories[0] || {}).id);
+            renderAttachments();
+            updatePreview();
+        }
+        function updatePreview() {
+            const md = $('editContent').value;
+            $('editPreview').innerHTML = md.trim() ? renderMd(md) : '<p class="text-apple-gray">미리보기가 여기에 표시됩니다.</p>';
+            highlight($('editPreview'));
+        }
+        $('editContent').addEventListener('input', updatePreview);
+
+        function insertAtCursor(before, after = '', placeholder = '') {
+            const ta = $('editContent');
+            const s = ta.selectionStart, e = ta.selectionEnd;
+            const sel = ta.value.slice(s, e) || placeholder;
+            ta.value = ta.value.slice(0, s) + before + sel + after + ta.value.slice(e);
+            ta.focus();
+            ta.selectionStart = s + before.length;
+            ta.selectionEnd = s + before.length + sel.length;
+            updatePreview();
+        }
+        document.querySelectorAll('.md-btn').forEach((b) => b.addEventListener('click', () => {
+            ({
+                heading: () => insertAtCursor('\n## ', '\n', '소제목'),
+                bold: () => insertAtCursor('**', '**', '굵은 글씨'),
+                code: () => insertAtCursor('\n```\n', '\n```\n', '코드'),
+                link: () => insertAtCursor('[', '](https://)', '링크 텍스트'),
+                table: () => insertAtCursor('\n| 항목 | 값 |\n|---|---|\n| ', ' | |\n', '내용'),
+            })[b.dataset.md]();
+        }));
+
+        // 이미지 업로드 (버튼 · 드래그&드롭 · 붙여넣기)
+        function addImages(files) {
+            [...files].filter((f) => f.type.startsWith('image/')).forEach((f) => {
+                // TODO(API): 서버 업로드 후 반환된 URL 로 교체
+                const url = URL.createObjectURL(f);
+                state.attachments.push({ name: f.name, url });
+                insertAtCursor(`\n![${f.name}](${url})\n`);
+            });
+            renderAttachments();
+            toast('이미지를 추가했어요', 'image');
+        }
+        function renderAttachments() {
+            const list = state.attachments;
+            $('attachBar').classList.toggle('hidden', !list.length);
+            $('attachCount').textContent = list.length ? `(${list.length})` : '';
+            $('attachList').innerHTML = list.map((a) => `
+                <div class="relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-apple-line dark:border-neutral-700" title="${esc(a.name)}">
+                    <img src="${a.url}" alt="" class="w-full h-full object-cover">
+                </div>`).join('');
+        }
+        $('imageUploadBtn').addEventListener('click', () => $('imageFile').click());
+        $('imageFile').addEventListener('change', (e) => { addImages(e.target.files); e.target.value = ''; });
+        const dz = $('editDropZone');
+        ['dragenter', 'dragover'].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add('drag-over'); }));
+        ['dragleave', 'drop'].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove('drag-over'); }));
+        dz.addEventListener('drop', (e) => addImages(e.dataTransfer.files));
+        $('editContent').addEventListener('paste', (e) => {
+            const files = [...(e.clipboardData?.items || [])].filter((i) => i.kind === 'file').map((i) => i.getAsFile());
+            if (files.length) { e.preventDefault(); addImages(files); }
+        });
+
+        $('cancelEdit').addEventListener('click', () => go(state.editingId ? 'viewer' : 'list'));
+        $('savePost').addEventListener('click', () => {
+            const title = $('editTitle').value.trim();
+            if (!title) { toast('제목을 입력하세요', 'alert-circle'); $('editTitle').focus(); return; }
+            if (!state.categories.length) { toast('카테고리를 먼저 추가하세요', 'alert-circle'); return; }
+            const data = {
+                title,
+                catId: $('editCategory').value,
+                author: $('editAuthor').value.trim() || '익명',
+                content: $('editContent').value,
+            };
+            // TODO(API): 글 저장
+            if (state.editingId) {
+                Object.assign(state.posts.find((p) => p.id === state.editingId), data);
+                state.currentPost = state.editingId;
+            } else {
+                const p = { id: 'p' + Date.now(), date: new Date().toISOString().slice(0, 10), views: 0, ...data };
+                state.posts.push(p);
+                state.currentPost = p.id;
+            }
+            toast('저장했어요');
+            go('viewer');
+        });
+        $('newPostBtn').addEventListener('click', () => { setSidebar(false); state.editingId = null; go('editor'); });
+
+        // ---------------- 화면 전환 ----------------
+        function renderBreadcrumb() {
+            const parts = ['TeamWiki'];
+            if (state.view === 'list') {
+                if (state.currentCat === '__ALL__') parts.push('전체 글');
+                else parts.push(...catChain(state.currentCat).map((c) => c.name));
+            }
+            if (state.view === 'viewer') {
+                const p = state.posts.find((x) => x.id === state.currentPost);
+                if (p) parts.push(...(p.catId ? catChain(p.catId).map((c) => c.name) : ['미분류']), p.title);
+            }
+            if (state.view === 'editor') parts.push(state.editingId ? '글 수정' : '새 글 작성');
+            $('breadcrumb').innerHTML = parts.map((t, i) => i === parts.length - 1
+                ? `<span class="text-apple-ink dark:text-gray-100 font-medium">${esc(t)}</span>`
+                : `<span>${esc(t)}</span><span class="mx-1.5 text-apple-line dark:text-neutral-700">/</span>`).join('');
+        }
+
+        function renderActions() {
+            const btn = 'h-9 px-3 flex items-center gap-1.5 text-sm rounded-lg border border-apple-line dark:border-neutral-700 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition';
+            let html = '';
+            if (state.view === 'list') {
+                // 카테고리 선택 시: [하위 카테고리] (호박색) / [글쓰기] (파랑) 을 나란히 둔다
+                if (state.currentCat !== '__ALL__') {
+                    html += `<button type="button" data-act="subcat" class="h-9 px-3 hidden sm:flex items-center gap-1.5 text-sm font-medium rounded-lg border border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition"><i data-lucide="folder-plus" class="w-4 h-4"></i>하위 카테고리</button>`;
+                }
+                html += `<button type="button" data-act="new" class="h-9 px-3.5 hidden sm:flex items-center gap-1.5 text-sm font-medium rounded-lg bg-apple-blue text-white hover:bg-apple-bluehover transition"><i data-lucide="file-plus" class="w-4 h-4"></i>글쓰기</button>`;
+            } else if (state.view === 'viewer') {
+                html = `
+                    <button type="button" data-act="back" class="${btn} text-apple-gray"><i data-lucide="arrow-left" class="w-4 h-4"></i><span class="hidden sm:inline">목록</span></button>
+                    <button type="button" data-act="edit" class="${btn}"><i data-lucide="pencil" class="w-4 h-4"></i><span class="hidden sm:inline">수정</span></button>
+                    <button type="button" data-act="delete" class="${btn} text-red-500 hover:!bg-red-500/10"><i data-lucide="trash-2" class="w-4 h-4"></i><span class="hidden sm:inline">삭제</span></button>`;
+            }
+            $('viewActions').innerHTML = html;
+        }
+        $('viewActions').addEventListener('click', async (e) => {
+            const a = e.target.closest('[data-act]');
+            if (!a) return;
+            const act = a.dataset.act;
+            if (act === 'new') { state.editingId = null; go('editor'); }
+            if (act === 'subcat') startAddCat(state.currentCat);
+            if (act === 'back') go('list');
+            if (act === 'edit') { state.editingId = state.currentPost; go('editor'); }
+            if (act === 'delete') {
+                const ok = await confirmBox('이 글을 삭제할까요?', '삭제한 글은 되돌릴 수 없습니다.');
+                if (!ok) return;
+                // TODO(API): 글 삭제
+                state.posts = state.posts.filter((p) => p.id !== state.currentPost);
+                toast('글을 삭제했어요');
+                go('list');
+            }
+        });
+
+        function go(view) {
+            state.view = view;
+            $('listRoot').classList.toggle('hidden', view !== 'list');
+            $('viewerRoot').classList.toggle('hidden', view !== 'viewer');
+            $('viewerRoot').classList.toggle('flex', view === 'viewer');
+            $('editorRoot').classList.toggle('hidden', view !== 'editor');
+            if (view === 'list') renderList();
+            if (view === 'viewer') renderViewer();
+            if (view === 'editor') openEditor(state.editingId ? state.posts.find((p) => p.id === state.editingId) : null);
+            renderCategories();
+            renderBreadcrumb();
+            renderActions();
+            $('scrollArea').scrollTop = 0;
+            icons();
+        }
+
+        applyTheme(dark);
+        go('list');
+    })();
+</script>
+
+</body>
+</html>
