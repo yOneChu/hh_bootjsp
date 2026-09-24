@@ -1,5 +1,6 @@
 package com.kyhslam.controller;
 
+import com.kyhslam.MasterDataCache;
 import com.kyhslam.dto.*;
 import com.kyhslam.service.MLBService;
 import com.kyhslam.service.SubaeService;
@@ -23,6 +24,7 @@ import java.util.*;
 @Slf4j
 public class APIController {
 
+    private final MasterDataCache masterDataCache;
 
     private final PLM_DB_Definition plmDBDefinition;
 
@@ -298,15 +300,18 @@ public class APIController {
     @GetMapping("/getCodeList")
     @ResponseBody
     @CrossOrigin
-    public ArrayList<CodeInfoDTO> getCodeList(String key) {
-        //https://vault-in.hdel.co.kr:8070/api/getSalesInfo?key=subae&hogi=
+    //public ArrayList<CodeInfoDTO> getCodeList(String key) {
+    public List<CodeInfoDTO> getCodeList(String key) {
+        //https://vault-in.hdel.co.kr:8070/api/getSalesInfo?key=subae
+        //http://localhost:8070/api/getCodeList?key=subae
 
-        ArrayList<CodeInfoDTO> result = new ArrayList<>();
+        //List<CodeInfoDTO> result = new List<>();
 
         if ("subae".equals(key)) {
-            result = MLBCommonUtil.getCodeList();
+            //result = MLBCommonUtil.getCodeList();
+            return masterDataCache.getCodeList();
         }
-        return result;
+        return Collections.emptyList();
     }
 
     @Description("공사정보 필드 리스트 - 육상")

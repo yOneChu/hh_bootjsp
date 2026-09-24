@@ -1650,18 +1650,18 @@ public class MLBCommonUtil {
             rs = pstmt.executeQuery();
 
             while(rs.next()) {
-                String CODE = rs.getString("CODE");
-                String CODENAME = rs.getString("CODENAME");
-                String TYPENAME = rs.getString("TYPENAME");
-                String TYPEVAL = rs.getString("TYPEVAL");
+                String CODE = rs.getString("CODE"); // 사양 EL_ATYP
+                String CODENAME = rs.getString("CODENAME"); // 사양명 기종
+                String TYPENAME = rs.getString("TYPENAME"); // 특성명 GTLX
+                String TYPEVAL = rs.getString("TYPEVAL"); // 특성값 GTLX_E, WBSS1_(SSVF)
                 String NAME = rs.getString("NAME");
 
                 CodeInfoDTO dto = new  CodeInfoDTO();
                 dto.setCode(CODE);
-                dto.setName(CODENAME);
+                dto.setCodeName(CODENAME);
                 dto.setTypeName(TYPENAME);
                 dto.setTypeVal(TYPEVAL);
-                dto.setCode(NAME);
+                dto.setName(NAME);
 
                 result.add(dto);
             }

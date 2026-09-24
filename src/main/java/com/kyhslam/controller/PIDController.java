@@ -165,6 +165,12 @@ public class PIDController {
         return "thymeleaf/pid/pidSimulMain";
     }
 
+    @Description("PID 시뮬레이터 - 특성코드 사전 팝업")
+    @GetMapping("/pid/pidSimulCodePopup")
+    public String pidSimulCodePopup() {
+        return "thymeleaf/pid/pidSimulCodePopup";
+    }
+
     @Description("PID 시뮬레이션 결과 조회 (호기 + PID)")
     @GetMapping("/pid/pidSimulLogic")
     @ResponseBody

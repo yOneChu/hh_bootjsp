@@ -109,20 +109,8 @@
         .adv[hidden] { display: none; }
         .adv .adv-fields { display: flex; flex-wrap: wrap; gap: 8px 14px; }
         .adv .adv-fields input { width: 120px; }
+        .adv .adv-fields input[type=checkbox] { width: auto; margin: 0; cursor: pointer; }
         .url-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-        .url-preview {
-            flex: 1;
-            min-width: 280px;
-            font-family: Consolas, monospace;
-            font-size: 12px;
-            padding: 6px 8px;
-            background: #0f172a;
-            border: 1px dashed #475569;
-            border-radius: 5px;
-            color: #94a3b8;
-            overflow-x: auto;
-            white-space: nowrap;
-        }
         .url-row .hint { color: #94a3b8; font-size: 12px; }
         .url-row button { padding: 5px 12px; font-size: 12px; }
 
@@ -361,6 +349,7 @@
         .kv th { background: #f1f5f9; color: var(--text); width: 45%; position: static; }
         .kv tr.hit td, .kv tr.hit th { background: #fef9c3; }
         .kv td.blank { color: var(--unread-text); font-style: italic; }
+        .kv th .spec-name { color: var(--muted); font-weight: normal; }
         .section-title { font-weight: bold; margin: 14px 0 6px; }
         .badge {
             display: inline-block;
@@ -399,6 +388,7 @@
             </div>
             <button type="submit" class="primary" id="btnRun" title="Enter">실행</button>
             <button type="button" id="btnAdv" aria-expanded="false" aria-controls="advPanel">추가 조건 ▾</button>
+            <button type="button" id="btnCodeDict" title="SPEC 특성코드의 한글명 / 값 목록을 새 창으로 봅니다">특성코드 사전</button>
             <div class="head-spacer"></div>
             <span id="sourceInfo"></span>
         </div>
@@ -408,7 +398,7 @@
             <div class="adv-fields">
                 <div class="inline-field">
                     <label for="testVersion">testVersion</label>
-                    <input id="testVersion" name="testVersion">
+                    <input type="checkbox" id="testVersion" name="testVersion">
                 </div>
                 <div class="inline-field">
                     <label for="isfloor">isfloor</label>
@@ -423,16 +413,12 @@
                     <input id="type" name="type">
                 </div>
             </div>
-            <div class="url-row">
-                <div class="url-preview" id="urlPreview" title="URL 붙여넣기 가능 (Ctrl+V)"></div>
-                <button type="button" id="btnPasteUrl" title="클립보드의 URL에서 파라미터를 읽어옵니다">URL 붙여넣기</button>
-            </div>
-            <div class="url-row">
+            <!--<div class="url-row">
                 <span class="hint">API 대신 저장된 결과로 보기:</span>
                 <button type="button" id="btnLocalJson" title="이 페이지와 같은 폴더의 result.json을 불러옵니다">result.json 불러오기</button>
                 <button type="button" id="btnPickFile">JSON 파일 선택…</button>
                 <input type="file" id="fileInput" accept=".json,application/json" hidden>
-            </div>
+            </div>-->
         </div>
     </form>
 </header>
@@ -484,16 +470,22 @@
 </div>
 
 <script>
-    // 원본 PLM API (URL 미리보기 / 붙여넣기용)
+    // 원본 PLM API (호출 실패 시 안내용)
     const API_URL = 'https://plmpro.hdel.co.kr/plmetc/vault/pidExecuteLineData';
     // 실제 호출은 서버(PIDController)를 경유 — 브라우저에서 PLM 직접 호출 시 CORS 차단 방지
     const PROXY_URL = '/pid/pidSimulLogic';
     const PARAM_NAMES = ['hogi', 'PID', 'testVersion', 'isfloor', 'floor', 'type'];
+    const CODE_POPUP_URL = '/pid/pidSimulCodePopup';
+    const CODE_API = '/api/getCodeList?key=subae';
 
     const $ = (id) => document.getElementById(id);
     const area = $('resultArea');
+    let codePopup = null;
+    // 특성코드(대문자) -> 사양명(CODENAME). 라인 상세의 조건 표시용
+    const specNames = new Map();
     const state = {
         rows: [],
+        sourceLabel: '',
         maxSpec: 0,
         maxRes: 0,
         filter: 'all',
@@ -516,9 +508,21 @@
     const nvl = (v) => (v === null || v === undefined ? '' : String(v));
     const br = (v) => esc(v).replace(/\n/g, '<br>');
 
+    // 파라미터 값 읽기/쓰기 — 체크박스(testVersion)는 체크 시 'on', 해제 시 ''
+    function getParam(n) {
+        const el = $(n);
+        if (el.type === 'checkbox') return el.checked ? 'on' : '';
+        return el.value.trim();
+    }
+    function setParam(n, v) {
+        const el = $(n);
+        if (el.type === 'checkbox') el.checked = v === 'on';
+        else el.value = v;
+    }
+
     function buildUrl() {
         const qs = PARAM_NAMES
-            .map((n) => `${n}=${encodeURIComponent($(n).value.trim())}`)
+            .map((n) => `${n}=${encodeURIComponent(getParam(n))}`)
             .join('&');
         return `${API_URL}?${qs}`;
     }
@@ -526,30 +530,8 @@
     // 서버 API 호출 URL (컨트롤러 파라미터명은 소문자 pid)
     function buildProxyUrl() {
         const qs = new URLSearchParams();
-        PARAM_NAMES.forEach((n) => qs.set(n === 'PID' ? 'pid' : n, $(n).value.trim()));
+        PARAM_NAMES.forEach((n) => qs.set(n === 'PID' ? 'pid' : n, getParam(n)));
         return `${PROXY_URL}?${qs}`;
-    }
-
-    function updatePreview() {
-        $('urlPreview').textContent = buildUrl();
-    }
-
-    // URL 문자열(전체 URL 또는 쿼리스트링)에서 파라미터를 폼에 채움
-    function applyUrl(text) {
-        text = (text || '').trim();
-        if (!text) return false;
-        const query = text.includes('?') ? text.split('?')[1] : text;
-        if (!query.includes('=')) return false;
-        const params = new URLSearchParams(query);
-        let applied = false;
-        PARAM_NAMES.forEach((n) => {
-            if (params.has(n)) {
-                $(n).value = params.get(n);
-                applied = true;
-            }
-        });
-        updatePreview();
-        return applied;
     }
 
     function setAdvOpen(open) {
@@ -863,7 +845,9 @@
             for (let j = 0; j < n; j++) {
                 const c = nvl(cmps[j]);
                 const cls = c === 'T' ? 'cellTrue' : (c === 'F' ? 'cellFalse' : '');
-                html += `<tr><th>${esc(specs[j])}</th><td class="${cls}">${esc(cons[j])} ${c ? `(${c === 'T' ? '일치' : '불일치'})` : ''}</td></tr>`;
+                const specName = specNames.get(nvl(specs[j]).trim().toUpperCase());
+                html += `<tr><th>${esc(specs[j])}${specName ? ` <span class="spec-name">(${esc(specName)})</span>` : ''}</th>`
+                    + `<td class="${cls}">${esc(cons[j])} ${c ? `(${c === 'T' ? '일치' : '불일치'})` : ''}</td></tr>`;
             }
             html += '</tbody></table>';
         }
@@ -910,6 +894,7 @@
         state.selectedIdx = -1;
         state.maxSpec = Math.max(0, ...rows.map((r) => usedLength(r.specList, r.conList)));
         state.maxRes = Math.max(0, ...rows.map((r) => usedLength(r.keyList, r.valList)));
+        state.sourceLabel = sourceLabel;
         $('sourceInfo').textContent = `현재 표시: ${sourceLabel}`;
         if (isDrawerOpen()) closeDrawer();
 
@@ -917,6 +902,62 @@
         renderTable();
         setAdvOpen(false);
         focusResult();
+        syncCodePopup();
+    }
+
+    // ---------- 특성코드 사전 팝업 ----------
+    // 팝업(pidSimulCodePopup)이 호출: 현재 결과의 SPEC 특성코드 목록 (처음 나온 순서)
+    window.getPidSpecSummary = function () {
+        const map = new Map();
+        state.rows.forEach((row) => {
+            const specs = row.specList || [], cons = row.conList || [];
+            const lines = new Set();
+            for (let j = 0; j < usedLength(specs, cons); j++) {
+                const code = nvl(specs[j]).trim();
+                if (!code) continue;
+                const k = code.toUpperCase();
+                let s = map.get(k);
+                if (!s) map.set(k, (s = { code, count: 0, cons: [] }));
+                if (!lines.has(k)) { lines.add(k); s.count++; }
+                const con = nvl(cons[j]).trim();
+                if (con && !s.cons.includes(con)) s.cons.push(con);
+            }
+        });
+        return { label: state.sourceLabel, specs: [...map.values()] };
+    };
+
+    function openCodePopup() {
+        if (codePopup && !codePopup.closed) {
+            codePopup.focus();
+            syncCodePopup();
+            return;
+        }
+        codePopup = window.open(CODE_POPUP_URL, 'pidSimulCodePopup', 'width=960,height=820,resizable=yes,scrollbars=yes');
+        if (!codePopup) alert('팝업이 차단되었습니다. 브라우저에서 이 사이트의 팝업을 허용해 주세요.');
+    }
+
+    // 사양명 로딩 (실패해도 조건은 코드만으로 표시)
+    async function loadSpecNames() {
+        try {
+            const res = await fetch(CODE_API, { headers: { Accept: 'application/json' } });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            (await res.json() || []).forEach((r) => {
+                const k = nvl(r.code).trim().toUpperCase();
+                const name = nvl(r.codeName).trim();
+                if (k && name && !specNames.has(k)) specNames.set(k, name);
+            });
+            // 로딩 전에 열어 둔 라인 상세가 있으면 사양명을 붙여서 다시 그림
+            if (isDrawerOpen() && state.drawerMode === 'row') showRowDetail(state.selectedIdx, { keepFocus: true });
+        } catch (e) {
+            console.warn('사양명(getCodeList) 로딩 실패:', e);
+        }
+    }
+
+    // 재실행하면 열려 있는 팝업도 새 결과로 갱신
+    function syncCodePopup() {
+        try {
+            if (codePopup && !codePopup.closed && typeof codePopup.syncFromOpener === 'function') codePopup.syncFromOpener();
+        } catch (e) { /* 팝업 로딩 중이면 팝업이 스스로 읽어감 */ }
     }
 
     function showLoadError(msg) {
@@ -937,7 +978,7 @@
         }
     }
 
-    function loadPickedFile(file) {
+ /*   function loadPickedFile(file) {
         if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
@@ -948,7 +989,7 @@
             }
         };
         reader.readAsText(file, 'UTF-8');
-    }
+    }*/
 
     function resetFilterUI() {
         state.filter = 'all';
@@ -1003,7 +1044,7 @@
 
             // 주소창에 파라미터 반영 (새로고침/공유 시 재사용)
             const qs = new URLSearchParams();
-            PARAM_NAMES.forEach((n) => qs.set(n, $(n).value.trim()));
+            PARAM_NAMES.forEach((n) => qs.set(n, getParam(n)));
             history.replaceState(null, '', `${location.pathname}?${qs}`);
         } catch (e) {
             console.error(e);
@@ -1024,30 +1065,15 @@
         e.preventDefault();
         run();
     });
-    PARAM_NAMES.forEach((n) => $(n).addEventListener('input', updatePreview));
     $('btnAdv').addEventListener('click', () => setAdvOpen($('advPanel').hidden));
+    $('btnCodeDict').addEventListener('click', openCodePopup);
 
-    // 입력칸에 전체 URL을 붙여넣으면 파라미터를 자동 분해
-    $('searchForm').addEventListener('paste', (e) => {
-        const text = (e.clipboardData || window.clipboardData).getData('text');
-        if (/[?&]?(hogi|PID)=/.test(text) && applyUrl(text)) e.preventDefault();
-    });
-    $('btnPasteUrl').addEventListener('click', async () => {
-        try {
-            const text = await navigator.clipboard.readText();
-            if (!applyUrl(text)) alert('클립보드에 파라미터가 포함된 URL이 없습니다.');
-        } catch (err) {
-            const text = prompt('API URL 또는 쿼리스트링을 붙여넣으세요');
-            if (text && !applyUrl(text)) alert('파라미터를 찾을 수 없습니다.');
-        }
-    });
-
-    $('btnLocalJson').addEventListener('click', loadLocalJson);
+    /*$('btnLocalJson').addEventListener('click', loadLocalJson);
     $('btnPickFile').addEventListener('click', () => $('fileInput').click());
     $('fileInput').addEventListener('change', (e) => {
         loadPickedFile(e.target.files[0]);
         e.target.value = '';
-    });
+    });*/
 
     // ---------- 이벤트: 툴바 ----------
     $('filterSeg').addEventListener('click', (e) => {
@@ -1210,13 +1236,13 @@
         let hasParam = false;
         PARAM_NAMES.forEach((n) => {
             if (params.has(n)) {
-                $(n).value = params.get(n);
+                setParam(n, params.get(n));
                 hasParam = true;
             }
         });
         // 추가 조건에 값이 있으면 펼쳐서 보여줌
-        if (['testVersion', 'isfloor', 'floor', 'type'].some((n) => $(n).value.trim())) setAdvOpen(true);
-        updatePreview();
+        if (['testVersion', 'isfloor', 'floor', 'type'].some((n) => getParam(n))) setAdvOpen(true);
+        loadSpecNames();
         if (hasParam && $('hogi').value && $('PID').value) run();
         else $('hogi').focus();
     })();
