@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
@@ -155,5 +156,27 @@ public class PIDController {
 
         return result;
     }
+
+
+    //PID SIMULATOR
+    @Description("PID 시뮬레이터")
+    @GetMapping("/pid/pidSimulView")
+    public String pidSimulView() {
+        return "thymeleaf/pid/pidSimulMain";
+    }
+
+    @Description("PID 시뮬레이션 결과 조회 (호기 + PID)")
+    @GetMapping("/pid/pidSimulLogic")
+    @ResponseBody
+    public List<Map<String, Object>> pidSimulLogic(String hogi, String pid, String testVersion,
+                                                   String isfloor, String floor, String type) {
+        log.info("pidSimulLogic hogi:{}, pid:{}, testVersion:{}, isfloor:{}, floor:{}, type:{}",
+                hogi, pid, testVersion, isfloor, floor, type);
+
+        List<Map<String, Object>> result = PIDService.pidSimulLogic(hogi, pid, testVersion, isfloor, floor, type);
+
+        return result;
+    }
+
 
 }

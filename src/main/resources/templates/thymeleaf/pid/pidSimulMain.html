@@ -1,0 +1,1225 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PID 실행 시뮬레이터</title>
+    <style>
+        :root {
+            --bg: #f4f6f9;
+            --panel: #ffffff;
+            --border: #d9dee5;
+            --text: #1f2933;
+            --muted: #6b7785;
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+
+            --true-bg: #e7f6ec;
+            --true-strong: #1f9d55;
+            --false-bg: #fdecec;
+            --false-strong: #d64545;
+            --unread-bg: #f1f2f4;
+            --unread-text: #a0a8b3;
+            --cell-true: #b9e8c8;
+            --cell-false: #f7c1c1;
+
+            --drawer-w: 440px;
+        }
+
+        * { box-sizing: border-box; }
+
+        /* ===== 전체 틀: 화면 높이에 고정, 스크롤은 결과 영역 하나만 ===== */
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+            font-size: 13px;
+            color: var(--text);
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        button {
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+            color: var(--text);
+        }
+        button:hover { background: #f1f5f9; }
+        button.primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+            font-weight: bold;
+        }
+        button.primary:hover { background: var(--primary-dark); }
+        button:disabled { opacity: .6; cursor: wait; }
+
+        /* ===== 상단 헤더 + 조회 조건 ===== */
+        header {
+            flex: none;
+            background: #1e293b;
+            color: #fff;
+            padding: 8px 16px;
+        }
+        .head-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        header h1 { margin: 0 8px 0 0; font-size: 16px; white-space: nowrap; }
+        .inline-field { display: flex; align-items: center; gap: 6px; }
+        .inline-field label { color: #94a3b8; font-size: 12px; white-space: nowrap; }
+        .inline-field label .req { color: #fca5a5; }
+        header input {
+            padding: 6px 8px;
+            border: 1px solid #475569;
+            border-radius: 5px;
+            font-size: 13px;
+            background: #0f172a;
+            color: #fff;
+        }
+        header input:focus { outline: 2px solid #60a5fa; border-color: #60a5fa; }
+        #hogi { width: 130px; }
+        #PID { width: 170px; }
+        header button { border-color: #475569; background: #334155; color: #fff; }
+        header button:hover { background: #475569; }
+        header button.primary { background: var(--primary); border-color: var(--primary); }
+        header button.primary:hover { background: var(--primary-dark); }
+        #btnAdv[aria-expanded="true"] { background: #475569; }
+        .head-spacer { flex: 1; }
+        #sourceInfo { color: #93c5fd; font-size: 12px; }
+
+        /* 추가 조건 (접기/펼치기) */
+        .adv {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .adv[hidden] { display: none; }
+        .adv .adv-fields { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+        .adv .adv-fields input { width: 120px; }
+        .url-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .url-preview {
+            flex: 1;
+            min-width: 280px;
+            font-family: Consolas, monospace;
+            font-size: 12px;
+            padding: 6px 8px;
+            background: #0f172a;
+            border: 1px dashed #475569;
+            border-radius: 5px;
+            color: #94a3b8;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .url-row .hint { color: #94a3b8; font-size: 12px; }
+        .url-row button { padding: 5px 12px; font-size: 12px; }
+
+        /* ===== 툴바: 필터(건수 포함) / 옵션 / 검색 ===== */
+        .toolbar {
+            flex: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 14px;
+            align-items: center;
+            padding: 8px 16px;
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+        }
+        .toolbar[hidden] { display: none; }
+        .seg { display: flex; }
+        .seg button { border-radius: 0; margin-left: -1px; padding: 5px 12px; }
+        .seg button:first-child { border-radius: 5px 0 0 5px; margin-left: 0; }
+        .seg button:last-child { border-radius: 0 5px 5px 0; }
+        .seg button b { margin-left: 4px; }
+        .seg button[data-filter="true"] b { color: var(--true-strong); }
+        .seg button[data-filter="false"] b { color: var(--false-strong); }
+        .seg button[data-filter="unread"] b { color: var(--unread-text); }
+        .seg button.active { background: #1e293b; color: #fff; border-color: #1e293b; position: relative; }
+        .seg button.active b { color: #fff !important; }
+        .toolbar input[type=search] {
+            padding: 6px 9px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            width: 240px;
+        }
+        .toolbar label.chk { display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; }
+        #shownCount { color: var(--muted); white-space: nowrap; }
+        #btnFinal { font-weight: bold; color: var(--primary); border-color: #bfdbfe; background: #eff6ff; }
+        .toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+        .legend { display: flex; gap: 10px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+        .legend i {
+            display: inline-block;
+            width: 11px; height: 11px;
+            border-radius: 2px;
+            vertical-align: -1px;
+            margin-right: 3px;
+            border: 1px solid rgba(0,0,0,.1);
+        }
+        .kbd-hint { color: var(--muted); font-size: 12px; white-space: nowrap; }
+        kbd {
+            display: inline-block;
+            padding: 0 4px;
+            border: 1px solid #cbd2da;
+            border-bottom-width: 2px;
+            border-radius: 3px;
+            background: #f8fafc;
+            font-family: inherit;
+            font-size: 11px;
+        }
+
+        /* ===== 작업 영역: 결과 테이블 + 상세 패널(우측 도킹) ===== */
+        .workspace {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+        }
+        #resultArea {
+            flex: 1;
+            min-width: 0;
+            overflow: auto;
+            background: #fff;
+            outline: none;
+            /* 키보드 이동 시 고정 헤더/고정 컬럼에 가려지지 않도록 */
+            scroll-padding-top: 60px;
+        }
+        #resultArea:focus-visible { box-shadow: inset 0 0 0 2px #93c5fd; }
+        #resultArea.dragging { cursor: grabbing; user-select: none; }
+        #resultArea.dragging * { cursor: grabbing !important; }
+
+        /* 스크롤바를 조금 굵게 — 마우스로 잡기 쉽게 */
+        #resultArea::-webkit-scrollbar { width: 14px; height: 14px; }
+        #resultArea::-webkit-scrollbar-thumb { background: #b6bec9; border-radius: 7px; border: 3px solid #fff; }
+        #resultArea::-webkit-scrollbar-thumb:hover { background: #8d97a5; }
+        #resultArea::-webkit-scrollbar-track { background: #f1f5f9; }
+        #resultArea::-webkit-scrollbar-corner { background: #f1f5f9; }
+
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: max-content;
+            min-width: 100%;
+        }
+        th, td {
+            border-right: 1px solid #e5e8ec;
+            border-bottom: 1px solid #e5e8ec;
+            padding: 4px 8px;
+            white-space: nowrap;
+            text-align: left;
+            vertical-align: top;
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #334155;
+            color: #fff;
+            font-weight: normal;
+            font-size: 12px;
+            height: 28px;
+        }
+        thead tr.group th {
+            background: #1e293b;
+            text-align: left;
+            font-weight: bold;
+        }
+        thead tr.cols th { top: 28px; }
+
+        /* 좌측 고정 컬럼 */
+        .sticky-1, .sticky-2 { position: sticky; z-index: 1; }
+        .sticky-1 { left: 0; width: 46px; min-width: 46px; text-align: right; }
+        .sticky-2 { left: 46px; min-width: 70px; box-shadow: 2px 0 0 #cbd2da; }
+        thead .sticky-1, thead .sticky-2 { z-index: 3; }
+        tbody .sticky-1, tbody .sticky-2 { background: inherit; }
+
+        th.grp-spec { background: #3b4a63 !important; }
+        th.grp-key { background: #4a3b63 !important; }
+
+        tbody tr { background: #fff; }
+        tbody tr.rowTrue { background: var(--true-bg); }
+        tbody tr.rowFalse { background: var(--false-bg); }
+        tbody tr.unreaded { background: var(--unread-bg); color: var(--unread-text); }
+        tbody tr:hover { filter: brightness(0.96); cursor: pointer; }
+        tbody tr.selected { outline: 2px solid var(--primary); outline-offset: -2px; }
+        tbody tr.selected td.sticky-1 { box-shadow: inset 4px 0 0 var(--primary); }
+
+        td.status { text-align: center; font-weight: bold; }
+        tr.rowTrue td.status { color: var(--true-strong); }
+        tr.rowFalse td.status { color: var(--false-strong); }
+
+        td.cellTrue { background: var(--cell-true); }
+        td.cellFalse { background: var(--cell-false); }
+        tr.unreaded td.cellTrue, tr.unreaded td.cellFalse { background: transparent; }
+
+        td.addr { font-weight: bold; color: #7c3aed; }
+        tr.unreaded td.addr { color: var(--unread-text); }
+        td.goto { color: #c2410c; font-weight: bold; }
+        td.goto .jump { text-decoration: underline; cursor: pointer; }
+        tbody tr.flash td { animation: flash 1.2s ease-out; }
+        @keyframes flash { from { background: #fde68a; } }
+        td.key { color: #4338ca; font-weight: bold; }
+        td.spec { color: #334155; }
+        td.pair-end { border-right: 1px solid #c3cad3; }
+        td.output { white-space: normal; min-width: 220px; max-width: 420px; }
+        td.remark { white-space: normal; min-width: 180px; max-width: 360px; color: var(--muted); }
+
+        /* 요약 보기: 조건/결과 칩 */
+        td.chips { white-space: normal; min-width: 200px; max-width: 460px; }
+        .chip {
+            display: inline-block;
+            margin: 1px 4px 1px 0;
+            padding: 0 6px;
+            border-radius: 3px;
+            border: 1px solid #cbd2da;
+            background: #fff;
+            font-size: 12px;
+            line-height: 18px;
+            white-space: nowrap;
+        }
+        .chip .k { color: #475569; }
+        .chip .v { font-weight: bold; }
+        .chip.cellTrue { background: var(--cell-true); border-color: #86d3a0; }
+        .chip.cellFalse { background: var(--cell-false); border-color: #eb9a9a; }
+        .chip.res .k { color: #4338ca; font-weight: bold; }
+        tr.unreaded .chip { background: transparent; color: var(--unread-text); border-color: #dde1e6; }
+        tr.unreaded .chip .k { color: var(--unread-text); }
+
+        .out-item { display: block; }
+        .out-item b { color: var(--true-strong); }
+        .out-item .call { color: #4338ca; text-decoration: underline; cursor: pointer; }
+
+        .empty, .msg {
+            padding: 60px 40px;
+            text-align: center;
+            color: var(--muted);
+        }
+        .msg.error { color: var(--false-strong); white-space: pre-line; text-align: left; }
+
+        .spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+            vertical-align: -2px;
+            margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== 상세 패널 (우측 도킹, 폭 조절 가능) ===== */
+        .resizer {
+            flex: none;
+            width: 6px;
+            cursor: col-resize;
+            background: var(--border);
+            display: none;
+        }
+        .resizer:hover, .resizer.active { background: var(--primary); }
+        .drawer {
+            flex: none;
+            width: var(--drawer-w);
+            min-width: 300px;
+            background: #fff;
+            display: none;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .drawer.open { display: flex; }
+        .resizer.show { display: block; }
+        .drawer-head {
+            flex: none;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .drawer-head h2 { margin: 0; font-size: 15px; flex: 1; }
+        .drawer-head button { padding: 4px 10px; font-size: 12px; }
+        .drawer-body { padding: 12px 14px; overflow: auto; flex: 1; }
+        .drawer-body input[type=search] {
+            width: 100%;
+            padding: 7px 9px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .kv { width: 100%; min-width: 0; }
+        .kv th, .kv td { white-space: normal; word-break: break-all; }
+        .kv th { background: #f1f5f9; color: var(--text); width: 45%; position: static; }
+        .kv tr.hit td, .kv tr.hit th { background: #fef9c3; }
+        .kv td.blank { color: var(--unread-text); font-style: italic; }
+        .section-title { font-weight: bold; margin: 14px 0 6px; }
+        .badge {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .badge.true { background: var(--true-strong); }
+        .badge.false { background: var(--false-strong); }
+        .badge.unread { background: var(--unread-text); }
+
+        /* 좁은 화면: 상세 패널은 위로 겹쳐서 표시 */
+        @media (max-width: 900px) {
+            .drawer.open { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100%); z-index: 20; box-shadow: -4px 0 16px rgba(0,0,0,.15); }
+            .resizer { display: none !important; }
+            .legend, .kbd-hint { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== 헤더 + 조회 조건 ===== -->
+<header>
+    <form id="searchForm" autocomplete="off">
+        <div class="head-row">
+            <h1>PID 실행 시뮬레이터</h1>
+            <div class="inline-field">
+                <label for="hogi">호기 <span class="req">*</span></label>
+                <input id="hogi" name="hogi" value="208223L01" required>
+            </div>
+            <div class="inline-field">
+                <label for="PID">PID <span class="req">*</span></label>
+                <input id="PID" name="PID" value="EL_PB186A01" required>
+            </div>
+            <button type="submit" class="primary" id="btnRun" title="Enter">실행</button>
+            <button type="button" id="btnAdv" aria-expanded="false" aria-controls="advPanel">추가 조건 ▾</button>
+            <div class="head-spacer"></div>
+            <span id="sourceInfo"></span>
+        </div>
+
+        <!-- 추가 조건: 평소에는 접어 두어 결과 영역을 넓게 사용 -->
+        <div class="adv" id="advPanel" hidden>
+            <div class="adv-fields">
+                <div class="inline-field">
+                    <label for="testVersion">testVersion</label>
+                    <input id="testVersion" name="testVersion">
+                </div>
+                <div class="inline-field">
+                    <label for="isfloor">isfloor</label>
+                    <input id="isfloor" name="isfloor">
+                </div>
+                <div class="inline-field">
+                    <label for="floor">floor</label>
+                    <input id="floor" name="floor">
+                </div>
+                <div class="inline-field">
+                    <label for="type">type</label>
+                    <input id="type" name="type">
+                </div>
+            </div>
+            <div class="url-row">
+                <div class="url-preview" id="urlPreview" title="URL 붙여넣기 가능 (Ctrl+V)"></div>
+                <button type="button" id="btnPasteUrl" title="클립보드의 URL에서 파라미터를 읽어옵니다">URL 붙여넣기</button>
+            </div>
+            <div class="url-row">
+                <span class="hint">API 대신 저장된 결과로 보기:</span>
+                <button type="button" id="btnLocalJson" title="이 페이지와 같은 폴더의 result.json을 불러옵니다">result.json 불러오기</button>
+                <button type="button" id="btnPickFile">JSON 파일 선택…</button>
+                <input type="file" id="fileInput" accept=".json,application/json" hidden>
+            </div>
+        </div>
+    </form>
+</header>
+
+<!-- ===== 툴바 (실행 후 표시) ===== -->
+<div class="toolbar" id="toolbar" hidden>
+    <div class="seg" id="filterSeg">
+        <button type="button" data-filter="all" class="active">전체<b id="stTotal">0</b></button>
+        <button type="button" data-filter="true">TRUE<b id="stTrue">0</b></button>
+        <button type="button" data-filter="false">FALSE<b id="stFalse">0</b></button>
+        <button type="button" data-filter="readed">실행된 라인<b id="stReaded">0</b></button>
+        <button type="button" data-filter="unread">미실행<b id="stUnread">0</b></button>
+    </div>
+    <button type="button" id="btnFinal">최종 OUTPUT (<span id="stFinal">0</span>)</button>
+    <label class="chk"><input type="checkbox" id="hideBlank"> 빈 라인 숨기기</label>
+    <label class="chk" title="JSP 원본처럼 SPEC/CON, KEY/VAL을 각각 컬럼으로 펼쳐서 봅니다"><input type="checkbox" id="fullView"> 원본 컬럼 펼치기</label>
+    <input type="search" id="keyword" placeholder="SPEC / KEY / VAL / REMARK 검색 ( / )">
+    <span id="shownCount"></span>
+    <div class="toolbar-right">
+        <div class="legend">
+            <span><i style="background:var(--true-bg)"></i>TRUE</span>
+            <span><i style="background:var(--false-bg)"></i>FALSE</span>
+            <span><i style="background:var(--unread-bg)"></i>미실행</span>
+            <span><i style="background:var(--cell-true)"></i>조건 일치</span>
+            <span><i style="background:var(--cell-false)"></i>불일치</span>
+        </div>
+        <span class="kbd-hint" title="결과 영역에서 사용">
+            <kbd>↑</kbd><kbd>↓</kbd> 라인 이동 · <kbd>Enter</kbd> 상세 · <kbd>←</kbd><kbd>→</kbd> 좌우 · 드래그로 이동
+        </span>
+    </div>
+</div>
+
+<!-- ===== 결과 + 상세 패널 ===== -->
+<div class="workspace">
+    <!-- 스크롤은 이 영역 하나만 (가로 스크롤바가 항상 화면 하단에 보임) -->
+    <section id="resultArea" tabindex="0" aria-label="결과 테이블">
+        <div class="empty">호기와 PID를 입력하고 <b>실행</b>을 누르세요.</div>
+    </section>
+    <div class="resizer" id="resizer" title="드래그해서 상세 패널 폭 조절"></div>
+    <aside class="drawer" id="drawer">
+        <div class="drawer-head">
+            <h2 id="drawerTitle">상세</h2>
+            <button type="button" id="btnPrevRow" title="이전 라인 (↑)">▲</button>
+            <button type="button" id="btnNextRow" title="다음 라인 (↓)">▼</button>
+            <button type="button" id="btnCloseDrawer" title="Esc">닫기 ✕</button>
+        </div>
+        <div class="drawer-body" id="drawerBody"></div>
+    </aside>
+</div>
+
+<script>
+    // 원본 PLM API (URL 미리보기 / 붙여넣기용)
+    const API_URL = 'https://plmpro.hdel.co.kr/plmetc/vault/pidExecuteLineData';
+    // 실제 호출은 서버(PIDController)를 경유 — 브라우저에서 PLM 직접 호출 시 CORS 차단 방지
+    const PROXY_URL = '/pid/pidSimulLogic';
+    const PARAM_NAMES = ['hogi', 'PID', 'testVersion', 'isfloor', 'floor', 'type'];
+
+    const $ = (id) => document.getElementById(id);
+    const area = $('resultArea');
+    const state = {
+        rows: [],
+        maxSpec: 0,
+        maxRes: 0,
+        filter: 'all',
+        keyword: '',
+        hideBlank: false,
+        fullView: false,
+        selectedIdx: -1,
+        drawerMode: '',   // 'row' | 'final'
+    };
+
+    // ---------- 유틸 ----------
+    function esc(v) {
+        if (v === null || v === undefined) return '';
+        return String(v)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+    const nvl = (v) => (v === null || v === undefined ? '' : String(v));
+    const br = (v) => esc(v).replace(/\n/g, '<br>');
+
+    function buildUrl() {
+        const qs = PARAM_NAMES
+            .map((n) => `${n}=${encodeURIComponent($(n).value.trim())}`)
+            .join('&');
+        return `${API_URL}?${qs}`;
+    }
+
+    // 서버 API 호출 URL (컨트롤러 파라미터명은 소문자 pid)
+    function buildProxyUrl() {
+        const qs = new URLSearchParams();
+        PARAM_NAMES.forEach((n) => qs.set(n === 'PID' ? 'pid' : n, $(n).value.trim()));
+        return `${PROXY_URL}?${qs}`;
+    }
+
+    function updatePreview() {
+        $('urlPreview').textContent = buildUrl();
+    }
+
+    // URL 문자열(전체 URL 또는 쿼리스트링)에서 파라미터를 폼에 채움
+    function applyUrl(text) {
+        text = (text || '').trim();
+        if (!text) return false;
+        const query = text.includes('?') ? text.split('?')[1] : text;
+        if (!query.includes('=')) return false;
+        const params = new URLSearchParams(query);
+        let applied = false;
+        PARAM_NAMES.forEach((n) => {
+            if (params.has(n)) {
+                $(n).value = params.get(n);
+                applied = true;
+            }
+        });
+        updatePreview();
+        return applied;
+    }
+
+    function setAdvOpen(open) {
+        $('advPanel').hidden = !open;
+        $('btnAdv').setAttribute('aria-expanded', String(open));
+        $('btnAdv').textContent = open ? '추가 조건 ▴' : '추가 조건 ▾';
+    }
+
+    // ---------- 데이터 가공 ----------
+    // 실제 값이 있는 마지막 인덱스 + 1 (빈 컬럼을 잘라내기 위해)
+    function usedLength(a, b) {
+        let n = 0;
+        const len = Math.max((a || []).length, (b || []).length);
+        for (let i = 0; i < len; i++) {
+            if (nvl(a && a[i]) !== '' || nvl(b && b[i]) !== '') n = i + 1;
+        }
+        return n;
+    }
+
+    const cmpClass = (c) => (c === 'T' ? 'cellTrue' : (c === 'F' ? 'cellFalse' : ''));
+    const cmpTitle = (c) => (c === 'T' ? '조건 일치' : (c === 'F' ? '조건 불일치' : ''));
+
+    function classify(row) {
+        const rowTrue = nvl(row.rowTrue);
+        if (rowTrue === '') return 'unread';
+        return rowTrue === 'true' ? 'true' : 'false';
+    }
+
+    // JSP 참고코드와 동일한 OUTPUT 생성 규칙 (rowTrue 라인만)
+    function buildOutput(row, idx) {
+        if (classify(row) !== 'true') return '';
+        const keys = row.keyList || [];
+        const vals = row.valList || [];
+        const resultMap = row.resultMap || {};
+        const seen = new Set();
+        const parts = [];
+
+        for (let j = 0; j < state.maxRes; j++) {
+            const key = nvl(keys[j]);
+            if (key === '' || seen.has(key)) continue;
+            seen.add(key);
+            const val = nvl(vals[j]);
+
+            if (key === 'CALL') {
+                const cnt = Object.keys(resultMap).length;
+                parts.push(`<span class="out-item">CALL(<b>${esc(val)}</b>) → `
+                    + `<span class="call" data-idx="${idx}">resultMap ${cnt}건 보기</span></span>`);
+            } else if (key === 'OUTPUT') {
+                // OUTPUT 선언 라인: resultMap 키가 'OUTPUT' + DOUID + 컬럼인덱스 형태로 저장됨
+                const outVar = nvl(resultMap[`OUTPUT${nvl(row.DOUID)}${j}`]) || val;
+                parts.push(`<span class="out-item">OUTPUT 선언 → <b>${esc(outVar)}</b></span>`);
+            } else {
+                parts.push(`<span class="out-item">${esc(key)} = <b>${br(nvl(resultMap[key]))}</b></span>`);
+            }
+        }
+        return parts.join('');
+    }
+
+    function rowText(row) {
+        return [
+            row.ADDR, row.GOTO, row.REMARKS, row.line_no,
+            ...(row.specList || []), ...(row.conList || []),
+            ...(row.keyList || []), ...(row.valList || []),
+        ].map(nvl).join(' ').toLowerCase();
+    }
+
+    // ---------- 렌더링 ----------
+    function renderSummary() {
+        const rows = state.rows;
+        const cnt = { true: 0, false: 0, unread: 0 };
+        rows.forEach((r) => cnt[classify(r)]++);
+        $('stTotal').textContent = rows.length;
+        $('stTrue').textContent = cnt.true;
+        $('stFalse').textContent = cnt.false;
+        $('stReaded').textContent = cnt.true + cnt.false;
+        $('stUnread').textContent = cnt.unread;
+        $('stFinal').textContent = Object.keys(finalResultMap()).length;
+        $('toolbar').hidden = false;
+    }
+
+    function renderTable() {
+        const { rows, maxSpec, maxRes } = state;
+        if (!rows.length) {
+            area.innerHTML = '<div class="empty">조회 결과가 없습니다.</div>';
+            $('shownCount').textContent = '';
+            return;
+        }
+
+        // HEADER
+        const full = state.fullView;
+        let h = '<table id="resultTable"><thead>';
+        if (full) {
+            h += '<tr class="group">'
+                + '<th class="sticky-1" rowspan="2">#</th>'
+                + '<th class="sticky-2" rowspan="2">ADDR</th>'
+                + '<th rowspan="2">결과</th>';
+            if (maxSpec) h += `<th class="grp-spec" colspan="${maxSpec * 2}">조건 (SPEC / CON)</th>`;
+            if (maxRes) h += `<th class="grp-key" colspan="${maxRes * 2}">결과 (KEY / VAL)</th>`;
+            h += '<th rowspan="2">GOTO</th><th rowspan="2">OUTPUT</th><th rowspan="2">REMARK</th></tr>';
+
+            h += '<tr class="cols">';
+            for (let i = 1; i <= maxSpec; i++) h += `<th class="grp-spec">SPEC${i}</th><th class="grp-spec">CON${i}</th>`;
+            for (let i = 1; i <= maxRes; i++) h += `<th class="grp-key">KEY${i}</th><th class="grp-key">VAL${i}</th>`;
+            h += '</tr>';
+        } else {
+            h += '<tr>'
+                + '<th class="sticky-1">#</th><th class="sticky-2">ADDR</th><th>결과</th>'
+                + '<th class="grp-spec">조건 (SPEC = CON)</th>'
+                + '<th class="grp-key">결과 (KEY = VAL)</th>'
+                + '<th>GOTO</th><th>OUTPUT</th><th>REMARK</th></tr>';
+        }
+        h += '</thead><tbody>';
+
+        // CONTENTS
+        const kw = state.keyword.toLowerCase();
+        let shown = 0;
+
+        rows.forEach((row, i) => {
+            const status = classify(row);
+            if (state.filter === 'true' && status !== 'true') return;
+            if (state.filter === 'false' && status !== 'false') return;
+            if (state.filter === 'readed' && status === 'unread') return;
+            if (state.filter === 'unread' && status !== 'unread') return;
+            if (state.hideBlank && nvl(row.isBlankLine) === 'true' && nvl(row.ADDR) === '') return;
+            if (kw && !rowText(row).includes(kw)) return;
+            shown++;
+
+            const trClass = status === 'unread' ? 'unreaded'
+                : (status === 'true' ? 'readed rowTrue' : 'readed rowFalse');
+            const statusText = status === 'unread' ? '-' : (status === 'true' ? 'TRUE' : 'FALSE');
+
+            h += `<tr class="${trClass}${i === state.selectedIdx ? ' selected' : ''}" data-idx="${i}">`;
+            h += `<td class="sticky-1">${esc(row.line_no || i + 1)}</td>`;
+            h += `<td class="sticky-2 addr">${esc(row.ADDR)}</td>`;
+            h += `<td class="status">${statusText}</td>`;
+
+            const specs = row.specList || [];
+            const cons = row.conList || [];
+            const cmps = row.compareResultList || [];
+            const keys = row.keyList || [];
+            const vals = row.valList || [];
+
+            if (full) {
+                for (let j = 0; j < maxSpec; j++) {
+                    const cmp = nvl(cmps[j]);
+                    h += `<td class="spec ${cmpClass(cmp)}" title="${cmpTitle(cmp)}">${esc(specs[j])}</td>`;
+                    h += `<td class="pair-end ${cmpClass(cmp)}" title="${cmpTitle(cmp)}">${esc(cons[j])}</td>`;
+                }
+                for (let j = 0; j < maxRes; j++) {
+                    h += `<td class="key">${esc(keys[j])}</td>`;
+                    h += `<td class="pair-end">${br(vals[j])}</td>`;
+                }
+            } else {
+                let specChips = '';
+                for (let j = 0; j < usedLength(specs, cons); j++) {
+                    if (nvl(specs[j]) === '' && nvl(cons[j]) === '') continue;
+                    const cmp = nvl(cmps[j]);
+                    specChips += `<span class="chip ${cmpClass(cmp)}" title="SPEC${j + 1} ${cmpTitle(cmp)}">`
+                        + `<span class="k">${esc(specs[j])}</span> = <span class="v">${esc(cons[j])}</span></span>`;
+                }
+                let resChips = '';
+                for (let j = 0; j < usedLength(keys, vals); j++) {
+                    if (nvl(keys[j]) === '' && nvl(vals[j]) === '') continue;
+                    resChips += `<span class="chip res" title="KEY${j + 1}"><span class="k">${esc(keys[j])}</span>`
+                        + (nvl(vals[j]) !== '' ? ` = <span class="v">${br(vals[j])}</span>` : '') + '</span>';
+                }
+                h += `<td class="chips">${specChips}</td><td class="chips">${resChips}</td>`;
+            }
+
+            h += row.GOTO
+                ? `<td class="goto"><span class="jump" data-goto="${esc(row.GOTO)}" title="${esc(row.GOTO)} 라인으로 이동">→ ${esc(row.GOTO)}</span></td>`
+                : '<td class="goto"></td>';
+            h += `<td class="output">${buildOutput(row, i)}</td>`;
+            h += `<td class="remark">${esc(row.REMARKS)}</td>`;
+            h += '</tr>';
+        });
+
+        h += '</tbody></table>';
+        if (!shown) h = '<div class="empty">필터 조건에 맞는 라인이 없습니다.</div>';
+
+        area.innerHTML = h;
+        $('shownCount').textContent = `${shown} / ${rows.length} 라인`;
+    }
+
+    // ---------- 라인 선택 / 키보드 이동 ----------
+    const visibleRows = () => [...area.querySelectorAll('tbody tr[data-idx]')];
+    const rowEl = (idx) => area.querySelector(`tbody tr[data-idx="${idx}"]`);
+
+    // 세로로만 따라가도록 스크롤 (가로 위치는 유지)
+    function scrollRowIntoView(tr) {
+        const head = area.querySelector('thead');
+        const headH = head ? head.getBoundingClientRect().height : 0;
+        const a = area.getBoundingClientRect();
+        const r = tr.getBoundingClientRect();
+        if (r.top < a.top + headH) {
+            area.scrollTop -= (a.top + headH) - r.top + 4;
+        } else if (r.bottom > a.bottom - 14) {
+            area.scrollTop += r.bottom - (a.bottom - 14) + 4;
+        }
+    }
+
+    function selectRow(tr) {
+        if (!tr) return;
+        area.querySelectorAll('tbody tr.selected').forEach((x) => x.classList.remove('selected'));
+        tr.classList.add('selected');
+        state.selectedIdx = Number(tr.dataset.idx);
+        scrollRowIntoView(tr);
+        // 상세 패널이 라인 상세를 보여주는 중이면 따라서 갱신
+        if (isDrawerOpen() && state.drawerMode === 'row') showRowDetail(state.selectedIdx, { keepFocus: true });
+    }
+
+    function moveSelection(step) {
+        const trs = visibleRows();
+        if (!trs.length) return;
+        let pos = trs.findIndex((tr) => Number(tr.dataset.idx) === state.selectedIdx);
+        if (pos < 0) pos = step > 0 ? -1 : trs.length;
+        pos = Math.max(0, Math.min(trs.length - 1, pos + step));
+        selectRow(trs[pos]);
+    }
+
+    // 실행 직후: 결과 테이블로 포커스 + 맨 위로 + 첫 라인 선택
+    function focusResult() {
+        area.scrollTop = 0;
+        area.scrollLeft = 0;
+        area.focus({ preventScroll: true });
+        const first = visibleRows()[0];
+        if (first) selectRow(first);
+    }
+
+    // ---------- 상세 패널 (라인 상세 / resultMap) ----------
+    const isDrawerOpen = () => $('drawer').classList.contains('open');
+
+    function finalResultMap() {
+        for (let i = state.rows.length - 1; i >= 0; i--) {
+            if (state.rows[i].resultMap) return state.rows[i].resultMap;
+        }
+        return {};
+    }
+
+    function kvTable(map, highlightKeys) {
+        const entries = Object.entries(map || {});
+        if (!entries.length) return '<div class="empty" style="padding:16px">데이터 없음</div>';
+        // OUTPUTxxxx 키(내부 참조용)는 뒤로 보냄
+        entries.sort((a, b) => (a[0].startsWith('OUTPUT') ? 1 : 0) - (b[0].startsWith('OUTPUT') ? 1 : 0));
+        return '<table class="kv"><tbody>' + entries.map(([k, v]) => {
+            const hit = highlightKeys && highlightKeys.has(k) ? ' class="hit"' : '';
+            const val = nvl(v);
+            return `<tr${hit} data-k="${esc(k.toLowerCase())} ${esc(val.toLowerCase())}"><th>${esc(k)}</th>`
+                + (val === '' ? '<td class="blank">(빈 값)</td>' : `<td>${br(val)}</td>`) + '</tr>';
+        }).join('') + '</tbody></table>';
+    }
+
+    function openDrawer(title, html, mode) {
+        // 라인 이동 시 상세 패널 안의 검색어 유지
+        const prevSearch = $('drawerBody').querySelector('input[type=search]');
+        const prevQuery = prevSearch && state.drawerMode === mode ? prevSearch.value : '';
+
+        state.drawerMode = mode;
+        $('drawerTitle').textContent = title;
+        $('drawerBody').innerHTML = html;
+        $('drawer').classList.add('open');
+        $('resizer').classList.add('show');
+        $('btnPrevRow').hidden = mode !== 'row';
+        $('btnNextRow').hidden = mode !== 'row';
+
+        const search = $('drawerBody').querySelector('input[type=search]');
+        if (search) {
+            const apply = () => {
+                const q = search.value.trim().toLowerCase();
+                $('drawerBody').querySelectorAll('.kv tr[data-k]').forEach((tr) => {
+                    tr.hidden = q && !tr.dataset.k.includes(q);
+                });
+            };
+            search.addEventListener('input', apply);
+            if (prevQuery) { search.value = prevQuery; apply(); }
+        }
+    }
+
+    function closeDrawer() {
+        $('drawer').classList.remove('open');
+        $('resizer').classList.remove('show');
+        state.drawerMode = '';
+        area.focus({ preventScroll: true });
+    }
+
+    function showRowDetail(idx, opts = {}) {
+        const row = state.rows[idx];
+        if (!row) return;
+        if (state.selectedIdx !== idx) {
+            state.selectedIdx = idx;
+            area.querySelectorAll('tbody tr.selected').forEach((tr) => tr.classList.remove('selected'));
+            const tr = rowEl(idx);
+            if (tr) tr.classList.add('selected');
+        }
+
+        const status = classify(row);
+        const badge = status === 'unread' ? '<span class="badge unread">미실행</span>'
+            : `<span class="badge ${status}">${status.toUpperCase()}</span>`;
+
+        let html = `<div>${badge} &nbsp; LINE ${esc(row.line_no || idx + 1)}`
+            + (row.ADDR ? ` · ADDR <b>${esc(row.ADDR)}</b>` : '')
+            + (row.GOTO ? ` · GOTO <b>${esc(row.GOTO)}</b>` : '')
+            + ` · DOUID ${esc(row.DOUID)}</div>`;
+        if (row.REMARKS) html += `<div style="margin-top:6px;color:var(--muted)">${esc(row.REMARKS)}</div>`;
+
+        // 조건
+        const specs = row.specList || [], cons = row.conList || [], cmps = row.compareResultList || [];
+        const n = usedLength(specs, cons);
+        if (n) {
+            html += '<div class="section-title">조건</div><table class="kv"><tbody>';
+            for (let j = 0; j < n; j++) {
+                const c = nvl(cmps[j]);
+                const cls = c === 'T' ? 'cellTrue' : (c === 'F' ? 'cellFalse' : '');
+                html += `<tr><th>${esc(specs[j])}</th><td class="${cls}">${esc(cons[j])} ${c ? `(${c === 'T' ? '일치' : '불일치'})` : ''}</td></tr>`;
+            }
+            html += '</tbody></table>';
+        }
+
+        // 결과 KEY/VAL
+        const keys = row.keyList || [], vals = row.valList || [];
+        const m = usedLength(keys, vals);
+        const keySet = new Set();
+        if (m) {
+            html += '<div class="section-title">결과 (KEY = VAL)</div><table class="kv"><tbody>';
+            for (let j = 0; j < m; j++) {
+                keySet.add(nvl(keys[j]));
+                html += `<tr><th>${esc(keys[j])}</th><td>${br(vals[j])}</td></tr>`;
+            }
+            html += '</tbody></table>';
+        }
+
+        if (row.resultMap) {
+            // 'OUTPUT11' 로 시작하는 키는 표시하지 않음
+            const shownMap = Object.fromEntries(
+                Object.entries(row.resultMap).filter(([k]) => !k.startsWith('OUTPUT11')));
+            html += `<div class="section-title">이 라인 실행 후 resultMap (${Object.keys(shownMap).length}건)</div>`
+                + '<input type="search" placeholder="키 / 값 검색">'
+                + kvTable(shownMap, keySet);
+        }
+        openDrawer('라인 상세', html, 'row');
+        // 상세를 열어도 키보드(↑↓)는 계속 결과 테이블에서 동작
+        if (!opts.keepFocus) area.focus({ preventScroll: true });
+    }
+
+    function showFinal() {
+        const map = finalResultMap();
+        openDrawer(`최종 OUTPUT (${Object.keys(map).length}건)`,
+            '<div style="color:var(--muted);margin-bottom:8px">마지막으로 실행된 라인 기준의 resultMap 입니다.</div>'
+            + '<input type="search" placeholder="키 / 값 검색">' + kvTable(map), 'final');
+    }
+
+    // ---------- 데이터 적재 (API / JSON 파일 공통) ----------
+    function loadRows(json, sourceLabel) {
+        const rows = Array.isArray(json) ? json : (json.data || json.list || []);
+        if (!Array.isArray(rows)) throw new Error('결과 형식이 배열이 아닙니다.');
+
+        state.rows = rows;
+        state.selectedIdx = -1;
+        state.maxSpec = Math.max(0, ...rows.map((r) => usedLength(r.specList, r.conList)));
+        state.maxRes = Math.max(0, ...rows.map((r) => usedLength(r.keyList, r.valList)));
+        $('sourceInfo').textContent = `현재 표시: ${sourceLabel}`;
+        if (isDrawerOpen()) closeDrawer();
+
+        renderSummary();
+        renderTable();
+        setAdvOpen(false);
+        focusResult();
+    }
+
+    function showLoadError(msg) {
+        $('toolbar').hidden = true;
+        area.innerHTML = `<div class="msg error">${esc(msg)}</div>`;
+    }
+
+    async function loadLocalJson() {
+        try {
+            const res = await fetch('./result.json', { cache: 'no-store' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            loadRows(await res.json(), 'result.json');
+        } catch (e) {
+            console.error(e);
+            showLoadError(`result.json 을 불러오지 못했습니다: ${e.message}\n\n`
+                + '· 파일(file://)로 직접 연 경우 브라우저가 로컬 파일 읽기를 막습니다.\n'
+                + '  WebStorm 내장 서버(localhost)로 열거나 "JSON 파일 선택…" 버튼을 사용하세요.');
+        }
+    }
+
+    function loadPickedFile(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                loadRows(JSON.parse(reader.result), file.name);
+            } catch (e) {
+                showLoadError(`JSON 파싱 실패 (${file.name}): ${e.message}`);
+            }
+        };
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    function resetFilterUI() {
+        state.filter = 'all';
+        state.keyword = '';
+        $('keyword').value = '';
+        document.querySelectorAll('#filterSeg button').forEach((x) => x.classList.toggle('active', x.dataset.filter === 'all'));
+    }
+
+    // GOTO 클릭 시 해당 ADDR 라인으로 스크롤
+    function jumpToAddr(addr) {
+        const idx = state.rows.findIndex((r) => nvl(r.ADDR) === addr);
+        if (idx < 0) return alert(`ADDR '${addr}' 라인을 찾을 수 없습니다.`);
+        let tr = rowEl(idx);
+        if (!tr) {
+            // 필터로 숨겨져 있으면 필터 해제 후 다시 그림
+            resetFilterUI();
+            renderTable();
+            tr = rowEl(idx);
+        }
+        if (!tr) return;
+        const offset = tr.getBoundingClientRect().top - area.getBoundingClientRect().top;
+        area.scrollTop = area.scrollTop + offset - area.clientHeight / 3;
+        selectRow(tr);
+        tr.classList.remove('flash');
+        void tr.offsetWidth;
+        tr.classList.add('flash');
+        area.focus({ preventScroll: true });
+    }
+
+    // ---------- API 호출 ----------
+    async function run() {
+        if (!$('hogi').value.trim() || !$('PID').value.trim()) {
+            alert('호기와 PID는 필수입니다.');
+            return;
+        }
+        const url = buildProxyUrl();
+        const btn = $('btnRun');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>실행 중';
+        area.innerHTML = '<div class="msg">API 호출 중...</div>';
+        if (isDrawerOpen()) closeDrawer();
+
+        try {
+            const res = await fetch(url, { method: 'GET', headers: { Accept: 'application/json' } });
+            if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+            const json = await res.json();
+            // 서버는 PLM 호출 실패 시에도 빈 배열을 돌려주므로 따로 안내
+            if (Array.isArray(json) && json.length === 0) {
+                throw new Error('결과가 없습니다. 호기/PID를 확인하거나, 서버 로그에서 PLM API 응답을 확인하세요.');
+            }
+            loadRows(json, `API 결과 (${$('hogi').value.trim()} / ${$('PID').value.trim()})`);
+
+            // 주소창에 파라미터 반영 (새로고침/공유 시 재사용)
+            const qs = new URLSearchParams();
+            PARAM_NAMES.forEach((n) => qs.set(n, $(n).value.trim()));
+            history.replaceState(null, '', `${location.pathname}?${qs}`);
+        } catch (e) {
+            console.error(e);
+            $('toolbar').hidden = true;
+            area.innerHTML = `<div class="msg error">API 호출 실패: ${esc(e.message)}\n\n`
+                + '· 서버가 PLM(plmpro.hdel.co.kr)에 접속할 수 있는지(사내망) 확인하세요.\n'
+                + '· PLM API URL을 브라우저에서 직접 열어 결과를 저장한 뒤 "JSON 파일 선택…"으로 볼 수 있습니다.\n\n'
+                + `요청 URL: ${esc(url)}\n`
+                + `PLM URL: ${esc(buildUrl())}</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '실행';
+        }
+    }
+
+    // ---------- 이벤트: 조회 조건 ----------
+    $('searchForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        run();
+    });
+    PARAM_NAMES.forEach((n) => $(n).addEventListener('input', updatePreview));
+    $('btnAdv').addEventListener('click', () => setAdvOpen($('advPanel').hidden));
+
+    // 입력칸에 전체 URL을 붙여넣으면 파라미터를 자동 분해
+    $('searchForm').addEventListener('paste', (e) => {
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        if (/[?&]?(hogi|PID)=/.test(text) && applyUrl(text)) e.preventDefault();
+    });
+    $('btnPasteUrl').addEventListener('click', async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (!applyUrl(text)) alert('클립보드에 파라미터가 포함된 URL이 없습니다.');
+        } catch (err) {
+            const text = prompt('API URL 또는 쿼리스트링을 붙여넣으세요');
+            if (text && !applyUrl(text)) alert('파라미터를 찾을 수 없습니다.');
+        }
+    });
+
+    $('btnLocalJson').addEventListener('click', loadLocalJson);
+    $('btnPickFile').addEventListener('click', () => $('fileInput').click());
+    $('fileInput').addEventListener('change', (e) => {
+        loadPickedFile(e.target.files[0]);
+        e.target.value = '';
+    });
+
+    // ---------- 이벤트: 툴바 ----------
+    $('filterSeg').addEventListener('click', (e) => {
+        const b = e.target.closest('button[data-filter]');
+        if (!b) return;
+        document.querySelectorAll('#filterSeg button').forEach((x) => x.classList.toggle('active', x === b));
+        state.filter = b.dataset.filter;
+        renderTable();
+        area.scrollTop = 0;
+        area.focus({ preventScroll: true });
+    });
+    $('hideBlank').addEventListener('change', (e) => {
+        state.hideBlank = e.target.checked;
+        renderTable();
+    });
+    $('fullView').addEventListener('change', (e) => {
+        state.fullView = e.target.checked;
+        renderTable();
+    });
+    let kwTimer;
+    $('keyword').addEventListener('input', (e) => {
+        clearTimeout(kwTimer);
+        kwTimer = setTimeout(() => {
+            state.keyword = e.target.value.trim();
+            renderTable();
+        }, 200);
+    });
+    // 검색창에서 Enter / ↓ → 결과 테이블로 이동
+    $('keyword').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            clearTimeout(kwTimer);
+            state.keyword = e.target.value.trim();
+            renderTable();
+            focusResult();
+        }
+    });
+    $('btnFinal').addEventListener('click', showFinal);
+
+    // ---------- 이벤트: 결과 테이블 (클릭 / 키보드 / 드래그 이동) ----------
+    let suppressClick = false;
+    area.addEventListener('click', (e) => {
+        if (suppressClick) return;
+        const jump = e.target.closest('.jump[data-goto]');
+        if (jump) return jumpToAddr(jump.dataset.goto);
+        const tr = e.target.closest('tbody tr[data-idx]');
+        if (tr) {
+            const wasRowDetail = isDrawerOpen() && state.drawerMode === 'row';
+            selectRow(tr);  // 라인 상세가 열려 있으면 selectRow 가 갱신
+            if (!wasRowDetail) showRowDetail(Number(tr.dataset.idx));
+        }
+    });
+
+    area.addEventListener('keydown', (e) => {
+        const page = Math.max(1, Math.floor(area.clientHeight / 30) - 2);
+        switch (e.key) {
+            case 'ArrowDown': moveSelection(1); break;
+            case 'ArrowUp': moveSelection(-1); break;
+            case 'PageDown': moveSelection(page); break;
+            case 'PageUp': moveSelection(-page); break;
+            case 'Home': moveSelection(-Infinity); area.scrollLeft = 0; break;
+            case 'End': moveSelection(Infinity); break;
+            case 'Enter':
+                if (state.selectedIdx >= 0) showRowDetail(state.selectedIdx);
+                break;
+            default: return;  // ←/→ 는 브라우저 기본 가로 스크롤
+        }
+        e.preventDefault();
+    });
+
+    // 마우스 드래그로 테이블 좌우/상하 이동 (클릭과 구분: 5px 이상 움직이면 드래그)
+    let drag = null;
+    area.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        if (e.target.closest('.jump, .call, a, button, input, select, textarea')) return;
+        // 스크롤바 위에서 누른 경우는 브라우저 기본 동작
+        if (e.offsetX > area.clientWidth || e.offsetY > area.clientHeight) return;
+        drag = { x: e.clientX, y: e.clientY, sl: area.scrollLeft, st: area.scrollTop, moved: false };
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (!drag) return;
+        const dx = e.clientX - drag.x;
+        const dy = e.clientY - drag.y;
+        if (!drag.moved && Math.abs(dx) + Math.abs(dy) > 5) {
+            drag.moved = true;
+            area.classList.add('dragging');
+            window.getSelection().removeAllRanges();
+        }
+        if (drag.moved) {
+            area.scrollLeft = drag.sl - dx;
+            area.scrollTop = drag.st - dy;
+            e.preventDefault();
+        }
+    });
+    window.addEventListener('mouseup', () => {
+        if (drag && drag.moved) {
+            suppressClick = true;
+            setTimeout(() => { suppressClick = false; }, 0);
+        }
+        area.classList.remove('dragging');
+        drag = null;
+    });
+
+
+    // ---------- 이벤트: 상세 패널 ----------
+    $('btnCloseDrawer').addEventListener('click', closeDrawer);
+    $('btnPrevRow').addEventListener('click', () => { moveSelection(-1); area.focus({ preventScroll: true }); });
+    $('btnNextRow').addEventListener('click', () => { moveSelection(1); area.focus({ preventScroll: true }); });
+
+    // 상세 패널 폭 조절 (드래그) — 폭은 브라우저에 기억
+    (function initResizer() {
+        const KEY = 'pidSimul.drawerWidth';
+        try {
+            const w = Number(localStorage.getItem(KEY));
+            if (w) document.documentElement.style.setProperty('--drawer-w', `${w}px`);
+        } catch (e) { /* 저장소 사용 불가 시 기본 폭 */ }
+
+        const resizer = $('resizer');
+        let resizing = false;
+        resizer.addEventListener('mousedown', (e) => {
+            resizing = true;
+            resizer.classList.add('active');
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!resizing) return;
+            const w = Math.max(300, Math.min(window.innerWidth * 0.7, window.innerWidth - e.clientX));
+            document.documentElement.style.setProperty('--drawer-w', `${Math.round(w)}px`);
+        });
+        window.addEventListener('mouseup', () => {
+            if (!resizing) return;
+            resizing = false;
+            resizer.classList.remove('active');
+            document.body.style.userSelect = '';
+            try {
+                localStorage.setItem(KEY, parseInt(getComputedStyle(document.documentElement).getPropertyValue('--drawer-w'), 10));
+            } catch (e) { /* 무시 */ }
+        });
+    })();
+
+    // ---------- 전역 단축키 ----------
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (isDrawerOpen()) closeDrawer();
+            return;
+        }
+        // '/' → 검색창 (입력 중이 아닐 때)
+        const typing = e.target.closest && e.target.closest('input, textarea, select');
+        if (e.key === '/' && !typing && !$('toolbar').hidden) {
+            e.preventDefault();
+            $('keyword').focus();
+            $('keyword').select();
+        }
+    });
+
+    // ---------- 초기화: 페이지 URL 파라미터가 있으면 자동 실행 ----------
+    (function init() {
+        const params = new URLSearchParams(location.search);
+        let hasParam = false;
+        PARAM_NAMES.forEach((n) => {
+            if (params.has(n)) {
+                $(n).value = params.get(n);
+                hasParam = true;
+            }
+        });
+        // 추가 조건에 값이 있으면 펼쳐서 보여줌
+        if (['testVersion', 'isfloor', 'floor', 'type'].some((n) => $(n).value.trim())) setAdvOpen(true);
+        updatePreview();
+        if (hasParam && $('hogi').value && $('PID').value) run();
+        else $('hogi').focus();
+    })();
+</script>
+</body>
+</html>

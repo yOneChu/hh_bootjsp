@@ -1,11 +1,19 @@
 package com.kyhslam.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kyhslam.util.PIDCommonUtil;
 import com.kyhslam.util.PLMDBConnection;
 import com.kyhslam.util.VaultDBConnection;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,6 +21,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class PIDService {
@@ -211,5 +220,88 @@ public class PIDService {
             PLMDBConnection.disconnect(con, pstmt, rs);
         }
         return result;
+    }
+
+
+    /**
+     * PID 로직 시뮬레이션 결과 조회 (PLM API, GET)
+     * 결과는 PID 라인별 실행 결과 배열
+     *  - specList / conList / keyList / valList / compareResultList : 라인별 조건·결과 목록
+     *  - GOTO, ADDR, REMARKS, DOUID, line_no, isBlankLine, rowTrue
+     *  - resultMap : 해당 라인까지 누적된 KEY → VALUE (실행된 라인에만 존재)
+     * @param hogi 호기 (예: 208223L01)
+     * @param pid  PID (예: EL_PB186A01)
+     * @return 라인별 결과 목록 (실패 시 빈 목록)
+     */
+    public static List<Map<String, Object>> pidSimulLogic(String hogi, String pid) {
+        return pidSimulLogic(hogi, pid, null, null, null, null);
+    }
+
+    /**
+     * PID 로직 시뮬레이션 결과 조회 (선택 파라미터 포함)
+     * @param testVersion 테스트 버전 (선택)
+     * @param isfloor     (선택)
+     * @param floor       (선택)
+     * @param type        (선택)
+     */
+    public static List<Map<String, Object>> pidSimulLogic(String hogi, String pid, String testVersion,
+                                                          String isfloor, String floor, String type) {
+
+        //API
+        // https://plmpro.hdel.co.kr/plmetc/vault/pidExecuteLineData?hogi=208223L01&PID=EL_PB186A01&testVersion=&isfloor&floor&type=
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        HttpURLConnection conn = null;
+
+        try {
+            String apiUrl = "https://plmpro.hdel.co.kr/plmetc/vault/pidExecuteLineData"
+                    + "?hogi=" + encodeParam(hogi)
+                    + "&PID=" + encodeParam(pid)
+                    + "&testVersion=" + encodeParam(testVersion)
+                    + "&isfloor=" + encodeParam(isfloor)
+                    + "&floor=" + encodeParam(floor)
+                    + "&type=" + encodeParam(type);
+
+            conn = (HttpURLConnection) new URL(apiUrl).openConnection();
+
+            // GET 방식 설정
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setConnectTimeout(10_000);
+            conn.setReadTimeout(60_000);
+
+            // 응답 코드 확인
+            int responseCode = conn.getResponseCode();
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                System.out.println("pidSimulLogic Response Code : " + responseCode + " (" + apiUrl + ")");
+                return list;
+            }
+
+            // 응답 데이터 읽기
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) {
+                    response.append(line);
+                }
+
+                // JSON 배열 → List<Map>
+                ObjectMapper mapper = new ObjectMapper();
+                list = mapper.readValue(response.toString(), new TypeReference<List<Map<String, Object>>>() {});
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+
+        return list;
+    }
+
+    private static String encodeParam(String value) {
+        return URLEncoder.encode(value == null ? "" : value.trim(), StandardCharsets.UTF_8);
     }
 }
