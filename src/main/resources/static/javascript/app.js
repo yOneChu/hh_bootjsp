@@ -85,6 +85,12 @@
     };
     /** 바로 아래 하위 명세서 목록 (parent 로 연결된 항목들) */
     const childrenOf = (specId) => specs.filter(s => s.parent === specId);
+    /** 하위 카테고리(폴더) 여부 — DB 스키마 변경 없이 아이콘('folder…')으로 구분한다.
+     *  예전처럼 하위 글이 달린 글도 폴더처럼 접기/펼치기로 동작한다. */
+    const FOLDER_ICON = 'folder';
+    const isFolder = (s) => !!s && (/^folder/.test(s.icon || '') || childrenOf(s.id).length > 0);
+    /** 처음 열어 줄 글 — 폴더가 아닌 첫 항목 */
+    const firstDocSpec = () => specs.find(s => !isFolder(s));
     /** 상위 명세서 — 최상위 항목이면 null */
     const parentOf = (specId) => {
         const s = specs.find(x => x.id === specId);
@@ -119,7 +125,9 @@
         // 펼침 상태는 expandedSpecs 로만 판단한다.
         // (문서를 열면 openSpec() 이 조상들을 expandedSpecs 에 넣어 주므로,
         //  여기서 '현재 경로'를 강제로 펼치면 사용자가 접을 수 없게 된다)
-        const open = kids.length > 0 && (!!term || expandedSpecs.has(s.id));
+        const folder = isFolder(s);
+        // 폴더는 비어 있어도 펼칠 수 있다 (펼치면 '비어 있음' 표시)
+        const open = (kids.length > 0 || (folder && !term)) && (!!term || expandedSpecs.has(s.id));
 
         // 들여쓰기 — 카테고리 헤더 아래 가이드선(renderSpecTree 의 nav) 을 기준으로 잡는다.
         // 최상위(depth 0)도 한 칸 들여써 카테고리 헤더와 확실히 구분되게 한다.
@@ -127,26 +135,27 @@
         const indent = 8 + Math.min(depth, 8) * 14;
 
         // 접기 버튼 자리는 하위가 없는 행에도 똑같이 비워 둔다 — 같은 단계끼리 아이콘이 어긋나지 않도록
-        const toggle = kids.length
-            ? `<button data-toggle="${escapeHtml(s.id)}" title="하위 명세서 ${open ? '접기' : '펼치기'}"
+        const toggle = (kids.length || folder)
+            ? `<button data-toggle="${escapeHtml(s.id)}" title="하위 항목 ${open ? '접기' : '펼치기'}"
                        class="shrink-0 w-4 h-4 flex items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10 transition">
                    <i data-lucide="${open ? 'chevron-down' : 'chevron-right'}" class="w-3 h-3"></i>
                </button>`
             : `<span class="shrink-0 w-4 h-4"></span>`;
 
-        // 마우스를 올렸을 때만 보이는 편집 버튼 (하위 추가 · 이름변경 · 삭제)
-        // — 하위 추가는 단계 제한 없이 모든 행에 붙는다
+        // 마우스를 올렸을 때만 보이는 편집 버튼 (추가 · 이름변경 · 삭제)
+        // — 카테고리(폴더) 행 : 글 추가 + 하위 카테고리 추가
+        // — 글 행            : 하위에 아무것도 추가할 수 없다 (이름변경·삭제만)
+        const addBtns = folder
+            ? addButtonsHtml(s.id, true, 'p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition')
+            : '';
         const actions = `
             <span class="flex items-center gap-0.5 pr-1.5 shrink-0 opacity-0 group-hover/row:opacity-100 transition">
-                <button data-add-spec="${escapeHtml(s.id)}" data-as-child="1" title="하위 명세서 추가"
-                        class="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition">
-                    <i data-lucide="plus" class="w-3 h-3"></i>
-                </button>
+                ${addBtns}
                 <button data-rename-menu="${escapeHtml(s.id)}" title="이름 변경"
                         class="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition">
                     <i data-lucide="pencil" class="w-3 h-3"></i>
                 </button>
-                <button data-del-menu="${escapeHtml(s.id)}" title="명세서 삭제"
+                <button data-del-menu="${escapeHtml(s.id)}" title="${folder ? '카테고리' : '글'} 삭제"
                         class="p-0.5 rounded hover:bg-red-500/10 hover:text-red-500 transition">
                     <i data-lucide="trash-2" class="w-3 h-3"></i>
                 </button>
@@ -160,14 +169,33 @@
                    class="flex items-center gap-1.5 min-w-0 flex-1 pr-1 py-1.5 text-[13.5px] ${
                     active ? '' : 'text-apple-ink dark:text-gray-300'}">
                     ${toggle}
-                    <i data-lucide="${escapeAttr(s.icon || 'file-text')}" class="w-3.5 h-3.5 shrink-0 ${active ? '' : st.icon}"></i>
-                    <span class="truncate flex-1">${escapeHtml(s.name)}</span>
-                    ${s.live ? `<span title="실제 DB API 연결됨" class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>` : ''}
+                    <i data-lucide="${escapeAttr(folder && s.icon === FOLDER_ICON && open ? 'folder-open' : (s.icon || 'file-text'))}" class="w-3.5 h-3.5 shrink-0 ${active ? '' : st.icon}"></i>
+                    <span class="truncate flex-1 ${folder ? 'font-semibold' : ''}">${escapeHtml(s.name)}</span>
+                    ${s.live && !folder ? `<span title="실제 DB API 연결됨" class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>` : ''}
                 </a>
                 ${actions}
             </div>`;
 
-        return row + (open ? kids.map(k => renderSpecRow(k, st, term, depth + 1)).join('') : '');
+        // 펼친 빈 카테고리에는 안내 문구를 보여 준다
+        const empty = open && !kids.length
+            ? `<div style="padding-left:${indent + 36}px" class="pr-2 py-1 text-xs text-apple-gray/60 italic">비어 있음</div>`
+            : '';
+
+        return row + (open ? kids.map(k => renderSpecRow(k, st, term, depth + 1)).join('') : '') + empty;
+    }
+
+    /** '글 추가' / '카테고리 추가' 버튼 한 쌍.
+     *  asChild=true 면 targetId 는 상위 카테고리(폴더) 행, false 면 대분류 id */
+    function addButtonsHtml(targetId, asChild, cls) {
+        const id = escapeHtml(targetId);
+        const child = asChild ? ' data-as-child="1"' : '';
+        return `
+            <button data-add-spec="${id}"${child} title="글 추가" class="${cls}">
+                <i data-lucide="file-plus" class="w-3 h-3"></i>
+            </button>
+            <button data-add-spec="${id}"${child} data-kind="folder" title="하위 카테고리 추가" class="${cls}">
+                <i data-lucide="folder-plus" class="w-3 h-3"></i>
+            </button>`;
     }
 
     /** 카테고리(DB 명세서 / API 정의서 / 기타 규칙)별로 사이드바를 렌더링 */
@@ -204,10 +232,7 @@
                     <i data-lucide="${escapeAttr(g.icon || 'folder')}" class="w-4 h-4 ${st.icon}"></i>
                     <span class="flex-1 truncate text-[13.5px] font-bold tracking-tight">${escapeHtml(g.name)}</span>
                     ${gOpen ? '' : `<span class="text-[11px] text-apple-gray/70">${items.length}</span>`}
-                    <button data-add-spec="${escapeHtml(g.id)}" title="명세서 추가"
-                            class="p-0.5 rounded text-apple-gray hover:bg-black/10 dark:hover:bg-white/10 transition">
-                        <i data-lucide="plus" class="w-3 h-3"></i>
-                    </button>
+                    ${addButtonsHtml(g.id, false, 'p-0.5 rounded text-apple-gray hover:bg-black/10 dark:hover:bg-white/10 transition')}
                     <button data-rename-menu="${escapeHtml(g.id)}" title="카테고리 이름 변경"
                             class="p-0.5 rounded text-apple-gray opacity-0 group-hover/hdr:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 transition">
                         <i data-lucide="pencil" class="w-3 h-3"></i>
@@ -256,26 +281,42 @@
         }
     }
 
-    /** 명세서 추가 — parentId 를 주면 그 명세서의 하위로 만든다 */
-    async function addSpec(groupId, parentId) {
-        // 몇 단계든 들어갈 수 있으므로 "상위 / 상위 / 대상" 전체 경로를 보여 준다
-        const where = parentId
-            ? [...ancestorsOf(parentId).map(a => a.name), specs.find(s => s.id === parentId)?.name].join(' / ')
-            : specGroups.find(g => g.id === groupId)?.name;
+    /** 글 / 하위 카테고리 추가 — parentId 를 주면 그 항목의 하위로 만든다.
+     *  kind = 'doc'(글) | 'folder'(하위 카테고리 — 아이콘 'folder' 로 저장) */
+    async function addSpec(groupId, parentId, kind = 'doc') {
+        const folder = kind === 'folder';
+        // 글 하위에는 글/카테고리를 만들 수 없다 — 상위는 대분류 또는 카테고리(폴더)만 허용
+        if (parentId && !isFolder(specs.find(s => s.id === parentId))) {
+            toast('글 하위에는 추가할 수 없습니다. 카테고리에 추가해 주세요.', 'alert-circle');
+            return;
+        }
+        // 몇 단계든 들어갈 수 있으므로 "대분류 / 상위 / 대상" 전체 경로를 보여 준다
+        const where = [
+            specGroups.find(g => g.id === groupId)?.name,
+            ...(parentId ? [...ancestorsOf(parentId).map(a => a.name), specs.find(s => s.id === parentId)?.name] : []),
+        ].filter(Boolean).join(' / ');
 
-        const name = prompt(`"${where}" 에 추가할 ${parentId ? '하위 ' : ''}명세서 이름:\n`
-            + '(API 주소는 SPEC00001 형식으로 자동 부여됩니다)');
+        const name = prompt(`"${where}" 에 추가할 ${folder ? '하위 카테고리' : '글'} 이름:`
+            + (folder ? '' : '\n(API 주소는 SPEC00001 형식으로 자동 부여됩니다)'));
         if (name === null || !name.trim()) return;
 
         try {
-            const r = await specStore.createSpec({ name: name.trim(), groupId, parentId });
+            const r = await specStore.createSpec({
+                name: name.trim(), groupId, parentId,
+                icon: folder ? FOLDER_ICON : undefined,
+            });
+            collapsedGroups.delete(groupId);
+            if (parentId) expandedSpecs.add(parentId);
             await reloadMenu();
             const newId = r?.menu?.id;
-            toast(`추가되었습니다${newId ? ` (${newId})` : ''}. 상단에서 API 주소를 복사할 수 있습니다.`, 'file-plus-2');
-            if (newId) {
-                if (parentId) expandedSpecs.add(parentId);
-                openSpec(newId);
+            if (folder) {
+                // 카테고리는 본문이 없으므로 열지 않고 펼쳐만 둔다
+                if (newId) { expandedSpecs.add(newId); renderSpecTree(); }
+                toast('카테고리가 추가되었습니다.', 'folder-plus');
+                return;
             }
+            toast(`추가되었습니다${newId ? ` (${newId})` : ''}. 상단에서 API 주소를 복사할 수 있습니다.`, 'file-plus-2');
+            if (newId) openSpec(newId);
         } catch (err) {
             toast('추가 실패: ' + err.message, 'alert-circle');
         }
@@ -331,7 +372,7 @@
             // 지금 보고 있던 명세서가 사라졌으면 다른 문서로 이동
             if (currentSpecId && !specs.some(s => s.id === currentSpecId)) {
                 currentSpecId = null;
-                if (specs[0]) openSpec(specs[0].id);
+                if (firstDocSpec()) openSpec(firstDocSpec().id);
                 else if (docs[0]) openDoc(docs[0].id);
                 else showEmpty();
             }
@@ -962,9 +1003,10 @@
             if (add) {
                 e.preventDefault(); e.stopPropagation();
                 const target = add.dataset.addSpec;
-                // 명세서 행의 + 버튼이면 하위 명세서, 카테고리 헤더의 + 면 그 카테고리에 추가
-                if (add.dataset.asChild) addSpec(groupOf(target).id, target);
-                else addSpec(target, null);
+                // 글/폴더 행의 버튼이면 그 하위에, 대분류 헤더의 버튼이면 그 대분류 최상위에 추가
+                const kind = add.dataset.kind || 'doc';
+                if (add.dataset.asChild) addSpec(groupOf(target).id, target, kind);
+                else addSpec(target, null, kind);
                 return;
             }
             const rename = e.target.closest('[data-rename-menu]');
@@ -1017,8 +1059,8 @@
             if (link) {
                 e.preventDefault();
                 const sid = link.dataset.spec;
-                // 하위가 있는 항목은 본문을 열지 않고 접기/펼치기만 한다
-                if (childrenOf(sid).length) {
+                // 카테고리(폴더)·하위가 있는 항목은 본문을 열지 않고 접기/펼치기만 한다
+                if (isFolder(specs.find(s => s.id === sid))) {
                     if (expandedSpecs.has(sid)) expandedSpecs.delete(sid); else expandedSpecs.add(sid);
                     renderSpecTree();
                     return;
@@ -1115,7 +1157,7 @@
         renderSpecTree();
 
         // 시작 화면: DB 명세서 첫 항목 → 없으면 일반 문서 → 없으면 빈 화면
-        if (specs[0]) openSpec(specs[0].id);
+        if (firstDocSpec()) openSpec(firstDocSpec().id);
         else if (docs[0]) openDoc(docs[0].id);
         else showEmpty();
         icons();
