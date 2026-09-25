@@ -1037,7 +1037,29 @@ public class SubaeCommonUtil {
             }
 
             if (pBlockNo != null && !"".equals(pBlockNo)) {
-                sql += " AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID = DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = '" + pBlockNo + "' ";
+
+                if (pBlockNo.contains(",")) {
+                    String[] blockArray = pBlockNo.split(",");
+
+                    // 서브쿼리는 한 번만 작성하고 IN 으로 묶기
+                    sql += " AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID = DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) IN (";
+
+                    for (int i = 0; i < blockArray.length; i++) {
+                        sql += "'" + blockArray[i].trim() + "'";
+
+                        if (i < blockArray.length - 1) {
+                            sql += ", "; // 콤마로 연결
+                        }
+                    }
+
+                    sql += ") "; // IN 괄호 닫기
+
+                } else {
+                    sql += " AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID = DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = '" + pBlockNo + "' ";
+                }
+
+
+                //sql += " AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID = DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = '" + pBlockNo + "' ";
             }
 
 
@@ -1173,6 +1195,7 @@ public class SubaeCommonUtil {
             }
 
             //만약 partNo, pBlockNo : 둘 다 입력되지 않았을 때의 조건
+            //영업사양으로 조회
             if ((partNo == null || partNo.isBlank()) && (pBlockNo == null || pBlockNo.isBlank())) {
                 sql = createElvQuery(whereCond);
             }
@@ -1208,11 +1231,14 @@ public class SubaeCommonUtil {
                 String SPEC = "";
                 String HASCHILD = "";
 
+
+                productNo = rs.getString("PARENTNO") == null ? "" : rs.getString("PARENTNO"); //제품번호
+
                 //partNo, pBlockNo : 둘 중 하나라도 입력되었으면
                 if ((partNo != null && !partNo.isBlank()) || (pBlockNo != null && !pBlockNo.isBlank())) {
                     //System.out.println("partNo = " + partNo);
                     //System.out.println("pBlockNo = " + pBlockNo);
-                    productNo = rs.getString("PARENTNO") == null ? "" : rs.getString("PARENTNO"); //제품번호
+
                     productVersion = rs.getString("PARENT_VER") == null ? "" : rs.getString("PARENT_VER"); //제품버전
                     PROD_STATUS = rs.getString("PROD_STATUS") == null ? "" : rs.getString("PROD_STATUS");
                     PROD_CREDATE = rs.getString("PROD_CREDATE") == null ? "" : rs.getString("PROD_CREDATE"); //제품 등록일
@@ -1232,7 +1258,6 @@ public class SubaeCommonUtil {
                     HASCHILD = rs.getString("HASCHILD") == null ? "" : rs.getString("HASCHILD");
                 }
 
-
                 String GISONG = rs.getString("GISONG") == null ? "" : rs.getString("GISONG");
                 String BRAND = rs.getString("BRAND") == null ? "" : rs.getString("BRAND");
                 String EL_ASPD = rs.getString("EL_ASPD") == null ? "" : rs.getString("EL_ASPD");
@@ -1246,6 +1271,7 @@ public class SubaeCommonUtil {
 
                 String EL_ECWSF = "";
                 String EL_ETHRU = "";
+
 
                 EL_ECWSF = rs.getString("EL_ECWSF") == null ? "" : rs.getString("EL_ECWSF");
                 //EL_ETHRU = rs.getString("EL_ETHRU") == null ? "" : rs.getString("EL_ETHRU");
@@ -1294,7 +1320,7 @@ public class SubaeCommonUtil {
                 dMap.put("productVersion", productVersion);
                 dMap.put("productStatus", PROD_STATUS);
                 dMap.put("productModDate", PROD_MODDATE);
-                dMap.put("el_ZFDA", EL_ZFDA);
+                dMap.put("el_ZFDA", EL_ZFDA); // 기계구조 최초설계일
                 dMap.put("brand", BRAND);
                 dMap.put("gisong", GISONG);
                 dMap.put("aspd", EL_ASPD);
@@ -1316,7 +1342,9 @@ public class SubaeCommonUtil {
                 dMap.put("glCode", GLCODE);
                 dMap.put("version", PART_VERSION);
                 dMap.put("cmt", CMT);
+                dMap.put("ucheck", UCHECK);
                 dMap.put("el_BWALLT", EL_BWALLT);
+
 
 
                 if (keyList != null && keyList.size() > 0) {
@@ -1356,14 +1384,14 @@ public class SubaeCommonUtil {
                             //dataList.add(dto);
                         }
                     }
-
-
                 }
 
                 //dataList.add(dto);
                 dataList.add(dMap);
             } //end while
 
+
+            System.out.println("------------ end -----------------");
 
             //System.out.println("dataList.size() = " + dataList.size());
 
@@ -1688,44 +1716,45 @@ public class SubaeCommonUtil {
         }
 
         String sql = """
-                SELECT V.MD$DESC, V.MD$NUMBER AS PRODUCTNO,
-                       COD(V.EL_AOPEN) AS EL_AOPEN, -- 열림방식 
-                       CODN(v.EL_AUSE) AS EL_AUSE, --용도 
+                SELECT V.MD$DESC, 
+                       V.MD$NUMBER AS PARENTNO,
+                       NVL(COD(V.EL_AOPEN), '') AS EL_AOPEN, -- 열림방식
+                       NVL(CODN(v.EL_AUSE), '') AS EL_AUSE, --용도
                        V.EL_ECWBUFBH, --CWT BUFFER BLOCKING 높이 
                        V.EL_ECAA AS EL_ECAA,  -- CAR 외부가로 ; AA
                        V.EL_ECBB AS EL_ECBB,  -- CAR 외부세로 ; BB
                        V.EL_ECCA AS EL_ECCA,  -- CAR 내부가로 ; CA      
                        V.EL_ECCB AS EL_ECCB,  -- CAR 내부세로 ; CB
-                       COD(V.EL_ECCC) AS EL_ECCC,  -- ◎ CAR;CC
+                       NVL(COD(V.EL_ECCC), '') AS EL_ECCC,  -- ◎ CAR;CC
                        V.EL_ECCH, --CAR 높이; CH 
                        V.EL_ECBG, --CAR:BG 
                        V.EL_ECEE, --CAR 무게중심;EE 
                        V.EL_ECJJ, --도어폭;JJ 
                        V.EL_EPPX AS EL_EPPX, -- ROPE ; X 가로 
                        V.EL_EPPY AS EL_EPPY, -- ROPE ; Y 가로
-                       COD(V.EL_BMOPB) AS EL_BMOPB, --MAIN OPB사양 
-                       COD(V.EL_BMOPBM) AS EL_BMOPBM, --MAIN OPB 재질 
-                       COD(V.EL_BMOPBO) AS EL_BMOPBO, --MAIN OPB 열림 방향 
-                       COD(V.EL_ECWRL) AS EL_ECWRL, --CWT RAIL(K) 
-                       COD(V.EL_ETM) AS EL_ETM, --권상기 
-                       COD(V.EL_COB) AS EL_COB,
+                       NVL(COD(V.EL_BMOPB), '') AS EL_BMOPB, --MAIN OPB사양
+                       NVL(COD(V.EL_BMOPBM), '') AS EL_BMOPBM, --MAIN OPB 재질
+                       NVL(COD(V.EL_BMOPBO), '') AS EL_BMOPBO, --MAIN OPB 열림 방향
+                       NVL(COD(V.EL_ECWRL), '') AS EL_ECWRL, --CWT RAIL(K)
+                       NVL(COD(V.EL_ETM), '') AS EL_ETM, --권상기
+                       NVL(COD(V.EL_COB), '') AS EL_COB,
                        V.EL_ECWBG, --CWT; BG 
                        V.EL_ECWW, --CWT;폭 
-                       COD(V.EL_ECSF) AS EL_ECSF, --CAR; SAFETY
+                       NVL(COD(V.EL_ECSF), '') AS EL_ECSF, --CAR; SAFETY
                        COD(V.EL_ECWSF ) AS EL_ECWSF,
                        COD(V.EL_ASPC) AS EL_ASPC, --시방서 
                        COD(V.EL_ETHRU) AS EL_ETHRU,
                        COD(V.EL_ASPCD) AS EL_ASPCD, -- 시방서 DEVIATION 여부 
                        COD(V.EL_BCL) AS EL_BCL, -- 천장종류 
-                       COD(V.EL_ZFDA) AS EL_ZFDA, --  
+                       V.EL_ZFDA AS EL_ZFDA, -- 기계구조 최초설계일
                        COD(V.EL_BWALLT) AS EL_BWALLT, --  
                        V.EL_AMAN AS EL_AMAN, --인승 
                        COD(V.EL_ASPSCD) AS ASPSCD, --생산거점(설계) 
                        CONCAT('elv_info$vf@', LOWER(DECTOHEX(V.vf$ouid))) OUID,   -- 영업사양 객체 
-                       CODN(V.EL_ABRAND) AS BRAND, -- 브랜드 
-                       CODN(V.EL_ATYP) AS GISONG, -- 기종 
-                       CODN (V.EL_ASPD) AS EL_ASPD, -- 속도 
-                       CODN (V.EL_ACAPA) AS EL_ACAPA --용량
+                       NVL(CODN(V.EL_ABRAND), '') AS BRAND, -- 브랜드
+                       NVL(CODN(V.EL_ATYP), '') AS GISONG, -- 기종
+                       NVL(CODN (V.EL_ASPD), '') AS EL_ASPD, -- 속도
+                       NVL(CODN (V.EL_ACAPA), '') AS EL_ACAPA --용량
                       -- V.EL_ZTEXT_B, --가내 특기사항 
                       -- V.EL_ZTEXT_C, --승장 특기사항 
                       -- V.EL_ZTEXT_D, --옵션 특기사항 
