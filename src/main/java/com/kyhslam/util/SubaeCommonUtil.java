@@ -1058,7 +1058,6 @@ public class SubaeCommonUtil {
                     sql += " AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID = DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = '" + pBlockNo + "' ";
                 }
 
-
                 //sql += " AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID = DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = '" + pBlockNo + "' ";
             }
 
