@@ -18,6 +18,8 @@ public class MasterDataCache {
     // volatile: 나중에 reload()로 교체해도 다른 스레드에서 바로 보이게 함
     private volatile List<CodeInfoDTO> codeList = Collections.emptyList();
 
+    private volatile List<CodeInfoDTO> codeElvList = Collections.emptyList();
+
     // 서버 기동이 끝난 뒤 1회 실행
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
@@ -28,10 +30,19 @@ public class MasterDataCache {
         List<CodeInfoDTO> list = MLBCommonUtil.getCodeList();
         this.codeList = Collections.unmodifiableList(new ArrayList<>(list));
         log.info("특성코드 마스터 로딩 완료: {}건", codeList.size());
+
+        List<CodeInfoDTO> list02 = MLBCommonUtil.getCodeListV2();
+        this.codeElvList = Collections.unmodifiableList(new ArrayList<>(list02));
+        log.info("사양값 팝업 특성코드 마스터 로딩 완료: {}건", codeList.size());
+
     }
 
     public List<CodeInfoDTO> getCodeList() {
         return codeList;
+    }
+
+    public List<CodeInfoDTO> getCodeListV2() {
+        return codeElvList;
     }
 
     // 운영 중 마스터가 바뀌었을 때 재시작 없이 다시 불러오기(선택)

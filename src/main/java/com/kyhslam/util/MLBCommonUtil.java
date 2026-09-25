@@ -1721,4 +1721,46 @@ public class MLBCommonUtil {
 
         return result;
     }
+
+    //영업사양 값 팝업의 코드
+    public static ArrayList<CodeInfoDTO> getCodeListV2() {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<CodeInfoDTO> result = new  ArrayList<>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                    SELECT 
+                        A.NAME AS CODE, 
+                        A.TIT AS CODENAME
+                    FROM HDEL_SYSTEM.dosfld A
+                    WHERE A.DOSCLAS = '2248993771'
+                    """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                String CODE = rs.getString("CODE"); // 특성코드
+                String CODENAME = rs.getString("CODENAME"); // 사양명
+
+                CodeInfoDTO dto = new  CodeInfoDTO();
+                dto.setCode(CODE);
+                dto.setCodeName(CODENAME);
+                result.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        return result;
+    }
 }

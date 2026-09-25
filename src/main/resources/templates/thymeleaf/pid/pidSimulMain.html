@@ -476,7 +476,8 @@
     const PROXY_URL = '/pid/pidSimulLogic';
     const PARAM_NAMES = ['hogi', 'PID', 'testVersion', 'isfloor', 'floor', 'type'];
     const CODE_POPUP_URL = '/pid/pidSimulCodePopup';
-    const CODE_API = '/api/getCodeList?key=subae';
+    // 라인 상세 조건의 사양명(CODE -> CODENAME)
+    const CODE_API = '/api/getElvCodeList?key=subae';
 
     const $ = (id) => document.getElementById(id);
     const area = $('resultArea');
@@ -949,7 +950,7 @@
             // 로딩 전에 열어 둔 라인 상세가 있으면 사양명을 붙여서 다시 그림
             if (isDrawerOpen() && state.drawerMode === 'row') showRowDetail(state.selectedIdx, { keepFocus: true });
         } catch (e) {
-            console.warn('사양명(getCodeList) 로딩 실패:', e);
+            console.warn('사양명(getElvCodeList) 로딩 실패:', e);
         }
     }
 

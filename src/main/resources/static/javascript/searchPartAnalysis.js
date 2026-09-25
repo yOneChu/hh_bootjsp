@@ -233,6 +233,14 @@ function searchPID() {
         return;
     }*/
 
+    // part, blockNo 둘다 입력을 안했으면 barnd,EL_ASPSCD,EL_ATYP 셋중 하나는 꼭 입력해야 됨
+    if (!partNo && !blockNo) {
+        //alert('PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.');
+        if (!brand && !EL_ASPSCD && !EL_ATYP) {
+            return;
+        }
+    }
+
     /* 기존 DataTable 파괴 */
     if ($.fn.DataTable.isDataTable('#infoTable')) {
         $('#infoTable').DataTable().clear().destroy();

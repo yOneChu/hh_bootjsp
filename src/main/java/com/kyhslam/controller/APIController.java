@@ -314,6 +314,24 @@ public class APIController {
         return Collections.emptyList();
     }
 
+    @Description("영업사양 팝업의 특성코드 리스트")
+    @GetMapping("/getElvCodeList")
+    @ResponseBody
+    @CrossOrigin
+    //public ArrayList<CodeInfoDTO> getCodeList(String key) {
+    public List<CodeInfoDTO> getElvCodeList(String key) {
+        //https://vault-in.hdel.co.kr:8070/api/getSalesInfo?key=subae
+        //http://localhost:8070/api/getCodeList?key=subae
+
+        //List<CodeInfoDTO> result = new List<>();
+
+        if ("subae".equals(key)) {
+            //result = MLBCommonUtil.getCodeList();
+            return masterDataCache.getCodeListV2();
+        }
+        return Collections.emptyList();
+    }
+
     @Description("공사정보 필드 리스트 - 육상")
     @GetMapping("/getCodeField")
     @ResponseBody
