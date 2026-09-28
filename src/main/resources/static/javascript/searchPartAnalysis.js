@@ -492,10 +492,12 @@ function searchGraph() {
     const partNo  = ($('#partNo').val()  || '').trim();
     const blockNo = ($('#blockNo').val() || '').trim();
 
-    if (!partNo && !blockNo) {
-        //alert('PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.');
-        //return;
-    }
+   /* if (!partNo && !blockNo) {
+        alert('PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.');
+        return;
+    }*/
+
+
 
     /* 데이터 전달 상태 초기화 (팝업은 이 값이 채워질 때까지 대기) */
     window.__spfGraphData  = null;
@@ -534,6 +536,12 @@ function searchGraph() {
     const kvConditions = JSON.stringify(getKvConditions());
 
 
+    if (!partNo && !blockNo) {
+        //alert('PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.');
+        if (!brand && !EL_ASPSCD && !EL_ATYP) {
+            return;
+        }
+    }
 
     $.ajax({
         type: 'post', crossDomain: true,
@@ -573,10 +581,13 @@ function searchInteractive() {
     const partNo  = ($('#partNo').val()  || '').trim();
     const blockNo = ($('#blockNo').val() || '').trim();
 
-    if (!partNo && !blockNo) {
+    /*if (!partNo && !blockNo) {
         alert('PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.');
         return;
-    }
+    }*/
+
+
+
 
     /* 데이터 전달 상태 초기화 (팝업은 이 값이 채워질 때까지 대기) */
     window.__spfGraphData  = null;
@@ -614,6 +625,13 @@ function searchInteractive() {
     const EL_ZFDC_TYPE = $('#EL_ZFDC_TYPE').val();
     const kvConditions = JSON.stringify(getKvConditions());
 
+
+    if (!partNo && !blockNo) {
+        //alert('PartNo 또는 BlockNo 중 하나는 필수 입력 사항입니다.');
+        if (!brand && !EL_ASPSCD && !EL_ATYP) {
+            return;
+        }
+    }
 
     $.ajax({
         type: 'post', crossDomain: true,

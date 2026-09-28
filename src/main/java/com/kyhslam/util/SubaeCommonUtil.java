@@ -1230,6 +1230,10 @@ public class SubaeCommonUtil {
                 String SPEC = "";
                 String HASCHILD = "";
 
+                String EL_ECWSF = "";
+                String EL_ETHRU = "";
+
+
 
                 productNo = rs.getString("PARENTNO") == null ? "" : rs.getString("PARENTNO"); //제품번호
 
@@ -1255,6 +1259,8 @@ public class SubaeCommonUtil {
                     //PART_QTY = rs.getString("PART_QTY") == null ? "" : rs.getString("PART_QTY");
                     SPEC = rs.getString("SPEC") == null ? "" : rs.getString("SPEC");
                     HASCHILD = rs.getString("HASCHILD") == null ? "" : rs.getString("HASCHILD");
+
+                    EL_ETHRU = rs.getString("EL_ETHRU") == null ? "" : rs.getString("EL_ETHRU");
                 }
 
                 String GISONG = rs.getString("GISONG") == null ? "" : rs.getString("GISONG");
@@ -1268,12 +1274,10 @@ public class SubaeCommonUtil {
                 String EL_ECWBG = rs.getString("EL_ECWBG") == null ? "" : rs.getString("EL_ECWBG");
                 String EL_ECBG = rs.getString("EL_ECBG") == null ? "" : rs.getString("EL_ECBG");
 
-                String EL_ECWSF = "";
-                String EL_ETHRU = "";
 
 
                 EL_ECWSF = rs.getString("EL_ECWSF") == null ? "" : rs.getString("EL_ECWSF");
-                //EL_ETHRU = rs.getString("EL_ETHRU") == null ? "" : rs.getString("EL_ETHRU");
+
                 String EL_COB = rs.getString("EL_COB") == null ? "" : rs.getString("EL_COB");
                 String EL_ZFDA = rs.getString("EL_ZFDA") == null ? "" : rs.getString("EL_ZFDA");
                 String EL_BWALLT = rs.getString("EL_BWALLT") == null ? "" : rs.getString("EL_BWALLT");
@@ -1324,7 +1328,7 @@ public class SubaeCommonUtil {
                 dMap.put("gisong", GISONG);
                 dMap.put("aspd", EL_ASPD);
                 dMap.put("aspscd", ASPSCD);
-                //dMap.put("el_ETHRU", "");
+                dMap.put("el_ETHRU", "");
                 dMap.put("el_COB", EL_COB);
 
                 dMap.put("acapa", EL_ACAPA);
@@ -1740,15 +1744,14 @@ public class SubaeCommonUtil {
                        V.EL_ECWBG, --CWT; BG 
                        V.EL_ECWW, --CWT;폭 
                        NVL(COD(V.EL_ECSF), '') AS EL_ECSF, --CAR; SAFETY
-                       COD(V.EL_ECWSF ) AS EL_ECWSF,
-                       COD(V.EL_ASPC) AS EL_ASPC, --시방서 
-                       COD(V.EL_ETHRU) AS EL_ETHRU,
-                       COD(V.EL_ASPCD) AS EL_ASPCD, -- 시방서 DEVIATION 여부 
-                       COD(V.EL_BCL) AS EL_BCL, -- 천장종류 
+                       NVL(COD(V.EL_ECWSF), '') AS EL_ECWSF,
+                       NVL(COD(V.EL_ASPC), '') AS EL_ASPC, --시방서 
+                       NVL(COD(V.EL_ASPCD), '') AS EL_ASPCD, -- 시방서 DEVIATION 여부 
+                       NVL(COD(V.EL_BCL), '')  AS EL_BCL, -- 천장종류 
                        V.EL_ZFDA AS EL_ZFDA, -- 기계구조 최초설계일
-                       COD(V.EL_BWALLT) AS EL_BWALLT, --  
+                       NVL(COD(V.EL_BWALLT), '') AS EL_BWALLT, --  
                        V.EL_AMAN AS EL_AMAN, --인승 
-                       COD(V.EL_ASPSCD) AS ASPSCD, --생산거점(설계) 
+                       NVL(COD(V.EL_ASPSCD), '') AS ASPSCD, --생산거점(설계) 
                        CONCAT('elv_info$vf@', LOWER(DECTOHEX(V.vf$ouid))) OUID,   -- 영업사양 객체 
                        NVL(CODN(V.EL_ABRAND), '') AS BRAND, -- 브랜드
                        NVL(CODN(V.EL_ATYP), '') AS GISONG, -- 기종
@@ -1815,11 +1818,6 @@ public class SubaeCommonUtil {
             sql += " AND SUBSTR(V.MD$MDATE, 0, 4) = '" + year + "' ";
         } else {
             sql += " AND SUBSTR(V.MD$MDATE, 0, 4) = '2026' ";
-        }
-
-
-        if (vEL_ETHRU != null && !"".equals(vEL_ETHRU) && !"-".equals(vEL_ETHRU)) {
-            sql += " AND COD(E.EL_ETHRU) = '" + vEL_ETHRU + "' ";
         }
 
         //brand
