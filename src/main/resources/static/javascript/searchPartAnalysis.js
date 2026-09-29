@@ -324,7 +324,9 @@ function buildTableRows(data, dynKeys) {
             <td>${d.version         ?? ''}</td>
             <td>${d.el_BWALLT       ?? ''}</td>
             <td>${d.el_ETHRU        ?? ''}</td>
-            <td>${d.el_COB          ?? ''}</td>`;
+            <td>${d.el_COB          ?? ''}</td>
+            <td>${d.ucheck          ?? ''}</td>`;
+
         /* 동적 Key 값 (백엔드가 Key명 그대로 result Map에 담아준다) */
         for (const key of dynKeys) {
             row += `<td>${d[key] ?? ''}</td>`;

@@ -22,7 +22,7 @@ public class LogicDiffControll {
 
 
     //클로드코드로 수정 중
-    @GetMapping("/diff/logicView")
+    @GetMapping("/diff/logicViewUp")
     public String logicViewDiffV3(HttpServletResponse response) {
         log.info("========== subae logicViewDiffV3.html");
         return "thymeleaf/logicViewDiffV3";
