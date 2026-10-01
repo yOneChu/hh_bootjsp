@@ -450,7 +450,7 @@
         <button type="button" data-filter="unread">미실행<b id="stUnread">0</b></button>
     </div>
     <button type="button" id="btnFinal">최종 OUTPUT (<span id="stFinal">0</span>)</button>
-    <button type="button" id="btnCsv" title="지금 보이는 라인(필터 · 검색 적용)을 CSV 파일로 저장합니다. 엑셀에서 바로 열 수 있습니다">CSV 저장</button>
+    <!--<button type="button" id="btnCsv" title="지금 보이는 라인(필터 · 검색 적용)을 CSV 파일로 저장합니다. 엑셀에서 바로 열 수 있습니다">CSV 저장</button>-->
     <label class="chk" title="JSP 원본처럼 SPEC/CON, KEY/VAL을 각각 컬럼으로 펼쳐서 봅니다"><input type="checkbox" id="fullView"> 원본 컬럼 펼치기</label>
     <label class="chk"><input type="checkbox" id="hideBlank"> 빈 라인 숨기기</label>
     <input type="search" id="keyword" placeholder="SPEC / KEY / VAL / REMARK 검색 ( / )">
@@ -1319,7 +1319,7 @@
         }
     });
     $('btnFinal').addEventListener('click', showFinal);
-    $('btnCsv').addEventListener('click', exportCsv);
+    /*$('btnCsv').addEventListener('click', exportCsv);*/
 
     // ---------- 이벤트: 결과 테이블 (클릭 / 키보드 / 드래그 이동) ----------
     let suppressClick = false;
