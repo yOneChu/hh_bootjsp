@@ -1138,6 +1138,57 @@ public class ElvInfoCommonUtil {
         return result;
     }
 
+    //캐시에 담기 위한 용도
+    public static HashMap<String, String> findCodeValueAsCache() {
+
+        HashMap<String, String> returnMap = new LinkedHashMap<>();
+
+        String query = """
+                select OUID, NAME, DES, MSRTITLECODE from doscoditm
+                --WHERE OUID = ?
+                """;
+
+
+        try (Connection conn = PLMDBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            //pstmt.setString(1, ouid);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+
+                while (rs.next()) {
+                    // 컬럼명으로 데이터 추출 (데이터 타입에 맞춰 getString, getInt 등 사용)
+                    String ouid = rs.getString("OUID");
+                    String name = rs.getString("NAME");
+                    String tit = rs.getString("DES");
+                    String msrTitleCode = rs.getString("MSRTITLECODE");
+
+                    // 추출한 데이터를 Map에 담기
+                    //Map<String, String> row = new HashMap<>();
+                    //row.put("NAME", name);
+                    //row.put("DES", tit);
+                    //row.put("MSRTITLECODE", msrTitleCode);
+
+                    //msrtitlecode NULL이면 DES(COD)을 값으로 한다.
+                    //msrtitlecode 값이 있으면 name(CODN)을 값으로 한다.
+                    String result = tit;
+                    if(msrTitleCode != null && !msrTitleCode.isEmpty()) {
+                        result = name;
+                    }
+
+                    returnMap.put(ouid, result);
+
+                    // 디버깅용 출력
+                    //System.out.println("NAME: " + name + ", TIT: " + tit + ", MSRTITLECODE: " + msrTitleCode);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return returnMap;
+    }
+
 
     public static boolean isNumeric(String str) {
         // null 이거나 빈 문자열이면 false 반환

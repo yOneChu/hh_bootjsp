@@ -146,6 +146,66 @@ public class APIController {
         return  result;
     }
 
+    @Description("영업 사양")
+    @GetMapping("/findElvSearchBySimul")
+    @ResponseBody
+    @CrossOrigin
+    public HashMap<String, String> findElvSearchBySimul(String key, String productNo) {
+        //http://localhost:8070/apiv2/findElvSearch?key=subae&productNo=211704L17
+        //ArrayList<HashMap<String, String>> result = new ArrayList<HashMap<String, String>>();
+
+        // 약 1분 30초
+        StopWatch sw = new StopWatch();
+        sw.start();
+
+        HashMap<String, String> salesMap = masterDataCache.getCodeMapV3();
+
+        HashMap<String, String> rMap = new HashMap<String, String>();
+
+        if ("subae".equals(key)) {
+
+            ArrayList<HashMap<String, String>> resultData = ElvInfoCommonUtil.findElvSearchInfoV2(productNo);
+
+            for (Map<String, String> row : resultData) {
+                //System.out.println("--------------------------------------------------");
+                // Map을 순회하며 Key(컬럼명)와 Value(데이터) 출력
+                for (Map.Entry<String, String> entry : row.entrySet()) {
+                    //System.out.println(entry.getKey() + " : " + entry.getValue());
+
+                    if(ElvInfoCommonUtil.isNumeric(entry.getValue())) {
+                        //String resultVal = ElvInfoCommonUtil.findCodeValue(entry.getValue());
+                        String resultVal = salesMap.get(entry.getKey());
+
+                        if(resultVal != null && !resultVal.isEmpty()) {
+                            //System.out.println(entry.getKey() + " : " + resultVal);
+                            rMap.put(entry.getKey(), resultVal);
+                        } else {
+                            //System.out.println(entry.getKey() + " : " + entry.getValue());
+                            rMap.put(entry.getKey(), entry.getValue());
+                        }
+                    } else {
+                        //System.out.println(entry.getKey() + " : " + entry.getValue());
+                        rMap.put(entry.getKey(), entry.getValue());
+                    }
+                    //result.add(rMap);
+                }
+            }
+        }
+
+        sw.stop();
+
+        long millis = sw.getTotalTimeMillis();
+
+        double seconds = millis / 1000.0;
+        double minutes = seconds / 60.0;
+
+        System.out.println("⏱ 수행 시간:");
+        System.out.printf("   - %.3f 초%n", seconds);
+        System.out.printf("   - %.3f 분%n", minutes);
+
+        return  rMap;
+    }
+
     //품번으로 하위 BOM 조회
     @Description("품번으로 하위 BOM 조회")
     @CrossOrigin

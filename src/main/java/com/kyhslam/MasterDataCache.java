@@ -1,6 +1,7 @@
 package com.kyhslam;
 
 import com.kyhslam.dto.CodeInfoDTO;
+import com.kyhslam.util.ElvInfoCommonUtil;
 import com.kyhslam.util.MLBCommonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 @Slf4j
@@ -19,6 +21,8 @@ public class MasterDataCache {
     private volatile List<CodeInfoDTO> codeList = Collections.emptyList();
 
     private volatile List<CodeInfoDTO> codeElvList = Collections.emptyList();
+
+    private volatile HashMap<String, String> saleMap = new HashMap<>();
 
     // 서버 기동이 끝난 뒤 1회 실행
     @EventListener(ApplicationReadyEvent.class)
@@ -35,6 +39,10 @@ public class MasterDataCache {
         this.codeElvList = Collections.unmodifiableList(new ArrayList<>(list02));
         log.info("사양값 팝업 특성코드 마스터 로딩 완료: {}건", codeList.size());
 
+        HashMap<String, String> saleMap = ElvInfoCommonUtil.findCodeValueAsCache();
+        this.saleMap = saleMap;
+        log.info("SIMUL을 위한 영업사양 마스터 로딩 완료: {}건", saleMap.size());
+
     }
 
     public List<CodeInfoDTO> getCodeList() {
@@ -43,6 +51,10 @@ public class MasterDataCache {
 
     public List<CodeInfoDTO> getCodeListV2() {
         return codeElvList;
+    }
+
+    public HashMap<String, String> getCodeMapV3() {
+        return saleMap;
     }
 
     // 운영 중 마스터가 바뀌었을 때 재시작 없이 다시 불러오기(선택)

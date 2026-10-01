@@ -501,9 +501,9 @@
     const CODE_POPUP_URL = '/pid/pidSimulCodePopup';
     // 라인 상세 조건의 사양명(CODE -> CODENAME)
     const CODE_API = '/api/getElvCodeList?key=subae';
-    // 호기의 영업사양({특성코드: 특성값} 맵). 계산식 VAL 의 {EL_xxx} 치환용
-    //const SALES_API = '/api/getSalesInfo?key=subae&hogi=';
-    const SALES_API = '/api/findElvSearchBySimul?key=subae&productNo=';
+    // 호기의 영업사양([{SPEC_CODE, VALUE}] 목록). 계산식 VAL 의 {EL_xxx} 치환 · 조건 호기값 표시용
+    const SALES_API = '/api/getSalesInfo?key=subae&hogi=';
+    //const SALES_API = '/api/findElvSearchBySimul?key=subae&productNo=';
 
     const $ = (id) => document.getElementById(id);
     const area = $('resultArea');
@@ -940,7 +940,7 @@
                 const act = actualValue(specs[j], idx);
                 html += `<tr><th>${esc(specs[j])}${specName ? ` <span class="spec-name">(${esc(specName)})</span>` : ''}</th>`
                     + `<td class="${cls}">${esc(cons[j])} ${c ? `(${c === 'T' ? '일치' : '불일치'})` : ''}`
-                    + (act !== undefined ? `<div class="actual">원래값: <b>${esc(actualText(act))}</b></div>` : '')
+                    + (act !== undefined ? `<div class="actual">(현재값: <b>${esc(actualText(act))})</b></div>` : '')
                     + '</td></tr>';
             }
             html += '</tbody></table>';
@@ -1128,19 +1128,19 @@
         try {
             const res = await fetch(SALES_API + encodeURIComponent(hogi), { headers: { Accept: 'application/json' } });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            // 응답: { "EL_EHP": "2200", "EL_ATYP": "WBLX1_(LXVF)", ... }
-            const map = (await res.json()) || {};
+            // 응답: [{ "SPEC_CODE": "EL_EHP", "VALUE": "2200", "SPEC_VALUE": "Hoistway Pit" }, ...]
+            const list = (await res.json()) || [];
             specValues.clear();
-            Object.entries(map).forEach(([code, value]) => {
-                const k = nvl(code).trim().toUpperCase();
-                if (k && !specValues.has(k)) specValues.set(k, nvl(value).trim());
+            list.forEach((r) => {
+                const k = nvl(r.SPEC_CODE).trim().toUpperCase();
+                if (k && !specValues.has(k)) specValues.set(k, nvl(r.VALUE).trim());
             });
             specValuesHogi = hogi;
             specInfo = specValues.size
                 ? { text: `영업사양 ${specValues.size}건`, fail: false }
                 : { text: '영업사양 0건 — 호기값 · 계산식 일부가 표시되지 않습니다', fail: true };
         } catch (e) {
-            console.warn('영업사양(findElvSearchBySimul) 로딩 실패:', e);
+            console.warn('영업사양(getSalesInfo) 로딩 실패:', e);
             specInfo = { text: '영업사양 로딩 실패 — 호기값 · 계산식 일부가 표시되지 않습니다', fail: true };
         }
     }
@@ -1178,18 +1178,18 @@
         }
     }
 
- /*   function loadPickedFile(file) {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-            try {
-                loadRows(JSON.parse(reader.result), file.name);
-            } catch (e) {
-                showLoadError(`JSON 파싱 실패 (${file.name}): ${e.message}`);
-            }
-        };
-        reader.readAsText(file, 'UTF-8');
-    }*/
+    /*   function loadPickedFile(file) {
+           if (!file) return;
+           const reader = new FileReader();
+           reader.onload = () => {
+               try {
+                   loadRows(JSON.parse(reader.result), file.name);
+               } catch (e) {
+                   showLoadError(`JSON 파싱 실패 (${file.name}): ${e.message}`);
+               }
+           };
+           reader.readAsText(file, 'UTF-8');
+       }*/
 
     function resetFilterUI() {
         state.filter = 'all';
@@ -1257,10 +1257,10 @@
             console.error(e);
             $('toolbar').hidden = true;
             area.innerHTML = `<div class="msg error">API 호출 실패: ${esc(e.message)}</div>`;
-             //   + '· 서버가 PLM(plmpro.hdel.co.kr)에 접속할 수 있는지(사내망) 확인하세요.\n'
-             //   + '· PLM API URL을 브라우저에서 직접 열어 결과를 저장한 뒤 "JSON 파일 선택…"으로 볼 수 있습니다.\n\n'
-             //   + `요청 URL: ${esc(url)}\n`
-             //   + `PLM URL: ${esc(buildUrl())}</div>`;
+            //   + '· 서버가 PLM(plmpro.hdel.co.kr)에 접속할 수 있는지(사내망) 확인하세요.\n'
+            //   + '· PLM API URL을 브라우저에서 직접 열어 결과를 저장한 뒤 "JSON 파일 선택…"으로 볼 수 있습니다.\n\n'
+            //   + `요청 URL: ${esc(url)}\n`
+            //   + `PLM URL: ${esc(buildUrl())}</div>`;
         } finally {
             btn.disabled = false;
             btn.textContent = '실행';
