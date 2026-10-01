@@ -6,6 +6,7 @@ import com.kyhslam.service.MLBService;
 import com.kyhslam.service.SubaeService;
 import com.kyhslam.util.*;
 import com.kyhslam.util.dbDoc.Doc_SalesBOM;
+import com.kyhslam.util.elv.ElvInfoUtil;
 import com.kyhslam.util.user.UserCommonUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -164,7 +165,8 @@ public class APIController {
 
         if ("subae".equals(key)) {
 
-            ArrayList<HashMap<String, String>> resultData = ElvInfoCommonUtil.findElvSearchInfoV2(productNo);
+            //ArrayList<HashMap<String, String>> resultData = ElvInfoCommonUtil.findElvSearchInfoV2(productNo);
+            ArrayList<HashMap<String, String>> resultData = ElvInfoUtil.findElvData(productNo); // 개선
 
             for (Map<String, String> row : resultData) {
                 //System.out.println("--------------------------------------------------");

@@ -162,8 +162,8 @@ public class PIDController {
     @Description("PID 시뮬레이터")
     @GetMapping("/pid/pidSimulView")
     public String pidSimulView() {
-        //return "thymeleaf/pid/pidSimulMainV2"; // 내가 DB로 한 영업사양 데이터 사용
-        return "thymeleaf/pid/pidSimulMainV2"; // PLM 영업사양 API 사용
+        return "thymeleaf/pid/pidSimulMain"; // 내가 DB로 한 영업사양 데이터 사용
+        //return "thymeleaf/pid/pidSimulMainV2"; // PLM 영업사양 API 사용
     }
 
     @Description("PID 시뮬레이터 - 특성코드 사전 팝업")
