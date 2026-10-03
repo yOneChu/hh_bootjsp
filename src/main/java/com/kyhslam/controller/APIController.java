@@ -228,6 +228,8 @@ public class APIController {
     @CrossOrigin
     @ResponseBody
     public ArrayList<ProductDto> findProductInfo(String productNo, String key) throws Exception {
+        //http://localhost:8070/api/findProductInfo?key=subae&productNo=211704L17
+
         ArrayList<ProductDto> bomList = new ArrayList<ProductDto>();
 
         StopWatch sw = new StopWatch();
