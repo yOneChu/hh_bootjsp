@@ -1066,7 +1066,7 @@ public class OneCycleFunc {
         }
 
         /** 요청에 실을 Cookie 헤더 값 */
-        String getCookieHeader() {
+        public String getCookieHeader() {
 
             StringBuilder sb = new StringBuilder();
             for (Map.Entry<String, String> entry : cookies.entrySet()) {
