@@ -1,7 +1,9 @@
 package com.kyhslam.service;
 
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.kyhslam.util.PLMDBConnection;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,18 +18,25 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * PLM(DynaPLM) 원사이클 처리.
  *
- * 영업사양 하나에 대해 [로그인 -> WIP 생성 -> 종속사양 산출] 을 한 번에 수행한다.
+ * 영업사양 하나에 대해 [로그인 -> WIP 생성 -> 종속사양 산출 -> BOM 계산] 을 한 번에 수행한다.
+ * 각 단계는 public 메서드로 분리되어 있어 개별 호출도 가능하다.
+ *
+ * 별도 기능 : 동일정보 만들기 (기존 호기의 사양을 그대로 복사해 새 공사정보(TEST 호기) 생성) - {@link #runEqualInfo(String)}
+ * 별도 기능 : 호기 속성정보 변경 ({특성코드: 값} 으로 여러 속성을 한 번에 변경) - {@link #runAttrChange(String, Map, boolean)}
  *
  * 각 호출은 자기만의 세션(JSESSIONID)을 들고 다닌다.
  * (CookieHandler.setDefault 같은 JVM 전역 설정을 쓰지 않으므로 다른 기능의 HTTP 호출에 영향을 주지 않는다)
@@ -41,7 +50,15 @@ public class OneCycleFunc {
     /** 종속사양 산출 액션 ouid */
     private static final String ACTION_OUID_JONGSOKSUNG = "9507f844";
 
-    /** 종속사양 산출 재시도 횟수 */
+    /** 공사정보 클래스 ouid (동일정보 생성 시 사용) */
+    private static final String CLASS_OUID_ELV_INFO = "860cebeb";
+
+    /** BOM 계산 전개 옵션 (구성전개 c / 자재전개 m / 사양전개 f) */
+    public static final String BOM_C = "c";
+    public static final String BOM_M = "m";
+    public static final String BOM_F = "f";
+
+    /** 종속사양 산출 / BOM 계산 재시도 횟수 */
     private static final int MAX_RETRY = 3;
 
     /** 재시도 간 대기 시간(ms) */
@@ -51,6 +68,12 @@ public class OneCycleFunc {
     private static final int READ_TIMEOUT = 120000;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /** PLM 이 json 대신 작은따옴표 dict 표기로 응답할 때가 있어 느슨하게 파싱하는 mapper */
+    private static final ObjectMapper LENIENT_MAPPER = JsonMapper.builder()
+            .enable(JsonReadFeature.ALLOW_SINGLE_QUOTES)
+            .enable(JsonReadFeature.ALLOW_UNQUOTED_FIELD_NAMES)
+            .build();
 
     @Value("${plm.base-url:http://plmpro.hdel.co.kr}")
     private String baseUrl;
@@ -71,7 +94,7 @@ public class OneCycleFunc {
     // ================================================================
 
     /**
-     * 원사이클 실행 : 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> WIP 생성 -> 종속사양 산출
+     * 원사이클 실행 : 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> WIP 생성 -> 종속사양 산출 -> BOM 계산
      *
      * @param productNo 프로젝트호기번호 (ELV_INFO$VF.MD$NUMBER)
      */
@@ -80,7 +103,7 @@ public class OneCycleFunc {
     }
 
     /**
-     * 원사이클 실행 : 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> WIP 생성 -> 종속사양 산출
+     * 원사이클 실행 : 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> WIP 생성 -> 종속사양 산출 -> BOM 계산
      *
      * @param productNo 프로젝트호기번호 (ELV_INFO$VF.MD$NUMBER)
      * @param userid    PLM 사용자 ID
@@ -114,10 +137,18 @@ public class OneCycleFunc {
             result.setMakeWipMessage(makeWip(session, vfOuid));
 
             // 4) 종속사양 산출
-            String message = executeJongsoksung(session, vfOuid);
-            result.setJongsoksungMessage(message);
-            result.setSuccess(message != null);
-            result.setMessage(message != null ? message : "종속사양 산출 응답을 확인하지 못했습니다.");
+            String jongsoksungMessage = executeJongsoksung(session, vfOuid);
+            result.setJongsoksungMessage(jongsoksungMessage);
+            if (jongsoksungMessage == null) {
+                result.setMessage("종속사양 산출 응답을 확인하지 못했습니다.");
+                return result;
+            }
+
+            // 5) BOM 계산 (구성전개 c / 자재전개 m / 사양전개 f)
+            String bomMessage = bomCalStart(session, vfOuid);
+            result.setBomMessage(bomMessage);
+            result.setSuccess(bomMessage != null);
+            result.setMessage(bomMessage != null ? bomMessage : "BOM 계산 응답을 확인하지 못했습니다.");
 
         } catch (Exception e) {
             result.setMessage("원사이클 처리 중 오류 : " + e.getMessage());
@@ -231,6 +262,64 @@ public class OneCycleFunc {
     }
 
     /**
+     * BOM 계산 (구성전개 c / 자재전개 m / 사양전개 f 를 모두 수행)
+     *
+     * @param vfOuid {@link #toObjectOuid(String)} 로 조회한 영업사양 ouid (elv_info$vf@xxxxxxxx)
+     * @return 응답 json 의 message 값. 끝내 실패하면 null
+     */
+    public String bomCalStart(PlmSession session, String vfOuid) {
+        return bomCalStart(session, vfOuid, BOM_C, BOM_M, BOM_F);
+    }
+
+    /**
+     * BOM 계산 (POST /SubaeManager.do, cmd=bomCalStart)
+     *
+     * @param vfOuid 영업사양 ouid. "ac45dd18" 처럼 ouid 만 넘겨도 되고 "elv_info$vf@ac45dd18" 전체를 넘겨도 된다.
+     * @param bc     b_c 값. 안 쓰면 null (예: "c")
+     * @param bm     b_m 값. 안 쓰면 null (예: "m")
+     * @param bf     b_f 값. 안 쓰면 null (예: "f")
+     * @return 응답 json 의 message 값. 응답이 json 이 아니면(세션 만료 등) 재시도하고, 끝내 실패하면 null
+     */
+    public String bomCalStart(PlmSession session, String vfOuid, String bc, String bm, String bf) {
+
+        String iOuid = toIOuid(vfOuid);
+
+        Map<String, String> data = new LinkedHashMap<>();
+        data.put("cmd", "bomCalStart");
+        data.put("iOuid", iOuid);
+        if (bc != null) {
+            data.put("b_c", bc);
+        }
+        if (bm != null) {
+            data.put("b_m", bm);
+        }
+        if (bf != null) {
+            data.put("b_f", bf);
+        }
+
+        // 계산이 오래 걸려 응답이 끊기는 경우가 있어 실패 시 재시도
+        for (int i = 1; i <= MAX_RETRY; i++) {
+
+            PlmResponse response = post(session, baseUrl + "/SubaeManager.do", data, baseUrl + "/");
+            String message = getMessage(response.getBody());
+
+            System.out.println("[BOM 계산 " + i + "회차] iOuid = " + iOuid + ", message = " + message);
+
+            if (message != null) {
+                return message;
+            }
+
+            System.out.println("### BOM 계산 응답이 json 이 아닙니다. " + describe(response));
+
+            if (i < MAX_RETRY) {
+                sleep(RETRY_INTERVAL);
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * 프로젝트호기번호(MD$NUMBER) 로 WIP 상태인 영업사양 ouid 를 조회한다.
      *
      * @param productNo 프로젝트호기번호
@@ -285,12 +374,468 @@ public class OneCycleFunc {
     }
 
 
+    // ================================================================
+    // 별도 기능 : 동일정보 만들기 (TEST 호기 생성)
+    // ================================================================
 
+    /**
+     * 동일정보 만들기 : 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> 동일정보 생성 -> 신규 호기번호 조회
+     *
+     * @param productNo 원본 프로젝트호기번호
+     */
+    public EqualInfoResult runEqualInfo(String productNo) {
+        return runEqualInfo(productNo, plmUserId, plmPassword);
+    }
+
+    /**
+     * 동일정보 만들기 : 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> 동일정보 생성 -> 신규 호기번호 조회
+     *
+     * @param productNo 원본 프로젝트호기번호
+     * @param userid    PLM 사용자 ID
+     * @param pwd       PLM 비밀번호
+     */
+    public EqualInfoResult runEqualInfo(String productNo, String userid, String pwd) {
+
+        long startTime = System.currentTimeMillis();
+        EqualInfoResult result = new EqualInfoResult();
+        result.setProductNo(productNo);
+
+        try {
+            // 1) 원본 프로젝트호기번호 -> 영업사양 ouid
+            String vfOuid = toObjectOuid(productNo);
+            if (vfOuid == null || vfOuid.isBlank()) {
+                result.setMessage("프로젝트호기번호에 해당하는 영업사양(WIP)을 찾지 못했습니다. productNo = " + productNo);
+                return result;
+            }
+            result.setObjectOuid(vfOuid);
+
+            // 2) 로그인
+            PlmSession session = login(userid, pwd);
+            if (session == null) {
+                result.setMessage("PLM 로그인 실패. 아이디/비밀번호를 확인하세요.");
+                return result;
+            }
+            result.setLoginSuccess(true);
+
+            // 3) 동일정보 생성 (원본 사양 조회 -> 신규 등록)
+            String newOuid = makeEqualInfo(session, vfOuid);
+            if (newOuid == null) {
+                result.setMessage("동일정보 생성에 실패했습니다.");
+                return result;
+            }
+            result.setNewObjectOuid(newOuid);
+
+            // 4) PLM 이 새로 채번한 호기번호(TEST 번호) 조회
+            String newProductNo = "";
+            for (int i = 1; i <= MAX_RETRY && newProductNo.isBlank(); i++) {
+                newProductNo = findProductNo(newOuid);
+                if (newProductNo.isBlank() && i < MAX_RETRY) {
+                    sleep(RETRY_INTERVAL);
+                }
+            }
+            result.setNewProductNo(newProductNo);
+            result.setSuccess(true);
+            result.setMessage(newProductNo.isBlank()
+                    ? "동일정보는 생성되었으나 신규 호기번호를 조회하지 못했습니다. newObjectOuid = " + newOuid
+                    : "동일정보 생성 완료 : " + productNo + " -> " + newProductNo);
+
+        } catch (Exception e) {
+            result.setMessage("동일정보 생성 중 오류 : " + e.getMessage());
+            e.printStackTrace();
+
+        } finally {
+            result.setElapsedMillis(System.currentTimeMillis() - startTime);
+        }
+
+        return result;
+    }
+
+    /**
+     * 동일정보 생성 : 원본 영업사양의 전체 특성값을 조회해서 새 공사정보로 등록한다.
+     *
+     * @param vfOuid 원본 영업사양 ouid (elv_info$vf@xxxxxxxx)
+     * @return 신규 공사정보 ouid. 실패하면 null
+     */
+    public String makeEqualInfo(PlmSession session, String vfOuid) {
+
+        // 1) 원본 공사정보의 모든 특성값
+        JsonNode sourceInfo = getObjectInfo(session, vfOuid);
+        System.out.println("sourceInfo = " + sourceInfo);
+        if (sourceInfo == null) {
+            return null;
+        }
+
+        // 2) 신규 등록용으로 가공
+        Map<String, String> data = toRegistData(sourceInfo);
+
+        // 3) 새 공사정보 등록
+        String newOuid = registObject(session, data);
+        System.out.println("[동일정보 생성] 원본 = " + vfOuid + ", 신규 = " + newOuid);
+        return newOuid;
+    }
+
+    /**
+     * 공사정보의 전체 특성값 조회 (POST /SalesObject.do, cmd=objectInfoAjax)
+     *
+     * @param vfOuid 영업사양 ouid (elv_info$vf@xxxxxxxx)
+     * @return 특성코드 -> 값 json 객체. 응답이 올바르지 않으면 재시도하고, 끝내 실패하면 null
+     */
+    public JsonNode getObjectInfo(PlmSession session, String vfOuid) {
+
+        Map<String, String> data = new LinkedHashMap<>();
+        data.put("cmd", "objectInfoAjax");
+        data.put("objectOuid", vfOuid);
+
+        for (int i = 1; i <= MAX_RETRY; i++) {
+
+            PlmResponse response = post(session, baseUrl + "/SalesObject.do", data, baseUrl + "/");
+            JsonNode info = parseLenient(response.getBody());
+
+            System.out.println("[원본 사양 조회 " + i + "회차] objectOuid = " + vfOuid
+                    + ", status = " + response.getStatus()
+                    + ", 항목 수 = " + (info == null ? 0 : info.size()));
+
+            if (info != null && info.isObject() && info.size() > 0) {
+                return info;
+            }
+
+            System.out.println("### 원본 사양 조회 실패. " + describe(response));
+
+            if (i < MAX_RETRY) {
+                sleep(RETRY_INTERVAL);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 새 공사정보 등록 (POST /SalesObject.do, cmd=registObject, classOuid=860cebeb)
+     *
+     * 등록이 실제로는 됐는데 응답만 깨진 경우 재시도하면 호기가 중복 생성되므로 재시도하지 않는다.
+     *
+     * @param data 등록할 특성값 ({@link #getObjectInfo} 결과를 가공한 값). cmd / classOuid 는 여기서 채운다.
+     * @return 신규 공사정보 ouid (응답의 iOuid). 실패하면 null
+     */
+    public String registObject(PlmSession session, Map<String, String> data) {
+
+        Map<String, String> payload = new LinkedHashMap<>(data);
+        payload.put("cmd", "registObject");
+        payload.put("classOuid", CLASS_OUID_ELV_INFO);
+
+        PlmResponse response = post(session, baseUrl + "/SalesObject.do", payload, baseUrl + "/");
+        JsonNode body = parseLenient(response.getBody());
+
+        JsonNode iOuid = body == null ? null : body.get("iOuid");
+        if (iOuid == null || iOuid.isNull() || iOuid.asText().isBlank()) {
+            System.out.println("### 동일정보 등록 실패. " + describe(response));
+            return null;
+        }
+
+        return iOuid.asText();
+    }
+
+    /**
+     * 공사정보 ouid 로 프로젝트호기번호(MD$NUMBER) 를 조회한다.
+     *
+     * @param vfOuid "elv_info$vf@ac45dd18" 또는 "ac45dd18"
+     * @return 프로젝트호기번호. 대상이 없으면 빈 문자열
+     */
+    public static String findProductNo(String vfOuid) {
+
+        String hex = vfOuid.substring(vfOuid.indexOf('@') + 1).trim().toUpperCase();
+
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        String productNo = "";
+
+        try {
+
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                    select V.MD$NUMBER AS HOGI
+                      from ELV_INFO$VF V
+                     where V.vf$ouid = HEXTODEC(?)
+                    """;
+
+            stmt = con.prepareStatement(sql);
+            stmt.setString(1, hex);
+            rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                productNo = rs.getString("HOGI");
+            }
+
+            System.out.println("[호기번호 조회] objectOuid = " + vfOuid + ", productNo = " + productNo);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, stmt, rs);
+        }
+
+        return productNo == null ? "" : productNo;
+    }
+
+
+    // ================================================================
+    // 별도 기능 : 호기 속성정보 변경
+    //   바꿀 속성을 {특성코드: 값} 으로 넘기면 몇 개든 한 번에 변경한다.
+    //   자주 쓰는 특성코드
+    //     designer       : 담당 설계자 사번 (여러 명이면 List 또는 콤마 구분)
+    //     MANAGER_M      : 기계 담당자명
+    //     MANAGER_E      : 전기 담당자명
+    //     md$user        : 담당자명
+    //     md$description : 현장명
+    // ================================================================
+
+    /**
+     * 속성정보 변경 : 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> 속성 변경 (-> 반영 확인)
+     *
+     * @param productNo 프로젝트호기번호
+     * @param attrs     바꿀 속성 {특성코드: 값}. 값이 Collection 이면 콤마로 이어 붙인다.
+     * @param verify    true 면 변경 후 값을 다시 읽어 반영 여부를 확인한다.
+     */
+    public AttrChangeResult runAttrChange(String productNo, Map<String, ?> attrs, boolean verify) {
+        return runAttrChange(productNo, attrs, verify, plmUserId, plmPassword);
+    }
+
+    /**
+     * 속성정보 변경 : 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> 속성 변경 (-> 반영 확인)
+     *
+     * @param productNo 프로젝트호기번호
+     * @param attrs     바꿀 속성 {특성코드: 값}. 값이 Collection 이면 콤마로 이어 붙인다.
+     * @param verify    true 면 변경 후 값을 다시 읽어 반영 여부를 확인한다.
+     * @param userid    PLM 사용자 ID
+     * @param pwd       PLM 비밀번호
+     */
+    public AttrChangeResult runAttrChange(String productNo, Map<String, ?> attrs, boolean verify,
+                                          String userid, String pwd) {
+
+        long startTime = System.currentTimeMillis();
+        AttrChangeResult result = new AttrChangeResult();
+        result.setProductNo(productNo);
+
+        try {
+            if (attrs == null || attrs.isEmpty()) {
+                result.setMessage("변경할 속성이 없습니다.");
+                return result;
+            }
+            result.setRequested(toAttrData(attrs));
+
+            // 1) 프로젝트호기번호 -> 영업사양 ouid
+            String vfOuid = toObjectOuid(productNo);
+            if (vfOuid == null || vfOuid.isBlank()) {
+                result.setMessage("프로젝트호기번호에 해당하는 영업사양(WIP)을 찾지 못했습니다. productNo = " + productNo);
+                return result;
+            }
+            result.setObjectOuid(vfOuid);
+
+            // 2) 로그인
+            PlmSession session = login(userid, pwd);
+            if (session == null) {
+                result.setMessage("PLM 로그인 실패. 아이디/비밀번호를 확인하세요.");
+                return result;
+            }
+            result.setLoginSuccess(true);
+
+            // 3) 속성 변경
+            String message = changeAttr(session, vfOuid, attrs);
+            if (message == null) {
+                result.setMessage("속성정보 변경에 실패했습니다.");
+                return result;
+            }
+            result.setSuccess(true);
+            result.setMessage(message);
+
+            // 4) 반영 확인
+            if (verify) {
+                Map<String, String> current = getAttrValues(session, vfOuid, attrs.keySet());
+                result.setCurrent(current);
+                result.setVerified(result.getRequested().equals(current));
+            }
+
+        } catch (Exception e) {
+            result.setMessage("속성정보 변경 중 오류 : " + e.getMessage());
+            e.printStackTrace();
+
+        } finally {
+            result.setElapsedMillis(System.currentTimeMillis() - startTime);
+        }
+
+        return result;
+    }
+
+    /**
+     * 호기 속성정보 변경 (POST /Object.do, cmd=objectUpdate)
+     *
+     * @param vfOuid 영업사양 ouid (elv_info$vf@xxxxxxxx)
+     * @param attrs  바꿀 속성 {특성코드: 값}. 값이 Collection 이면 콤마로 이어 붙인다.
+     *               예) Map.of("designer", "2035570")
+     *                   Map.of("designer", List.of("2035570", "2014718"), "MANAGER_E", "오찬석")
+     * @return 처리 결과 메시지. 실패(오류 페이지, 세션 만료 등)하면 재시도하고, 끝내 실패하면 null
+     */
+    public String changeAttr(PlmSession session, String vfOuid, Map<String, ?> attrs) {
+
+        Map<String, String> data = new LinkedHashMap<>();
+        data.put("cmd", "objectUpdate");
+        data.put("objectOuid", vfOuid);
+        data.putAll(toAttrData(attrs));
+
+        for (int i = 1; i <= MAX_RETRY; i++) {
+
+            PlmResponse response = post(session, baseUrl + "/Object.do", data, baseUrl + "/");
+            String message = getMessage(response.getBody());
+
+            System.out.println("[속성정보 변경 " + i + "회차] objectOuid = " + vfOuid
+                    + ", attrs = " + attrs + ", status = " + response.getStatus() + ", message = " + message);
+
+            if (message != null) {
+                return message;
+            }
+
+            // 메시지 없이 200 만 주는 경우도 있어, 오류/로그인 화면이 아니면 성공으로 본다.
+            if (response.getStatus() == HttpURLConnection.HTTP_OK && !isErrorPage(response)) {
+                return "속성정보 변경 완료";
+            }
+
+            System.out.println("### 속성정보 변경 실패. " + describe(response));
+
+            if (i < MAX_RETRY) {
+                sleep(RETRY_INTERVAL);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 담당 설계자(designer) 만 바꾸는 단축 함수.
+     *
+     * @param designer 사번 문자열 또는 사번 목록 (예 "2035570" / List.of("2035570", "2014718"))
+     */
+    public String changeDesigner(PlmSession session, String vfOuid, Object designer) {
+        return changeAttr(session, vfOuid, Map.of("designer", designer));
+    }
+
+    /**
+     * 공사정보의 특성값을 조회한다. (속성 변경 후 반영 확인용)
+     *
+     * @param vfOuid    영업사양 ouid (elv_info$vf@xxxxxxxx)
+     * @param codeNames 조회할 특성코드 목록
+     * @return 특성코드 -> 현재 값 (값이 없으면 null). 조회 자체가 실패하면 빈 Map
+     */
+    public Map<String, String> getAttrValues(PlmSession session, String vfOuid, Collection<String> codeNames) {
+
+        Map<String, String> values = new LinkedHashMap<>();
+
+        JsonNode info = getObjectInfo(session, vfOuid);
+        if (info == null) {
+            return values;
+        }
+
+        for (String code : codeNames) {
+            JsonNode value = info.get(code);
+            String current = (value == null || value.isNull()) ? null
+                    : value.isValueNode() ? value.asText() : value.toString();
+            values.put(code, current);
+
+            System.out.println("[속성 확인] " + code + " = " + current);
+        }
+
+        return values;
+    }
 
 
     // ================================================================
     // 내부 처리
     // ================================================================
+
+    /**
+     * objectInfoAjax 응답을 registObject 전송용 폼 데이터로 가공한다.
+     *  - name@ 항목 : 화면 표시용이라 제외
+     *  - md$number / ouid : 호기번호는 PLM 이 새로 채번, ouid 는 신규 생성이므로 제외
+     *  - 값이 null 인 항목 : 제외
+     */
+    private Map<String, String> toRegistData(JsonNode info) {
+
+        Map<String, String> data = new LinkedHashMap<>();
+
+        info.fields().forEachRemaining(entry -> {
+
+            String key = entry.getKey();
+            JsonNode value = entry.getValue();
+
+            if (key.contains("name@") || "md$number".equals(key) || "ouid".equals(key)) {
+                return;
+            }
+            if (value == null || value.isNull()) {
+                return;
+            }
+
+            data.put(key, value.isValueNode() ? value.asText() : value.toString());
+        });
+
+        return data;
+    }
+
+    /**
+     * 속성값을 폼 전송용 문자열로 바꾼다.
+     * designer 처럼 여러 값을 넣는 속성은 Collection 으로 넘기면 콤마로 이어 붙인다.
+     */
+    private Map<String, String> toAttrData(Map<String, ?> attrs) {
+
+        Map<String, String> data = new LinkedHashMap<>();
+
+        for (Map.Entry<String, ?> entry : attrs.entrySet()) {
+            Object value = entry.getValue();
+            String text = value instanceof Collection<?> c
+                    ? c.stream().map(String::valueOf).collect(Collectors.joining(","))
+                    : String.valueOf(value);
+            data.put(entry.getKey(), text);
+        }
+
+        return data;
+    }
+
+    /** PLM 오류 페이지 또는 로그인 화면(세션 만료) 응답인지 */
+    private boolean isErrorPage(PlmResponse response) {
+
+        String body = response.getBody() == null ? "" : response.getBody();
+        return body.contains("SYSTEM ERROR")
+                || body.contains("JsLogin")
+                || body.contains("아이디 / 비밀번호를 입력하세요");
+    }
+
+    /** json 또는 작은따옴표 dict 표기 응답을 파싱한다. 실패하면 null */
+    private JsonNode parseLenient(String body) {
+
+        if (body == null || body.isBlank()) {
+            return null;
+        }
+
+        try {
+            return LENIENT_MAPPER.readTree(body);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * "AC45DD18" -> "elv_info$vf@ac45dd18"
+     * BOM 계산은 ouid 가 소문자여야 하므로 prefix 를 붙인 뒤 전체를 소문자로 만든다.
+     */
+    private String toIOuid(String vfOuid) {
+
+        String ouid = vfOuid.trim();
+        if (!ouid.startsWith(VF_PREFIX)) {
+            ouid = VF_PREFIX + ouid;
+        }
+        return ouid.toLowerCase();
+    }
 
     /**
      * 응답 json 에서 message 값 추출. (파이썬의 result.json()['message'] 와 동일)
@@ -444,9 +989,12 @@ public class OneCycleFunc {
 
         InputStream is = (status >= 200 && status < 400) ? conn.getInputStream() : conn.getErrorStream();
 
+        // 응답에 charset 이 명시되어 있으면 그 값으로, 없으면 UTF-8 로 읽는다. (동일정보 생성 시 한글 값이 그대로 재전송되므로 중요)
+        Charset charset = responseCharset(conn.getContentType());
+
         StringBuilder body = new StringBuilder();
         if (is != null) {
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(is, charset))) {
                 String line;
                 while ((line = br.readLine()) != null) {
                     body.append(line);
@@ -456,6 +1004,24 @@ public class OneCycleFunc {
 
         System.out.println("[" + apiUrl + "] status = " + status + (location == null ? "" : ", location = " + location));
         return new PlmResponse(status, location, body.toString());
+    }
+
+    /** Content-Type 헤더의 charset. 없거나 알 수 없으면 UTF-8 */
+    private Charset responseCharset(String contentType) {
+
+        if (contentType != null) {
+            for (String part : contentType.split(";")) {
+                String p = part.trim();
+                if (p.toLowerCase().startsWith("charset=")) {
+                    try {
+                        return Charset.forName(p.substring(8).replace("\"", "").trim());
+                    } catch (Exception ignore) {
+                        break;
+                    }
+                }
+            }
+        }
+        return StandardCharsets.UTF_8;
     }
 
     private void sleep(long millis) {
@@ -539,7 +1105,7 @@ public class OneCycleFunc {
     @ToString
     public static class OneCycleResult {
 
-        /** 종속사양 산출까지 정상 수행 여부 */
+        /** BOM 계산까지 정상 수행 여부 */
         private boolean success;
 
         /** 로그인 성공 여부 */
@@ -556,6 +1122,74 @@ public class OneCycleFunc {
 
         /** 종속사양 산출 결과 메시지 */
         private String jongsoksungMessage;
+
+        /** BOM 계산 결과 메시지 */
+        private String bomMessage;
+
+        /** 최종 결과 메시지 */
+        private String message;
+
+        /** 수행 시간(ms) */
+        private long elapsedMillis;
+    }
+
+    /** 동일정보 만들기 결과 */
+    @Getter
+    @Setter
+    @ToString
+    public static class EqualInfoResult {
+
+        /** 동일정보 생성 성공 여부 */
+        private boolean success;
+
+        /** 로그인 성공 여부 */
+        private boolean loginSuccess;
+
+        /** 원본 프로젝트호기번호 */
+        private String productNo;
+
+        /** 원본 영업사양 (elv_info$vf@xxxxxxxx) */
+        private String objectOuid;
+
+        /** 신규 공사정보 ouid */
+        private String newObjectOuid;
+
+        /** 신규 프로젝트호기번호 (TEST 번호) */
+        private String newProductNo;
+
+        /** 최종 결과 메시지 */
+        private String message;
+
+        /** 수행 시간(ms) */
+        private long elapsedMillis;
+    }
+
+    /** 속성정보 변경 결과 */
+    @Getter
+    @Setter
+    @ToString
+    public static class AttrChangeResult {
+
+        /** 속성정보 변경 성공 여부 */
+        private boolean success;
+
+        /** 로그인 성공 여부 */
+        private boolean loginSuccess;
+
+        /** 프로젝트호기번호 */
+        private String productNo;
+
+        /** 대상 영업사양 (elv_info$vf@xxxxxxxx) */
+        private String objectOuid;
+
+        /** 요청한 속성 {특성코드: 값} (폼 전송용 문자열로 변환된 값) */
+        private Map<String, String> requested;
+
+        /** 변경 후 다시 읽은 속성 {특성코드: 값} (verify=true 일 때만) */
+        private Map<String, String> current;
+
+        /** 요청값과 변경 후 값이 모두 일치하는지 (verify=true 일 때만 의미 있음) */
+        private boolean verified;
 
         /** 최종 결과 메시지 */
         private String message;
