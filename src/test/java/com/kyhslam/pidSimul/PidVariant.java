@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 /**
  * dyna.plmetc.variant.Variant 의 독립 버전 (DB 방식 PID 로직 실행기)
  * - DOS / Spring / PIDCache 없이 PidDb(JDBC) 로만 동작한다.
- * - METHOD 가 JAVA 인 PID(PIDJavaMethod)는 지원하지 않는다.
+ * - METHOD 가 JAVA 인 PID 는 PidJavaMethod 로 실행한다. (옮겨온 메소드만 지원)
  */
 public class PidVariant
 {
@@ -96,7 +96,7 @@ public class PidVariant
 			elvData = getElvCodeNames(elvOuid);
 
 		if(pid.getMethod().equals(PidConsts.METHOD_JAVA)) {
-			throw new UnsupportedOperationException("JAVA 방식 PID는 지원하지 않습니다 : " + pid.getPid());
+			resultMap = new PidJavaMethod(db).executeJAVA(localElvEnt, floorMasterList, pid.getPid(), partInfo);
 		}else if(pid.getMethod().equals(PidConsts.METHOD_DB)) {
 
 			PidVariantMap pidLogicMap = getPIDLogic(pid.getPid(), pid.getVersion(), doDebug); //PID의 모든 라인 정보 셋팅

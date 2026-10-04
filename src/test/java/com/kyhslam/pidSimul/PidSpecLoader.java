@@ -201,23 +201,18 @@ public class PidSpecLoader {
 	 * 공사정보에 연결된 층 정보를 읽어 공사정보 데이터를 덮어쓰고(addElvObjectData) md$index 순으로 정렬한다.
 	 */
 	public List<SpecObject> loadFloors(String elvOuid, Map elvDataMap) throws Exception {
-		String assoCode = firstString(db.queryForList(
-				" SELECT LOWER(CODE) CODE FROM " + meta + "DOSASSO WHERE DOSCLAS = ? "
-						+ " UNION ALL SELECT LOWER(CODE) CODE FROM " + meta + "DOSCLAS WHERE OUID = ? ",
-				Long.parseLong(PidConsts.ELVANDFLOOR_ASSO_OUID, 16), Long.parseLong(PidConsts.ELVANDFLOOR_ASSO_OUID, 16)));
-		String floorCode = firstString(db.queryForList(
-				" SELECT LOWER(CODE) CODE FROM " + meta + "DOSCLAS WHERE OUID = ? ", Long.parseLong(PidConsts.FLOOR_CLASS_OUID, 16)));
-		if (assoCode == null || floorCode == null)
-			throw new Exception("층 연결 클래스 정보를 찾을 수 없습니다. asso=" + assoCode + ", floor=" + floorCode);
-		assoCode = assoCode.replace(' ', '_');
-		floorCode = floorCode.replace(' ', '_');
+		// DOSCLAS / DOSASSO 대신 상수 사용 (PidConsts)
+		if (PidUtil.NVL(PidConsts.FLOOR_TABLE_CODE, "").trim().isEmpty() || PidUtil.NVL(PidConsts.ELVANDFLOOR_ASSO_TABLE_CODE, "").trim().isEmpty())
+			throw new IllegalStateException("층 정보 사용 시 PidConsts.FLOOR_TABLE_CODE / ELVANDFLOOR_ASSO_TABLE_CODE 를 설정해야 합니다.");
+		String floorCode = PidConsts.FLOOR_TABLE_CODE.trim().toLowerCase().replace(' ', '_');
+		String assoCode = PidConsts.ELVANDFLOOR_ASSO_TABLE_CODE.trim().toLowerCase().replace(' ', '_');
 
 		String elvTable = elvOuid.substring(0, elvOuid.indexOf('$')).toLowerCase();
 		long elvReal = Long.parseLong(elvOuid.substring(elvOuid.indexOf('@') + 1), 16);
 		String elvIds = " (?, (SELECT VF$IDENTITY FROM " + elvTable + "$vf WHERE VF$OUID = ?)) ";
 
 		List<String> floorOuidList = new ArrayList<String>();
-		try {
+		if (PidConsts.FLOOR_TABLE_VERSIONABLE) {
 			// 층 클래스가 버전관리(vf) 인 경우 : wip 버전만
 			String sql = " SELECT F.VF$OUID FOUID FROM " + floorCode + "$vf F, " + floorCode + "$id I, " + assoCode + "$ac A "
 					+ " WHERE F.VF$IDENTITY = I.ID$OUID AND F.VF$OUID = I.ID$WIP "
@@ -225,7 +220,7 @@ public class PidSpecLoader {
 					+ "        OR (A.AS$END2 IN" + elvIds + " AND A.AS$END1 IN (F.VF$OUID, F.VF$IDENTITY)) ) ";
 			for (Map<String, Object> r : db.queryForList(sql, elvReal, elvReal, elvReal, elvReal))
 				floorOuidList.add(floorCode + "$vf@" + Long.toHexString(toLong(r.get("FOUID"))));
-		} catch (SQLException e) {
+		} else {
 			// 버전관리 안하는 클래스(sf)
 			String sql = " SELECT F.SF$OUID FOUID FROM " + floorCode + "$sf F, " + assoCode + "$ac A "
 					+ " WHERE (A.AS$END1 IN" + elvIds + " AND A.AS$END2 = F.SF$OUID) "
@@ -305,12 +300,6 @@ public class PidSpecLoader {
 						new String[] { asString(r.get("NAME")), asString(r.get("DES")), asString(r.get("CODITM")) });
 			}
 		}
-	}
-
-	private static String firstString(List<Map<String, Object>> list) {
-		if (list.isEmpty())
-			return null;
-		return asString(list.get(0).values().iterator().next());
 	}
 
 	/** DOSCodeItemDatabaseMapper.getCodeItem 과 동일하게 16진수로 파싱되는 값만 코드 후보로 본다 */
