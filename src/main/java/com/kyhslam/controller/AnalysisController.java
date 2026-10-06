@@ -49,6 +49,7 @@ public class AnalysisController {
         ArrayList<CodeDTO> result = ElvInfoCommonUtil.findCodeList(typeName);
         return result;
     }
+
     //조회결과 그래프/통계 팝업 화면
     @GetMapping("/dash/searchGraph")
     public String searchGraph() {

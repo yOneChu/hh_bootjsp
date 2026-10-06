@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>PICK 시뮬레이터</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+
+    <script>
+        // 페이지 렌더 전 다크모드/사이드바 상태 적용 (깜빡임 방지) — 기본값: 다크
+        if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+    </script>
+
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/resources/dist/googleFont.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <script>
+        tailwind.config = {
+            // Bootstrap(adminlte) 기반 사이드바 마크업을 쓰므로 preflight 는 끈다
+            corePlugins: { preflight: false },
+            important: true,
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: {
+                            blue:  '#0071E3',
+                            blueD: '#0A84FF',
+                            ink:   '#1D1D1F',
+                            gray1: '#8E8E93',
+                            gray5: '#E5E5EA',
+                            gray6: '#F5F5F7',
+                            card:  '#FFFFFF',
+                            darkBg:   '#000000',
+                            darkCard: '#1C1C1E',
+                            darkLine: '#38383A',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard Variable', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Helvetica Neue', 'Arial', 'sans-serif']
+                    },
+                    boxShadow: {
+                        btn: '0 2px 10px rgba(0,113,227,.35)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html { -webkit-font-smoothing: antialiased; }
+        body {
+            font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #F5F5F7;
+        }
+        .dark body { background: #000; }
+
+        h1, h2, h3, h4, h5 { margin: 0; }
+        main p, header p, footer p { margin: 0; }
+        main ul { margin: 0; padding-left: 0; list-style: none; }
+        main label { margin-bottom: 0; }
+
+        /* ── 패널 ── */
+        .panel {
+            background: #fff;
+            border: 1px solid rgba(0,0,0,.05);
+            border-radius: 16px;
+            box-shadow: 0 2px 20px rgba(0,0,0,.05);
+            overflow: hidden;
+        }
+        .dark .panel {
+            background: #1C1C1E;
+            border-color: rgba(255,255,255,.07);
+            box-shadow: 0 2px 20px rgba(0,0,0,.45);
+        }
+        .panel-head {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+            padding: 20px 24px 16px;
+        }
+        .panel-head.divider { border-bottom: 1px solid rgba(0,0,0,.05); }
+        .dark .panel-head.divider { border-bottom-color: rgba(255,255,255,.07); }
+        .panel-body { padding: 20px 24px; }
+        .panel-foot {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px; padding: 16px 24px;
+            background: #FAFAFC; border-top: 1px solid rgba(0,0,0,.05);
+        }
+        .dark .panel-foot {
+            background: rgba(255,255,255,.03);
+            border-top-color: rgba(255,255,255,.07);
+        }
+        .panel-title { font-size: 15px; font-weight: 700; }
+
+        .tile {
+            width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .tile-blue   { background: rgba(0,113,227,.10); }
+        .tile-green  { background: rgba(52,199,89,.12); }
+        .tile-amber  { background: rgba(255,159,10,.14); font-size: 13px; }
+        .dark .tile-blue   { background: rgba(10,132,255,.18); }
+        .dark .tile-green  { background: rgba(48,209,88,.18); }
+        .dark .tile-amber  { background: rgba(255,159,10,.20); }
+
+        /* ── Form ── */
+        .field-label {
+            display: block; font-size: 11px; font-weight: 600;
+            letter-spacing: .05em; text-transform: uppercase;
+            color: #86868B; margin-bottom: 6px;
+        }
+        .dark .field-label { color: #98989D; }
+
+        .form-input {
+            width: 100%; height: 44px; padding: 0 14px;
+            font-size: 15px; color: #1D1D1F;
+            background: #fff; border: 1.5px solid #E5E5EA; border-radius: 11px;
+            outline: none; transition: border-color .18s, box-shadow .18s;
+            font-family: inherit; box-sizing: border-box;
+        }
+        .form-input:focus { border-color: #0071E3; box-shadow: 0 0 0 3.5px rgba(0,113,227,.14); }
+        .dark .form-input { background: #2C2C2E; border-color: #38383A; color: #F5F5F7; }
+        .dark .form-input:focus { border-color: #0A84FF; box-shadow: 0 0 0 3.5px rgba(10,132,255,.22); }
+        .form-input::placeholder { color: #AEAEB2; }
+        .dark .form-input::placeholder { color: #636366; }
+        .dark input[type="search"]::-webkit-search-cancel-button { filter: invert(1) opacity(.55); }
+        .form-input.sm { height: 34px; font-size: 13px; border-radius: 10px; }
+
+        /* 블럭 옵션 토글 칩 */
+        .opt-chip {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 44px; height: 44px; padding: 0 12px; border-radius: 11px;
+            font-size: 14px; font-weight: 700; cursor: pointer; user-select: none;
+            background: #F5F5F7; color: #8E8E93; border: 1.5px solid #E5E5EA;
+            transition: all .15s;
+        }
+        .opt-chip.on { background: rgba(0,113,227,.10); color: #0071E3; border-color: #0071E3; }
+        .dark .opt-chip { background: #2C2C2E; border-color: #38383A; color: #636366; }
+        .dark .opt-chip.on { background: rgba(10,132,255,.18); color: #0A84FF; border-color: #0A84FF; }
+
+        /* ── Buttons ── */
+        .btn-primary {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            height: 44px; padding: 0 28px; border-radius: 11px;
+            background: #0071E3; color: #fff; font-size: 14px; font-weight: 600;
+            border: none; cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,113,227,.35);
+            transition: background .15s, transform .1s, box-shadow .15s;
+        }
+        .btn-primary:hover  { background: #0077ED; color: #fff; box-shadow: 0 4px 16px rgba(0,113,227,.45); }
+        .btn-primary:active { transform: scale(.97); }
+        .btn-primary:disabled { opacity: .55; cursor: wait; }
+
+        .btn-mini {
+            display: inline-flex; align-items: center; gap: 6px;
+            height: 34px; padding: 0 13px; border-radius: 10px;
+            font-size: 12.5px; font-weight: 600; cursor: pointer;
+            background: #F5F5F7; color: #1D1D1F; border: 1px solid transparent;
+            transition: background .15s;
+        }
+        .btn-mini:hover { background: #E8E8ED; }
+        .dark .btn-mini { background: #2C2C2E; color: #F5F5F7; }
+        .dark .btn-mini:hover { background: #3A3A3C; }
+
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 9px; border: none; cursor: pointer;
+            background: transparent; color: #1D1D1F; transition: background .15s;
+        }
+        .icon-btn:hover { background: rgba(0,0,0,.06); }
+        .dark .icon-btn { color: #F5F5F7; }
+        .dark .icon-btn:hover { background: rgba(255,255,255,.1); }
+
+        .ios-switch { position: relative; width: 46px; height: 27px; cursor: pointer; margin: 0; }
+        .ios-switch input { display: none; }
+        .ios-switch .track { position: absolute; inset: 0; border-radius: 999px; background: #D2D2D7; transition: background .2s; }
+        .dark .ios-switch .track { background: #38383A; }
+        .ios-switch input:checked + .track { background: #34C759; }
+        .ios-switch .knob {
+            position: absolute; top: 2.5px; left: 2.5px; width: 22px; height: 22px;
+            border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: transform .2s;
+        }
+        .ios-switch input:checked ~ .knob { transform: translateX(19px); }
+
+        details.help summary { list-style: none; cursor: pointer; }
+        details.help summary::-webkit-details-marker { display: none; }
+        details.help[open] .chev { transform: rotate(90deg); }
+        .chev { transition: transform .18s; }
+
+        /* ── KPI ── */
+        .stat-kpi-card {
+            border-radius: 14px; padding: 16px 18px;
+            background: #F5F5F7; border: 1px solid rgba(0,0,0,.04);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+        }
+        .dark .stat-kpi-card { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.06); }
+        .stat-kpi-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #8E8E93; margin-bottom: 4px; }
+        .stat-kpi-value { font-size: 28px; font-weight: 800; line-height: 1.1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+        .stat-kpi-unit { font-size: 11px; color: #8E8E93; }
+        .kpi-blue   { color: #0071E3; }
+        .kpi-indigo { color: #5856D6; }
+        .kpi-cyan   { color: #0EA5E9; }
+        .kpi-green  { color: #248A3D; }
+        .dark .kpi-blue   { color: #0A84FF; }
+        .dark .kpi-indigo { color: #7D7AFF; }
+        .dark .kpi-cyan   { color: #64D2FF; }
+        .dark .kpi-green  { color: #30D158; }
+
+        /* ── BOM 테이블 ── */
+        .tbl-scroll { overflow-x: auto; }
+        .tbl-scroll::-webkit-scrollbar { height: 10px; }
+        .tbl-scroll::-webkit-scrollbar-thumb { background: #C7C7CC; border-radius: 8px; }
+        .dark .tbl-scroll::-webkit-scrollbar-thumb { background: #48484A; }
+
+        #bomTable { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+        #bomTable thead th {
+            position: sticky; top: 0; z-index: 1;
+            background: #FAFAFC; color: #6E6E73;
+            font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+            padding: 10px 12px; text-align: left; white-space: nowrap;
+            border-bottom: 1.5px solid #E5E5EA;
+        }
+        .dark #bomTable thead th { background: #232325; color: #98989D; border-bottom-color: #38383A; }
+        #bomTable td {
+            padding: 9px 12px; color: #1D1D1F; white-space: nowrap;
+            border-bottom: 1px solid #F0F0F2; vertical-align: middle;
+        }
+        .dark #bomTable td { color: #E5E5EA; border-bottom-color: #2C2C2E; }
+        #bomTable tr.item-row:hover td { background: rgba(0,113,227,.055); }
+        .dark #bomTable tr.item-row:hover td { background: rgba(10,132,255,.10); }
+        #bomTable .num { text-align: right; font-variant-numeric: tabular-nums; }
+        #bomTable .mono { font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px; }
+        #bomTable .muted { color: #8E8E93; }
+
+        /* 블럭 그룹 헤더 행 */
+        #bomTable tr.group-row td {
+            background: #F2F6FD; cursor: pointer; user-select: none;
+            border-bottom: 1px solid #E1E9F7; padding: 10px 12px;
+        }
+        .dark #bomTable tr.group-row td { background: rgba(10,132,255,.09); border-bottom-color: rgba(10,132,255,.16); }
+        #bomTable tr.group-row:hover td { background: #E9F0FC; }
+        .dark #bomTable tr.group-row:hover td { background: rgba(10,132,255,.14); }
+        .grp-chev { display: inline-block; width: 14px; color: #8E8E93; transition: transform .15s; }
+        tr.group-row.collapsed .grp-chev { transform: rotate(-90deg); }
+        .grp-no { font-weight: 800; color: #0071E3; letter-spacing: -.01em; }
+        .dark .grp-no { color: #0A84FF; }
+        .grp-name { font-weight: 600; margin-left: 8px; }
+        .grp-cnt {
+            margin-left: 10px; display: inline-flex; align-items: center; height: 20px; padding: 0 8px;
+            border-radius: 999px; font-size: 11px; font-weight: 700;
+            background: rgba(0,113,227,.10); color: #0071E3;
+        }
+        .dark .grp-cnt { background: rgba(10,132,255,.18); color: #6FB6FF; }
+
+        .badge-soft {
+            display: inline-flex; align-items: center; height: 20px; padding: 0 8px;
+            border-radius: 6px; font-size: 11px; font-weight: 700;
+        }
+        .b-pick  { background: rgba(88,86,214,.10); color: #5856D6; }
+        .b-floor { background: rgba(255,159,10,.14); color: #C27400; }
+        .b-child { background: rgba(52,199,89,.12); color: #248A3D; }
+        .dark .b-pick  { background: rgba(94,92,230,.22); color: #A5A3FF; }
+        .dark .b-floor { background: rgba(255,159,10,.20); color: #FFB340; }
+        .dark .b-child { background: rgba(48,209,88,.18); color: #30D158; }
+
+        .qty-val { font-weight: 700; }
+
+        /* 순차 출력 애니메이션 */
+        @keyframes rowIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        tr.appear td { animation: rowIn .28s ease-out both; }
+
+        /* 빈 상태 / 로딩 */
+        .empty-state { padding: 56px 16px; text-align: center; color: #8E8E93; font-size: 13.5px; }
+        .spinner {
+            width: 34px; height: 34px; border-radius: 50%;
+            border: 3px solid rgba(0,0,0,.08); border-top-color: #0071E3;
+            animation: spin .8s linear infinite; margin: 0 auto 14px;
+        }
+        .dark .spinner { border-color: rgba(255,255,255,.12); border-top-color: #0A84FF; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .progress-wrap { height: 3px; background: transparent; overflow: hidden; }
+        .progress-bar { height: 100%; width: 0; background: linear-gradient(90deg,#0071E3,#5856D6); transition: width .2s; }
+    </style>
+</head>
+
+<body class="bg-apple-gray6 dark:bg-apple-darkBg text-apple-ink dark:text-apple-gray6 min-h-screen">
+
+<!-- ═══════════ Left Sidebar (fragments/newSideBar.html) ═══════════ -->
+<div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+
+<div id="appContent">
+
+<!-- ═══════════ Top Bar ═══════════ -->
+<header class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-black/60 border-b border-black/5 dark:border-white/10">
+    <div class="w-full px-5 xl:px-8 h-[58px] flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <button type="button" id="sbToggle" class="icon-btn -ml-2" title="사이드바 열기/닫기">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
+            <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    <path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-[16px] font-bold tracking-tight leading-none">PICK 시뮬레이터</h1>
+                <p class="text-[11px] text-apple-gray1 leading-none mt-[3px]">Logic Design Intelligence Platform</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-5">
+            <span class="hidden md:inline-flex items-center gap-1.5 text-[12px] font-medium text-apple-gray1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
+            </span>
+            <div class="flex items-center gap-2">
+                <span class="text-[12.5px] font-medium text-apple-gray1" id="themeLabel">다크모드</span>
+                <label class="ios-switch">
+                    <input type="checkbox" id="darkModeToggle">
+                    <span class="track"></span><span class="knob"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="w-full px-5 xl:px-8 py-8 space-y-6">
+
+    <!-- ═══════════ Hero ═══════════ -->
+    <section class="pt-2 pb-1">
+        <h2 class="text-[30px] font-bold tracking-tight leading-tight">호기별 BOM PICK 시뮬레이션</h2>
+        <p class="text-[14.5px] text-apple-gray1 mt-1">호기번호의 영업사양으로 블럭별 PICK 자재와 수량을 계산합니다.</p>
+    </section>
+
+    <!-- ═══════════ 도움말 ═══════════ -->
+    <details class="help panel">
+        <summary class="panel-head">
+            <span class="tile tile-amber" style="border-radius:999px;">💡</span>
+            <span class="text-[14px] font-semibold flex-1">도움말 · 사용 안내</span>
+            <svg class="chev text-apple-gray1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+        <ul class="px-7 pb-5 pt-1 space-y-2 text-[13px] leading-relaxed text-[#515154] dark:text-[#AEAEB2]">
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>호기번호를 입력하고 Enter 또는 <b>조회</b>를 누르면 최신 영업사양 기준으로 계산합니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>블럭 옵션(C, M, F, 1, 2, 3)은 계산 대상 블럭을 정합니다. 기본값은 전체 선택입니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>결과는 <b>BLOCKNO 순</b>으로 블럭별로 묶어 보여줍니다. 블럭 행을 클릭하면 접고 펼 수 있습니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><b>Block No.</b>를 입력하면 해당 블럭만 계산합니다. 그 블럭에 필요한 EL_P 사양만 골라 계산하므로 훨씬 빠릅니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>PID 계산이 포함되어 호기에 따라 수십 초가 걸릴 수 있습니다.</li>
+        </ul>
+    </details>
+
+    <!-- ═══════════ 검색 조건 ═══════════ -->
+    <section class="panel">
+        <div class="panel-head">
+            <span class="tile tile-blue">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="text-apple-blue dark:text-apple-blueD"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+            </span>
+            <h3 class="panel-title">검색 조건</h3>
+        </div>
+
+        <div class="panel-body" style="padding-top:4px;">
+            <div class="flex flex-wrap items-end gap-5">
+                <div style="flex: 0 1 320px; min-width: 220px;">
+                    <label class="field-label" for="hogi">호기번호</label>
+                    <input type="search" id="hogi" class="form-input" placeholder="ex. 204201L11" autocomplete="off" autofocus>
+                </div>
+                <div style="flex: 0 1 320px; min-width: 220px;">
+                    <label class="field-label" for="blockNo">Block No. <span class="text-apple-gray1 font-normal normal-case">(선택 · 쉼표로 여러 개)</span></label>
+                    <input type="search" id="blockNo" class="form-input" placeholder="비우면 전체 블럭" autocomplete="off">
+                </div>
+                <div>
+                    <label class="field-label">블럭 옵션</label>
+                    <div id="optChips" class="flex flex-wrap gap-1.5">
+                        <span class="opt-chip on" data-opt="C">C</span>
+                        <span class="opt-chip on" data-opt="M">M</span>
+                        <span class="opt-chip on" data-opt="F">F</span>
+                        <span class="opt-chip on" data-opt="1">1</span>
+                        <span class="opt-chip on" data-opt="2">2</span>
+                        <span class="opt-chip on" data-opt="3">3</span>
+                    </div>
+                </div>
+                <div class="ml-auto">
+                    <button type="button" id="btnSearch" class="btn-primary" onclick="searchPick()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                        조회
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 요약 KPI (조회 후 표시) ═══════════ -->
+    <section id="summaryPanel" class="panel" style="display:none;">
+        <div class="panel-body">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="stat-kpi-card">
+                    <p class="stat-kpi-label">호기</p>
+                    <p class="stat-kpi-value kpi-blue" style="font-size:22px;" id="kpiHogi">-</p>
+                    <p class="stat-kpi-unit" id="kpiOpt">&nbsp;</p>
+                </div>
+                <div class="stat-kpi-card">
+                    <p class="stat-kpi-label">블럭</p>
+                    <p class="stat-kpi-value kpi-indigo" id="kpiBlocks">-</p>
+                    <p class="stat-kpi-unit">개</p>
+                </div>
+                <div class="stat-kpi-card">
+                    <p class="stat-kpi-label">BOM 품목</p>
+                    <p class="stat-kpi-value kpi-cyan" id="kpiItems">-</p>
+                    <p class="stat-kpi-unit">건</p>
+                </div>
+                <div class="stat-kpi-card">
+                    <p class="stat-kpi-label">소요 시간</p>
+                    <p class="stat-kpi-value kpi-green" id="kpiElapsed">-</p>
+                    <p class="stat-kpi-unit">초</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ BOM 목록 ═══════════ -->
+    <section class="panel">
+        <div class="panel-head divider">
+            <span class="tile tile-green">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="kpi-green"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            </span>
+            <h3 class="panel-title">BOM 목록</h3>
+            <span id="resultBadge" class="text-[12px] text-apple-gray1"></span>
+
+            <div class="ml-auto flex flex-wrap items-center gap-2">
+                <input type="search" id="filterText" class="form-input sm" style="width:220px;" placeholder="블럭 · 품번 · SPEC 필터" autocomplete="off" disabled>
+                <button type="button" class="btn-mini" id="btnToggleAll" onclick="toggleAllGroups()" disabled>
+                    <i class="fas fa-compress-alt"></i> <span>모두 접기</span>
+                </button>
+                <button type="button" class="btn-mini" id="btnCsv" onclick="downloadCsv()" disabled>
+                    <i class="fas fa-file-download"></i> CSV
+                </button>
+            </div>
+        </div>
+        <div class="progress-wrap"><div class="progress-bar" id="renderProgress"></div></div>
+
+        <div class="tbl-scroll">
+            <table id="bomTable">
+                <thead>
+                <tr>
+                    <th style="width:48px;" class="num">#</th>
+                    <th>PICK</th>
+                    <th>품번</th>
+                    <th>G/L CODE</th>
+                    <th>SPEC</th>
+                    <th>규격</th>
+                    <th class="num">수량</th>
+                    <th>버전</th>
+                    <th>원산지</th>
+                    <th>SPT</th>
+                    <th>구분</th>
+                    <th>CMT</th>
+                </tr>
+                </thead>
+                <tbody id="bomBody">
+                <tr><td colspan="12" class="empty-state">호기번호를 입력하고 조회하세요.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <footer class="pt-4 pb-8 text-center">
+        <p class="text-[12px] text-apple-gray1">Copyright © 2026 <b>수배로직설계팀 · 김영환 M</b>. All rights reserved. · Version 1.0.0</p>
+    </footer>
+</main>
+
+</div><!-- /#appContent -->
+
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+<script th:inline="none">
+    const COLS = 12;
+    let bomRows = [];          // 마지막 조회 결과 (BLOCKNO 순)
+    let renderToken = 0;       // 재조회 시 진행 중인 순차 출력을 중단하기 위한 토큰
+
+    /* ── 블럭 옵션 칩 ── */
+    $('#optChips').on('click', '.opt-chip', function () { $(this).toggleClass('on'); });
+    function selectedOpts() {
+        return $('#optChips .opt-chip.on').map(function () { return $(this).data('opt'); }).get();
+    }
+
+    $('#hogi, #blockNo').on('keydown', function (e) { if (e.key === 'Enter') searchPick(); });
+
+    function esc(v) {
+        return String(v == null ? '' : v)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function setBody(html) { $('#bomBody').html(html); }
+    function setToolsEnabled(on) { $('#filterText, #btnToggleAll, #btnCsv').prop('disabled', !on); }
+
+    /* ── 조회 ── */
+    function searchPick() {
+        const hogi = ($('#hogi').val() || '').trim();
+        const opts = selectedOpts();
+        const blockNo = ($('#blockNo').val() || '').trim();
+        if (!hogi) { $('#hogi').focus(); return; }
+        if (!opts.length) { alert('블럭 옵션을 하나 이상 선택하세요.'); return; }
+
+        const token = ++renderToken;
+        const started = performance.now();
+
+        bomRows = [];
+        setToolsEnabled(false);
+        $('#filterText').val('');
+        $('#resultBadge').text('');
+        $('#renderProgress').css('width', '0');
+        $('#btnSearch').prop('disabled', true);
+        setBody('<tr><td colspan="' + COLS + '" class="empty-state"><div class="spinner"></div>'
+            + '<b>' + esc(hogi) + '</b> PICK 계산 중입니다…</td></tr>');
+
+        $.ajax({
+            url: '/simulate/getPick',
+            type: 'GET',
+            data: { hogi: hogi, optList: opts.join(','), blockNo: blockNo },
+            dataType: 'json'
+        }).done(function (res) {
+            if (token !== renderToken) return;
+            const elapsed = (performance.now() - started) / 1000;
+            bomRows = (res && res.bomList) || [];
+            renderSummary(hogi, opts, blockNo, elapsed);
+            renderSequential(bomRows, token);
+        }).fail(function (xhr) {
+            if (token !== renderToken) return;
+            const msg = (xhr.responseJSON && xhr.responseJSON.error) || xhr.statusText || '알 수 없는 오류';
+            $('#summaryPanel').hide();
+            setBody('<tr><td colspan="' + COLS + '" class="empty-state" style="color:#FF3B30;">'
+                + '<i class="fas fa-exclamation-circle"></i> 조회에 실패했습니다.<br><span class="text-[12.5px]">' + esc(msg) + '</span></td></tr>');
+        }).always(function () {
+            if (token === renderToken) $('#btnSearch').prop('disabled', false);
+        });
+    }
+
+    function renderSummary(hogi, opts, blockNo, elapsed) {
+        const blocks = new Set(bomRows.map(function (r) { return r.BLOCKNO; }));
+        $('#kpiHogi').text(hogi);
+        $('#kpiOpt').text(blockNo ? 'Block ' + blockNo : '옵션 ' + opts.join(' · '));
+        $('#kpiBlocks').text(blocks.size.toLocaleString());
+        $('#kpiItems').text(bomRows.length.toLocaleString());
+        $('#kpiElapsed').text(elapsed.toFixed(1));
+        $('#summaryPanel').show();
+    }
+
+    /* ── 블럭별 그룹 (bomList 는 서버에서 BLOCKNO 순 정렬) ── */
+    function groupByBlock(rows) {
+        const groups = [];
+        let cur = null;
+        rows.forEach(function (r) {
+            if (!cur || cur.blockNo !== r.BLOCKNO) {
+                cur = { blockNo: r.BLOCKNO, blockName: r.BLOCKNAME, items: [] };
+                groups.push(cur);
+            }
+            cur.items.push(r);
+        });
+        return groups;
+    }
+
+    function groupRowHtml(g) {
+        return '<tr class="group-row" data-block="' + esc(g.blockNo) + '">'
+            + '<td colspan="' + COLS + '"><span class="grp-chev"><i class="fas fa-chevron-down" style="font-size:10px;"></i></span>'
+            + '<span class="grp-no">' + esc(g.blockNo) + '</span>'
+            + '<span class="grp-name">' + esc(g.blockName) + '</span>'
+            + '<span class="grp-cnt">' + g.items.length + '</span></td></tr>';
+    }
+
+    function itemRowHtml(r, idx) {
+        const tags = [];
+        if (r.FLOOR) tags.push('<span class="badge-soft b-floor">' + esc(r.FLOOR) + '층</span>');
+        if (r.HASCHILD === 'Y') tags.push('<span class="badge-soft b-child">하위</span>');
+        const search = [r.BLOCKNO, r.BLOCKNAME, r.PICK, r.PARTNO, r.G_L_CODE, r.SPEC, r.PART_SIZE, r.CMT].join(' ').toLowerCase();
+
+        return '<tr class="item-row" data-block="' + esc(r.BLOCKNO) + '" data-search="' + esc(search) + '">'
+            + '<td class="num muted">' + idx + '</td>'
+            + '<td><span class="badge-soft b-pick">' + esc(r.PICK) + '</span></td>'
+            + '<td class="mono" style="font-weight:600;">' + esc(r.PARTNO) + '</td>'
+            + '<td class="mono muted">' + esc(r.G_L_CODE) + '</td>'
+            + '<td>' + esc(r.SPEC) + '</td>'
+            + '<td class="muted">' + esc(r.PART_SIZE) + '</td>'
+            + '<td class="num qty-val">' + esc(r.QTY) + '</td>'
+            + '<td class="muted">' + esc(r.VER) + '</td>'
+            + '<td class="muted">' + esc(r.ORIGIN_DIV) + '</td>'
+            + '<td class="muted">' + esc(r.SPT) + '</td>'
+            + '<td>' + tags.join(' ') + '</td>'
+            + '<td class="muted">' + esc(r.CMT) + '</td>'
+            + '</tr>';
+    }
+
+    /* ── 순차 출력 : 블럭 단위로 프레임마다 나눠서 추가 ── */
+    function renderSequential(rows, token) {
+        const $body = $('#bomBody');
+        if (!rows.length) {
+            setBody('<tr><td colspan="' + COLS + '" class="empty-state">PICK 된 자재가 없습니다.</td></tr>');
+            $('#resultBadge').text('0건');
+            return;
+        }
+
+        const groups = groupByBlock(rows);
+        const BATCH_ROWS = 40;
+        let gi = 0, idx = 0;
+        $body.empty();
+        $('#resultBadge').text(groups.length + '개 블럭 · ' + rows.length + '건');
+
+        (function step() {
+            if (token !== renderToken) return;
+            let html = '', added = 0;
+            while (gi < groups.length && added < BATCH_ROWS) {
+                const g = groups[gi++];
+                html += groupRowHtml(g);
+                g.items.forEach(function (r) { html += itemRowHtml(r, ++idx); });
+                added += g.items.length + 1;
+            }
+            const $new = $(html).addClass('appear');
+            $body.append($new);
+            $('#renderProgress').css('width', (gi / groups.length * 100) + '%');
+
+            if (gi < groups.length) {
+                setTimeout(step, 60);
+            } else {
+                setToolsEnabled(true);
+                setTimeout(function () { $('#renderProgress').css('width', '0'); }, 600);
+            }
+        })();
+    }
+
+    /* ── 그룹 접기/펼치기 ── */
+    $('#bomBody').on('click', 'tr.group-row', function () {
+        const $g = $(this).toggleClass('collapsed');
+        applyVisibility();
+        syncToggleAllLabel();
+    });
+
+    function toggleAllGroups() {
+        const $groups = $('#bomBody tr.group-row');
+        const collapse = $groups.filter(':not(.collapsed)').length > 0;
+        $groups.toggleClass('collapsed', collapse);
+        applyVisibility();
+        syncToggleAllLabel();
+    }
+
+    function syncToggleAllLabel() {
+        const anyOpen = $('#bomBody tr.group-row:not(.collapsed)').length > 0;
+        $('#btnToggleAll span').text(anyOpen ? '모두 접기' : '모두 펼치기');
+        $('#btnToggleAll i').attr('class', anyOpen ? 'fas fa-compress-alt' : 'fas fa-expand-alt');
+    }
+
+    /* ── 필터 + 접힘 상태 반영 ── */
+    $('#filterText').on('input', applyVisibility);
+
+    function applyVisibility() {
+        const q = ($('#filterText').val() || '').trim().toLowerCase();
+        const collapsed = {};
+        $('#bomBody tr.group-row').each(function () {
+            collapsed[this.dataset.block] = $(this).hasClass('collapsed');
+        });
+
+        const matchCnt = {};
+        $('#bomBody tr.item-row').each(function () {
+            const b = this.dataset.block;
+            const match = !q || this.dataset.search.indexOf(q) !== -1;
+            if (match) matchCnt[b] = (matchCnt[b] || 0) + 1;
+            this.style.display = (match && !collapsed[b]) ? '' : 'none';
+        });
+        $('#bomBody tr.group-row').each(function () {
+            this.style.display = (!q || matchCnt[this.dataset.block]) ? '' : 'none';
+        });
+    }
+
+    /* ── CSV 다운로드 ── */
+    function downloadCsv() {
+        if (!bomRows.length) return;
+        const cols = ['BLOCKNO', 'BLOCKNAME', 'FLOOR', 'PICK', 'PICK_VALUE', 'PARTNO', 'G_L_CODE', 'SPEC', 'PART_SIZE', 'QTY', 'VER', 'ORIGIN_DIV', 'SPT', 'HASCHILD', 'CMT'];
+        const cell = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
+        const lines = [cols.join(',')].concat(bomRows.map(function (r) {
+            return cols.map(function (c) { return cell(r[c]); }).join(',');
+        }));
+        const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'PICK_' + ($('#kpiHogi').text() || 'result') + '.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    /* ── 다크모드 (localStorage 키 'theme' 공유) ── */
+    (function initTheme() {
+        const dark = localStorage.getItem('theme') !== 'light';
+        document.documentElement.classList.toggle('dark', dark);
+        document.getElementById('darkModeToggle').checked = dark;
+        document.getElementById('themeLabel').textContent = dark ? '🌙 다크모드' : '☀️ 라이트모드';
+        if (dark) localStorage.setItem('theme', 'dark');
+    })();
+    document.getElementById('darkModeToggle').addEventListener('change', function () {
+        document.documentElement.classList.toggle('dark', this.checked);
+        localStorage.setItem('theme', this.checked ? 'dark' : 'light');
+        document.getElementById('themeLabel').textContent = this.checked ? '🌙 다크모드' : '☀️ 라이트모드';
+    });
+
+    /* ── 사이드바 현재 메뉴 활성화 ── */
+    document.querySelectorAll('#sidebar .sb-link').forEach(function (a) { a.classList.remove('active'); });
+    document.querySelector('#sidebar a[href="/simulate/getPickView"]')?.classList.add('active');
+</script>
+
+</body>
+</html>
