@@ -214,7 +214,7 @@ public class PidSpecLoader {
 		List<String> floorOuidList = new ArrayList<String>();
 		if (PidConsts.FLOOR_TABLE_VERSIONABLE) {
 			// 층 클래스가 버전관리(vf) 인 경우 : wip 버전만
-			String sql = " SELECT F.VF$OUID FOUID FROM " + floorCode + "$vf F, " + floorCode + "$id I, " + assoCode + "$ac A "
+			String sql = " SELECT F.VF$OUID FOUID FROM " + floorCode + "$vf F, " + floorCode + "$id I, " + assoCode + PidConsts.ELVANDFLOOR_ASSO_TABLE_SUFFIX + " A "
 					+ " WHERE F.VF$IDENTITY = I.ID$OUID AND F.VF$OUID = I.ID$WIP "
 					+ "   AND (   (A.AS$END1 IN" + elvIds + " AND A.AS$END2 IN (F.VF$OUID, F.VF$IDENTITY)) "
 					+ "        OR (A.AS$END2 IN" + elvIds + " AND A.AS$END1 IN (F.VF$OUID, F.VF$IDENTITY)) ) ";
@@ -222,7 +222,7 @@ public class PidSpecLoader {
 				floorOuidList.add(floorCode + "$vf@" + Long.toHexString(toLong(r.get("FOUID"))));
 		} else {
 			// 버전관리 안하는 클래스(sf)
-			String sql = " SELECT F.SF$OUID FOUID FROM " + floorCode + "$sf F, " + assoCode + "$ac A "
+			String sql = " SELECT F.SF$OUID FOUID FROM " + floorCode + "$sf F, " + assoCode + PidConsts.ELVANDFLOOR_ASSO_TABLE_SUFFIX + " A "
 					+ " WHERE (A.AS$END1 IN" + elvIds + " AND A.AS$END2 = F.SF$OUID) "
 					+ "    OR (A.AS$END2 IN" + elvIds + " AND A.AS$END1 = F.SF$OUID) ";
 			for (Map<String, Object> r : db.queryForList(sql, elvReal, elvReal, elvReal, elvReal))

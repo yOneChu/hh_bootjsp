@@ -40,25 +40,20 @@ public class PidConsts {
 	public static final String[] FLOOR_SUPER_CLASS_OUIDS = {};
 	public static final String ELVANDFLOOR_ASSO_OUID = "860cedaf";
 
-	/**
-	 * 층 정보 테이블 코드 - HDEL_SYSTEM.DOSCLAS 대체 (층 클래스 860cece3 의 CODE. ex) xxx → xxx$vf)
-	 * TODO 값 확인 필요 : SELECT LOWER(CODE) FROM HDEL_SYSTEM.DOSCLAS WHERE OUID = TO_NUMBER('860cece3','xxxxxxxx');
-	 */
-	public static final String FLOOR_TABLE_CODE = "";
+	/** 층 정보 테이블 코드 (층 클래스 860cece3 → FLOORMASTER$VF / FLOORMASTER$ID) */
+	public static final String FLOOR_TABLE_CODE = "FLOORMASTER";
 	/** 층 정보 테이블이 버전관리(vf) 인지 여부 (false 면 sf) */
 	public static final boolean FLOOR_TABLE_VERSIONABLE = true;
-	/**
-	 * 공사정보-층 연결 테이블 코드 - HDEL_SYSTEM.DOSASSO 대체 (연결 860cedaf 의 CODE. ex) xxx → xxx$ac)
-	 * TODO 값 확인 필요 : SELECT LOWER(CODE) FROM HDEL_SYSTEM.DOSASSO WHERE DOSCLAS = TO_NUMBER('860cedaf','xxxxxxxx');
-	 */
-	public static final String ELVANDFLOOR_ASSO_TABLE_CODE = "";
+	/** 공사정보-층 연결 테이블 (연결 860cedaf → ELVANDFLOOR$AS : AS$END1 = elv_info$vf, AS$END2 = floormaster$vf) */
+	public static final String ELVANDFLOOR_ASSO_TABLE_CODE = "ELVANDFLOOR";
+	/** 연결 테이블 접미사 (이 연결은 $ac 가 아니라 $as 테이블에 있다) */
+	public static final String ELVANDFLOOR_ASSO_TABLE_SUFFIX = "$as";
 
 	/**
-	 * getPick 의 층 정보 사용 여부 (pidSimul 의 isfloor 와 같은 방식 : 요청한 경우에만 층 정보를 읽는다)
-	 * 기본 false : 층 정보를 읽지 않으므로 층별 블록은 계산되지 않는다.
-	 * true 로 하려면 위 FLOOR_TABLE_CODE / ELVANDFLOOR_ASSO_TABLE_CODE 를 반드시 채워야 한다. (-Dpid.floor=Y)
+	 * getPick 의 층 정보 사용 여부 : 기본 true (층별 블록도 층마다 계산한다)
+	 * 끄려면 -Dpid.floor=N
 	 */
-	public static final boolean USE_FLOOR = "Y".equalsIgnoreCase(System.getProperty("pid.floor", "N"));
+	public static final boolean USE_FLOOR = !"N".equalsIgnoreCase(System.getProperty("pid.floor", "Y"));
 
 	public static final String PREFIX_ELVINFO_OUID = "elv_info$vf@";
 }
