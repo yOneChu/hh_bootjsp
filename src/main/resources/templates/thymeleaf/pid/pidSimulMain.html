@@ -710,7 +710,7 @@
 
     // 조건 칩 / 셀의 툴팁: 일치 여부 + 호기 실제값
     function specTitle(j, cmp, act) {
-        return `SPEC${j + 1} ${cmpTitle(cmp)}` + (act !== undefined ? ` · 호기값: ${actualText(act)}` : '');
+        return `SPEC${j + 1} ${cmpTitle(cmp)}` + (act !== undefined ? ` · 원래값: ${actualText(act)}` : '');
     }
 
     // ---------- 렌더링 ----------
