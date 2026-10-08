@@ -20,42 +20,51 @@ public class ElvInfoUtil {
 
         String query = """
                 SELECT 
-                    COD(V.EL_ERPW) AS EL_ERPW,
-                    COD(V.EL_ELADT) AS EL_ELADT, --사다리구조
-                    COD(V.EL_DEHL) AS EL_DEHL, --비상용 승강로사다리
-                    COD(V.EL_BCLCD) AS EL_BCLCD, -- LCD;사양
-                    COD(V.EL_BCLCD2) AS EL_BCLCD2, -- LCD;사양2
-                    COD(V.EL_BCLCDD) AS EL_BCLCDD, -- CAR측표시문자(DISPLAY)
-                    COD(V.EL_BCLCDL) AS EL_BCLCDL, -- LCD;취부위치
+                    NVL(COD(V.EL_ERPW), '') AS EL_ERPW,
+                    NVL(COD(V.EL_CHPB0), '') AS EL_CHPB0, --BUTTON_(CP)
+                    NVL(COD(V.EL_CHPB1), '') AS EL_CHPB1, --BUTTON_(CP)
+                    NVL(COD(V.EL_CHPB2), '') AS EL_CHPB2, --BUTTON_(CP)
+                    NVL(COD(V.EL_CHPB3), '') AS EL_CHPB3, --BUTTON_(CP)
+                    NVL(COD(V.EL_CHPB4), '') AS EL_CHPB4, --BUTTON_(CP)
+                    NVL(COD(V.EL_CHPB5), '') AS EL_CHPB5, --BUTTON_(CP)
+                    NVL(COD(V.EL_CHPB6), '') AS EL_CHPB6, --BUTTON_(CP)
+                    NVL(COD(V.EL_CHPB7), '') AS EL_CHPB7, --BUTTON_(CP)
+                    NVL(COD(V.EL_DFR), '') AS EL_DFR, --소방 운전
+                    NVL(COD(V.EL_ELADT), '') AS EL_ELADT, --사다리구조
+                    NVL(COD(V.EL_DEHL), '') AS EL_DEHL, --비상용 승강로사다리
+                    NVL(COD(V.EL_BCLCD), '') AS EL_BCLCD, -- LCD;사양
+                    NVL(COD(V.EL_BCLCD2), '') AS EL_BCLCD2, -- LCD;사양2
+                    NVL(COD(V.EL_BCLCDD), '') AS EL_BCLCDD, -- CAR측표시문자(DISPLAY)
+                    NVL(COD(V.EL_BCLCDL), '') AS EL_BCLCDL, -- LCD;취부위치
                     --CODN(EL_BCLCDQ) AS EL_BCLCDQ, -- LCD;수량
-                    COD(V.EL_BCDM) AS EL_BCDM, --도어재질
-                    COD(V.EL_BCI) AS EL_BCI, --CAGE 인테리어 적용
-                    COD(V.EL_BCPI) AS EL_BCPI, -- CPI
-                    COD(V.EL_BCRL) AS EL_BCRL, -- WALL LED
-                    COD(V.EL_BCS) AS EL_BCS, -- SILL 재질
-                    COD(V.EL_BECM) AS EL_BECM, --ENTRANCE COLUMN 재질
-                    COD(V.EL_BETM) AS EL_BETM, --TRANSOME 재질/무늬
-                    COD(V.EL_BFLOORS) AS EL_BFLOORS, -- FLOOR 종류/공급주체
-                    V.EL_BFSPC AS EL_BFSPC, --FLOOR사양
-                    COD(V.EL_BFTH) AS EL_BFTH, --바닥두께
-                       COD(V.EL_BHOPB) AS EL_BHOPB, --장애인용OPB
-                       COD(V.EL_BHOPBM) AS EL_BHOPBM, --장애자OPB 재질
-                       COD(V.EL_BHOPBQ) AS EL_BHOPBQ, --장애자OPB 수량
-                       COD(V.EL_BHR) AS EL_BHR, --HANDRAIL
-                       COD(V.EL_BHRP) AS EL_BHRP, --HANDRAIL 위치
-                       COD(V.EL_BKPL) AS EL_BKPL, --KICK PLATE
-                       COD(V.EL_BMOPB) AS EL_BMOPB, --MAIN OPB사양
-                       COD(V.EL_BMOPBM) AS EL_BMOPBM, --MAIN OPB 재질
-                       COD(V.EL_BMOPBO) AS EL_BMOPBO, --MAIN OPB 열림 방향
-                       COD(V.EL_BSFED) AS EL_BSFED, -- SAFETY EDGE
-                       COD(V.EL_BTRM) AS EL_BTRM, --TRIM
-                       COD(V.EL_BWALLT) AS EL_BWALLT, --WALL 구조
-                       COD(V.EL_CECON) AS EL_CECON, --(리모델링) HIP 운행방향/층표기 교차점등
-                       COD(V.EL_CHPBRBC) AS EL_CHPBRBC, --홀버튼개구부 막음판 공급
-                       COD(V.EL_CHPIT1) AS EL_CHPIT1, -- HPI 사양/재질_(1)
-                       COD(V.EL_DACAPA) AS EL_DACAPA, --(교체전)용량
-                       COD(V.EL_DAFQ) AS EL_DAFQ, --(교체전)층수
-                       COD(V.EL_DAMAN) AS EL_DAMAN, --(교체전)인승
+                    NVL(COD(V.EL_BCDM), '') AS EL_BCDM, --도어재질
+                    NVL(COD(V.EL_BCI), '') AS EL_BCI, --CAGE 인테리어 적용
+                    NVL(COD(V.EL_BCPI), '') AS EL_BCPI, -- CPI
+                    NVL(COD(V.EL_BCRL), '') AS EL_BCRL, -- WALL LED
+                    NVL(COD(V.EL_BCS), '') AS EL_BCS, -- SILL 재질
+                    NVL(COD(V.EL_BECM), '') AS EL_BECM, --ENTRANCE COLUMN 재질
+                    NVL(COD(V.EL_BETM), '') AS EL_BETM, --TRANSOME 재질/무늬
+                    NVL(COD(V.EL_BFLOORS), '') AS EL_BFLOORS, -- FLOOR 종류/공급주체
+                    NVL(V.EL_BFSPC, '') AS EL_BFSPC, --FLOOR사양
+                    NVL(COD(V.EL_BFTH), '') AS EL_BFTH, --바닥두께
+                    NVL(COD(V.EL_BHOPB), '') AS EL_BHOPB, --장애인용OPB
+                    NVL(COD(V.EL_BHOPBM), '') AS EL_BHOPBM, --장애자OPB 재질
+                    NVL(COD(V.EL_BHOPBQ), '') AS EL_BHOPBQ, --장애자OPB 수량
+                    NVL(COD(V.EL_BHR), '') AS EL_BHR, --HANDRAIL
+                    NVL(COD(V.EL_BHRP), '') AS EL_BHRP, --HANDRAIL 위치
+                    NVL(COD(V.EL_BKPL), '') AS EL_BKPL, --KICK PLATE
+                    NVL(COD(V.EL_BMOPB), '') AS EL_BMOPB, --MAIN OPB사양
+                    NVL(COD(V.EL_BMOPBM), '') AS EL_BMOPBM, --MAIN OPB 재질
+                    NVL(COD(V.EL_BMOPBO), '') AS EL_BMOPBO, --MAIN OPB 열림 방향
+                    NVL(COD(V.EL_BSFED), '') AS EL_BSFED, -- SAFETY EDGE
+                    NVL(COD(V.EL_BTRM), '') AS EL_BTRM, --TRIM
+                    NVL(COD(V.EL_BWALLT), '') AS EL_BWALLT, --WALL 구조
+                    NVL(COD(V.EL_CECON), '') AS EL_CECON, --(리모델링) HIP 운행방향/층표기 교차점등
+                    NVL(COD(V.EL_CHPBRBC), '') AS EL_CHPBRBC, --홀버튼개구부 막음판 공급
+                    NVL(COD(V.EL_CHPIT1), '') AS EL_CHPIT1, -- HPI 사양/재질_(1)
+                    NVL(COD(V.EL_DACAPA), '') AS EL_DACAPA, --(교체전)용량
+                    NVL(COD(V.EL_DAFQ), '') AS EL_DAFQ, --(교체전)층수
+                    NVL(COD(V.EL_DAMAN), '') AS EL_DAMAN, --(교체전)인승
                        V.EL_DAOPEN AS EL_DAOPEN, --(교체전)열림
                        V.EL_DASPD AS EL_DASPD, --(교체전)속도
                        V.EL_DATYP AS EL_DATYP, --(교체전)기종
