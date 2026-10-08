@@ -11,12 +11,12 @@ public class BlockContext {
 	private final BlockDb db;
 	/** 최신 버전 PID */
 	private final BlockPidRepository pidRepository;
-	/** 테스트 버전(-1) 우선 PID (테스트를 하나도 고르지 않으면 null) */
-	private final BlockPidRepository testPidRepository;
-	/** 입력 블럭의 PICK/PID 계산을 테스트 버전으로 */
-	private final boolean testBlockPid;
-	/** 입력 블럭의 EL_P+블럭번호 PID 를 테스트 버전으로 */
-	private final boolean testElpPid;
+	/** 입력 블럭의 PICK/PID 계산에 쓰는 PID 저장소 (테스트 버전 우선 또는 지정 버전, 최신이면 null) */
+	private final BlockPidRepository blockPidRepository;
+	/** 입력 블럭의 EL_P+블럭번호 PID 계산에 쓰는 PID 저장소 (최신이면 null) */
+	private final BlockPidRepository elpPidRepository;
+	/** EL_P 블럭 PID 버전 (-1 : 테스트, 그 외 : 지정 버전, null : 최신) */
+	private final Integer elpVersion;
 	/** 지금 계산에서 쓰는 PID 저장소 */
 	private BlockPidRepository activePidRepository;
 	private final BlockSpecLoader specLoader;
@@ -32,16 +32,16 @@ public class BlockContext {
 	}
 
 	public BlockContext(BlockDb db, BlockPidRepository pidRepository, boolean saveErrorLog) {
-		this(db, pidRepository, null, false, false, saveErrorLog);
+		this(db, pidRepository, null, null, null, saveErrorLog);
 	}
 
-	public BlockContext(BlockDb db, BlockPidRepository pidRepository, BlockPidRepository testPidRepository,
-						boolean testBlockPid, boolean testElpPid, boolean saveErrorLog) {
+	public BlockContext(BlockDb db, BlockPidRepository pidRepository, BlockPidRepository blockPidRepository,
+						BlockPidRepository elpPidRepository, Integer elpVersion, boolean saveErrorLog) {
 		this.db = db;
 		this.pidRepository = pidRepository;
-		this.testPidRepository = testPidRepository;
-		this.testBlockPid = testBlockPid && testPidRepository != null;
-		this.testElpPid = testElpPid && testPidRepository != null;
+		this.blockPidRepository = blockPidRepository;
+		this.elpPidRepository = elpPidRepository;
+		this.elpVersion = elpPidRepository == null ? null : elpVersion;
 		this.activePidRepository = pidRepository;
 		this.specLoader = new BlockSpecLoader(db);
 		this.saveErrorLog = saveErrorLog;
@@ -50,12 +50,18 @@ public class BlockContext {
 	public BlockDb getDb() { return db; }
 	public BlockPidRepository getPidRepository() { return activePidRepository; }
 	public BlockPidRepository getLatestPidRepository() { return pidRepository; }
-	public boolean isTestBlockPid() { return testBlockPid; }
-	public boolean isTestElpPid() { return testElpPid; }
+	public boolean isBlockPidSelected() { return blockPidRepository != null; }
+	public boolean isElpPidSelected() { return elpPidRepository != null; }
+	public Integer getElpVersion() { return elpVersion; }
 
-	/** true : 테스트 버전 우선 저장소 / false : 최신 버전 저장소 (그 PID 가 호출하는 하위 PID 도 같은 저장소를 쓴다) */
-	public void useTestPid(boolean test) {
-		this.activePidRepository = test && testPidRepository != null ? testPidRepository : pidRepository;
+	/** true : 블럭 PID 저장소 / false : 최신 버전 저장소 (그 PID 가 호출하는 하위 PID 도 같은 저장소를 쓴다) */
+	public void useBlockPid(boolean use) {
+		this.activePidRepository = use && blockPidRepository != null ? blockPidRepository : pidRepository;
+	}
+
+	/** true : EL_P 블럭 PID 저장소 / false : 최신 버전 저장소 */
+	public void useElpPid(boolean use) {
+		this.activePidRepository = use && elpPidRepository != null ? elpPidRepository : pidRepository;
 	}
 	public BlockSpecLoader getSpecLoader() { return specLoader; }
 	public boolean isSaveErrorLog() { return saveErrorLog; }

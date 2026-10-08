@@ -35,7 +35,7 @@ public class BlockSubaeManager {
 
 	/** 요청한 블럭번호 목록 */
 	private List<String> requestBlockList = Collections.emptyList();
-	/** 테스트 버전으로 계산할 EL_P 블럭 PID (EL_P + 블럭번호) */
+	/** 고른 버전(테스트 / 지정 버전)으로 계산할 EL_P 블럭 PID (EL_P + 블럭번호) */
 	private Set<String> elpTestPids = Collections.emptySet();
 
 	public BlockSubaeManager(BlockContext ctx, String elvOuid) {
@@ -88,12 +88,12 @@ public class BlockSubaeManager {
 		this.tempVariablePartMap = new LinkedHashMap<>();
 		this.variablePartMap4Simulate = new LinkedHashMap<>();
 
-		// 입력 블럭의 PICK/PID : '블럭 PID 테스트' 를 골랐으면 테스트 버전 우선
-		ctx.useTestPid(ctx.isTestBlockPid());
+		// 입력 블럭의 PICK/PID : 블럭 PID 버전(테스트 / 지정 버전)을 골랐으면 그 저장소로
+		ctx.useBlockPid(ctx.isBlockPidSelected());
 		try {
 			pickAndCalculatePid(blockInfoList, floorBlockInfoList);
 		} finally {
-			ctx.useTestPid(false);
+			ctx.useBlockPid(false);
 		}
 		lap("블럭 PICK/PID 계산 합계 (하위BOM 조회 " + partOfPartCache.size() + "건, 재사용 " + partOfPartHit + "건)", t);
 
@@ -113,13 +113,13 @@ public class BlockSubaeManager {
 	private void calculate_EL_P(String pidPrefix, boolean withFloor) throws Exception {
 		List<Map> floorMaps = toMapList(floorMasterList);
 
-		// 'EL_P블럭 PID 테스트' : EL_P(SH_P, SV_P) + 입력 블럭번호 PID 만 테스트 버전 우선, 나머지 EL_P 는 최신
+		// 'EL_P블럭 PID 버전' : EL_P(SH_P, SV_P) + 입력 블럭번호 PID 만 고른 버전(테스트 / 지정 버전), 나머지 EL_P 는 최신
 		elpTestPids = new HashSet<String>();
-		if (ctx.isTestElpPid()) {
+		if (ctx.isElpPidSelected()) {
 			String head = pidPrefix.replace("%", "");
 			for (String blockNo : requestBlockList)
 				elpTestPids.add(head + blockNo);
-			log.info("[simulateBlock] {} - EL_P 테스트 버전 대상 : {}", elvOuid, elpTestPids);
+			log.info("[simulateBlock] {} - EL_P 버전({}) 대상 : {}", elvOuid, ctx.getElpVersion(), elpTestPids);
 		}
 
 		make_EL_P_Data(elvDataMap, floorMaps, getEL_PList(pidPrefix, false));
@@ -139,7 +139,7 @@ public class BlockSubaeManager {
 				+ " WHERE A.PID = B.PID AND A.HOUID = B.LAST_HOUID AND A.PID LIKE ? AND NVL(A.ISFLOORSPEC, 'N') = ? "
 				+ " ORDER BY PID ", pidPrefix, isFloorSpec ? "Y" : "N");
 
-		// 테스트 대상 EL_P 블럭 PID 가 아직 테스트 버전만 있는 신규 PID 면 목록에 추가 (PID 순서 유지)
+		// 대상 EL_P 블럭 PID 가 아직 고른 버전(주로 테스트 버전)만 있는 신규 PID 면 목록에 추가 (PID 순서 유지)
 		if (elpTestPids.isEmpty())
 			return list;
 		Set<String> present = list.stream().map(m -> m.get("PID")).collect(Collectors.toSet());
@@ -148,8 +148,8 @@ public class BlockSubaeManager {
 			if (present.contains(pid))
 				continue;
 			Map<String, String> row = ctx.getDb().queryForFirst(
-					" SELECT A.PID, A.METHOD FROM VARIANT_H A WHERE A.PID = ? AND A.VERSION = '-1' AND NVL(A.ISFLOORSPEC, 'N') = ? ORDER BY A.HOUID DESC ",
-					pid, isFloorSpec ? "Y" : "N");
+					" SELECT A.PID, A.METHOD FROM VARIANT_H A WHERE A.PID = ? AND A.VERSION = ? AND NVL(A.ISFLOORSPEC, 'N') = ? ORDER BY A.HOUID DESC ",
+					pid, String.valueOf(ctx.getElpVersion()), isFloorSpec ? "Y" : "N");
 			if (row != null) {
 				list = new ArrayList<>(list);
 				list.add(row);
@@ -171,13 +171,13 @@ public class BlockSubaeManager {
 			String method = pidMap.get("METHOD");
 
 			PidVariantMap localMap = null;
-			ctx.useTestPid(elpTestPids.contains(pid));
+			ctx.useElpPid(elpTestPids.contains(pid));
 			try {
 				localMap = variant.calcVariantPID(pid, null);
 			} catch (Exception e) {
 				System.err.println(pid + "(" + method + ") : " + e.getMessage());
 			} finally {
-				ctx.useTestPid(false);
+				ctx.useElpPid(false);
 			}
 
 			if (localMap != null) {

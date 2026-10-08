@@ -196,6 +196,17 @@
         .tb-action .tb-label-row { margin-bottom: 0; }
         .tb-action .tb-hint { margin-top: 0; max-width: 240px; }
         #pidTestSeg button[aria-pressed="true"] { background: #C2410C; color: #fff; }
+        /* 블럭 1개 : PID 버전 선택 */
+        .pid-ver { display: flex; gap: 6px; }
+        .pid-ver label { display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; color: var(--ink-3); }
+        .pid-ver select {
+            height: 24px; min-width: 92px; padding: 0 4px; box-sizing: border-box; cursor: pointer;
+            font-family: inherit; font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+            color: var(--ink); background: var(--wash); border: 1px solid var(--rule); border-radius: 7px; outline: none;
+        }
+        .pid-ver select:focus-visible { border-color: var(--focus); box-shadow: 0 0 0 3px rgba(0,113,227,.18); }
+        .pid-ver select:disabled { cursor: default; color: var(--ink-3); }
+        .pid-ver select.picked { background: #C2410C; border-color: #C2410C; color: #fff; }
         .btn-run {
             display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px;
             border: none; border-radius: 8px; cursor: pointer; font-family: inherit;
@@ -516,6 +527,11 @@
             <div class="tb-cell tb-action">
                 <div class="tb-label-row">
                     <span class="tb-label" id="pidTestLabel">PID 테스트 버전</span>
+                    <!-- 블럭 1개를 입력하면 토글 대신 버전 선택 -->
+                    <div class="pid-ver" id="pidVerField" style="display:none;">
+                        <label title="입력한 블럭의 PICK/PID (예: B128B08) 버전">블럭 <select id="pidVerBlock" aria-label="블럭 PID 버전" disabled></select></label>
+                        <label title="입력한 블럭의 EL_P 블럭 PID (예: EL_PB128B08) 버전. 나머지 EL_P 는 최신입니다">EL_P <select id="pidVerElp" aria-label="EL_P 블럭 PID 버전" disabled></select></label>
+                    </div>
                     <div class="seg" id="pidTestSeg" role="group" aria-labelledby="pidTestLabel">
                         <button type="button" data-test="block" aria-pressed="false" title="입력한 블럭의 PICK/PID (예: B128B08) 를 테스트 버전(-1)으로 계산합니다">블럭</button>
                         <button type="button" data-test="elp" aria-pressed="false" title="입력한 블럭의 EL_P 블럭 PID (예: EL_PB128B08) 를 테스트 버전(-1)으로 계산합니다. 나머지 EL_P 는 최신입니다">EL_P블럭</button>
@@ -654,7 +670,9 @@
     let renderToken = 0;       // 재조회 시 진행 중인 순차 출력을 중단하기 위한 토큰
     let mode = 'block';        // block : 블럭번호 입력 / opt : 블럭 품목 선택
     let pidTest = { block: false, elp: false };     // 테스트 버전(-1)으로 계산할 PID : 블럭 PID / EL_P 블럭 PID
-    let lastPidTest = { block: false, elp: false }; // 마지막 조회에 쓴 값 (집계, CSV 파일명)
+    let lastPidTest = { block: null, elp: null };   // 마지막 조회에 쓴 PID 버전 (null : 최신, -1 : 테스트) (집계, CSV 파일명)
+    let verBlockNo = null;     // 버전 목록을 불러온 블럭 (블럭 1개 입력일 때만)
+    let verTimer = null;
     let ctOn = new Set(CT_ORDER);
     let elapsedTimer = null;
 
@@ -669,7 +687,7 @@
         $('#optField').toggle(mode === 'opt');
         $('#hogiHint').text(mode === 'opt' ? '블럭 품목으로 계산할 때는 한 호기만 넣습니다' : '여러 호기는 쉼표로 구분합니다');
         $('#blockHint').text(mode === 'opt' ? '고른 품목의 블럭을 모두 계산합니다 (최대 3개)' : '여러 블럭은 쉼표로 구분합니다');
-        updatePidTestHint();
+        syncPidVerField();
     });
 
     /* ── PID 테스트 버전 : 블럭 PID / EL_P 블럭 PID 를 각각 고른다 ── */
@@ -679,24 +697,87 @@
         $(this).attr('aria-pressed', String(pidTest[key]));
         updatePidTestHint();
     });
-    $('#blockNo').on('input', updatePidTestHint);
+    $('#blockNo').on('input', function () {
+        updatePidTestHint();
+        clearTimeout(verTimer);
+        verTimer = setTimeout(syncPidVerField, 300);
+    });
+
+    /* ── 블럭 1개 : 토글 대신 PID 버전 선택 ── */
+    function singleBlock() {
+        const blocks = mode === 'block' ? splitList($('#blockNo').val()) : [];
+        return blocks.length === 1 ? blocks[0] : null;
+    }
+    function isVerMode() { return $('#pidVerField').is(':visible'); }
+
+    function syncPidVerField() {
+        const blockNo = singleBlock();
+        $('#pidTestSeg').toggle(!blockNo);
+        $('#pidVerField').toggle(!!blockNo);
+        $('#pidTestLabel').text(blockNo ? 'PID 버전' : 'PID 테스트 버전');
+        if (!blockNo) { verBlockNo = null; updatePidTestHint(); return; }
+        if (verBlockNo === blockNo) { updatePidTestHint(); return; }
+
+        verBlockNo = blockNo;
+        $('#pidVerBlock, #pidVerElp').html('<option value="">불러오는 중</option>').prop('disabled', true).removeClass('picked');
+        updatePidTestHint();
+        $.getJSON('/simulate/pidVersions', { blockNo: blockNo }).done(function (res) {
+            if (verBlockNo !== blockNo) return;       // 그 사이 입력이 바뀜
+            fillPidVer($('#pidVerBlock'), res.block, pidTest.block);
+            fillPidVer($('#pidVerElp'), res.elp, pidTest.elp);
+            updatePidTestHint();
+        }).fail(function () {
+            if (verBlockNo !== blockNo) return;
+            verBlockNo = null;                         // 다음 입력 때 다시 시도
+            $('#pidVerBlock, #pidVerElp').html('<option value="">최신</option>').prop('disabled', true);
+            $('#pidTestHint').text('PID 버전 목록을 불러오지 못했습니다. 최신 버전으로 계산합니다');
+        });
+    }
+    /** list : [{version, latest}] (테스트 -1 먼저, 버전 내림차순). 토글에서 테스트를 골랐으면 -1 을 미리 고른다 */
+    function fillPidVer($sel, list, preferTest) {
+        list = list || [];
+        const latest = list.filter(function (v) { return v.latest; })[0];
+        const html = ['<option value="">최신' + (latest ? ' (v' + latest.version + ')' : '') + '</option>'];
+        list.forEach(function (v) {
+            if (v.latest) return;                      // '최신' 과 같은 버전
+            html.push('<option value="' + v.version + '">' + esc(verText(v.version)) + '</option>');
+        });
+        $sel.html(html.join('')).prop('disabled', list.length === 0);
+        $sel.val(preferTest && list.some(function (v) { return v.version === -1 && !v.latest; }) ? '-1' : '');
+        $sel.toggleClass('picked', $sel.val() !== '');
+    }
+    function verText(v) { return v === -1 ? '테스트 (-1)' : 'v' + v; }
+    $('#pidVerBlock, #pidVerElp').on('change', function () {
+        $(this).toggleClass('picked', $(this).val() !== '');
+        updatePidTestHint();
+    });
+
+    /** 지금 고른 PID 버전 { block, elp } (null : 최신, -1 : 테스트, 그 외 : 지정 버전) */
+    function pidSelection() {
+        if (isVerMode()) {
+            const b = $('#pidVerBlock').val(), e = $('#pidVerElp').val();
+            return { block: b ? Number(b) : null, elp: e ? Number(e) : null };
+        }
+        return { block: pidTest.block ? -1 : null, elp: pidTest.elp ? -1 : null };
+    }
 
     function updatePidTestHint() {
-        if (!pidTest.block && !pidTest.elp) { $('#pidTestHint').text('PID 는 최신 버전으로 계산합니다'); return; }
+        const sel = pidSelection();
+        if (sel.block == null && sel.elp == null) { $('#pidTestHint').text('PID 는 최신 버전으로 계산합니다'); return; }
         const blocks = mode === 'block' ? splitList($('#blockNo').val()) : [];
         const first = blocks.length ? blocks[0] : '블럭번호';
         const names = [];
-        if (pidTest.block) names.push(first);
-        if (pidTest.elp) names.push('EL_P' + first);
+        if (sel.block != null) names.push(first + ' ' + verText(sel.block));
+        if (sel.elp != null) names.push('EL_P' + first + ' ' + verText(sel.elp));
         const more = mode === 'opt' ? ' (고른 품목의 블럭 전체)' : (blocks.length > 1 ? ' 외 ' + (blocks.length - 1) + '개 블럭' : '');
-        $('#pidTestHint').text('테스트 버전 : ' + names.join(', ') + more);
+        $('#pidTestHint').text('PID 버전 : ' + names.join(', ') + more);
     }
-    /** 테스트로 고른 PID 표시 (없으면 빈 문자열) ex) " (테스트 : 블럭, EL_P블럭)" */
+    /** 최신이 아닌 PID 버전 표시 (없으면 빈 문자열) ex) " (PID 버전 : 블럭 v10, EL_P블럭 테스트 (-1))" */
     function pidTestLabel(t, pre, post) {
         const on = [];
-        if (t.block) on.push('블럭');
-        if (t.elp) on.push('EL_P블럭');
-        return on.length ? pre + 'PID 테스트 : ' + on.join(', ') + post : '';
+        if (t.block != null) on.push('블럭 ' + verText(t.block));
+        if (t.elp != null) on.push('EL_P블럭 ' + verText(t.elp));
+        return on.length ? pre + 'PID 버전 : ' + on.join(', ') + post : '';
     }
 
     /* ── 블럭 품목 (최대 3개) ── */
@@ -762,7 +843,7 @@
 
         const token = ++renderToken;
         const started = performance.now();
-        const usedPidTest = { block: pidTest.block, elp: pidTest.elp };
+        const usedPidTest = pidSelection();
 
         simRows = [];
         setToolsEnabled(false);
@@ -789,8 +870,8 @@
                 hogi: hogiList.join(','),
                 blockNo: mode === 'block' ? blockList.join(',') : '',
                 blockOpt: mode === 'opt' ? opts.join(',') : '',
-                pidTestBlock: usedPidTest.block,
-                pidTestElp: usedPidTest.elp
+                pidVerBlock: usedPidTest.block == null ? '' : usedPidTest.block,
+                pidVerElp: usedPidTest.elp == null ? '' : usedPidTest.elp
             },
             dataType: 'json'
         }).done(function (res) {
@@ -1203,6 +1284,9 @@
     })(document.querySelector('.tbl-scroll'));
 
     /* ── CSV 다운로드 (현재 필터와 무관하게 전체) ── */
+    /** CSV 파일명용 버전 표시 ex) _TESTBLK, _BLKv10 (최신이면 빈 문자열) */
+    function verSuffix(name, v) { return v == null ? '' : v === -1 ? '_TEST' + name : '_' + name + 'v' + v; }
+
     function downloadCsv() {
         if (!simRows.length) return;
         const cols = [
@@ -1221,7 +1305,7 @@
         const hogis = Array.from(new Set(simRows.map(function (r) { return r.productNo; })));
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'BLOCK_SIMUL_' + (hogis.length === 1 ? hogis[0] : hogis.length + '호기') + (lastPidTest.block ? '_TESTBLK' : '') + (lastPidTest.elp ? '_TESTELP' : '') + '.csv';
+        a.download = 'BLOCK_SIMUL_' + (hogis.length === 1 ? hogis[0] : hogis.length + '호기') + verSuffix('BLK', lastPidTest.block) + verSuffix('ELP', lastPidTest.elp) + '.csv';
         a.click();
         URL.revokeObjectURL(a.href);
     }

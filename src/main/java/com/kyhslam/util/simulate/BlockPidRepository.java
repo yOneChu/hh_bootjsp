@@ -17,13 +17,23 @@ public class BlockPidRepository {
 
 	/** true 면 PID 마다 테스트 버전(VERSION = -1)이 있으면 그것을, 없으면 최신 버전을 사용 */
 	private final boolean useTestVersion;
+	/** PID → 지정 버전 (화면에서 블럭 1개의 버전을 고른 경우) */
+	private final Map<String, Integer> pinnedVersions;
 
 	public BlockPidRepository() {
 		this(false);
 	}
 
 	public BlockPidRepository(boolean useTestVersion) {
+		this(useTestVersion, Collections.<String, Integer>emptyMap());
+	}
+
+	/**
+	 * @param pinnedVersions PID → 지정 버전. 이 PID 들은 지정 버전으로, 나머지는 useTestVersion 규칙대로 계산한다.
+	 */
+	public BlockPidRepository(boolean useTestVersion, Map<String, Integer> pinnedVersions) {
 		this.useTestVersion = useTestVersion;
+		this.pinnedVersions = pinnedVersions;
 	}
 
 	public boolean isUseTestVersion() { return useTestVersion; }
@@ -39,12 +49,17 @@ public class BlockPidRepository {
 		public int getVersion() { return version; }
 	}
 
-	/** 최신 버전 PID 정보 (없으면 null). 테스트 모드면 테스트 버전을 먼저 찾는다. */
+	/** 최신 버전 PID 정보 (없으면 null). 지정 버전이 있으면 그 버전을, 테스트 모드면 테스트 버전을 먼저 찾는다. */
 	public PidInfo getLastPid(BlockDb db, String pid) throws SQLException {
 		Object cached = lastPidCache.get(pid);
 		if (cached == null) {
 			Map<String, String> row = null;
-			if (useTestVersion)
+			Integer pinned = pinnedVersions.get(pid);
+			if (pinned != null)
+				row = db.queryForFirst(
+						" select a.pid, a.method, a.version from variant_h a where a.pid = ? and a.version = ? order by a.houid desc ",
+						pid, String.valueOf(pinned));
+			if (row == null && useTestVersion)
 				row = db.queryForFirst(
 						" select a.pid, a.method, a.version from variant_h a where a.pid = ? and a.version = '-1' order by a.houid desc ", pid);
 			if (row == null)
@@ -78,6 +93,8 @@ public class BlockPidRepository {
 						if (r.get("PID") != null)
 							set.add(r.get("PID"));
 					}
+					// 지정 버전 PID 도 PID 로 인식 (테스트 버전만 있는 신규 PID 대비)
+					set.addAll(pinnedVersions.keySet());
 					allPids = Collections.unmodifiableSet(set);
 				}
 			}

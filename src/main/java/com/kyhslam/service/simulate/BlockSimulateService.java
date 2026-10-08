@@ -55,24 +55,38 @@ public class BlockSimulateService {
      */
     public List<SimulateBomVO> simulateBlock(List<String> productNoList, List<String> blockList, List<String> blockOPTList,
                                              boolean testBlockPid, boolean testElpPid) throws Exception {
+        return simulateBlock(productNoList, blockList, blockOPTList,
+                testBlockPid ? (Integer) PidConsts.TEST_VERSION : null, testElpPid ? (Integer) PidConsts.TEST_VERSION : null);
+    }
+
+    /**
+     * 입력 블럭의 PID 를 고른 버전으로 계산한다.
+     * @param blockPidVersion 입력 블럭의 PICK/PID (ex. B128B08) 버전. null : 최신, -1 : 테스트 버전 우선(하위 PID 포함), 그 외 : 그 PID 만 지정 버전
+     * @param elpPidVersion   입력 블럭의 EL_P 블럭 PID (ex. EL_PB128B08) 버전 (나머지 EL_P 는 최신)
+     */
+    public List<SimulateBomVO> simulateBlock(List<String> productNoList, List<String> blockList, List<String> blockOPTList,
+                                             Integer blockPidVersion, Integer elpPidVersion) throws Exception {
         Map<String, Object> data = new HashMap<String, Object>();
         data.put("productNoList", productNoList);
         data.put("blockList", blockList);
         data.put("blockOPTList", blockOPTList);
-        data.put("testBlockPid", testBlockPid);
-        data.put("testElpPid", testElpPid);
+        data.put("blockPidVersion", blockPidVersion);
+        data.put("elpPidVersion", elpPidVersion);
 
         long start = System.currentTimeMillis();
         List<SimulateBomVO> result = simulateBlock(data);
         log.info("[simulateBlock] {} / {}{}{} 완료 : {}ms, {}건", productNoList, blockList,
-                testBlockPid ? " (블럭 PID 테스트)" : "", testElpPid ? " (EL_P 블럭 PID 테스트)" : "",
+                blockPidVersion == null ? "" : " (블럭 PID 버전 " + blockPidVersion + ")",
+                elpPidVersion == null ? "" : " (EL_P 블럭 PID 버전 " + elpPidVersion + ")",
                 System.currentTimeMillis() - start, result.size());
         return result;
     }
 
     /**
      * BOMController.simulateBlock 와 동일한 입력/반환
-     * @param data productNoList(List), blockList(List), blockOPTList(List), testBlockPid(Boolean, 선택), testElpPid(Boolean, 선택)
+     * @param data productNoList(List), blockList(List), blockOPTList(List),
+     *             blockPidVersion(Integer, 선택), elpPidVersion(Integer, 선택),
+     *             testBlockPid(Boolean, 선택 : blockPidVersion = -1), testElpPid(Boolean, 선택 : elpPidVersion = -1)
      */
     public List<SimulateBomVO> simulateBlock(Map<String, Object> data) throws Exception {
         if (!data.containsKey("productNoList"))
@@ -113,8 +127,85 @@ public class BlockSimulateService {
             productNoList.add(tempnum);
         }
 
-        return simulateBlockBatch(productNoList, blockList,
-                Boolean.TRUE.equals(data.get("testBlockPid")), Boolean.TRUE.equals(data.get("testElpPid")));
+        Integer blockPidVersion = toVersion(data.get("blockPidVersion"), data.get("testBlockPid"));
+        Integer elpPidVersion = toVersion(data.get("elpPidVersion"), data.get("testElpPid"));
+        // 지정 버전(-1 이외)은 블럭 1개를 입력했을 때만 쓴다 (블럭마다 버전이 다르므로)
+        if (isPinned(blockPidVersion) || isPinned(elpPidVersion)) {
+            if (blockOPTList.size() > 0 || blockList.stream().distinct().count() != 1)
+                throw new HdelBusinessException("PID 버전 지정은 블럭번호 1개를 입력했을 때만 가능합니다.");
+        }
+
+        return simulateBlockBatch(productNoList, blockList, blockPidVersion, elpPidVersion);
+    }
+
+    /** blockPidVersion / elpPidVersion 값 (없으면 testXxxPid 가 true 일 때 -1, 아니면 null : 최신) */
+    private static Integer toVersion(Object version, Object test) {
+        if (version != null && !"".equals(String.valueOf(version)))
+            return Integer.valueOf(String.valueOf(version).trim());
+        return Boolean.TRUE.equals(test) ? (Integer) PidConsts.TEST_VERSION : null;
+    }
+
+    private static boolean isPinned(Integer version) {
+        return version != null && version != PidConsts.TEST_VERSION;
+    }
+
+    /**
+     * 고른 버전으로 계산할 PID 저장소 (null : 최신 버전 공유 캐시를 그대로 사용)
+     * -1 은 기존 테스트 모드(하위 PID 도 테스트 버전 우선), 그 외 버전은 pids 만 지정 버전이고 하위 PID 는 최신이다.
+     * 고른 버전은 같은 버전을 직접 고쳐 가며 쓸 수 있으므로 공유 캐시를 쓰지 않고 요청마다 새로 읽는다.
+     */
+    private static BlockPidRepository versionPidRepository(Integer version, Collection<String> pids) {
+        if (version == null)
+            return null;
+        if (version == PidConsts.TEST_VERSION)
+            return new BlockPidRepository(true);
+        Map<String, Integer> pinned = new HashMap<String, Integer>();
+        for (String pid : pids)
+            pinned.put(pid, version);
+        return new BlockPidRepository(false, pinned);
+    }
+
+    /** EL_P(SH_P, SV_P) + 블럭번호 PID 목록 */
+    private static List<String> elpPids(Collection<String> blockList) {
+        List<String> pids = new ArrayList<String>();
+        for (String prefix : ELP_PREFIXES) {
+            for (String blockNo : blockList)
+                pids.add(prefix.replace("%", "") + blockNo);
+        }
+        return pids;
+    }
+
+    private static final String[] ELP_PREFIXES = { BlockConsts.EL_P_PREFIX, BlockConsts.SHIPEL_P_PREFIX, BlockConsts.SVEL_P_PREFIX };
+
+    /**
+     * 블럭 1개의 PID 버전 목록 (화면의 버전 선택용)
+     * @return block : 블럭 PID (ex. B128B08) 버전, elp : EL_P(SH_P, SV_P) 블럭 PID 버전.
+     *         각 항목은 {version, latest}. 테스트 버전(-1)이 맨 앞, 나머지는 버전 내림차순
+     */
+    public Map<String, Object> getPidVersions(String blockNo) throws Exception {
+        Map<String, Object> result = new HashMap<String, Object>();
+        try (BlockDb db = BlockDb.open()) {
+            result.put("block", findPidVersions(db, Collections.singletonList(blockNo)));
+            result.put("elp", findPidVersions(db, elpPids(Collections.singletonList(blockNo))));
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> findPidVersions(BlockDb db, List<String> pids) throws Exception {
+        String sql = " SELECT A.VERSION, MAX(CASE WHEN B.LAST_HOUID IS NULL THEN 'N' ELSE 'Y' END) LATEST "
+                + " FROM VARIANT_H A LEFT JOIN VARIANT_ID B ON B.LAST_HOUID = A.HOUID "
+                + " WHERE A.PID IN (" + pids.stream().map(p -> "?").collect(Collectors.joining(",")) + ") "
+                + " GROUP BY A.VERSION ";
+        List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
+        for (Map<String, String> row : db.queryForList(sql, pids.toArray())) {
+            Map<String, Object> m = new HashMap<String, Object>();
+            m.put("version", BlockUtil.parseInt(row.get("VERSION")));
+            m.put("latest", "Y".equals(row.get("LATEST")));
+            list.add(m);
+        }
+        list.sort(Comparator.comparing((Map<String, Object> m) -> (Integer) m.get("version") != PidConsts.TEST_VERSION)
+                .thenComparing(m -> (Integer) m.get("version"), Comparator.reverseOrder()));
+        return list;
     }
 
     /** SubaeDaoImpl.findBLocksByOPT */
@@ -132,23 +223,23 @@ public class BlockSimulateService {
      * EBOMServiceImpl.simulateBlockBatch : 호기별 병렬(4) 실행 후 호기, 블록 순 정렬
      * 호기별 스레드마다 PLMDBConnection 커넥션을 하나씩 열고 닫는다.
      */
-    private List<SimulateBomVO> simulateBlockBatch(List<String> productNoList, List<String> blockList, boolean testBlockPid, boolean testElpPid) {
+    private List<SimulateBomVO> simulateBlockBatch(List<String> productNoList, List<String> blockList, Integer blockPidVersion, Integer elpPidVersion) {
         List<SimulateBomVO> res = Collections.synchronizedList(new ArrayList<SimulateBomVO>());
 
         List<String> distinctProductNoList = productNoList.stream().distinct().collect(Collectors.toList());
         List<String> distinctBlockList = blockList.stream().distinct().collect(Collectors.toList());
 
-        // 기본은 최신 버전(공유 캐시). 고른 대상(블럭 PID / EL_P 블럭 PID)만 테스트 버전 우선 저장소로 계산한다.
-        // 테스트 버전은 같은 버전(-1)을 직접 고쳐 가며 쓰므로 공유 캐시를 쓰지 않고 요청마다 새로 읽는다.
+        // 기본은 최신 버전(공유 캐시). 고른 대상(블럭 PID / EL_P 블럭 PID)만 고른 버전의 저장소로 계산한다.
         BlockPidRepository pidRepository = getPidRepository();
-        BlockPidRepository testPidRepository = testBlockPid || testElpPid ? new BlockPidRepository(true) : null;
+        BlockPidRepository blockPidRepository = versionPidRepository(blockPidVersion, distinctBlockList);
+        BlockPidRepository elpPidRepository = versionPidRepository(elpPidVersion, elpPids(distinctBlockList));
         boolean saveErrorLog = Boolean.getBoolean("block.errorlog");
 
         ForkJoinPool forkJoinPool = new ForkJoinPool(BlockConsts.SIMULATE_THREAD_COUNT);
         try {
             forkJoinPool.submit(() -> distinctProductNoList.parallelStream().map(productNo -> {
                 try (BlockDb db = BlockDb.open()) {
-                    return simulateBlock(new BlockContext(db, pidRepository, testPidRepository, testBlockPid, testElpPid, saveErrorLog), productNo, distinctBlockList);
+                    return simulateBlock(new BlockContext(db, pidRepository, blockPidRepository, elpPidRepository, elpPidVersion, saveErrorLog), productNo, distinctBlockList);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
