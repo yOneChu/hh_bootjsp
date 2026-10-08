@@ -192,7 +192,10 @@
         }
         .opt-chip[aria-pressed="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
 
-        .tb-action { display: flex; align-items: center; padding: 11px 14px; }
+        .tb-action { display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 11px 14px; }
+        .tb-action .tb-label-row { margin-bottom: 0; }
+        .tb-action .tb-hint { margin-top: 0; max-width: 240px; }
+        #pidTestSeg button[aria-pressed="true"] { background: #C2410C; color: #fff; }
         .btn-run {
             display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px;
             border: none; border-radius: 8px; cursor: pointer; font-family: inherit;
@@ -511,10 +514,18 @@
             </div>
 
             <div class="tb-cell tb-action">
+                <div class="tb-label-row">
+                    <span class="tb-label" id="pidTestLabel">PID 테스트 버전</span>
+                    <div class="seg" id="pidTestSeg" role="group" aria-labelledby="pidTestLabel">
+                        <button type="button" data-test="block" aria-pressed="false" title="입력한 블럭의 PICK/PID (예: B128B08) 를 테스트 버전(-1)으로 계산합니다">블럭</button>
+                        <button type="button" data-test="elp" aria-pressed="false" title="입력한 블럭의 EL_P 블럭 PID (예: EL_PB128B08) 를 테스트 버전(-1)으로 계산합니다. 나머지 EL_P 는 최신입니다">EL_P블럭</button>
+                    </div>
+                </div>
                 <button type="button" id="btnSearch" class="btn-run" onclick="runSimulate()">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8V4z"/></svg>
                     시뮬레이션 실행
                 </button>
+                <p class="tb-hint" id="pidTestHint">PID 는 최신 버전으로 계산합니다</p>
             </div>
         </div>
 
@@ -642,6 +653,8 @@
     let simRows = [];          // 마지막 조회 결과 (호기, 블록 순)
     let renderToken = 0;       // 재조회 시 진행 중인 순차 출력을 중단하기 위한 토큰
     let mode = 'block';        // block : 블럭번호 입력 / opt : 블럭 품목 선택
+    let pidTest = { block: false, elp: false };     // 테스트 버전(-1)으로 계산할 PID : 블럭 PID / EL_P 블럭 PID
+    let lastPidTest = { block: false, elp: false }; // 마지막 조회에 쓴 값 (집계, CSV 파일명)
     let ctOn = new Set(CT_ORDER);
     let elapsedTimer = null;
 
@@ -656,7 +669,35 @@
         $('#optField').toggle(mode === 'opt');
         $('#hogiHint').text(mode === 'opt' ? '블럭 품목으로 계산할 때는 한 호기만 넣습니다' : '여러 호기는 쉼표로 구분합니다');
         $('#blockHint').text(mode === 'opt' ? '고른 품목의 블럭을 모두 계산합니다 (최대 3개)' : '여러 블럭은 쉼표로 구분합니다');
+        updatePidTestHint();
     });
+
+    /* ── PID 테스트 버전 : 블럭 PID / EL_P 블럭 PID 를 각각 고른다 ── */
+    $('#pidTestSeg').on('click', 'button', function () {
+        const key = $(this).data('test');
+        pidTest[key] = !pidTest[key];
+        $(this).attr('aria-pressed', String(pidTest[key]));
+        updatePidTestHint();
+    });
+    $('#blockNo').on('input', updatePidTestHint);
+
+    function updatePidTestHint() {
+        if (!pidTest.block && !pidTest.elp) { $('#pidTestHint').text('PID 는 최신 버전으로 계산합니다'); return; }
+        const blocks = mode === 'block' ? splitList($('#blockNo').val()) : [];
+        const first = blocks.length ? blocks[0] : '블럭번호';
+        const names = [];
+        if (pidTest.block) names.push(first);
+        if (pidTest.elp) names.push('EL_P' + first);
+        const more = mode === 'opt' ? ' (고른 품목의 블럭 전체)' : (blocks.length > 1 ? ' 외 ' + (blocks.length - 1) + '개 블럭' : '');
+        $('#pidTestHint').text('테스트 버전 : ' + names.join(', ') + more);
+    }
+    /** 테스트로 고른 PID 표시 (없으면 빈 문자열) ex) " (테스트 : 블럭, EL_P블럭)" */
+    function pidTestLabel(t, pre, post) {
+        const on = [];
+        if (t.block) on.push('블럭');
+        if (t.elp) on.push('EL_P블럭');
+        return on.length ? pre + 'PID 테스트 : ' + on.join(', ') + post : '';
+    }
 
     /* ── 블럭 품목 (최대 3개) ── */
     $('#optChips').on('click', '.opt-chip', function () {
@@ -721,6 +762,7 @@
 
         const token = ++renderToken;
         const started = performance.now();
+        const usedPidTest = { block: pidTest.block, elp: pidTest.elp };
 
         simRows = [];
         setToolsEnabled(false);
@@ -729,7 +771,8 @@
         $('#renderProgress').css('width', '0');
         $('#btnSearch').prop('disabled', true);
 
-        const target = mode === 'opt' ? '품목 ' + opts.join(', ') + ' 블럭' : '블럭 ' + blockList.length + '개';
+        const target = (mode === 'opt' ? '품목 ' + opts.join(', ') + ' 블럭' : '블럭 ' + blockList.length + '개')
+            + pidTestLabel(usedPidTest, ' (', ')');
         setBody(stateRow(
             '<div class="calc-dots" aria-hidden="true"><i></i><i></i><i></i></div>'
             + '<p class="state-title">' + esc(hogiList.join(', ')) + ' 의 ' + esc(target) + ' 를 계산하고 있습니다</p>',
@@ -745,13 +788,16 @@
             data: {
                 hogi: hogiList.join(','),
                 blockNo: mode === 'block' ? blockList.join(',') : '',
-                blockOpt: mode === 'opt' ? opts.join(',') : ''
+                blockOpt: mode === 'opt' ? opts.join(',') : '',
+                pidTestBlock: usedPidTest.block,
+                pidTestElp: usedPidTest.elp
             },
             dataType: 'json'
         }).done(function (res) {
             if (token !== renderToken) return;
             const elapsed = (performance.now() - started) / 1000;
             simRows = (res && res.list) || [];
+            lastPidTest = usedPidTest;
             simRows.forEach(function (r) { r.changeType = r.changeType || 'SAME'; });
             // 바뀐 것이 있으면 바뀐 것만 먼저 보여준다
             const anyChanged = simRows.some(function (r) { return r.changeType !== 'SAME'; });
@@ -787,7 +833,8 @@
             $('#kpi' + ct).text(cnt[ct].toLocaleString()).toggleClass('zero', cnt[ct] === 0);
         });
         $('#kpiElapsed').text(elapsed.toFixed(1));
-        $('#kpiScopeSub').text(hogiList.length > 1 ? '호기 ' + hogiList.length + '개 계산 시간' : '계산 시간');
+        $('#kpiScopeSub').text((hogiList.length > 1 ? '호기 ' + hogiList.length + '개 계산 시간' : '계산 시간')
+            + pidTestLabel(lastPidTest, ' · ', ''));
 
         $('#matchRate').text(total ? (cnt.SAME / total * 100).toFixed(1) + '%' : '-');
         $('#matchBar span').css('width', '0');
@@ -1174,7 +1221,7 @@
         const hogis = Array.from(new Set(simRows.map(function (r) { return r.productNo; })));
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'BLOCK_SIMUL_' + (hogis.length === 1 ? hogis[0] : hogis.length + '호기') + '.csv';
+        a.download = 'BLOCK_SIMUL_' + (hogis.length === 1 ? hogis[0] : hogis.length + '호기') + (lastPidTest.block ? '_TESTBLK' : '') + (lastPidTest.elp ? '_TESTELP' : '') + '.csv';
         a.click();
         URL.revokeObjectURL(a.href);
     }

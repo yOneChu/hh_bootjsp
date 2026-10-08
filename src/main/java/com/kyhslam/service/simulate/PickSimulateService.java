@@ -71,7 +71,7 @@ public class PickSimulateService {
      * @param elvOuid ex) elv_info$vf@a810066d
      */
     private HashMap<String, Object> bomCalculate(PidDb db, PidSpecLoader loader, String elvOuid, List<String> optList, List<String> blockNos,
-            HashMap<String, String> separateInfo, List<Map<String, Object>> bomList) throws Exception {
+                                                 HashMap<String, String> separateInfo, List<Map<String, Object>> bomList) throws Exception {
         if (!elvOuid.startsWith(PidConsts.PREFIX_ELVINFO_OUID))
             throw new IllegalArgumentException("영업사양(elv_info) ouid 가 아닙니다 : " + elvOuid);
 
@@ -146,7 +146,7 @@ public class PickSimulateService {
 
     /** SubaeManagerPick.pickAndCalculatePid */
     private HashMap<String, Object> pickAndCalculatePid(PidDb db, PidSpecLoader loader, PickDao dao, HashMap elvDataMap, List<Map> floorMasterList,
-            List<PickDao.BlockInfo> blockList, List<PickDao.BlockInfo> floorBlockList, HashMap<String, String> separateInfo, List<Map<String, Object>> bomList) throws Exception {
+                                                        List<PickDao.BlockInfo> blockList, List<PickDao.BlockInfo> floorBlockList, HashMap<String, String> separateInfo, List<Map<String, Object>> bomList) throws Exception {
 
         HashMap<String, Object> pickMap = new HashMap<String, Object>();
 
@@ -175,7 +175,7 @@ public class PickSimulateService {
 
     /** SubaeManagerPick.findBom */
     private void findBom(PickDao dao, Map dataMap, PickVariableAction vAction, PickDao.BlockInfo blockInfo, String floorNo,
-            HashMap<String, Object> oMap, HashMap<String, String> separateInfo, List<Map<String, Object>> bomList) throws Exception {
+                         HashMap<String, Object> oMap, HashMap<String, String> separateInfo, List<Map<String, Object>> bomList) throws Exception {
 
         for (PickDao.PickInfo pickInfo : blockInfo.pickList) {
             String pick = pickInfo.pick;

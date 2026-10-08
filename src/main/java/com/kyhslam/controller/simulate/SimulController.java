@@ -76,12 +76,15 @@ public class SimulController {
     @CrossOrigin
     public ResponseEntity<Map<String, Object>> simulateBlock(@RequestParam String hogi,
                                                              @RequestParam(required = false) String blockNo,
-                                                             @RequestParam(required = false) String blockOpt) {
-        //http://localhost:8070/simulate/simulateBlock?hogi=N26143L01&blockNo=E321A
-        log.info("simulateBlock hogi:{}, blockNo:{}, blockOpt:{}", hogi, blockNo, blockOpt);
+                                                             @RequestParam(required = false) String blockOpt,
+                                                             @RequestParam(defaultValue = "false") boolean pidTestBlock,
+                                                             @RequestParam(defaultValue = "false") boolean pidTestElp) {
+        //http://localhost:8070/simulate/simulateBlock?hogi=N26143L01&blockNo=B128B08&pidTestBlock=true&pidTestElp=true
+        log.info("simulateBlock hogi:{}, blockNo:{}, blockOpt:{}, pidTestBlock:{}, pidTestElp:{}", hogi, blockNo, blockOpt, pidTestBlock, pidTestElp);
 
         try {
-            List<SimulateBomVO> list = blockSimulateService.simulateBlock(splitParam(hogi), splitParam(blockNo), splitParam(blockOpt));
+            List<SimulateBomVO> list = blockSimulateService.simulateBlock(splitParam(hogi), splitParam(blockNo), splitParam(blockOpt),
+                    pidTestBlock, pidTestElp);
 
             Map<String, Object> result = new HashMap<>();
             result.put("list", list);

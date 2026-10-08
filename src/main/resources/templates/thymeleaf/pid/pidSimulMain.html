@@ -300,6 +300,9 @@
         .out-item b { color: var(--true-strong); }
         .out-item .call { color: #4338ca; text-decoration: underline; cursor: pointer; }
         .out-item .calc { color: var(--muted); }
+        /* KEY 가 CALL 인 VAL: 클릭하면 새 탭에서 해당 PID 시뮬 실행 */
+        .call-pid { color: #4338ca; text-decoration: underline; cursor: pointer; }
+        .call-pid:hover { color: #312e81; }
 
         .empty, .msg {
             padding: 60px 40px;
@@ -568,6 +571,23 @@
         return `${PROXY_URL}?${qs}`;
     }
 
+    // ---------- CALL PID 새 탭 실행 ----------
+    // KEY 가 CALL 인 VAL(호출 PID)을 클릭 가능한 링크로 감싼다
+    function callPidLink(val, html) {
+        const pid = nvl(val).trim();
+        if (!pid) return html !== undefined ? html : esc(val);
+        return `<span class="call-pid" data-call-pid="${esc(pid)}" title="새 탭에서 ${esc(pid)} 시뮬 실행">`
+            + (html !== undefined ? html : esc(val)) + '</span>';
+    }
+
+    // 현재 화면의 호기번호 + 호출 PID 로 새 탭을 열어 시뮬 실행 (init 에서 URL 파라미터로 자동 실행)
+    function openCallPid(pid) {
+        const hogi = (state.query && state.query.hogi) || getParam('hogi');
+        if (!hogi || !pid) return;
+        const qs = new URLSearchParams({ hogi, PID: pid });
+        window.open(`${location.pathname}?${qs}`, '_blank');
+    }
+
     function setAdvOpen(open) {
         $('advPanel').hidden = !open;
         $('btnAdv').setAttribute('aria-expanded', String(open));
@@ -651,7 +671,7 @@
 
             if (key === 'CALL') {
                 const cnt = Object.keys(resultMap).length;
-                parts.push(`<span class="out-item">CALL(<b>${esc(val)}</b>) → `
+                parts.push(`<span class="out-item">CALL(<b>${callPidLink(val)}</b>) → `
                     + `<span class="call" data-idx="${idx}">resultMap ${cnt}건 보기</span></span>`);
             } else if (key === 'OUTPUT') {
                 // OUTPUT 선언 라인: resultMap 키가 'OUTPUT' + DOUID + 컬럼인덱스 형태로 저장됨
@@ -772,7 +792,7 @@
                 }
                 for (let j = 0; j < maxRes; j++) {
                     h += `<td class="key">${esc(keys[j])}</td>`;
-                    h += `<td class="pair-end">${br(vals[j])}</td>`;
+                    h += `<td class="pair-end">${nvl(keys[j]) === 'CALL' ? callPidLink(vals[j], br(vals[j])) : br(vals[j])}</td>`;
                 }
             } else {
                 let specChips = '';
@@ -786,7 +806,7 @@
                 for (let j = 0; j < usedLength(keys, vals); j++) {
                     if (nvl(keys[j]) === '' && nvl(vals[j]) === '') continue;
                     resChips += `<span class="chip res" title="KEY${j + 1}"><span class="k">${esc(keys[j])}</span>`
-                        + (nvl(vals[j]) !== '' ? ` = <span class="v">${br(vals[j])}</span>` : '') + '</span>';
+                        + (nvl(vals[j]) !== '' ? ` = <span class="v">${nvl(keys[j]) === 'CALL' ? callPidLink(vals[j], br(vals[j])) : br(vals[j])}</span>` : '') + '</span>';
                 }
                 h += `<td class="chips">${specChips}</td><td class="chips">${resChips}</td>`;
             }
@@ -955,7 +975,7 @@
             for (let j = 0; j < m; j++) {
                 keySet.add(nvl(keys[j]));
                 const detail = calcDetail(vals[j], idx);
-                html += `<tr><th>${esc(keys[j])}</th><td>${br(vals[j])}`
+                html += `<tr><th>${esc(keys[j])}</th><td>${nvl(keys[j]) === 'CALL' ? callPidLink(vals[j], br(vals[j])) : br(vals[j])}`
                     + (detail ? `<div class="calc">= ${esc(detail)}</div>` : '') + '</td></tr>';
             }
             html += '</tbody></table>';
@@ -1325,6 +1345,8 @@
     let suppressClick = false;
     area.addEventListener('click', (e) => {
         if (suppressClick) return;
+        const callPid = e.target.closest('.call-pid[data-call-pid]');
+        if (callPid) return openCallPid(callPid.dataset.callPid);
         const jump = e.target.closest('.jump[data-goto]');
         if (jump) return jumpToAddr(jump.dataset.goto);
         const tr = e.target.closest('tbody tr[data-idx]');
@@ -1360,7 +1382,7 @@
     let drag = null;
     area.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
-        if (e.target.closest('.jump, .call, a, button, input, select, textarea')) return;
+        if (e.target.closest('.jump, .call, .call-pid, a, button, input, select, textarea')) return;
         // 스크롤바 위에서 누른 경우는 브라우저 기본 동작
         if (e.offsetX > area.clientWidth || e.offsetY > area.clientHeight) return;
         drag = { x: e.clientX, y: e.clientY, sl: area.scrollLeft, st: area.scrollTop, moved: false };
@@ -1421,6 +1443,10 @@
 
     // ---------- 이벤트: 상세 패널 ----------
     $('btnCloseDrawer').addEventListener('click', closeDrawer);
+    $('drawerBody').addEventListener('click', (e) => {
+        const callPid = e.target.closest('.call-pid[data-call-pid]');
+        if (callPid) openCallPid(callPid.dataset.callPid);
+    });
     $('btnPrevRow').addEventListener('click', () => { moveSelection(-1); area.focus({ preventScroll: true }); });
     $('btnNextRow').addEventListener('click', () => { moveSelection(1); area.focus({ preventScroll: true }); });
 

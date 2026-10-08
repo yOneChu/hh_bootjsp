@@ -2135,44 +2135,33 @@ public class BlockPIDJavaMethod {
 
 	}
 
+	/**
+	 * 프로젝트의 호기 목록. 층별 EL_P 에서 반복 호출되므로 새 커넥션 대신 ctx 의 커넥션을 쓰고 프로젝트별로 한 번만 조회한다.
+	 * 조회 실패 시 원본과 같이 빈 목록을 반환한다 (실패 결과는 저장하지 않음).
+	 */
 	private List<String> getCOUNT_ELData(String hogiNum_project_no)
 	{
 		List<String> resultList = new ArrayList<String>();
-		Connection con = null;
-		PreparedStatement pstmt = null;
-		StringBuffer sql = new StringBuffer();
-		ResultSet rs = null;
 
 		try
 		{
-			con = PLMDBConnection.getConnection();
+			resultList = ctx.cached("COUNT_EL#" + hogiNum_project_no, () -> {
+				StringBuffer sql = new StringBuffer();
+				sql.append(" select md$number from elv_info$vf, elv_info$id where vf$ouid=id$wip and md$Number like ?||'%' ");
+				sql.append(" union ");
+				sql.append(" select md$number from shipelv_info$vf, shipelv_info$id where vf$ouid=id$wip and md$Number like ?||'%'  ");
+				sql.append(" union ");
+				sql.append(" select md$number from JQPR_info$vf, jqpr_info$id where vf$ouid=id$wip and md$Number like ?||'%'  ");
 
-			sql.append(" select md$number from elv_info$vf, elv_info$id where vf$ouid=id$wip and md$Number like ?||'%' ");
-			sql.append(" union ");
-			sql.append(" select md$number from shipelv_info$vf, shipelv_info$id where vf$ouid=id$wip and md$Number like ?||'%'  ");
-			sql.append(" union ");
-			sql.append(" select md$number from JQPR_info$vf, jqpr_info$id where vf$ouid=id$wip and md$Number like ?||'%'  ");
-
-			pstmt = con.prepareStatement(sql.toString());
-			int idx = 1;
-			pstmt.setString(idx++,hogiNum_project_no);
-			pstmt.setString(idx++,hogiNum_project_no);
-			pstmt.setString(idx++,hogiNum_project_no);
-
-			rs = pstmt.executeQuery();
-
-			while(rs.next())
-			{
-				resultList.add(rs.getString("md$number"));
-			}
+				List<String> list = new ArrayList<String>();
+				for (Map<String, String> row : ctx.getDb().queryForList(sql.toString(), hogiNum_project_no, hogiNum_project_no, hogiNum_project_no))
+					list.add(row.get("MD$NUMBER"));
+				return Collections.unmodifiableList(list);
+			});
 		}
 		catch(Exception e)
 		{
 			e.printStackTrace();
-		}
-		finally
-		{
-			PLMDBConnection.disconnect(con, pstmt, rs);
 		}
 
 		return resultList;
@@ -2986,8 +2975,9 @@ public class BlockPIDJavaMethod {
 			throws Exception {
 		PidVariantMap result = new PidVariantMap();
 		String hogiNum  = BlockUtil.NVL(elvEnt.get("EL_ZORINO"),"");
-		PidComDb commonDbDao = new PidComDb();
-		List<Map> ZPPT027DATA = commonDbDao.getZPPT027DATA(hogiNum);
+		// 공통DB(SRM) 는 조회마다 새로 접속하므로 같은 호기는 한 번만 조회 (층별 EL_P 에서 반복 호출됨)
+		List<Map> ZPPT027DATA = ctx.cached("ZPPT027#" + hogiNum,
+				() -> Collections.unmodifiableList(new PidComDb().getZPPT027DATA(hogiNum)));
 
 		
 		  SimpleDateFormat dtFormat = new SimpleDateFormat("yyyyMMdd");

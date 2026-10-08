@@ -1,6 +1,7 @@
 package com.kyhslam.util.simulate;
 
 import com.kyhslam.util.simulate.BlockInfo.PickInfo;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -9,6 +10,7 @@ import java.util.stream.Collectors;
 /**
  * dyna.plmetc.subae.model.SubaeManager 의 bomSimulate() 관련 부분만 옮긴 클래스
  */
+@Slf4j
 public class BlockSubaeManager {
 
 	private final BlockContext ctx;
@@ -27,6 +29,15 @@ public class BlockSubaeManager {
 	private final List<String> bno_list_all = new ArrayList<String>();
 	private final List<String> bno_list_all_check = new ArrayList<String>();
 
+	/** partOuid → 하위 BOM (같은 파트가 여러 블럭/층에서 pick 되어도 한 번만 조회, 인스턴스 = 요청 1건의 호기 1건) */
+	private final Map<String, List<Map<String, String>>> partOfPartCache = new HashMap<>();
+	private int partOfPartHit = 0;
+
+	/** 요청한 블럭번호 목록 */
+	private List<String> requestBlockList = Collections.emptyList();
+	/** 테스트 버전으로 계산할 EL_P 블럭 PID (EL_P + 블럭번호) */
+	private Set<String> elpTestPids = Collections.emptySet();
+
 	public BlockSubaeManager(BlockContext ctx, String elvOuid) {
 		this.ctx = ctx;
 		this.elvOuid = elvOuid;
@@ -44,6 +55,7 @@ public class BlockSubaeManager {
 		List<BlockInfo> blockInfoList = null;
 		List<BlockInfo> floorBlockInfoList = null;
 
+		long t = System.currentTimeMillis();
 		BlockSpecLoader.SpecObject elv = ctx.getSpecLoader().load(elvOuid);
 		if (elv == null)
 			throw new Exception("공사정보가 없습니다. ouid=" + elvOuid);
@@ -53,27 +65,46 @@ public class BlockSubaeManager {
 			// pidSimul 과 같이 층 정보는 요청한 경우에만 읽는다 (BlockConsts.USE_FLOOR)
 			if (BlockConsts.USE_FLOOR)
 				floorMasterList = ctx.getSpecLoader().loadFloors(elvOuid, elvDataMap);
+			t = lap("사양 로드", t);
 			blockInfoList = findBLocksByNo(blockList, false);
 			floorBlockInfoList = findBLocksByNo(blockList, true);
 		} else {
+			t = lap("사양 로드", t);
 			blockInfoList = findBLocksByNo(blockList, null);
 		}
+		t = lap("블럭 조회 (블럭 " + blockInfoList.size() + "개, 층블럭 " + (floorBlockInfoList == null ? 0 : floorBlockInfoList.size()) + "개)", t);
 
+		this.requestBlockList = blockList;
 		if (elvOuid.startsWith(BlockConsts.PREFIX_ELVINFO_OUID))
 			calculate_EL_P(BlockConsts.EL_P_PREFIX, true);
 		else if (elvOuid.startsWith(BlockConsts.PREFIX_SHIPELVINFO_OUID))
 			calculate_EL_P(BlockConsts.SHIPEL_P_PREFIX, false);
 		else if (elvOuid.startsWith(BlockConsts.PREFIX_SVELVINFO_OUID))
 			calculate_EL_P(BlockConsts.SVEL_P_PREFIX, false);
+		t = lap("EL_P 계산 (층 " + (floorMasterList == null ? 0 : floorMasterList.size()) + "개)", t);
 
 		this.tempVariableMap = new LinkedHashMap<>();
 		this.computedPartList = new ArrayList<>();
 		this.tempVariablePartMap = new LinkedHashMap<>();
 		this.variablePartMap4Simulate = new LinkedHashMap<>();
 
-		pickAndCalculatePid(blockInfoList, floorBlockInfoList);
+		// 입력 블럭의 PICK/PID : '블럭 PID 테스트' 를 골랐으면 테스트 버전 우선
+		ctx.useTestPid(ctx.isTestBlockPid());
+		try {
+			pickAndCalculatePid(blockInfoList, floorBlockInfoList);
+		} finally {
+			ctx.useTestPid(false);
+		}
+		lap("블럭 PICK/PID 계산 합계 (하위BOM 조회 " + partOfPartCache.size() + "건, 재사용 " + partOfPartHit + "건)", t);
 
 		return tempVariableMap;
+	}
+
+	/** 구간 소요시간 로그 후 현재 시각 반환 */
+	private long lap(String step, long start) {
+		long now = System.currentTimeMillis();
+		log.info("[simulateBlock] {} - {} : {}ms", elvOuid, step, now - start);
+		return now;
 	}
 
 	// ------------------------------------------------------------------------ EL_P
@@ -81,6 +112,15 @@ public class BlockSubaeManager {
 	/** SubaeManager.calculate_EL_P / calculate_SHIPEL_P / calculate_SVEL_P + EL_P */
 	private void calculate_EL_P(String pidPrefix, boolean withFloor) throws Exception {
 		List<Map> floorMaps = toMapList(floorMasterList);
+
+		// 'EL_P블럭 PID 테스트' : EL_P(SH_P, SV_P) + 입력 블럭번호 PID 만 테스트 버전 우선, 나머지 EL_P 는 최신
+		elpTestPids = new HashSet<String>();
+		if (ctx.isTestElpPid()) {
+			String head = pidPrefix.replace("%", "");
+			for (String blockNo : requestBlockList)
+				elpTestPids.add(head + blockNo);
+			log.info("[simulateBlock] {} - EL_P 테스트 버전 대상 : {}", elvOuid, elpTestPids);
+		}
 
 		make_EL_P_Data(elvDataMap, floorMaps, getEL_PList(pidPrefix, false));
 
@@ -94,10 +134,31 @@ public class BlockSubaeManager {
 	}
 
 	private List<Map<String, String>> getEL_PList(String pidPrefix, boolean isFloorSpec) throws Exception {
-		return ctx.getDb().queryForList(
+		List<Map<String, String>> list = ctx.getDb().queryForList(
 				" SELECT A.PID, A.METHOD FROM VARIANT_H A, VARIANT_ID B "
 				+ " WHERE A.PID = B.PID AND A.HOUID = B.LAST_HOUID AND A.PID LIKE ? AND NVL(A.ISFLOORSPEC, 'N') = ? "
 				+ " ORDER BY PID ", pidPrefix, isFloorSpec ? "Y" : "N");
+
+		// 테스트 대상 EL_P 블럭 PID 가 아직 테스트 버전만 있는 신규 PID 면 목록에 추가 (PID 순서 유지)
+		if (elpTestPids.isEmpty())
+			return list;
+		Set<String> present = list.stream().map(m -> m.get("PID")).collect(Collectors.toSet());
+		boolean added = false;
+		for (String pid : elpTestPids) {
+			if (present.contains(pid))
+				continue;
+			Map<String, String> row = ctx.getDb().queryForFirst(
+					" SELECT A.PID, A.METHOD FROM VARIANT_H A WHERE A.PID = ? AND A.VERSION = '-1' AND NVL(A.ISFLOORSPEC, 'N') = ? ORDER BY A.HOUID DESC ",
+					pid, isFloorSpec ? "Y" : "N");
+			if (row != null) {
+				list = new ArrayList<>(list);
+				list.add(row);
+				added = true;
+			}
+		}
+		if (added)
+			list.sort(Comparator.comparing(m -> m.get("PID")));
+		return list;
 	}
 
 	/** EL_P.make_EL_P_Data : EL_P PID 들의 OUTPUT 값을 사양에 추가 */
@@ -110,10 +171,13 @@ public class BlockSubaeManager {
 			String method = pidMap.get("METHOD");
 
 			PidVariantMap localMap = null;
+			ctx.useTestPid(elpTestPids.contains(pid));
 			try {
 				localMap = variant.calcVariantPID(pid, null);
 			} catch (Exception e) {
 				System.err.println(pid + "(" + method + ") : " + e.getMessage());
+			} finally {
+				ctx.useTestPid(false);
 			}
 
 			if (localMap != null) {
@@ -134,11 +198,17 @@ public class BlockSubaeManager {
 		List<Map> floorMaps = toMapList(floorMasterList);
 
 		// Common Block Pick & PID Calculate
+		long t = System.currentTimeMillis();
 		{
 			BlockVariableAction variableAction = new BlockVariableAction(ctx, elvDataMap, floorMaps);
-			for (BlockInfo blockInfo : blockList)
+			for (BlockInfo blockInfo : blockList) {
+				long b = System.currentTimeMillis();
 				findBom(elvDataMap, variableAction, blockInfo);
+				log.debug("[simulateBlock] {} - 블럭 {} (pick {}개) : {}ms", elvOuid, blockInfo.getBlockNo(),
+						blockInfo.getPickList().size(), System.currentTimeMillis() - b);
+			}
 		}
+		t = lap("공통 블럭 PICK/PID (" + blockList.size() + "개)", t);
 
 		// Floor Block Pick & PID Calculate
 		if (floorMasterList != null) {
@@ -147,6 +217,7 @@ public class BlockSubaeManager {
 				for (BlockInfo blockInfo : floorBlockList)
 					findBom(floorDataMap, variableAction, blockInfo);
 			}
+			lap("층 블럭 PICK/PID (층 " + floorMasterList.size() + " x 블럭 " + floorBlockList.size() + "개)", t);
 		}
 
 		if (bno_list_all_check.size() > 0) {
@@ -245,6 +316,17 @@ public class BlockSubaeManager {
 
 	/** SubaeDao.getListPartOfPart */
 	private List<Map<String, String>> getListPartOfPart(String partOuid) throws Exception {
+		List<Map<String, String>> cached = partOfPartCache.get(partOuid);
+		if (cached != null) {
+			partOfPartHit++;
+			return cached;
+		}
+		cached = queryListPartOfPart(partOuid);
+		partOfPartCache.put(partOuid, cached);
+		return cached;
+	}
+
+	private List<Map<String, String>> queryListPartOfPart(String partOuid) throws Exception {
 		long lPartOuid = Long.parseLong(partOuid.substring(partOuid.indexOf('@') + 1), 16);
 		return ctx.getDb().queryForList(
 				" SELECT A.SF$OUID, AS$END1, AS$END2, END1_HEXOUID, END2_HEXOUID, CMT, QTY, COLOR, "

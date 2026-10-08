@@ -15,6 +15,19 @@ public class BlockPidRepository {
 	private final Map<String, PidVariantMap> logicCache = new ConcurrentHashMap<String, PidVariantMap>();
 	private volatile Set<String> allPids = null;
 
+	/** true 면 PID 마다 테스트 버전(VERSION = -1)이 있으면 그것을, 없으면 최신 버전을 사용 */
+	private final boolean useTestVersion;
+
+	public BlockPidRepository() {
+		this(false);
+	}
+
+	public BlockPidRepository(boolean useTestVersion) {
+		this.useTestVersion = useTestVersion;
+	}
+
+	public boolean isUseTestVersion() { return useTestVersion; }
+
 	/** variant_h 1건 */
 	public static class PidInfo {
 		private String pid;
@@ -26,12 +39,17 @@ public class BlockPidRepository {
 		public int getVersion() { return version; }
 	}
 
-	/** 최신 버전 PID 정보 (없으면 null) */
+	/** 최신 버전 PID 정보 (없으면 null). 테스트 모드면 테스트 버전을 먼저 찾는다. */
 	public PidInfo getLastPid(BlockDb db, String pid) throws SQLException {
 		Object cached = lastPidCache.get(pid);
 		if (cached == null) {
-			Map<String, String> row = db.queryForFirst(
-					" select a.pid, a.method, a.version from variant_h a, variant_id b where a.houid = b.last_houid and a.pid = ? ", pid);
+			Map<String, String> row = null;
+			if (useTestVersion)
+				row = db.queryForFirst(
+						" select a.pid, a.method, a.version from variant_h a where a.pid = ? and a.version = '-1' order by a.houid desc ", pid);
+			if (row == null)
+				row = db.queryForFirst(
+						" select a.pid, a.method, a.version from variant_h a, variant_id b where a.houid = b.last_houid and a.pid = ? ", pid);
 			if (row == null) {
 				cached = NOT_FOUND;
 			} else {
@@ -52,7 +70,11 @@ public class BlockPidRepository {
 			synchronized (this) {
 				if (allPids == null) {
 					Set<String> set = new HashSet<String>();
-					for (Map<String, String> r : db.queryForList(" SELECT PID FROM VARIANT_ID ")) {
+					// 테스트 모드면 테스트 버전만 있는 신규 PID 도 PID 로 인식
+					String sql = useTestVersion
+							? " SELECT PID FROM VARIANT_ID UNION SELECT PID FROM VARIANT_H WHERE VERSION = '-1' "
+							: " SELECT PID FROM VARIANT_ID ";
+					for (Map<String, String> r : db.queryForList(sql)) {
 						if (r.get("PID") != null)
 							set.add(r.get("PID"));
 					}
@@ -79,9 +101,14 @@ public class BlockPidRepository {
 		List<Map<String, Object>> data = new ArrayList<Map<String, Object>>();
 
 		try {
-			List<Map<String, String>> logicDataList = db.queryForList(
-					" select b.* from variant_h a, variant_d b where a.houid = b.houid AND a.pid = ? AND a.version = ? order by DOUID ",
-					pid, version);
+			// 테스트 버전은 헤더가 여러 건일 수 있으므로 getLastPid 와 같은 최신 HOUID 1건만 읽는다
+			List<Map<String, String>> logicDataList = version == PidConsts.TEST_VERSION
+					? db.queryForList(
+							" select b.* from variant_d b where b.houid = (select max(houid) from variant_h where pid = ? and version = '-1') order by DOUID ",
+							pid)
+					: db.queryForList(
+							" select b.* from variant_h a, variant_d b where a.houid = b.houid AND a.pid = ? AND a.version = ? order by DOUID ",
+							pid, version);
 
 			for (Map<String, String> row : logicDataList) {
 				ArrayList specList = new ArrayList();
