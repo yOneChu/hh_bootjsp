@@ -1,0 +1,2040 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PID 실행 시뮬레이터 (Up)</title>
+    <style>
+        /* ===== 디자인 토큰 (PID 플레이그라운드와 같은 체계 : 어두운 헤더 + 밝은 작업 영역) ===== */
+        :root {
+            --bg: #f1f5f9;
+            --panel: #ffffff;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --border: #d9dee5;
+            --border-strong: #c3cad3;
+            --text: #0f172a;
+            --text-2: #334155;
+            --muted: #5b6676;          /* 흰 배경 대비 4.5:1 이상 */
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --run: #16a34a;
+            --run-dark: #15803d;
+            --danger: #b91c1c;
+            --focus: #2563eb;
+
+            --head-bg: #1e293b;
+            --head-bg-2: #0f172a;
+            --head-border: #475569;
+            --head-text: #f8fafc;
+            --head-muted: #a5b4c8;     /* 어두운 헤더 대비 4.5:1 이상 */
+
+            --true-bg: #e7f6ec;
+            --true-strong: #15803d;
+            --false-bg: #fdecec;
+            --false-strong: #b91c1c;
+            --unread-bg: #eef0f3;
+            --unread-text: #6b7480;
+            --cell-true: #b9e8c8;
+            --cell-false: #f7c1c1;
+
+            --mono: Consolas, "D2Coding", "Cascadia Mono", "Courier New", monospace;
+            --sans: "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+            --radius: 6px;
+            --shadow-1: 0 1px 2px rgba(15, 23, 42, .06), 0 1px 3px rgba(15, 23, 42, .08);
+            --shadow-2: 0 8px 24px rgba(15, 23, 42, .14);
+
+            --drawer-w: 440px;
+        }
+
+        * { box-sizing: border-box; }
+
+        /* ===== 전체 틀: 화면 높이에 고정, 스크롤은 결과 영역 하나만 ===== */
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: var(--sans);
+            font-size: 13px;
+            line-height: 1.45;
+            color: var(--text);
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .ico { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+        .ico.sm { width: 13px; height: 13px; vertical-align: -2px; }
+
+        /* ===== 버튼 ===== */
+        button {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            min-height: 30px;
+            padding: 4px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            color: var(--text-2);
+            font: inherit;
+            font-size: 12.5px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: background-color .15s, border-color .15s, color .15s;
+        }
+        button:hover:not(:disabled) { background: #eef2f7; }
+        button.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+        button.primary:hover:not(:disabled) { background: var(--primary-dark); }
+        button:disabled { opacity: .5; cursor: wait; }
+        button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+            outline: 2px solid var(--focus); outline-offset: 2px;
+        }
+        button.icon { padding: 4px 7px; min-width: 30px; }
+
+        /* ===== 상단 헤더 + 조회 조건 ===== */
+        header { flex: none; background: var(--head-bg); color: var(--head-text); padding: 8px 16px; }
+        .head-row { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
+        .brand { display: flex; align-items: center; gap: 8px; margin-right: 4px; }
+        .brand h1 { margin: 0; font-size: 15px; font-weight: 700; white-space: nowrap; }
+        .brand-chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border-radius: 999px;
+            background: #1e3a8a; color: #bfdbfe; font-size: 11px; font-weight: 700; white-space: nowrap;
+        }
+        .step-group {
+            display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap;
+            padding: 5px 10px; border: 1px solid #334155; border-radius: 8px; background: rgba(15, 23, 42, .35);
+        }
+        .inline-field { display: flex; align-items: center; gap: 6px; }
+        .inline-field label { color: var(--head-muted); font-size: 12px; white-space: nowrap; }
+        .inline-field label .req { color: #fca5a5; }
+        header input, header select {
+            height: 30px; padding: 4px 8px;
+            border: 1px solid var(--head-border); border-radius: var(--radius);
+            background: var(--head-bg-2); color: var(--head-text);
+            font-family: var(--mono); font-size: 13px;
+        }
+        header select { font-family: var(--sans); }
+        header input::placeholder { color: #7b8aa0; }
+        header input[type=checkbox] { width: auto; height: auto; margin: 0; padding: 0; cursor: pointer; }
+        .inline-field label.chk-label { cursor: pointer; }
+        header button { border-color: var(--head-border); background: #334155; color: var(--head-text); }
+        header button:hover:not(:disabled) { background: #475569; }
+        header button.primary { background: var(--primary); border-color: var(--primary); }
+        header button.primary:hover:not(:disabled) { background: var(--primary-dark); }
+        header button.run { min-height: 34px; padding: 4px 16px; background: var(--run); border-color: var(--run); font-size: 13.5px; font-weight: 700; }
+        header button.run:hover:not(:disabled) { background: var(--run-dark); }
+        header button.run kbd { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.35); color: #fff; }
+        header button[aria-expanded="true"] { background: #475569; }
+        .head-spacer { flex: 1; }
+        #sourceInfo { color: var(--head-text); font-size: 12px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+        #sourceInfo b { font-family: var(--mono); }
+        #sourceInfo .warn { color: #fca5a5; font-weight: 700; }
+
+        /* 추가 조건 (접기/펼치기) */
+        .adv {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .adv[hidden] { display: none; }
+        .adv .adv-fields { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+        .adv .adv-fields input { width: 140px; }
+        .adv .hint { color: var(--head-muted); font-size: 12px; }
+
+        /* ===== 툴바: 필터(건수 포함) / 옵션 / 검색 ===== */
+        .toolbar {
+            flex: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            align-items: center;
+            padding: 7px 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+        .toolbar[hidden] { display: none; }
+        .toolbar .sep { width: 1px; height: 20px; background: var(--border); }
+        .seg { display: flex; }
+        .seg button { border-radius: 0; margin-left: -1px; min-height: 30px; padding: 4px 11px; }
+        .seg button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
+        .seg button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+        .seg button b { font-variant-numeric: tabular-nums; }
+        .seg button[data-filter="true"] b { color: var(--true-strong); }
+        .seg button[data-filter="false"] b { color: var(--false-strong); }
+        .seg button[data-filter="unread"] b { color: var(--unread-text); }
+        .seg button.active { background: #1e293b; color: #fff; border-color: #1e293b; position: relative; z-index: 1; }
+        .seg button.active b { color: #fff !important; }
+        .toolbar input[type=search] {
+            height: 30px;
+            padding: 4px 9px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            width: 240px;
+            font-size: 12.5px;
+        }
+        .toolbar label.chk { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; font-size: 12.5px; color: var(--text-2); }
+        #shownCount { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        #btnFinal { font-weight: 700; color: var(--primary); border-color: #bfdbfe; background: #eff6ff; }
+        .toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+        /* 결과 테이블 확대/축소 */
+        .zoom { display: flex; align-items: center; }
+        .zoom button { border-radius: 0; margin-left: -1px; min-width: 32px; padding: 4px 9px; }
+        .zoom button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
+        .zoom button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+        .zoom button:disabled { cursor: not-allowed; }
+        #zoomLevel { min-width: 56px; font-variant-numeric: tabular-nums; }
+        kbd {
+            display: inline-block; padding: 0 5px; min-width: 18px; text-align: center;
+            border: 1px solid #cbd2da; border-bottom-width: 2px; border-radius: 4px;
+            background: #f8fafc; color: var(--text-2); font-family: var(--mono); font-size: 11px; line-height: 16px;
+        }
+
+        /* ===== 작업 영역: 결과 테이블 + 상세 패널(우측 도킹) ===== */
+        .workspace {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+        }
+        #resultArea {
+            flex: 1;
+            min-width: 0;
+            overflow: auto;
+            background: #fff;
+            outline: none;
+            /* 키보드 이동 시 고정 헤더/고정 컬럼에 가려지지 않도록 */
+            scroll-padding-top: 60px;
+        }
+        #resultArea:focus-visible { box-shadow: inset 0 0 0 2px #93c5fd; }
+        #resultArea.dragging { cursor: grabbing; user-select: none; }
+        #resultArea.dragging * { cursor: grabbing !important; }
+
+        /* 스크롤바를 조금 굵게 — 마우스로 잡기 쉽게 */
+        #resultArea::-webkit-scrollbar { width: 14px; height: 14px; }
+        #resultArea::-webkit-scrollbar-thumb { background: #b6bec9; border-radius: 7px; border: 3px solid #fff; }
+        #resultArea::-webkit-scrollbar-thumb:hover { background: #8d97a5; }
+        #resultArea::-webkit-scrollbar-track { background: #f1f5f9; }
+        #resultArea::-webkit-scrollbar-corner { background: #f1f5f9; }
+
+        /* 결과 테이블만 확대/축소 (zoom 은 레이아웃까지 함께 바뀌어 스크롤 · 고정 헤더가 그대로 동작) */
+        #resultArea > table { zoom: var(--table-zoom, 1); }
+
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: max-content;
+            min-width: 100%;
+        }
+        th, td {
+            border-right: 1px solid #e5e8ec;
+            border-bottom: 1px solid #e5e8ec;
+            padding: 4px 8px;
+            white-space: nowrap;
+            text-align: left;
+            vertical-align: top;
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: #334155;
+            color: #fff;
+            font-weight: normal;
+            font-size: 12px;
+            height: 28px;
+        }
+        thead tr.group th {
+            background: #1e293b;
+            text-align: left;
+            font-weight: bold;
+        }
+        thead tr.cols th { top: 28px; }
+
+        /* 좌측 고정 컬럼 */
+        .sticky-1, .sticky-2 { position: sticky; z-index: 1; }
+        .sticky-1 { left: 0; width: 46px; min-width: 46px; text-align: right; }
+        .sticky-2 { left: 46px; min-width: 70px; box-shadow: 2px 0 0 #cbd2da; }
+        thead .sticky-1, thead .sticky-2 { z-index: 3; }
+        tbody .sticky-1, tbody .sticky-2 { background: inherit; }
+
+        th.grp-spec { background: #3b4a63 !important; }
+        th.grp-key { background: #4a3b63 !important; }
+
+        tbody tr { background: #fff; }
+        tbody tr.rowTrue { background: var(--true-bg); }
+        tbody tr.rowFalse { background: var(--false-bg); }
+        tbody tr.unreaded { background: var(--unread-bg); color: var(--unread-text); }
+        tbody tr:hover { filter: brightness(0.96); cursor: pointer; }
+        tbody tr.selected { outline: 2px solid var(--primary); outline-offset: -2px; }
+        tbody tr.selected td.sticky-1 { box-shadow: inset 4px 0 0 var(--primary); }
+
+        td.status { text-align: center; font-weight: bold; }
+        tr.rowTrue td.status { color: var(--true-strong); }
+        tr.rowFalse td.status { color: var(--false-strong); }
+
+        td.cellTrue { background: var(--cell-true); }
+        td.cellFalse { background: var(--cell-false); }
+        tr.unreaded td.cellTrue, tr.unreaded td.cellFalse { background: transparent; }
+
+        td.addr { font-weight: bold; color: #7c3aed; }
+        tr.unreaded td.addr { color: var(--unread-text); }
+        td.goto { color: #c2410c; font-weight: bold; }
+        td.goto .jump { text-decoration: underline; cursor: pointer; }
+        tbody tr.flash td { animation: flash 1.2s ease-out; }
+        @keyframes flash { from { background: #fde68a; } }
+        td.key { color: #4338ca; font-weight: bold; }
+        td.spec { color: #334155; }
+        td.pair-end { border-right: 1px solid #c3cad3; }
+        td.output { white-space: normal; min-width: 220px; max-width: 420px; }
+        td.remark { white-space: normal; min-width: 180px; max-width: 360px; color: var(--muted); }
+
+        /* 요약 보기: 조건/결과 칩 */
+        td.chips { white-space: normal; min-width: 200px; max-width: 460px; }
+        .chip {
+            display: inline-block;
+            margin: 1px 4px 1px 0;
+            padding: 0 6px;
+            border-radius: 3px;
+            border: 1px solid #cbd2da;
+            background: #fff;
+            font-size: 12px;
+            line-height: 18px;
+            white-space: nowrap;
+        }
+        .chip .k { color: #475569; }
+        .chip .v { font-weight: bold; }
+        .chip.cellTrue { background: var(--cell-true); border-color: #86d3a0; }
+        .chip.cellFalse { background: var(--cell-false); border-color: #eb9a9a; }
+        .chip.res .k { color: #4338ca; font-weight: bold; }
+        tr.unreaded .chip { background: transparent; color: var(--unread-text); border-color: #dde1e6; }
+        tr.unreaded .chip .k { color: var(--unread-text); }
+
+        .out-item { display: block; }
+        .out-item b { color: var(--true-strong); }
+        .out-item .call { color: #4338ca; text-decoration: underline; cursor: pointer; }
+        .out-item .calc { color: var(--muted); }
+        /* KEY 가 CALL 인 VAL: 클릭하면 새 탭에서 해당 PID 시뮬 실행 */
+        .call-pid { color: #4338ca; text-decoration: underline; cursor: pointer; }
+        .call-pid:hover { color: #312e81; }
+
+        .empty, .msg {
+            padding: 60px 40px;
+            text-align: center;
+            color: var(--muted);
+        }
+        .msg.error { color: var(--false-strong); white-space: pre-line; text-align: left; }
+
+        .spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+            vertical-align: -2px;
+            margin-right: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== 상세 패널 (우측 도킹, 폭 조절 가능) ===== */
+        .resizer {
+            flex: none;
+            width: 6px;
+            cursor: col-resize;
+            background: var(--border);
+            display: none;
+        }
+        .resizer:hover, .resizer.active { background: var(--primary); }
+        .drawer {
+            flex: none;
+            width: var(--drawer-w);
+            min-width: 300px;
+            background: #fff;
+            display: none;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .drawer.open { display: flex; }
+        .resizer.show { display: block; }
+        .drawer-head {
+            flex: none;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .drawer-head h2 { margin: 0; font-size: 15px; flex: 1; }
+        .drawer-head button { padding: 4px 10px; font-size: 12px; }
+        .drawer-body { padding: 12px 14px; overflow: auto; flex: 1; }
+        .drawer-body input[type=search] {
+            width: 100%;
+            padding: 7px 9px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .kv { width: 100%; min-width: 0; }
+        .kv th, .kv td { white-space: normal; word-break: break-all; }
+        .kv th { background: #f1f5f9; color: var(--text); width: 45%; position: static; }
+        .kv tr.hit td, .kv tr.hit th { background: #fef9c3; }
+        .kv td.blank { color: var(--unread-text); font-style: italic; }
+        .kv th .spec-name { color: var(--muted); font-weight: normal; }
+        .kv td .calc { color: var(--muted); margin-top: 2px; }
+        .kv td .actual { margin-top: 2px; color: #334155; }
+        .kv td .actual b { color: #7c3aed; }
+        .section-title { font-weight: bold; margin: 14px 0 6px; }
+        .badge {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #fff;
+        }
+        .badge.true { background: var(--true-strong); }
+        .badge.false { background: var(--false-strong); }
+        .badge.unread { background: var(--unread-text); }
+
+        /* 좁은 화면: 상세 패널은 위로 겹쳐서 표시 */
+        @media (max-width: 900px) {
+            .drawer.open { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 100%); z-index: 20; box-shadow: -4px 0 16px rgba(0,0,0,.15); }
+            .resizer { display: none !important; }
+            .legend, .kbd-hint { display: none; }
+        }
+
+        /* ===== pidSimulatorUp 추가 스타일 ===== */
+        #project { width: 150px; }
+        #pid { width: 170px; }
+        #beforePid { width: 280px !important; }
+        header select {
+            padding: 5px 6px;
+            border: 1px solid #475569;
+            border-radius: 5px;
+            font-size: 13px;
+            background: #0f172a;
+            color: #fff;
+            min-width: 120px;
+        }
+        header select:focus { outline: 2px solid #60a5fa; border-color: #60a5fa; }
+        header select:disabled { opacity: .6; cursor: wait; }
+        #versionInfo { color: #94a3b8; font-size: 12px; white-space: nowrap; }
+        #versionInfo.warn { color: #fca5a5; }
+        header input:disabled { opacity: .45; cursor: not-allowed; }
+        #floorInfo.on { color: #86efac; }
+
+        /* 하위 PID(CALL) 버전 선택 : 실행 후 호출된 하위 PID 를 상단에 표시 */
+        .sub-row {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #334155;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .sub-row[hidden] { display: none; }
+        .sub-row .sub-title { color: #94a3b8; font-size: 12px; white-space: nowrap; padding-top: 5px; }
+        /* 접기 / 펼치기 : 머리(제목 + 요약)는 늘 보이고 본문(선택 목록 + 버튼)만 접힌다 */
+        .sub-row { flex-direction: column; align-items: stretch; gap: 6px; }
+        .sub-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        header button.sub-toggle {
+            min-height: 26px; padding: 2px 8px 2px 4px; gap: 5px;
+            background: transparent; border-color: transparent; color: var(--head-muted); font-size: 12px; font-weight: 600;
+        }
+        header button.sub-toggle:hover:not(:disabled) { background: #334155; color: var(--head-text); }
+        .sub-toggle .chev { transition: transform .15s; }
+        .sub-toggle[aria-expanded="false"] .chev { transform: rotate(-90deg); }
+        .sub-body { display: flex; align-items: flex-start; gap: 10px; padding-left: 4px; }
+        .sub-body[hidden] { display: none; }
+        .sub-list { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; max-height: 92px; overflow: auto; }
+        .sub-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 4px 2px 8px;
+            border: 1px solid #475569;
+            border-radius: 5px;
+            background: #0f172a;
+            white-space: nowrap;
+        }
+        .sub-item .sub-pid { color: #e2e8f0; font-size: 12px; cursor: default; }
+        .sub-item .sub-depth { color: #64748b; font-size: 11px; }
+        .sub-item select { min-width: 0; padding: 2px 4px; font-size: 12px; }
+        .sub-item.applied { border-color: #a78bfa; }
+        .sub-item.applied .sub-pid { color: #c4b5fd; font-weight: bold; }
+        .sub-item.changed { border-color: #fbbf24; box-shadow: 0 0 0 1px #fbbf24 inset; }
+        .sub-item.error { border-color: #f87171; }
+        .sub-item.error .sub-pid { color: #fca5a5; }
+        .sub-actions { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .sub-actions button { padding: 5px 12px; font-size: 12px; }
+        #subHint { color: #94a3b8; font-size: 12px; }
+        #subHint .changed { color: #fbbf24; font-weight: bold; }
+        /* OUTPUT 의 CALL 옆 : 버전을 지정해서 실행한 하위 PID */
+        .sub-ver {
+            display: inline-block;
+            margin-left: 3px;
+            padding: 0 4px;
+            border-radius: 3px;
+            background: #ede9fe;
+            color: #6d28d9;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .sub-ver.error { background: #fee2e2; color: #b91c1c; }
+        .adv .hint { color: #94a3b8; font-size: 12px; }
+        #sourceInfo .pid-name { color: #e2e8f0; }
+        #sourceInfo .tag {
+            display: inline-block;
+            padding: 0 6px;
+            margin-left: 4px;
+            border-radius: 3px;
+            background: #334155;
+            color: #fde68a;
+            font-size: 11px;
+        }
+        #btnElvEnt { color: #7c3aed; border-color: #ddd6fe; background: #f5f3ff; }
+        .warn-bar {
+            flex: none;
+            padding: 6px 16px;
+            background: #fff7ed;
+            border-bottom: 1px solid #fed7aa;
+            color: #9a3412;
+            font-size: 12px;
+            white-space: pre-line;
+        }
+        .warn-bar[hidden] { display: none; }
+        .java-result { padding: 16px 20px; max-width: 900px; }
+        .java-result .section-title { margin-top: 0; }
+        .out-item .calc-inline { color: var(--muted); }
+        .kv .call { color: #4338ca; text-decoration: underline; cursor: pointer; }
+
+        /* ===== 전문가용 마감 : 데이터 밀집 대시보드 스타일 ===== */
+
+        /* 펼쳐 보는 도움말 (범례 / 단축키) */
+        details.pop { position: relative; }
+        details.pop > summary {
+            list-style: none; display: inline-flex; align-items: center; gap: 5px;
+            min-height: 30px; padding: 4px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+            background: var(--surface); color: var(--text-2); cursor: pointer; font-size: 12.5px; white-space: nowrap;
+        }
+        details.pop > summary::-webkit-details-marker { display: none; }
+        details.pop[open] > summary { background: #eef2f7; }
+        details.pop .pop-body {
+            position: absolute; right: 0; top: calc(100% + 6px); z-index: 50;
+            width: max-content; max-width: 380px; padding: 10px 12px;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            box-shadow: var(--shadow-2); color: var(--text-2); font-size: 12px;
+        }
+        .pop-body ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+        .pop-body li { display: flex; align-items: center; gap: 8px; }
+        .pop-body i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,.12); flex: none; }
+        .pop-body .row-k { min-width: 130px; display: inline-flex; gap: 3px; }
+
+        /* 알림 띠 (닫기 가능) */
+        .warn-bar {
+            flex: none; display: flex; align-items: flex-start; gap: 10px;
+            padding: 6px 16px; background: #fff7ed; border-bottom: 1px solid #fed7aa; color: #9a3412; font-size: 12.5px;
+        }
+        .warn-bar[hidden] { display: none; }
+        .warn-bar #warnText { flex: 1; white-space: pre-line; max-height: 84px; overflow: auto; }
+        .warn-bar button { min-height: 24px; padding: 2px 6px; background: transparent; border-color: transparent; color: inherit; }
+
+        /* 실행 중 진행 막대 */
+        .progress { flex: none; position: relative; height: 3px; overflow: hidden; background: transparent; }
+        .progress[hidden] { display: none; }
+        .progress::before { content: ''; position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; background: var(--primary); animation: indet 1.1s ease-in-out infinite; }
+        @keyframes indet { to { left: 100%; } }
+
+        /* 결과 영역 : 첫 화면 / 실행 중 / 오류 */
+        .empty-card { max-width: 600px; margin: 56px auto; padding: 0 24px; color: var(--text-2); }
+        .empty-card h2 { margin: 0 0 6px; font-size: 17px; color: var(--text); }
+        .empty-card p { margin: 0 0 16px; color: var(--muted); }
+        .empty-card ol { margin: 0 0 18px; padding: 0; list-style: none; display: grid; gap: 10px; }
+        .empty-card li { display: flex; gap: 10px; align-items: flex-start; }
+        .empty-card li .n { flex: none; width: 22px; height: 22px; border-radius: 50%; background: #e0e7ff; color: #3730a3; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; }
+        .loading-card { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 64px 24px; color: var(--muted); font-size: 13.5px; }
+        .loading-card .spinner { width: 18px; height: 18px; color: var(--primary); }
+        .error-card {
+            max-width: 680px; margin: 48px auto; padding: 16px 18px;
+            border: 1px solid #fecaca; border-left: 4px solid var(--danger); border-radius: 8px; background: #fef2f2; color: var(--danger);
+        }
+        .error-card h3 { margin: 0 0 6px; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+        .error-card p { margin: 0 0 12px; white-space: pre-line; color: #7f1d1d; }
+
+        /* 결과 표 : 코드성 값은 고정폭, 머리글은 고정 */
+        #resultArea td.addr, #resultArea td.goto, .chip, .kv td, .kv th { font-family: var(--mono); }
+        #resultArea td.addr, #resultArea td.goto { font-size: 12.5px; }
+        .chip { font-size: 12px; }
+        .chip .mk { font-family: var(--sans); font-weight: 700; margin-right: 3px; }
+        .chip.cellTrue .mk { color: var(--true-strong); }
+        .chip.cellFalse .mk { color: var(--false-strong); }
+        tbody tr td.status { letter-spacing: .02em; }
+        thead th { font-weight: 600; letter-spacing: .01em; }
+
+        /* 상세 패널 머리 */
+        .drawer-head { gap: 6px; }
+        .drawer-head h2 { font-size: 14px; }
+
+        /* 하위 PID 버전 줄 */
+        .sub-item .warn-ico { color: #fca5a5; }
+
+        .spinner { border-color: currentColor; border-top-color: transparent; }
+
+        /* 움직임 줄이기 설정 존중 */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; }
+            .progress::before { left: 0; width: 100%; opacity: .6; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 아이콘 (SVG, 장식용은 aria-hidden) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
+        <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+        <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 19V5M8 7h7"/></symbol>
+        <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+        <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></symbol>
+        <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+        <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+        <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+        <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+        <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+        <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol>
+        <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></symbol>
+        <symbol id="i-key" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
+        <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    </defs>
+</svg>
+
+<!-- ===== 헤더 + 조회 조건 ===== -->
+<header>
+    <form id="searchForm" autocomplete="off">
+        <div class="head-row">
+            <div class="brand">
+                <h1>PID 실행 시뮬레이터</h1>
+                <span class="brand-chip" title="PLM DB 의 PID 로직과 영업사양으로 직접 실행합니다 (조회 전용)">
+                    <svg class="ico sm" aria-hidden="true"><use href="#i-db"/></svg>PLM DB 직접 실행</span>
+            </div>
+            <div class="step-group" role="group" aria-label="실행 조건">
+                <div class="inline-field">
+                    <label for="project">공사번호 <span class="req" aria-hidden="true">*</span></label>
+                    <input id="project" name="project" value="206663L01" required aria-required="true" spellcheck="false"
+                           title="공사번호(md$number) 또는 공사정보 ouid (ex. elv_info$vf@a810066d)">
+                </div>
+                <div class="inline-field">
+                    <label for="pid">PID <span class="req" aria-hidden="true">*</span></label>
+                    <input id="pid" name="pid" value="D375A" required aria-required="true" spellcheck="false">
+                </div>
+                <div class="inline-field" title="실행할 PID 버전 (PID 를 입력하면 버전 목록을 불러옵니다)">
+                    <label for="version">버전</label>
+                    <select id="version" name="version">
+                        <option value="">최신</option>
+                    </select>
+                    <span id="versionInfo" aria-live="polite"></span>
+                </div>
+                <button type="button" id="btnAdv" aria-expanded="false" aria-controls="advPanel" title="층 / 전처리 PID">
+                    <svg class="ico" aria-hidden="true"><use href="#i-sliders"/></svg><span>추가 조건</span></button>
+            </div>
+            <button type="submit" class="run" id="btnRun" title="실행 (Enter)">
+                <svg class="ico" aria-hidden="true"><use href="#i-play"/></svg><span>실행</span><kbd>Enter</kbd></button>
+            <button type="button" id="btnCodeDict" title="SPEC 특성코드의 한글명 / 값 목록을 새 창으로 봅니다">
+                <svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span>특성코드 사전</span></button>
+            <div class="head-spacer"></div>
+            <div id="sourceInfo" aria-live="polite"></div>
+        </div>
+
+        <!-- 추가 조건: 평소에는 접어 두어 결과 영역을 넓게 사용 -->
+        <div class="adv" id="advPanel" hidden>
+            <div class="adv-fields">
+                <div class="inline-field">
+                    <label for="floor">층 (FLOOR_NAME)</label>
+                    <input id="floor" name="floor" disabled spellcheck="false">
+                    <span id="floorInfo" class="hint">PID 확인 중</span>
+                </div>
+                <div class="inline-field">
+                    <label for="beforePid">전처리 PID</label>
+                    <input id="beforePid" name="beforePid" placeholder="EL_P001, EL_P002" spellcheck="false" aria-describedby="advHint">
+                </div>
+            </div>
+            <div class="hint" id="advHint">층은 층별 PID 일 때만 적용됩니다 · 전처리 PID 는 먼저 실행해 결과를 영업사양에 반영한 뒤 대상 PID 를 실행합니다 (콤마 구분).</div>
+        </div>
+    </form>
+
+    <!-- 하위 PID(CALL) 버전 선택 : 먼저 최신으로 실행한 뒤, 호출된 하위 PID 의 버전을 골라 다시 실행 -->
+    <div class="sub-row" id="subRow" hidden>
+        <div class="sub-head">
+            <button type="button" class="sub-toggle" id="btnSubToggle" aria-expanded="true" aria-controls="subBody"
+                    title="이 PID 가 CALL 로 실행한 하위 PID (처음 호출된 순서, ↳ 는 하위의 하위). 전처리 PID 는 제외">
+                <svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg>
+                <svg class="ico sm" aria-hidden="true"><use href="#i-layers"/></svg>하위 PID 버전</button>
+            <span id="subHint" aria-live="polite"></span>
+        </div>
+        <div class="sub-body" id="subBody">
+            <div class="sub-list" id="subList"></div>
+            <div class="sub-actions">
+                <button type="button" class="primary" id="btnSubRun" title="고른 하위 PID 버전으로 다시 실행합니다">
+                    <svg class="ico" aria-hidden="true"><use href="#i-play"/></svg>하위 버전 적용 실행</button>
+                <button type="button" id="btnSubReset" title="모든 하위 PID 를 최신 버전으로 되돌려 다시 실행합니다">
+                    <svg class="ico" aria-hidden="true"><use href="#i-refresh"/></svg>모두 최신</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- 실행 중 경고 (층 정보 로드 실패 등) -->
+<div class="warn-bar" id="warnBar" role="alert" hidden>
+    <svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg>
+    <span id="warnText"></span>
+    <button type="button" id="btnWarnClose" aria-label="알림 닫기" title="닫기"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
+</div>
+
+<!-- ===== 툴바 (실행 후 표시) ===== -->
+<div class="toolbar" id="toolbar" role="toolbar" aria-label="결과 보기 도구" hidden>
+    <div class="seg" id="filterSeg" role="group" aria-label="라인 필터">
+        <button type="button" data-filter="all" class="active" aria-pressed="true">전체 <b id="stTotal">0</b></button>
+        <button type="button" data-filter="true" aria-pressed="false">TRUE <b id="stTrue">0</b></button>
+        <button type="button" data-filter="false" aria-pressed="false">FALSE <b id="stFalse">0</b></button>
+        <button type="button" data-filter="readed" aria-pressed="false">실행된 라인 <b id="stReaded">0</b></button>
+        <button type="button" data-filter="unread" aria-pressed="false">미실행 <b id="stUnread">0</b></button>
+    </div>
+    <span class="sep" aria-hidden="true"></span>
+    <button type="button" id="btnFinal"><svg class="ico" aria-hidden="true"><use href="#i-target"/></svg>최종 OUTPUT (<span id="stFinal">0</span>)</button>
+    <button type="button" id="btnElvEnt" title="PID 실행 후 최종 영업사양"><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg>최종 영업사양 (<span id="stElvEnt">0</span>)</button>
+    <button type="button" id="btnCsv" title="지금 보이는 라인(필터 · 검색 적용)을 CSV 파일로 저장합니다. 엑셀에서 바로 열 수 있습니다"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>CSV 저장</button>
+    <span class="sep" aria-hidden="true"></span>
+    <label class="chk" title="JSP 원본처럼 SPEC/CON, KEY/VAL을 각각 컬럼으로 펼쳐서 봅니다"><input type="checkbox" id="fullView"> 원본 컬럼 펼치기</label>
+    <label class="chk"><input type="checkbox" id="hideBlank"> 빈 라인 숨기기</label>
+    <label class="sr-only" for="keyword" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">라인 검색</label>
+    <input type="search" id="keyword" placeholder="SPEC / KEY / VAL / REMARK 검색  ( / )">
+    <span id="shownCount" aria-live="polite"></span>
+    <div class="toolbar-right">
+        <div class="zoom" role="group" aria-label="결과 표 확대/축소 (Ctrl+휠, 결과 영역에서 + / - / 0)">
+            <button type="button" id="btnZoomOut" aria-label="축소" title="축소"><svg class="ico" aria-hidden="true"><use href="#i-minus"/></svg></button>
+            <button type="button" id="zoomLevel" title="100%로 되돌리기">100%</button>
+            <button type="button" id="btnZoomIn" aria-label="확대" title="확대"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
+        </div>
+        <details class="pop">
+            <summary><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>범례</summary>
+            <div class="pop-body">
+                <ul>
+                    <li><i style="background:var(--true-bg)"></i>TRUE : 조건 만족 라인</li>
+                    <li><i style="background:var(--false-bg)"></i>FALSE : 조건 불만족 라인</li>
+                    <li><i style="background:var(--unread-bg)"></i>미실행 : GOTO / STOP 으로 건너뜀</li>
+                    <li><i style="background:var(--cell-true)"></i>✓ 조건 일치 (영업사양값 = CON)</li>
+                    <li><i style="background:var(--cell-false)"></i>✗ 조건 불일치</li>
+                </ul>
+            </div>
+        </details>
+        <details class="pop">
+            <summary><svg class="ico" aria-hidden="true"><use href="#i-key"/></svg>단축키</summary>
+            <div class="pop-body">
+                <ul>
+                    <li><span class="row-k"><kbd>Enter</kbd> (조건 입력칸)</span>실행</li>
+                    <li><span class="row-k"><kbd>↑</kbd> <kbd>↓</kbd></span>라인 이동</li>
+                    <li><span class="row-k"><kbd>Enter</kbd> (결과 영역)</span>라인 상세</li>
+                    <li><span class="row-k"><kbd>←</kbd> <kbd>→</kbd> · 드래그</span>좌우 / 상하 이동</li>
+                    <li><span class="row-k"><kbd>/</kbd></span>검색창으로</li>
+                    <li><span class="row-k"><kbd>Ctrl</kbd>+휠 · <kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></span>표 확대 / 축소</li>
+                    <li><span class="row-k"><kbd>Esc</kbd></span>상세 패널 닫기</li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</div>
+
+<div class="progress" id="runProgress" hidden aria-hidden="true"></div>
+
+<!-- ===== 결과 + 상세 패널 ===== -->
+<div class="workspace">
+    <!-- 스크롤은 이 영역 하나만 (가로 스크롤바가 항상 화면 하단에 보임) -->
+    <section id="resultArea" tabindex="0" aria-label="결과 테이블">
+        <div class="empty-card">
+            <h2>공사 영업사양으로 PID 로직을 라인 단위로 실행해 봅니다</h2>
+            <p>PLM DB 의 PID 로직과 공사 영업사양을 그대로 읽어 실행하고, 라인마다 조건 비교 결과를 보여줍니다. DB 에는 쓰지 않습니다.</p>
+            <ol>
+                <li><span class="n">1</span><span><b>공사번호</b>와 <b>PID</b> 를 입력합니다. 버전을 고르지 않으면 최신 버전으로 실행합니다.</span></li>
+                <li><span class="n">2</span><span><b>실행</b>(<kbd>Enter</kbd>)을 누르면 라인마다 TRUE / FALSE 와 조건별 일치 여부가 표시됩니다.</span></li>
+                <li><span class="n">3</span><span>라인을 누르면 오른쪽에 상세가, CALL 한 하위 PID 는 상단에서 버전을 바꿔 다시 실행할 수 있습니다.</span></li>
+            </ol>
+        </div>
+    </section>
+    <div class="resizer" id="resizer" title="드래그해서 상세 패널 폭 조절"></div>
+    <aside class="drawer" id="drawer" aria-labelledby="drawerTitle">
+        <div class="drawer-head">
+            <h2 id="drawerTitle">상세</h2>
+            <button type="button" class="icon" id="btnPrevRow" aria-label="이전 라인" title="이전 라인 (↑)"><svg class="ico" aria-hidden="true"><use href="#i-up"/></svg></button>
+            <button type="button" class="icon" id="btnNextRow" aria-label="다음 라인" title="다음 라인 (↓)"><svg class="ico" aria-hidden="true"><use href="#i-down"/></svg></button>
+            <button type="button" id="btnCloseDrawer" title="닫기 (Esc)"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg>닫기</button>
+        </div>
+        <div class="drawer-body" id="drawerBody"></div>
+    </aside>
+</div>
+
+<script>
+    // PID 시뮬 실행 API (PIDSimulatorUpController → PIDSimulatorUpService → util.pidSimulatorUp.PIDSimul)
+    const API_URL = '/simulateup/simulatePid';
+    // PID 버전 목록 (항목 {version, latest}, TEST(-1) 먼저 그 다음 최신순)
+    const VERSIONS_API = '/simulateup/pidVersions?pid=';
+    const TEST_VERSION = '-1';
+    // 화면 파라미터 = API 파라미터 (주소창 공유/새로고침 시 그대로 재실행). version : '' 최신, -1 TEST, 그 외 지정 버전
+    const PARAM_NAMES = ['project', 'pid', 'version', 'floor', 'beforePid'];
+    const CODE_POPUP_URL = '/pid/pidSimulCodePopup';
+    // 라인 상세 조건의 사양명(CODE -> CODENAME)
+    const CODE_API = '/api/getElvCodeList?key=subae';
+    // 브라우저 저장 키 (기존 pidSimulMain 화면과 따로 기억)
+    const STORE_PREFIX = 'pidSimulUp.';
+
+    const $ = (id) => document.getElementById(id);
+    const BTN_RUN_HTML = '<svg class="ico" aria-hidden="true"><use href="#i-play"/></svg><span>실행</span><kbd>Enter</kbd>';
+    const BUSY_HTML = (t) => `<span class="spinner" aria-hidden="true"></span><span>${t}</span>`;
+    const area = $('resultArea');
+    let codePopup = null;
+    // 특성코드(대문자) -> 사양명(CODENAME). 라인 상세의 조건 표시용
+    const specNames = new Map();
+    const state = {
+        rows: [],
+        sourceLabel: '',
+        maxSpec: 0,
+        maxRes: 0,
+        filter: 'all',
+        keyword: '',
+        hideBlank: false,
+        fullView: false,
+        selectedIdx: -1,
+        drawerMode: '',   // 'row' | 'final' | 'elvEnt'
+        result: null,     // 서버 응답 (PIDSimulResult)
+        query: null,      // 마지막으로 성공한 조회 조건 (CSV 파일명 / CALL 새 탭용)
+    };
+
+    // ---------- 유틸 ----------
+    function esc(v) {
+        if (v === null || v === undefined) return '';
+        return String(v)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+    const nvl = (v) => (v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v)));
+    const br = (v) => esc(v).replace(/\n/g, '<br>');
+
+    // 파라미터 값 읽기/쓰기 — version(select)은 목록에 없는 값이면 항목을 추가해 둔다 (목록 로딩 전 URL 값 유지)
+    function getParam(n) {
+        const el = $(n);
+        // 비활성 입력(층별 PID 가 아닐 때의 층)은 보내지 않는다
+        if (el.tagName === 'INPUT' && el.disabled) return '';
+        return el.value.trim();
+    }
+
+    // 층 입력은 층별 PID(ISFLOORSPEC = Y)일 때만 활성화. isFloor : 'Y' / 'N' / null(모름 : 확인 중)
+    function setFloorEnabled(isFloor, info) {
+        const el = $('floor');
+        el.disabled = isFloor !== 'Y';
+        el.title = isFloor === 'Y' ? '층별 PID : 적용할 층 이름 (FLOOR_NAME)' : '층별 PID 일 때만 입력할 수 있습니다';
+        $('floorInfo').textContent = info !== undefined ? info
+            : (isFloor === 'Y' ? '층별 PID' : (isFloor === 'N' ? '층별 PID 아님' : 'PID 확인 중'));
+        $('floorInfo').className = 'hint' + (isFloor === 'Y' ? ' on' : '');
+    }
+    function setParam(n, v) {
+        const el = $(n);
+        if (el.tagName === 'SELECT' && v && ![...el.options].some((o) => o.value === v)) {
+            el.add(new Option(versionLabel(v, false), v));
+        }
+        el.value = v;
+    }
+
+    // ---------- PID 버전 목록 ----------
+    // 버전 표시 : v3 (최신) · 2026-10-01 10:20  (regDate : VARIANT_H.REG_DATE)
+    const versionLabel = (v, latest, regDate) => (v === TEST_VERSION ? 'TEST' : `v${v}`) + (latest ? ' (최신)' : '')
+        + (regDate ? ` · ${regDate}` : '');
+    // '최신' 항목 표시 : 최신 (v5 · 2026-10-01 10:20)
+    function latestLabel(list) {
+        const latest = (list || []).find((v) => v.latest);
+        if (!latest) return '최신';
+        return `최신 (v${latest.version}${latest.regDate ? ` · ${latest.regDate}` : ''})`;
+    }
+    let versionsPid = '';     // 버전 목록을 불러온 PID
+    let versionsReq = 0;      // 늦게 온 응답 무시용
+
+    // 버전 선택을 '최신' 하나로 초기화 (PID 가 바뀌면 이전 PID 의 버전을 보내지 않도록)
+    function resetVersions(info) {
+        const sel = $('version');
+        sel.innerHTML = '<option value="">최신</option>';
+        versionsPid = '';
+        $('versionInfo').textContent = info || '';
+        $('versionInfo').className = '';
+        setFloorEnabled(null, getParam('pid') ? undefined : 'PID 입력 후 확인');
+    }
+
+    // PID 의 버전 목록을 불러와 선택 목록을 채운다. keep : 유지할 선택값 (없으면 지금 선택값)
+    async function loadVersions(keep) {
+        const pid = getParam('pid');
+        if (!pid) { resetVersions(); return; }
+        if (pid === versionsPid && keep === undefined) return;
+
+        const want = keep !== undefined ? keep : getParam('version');
+        const req = ++versionsReq;
+        const sel = $('version');
+        sel.disabled = true;
+        $('versionInfo').textContent = '버전 조회 중…';
+        $('versionInfo').className = '';
+        try {
+            const res = await fetch(VERSIONS_API + encodeURIComponent(pid), { headers: { Accept: 'application/json' } });
+            const list = await res.json();
+            if (req !== versionsReq) return;
+            if (!res.ok || !Array.isArray(list)) throw new Error((list && list.error) || `HTTP ${res.status}`);
+
+            // 층별 PID 여부는 최신 버전 기준 (서버 실행과 동일)
+            const latest = list.find((v) => v.latest);
+            if (latest) setFloorEnabled(latest.isFloorSpec);
+            else setFloorEnabled('N', list.length ? '최신 버전 없음' : '층별 PID 아님');
+            sel.innerHTML = '';
+            sel.add(new Option(latestLabel(list), ''));
+            list.forEach((v) => sel.add(new Option(versionLabel(String(v.version), v.latest, v.regDate), String(v.version))));
+            versionsPid = pid;
+            setParam('version', want);
+
+            const hasTest = list.some((v) => String(v.version) === TEST_VERSION);
+            const count = list.filter((v) => String(v.version) !== TEST_VERSION).length;
+            $('versionInfo').textContent = list.length
+                ? `${count}개 버전${hasTest ? ' · TEST 있음' : ''}`
+                : '버전 없음 (PID 확인)';
+            $('versionInfo').className = list.length ? '' : 'warn';
+        } catch (e) {
+            if (req !== versionsReq) return;
+            console.warn('PID 버전 목록 로딩 실패:', e);
+            resetVersions('버전 목록 로딩 실패');
+            $('versionInfo').className = 'warn';
+            // 층별 PID 여부를 모르면 입력은 허용 (층별 PID 가 아니면 서버가 무시)
+            setFloorEnabled('Y', '층별 여부 확인 실패');
+            setParam('version', want);
+        } finally {
+            if (req === versionsReq) sel.disabled = false;
+        }
+    }
+
+    // 실행 조건 (화면 파라미터 + 하위 PID 버전 지정) → 쿼리스트링
+    function buildQuery() {
+        const qs = new URLSearchParams();
+        PARAM_NAMES.forEach((n) => {
+            const v = getParam(n);
+            if (v) qs.set(n, v);
+        });
+        const sub = subVersionsParam();
+        if (sub) qs.set('subVersions', sub);
+        return qs;
+    }
+
+    function buildApiUrl() {
+        return `${API_URL}?${buildQuery()}`;
+    }
+
+    // ---------- 하위 PID(CALL) 버전 선택 ----------
+    // 실행 결과의 subPids 로 상단에 하위 PID 별 버전 선택을 그린다.
+    // 처음에는 모두 최신으로 실행하고, 고른 버전은 '하위 버전 적용 실행' 으로 다시 실행한다.
+    let pendingSubVersions = '';   // 주소창의 subVersions (첫 실행 전, 선택 목록이 아직 없을 때 사용)
+
+    const subSelects = () => [...$('subList').querySelectorAll('select[data-sub-pid]')];
+
+    // 지금 고른 하위 PID 버전 → "PID:버전,PID:버전" (최신은 제외)
+    function subVersionsParam() {
+        const sels = subSelects();
+        if (!sels.length) return pendingSubVersions;
+        return sels.filter((s) => s.value !== '').map((s) => `${s.dataset.subPid}:${s.value}`).join(',');
+    }
+
+    // 결과의 하위 PID 정보 (PID → SubPid)
+    function subPidInfo(pid) {
+        const list = (state.result && state.result.subPids) || [];
+        return list.find((s) => s.pid === pid);
+    }
+
+    const subVerText = (v) => (String(v) === TEST_VERSION ? 'TEST' : `v${v}`);
+
+    function renderSubPids() {
+        const list = (state.result && state.result.subPids) || [];
+        pendingSubVersions = '';
+        $('subRow').hidden = !list.length;
+        $('subList').innerHTML = list.map((s) => {
+            const applied = s.requestedVersion !== null && s.requestedVersion !== undefined;
+            let opts = `<option value="">${esc(latestLabel(s.versions))}</option>`;
+            (s.versions || []).forEach((v) => {
+                const val = String(v.version);
+                opts += `<option value="${esc(val)}">${esc(versionLabel(val, v.latest, v.regDate))}</option>`;
+            });
+            // 지정했지만 목록에 없는 버전 (없는 버전 지정 → 오류) 도 선택 상태로 보여준다
+            if (applied && !(s.versions || []).some((v) => v.version === s.requestedVersion)) {
+                opts += `<option value="${esc(String(s.requestedVersion))}">${esc(subVerText(s.requestedVersion))} (없음)</option>`;
+            }
+            const title = [
+                `${s.pid}${s.name ? ' · ' + s.name : ''}`,
+                s.runVersion !== null && s.runVersion !== undefined
+                    ? `실행 버전 : ${subVerText(s.runVersion)}`
+                        + nvl(((s.versions || []).find((v) => v.version === s.runVersion) || {}).regDate).replace(/^(.+)$/, ' (등록 $1)')
+                    : '실행 실패',
+                `호출 ${s.callCount}회 · 깊이 ${s.depth}`,
+                s.error ? `오류 : ${s.error}` : '',
+            ].filter(Boolean).join('\n');
+            const cls = ['sub-item', applied ? 'applied' : '', s.error ? 'error' : ''].filter(Boolean).join(' ');
+            return `<label class="${cls}" title="${esc(title)}" data-applied="${applied ? esc(String(s.requestedVersion)) : ''}">`
+                + (s.depth > 2 ? `<span class="sub-depth">${'↳'.repeat(s.depth - 2)}</span>` : '')
+                + `<span class="sub-pid">${s.error ? '<svg class="ico sm warn-ico" aria-hidden="true"><use href="#i-alert"/></svg> ' : ''}${esc(s.pid)}</span>`
+                + `<select data-sub-pid="${esc(s.pid)}">${opts}</select></label>`;
+        }).join('');
+        // 이번 실행에 적용된 버전을 선택해 둔다
+        subSelects().forEach((sel) => { sel.value = sel.closest('.sub-item').dataset.applied; });
+        updateSubHint();
+    }
+
+    // 고른 버전이 이번 실행과 다른 하위 PID 표시 + 안내
+    function updateSubHint() {
+        const sels = subSelects();
+        let changed = 0, applied = 0;
+        sels.forEach((sel) => {
+            const item = sel.closest('.sub-item');
+            const diff = sel.value !== item.dataset.applied;
+            item.classList.toggle('changed', diff);
+            if (diff) changed++;
+            if (item.dataset.applied !== '') applied++;
+        });
+        $('subHint').innerHTML = `${sels.length}개`
+            + (applied ? ` · 버전 지정 ${applied}개` : ' · 모두 최신')
+            + (changed ? ` · <span class="changed">변경 ${changed}개 (적용 실행 필요)</span>` : '');
+        $('btnSubReset').disabled = !applied && !changed;
+    }
+
+    // PID 가 바뀌면 하위 PID 버전 선택은 의미가 없으므로 비운다
+    function clearSubPids() {
+        pendingSubVersions = '';
+        $('subList').innerHTML = '';
+        $('subRow').hidden = true;
+    }
+
+    // ---------- CALL PID 새 탭 실행 ----------
+    // KEY 가 CALL 인 VAL(호출 PID)을 클릭 가능한 링크로 감싼다
+    function callPidLink(val, html) {
+        const pid = nvl(val).trim();
+        if (!pid) return html !== undefined ? html : esc(val);
+        return `<span class="call-pid" data-call-pid="${esc(pid)}" title="새 탭에서 ${esc(pid)} 시뮬 실행">`
+            + (html !== undefined ? html : esc(val)) + '</span>';
+    }
+
+    // 현재 공사번호 + 호출 PID 로 새 탭을 열어 시뮬 실행 (init 에서 URL 파라미터로 자동 실행)
+    // 하위 PID 버전을 지정해서 실행한 PID 면 그 버전으로, 아니면 최신 버전으로 연다
+    function openCallPid(pid) {
+        const project = (state.query && state.query.project) || getParam('project');
+        if (!project || !pid) return;
+        const qs = new URLSearchParams({ project, pid });
+        const sub = subPidInfo(pid);
+        if (sub && sub.requestedVersion !== null && sub.requestedVersion !== undefined) qs.set('version', String(sub.requestedVersion));
+        window.open(`${location.pathname}?${qs}`, '_blank');
+    }
+
+    // OUTPUT 의 CALL 옆 버전 표시 (버전을 지정해서 실행했거나 실패한 하위 PID 만)
+    function subVerBadge(pid) {
+        const sub = subPidInfo(nvl(pid).trim());
+        if (!sub) return '';
+        if (sub.error) return `<span class="sub-ver error" title="${esc(sub.error)}">실패</span>`;
+        if (sub.requestedVersion === null || sub.requestedVersion === undefined) return '';
+        return `<span class="sub-ver" title="하위 PID 버전 지정으로 실행">${esc(subVerText(sub.runVersion))}</span>`;
+    }
+
+    function setAdvOpen(open) {
+        $('advPanel').hidden = !open;
+        $('btnAdv').setAttribute('aria-expanded', String(open));
+    }
+
+    // ---------- 데이터 가공 ----------
+    // 실제 값이 있는 마지막 인덱스 + 1 (빈 컬럼을 잘라내기 위해)
+    function usedLength(a, b) {
+        let n = 0;
+        const len = Math.max((a || []).length, (b || []).length);
+        for (let i = 0; i < len; i++) {
+            if (nvl(a && a[i]) !== '' || nvl(b && b[i]) !== '') n = i + 1;
+        }
+        return n;
+    }
+
+    const cmpClass = (c) => (c === 'T' ? 'cellTrue' : (c === 'F' ? 'cellFalse' : ''));
+    const cmpTitle = (c) => (c === 'T' ? '조건 일치' : (c === 'F' ? '조건 불일치' : ''));
+
+    function classify(row) {
+        const rowTrue = nvl(row.rowTrue);
+        if (rowTrue === '') return 'unread';
+        return rowTrue === 'true' ? 'true' : 'false';
+    }
+
+    // PIDSimulResult.lines → 화면 라인 형식 (pidSimulMain 과 같은 필드명)
+    function toRows(result) {
+        return (result.lines || []).map((l) => {
+            const conds = l.conditions || [];
+            const results = l.results || [];
+            const row = {
+                line_no: l.no,
+                ADDR: l.addr,
+                GOTO: l.gotoAddr,
+                REMARKS: l.remarks,
+                rowTrue: l.state === 'TRUE' ? 'true' : (l.state === 'FALSE' ? 'false' : ''),
+                specList: conds.map((c) => c.spec),
+                conList: conds.map((c) => c.con),
+                compareResultList: conds.map((c) => c.compare),
+                // 조건 SPEC 의 영업사양 값 (PID 실행 후 최종 영업사양 기준, 서버 계산)
+                specValueList: conds.map((c) => c.specValue),
+                keyList: results.map((r) => r.key),
+                valList: results.map((r) => r.val),
+                // OUTPUT 열 (서버 계산 : 조건 만족 라인의 KEY = 결과값, 계산식이면 (치환식) 포함)
+                outputText: nvl(l.output),
+                // CALL 을 실행한 라인만 : 이 라인 실행 후 resultMap (하위 PID 결과 포함)
+                resultMap: l.resultMap || null,
+            };
+            row.isBlankLine = usedLength(row.specList, row.conList) === 0 && usedLength(row.keyList, row.valList) === 0
+                ? 'true' : 'false';
+            return row;
+        });
+    }
+
+    // 조건 SPEC 의 영업사양 값 (없으면 undefined)
+    function actualValue(row, j) {
+        if (!nvl((row.specList || [])[j]).trim()) return undefined;
+        const v = (row.specValueList || [])[j];
+        return v === undefined || v === null ? undefined : nvl(v);
+    }
+    const actualText = (v) => (v === '' ? '(빈 값)' : v);
+
+    // OUTPUT 열: 서버가 만든 'KEY = 값' 줄을 표시. CALL 줄은 호출 PID 링크로 바꾼다
+    function outputLines(row) {
+        if (classify(row) !== 'true' || !row.outputText) return [];
+        return row.outputText.split('\n');
+    }
+
+    // VAL 이 [$ ... $] 계산식인지
+    const isCalc = (v) => /\[\$[\s\S]*\$\]/.test(nvl(v));
+
+    // OUTPUT 한 줄 → { key, value, calc } (계산식 VAL 이면 서버가 붙인 ' (치환식)' 을 calc 로 분리)
+    function parseOutputLine(row, line) {
+        const i = line.indexOf(' = ');
+        if (i < 0) return { key: '', value: line, calc: '' };
+        const key = line.substring(0, i);
+        let value = line.substring(i + 3);
+        let calc = '';
+        const keys = row.keyList || [], vals = row.valList || [];
+        const j = keys.findIndex((k) => nvl(k) === key);
+        if (j >= 0 && isCalc(vals[j])) {
+            const p = value.lastIndexOf(' (');
+            if (p >= 0 && value.endsWith(')')) {
+                calc = value.substring(p + 2, value.length - 1);
+                value = value.substring(0, p);
+            }
+        }
+        return { key, value, calc };
+    }
+
+    // 'CALL(PID) = ...' 줄이면 호출 PID, 아니면 null
+    const callPidOf = (line) => {
+        const m = line.match(/^CALL\((.*?)\) = /);
+        return m ? m[1] : null;
+    };
+    const resultMapCount = (row) => Object.keys(row.resultMap || {}).length;
+
+    function buildOutput(row, idx) {
+        return outputLines(row).map((line) => {
+            const callPid = callPidOf(line);
+            if (callPid !== null) {
+                // pidSimulMain 과 같이 CALL(PID) → resultMap N건 보기 (클릭하면 라인 상세의 resultMap)
+                return `<span class="out-item">CALL(<b>${callPidLink(callPid)}</b>${subVerBadge(callPid)}) → `
+                    + `<span class="call" data-idx="${idx}">resultMap ${resultMapCount(row)}건 보기</span></span>`;
+            }
+            const o = parseOutputLine(row, line);
+            if (!o.key) return `<span class="out-item">${esc(line)}</span>`;
+            // 계산식이면 어떤 값으로 계산되었는지 괄호로 덧붙인다
+            return `<span class="out-item">${esc(o.key)} = <b>${esc(o.value)}</b>`
+                + (o.calc ? ` <span class="calc-inline" title="계산식에 대입된 값">(${esc(o.calc)})</span>` : '') + '</span>';
+        }).join('');
+    }
+
+    function rowText(row) {
+        return [
+            row.ADDR, row.GOTO, row.REMARKS, row.line_no, row.outputText,
+            ...(row.specList || []), ...(row.conList || []),
+            ...(row.keyList || []), ...(row.valList || []),
+        ].map(nvl).join(' ').toLowerCase();
+    }
+
+    // 현재 필터 · 검색어 · 빈 라인 숨기기 기준으로 화면에 보일 라인인지 (테이블 · CSV 공통)
+    function isVisible(row) {
+        const status = classify(row);
+        if (state.filter === 'true' && status !== 'true') return false;
+        if (state.filter === 'false' && status !== 'false') return false;
+        if (state.filter === 'readed' && status === 'unread') return false;
+        if (state.filter === 'unread' && status !== 'unread') return false;
+        if (state.hideBlank && nvl(row.isBlankLine) === 'true' && nvl(row.ADDR) === '') return false;
+        const kw = state.keyword.toLowerCase();
+        return !kw || rowText(row).includes(kw);
+    }
+
+    // 조건 칩 / 셀의 툴팁: 일치 여부 + 영업사양 값
+    function specTitle(j, cmp, act) {
+        return `SPEC${j + 1} ${cmpTitle(cmp)}` + (act !== undefined ? ` · 영업사양값: ${actualText(act)}` : '');
+    }
+
+    // ---------- 렌더링 ----------
+    function renderSummary() {
+        const rows = state.rows;
+        const cnt = { true: 0, false: 0, unread: 0 };
+        rows.forEach((r) => cnt[classify(r)]++);
+        $('stTotal').textContent = rows.length;
+        $('stTrue').textContent = cnt.true;
+        $('stFalse').textContent = cnt.false;
+        $('stReaded').textContent = cnt.true + cnt.false;
+        $('stUnread').textContent = cnt.unread;
+        $('stFinal').textContent = Object.keys(finalResultMap()).length;
+        $('stElvEnt').textContent = Object.keys(finalElvEnt()).length;
+        $('toolbar').hidden = false;
+        syncFilterUI();
+    }
+
+    // 필터 버튼 선택 표시 맞추기
+    function syncFilterUI() {
+        document.querySelectorAll('#filterSeg button').forEach((x) => {
+            x.classList.toggle('active', x.dataset.filter === state.filter);
+            x.setAttribute('aria-pressed', String(x.dataset.filter === state.filter));
+        });
+    }
+
+    function renderTable() {
+        const { rows, maxSpec, maxRes } = state;
+        if (state.result && state.result.javaMethod) {
+            renderJavaResult();
+            return;
+        }
+        if (!rows.length) {
+            area.innerHTML = '<div class="empty">조회 결과가 없습니다.</div>';
+            $('shownCount').textContent = '';
+            return;
+        }
+
+        // HEADER
+        const full = state.fullView;
+        let h = '<table id="resultTable"><thead>';
+        if (full) {
+            h += '<tr class="group">'
+                + '<th class="sticky-1" rowspan="2">#</th>'
+                + '<th class="sticky-2" rowspan="2">ADDR</th>'
+                + '<th rowspan="2">결과</th>';
+            if (maxSpec) h += `<th class="grp-spec" colspan="${maxSpec * 2}">조건 (SPEC / CON)</th>`;
+            if (maxRes) h += `<th class="grp-key" colspan="${maxRes * 2}">결과 (KEY / VAL)</th>`;
+            h += '<th rowspan="2">GOTO</th><th rowspan="2">OUTPUT</th><th rowspan="2">REMARK</th></tr>';
+
+            h += '<tr class="cols">';
+            for (let i = 1; i <= maxSpec; i++) h += `<th class="grp-spec">SPEC${i}</th><th class="grp-spec">CON${i}</th>`;
+            for (let i = 1; i <= maxRes; i++) h += `<th class="grp-key">KEY${i}</th><th class="grp-key">VAL${i}</th>`;
+            h += '</tr>';
+        } else {
+            h += '<tr>'
+                + '<th class="sticky-1">#</th><th class="sticky-2">ADDR</th><th>결과</th>'
+                + '<th class="grp-spec">조건 (SPEC = CON)</th>'
+                + '<th class="grp-key">결과 (KEY = VAL)</th>'
+                + '<th>GOTO</th><th>OUTPUT</th><th>REMARK</th></tr>';
+        }
+        h += '</thead><tbody>';
+
+        // CONTENTS
+        let shown = 0;
+
+        rows.forEach((row, i) => {
+            if (!isVisible(row)) return;
+            const status = classify(row);
+            shown++;
+
+            const trClass = status === 'unread' ? 'unreaded'
+                : (status === 'true' ? 'readed rowTrue' : 'readed rowFalse');
+            const statusText = status === 'unread' ? '-' : (status === 'true' ? 'TRUE' : 'FALSE');
+
+            h += `<tr class="${trClass}${i === state.selectedIdx ? ' selected' : ''}" data-idx="${i}">`;
+            h += `<td class="sticky-1">${esc(row.line_no || i + 1)}</td>`;
+            h += `<td class="sticky-2 addr">${esc(row.ADDR)}</td>`;
+            h += `<td class="status">${statusText}</td>`;
+
+            const specs = row.specList || [];
+            const cons = row.conList || [];
+            const cmps = row.compareResultList || [];
+            const keys = row.keyList || [];
+            const vals = row.valList || [];
+
+            if (full) {
+                for (let j = 0; j < maxSpec; j++) {
+                    const cmp = nvl(cmps[j]);
+                    const title = esc(specTitle(j, cmp, actualValue(row, j)));
+                    h += `<td class="spec ${cmpClass(cmp)}" title="${title}">${esc(specs[j])}</td>`;
+                    h += `<td class="pair-end ${cmpClass(cmp)}" title="${title}">${esc(cons[j])}</td>`;
+                }
+                for (let j = 0; j < maxRes; j++) {
+                    h += `<td class="key">${esc(keys[j])}</td>`;
+                    h += `<td class="pair-end">${nvl(keys[j]) === 'CALL' ? callPidLink(vals[j], br(vals[j])) : br(vals[j])}</td>`;
+                }
+            } else {
+                let specChips = '';
+                for (let j = 0; j < usedLength(specs, cons); j++) {
+                    if (nvl(specs[j]) === '' && nvl(cons[j]) === '') continue;
+                    const cmp = nvl(cmps[j]);
+                    specChips += `<span class="chip ${cmpClass(cmp)}" title="${esc(specTitle(j, cmp, actualValue(row, j)))}">`
+                        + (cmp === 'T' ? '<span class="mk" aria-hidden="true">✓</span>' : (cmp === 'F' ? '<span class="mk" aria-hidden="true">✗</span>' : ''))
+                        + `<span class="k">${esc(specs[j])}</span> = <span class="v">${esc(cons[j])}</span></span>`;
+                }
+                let resChips = '';
+                for (let j = 0; j < usedLength(keys, vals); j++) {
+                    if (nvl(keys[j]) === '' && nvl(vals[j]) === '') continue;
+                    resChips += `<span class="chip res" title="KEY${j + 1}"><span class="k">${esc(keys[j])}</span>`
+                        + (nvl(vals[j]) !== '' ? ` = <span class="v">${nvl(keys[j]) === 'CALL' ? callPidLink(vals[j], br(vals[j])) : br(vals[j])}</span>` : '') + '</span>';
+                }
+                h += `<td class="chips">${specChips}</td><td class="chips">${resChips}</td>`;
+            }
+
+            h += row.GOTO
+                ? `<td class="goto"><span class="jump" data-goto="${esc(row.GOTO)}" title="${esc(row.GOTO)} 라인으로 이동">→ ${esc(row.GOTO)}</span></td>`
+                : '<td class="goto"></td>';
+            h += `<td class="output">${buildOutput(row, i)}</td>`;
+            h += `<td class="remark">${esc(row.REMARKS)}</td>`;
+            h += '</tr>';
+        });
+
+        h += '</tbody></table>';
+        if (!shown) h = '<div class="empty">필터 조건에 맞는 라인이 없습니다.</div>';
+
+        area.innerHTML = h;
+        $('shownCount').textContent = `${shown} / ${rows.length} 라인`;
+    }
+
+    // JAVA 방식 PID : 라인 없이 실행 결과값만 있다 (원본 화면의 "JAVA 실행결과")
+    function renderJavaResult() {
+        const map = finalResultMap();
+        area.innerHTML = '<div class="java-result">'
+            + `<div class="section-title">JAVA 실행결과 (${Object.keys(map).length}건)</div>`
+            + '<div style="color:var(--muted);margin-bottom:8px">JAVA 방식 PID 는 라인 정보 없이 결과값만 표시됩니다.</div>'
+            + kvTable(map) + '</div>';
+        $('shownCount').textContent = '';
+    }
+
+    // ---------- 라인 선택 / 키보드 이동 ----------
+    const visibleRows = () => [...area.querySelectorAll('tbody tr[data-idx]')];
+    const rowEl = (idx) => area.querySelector(`tbody tr[data-idx="${idx}"]`);
+
+    // 세로로만 따라가도록 스크롤 (가로 위치는 유지)
+    function scrollRowIntoView(tr) {
+        const head = area.querySelector('thead');
+        const headH = head ? head.getBoundingClientRect().height : 0;
+        const a = area.getBoundingClientRect();
+        const r = tr.getBoundingClientRect();
+        if (r.top < a.top + headH) {
+            area.scrollTop -= (a.top + headH) - r.top + 4;
+        } else if (r.bottom > a.bottom - 14) {
+            area.scrollTop += r.bottom - (a.bottom - 14) + 4;
+        }
+    }
+
+    function selectRow(tr) {
+        if (!tr) return;
+        area.querySelectorAll('tbody tr.selected').forEach((x) => x.classList.remove('selected'));
+        tr.classList.add('selected');
+        state.selectedIdx = Number(tr.dataset.idx);
+        scrollRowIntoView(tr);
+        // 상세 패널이 라인 상세를 보여주는 중이면 따라서 갱신
+        if (isDrawerOpen() && state.drawerMode === 'row') showRowDetail(state.selectedIdx, { keepFocus: true });
+    }
+
+    function moveSelection(step) {
+        const trs = visibleRows();
+        if (!trs.length) return;
+        let pos = trs.findIndex((tr) => Number(tr.dataset.idx) === state.selectedIdx);
+        if (pos < 0) pos = step > 0 ? -1 : trs.length;
+        pos = Math.max(0, Math.min(trs.length - 1, pos + step));
+        selectRow(trs[pos]);
+    }
+
+    // 실행 직후: 결과 테이블로 포커스 + 맨 위로 + 첫 라인 선택
+    function focusResult() {
+        area.scrollTop = 0;
+        area.scrollLeft = 0;
+        area.focus({ preventScroll: true });
+        const first = visibleRows()[0];
+        if (first) selectRow(first);
+    }
+
+    // ---------- 상세 패널 (라인 상세 / 최종 OUTPUT / 최종 영업사양) ----------
+    const isDrawerOpen = () => $('drawer').classList.contains('open');
+
+    // 최종 결과값 (서버 resultMap : debugData / elvEnt 제외)
+    const finalResultMap = () => (state.result && state.result.resultMap) || {};
+    // PID 실행 후 최종 영업사양
+    const finalElvEnt = () => (state.result && state.result.elvEnt) || {};
+
+    function kvTable(map, highlightKeys, nameMap) {
+        const entries = Object.entries(map || {});
+        if (!entries.length) return '<div class="empty" style="padding:16px">데이터 없음</div>';
+        // OUTPUTxxxx 키(내부 참조용)는 뒤로 보냄
+        entries.sort((a, b) => (a[0].startsWith('OUTPUT') ? 1 : 0) - (b[0].startsWith('OUTPUT') ? 1 : 0));
+        return '<table class="kv"><tbody>' + entries.map(([k, v]) => {
+            const hit = highlightKeys && highlightKeys.has(k) ? ' class="hit"' : '';
+            const val = nvl(v);
+            const name = nameMap ? nameMap.get(k.toUpperCase()) : '';
+            return `<tr${hit} data-k="${esc(k.toLowerCase())} ${esc(val.toLowerCase())} ${esc(nvl(name).toLowerCase())}">`
+                + `<th>${esc(k)}${name ? ` <span class="spec-name">(${esc(name)})</span>` : ''}</th>`
+                + (val === '' ? '<td class="blank">(빈 값)</td>' : `<td>${br(val)}</td>`) + '</tr>';
+        }).join('') + '</tbody></table>';
+    }
+
+    function openDrawer(title, html, mode) {
+        // 라인 이동 시 상세 패널 안의 검색어 유지
+        const prevSearch = $('drawerBody').querySelector('input[type=search]');
+        const prevQuery = prevSearch && state.drawerMode === mode ? prevSearch.value : '';
+
+        state.drawerMode = mode;
+        $('drawerTitle').textContent = title;
+        $('drawerBody').innerHTML = html;
+        $('drawer').classList.add('open');
+        $('resizer').classList.add('show');
+        $('btnPrevRow').hidden = mode !== 'row';
+        $('btnNextRow').hidden = mode !== 'row';
+
+        const search = $('drawerBody').querySelector('input[type=search]');
+        if (search) {
+            const apply = () => {
+                const q = search.value.trim().toLowerCase();
+                $('drawerBody').querySelectorAll('.kv tr[data-k]').forEach((tr) => {
+                    tr.hidden = q && !tr.dataset.k.includes(q);
+                });
+            };
+            search.addEventListener('input', apply);
+            if (prevQuery) { search.value = prevQuery; apply(); }
+        }
+    }
+
+    function closeDrawer() {
+        $('drawer').classList.remove('open');
+        $('resizer').classList.remove('show');
+        state.drawerMode = '';
+        area.focus({ preventScroll: true });
+    }
+
+    function showRowDetail(idx, opts = {}) {
+        const row = state.rows[idx];
+        if (!row) return;
+        if (state.selectedIdx !== idx) {
+            state.selectedIdx = idx;
+            area.querySelectorAll('tbody tr.selected').forEach((tr) => tr.classList.remove('selected'));
+            const tr = rowEl(idx);
+            if (tr) tr.classList.add('selected');
+        }
+
+        const status = classify(row);
+        const badge = status === 'unread' ? '<span class="badge unread">미실행</span>'
+            : `<span class="badge ${status}">${status.toUpperCase()}</span>`;
+
+        let html = `<div>${badge} &nbsp; LINE ${esc(row.line_no || idx + 1)}`
+            + (row.ADDR ? ` · ADDR <b>${esc(row.ADDR)}</b>` : '')
+            + (row.GOTO ? ` · GOTO <b>${esc(row.GOTO)}</b>` : '')
+            + '</div>';
+        if (row.REMARKS) html += `<div style="margin-top:6px;color:var(--muted)">${esc(row.REMARKS)}</div>`;
+
+        // 조건
+        const specs = row.specList || [], cons = row.conList || [], cmps = row.compareResultList || [];
+        const n = usedLength(specs, cons);
+        if (n) {
+            html += '<div class="section-title">조건</div><table class="kv"><tbody>';
+            for (let j = 0; j < n; j++) {
+                const c = nvl(cmps[j]);
+                const cls = cmpClass(c);
+                const specName = specNames.get(nvl(specs[j]).trim().toUpperCase());
+                // 조건값 아래에 영업사양 값을 함께 보여줘서 왜 일치/불일치인지 바로 비교
+                const act = actualValue(row, j);
+                html += `<tr><th>${esc(specs[j])}${specName ? ` <span class="spec-name">(${esc(specName)})</span>` : ''}</th>`
+                    + `<td class="${cls}">${esc(cons[j])} ${c ? `(${c === 'T' ? '일치' : '불일치'})` : ''}`
+                    + (act !== undefined ? `<div class="actual">영업사양값: <b>${esc(actualText(act))}</b></div>` : '')
+                    + '</td></tr>';
+            }
+            html += '</tbody></table>';
+        }
+
+        // 결과 KEY/VAL
+        const keys = row.keyList || [], vals = row.valList || [];
+        const m = usedLength(keys, vals);
+        if (m) {
+            html += '<div class="section-title">결과 (KEY = VAL)</div><table class="kv"><tbody>';
+            for (let j = 0; j < m; j++) {
+                html += `<tr><th>${esc(keys[j])}</th><td>${nvl(keys[j]) === 'CALL' ? callPidLink(vals[j], br(vals[j])) : br(vals[j])}</td></tr>`;
+            }
+            html += '</tbody></table>';
+        }
+
+        // OUTPUT (서버 계산)
+        const outs = outputLines(row);
+        if (outs.length) {
+            html += '<div class="section-title">OUTPUT</div><table class="kv"><tbody>';
+            outs.forEach((line) => {
+                const callPid = callPidOf(line);
+                if (callPid !== null) {
+                    html += `<tr><th>CALL(${callPidLink(callPid)}${subVerBadge(callPid)})</th>`
+                        + `<td><span class="call" data-scroll="resultMap">resultMap ${resultMapCount(row)}건 ↓</span></td></tr>`;
+                    return;
+                }
+                const o = parseOutputLine(row, line);
+                html += o.key
+                    ? `<tr><th>${esc(o.key)}</th><td>${br(o.value)}`
+                        + (o.calc ? `<div class="calc">= ${esc(o.calc)}</div>` : '') + '</td></tr>'
+                    : `<tr><td colspan="2">${br(line)}</td></tr>`;
+            });
+            html += '</tbody></table>';
+        }
+
+        // CALL 라인 : 이 라인 실행 후 resultMap (pidSimulMain 과 동일, 이 라인의 KEY 는 강조)
+        if (row.resultMap) {
+            const keySet = new Set((row.keyList || []).map(nvl));
+            // 'OUTPUT11' 로 시작하는 키는 표시하지 않음
+            const shownMap = Object.fromEntries(
+                Object.entries(row.resultMap).filter(([k]) => !k.startsWith('OUTPUT11')));
+            html += `<div class="section-title" id="rowResultMap">이 라인 실행 후 resultMap (${Object.keys(shownMap).length}건)</div>`
+                + '<input type="search" placeholder="키 / 값 검색">'
+                + kvTable(shownMap, keySet);
+        }
+        openDrawer('라인 상세', html, 'row');
+        // 상세를 열어도 키보드(↑↓)는 계속 결과 테이블에서 동작
+        if (!opts.keepFocus) area.focus({ preventScroll: true });
+    }
+
+    function showFinal() {
+        const map = finalResultMap();
+        openDrawer(`최종 OUTPUT (${Object.keys(map).length}건)`,
+            '<div style="color:var(--muted);margin-bottom:8px">PID 실행 최종 결과값입니다.</div>'
+            + '<input type="search" placeholder="키 / 값 검색">' + kvTable(map), 'final');
+    }
+
+    function showElvEnt() {
+        const map = finalElvEnt();
+        openDrawer(`최종 영업사양 (${Object.keys(map).length}건)`,
+            '<div style="color:var(--muted);margin-bottom:8px">PID 실행 후 최종 영업사양입니다 (전처리 PID · CALL 결과 반영).</div>'
+            + '<input type="search" placeholder="특성코드 / 사양명 / 값 검색">' + kvTable(map, null, specNames), 'elvEnt');
+    }
+
+    // ---------- 데이터 적재 ----------
+    function loadResult(result) {
+        state.result = result;
+        const rows = toRows(result);
+        state.rows = rows;
+        state.selectedIdx = -1;
+        state.maxSpec = Math.max(0, ...rows.map((r) => usedLength(r.specList, r.conList)));
+        state.maxRes = Math.max(0, ...rows.map((r) => usedLength(r.keyList, r.valList)));
+        state.sourceLabel = `${nvl(result.projectNo) || nvl(result.iOuid)} / ${nvl(result.pid)}`;
+        if (isDrawerOpen()) closeDrawer();
+
+        // 경고 (층 정보 로드 실패, 하위 PID 실행 실패 등)
+        const warnings = (result.warnings || []).concat(
+            (result.subPids || []).filter((s) => s.error).map((s) => `하위 PID ${s.pid} 실행 실패 : ${s.error}`));
+        $('warnBar').hidden = !warnings.length;
+        $('warnText').textContent = warnings.map((w) => `• ${w}`).join('\n');
+
+        // 실행 결과의 층별 PID 여부로 층 입력 활성화를 맞춘다
+        if (result.pid === getParam('pid')) setFloorEnabled(result.isFloorSpec === 'Y' ? 'Y' : 'N');
+
+        renderSubPids();
+        renderSummary();
+        renderTable();
+        setAdvOpen(false);
+        focusResult();
+        syncCodePopup();
+    }
+
+    // ---------- CSV 저장 (지금 보이는 라인만, 엑셀에서 한글이 깨지지 않도록 BOM 포함) ----------
+    const csvCell = (v) => {
+        const s = nvl(v);
+        return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    function exportCsv() {
+        if (state.result && state.result.javaMethod) return alert('JAVA 방식 PID 는 라인 정보가 없습니다. 최종 OUTPUT 을 확인하세요.');
+        const head = ['#', 'ADDR', '결과', '조건 (SPEC = CON)', '영업사양값', '결과 (KEY = VAL)', 'GOTO', 'OUTPUT', 'REMARK'];
+        const lines = [head.map(csvCell).join(',')];
+        let count = 0;
+        state.rows.forEach((row, i) => {
+            if (!isVisible(row)) return;
+            count++;
+            const status = classify(row);
+            const specs = row.specList || [], cons = row.conList || [], cmps = row.compareResultList || [];
+            const keys = row.keyList || [], vals = row.valList || [];
+            const conds = [], actuals = [], results = [];
+            for (let j = 0; j < usedLength(specs, cons); j++) {
+                if (nvl(specs[j]) === '' && nvl(cons[j]) === '') continue;
+                const c = nvl(cmps[j]);
+                conds.push(`${nvl(specs[j])} = ${nvl(cons[j])}${c === 'F' ? ' (불일치)' : ''}`);
+                const act = actualValue(row, j);
+                if (act !== undefined) actuals.push(`${nvl(specs[j])} = ${actualText(act)}`);
+            }
+            for (let j = 0; j < usedLength(keys, vals); j++) {
+                if (nvl(keys[j]) === '' && nvl(vals[j]) === '') continue;
+                results.push(`${nvl(keys[j])} = ${nvl(vals[j])}`);
+            }
+            lines.push([
+                row.line_no || i + 1, row.ADDR,
+                status === 'unread' ? '미실행' : status.toUpperCase(),
+                conds.join('\n'), actuals.join('\n'), results.join('\n'),
+                row.GOTO, outputLines(row).join('\n'), row.REMARKS,
+            ].map(csvCell).join(','));
+        });
+        if (!count) return alert('저장할 라인이 없습니다. 필터 · 검색 조건을 확인하세요.');
+
+        const q = state.query || { project: 'result', pid: '' };
+        const r = state.result || {};
+        const ver = r.testVersion ? 'TEST' : (r.runVersion !== undefined ? `v${r.runVersion}` : '');
+        const name = `PID_${q.project}_${q.pid}${ver ? '_' + ver : ''}`.replace(/[\\/:*?"<>|\s$@]+/g, '_') + '.csv';
+        const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    // ---------- 특성코드 사전 팝업 ----------
+    // 팝업(pidSimulCodePopup)이 호출: 현재 결과의 SPEC 특성코드 목록 (처음 나온 순서)
+    window.getPidSpecSummary = function () {
+        const map = new Map();
+        state.rows.forEach((row) => {
+            const specs = row.specList || [], cons = row.conList || [];
+            const lines = new Set();
+            for (let j = 0; j < usedLength(specs, cons); j++) {
+                const code = nvl(specs[j]).trim();
+                if (!code) continue;
+                const k = code.toUpperCase();
+                let s = map.get(k);
+                if (!s) map.set(k, (s = { code, count: 0, cons: [] }));
+                if (!lines.has(k)) { lines.add(k); s.count++; }
+                const con = nvl(cons[j]).trim();
+                if (con && !s.cons.includes(con)) s.cons.push(con);
+            }
+        });
+        return { label: state.sourceLabel, specs: [...map.values()] };
+    };
+
+    function openCodePopup() {
+        if (codePopup && !codePopup.closed) {
+            codePopup.focus();
+            syncCodePopup();
+            return;
+        }
+        codePopup = window.open(CODE_POPUP_URL, 'pidSimulUpCodePopup', 'width=960,height=820,resizable=yes,scrollbars=yes');
+        if (!codePopup) alert('팝업이 차단되었습니다. 브라우저에서 이 사이트의 팝업을 허용해 주세요.');
+    }
+
+    // 사양명 로딩 (실패해도 조건은 코드만으로 표시)
+    async function loadSpecNames() {
+        try {
+            const res = await fetch(CODE_API, { headers: { Accept: 'application/json' } });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            (await res.json() || []).forEach((r) => {
+                const k = nvl(r.code).trim().toUpperCase();
+                const name = nvl(r.codeName).trim();
+                if (k && name && !specNames.has(k)) specNames.set(k, name);
+            });
+            // 로딩 전에 열어 둔 라인 상세가 있으면 사양명을 붙여서 다시 그림
+            if (isDrawerOpen() && state.drawerMode === 'row') showRowDetail(state.selectedIdx, { keepFocus: true });
+        } catch (e) {
+            console.warn('사양명(getElvCodeList) 로딩 실패:', e);
+        }
+    }
+
+    // 상단 안내: 공사 / PID / 버전 / 층 / 걸린 시간
+    function renderSourceInfo(sec) {
+        const r = state.result || {};
+        let h = `${esc(nvl(r.projectNo) || nvl(r.iOuid))} / <b>${esc(r.pid)}</b>`;
+        if (r.pidName) h += ` <span class="pid-name">${esc(r.pidName)}</span>`;
+        // 실행한 버전 : TEST / 최신 vN / vN (최신이면 표시)
+        const verText = r.testVersion ? 'TEST'
+            : (r.version === null || r.version === undefined ? `최신 v${r.runVersion}`
+                : `v${r.runVersion}${r.runVersion === r.latestVersion ? ' (최신)' : ` · 최신 v${r.latestVersion}`}`);
+        h += `<span class="tag">${esc(verText)}</span>`;
+        if (r.isFloorSpec === 'Y') h += `<span class="tag">층별 PID${r.floor ? ` · ${esc(r.floor)}` : ''}</span>`;
+        if (r.javaMethod) h += '<span class="tag">JAVA</span>';
+        if (sec !== undefined) h += ` · ${sec}초`;
+        if ((r.warnings || []).length) h += ` · <span class="warn">경고 ${r.warnings.length}건</span>`;
+        $('sourceInfo').innerHTML = h;
+        $('sourceInfo').title = nvl(r.projectTitle);
+    }
+
+    // 재실행하면 열려 있는 팝업도 새 결과로 갱신
+    function syncCodePopup() {
+        try {
+            if (codePopup && !codePopup.closed && typeof codePopup.syncFromOpener === 'function') codePopup.syncFromOpener();
+        } catch (e) { /* 팝업 로딩 중이면 팝업이 스스로 읽어감 */ }
+    }
+
+    function resetFilterUI() {
+        state.filter = 'all';
+        state.keyword = '';
+        $('keyword').value = '';
+        syncFilterUI();
+    }
+
+    // GOTO 클릭 시 해당 ADDR 라인으로 스크롤
+    function jumpToAddr(addr) {
+        const idx = state.rows.findIndex((r) => nvl(r.ADDR) === addr);
+        if (idx < 0) return alert(`ADDR '${addr}' 라인을 찾을 수 없습니다.`);
+        let tr = rowEl(idx);
+        if (!tr) {
+            // 필터로 숨겨져 있으면 필터 해제 후 다시 그림
+            resetFilterUI();
+            renderTable();
+            tr = rowEl(idx);
+        }
+        if (!tr) return;
+        const offset = tr.getBoundingClientRect().top - area.getBoundingClientRect().top;
+        area.scrollTop = area.scrollTop + offset - area.clientHeight / 3;
+        selectRow(tr);
+        tr.classList.remove('flash');
+        void tr.offsetWidth;
+        tr.classList.add('flash');
+        area.focus({ preventScroll: true });
+    }
+
+    // ---------- API 호출 ----------
+    async function run() {
+        if (!getParam('project') || !getParam('pid')) {
+            alert('공사번호와 PID는 필수입니다.');
+            return;
+        }
+        const query = buildQuery();
+        const url = `${API_URL}?${query}`;
+        const startedAt = performance.now();
+        const btn = $('btnRun');
+        btn.disabled = true;
+        btn.innerHTML = BUSY_HTML('실행 중');
+        $('runProgress').hidden = false;
+        $('btnSubRun').disabled = true;
+        $('btnSubReset').disabled = true;
+        area.innerHTML = '<div class="loading-card" role="status"><span class="spinner" aria-hidden="true"></span>PLM DB 에서 PID 로직과 영업사양을 읽어 실행하고 있습니다…</div>';
+        if (isDrawerOpen()) closeDrawer();
+
+        try {
+            const res = await fetch(url, { method: 'GET', headers: { Accept: 'application/json' } });
+            let json = null;
+            try { json = await res.json(); } catch (e) { /* 본문이 JSON 이 아님 */ }
+            // 서버 오류는 { error: 메시지 } 로 온다
+            if (!res.ok || !json || json.error) {
+                throw new Error((json && json.error) || `HTTP ${res.status} ${res.statusText}`);
+            }
+
+            state.query = { project: getParam('project'), pid: getParam('pid'), version: getParam('version') };
+            loadResult(json);
+            renderSourceInfo(((performance.now() - startedAt) / 1000).toFixed(1));
+
+            // 주소창에 파라미터 반영 (새로고침/공유 시 재사용, 하위 PID 버전 지정 포함)
+            history.replaceState(null, '', `${location.pathname}?${query}`);
+        } catch (e) {
+            console.error(e);
+            $('toolbar').hidden = true;
+            $('warnBar').hidden = true;
+            $('sourceInfo').textContent = '';
+            area.innerHTML = '<div class="error-card" role="alert"><h3><svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg>PID 실행에 실패했습니다</h3>'
+                + `<p>${esc(e.message)}</p>`
+                + '<p style="color:var(--muted)">공사번호 · PID · 버전을 확인한 뒤 다시 실행하세요.</p>'
+                + '<button type="button" class="primary" data-retry><svg class="ico" aria-hidden="true"><use href="#i-refresh"/></svg>다시 실행</button></div>';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = BTN_RUN_HTML;
+            $('runProgress').hidden = true;
+            $('btnSubRun').disabled = false;
+            updateSubHint();
+        }
+    }
+
+    // ---------- 이벤트: 조회 조건 ----------
+    $('searchForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        run();
+    });
+    $('btnAdv').addEventListener('click', () => setAdvOpen($('advPanel').hidden));
+    $('btnCodeDict').addEventListener('click', openCodePopup);
+
+    // PID 를 바꾸면 버전 선택을 '최신'으로 되돌리고, 입력이 멈추면 그 PID 의 버전 목록을 불러온다
+    let pidTimer;
+    $('pid').addEventListener('input', () => {
+        clearTimeout(pidTimer);
+        versionsReq++;            // 진행 중인 이전 PID 조회 결과는 버린다
+        $('version').disabled = false;
+        resetVersions();
+        clearSubPids();           // 다른 PID 의 하위 PID 버전 지정은 보내지 않는다
+        pidTimer = setTimeout(() => loadVersions(''), 400);
+    });
+    $('pid').addEventListener('change', () => {
+        clearTimeout(pidTimer);
+        loadVersions();
+    });
+    // 버전 목록을 열 때 아직 안 불러왔으면 불러온다
+    $('version').addEventListener('focus', () => loadVersions());
+
+    // ---------- 이벤트: 하위 PID 버전 ----------
+    $('subList').addEventListener('change', (e) => {
+        if (e.target.matches('select[data-sub-pid]')) updateSubHint();
+    });
+    $('btnSubRun').addEventListener('click', run);
+    // 하위 PID 버전 접기 / 펼치기 (처음에는 펼친 상태)
+    $('btnSubToggle').addEventListener('click', () => {
+        const open = $('btnSubToggle').getAttribute('aria-expanded') !== 'true';
+        $('btnSubToggle').setAttribute('aria-expanded', String(open));
+        $('subBody').hidden = !open;
+    });
+    $('btnSubReset').addEventListener('click', () => {
+        subSelects().forEach((sel) => { sel.value = ''; });
+        updateSubHint();
+        run();
+    });
+
+    // ---------- 이벤트: 툴바 ----------
+    $('filterSeg').addEventListener('click', (e) => {
+        const b = e.target.closest('button[data-filter]');
+        if (!b) return;
+        state.filter = b.dataset.filter;
+        syncFilterUI();
+        renderTable();
+        area.scrollTop = 0;
+        area.focus({ preventScroll: true });
+    });
+    $('hideBlank').addEventListener('change', (e) => {
+        state.hideBlank = e.target.checked;
+        renderTable();
+    });
+    $('fullView').addEventListener('change', (e) => {
+        state.fullView = e.target.checked;
+        renderTable();
+    });
+    let kwTimer;
+    $('keyword').addEventListener('input', (e) => {
+        clearTimeout(kwTimer);
+        kwTimer = setTimeout(() => {
+            state.keyword = e.target.value.trim();
+            renderTable();
+        }, 200);
+    });
+    // 검색창에서 Enter / ↓ → 결과 테이블로 이동
+    $('keyword').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            clearTimeout(kwTimer);
+            state.keyword = e.target.value.trim();
+            renderTable();
+            focusResult();
+        }
+    });
+    $('btnFinal').addEventListener('click', showFinal);
+    $('btnWarnClose').addEventListener('click', () => { $('warnBar').hidden = true; });
+    // 범례 / 단축키 : 바깥을 누르면 닫기
+    document.addEventListener('click', (e) => {
+        document.querySelectorAll('details.pop[open]').forEach((d) => { if (!d.contains(e.target)) d.open = false; });
+    });
+    $('btnElvEnt').addEventListener('click', showElvEnt);
+    $('btnCsv').addEventListener('click', exportCsv);
+
+    // ---------- 이벤트: 결과 테이블 (클릭 / 키보드 / 드래그 이동) ----------
+    let suppressClick = false;
+    area.addEventListener('click', (e) => {
+        if (suppressClick) return;
+        if (e.target.closest('[data-retry]')) return run();
+        const callPid = e.target.closest('.call-pid[data-call-pid]');
+        if (callPid) return openCallPid(callPid.dataset.callPid);
+        const jump = e.target.closest('.jump[data-goto]');
+        if (jump) return jumpToAddr(jump.dataset.goto);
+        const tr = e.target.closest('tbody tr[data-idx]');
+        if (tr) {
+            const wasRowDetail = isDrawerOpen() && state.drawerMode === 'row';
+            selectRow(tr);  // 라인 상세가 열려 있으면 selectRow 가 갱신
+            if (!wasRowDetail) showRowDetail(Number(tr.dataset.idx));
+            // 'resultMap N건 보기' 를 누르면 라인 상세의 resultMap 위치로 이동
+            if (e.target.closest('.call[data-idx]')) scrollToRowResultMap();
+        }
+    });
+
+    area.addEventListener('keydown', (e) => {
+        const page = Math.max(1, Math.floor(area.clientHeight / 30) - 2);
+        switch (e.key) {
+            case 'ArrowDown': moveSelection(1); break;
+            case 'ArrowUp': moveSelection(-1); break;
+            case 'PageDown': moveSelection(page); break;
+            case 'PageUp': moveSelection(-page); break;
+            case 'Home': moveSelection(-Infinity); area.scrollLeft = 0; break;
+            case 'End': moveSelection(Infinity); break;
+            case 'Enter':
+                if (state.selectedIdx >= 0) showRowDetail(state.selectedIdx);
+                break;
+            // 결과 테이블 확대/축소
+            case '+': case '=': setZoom(tableZoom + ZOOM.step); break;
+            case '-': setZoom(tableZoom - ZOOM.step); break;
+            case '0': setZoom(1); break;
+            default: return;  // ←/→ 는 브라우저 기본 가로 스크롤
+        }
+        e.preventDefault();
+    });
+
+    // 마우스 드래그로 테이블 좌우/상하 이동 (클릭과 구분: 5px 이상 움직이면 드래그)
+    let drag = null;
+    area.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        if (e.target.closest('.jump, .call, .call-pid, a, button, input, select, textarea')) return;
+        // 스크롤바 위에서 누른 경우는 브라우저 기본 동작
+        if (e.offsetX > area.clientWidth || e.offsetY > area.clientHeight) return;
+        drag = { x: e.clientX, y: e.clientY, sl: area.scrollLeft, st: area.scrollTop, moved: false };
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (!drag) return;
+        const dx = e.clientX - drag.x;
+        const dy = e.clientY - drag.y;
+        if (!drag.moved && Math.abs(dx) + Math.abs(dy) > 5) {
+            drag.moved = true;
+            area.classList.add('dragging');
+            window.getSelection().removeAllRanges();
+        }
+        if (drag.moved) {
+            area.scrollLeft = drag.sl - dx;
+            area.scrollTop = drag.st - dy;
+            e.preventDefault();
+        }
+    });
+    window.addEventListener('mouseup', () => {
+        if (drag && drag.moved) {
+            suppressClick = true;
+            setTimeout(() => { suppressClick = false; }, 0);
+        }
+        area.classList.remove('dragging');
+        drag = null;
+    });
+
+
+    // ---------- 결과 테이블 확대/축소 — 배율은 브라우저에 기억 ----------
+    const ZOOM = { min: 0.5, max: 2, step: 0.1, key: STORE_PREFIX + 'tableZoom' };
+    let tableZoom = 1;
+
+    function setZoom(z, save = true) {
+        tableZoom = Math.round(Math.min(ZOOM.max, Math.max(ZOOM.min, z)) * 10) / 10;
+        document.documentElement.style.setProperty('--table-zoom', tableZoom);
+        $('zoomLevel').textContent = `${Math.round(tableZoom * 100)}%`;
+        $('btnZoomOut').disabled = tableZoom <= ZOOM.min;
+        $('btnZoomIn').disabled = tableZoom >= ZOOM.max;
+        // 배율이 바뀌어도 선택한 라인은 화면 안에 두기
+        const tr = rowEl(state.selectedIdx);
+        if (tr) scrollRowIntoView(tr);
+        if (!save) return;
+        try { localStorage.setItem(ZOOM.key, String(tableZoom)); } catch (e) { /* 무시 */ }
+    }
+
+    $('btnZoomOut').addEventListener('click', () => setZoom(tableZoom - ZOOM.step));
+    $('btnZoomIn').addEventListener('click', () => setZoom(tableZoom + ZOOM.step));
+    $('zoomLevel').addEventListener('click', () => setZoom(1));
+    // Ctrl + 휠: 결과 영역 위에서는 브라우저 전체 확대 대신 테이블만 확대/축소
+    area.addEventListener('wheel', (e) => {
+        if (!e.ctrlKey) return;
+        e.preventDefault();
+        setZoom(tableZoom + (e.deltaY < 0 ? ZOOM.step : -ZOOM.step));
+    }, { passive: false });
+
+    try { setZoom(Number(localStorage.getItem(ZOOM.key)) || 1, false); } catch (e) { setZoom(1, false); }
+
+    // ---------- 이벤트: 상세 패널 ----------
+    $('btnCloseDrawer').addEventListener('click', closeDrawer);
+    $('drawerBody').addEventListener('click', (e) => {
+        const callPid = e.target.closest('.call-pid[data-call-pid]');
+        if (callPid) return openCallPid(callPid.dataset.callPid);
+        if (e.target.closest('.call[data-scroll="resultMap"]')) scrollToRowResultMap();
+    });
+
+    // 라인 상세 패널을 '이 라인 실행 후 resultMap' 위치로 스크롤
+    function scrollToRowResultMap() {
+        const title = $('drawerBody').querySelector('#rowResultMap');
+        if (!title) return;
+        const body = $('drawerBody');
+        body.scrollTop += title.getBoundingClientRect().top - body.getBoundingClientRect().top - 8;
+    }
+    $('btnPrevRow').addEventListener('click', () => { moveSelection(-1); area.focus({ preventScroll: true }); });
+    $('btnNextRow').addEventListener('click', () => { moveSelection(1); area.focus({ preventScroll: true }); });
+
+    // 상세 패널 폭 조절 (드래그) — 폭은 브라우저에 기억
+    (function initResizer() {
+        const KEY = STORE_PREFIX + 'drawerWidth';
+        try {
+            const w = Number(localStorage.getItem(KEY));
+            if (w) document.documentElement.style.setProperty('--drawer-w', `${w}px`);
+        } catch (e) { /* 저장소 사용 불가 시 기본 폭 */ }
+
+        const resizer = $('resizer');
+        let resizing = false;
+        resizer.addEventListener('mousedown', (e) => {
+            resizing = true;
+            resizer.classList.add('active');
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!resizing) return;
+            const w = Math.max(300, Math.min(window.innerWidth * 0.7, window.innerWidth - e.clientX));
+            document.documentElement.style.setProperty('--drawer-w', `${Math.round(w)}px`);
+        });
+        window.addEventListener('mouseup', () => {
+            if (!resizing) return;
+            resizing = false;
+            resizer.classList.remove('active');
+            document.body.style.userSelect = '';
+            try {
+                localStorage.setItem(KEY, parseInt(getComputedStyle(document.documentElement).getPropertyValue('--drawer-w'), 10));
+            } catch (e) { /* 무시 */ }
+        });
+    })();
+
+    // ---------- 전역 단축키 ----------
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const pops = document.querySelectorAll('details.pop[open]');
+            if (pops.length) { pops.forEach((d) => { d.open = false; }); return; }
+            if (isDrawerOpen()) closeDrawer();
+            return;
+        }
+        // '/' → 검색창 (입력 중이 아닐 때)
+        const typing = e.target.closest && e.target.closest('input, textarea, select');
+        if (e.key === '/' && !typing && !$('toolbar').hidden) {
+            e.preventDefault();
+            $('keyword').focus();
+            $('keyword').select();
+        }
+    });
+
+    // ---------- 초기화: 페이지 URL 파라미터가 있으면 자동 실행 ----------
+    (async function init() {
+        const params = new URLSearchParams(location.search);
+        let hasParam = false;
+        PARAM_NAMES.forEach((n) => {
+            if (params.has(n)) {
+                setParam(n, params.get(n));
+                hasParam = true;
+            }
+        });
+        // 이전 주소 호환 : test=true → TEST 버전
+        if (!params.has('version') && params.get('test') === 'true') setParam('version', TEST_VERSION);
+        // 하위 PID 버전 지정 (첫 실행에 그대로 보내고, 실행 후에는 상단 선택 목록으로 관리)
+        pendingSubVersions = (params.get('subVersions') || '').trim();
+        // 추가 조건에 값이 있으면 펼쳐서 보여줌
+        // (층은 층별 PID 확인 전이라 비활성 상태이므로 값으로 직접 확인)
+        if ($('floor').value.trim() || getParam('beforePid')) setAdvOpen(true);
+        loadSpecNames();
+        // 주소의 버전을 유지한 채 버전 목록을 먼저 채운다
+        await loadVersions(getParam('version'));
+        if (hasParam && getParam('project') && getParam('pid')) run();
+        else $('project').focus();
+    })();
+</script>
+</body>
+</html>

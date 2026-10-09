@@ -1,0 +1,1862 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PID 플레이그라운드</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.3.0/dist/handsontable.full.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@14.3.0/dist/handsontable.full.min.js"></script>
+    <style>
+        /* ===== 디자인 토큰 (어두운 헤더 + 밝은 작업 영역, 형제 화면 pidSimulatorUp 과 같은 계열) ===== */
+        :root {
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --border: #d9dee5;
+            --border-strong: #c3cad3;
+            --text: #0f172a;
+            --text-2: #334155;
+            --muted: #5b6676;          /* 흰 배경 대비 4.5:1 이상 */
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --run: #16a34a;
+            --run-dark: #15803d;
+            --danger: #b91c1c;
+            --focus: #2563eb;
+
+            --head-bg: #1e293b;
+            --head-bg-2: #0f172a;
+            --head-border: #475569;
+            --head-text: #f8fafc;
+            --head-muted: #a5b4c8;     /* 어두운 헤더 대비 4.5:1 이상 */
+
+            --true-bg: #e7f6ec;
+            --true-strong: #15803d;
+            --false-bg: #fdecec;
+            --false-strong: #b91c1c;
+            --unread-bg: #eef0f3;
+            --unread-text: #6b7480;
+            --cell-true: #b9e8c8;
+            --cell-false: #f7c1c1;
+            --changed: #d97706;
+            --cur: #7c3aed;
+
+            --mono: Consolas, "D2Coding", "Cascadia Mono", "Courier New", monospace;
+            --sans: "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+            --radius: 6px;
+            --panel-h: 46vh;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: var(--sans);
+            font-size: 13px;
+            line-height: 1.45;
+            color: var(--text);
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+        .ico { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+        .ico.sm { width: 14px; height: 14px; vertical-align: -2px; }
+
+        /* ===== 버튼 ===== */
+        button {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            min-height: 30px;
+            padding: 4px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            color: var(--text-2);
+            font: inherit;
+            font-size: 12.5px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: background-color .15s, border-color .15s, color .15s;
+        }
+        button:hover:not(:disabled) { background: #eef2f7; }
+        button:disabled { opacity: .45; cursor: not-allowed; }
+        button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
+            outline: 2px solid var(--focus); outline-offset: 2px;
+        }
+        button.danger { color: var(--danger); border-color: #f1c4c4; }
+        button.danger:hover:not(:disabled) { background: #fef2f2; }
+        button.icon { padding: 4px 7px; min-width: 30px; }
+        kbd {
+            display: inline-block; padding: 0 5px; min-width: 18px; text-align: center;
+            border: 1px solid #cbd2da; border-bottom-width: 2px; border-radius: 4px;
+            background: #f8fafc; color: var(--text-2); font-family: var(--mono); font-size: 11px; line-height: 16px;
+        }
+
+        /* ===== 헤더 : ① 불러오기 → ② 실행 대상 → 실행 ===== */
+        header { flex: none; background: var(--head-bg); color: var(--head-text); padding: 8px 16px; }
+        .head-row { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
+        .brand { display: flex; align-items: center; gap: 8px; margin-right: 4px; }
+        .brand h1 { margin: 0; font-size: 15px; font-weight: 700; white-space: nowrap; }
+        .nosave {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border-radius: 999px;
+            background: #7c2d12; color: #fed7aa; font-size: 11px; font-weight: 700; white-space: nowrap;
+        }
+        .step-group {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            padding: 5px 10px; border: 1px solid #334155; border-radius: 8px; background: rgba(15, 23, 42, .35);
+        }
+        .step-no {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: #334155; color: var(--head-text); font-size: 11px; font-weight: 700;
+        }
+        .step-group.done .step-no { background: var(--run); }
+        .step-title { color: var(--head-muted); font-size: 12px; white-space: nowrap; }
+        .inline-field { display: flex; align-items: center; gap: 6px; }
+        .inline-field label { color: var(--head-muted); font-size: 12px; white-space: nowrap; }
+        .inline-field label .req { color: #fca5a5; }
+        header input, header select {
+            height: 30px; padding: 4px 8px;
+            border: 1px solid var(--head-border); border-radius: var(--radius);
+            background: var(--head-bg-2); color: var(--head-text);
+            font-family: var(--mono); font-size: 13px;
+        }
+        header select { font-family: var(--sans); }
+        header input:disabled { opacity: .45; cursor: not-allowed; }
+        header input::placeholder { color: #7b8aa0; }
+        #project { width: 130px; }
+        #pid { width: 150px; }
+        #version { max-width: 250px; }
+        #beforePid { width: 240px; }
+        header button { border-color: var(--head-border); background: #334155; color: var(--head-text); }
+        header button:hover:not(:disabled) { background: #475569; }
+        header button.primary { background: var(--primary); border-color: var(--primary); font-weight: 700; }
+        header button.primary:hover:not(:disabled) { background: var(--primary-dark); }
+        header button.run { min-height: 34px; padding: 4px 16px; background: var(--run); border-color: var(--run); font-size: 13.5px; font-weight: 700; }
+        header button.run:hover:not(:disabled) { background: var(--run-dark); }
+        header button.run kbd { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.35); color: #fff; }
+        header button[aria-expanded="true"] { background: #475569; }
+        .head-spacer { flex: 1; }
+        .hint { color: var(--head-muted); font-size: 12px; }
+        .hint.on { color: #86efac; }
+
+        /* 실시간 실행 스위치 */
+        .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; color: var(--head-text); font-size: 12.5px; white-space: nowrap; user-select: none; }
+        .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+        .switch .track { position: relative; width: 34px; height: 20px; border-radius: 999px; background: #475569; transition: background-color .15s; }
+        .switch .track::after { content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; }
+        .switch input:checked + .track { background: var(--run); }
+        .switch input:checked + .track::after { transform: translateX(14px); }
+        .switch input:focus-visible + .track { outline: 2px solid #93c5fd; outline-offset: 2px; }
+
+        .adv { margin-top: 8px; padding-top: 8px; border-top: 1px solid #334155; display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+        .adv[hidden] { display: none; }
+
+        #pidInfo { color: var(--head-text); font-size: 12px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+        #pidInfo b { font-family: var(--mono); }
+        #pidInfo .tag { display: inline-block; padding: 0 6px; border-radius: 4px; background: #334155; color: #fde68a; font-size: 11px; }
+
+        /* ===== 편집 도구 줄 ===== */
+        .toolbar {
+            flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+            padding: 6px 16px; background: var(--surface); border-bottom: 1px solid var(--border); font-size: 12px;
+        }
+        .toolbar .grp { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .toolbar .sep { width: 1px; height: 20px; background: var(--border); }
+        .toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+        .pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-weight: 700; font-size: 11.5px; white-space: nowrap; }
+        .pill.changed { background: #fef3c7; color: #92400e; }
+        .pill.new { background: #cffafe; color: #155e75; }
+        .pill.deleted { background: #fee2e2; color: #991b1b; }
+        .pill.clean { background: #e2e8f0; color: #334155; }
+        .pill.true { background: var(--true-bg); color: var(--true-strong); }
+        .pill.false { background: var(--false-bg); color: var(--false-strong); }
+        .pill.unread { background: var(--unread-bg); color: #4b5563; }
+        .pill.stale { background: #fef3c7; color: #92400e; }
+        .pill.ok { background: #dcfce7; color: #166534; }
+        .pill.running { background: #dbeafe; color: #1d4ed8; }
+
+        /* 펼쳐 보는 도움말 (범례 / 단축키) */
+        details.pop { position: relative; }
+        details.pop > summary {
+            list-style: none; display: inline-flex; align-items: center; gap: 4px;
+            min-height: 30px; padding: 4px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+            background: var(--surface); color: var(--text-2); cursor: pointer; font-size: 12.5px; white-space: nowrap;
+        }
+        details.pop > summary::-webkit-details-marker { display: none; }
+        details.pop[open] > summary { background: #eef2f7; }
+        details.pop .pop-body {
+            position: absolute; right: 0; top: calc(100% + 6px); z-index: 50;
+            width: max-content; max-width: 360px; padding: 10px 12px;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, .14); color: var(--text-2); font-size: 12px;
+        }
+        .pop-body ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+        .pop-body li { display: flex; align-items: center; gap: 8px; }
+        .pop-body i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,.12); flex: none; }
+        .pop-body .row-k { min-width: 120px; display: inline-flex; gap: 3px; }
+
+        /* ===== 알림 : 오류는 띠(닫기 가능), 성공 안내는 토스트 ===== */
+        .warn-bar {
+            flex: none; display: flex; align-items: flex-start; gap: 10px;
+            padding: 6px 16px; background: #fff7ed; border-bottom: 1px solid #fed7aa; color: #9a3412; font-size: 12.5px;
+        }
+        .warn-bar[hidden] { display: none; }
+        .warn-bar.error { background: #fef2f2; border-color: #fecaca; color: var(--danger); }
+        .warn-bar #warnText { flex: 1; white-space: pre-line; max-height: 84px; overflow: auto; }
+        .warn-bar button { min-height: 24px; padding: 2px 6px; background: transparent; border-color: transparent; color: inherit; }
+        .toast {
+            position: fixed; right: 18px; bottom: 18px; z-index: 100;
+            display: flex; align-items: center; gap: 8px;
+            max-width: min(440px, calc(100vw - 36px)); padding: 10px 14px;
+            background: #0f172a; color: #f8fafc; border-radius: 8px; box-shadow: 0 10px 30px rgba(15, 23, 42, .3);
+            font-size: 12.5px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s, transform .2s;
+        }
+        .toast.show { opacity: 1; transform: none; }
+        .toast .ico { color: #86efac; }
+
+        /* ===== 편집 그리드 ===== */
+        .editor-wrap { flex: 1; min-height: 140px; position: relative; background: var(--surface); }
+        #grid { position: absolute; inset: 0; overflow: hidden; }
+        .editor-empty {
+            position: absolute; inset: 0; z-index: 5;
+            display: flex; align-items: center; justify-content: center; padding: 32px;
+            background: var(--surface); color: var(--text-2);
+        }
+        .editor-empty[hidden] { display: none; }
+        .empty-card { max-width: 560px; text-align: left; }
+        .empty-card h2 { margin: 0 0 6px; font-size: 16px; color: var(--text); }
+        .empty-card p { margin: 0 0 14px; color: var(--muted); white-space: pre-line; }
+        .empty-card ol { margin: 0 0 16px; padding: 0; list-style: none; display: grid; gap: 10px; }
+        .empty-card li { display: flex; gap: 10px; align-items: flex-start; }
+        .empty-card li .n { flex: none; width: 22px; height: 22px; border-radius: 50%; background: #e0e7ff; color: #3730a3; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; }
+        .empty-card .actions { display: flex; gap: 8px; }
+        .empty-card button.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+
+        .handsontable td { font-family: var(--mono); font-size: 12.5px; }
+        .handsontable td.pg-state, .handsontable td.pg-output { font-family: var(--sans); }
+        .handsontable td.pg-true { background: var(--true-bg); }
+        .handsontable td.pg-false { background: var(--false-bg); }
+        .handsontable td.pg-unread { background: var(--unread-bg); color: var(--unread-text); }
+        .handsontable td.pg-cmp-T { background: var(--cell-true) !important; }
+        .handsontable td.pg-cmp-F { background: var(--cell-false) !important; }
+        /* 조건 일치/불일치를 색만이 아니라 기호로도 */
+        .handsontable td.pg-cmp-T, .handsontable td.pg-cmp-F { position: relative; padding-right: 16px; }
+        .handsontable td.pg-cmp-T::after, .handsontable td.pg-cmp-F::after { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); font-family: var(--sans); font-size: 11px; font-weight: 700; }
+        .handsontable td.pg-cmp-T::after { content: '✓'; color: var(--true-strong); }
+        .handsontable td.pg-cmp-F::after { content: '✗'; color: var(--false-strong); }
+        .handsontable td.pg-ro { color: var(--text-2); }
+        .handsontable td.pg-state { text-align: center; font-weight: 700; }
+        .handsontable td.pg-state.pg-true { color: var(--true-strong); }
+        .handsontable td.pg-state.pg-false { color: var(--false-strong); }
+        .handsontable td.pg-addr { font-weight: 700; color: #6d28d9; }
+        .handsontable td.pg-key { font-weight: 700; color: #3730a3; }
+        .handsontable td.pg-goto { font-weight: 700; color: #b45309; }
+        .handsontable td.pg-output { color: #166534; }
+        .handsontable td.pg-changed { box-shadow: inset 3px 0 0 var(--changed); font-weight: 700; }
+        .handsontable td.pg-new { box-shadow: inset 0 0 0 1px #22d3ee; }
+        .handsontable td.pg-stale { opacity: .65; }
+        .handsontable td.pg-cur { box-shadow: inset 0 2px 0 var(--cur), inset 0 -2px 0 var(--cur); }
+        .handsontable td.pg-cur.pg-state { box-shadow: inset 4px 0 0 var(--cur), inset 0 2px 0 var(--cur), inset 0 -2px 0 var(--cur); }
+        .handsontable th.pg-grp-spec { background: #e6ecf7; }
+        .handsontable th.pg-grp-key { background: #eee7f8; }
+
+        /* ===== 하단 디버그 패널 ===== */
+        .hresizer { flex: none; height: 7px; cursor: row-resize; background: var(--border); position: relative; }
+        .hresizer::after { content: ''; position: absolute; left: 50%; top: 2px; width: 36px; height: 3px; margin-left: -18px; border-radius: 3px; background: #9aa5b4; }
+        .hresizer:hover, .hresizer.active { background: var(--primary); }
+        .hresizer:hover::after, .hresizer.active::after { background: #fff; }
+        .panel { flex: none; height: var(--panel-h); min-height: 140px; background: var(--surface); display: flex; flex-direction: column; position: relative; }
+        /* 실행 중 진행 막대 */
+        .progress { position: absolute; left: 0; right: 0; top: 0; height: 3px; overflow: hidden; z-index: 3; }
+        .progress[hidden] { display: none; }
+        .progress::before { content: ''; position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; background: var(--primary); animation: indet 1.1s ease-in-out infinite; }
+        @keyframes indet { to { left: 100%; } }
+
+        .panel-head { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+        .run-summary { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; }
+        .run-summary .meta { color: var(--muted); }
+        .stepper { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+        #stepInfo { min-width: 150px; text-align: center; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+        #stepInfo b { color: var(--cur); font-size: 13px; }
+
+        .tabs { flex: none; display: flex; align-items: flex-end; gap: 2px; padding: 6px 12px 0; border-bottom: 1px solid var(--border); background: var(--surface-2); overflow-x: auto; }
+        .tabs button.tab { border-radius: 6px 6px 0 0; border-bottom: none; min-height: 30px; padding: 4px 12px; background: #e9eef4; color: var(--text-2); }
+        .tabs button.tab[aria-selected="true"] { background: var(--surface); font-weight: 700; color: var(--primary); position: relative; top: 1px; box-shadow: inset 0 2px 0 var(--primary); }
+        .tabs button.tab b { color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+
+        .panel-tools { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 14px; border-bottom: 1px solid #eef1f4; font-size: 12px; }
+        .panel-tools[hidden] { display: none; }
+        .seg { display: flex; }
+        .seg button { border-radius: 0; margin-left: -1px; min-height: 28px; padding: 3px 10px; }
+        .seg button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
+        .seg button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+        .seg button[aria-pressed="true"] { background: #1e293b; color: #fff; border-color: #1e293b; position: relative; z-index: 1; }
+        .seg button b { font-variant-numeric: tabular-nums; }
+        .panel-tools label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; }
+        .panel-tools input[type=search], .panel-body input[type=search] { width: 260px; max-width: 100%; height: 28px; padding: 3px 9px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; }
+        .panel-body { flex: 1; overflow: auto; position: relative; }
+        .panel-body .pad { padding: 10px 14px; }
+        .panel-body .empty { color: var(--muted); padding: 28px; text-align: center; }
+
+        /* 라인별 결과 표 */
+        table.dbg { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
+        .dbg th, .dbg td { border-right: 1px solid #e5e8ec; border-bottom: 1px solid #e5e8ec; padding: 4px 8px; white-space: nowrap; text-align: left; vertical-align: top; }
+        .dbg thead th { position: sticky; top: 0; z-index: 2; background: #334155; color: #fff; font-weight: 600; font-size: 12px; }
+        .dbg thead th.grp-spec { background: #3b4a63; }
+        .dbg thead th.grp-key { background: #4a3b63; }
+        .dbg tbody tr { background: #fff; cursor: pointer; }
+        .dbg tbody tr.rowTrue { background: var(--true-bg); }
+        .dbg tbody tr.rowFalse { background: var(--false-bg); }
+        .dbg tbody tr.unread { background: var(--unread-bg); color: var(--unread-text); }
+        .dbg tbody tr:hover { filter: brightness(0.96); }
+        .dbg tbody tr.cur td { box-shadow: inset 0 2px 0 var(--cur), inset 0 -2px 0 var(--cur); }
+        .dbg tbody tr.cur td:first-child { box-shadow: inset 4px 0 0 var(--cur), inset 0 2px 0 var(--cur), inset 0 -2px 0 var(--cur); }
+        .dbg td.step { text-align: right; color: var(--cur); font-weight: 700; font-variant-numeric: tabular-nums; }
+        .dbg td.status { text-align: center; font-weight: 700; }
+        .dbg tr.rowTrue td.status { color: var(--true-strong); }
+        .dbg tr.rowFalse td.status { color: var(--false-strong); }
+        .dbg td.addr { font-weight: 700; color: #6d28d9; font-family: var(--mono); }
+        .dbg tr.unread td.addr { color: var(--unread-text); }
+        .dbg td.goto { color: #b45309; font-weight: 700; font-family: var(--mono); }
+        .dbg td.chips { white-space: normal; min-width: 220px; max-width: 520px; }
+        .dbg td.remark { white-space: normal; min-width: 160px; max-width: 320px; color: var(--muted); }
+        .chip {
+            display: inline-flex; align-items: baseline; gap: 2px;
+            margin: 1px 4px 1px 0; padding: 0 6px;
+            border-radius: 4px; border: 1px solid #cbd2da; background: #fff;
+            font-family: var(--mono); font-size: 12px; line-height: 19px; white-space: nowrap;
+        }
+        .chip .k { color: #475569; }
+        .chip .v { font-weight: 700; }
+        .chip .mk { font-family: var(--sans); font-weight: 700; margin-right: 2px; }
+        .chip .now { color: #6d28d9; margin-left: 4px; }
+        .chip .now.diff { color: #92400e; }
+        .chip.cellTrue { background: var(--cell-true); border-color: #86d3a0; }
+        .chip.cellTrue .mk { color: var(--true-strong); }
+        .chip.cellFalse { background: var(--cell-false); border-color: #eb9a9a; }
+        .chip.cellFalse .mk { color: var(--false-strong); }
+        .chip.res .k { color: #3730a3; font-weight: 700; }
+        .chip.chg { background: #fef9c3; border-color: #facc15; }
+        .chip.chg .old { color: #b91c1c; text-decoration: line-through; margin-right: 3px; }
+        .chip.chg .new { color: #166534; font-weight: 700; }
+        tr.unread .chip { background: transparent; color: var(--unread-text); border-color: #dde1e6; }
+        tr.unread .chip .k { color: var(--unread-text); }
+
+        table.kv { border-collapse: collapse; width: 100%; }
+        .kv th, .kv td { border: 1px solid #e5e8ec; padding: 4px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+        .kv td { font-family: var(--mono); }
+        .kv th { background: #f1f5f9; width: 30%; font-weight: 400; font-family: var(--mono); }
+        .kv thead th { background: #334155; color: #fff; font-family: var(--sans); font-weight: 600; }
+        .kv tr.hit th, .kv tr.hit td { background: #fef9c3; }
+        .kv tr.pin th { box-shadow: inset 3px 0 0 var(--cur); }
+        .kv td.blank { color: var(--unread-text); font-style: italic; }
+        .kv td.cellTrue { background: var(--cell-true); }
+        .kv td.cellFalse { background: var(--cell-false); }
+        .kv td.old { color: #b91c1c; text-decoration: line-through; }
+        .kv td.newv { color: #166534; font-weight: 700; }
+        .kv .note { color: #92400e; font-size: 11px; font-family: var(--sans); }
+        .kv .link { color: var(--cur); text-decoration: underline; cursor: pointer; }
+        .section-title { font-weight: 700; margin: 12px 0 6px; }
+        .section-title:first-child { margin-top: 0; }
+        .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #fff; }
+        .badge.true { background: var(--true-strong); }
+        .badge.false { background: var(--false-strong); }
+        .badge.unread { background: #6b7480; }
+        .cols-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+        @media (max-width: 1100px) { .cols-2 { grid-template-columns: minmax(0, 1fr); } }
+
+        .spinner {
+            display: inline-block; width: 13px; height: 13px;
+            border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%;
+            animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 움직임 줄이기 설정 존중 */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; }
+            .progress::before { left: 0; width: 100%; opacity: .6; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 아이콘 (SVG, 장식용은 aria-hidden) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+        <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
+        <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></symbol>
+        <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 010 10h-3"/></symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="i-first" viewBox="0 0 24 24"><path d="M6 5v14M18 5l-9 7 9 7z"/></symbol>
+        <symbol id="i-prev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+        <symbol id="i-next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+        <symbol id="i-last" viewBox="0 0 24 24"><path d="M18 5v14M6 5l9 7-9 7z"/></symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol>
+        <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-11"/></symbol>
+        <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></symbol>
+        <symbol id="i-key" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></symbol>
+        <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+    </defs>
+</svg>
+
+<!-- ===== 헤더 : ① PID 불러오기 → ② 실행 대상 → ▶ 실행 ===== -->
+<header>
+    <form id="searchForm" autocomplete="off">
+        <div class="head-row">
+            <div class="brand">
+                <h1>PID 플레이그라운드</h1>
+                <span class="nosave" title="수정한 로직은 DB 에 저장되지 않습니다. 이 화면에서 실행할 때만 사용됩니다">
+                    <svg class="ico sm" aria-hidden="true"><use href="#i-lock"/></svg>DB 미저장</span>
+            </div>
+
+            <div class="step-group" id="stepLoad" role="group" aria-labelledby="stepLoadTitle">
+                <span class="step-no" aria-hidden="true">1</span>
+                <span class="step-title" id="stepLoadTitle">PID 불러오기</span>
+                <div class="inline-field">
+                    <label for="pid">PID <span class="req" aria-hidden="true">*</span></label>
+                    <input id="pid" name="pid" value="D375A" required aria-required="true" spellcheck="false">
+                </div>
+                <div class="inline-field">
+                    <label for="version">버전</label>
+                    <select id="version" name="version"><option value="">최신</option></select>
+                </div>
+                <button type="submit" class="primary" id="btnLoad" title="DB 에서 PID 로직을 불러와 아래 표에서 편집합니다">
+                    <svg class="ico" aria-hidden="true"><use href="#i-download"/></svg><span>불러오기</span></button>
+            </div>
+
+            <div class="step-group" id="stepRun" role="group" aria-labelledby="stepRunTitle">
+                <span class="step-no" aria-hidden="true">2</span>
+                <span class="step-title" id="stepRunTitle">실행 대상</span>
+                <div class="inline-field">
+                    <label for="project">공사번호 <span class="req" aria-hidden="true">*</span></label>
+                    <input id="project" name="project" value="206663L01" aria-required="true" spellcheck="false"
+                           title="공사번호(md$number) 또는 공사정보 ouid (ex. elv_info$vf@a810066d)">
+                </div>
+                <button type="button" id="btnAdv" aria-expanded="false" aria-controls="advPanel" title="층 / 전처리 PID">
+                    <svg class="ico" aria-hidden="true"><use href="#i-sliders"/></svg><span>추가 조건</span></button>
+            </div>
+
+            <button type="button" class="run" id="btnRun" title="수정본으로 실행 (Ctrl+Enter)" disabled>
+                <svg class="ico" aria-hidden="true"><use href="#i-play"/></svg><span>실행</span><kbd>Ctrl+Enter</kbd></button>
+            <label class="switch" title="수정하면 잠시 후 자동으로 다시 실행합니다 (실시간 디버그)">
+                <input type="checkbox" id="autoRun" role="switch">
+                <span class="track" aria-hidden="true"></span>실시간 실행
+            </label>
+
+            <div class="head-spacer"></div>
+            <div id="pidInfo" aria-live="polite"></div>
+        </div>
+        <div class="adv" id="advPanel" hidden>
+            <div class="inline-field">
+                <label for="floor">층 (FLOOR_NAME)</label>
+                <input id="floor" name="floor" disabled spellcheck="false">
+                <span id="floorInfo" class="hint">PID 를 불러오면 확인</span>
+            </div>
+            <div class="inline-field">
+                <label for="beforePid">전처리 PID</label>
+                <input id="beforePid" name="beforePid" placeholder="EL_P001, EL_P002" spellcheck="false" aria-describedby="advHint">
+            </div>
+            <span class="hint" id="advHint">CALL 하위 PID 와 전처리 PID 는 DB 최신 버전으로 실행됩니다. 수정본은 불러온 PID 에만 적용됩니다.</span>
+        </div>
+    </form>
+</header>
+
+<!-- ===== 편집 도구 줄 ===== -->
+<div class="toolbar" role="toolbar" aria-label="편집 도구">
+    <div class="grp" id="editStatus" aria-live="polite"><span class="pill clean">불러온 PID 없음</span></div>
+    <span class="sep" aria-hidden="true"></span>
+    <div class="grp">
+        <button type="button" id="btnSaveDraft" title="지금 수정본을 이 브라우저에 임시 저장합니다 (Ctrl+S). DB 에는 저장되지 않습니다" disabled>
+            <svg class="ico" aria-hidden="true"><use href="#i-save"/></svg>임시 저장</button>
+        <button type="button" id="btnAddSpec" title="SPEC/CON 열 추가 (최대 30)" disabled>
+            <svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>SPEC 열</button>
+        <button type="button" id="btnAddKey" title="KEY/VAL 열 추가 (최대 20)" disabled>
+            <svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>KEY 열</button>
+        <button type="button" id="btnCopyTsv" title="편집 내용을 탭 구분 텍스트로 복사 (엑셀 붙여넣기용)" disabled>
+            <svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg>TSV 복사</button>
+    </div>
+    <div class="toolbar-right">
+        <button type="button" class="danger" id="btnRevert" title="모든 수정과 임시 저장본을 버리고 DB 원본으로 되돌립니다" disabled>
+            <svg class="ico" aria-hidden="true"><use href="#i-undo"/></svg>DB 원본으로 되돌리기</button>
+        <details class="pop">
+            <summary><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>범례</summary>
+            <div class="pop-body">
+                <ul>
+                    <li><i style="background:var(--true-bg)"></i>TRUE : 조건 만족 라인</li>
+                    <li><i style="background:var(--false-bg)"></i>FALSE : 조건 불만족 라인</li>
+                    <li><i style="background:var(--unread-bg)"></i>미실행 : GOTO / STOP 으로 건너뜀</li>
+                    <li><i style="background:var(--cell-true)"></i>✓ 조건 일치 (SPEC 값 = CON)</li>
+                    <li><i style="background:var(--cell-false)"></i>✗ 조건 불일치</li>
+                    <li><i style="background:#fff;box-shadow:inset 3px 0 0 var(--changed)"></i>수정한 칸 (마우스를 올리면 DB 원본 값)</li>
+                    <li><i style="background:#fff;box-shadow:inset 0 0 0 1px #22d3ee"></i>새로 추가한 라인</li>
+                    <li><i style="background:#fff;box-shadow:inset 0 0 0 2px var(--cur)"></i>디버거 현재 단계</li>
+                </ul>
+            </div>
+        </details>
+        <details class="pop">
+            <summary><svg class="ico" aria-hidden="true"><use href="#i-key"/></svg>단축키</summary>
+            <div class="pop-body">
+                <ul>
+                    <li><span class="row-k"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>실행</li>
+                    <li><span class="row-k"><kbd>Ctrl</kbd>+<kbd>S</kbd></span>임시 저장 (브라우저)</li>
+                    <li><span class="row-k"><kbd>F10</kbd></span>다음 단계</li>
+                    <li><span class="row-k"><kbd>Shift</kbd>+<kbd>F10</kbd></span>이전 단계</li>
+                    <li><span class="row-k"><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span>되돌리기 / 다시 실행</li>
+                    <li><span class="row-k">오른쪽 클릭</span>라인 추가 · 복제 · 삭제</li>
+                    <li><span class="row-k">행 번호 끌기</span>라인 순서 바꾸기</li>
+                    <li><span class="row-k">결과 표 더블클릭</span>라인 상세 보기</li>
+                </ul>
+            </div>
+        </details>
+    </div>
+</div>
+
+<div class="warn-bar" id="warnBar" role="alert" hidden>
+    <svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg>
+    <span id="warnText"></span>
+    <button type="button" id="btnWarnClose" aria-label="알림 닫기" title="닫기"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
+</div>
+
+<!-- ===== 편집 그리드 ===== -->
+<main class="editor-wrap" aria-label="PID 로직 편집">
+    <div id="grid"></div>
+    <div class="editor-empty" id="editorEmpty">
+        <div class="empty-card">
+            <h2>PID 를 불러와 DB 저장 없이 바로 고쳐 보세요</h2>
+            <p>고친 로직은 이 화면에서 실행할 때만 쓰이고 DB 에는 저장되지 않습니다.</p>
+            <ol>
+                <li><span class="n">1</span><span>위에서 <b>PID</b> 와 <b>버전</b>을 고르고 <b>불러오기</b> 를 누릅니다.</span></li>
+                <li><span class="n">2</span><span>표에서 SPEC / CON / KEY / VAL 을 고칩니다. 오른쪽 클릭으로 라인을 추가 · 복제 · 삭제할 수 있습니다.</span></li>
+                <li><span class="n">3</span><span><b>공사번호</b>를 넣고 <b>실행</b>(<kbd>Ctrl</kbd>+<kbd>Enter</kbd>)하면 라인마다 TRUE / FALSE 와 그 시점의 값이 표시됩니다. <b>실시간 실행</b>을 켜 두면 고칠 때마다 자동으로 다시 실행합니다.</span></li>
+            </ol>
+            <div class="actions"><button type="button" class="primary" id="btnEmptyLoad"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>PID 불러오기</button></div>
+        </div>
+    </div>
+</main>
+
+<!-- ===== 하단 디버그 패널 ===== -->
+<div class="hresizer" id="hresizer" role="separator" aria-orientation="horizontal" aria-label="디버그 패널 높이 조절" title="끌어서 높이 조절 · 더블클릭하면 크게/작게"></div>
+<section class="panel" aria-label="디버그">
+    <div class="progress" id="runProgress" hidden aria-hidden="true"></div>
+    <div class="panel-head">
+        <div class="run-summary" id="runStatus" role="status" aria-live="polite"></div>
+        <div class="stepper" role="group" aria-label="디버거 단계 이동 (F10 다음 / Shift+F10 이전)">
+            <button type="button" class="icon" id="btnFirst" aria-label="처음 단계" title="처음 단계"><svg class="ico" aria-hidden="true"><use href="#i-first"/></svg></button>
+            <button type="button" class="icon" id="btnPrev" aria-label="이전 단계" title="이전 단계 (Shift+F10)"><svg class="ico" aria-hidden="true"><use href="#i-prev"/></svg></button>
+            <span id="stepInfo" aria-live="polite">단계 -</span>
+            <button type="button" class="icon" id="btnNext" aria-label="다음 단계" title="다음 단계 (F10)"><svg class="ico" aria-hidden="true"><use href="#i-next"/></svg></button>
+            <button type="button" class="icon" id="btnLast" aria-label="마지막 단계" title="마지막 단계"><svg class="ico" aria-hidden="true"><use href="#i-last"/></svg></button>
+        </div>
+    </div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="디버그 보기">
+        <button type="button" class="tab active" role="tab" aria-selected="true" data-tab="debug">라인별 결과</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="line">라인 상세</button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="watch" title="현재 단계까지 실행했을 때의 값">변수 <b id="tbWatch"></b></button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="final">최종 OUTPUT <b id="tbFinal"></b></button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="elvEnt">최종 영업사양 <b id="tbElvEnt"></b></button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="sub">하위 PID <b id="tbSub"></b></button>
+        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="diff">변경 내역 <b id="tbDiff"></b></button>
+    </div>
+    <div class="panel-tools" id="debugTools">
+        <div class="seg" id="filterSeg" role="group" aria-label="라인 필터">
+            <button type="button" data-filter="all" class="active" aria-pressed="true">전체 <b id="stTotal">0</b></button>
+            <button type="button" data-filter="readed" aria-pressed="false">실행된 라인 <b id="stReaded">0</b></button>
+            <button type="button" data-filter="true" aria-pressed="false">TRUE <b id="stTrue">0</b></button>
+            <button type="button" data-filter="false" aria-pressed="false">FALSE <b id="stFalse">0</b></button>
+            <button type="button" data-filter="unread" aria-pressed="false">미실행 <b id="stUnread">0</b></button>
+        </div>
+        <label title="이 라인 실행으로 값이 바뀐 라인만"><input type="checkbox" id="onlyChanged"> 값이 바뀐 라인만</label>
+        <label class="sr-only" for="keyword">라인 검색</label>
+        <input type="search" id="keyword" placeholder="SPEC / KEY / VAL / 값 검색">
+        <span id="shownCount" style="color:var(--muted)"></span>
+    </div>
+    <div class="panel-body" id="panelBody" role="tabpanel" tabindex="0"><div class="empty">실행하면 라인별 결과가 여기에 표시됩니다.</div></div>
+</section>
+
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg><span id="toastText"></span></div>
+
+<script>
+    const API = {
+        versions: '/simulplay/pidVersions?pid=',
+        logic: '/simulplay/pidLogic',
+        simulate: '/simulplay/simulate',
+    };
+    const TEST_VERSION = '-1';
+    const MAX_SPEC = 30, MAX_RES = 20;
+    const STORE_PREFIX = 'pidPlay.';
+    const AUTO_RUN_DELAY = 800;
+
+    const $ = (id) => document.getElementById(id);
+    const BTN_LOAD_HTML = '<svg class="ico" aria-hidden="true"><use href="#i-download"/></svg><span>불러오기</span>';
+    const BTN_RUN_HTML = '<svg class="ico" aria-hidden="true"><use href="#i-play"/></svg><span>실행</span><kbd>Ctrl+Enter</kbd>';
+    const BUSY_HTML = (t) => `<span class="spinner" aria-hidden="true"></span><span>${t}</span>`;
+
+    // ---------- 유틸 ----------
+    function esc(v) {
+        if (v === null || v === undefined) return '';
+        return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    const nvl = (v) => (v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v)));
+    const br = (v) => esc(v).replace(/\n/g, '<br>');
+    // 빈 칸은 DB NULL 과 같이 취급
+    const norm = (v) => (v === null || v === undefined || String(v).trim() === '' ? '' : String(v));
+    const shownVal = (v) => (v === null || v === undefined ? '(없음)' : (String(v) === '' ? '(빈 값)' : String(v)));
+    const storeGet = (k) => { try { return localStorage.getItem(STORE_PREFIX + k); } catch (e) { return null; } };
+    const storeSet = (k, v) => { try { localStorage.setItem(STORE_PREFIX + k, v); } catch (e) { /* 무시 */ } };
+    const storeDel = (k) => { try { localStorage.removeItem(STORE_PREFIX + k); } catch (e) { /* 무시 */ } };
+
+    // ---------- 상태 ----------
+    const state = {
+        logic: null,          // 불러온 PID (PlaygroundLogic)
+        versionParam: '',     // 불러온 버전 ('' 최신, -1 TEST, n)
+        original: new Map(),  // DOUID → DB 원본 라인 (그리드 행 형식)
+        originalOrder: [],    // DB 원본 DOUID 순서
+        specCols: 3,
+        resCols: 2,
+        result: null,         // 마지막 실행 결과 (PlaygroundResult : lines + debug)
+        sent: [],             // 실행 때 보낸 그리드 행 (result.lines[i] ↔ sent[i])
+        idxOf: new Map(),     // 행 ID(_rid) → 결과 라인 번호 i
+        stepIdx: [],          // 실행 순서 → 결과 라인 번호 i (stepIdx[step-1])
+        curStep: 0,           // 디버거 현재 단계 (0 : 없음)
+        stale: false,         // 실행 후 수정했는지
+        running: false,
+        rerun: false,         // 실행 중에 또 수정됨 → 끝나면 다시 실행
+        selectedRid: null,    // 선택한 그리드 행 ID
+        dbSig: '',            // DB 원본 라인 서명
+        savedSig: null,       // 브라우저에 임시 저장한 라인 서명 (없으면 null)
+        draftSavedAt: null,   // 임시 저장 시각 (없으면 null)
+        tab: 'debug',
+        filter: 'all',
+        keyword: '',
+        onlyChanged: false,
+        elapsed: '',
+    };
+
+    // ---------- 그리드 행 ↔ API 라인 ----------
+    const specProp = (i) => `s${i}`, conProp = (i) => `c${i}`, keyProp = (i) => `k${i}`, valProp = (i) => `v${i}`;
+
+    function editProps() {
+        const p = ['addr'];
+        for (let i = 1; i <= MAX_SPEC; i++) p.push(specProp(i), conProp(i));
+        for (let i = 1; i <= MAX_RES; i++) p.push(keyProp(i), valProp(i));
+        p.push('gotoAddr', 'remarks');
+        return p;
+    }
+    const EDIT_PROPS = editProps();
+
+    // Handsontable 14 의 getSourceDataAtRow 는 매번 복사본을 돌려주므로, 행은 객체가 아니라 _rid 로 구분한다
+    let ridSeq = 0;
+    const newRid = () => `r${++ridSeq}`;
+
+    function toGridRow(r) {
+        const o = { _rid: newRid(), douid: r.douid || null, no: r.no || null, addr: r.addr, gotoAddr: r.gotoAddr, remarks: r.remarks };
+        (r.spec || []).forEach((v, i) => { o[specProp(i + 1)] = v; });
+        (r.con || []).forEach((v, i) => { o[conProp(i + 1)] = v; });
+        (r.key || []).forEach((v, i) => { o[keyProp(i + 1)] = v; });
+        (r.val || []).forEach((v, i) => { o[valProp(i + 1)] = v; });
+        return o;
+    }
+
+    function toApiRow(o) {
+        const r = { no: o.no || null, douid: o.douid || null, addr: o.addr || null, gotoAddr: o.gotoAddr || null,
+            remarks: o.remarks || null, spec: [], con: [], key: [], val: [] };
+        for (let i = 1; i <= MAX_SPEC; i++) { r.spec.push(o[specProp(i)] ?? null); r.con.push(o[conProp(i)] ?? null); }
+        for (let i = 1; i <= MAX_RES; i++) { r.key.push(o[keyProp(i)] ?? null); r.val.push(o[valProp(i)] ?? null); }
+        return r;
+    }
+
+    const isEmptyRow = (o) => EDIT_PROPS.every((p) => norm(o[p]) === '');
+    const EDIT_PROP_SET = new Set(EDIT_PROPS);
+
+    // 화면 순서대로의 그리드 행 (실행 대상 : DB 라인 + 내용이 있는 새 라인)
+    function gridRows() {
+        const rows = [];
+        if (!hot) return rows;
+        for (let v = 0; v < hot.countRows(); v++) {
+            const phys = hot.toPhysicalRow(v);
+            const o = hot.getSourceDataAtRow(phys);
+            if (!o) continue;
+            if (!o.douid && isEmptyRow(o)) continue;
+            // 새로 추가한 라인 : ID 부여 (원본 데이터에 기록)
+            if (!o._rid) {
+                o._rid = newRid();
+                hot.setSourceDataAtCell(phys, '_rid', o._rid, 'rid');
+            }
+            rows.push(o);
+        }
+        return rows;
+    }
+
+    // 행 ID 의 지금 화면 위치 (없으면 -1)
+    function visualRowOf(rid) {
+        if (!hot || !rid) return -1;
+        for (let v = 0; v < hot.countRows(); v++) {
+            if (hot.getSourceDataAtCell(hot.toPhysicalRow(v), '_rid') === rid) return v;
+        }
+        return -1;
+    }
+
+    // 행 ID 의 지금 데이터 (복사본, 없으면 null)
+    function rowByRid(rid) {
+        const v = visualRowOf(rid);
+        return v >= 0 ? hot.getSourceDataAtRow(hot.toPhysicalRow(v)) : null;
+    }
+
+    // 결과 라인 / 디버그 정보
+    const lineAt = (i) => (state.result && state.result.lines ? state.result.lines[i] : null);
+    const dbgAt = (i) => (state.result && state.result.debug ? state.result.debug[i] : null);
+    const idxOfRid = (rid) => (rid && state.idxOf.has(rid) ? state.idxOf.get(rid) : -1);
+    const stateCls = (line) => (!line ? '' : (line.state === 'TRUE' ? 'true' : (line.state === 'FALSE' ? 'false' : 'unread')));
+
+    // ---------- Handsontable ----------
+    let hot = null;
+
+    function buildColumns() {
+        const cols = [
+            { data: '_state', readOnly: true, width: 70 },
+            { data: 'no', readOnly: true, width: 46 },
+            { data: 'addr', width: 64 },
+        ];
+        const headers = ['단계·결과', 'NO', 'ADDR'];
+        for (let i = 1; i <= state.specCols; i++) {
+            cols.push({ data: specProp(i), width: 92 }, { data: conProp(i), width: 92 });
+            headers.push(`SPEC${i}`, `CON${i}`);
+        }
+        for (let i = 1; i <= state.resCols; i++) {
+            cols.push({ data: keyProp(i), width: 92 }, { data: valProp(i), width: 120 });
+            headers.push(`KEY${i}`, `VAL${i}`);
+        }
+        cols.push({ data: 'gotoAddr', width: 60 }, { data: 'remarks', width: 160 }, { data: '_output', readOnly: true, width: 260 });
+        headers.push('GOTO', 'REMARKS', 'OUTPUT (실행 결과)');
+        cols.forEach((c) => { c.renderer = cellRenderer; });
+        return { cols, headers };
+    }
+
+    const PG_CLASSES = ['pg-true', 'pg-false', 'pg-unread', 'pg-stale', 'pg-cmp-T', 'pg-cmp-F', 'pg-state', 'pg-addr', 'pg-goto',
+        'pg-output', 'pg-key', 'pg-ro', 'pg-new', 'pg-changed', 'pg-cur'];
+
+    // 셀 표시 : 실행 결과 색 + 조건 비교(그 시점의 값) + 수정 표시 + 현재 단계
+    function cellRenderer(instance, td, row, col, prop, value, cellProperties) {
+        const phys = instance.toPhysicalRow(row);
+        const rid = instance.getSourceDataAtCell(phys, '_rid');
+        const i = idxOfRid(rid);
+        const line = i >= 0 ? lineAt(i) : null;
+        const dbg = i >= 0 ? dbgAt(i) : null;
+
+        let shown = value;
+        if (prop === '_state') shown = line ? (dbg && dbg.step ? `${dbg.step}. ` : '') + (line.state === 'UNREAD' ? '-' : line.state) : '';
+        if (prop === '_output') shown = line && line.output ? line.output.replace(/\n/g, '  |  ') : '';
+        Handsontable.renderers.TextRenderer(instance, td, row, col, prop, shown, cellProperties);
+
+        // 셀(TD)은 재사용되므로 이전 표시를 먼저 지운다
+        td.classList.remove(...PG_CLASSES);
+        td.title = '';
+        if (line) {
+            td.classList.add(`pg-${stateCls(line)}`);
+            if (state.stale) td.classList.add('pg-stale');
+            if (dbg && dbg.step && dbg.step === state.curStep) td.classList.add('pg-cur');
+            const m = /^[sc](\d+)$/.exec(prop);
+            if (m && dbg) {
+                const c = (dbg.conds || []).find((x) => x.idx === Number(m[1]));
+                if (c && c.compare) {
+                    td.classList.add(c.compare === 'T' ? 'pg-cmp-T' : 'pg-cmp-F');
+                    td.title = condTitle(c);
+                }
+            }
+            if (prop === '_output' && line.output) td.title = line.output;
+            if (prop === '_state' && dbg && dbg.changes.length) td.title = '바뀐 값\n' + dbg.changes.map((ch) => `${ch.key} : ${shownVal(ch.before)} → ${shownVal(ch.after)}`).join('\n');
+        }
+        if (prop === '_state') td.classList.add('pg-state');
+        if (prop === 'addr') td.classList.add('pg-addr');
+        if (prop === 'gotoAddr') td.classList.add('pg-goto');
+        if (prop === '_output') td.classList.add('pg-output');
+        if (/^k\d+$/.test(prop)) td.classList.add('pg-key');
+        if (cellProperties.readOnly) td.classList.add('pg-ro');
+
+        // 수정 표시
+        if (EDIT_PROP_SET.has(prop)) {
+            const douid = instance.getSourceDataAtCell(phys, 'douid');
+            if (!douid) {
+                const o = instance.getSourceDataAtRow(phys);
+                if (o && !isEmptyRow(o)) td.classList.add('pg-new');
+            } else {
+                const orig = state.original.get(douid);
+                if (orig && norm(orig[prop]) !== norm(value)) {
+                    td.classList.add('pg-changed');
+                    td.title = (td.title ? td.title + '\n' : '') + `DB 원본: ${norm(orig[prop]) === '' ? '(빈 칸)' : orig[prop]}`;
+                }
+            }
+        }
+    }
+
+    // 조건 1칸 설명 : SPEC 값(그 시점) vs CON(계산값)
+    function condTitle(c) {
+        let t = `SPEC${c.idx} ${c.compare === 'T' ? '일치' : '불일치'}\n${c.spec} 값 : ${shownVal(c.specValue)}`;
+        t += `\nCON : ${shownVal(c.con)}`;
+        if (norm(c.con) !== '' && c.conValue !== c.con) t += ` → ${shownVal(c.conValue)}`;
+        if (c.note) t += `\n※ ${c.note}`;
+        return t;
+    }
+
+    let selectingFromCode = false;
+
+    function initGrid(data) {
+        const { cols, headers } = buildColumns();
+        if (hot) {
+            hot.updateSettings({ columns: cols, colHeaders: headers });
+            hot.loadData(data);
+            return;
+        }
+        hot = new Handsontable($('grid'), {
+            data,
+            columns: cols,
+            colHeaders: headers,
+            rowHeaders: true,
+            licenseKey: 'non-commercial-and-evaluation',
+            width: '100%',
+            height: '100%',
+            stretchH: 'none',
+            fixedColumnsStart: 3,
+            manualRowMove: true,
+            manualColumnResize: true,
+            minSpareRows: 1,
+            dataSchema: () => ({ douid: null, no: null }),
+            undo: true,
+            fillHandle: { autoInsertRow: false },
+            outsideClickDeselects: false,
+            autoWrapRow: true,
+            autoWrapCol: true,
+            enterMoves: { col: 1, row: 0 },
+            contextMenu: {
+                items: {
+                    row_above: { name: '위에 라인 추가' },
+                    row_below: { name: '아래에 라인 추가' },
+                    dup_row: {
+                        name: '라인 복제 (아래에)',
+                        callback(key, sel) {
+                            const v = sel[0].start.row;
+                            const src = hot.getSourceDataAtRow(hot.toPhysicalRow(v));
+                            if (!src) return;
+                            hot.alter('insert_row_below', v, 1);
+                            // 새 줄에 값 복사 (afterChange → 수정 처리)
+                            hot.setDataAtRowProp(EDIT_PROPS.filter((p) => norm(src[p]) !== '').map((p) => [v + 1, p, src[p]]), 'dupRow');
+                        },
+                    },
+                    remove_row: { name: '라인 삭제' },
+                    sp1: '---------',
+                    undo: { name: '되돌리기 (Ctrl+Z)' },
+                    redo: { name: '다시 실행 (Ctrl+Y)' },
+                    sp2: '---------',
+                    copy: { name: '복사' },
+                    cut: { name: '잘라내기' },
+                },
+            },
+            afterChange(changes, source) {
+                if (source === 'loadData' || source === 'rid' || !changes) return;
+                onEdited();
+            },
+            afterCreateRow(index, amount, source) { if (source !== 'loadData' && source !== 'auto') onEdited(); },
+            afterRemoveRow() { onEdited(); },
+            afterRowMove() { onEdited(); },
+            afterSelectionEnd(r) {
+                const rid = hot.getSourceDataAtCell(hot.toPhysicalRow(r), '_rid');
+                state.selectedRid = rid || null;
+                if (selectingFromCode) return;
+                // 실행된 라인을 고르면 디버거 단계도 그 라인으로
+                const i = idxOfRid(rid);
+                const dbg = i >= 0 ? dbgAt(i) : null;
+                if (dbg && dbg.step) setStep(dbg.step, { fromGrid: true });
+                else if (state.tab === 'line') renderPanel();
+            },
+            afterGetColHeader(col, th) {
+                const p = col >= 0 ? this.colToProp(col) : null;
+                th.classList.remove('pg-grp-spec', 'pg-grp-key');
+                if (typeof p === 'string' && /^[sc]\d+$/.test(p)) th.classList.add('pg-grp-spec');
+                if (typeof p === 'string' && /^[kv]\d+$/.test(p)) th.classList.add('pg-grp-key');
+            },
+        });
+    }
+
+    // ---------- 수정 현황 ----------
+    function editStats() {
+        let changedCells = 0, changedRows = 0, newRows = 0;
+        const present = new Set();
+        const rows = gridRows();
+        rows.forEach((o) => {
+            if (!o.douid) { newRows++; return; }
+            present.add(o.douid);
+            const orig = state.original.get(o.douid);
+            if (!orig) return;
+            const n = EDIT_PROPS.filter((p) => norm(orig[p]) !== norm(o[p])).length;
+            changedCells += n;
+            if (n) changedRows++;
+        });
+        const deleted = state.originalOrder.filter((d) => !present.has(d)).length;
+        const kept = rows.filter((o) => o.douid).map((o) => o.douid);
+        const origKept = state.originalOrder.filter((d) => present.has(d));
+        const moved = kept.some((d, i) => d !== origKept[i]);
+        return { changedCells, changedRows, newRows, deleted, moved, dirty: !!(changedCells || newRows || deleted || moved) };
+    }
+
+    function renderEditStatus() {
+        if (!state.logic) {
+            $('editStatus').innerHTML = '<span class="pill clean">불러온 PID 없음</span>';
+            return;
+        }
+        const s = editStats();
+        let h = '';
+        if (!s.dirty) h = '<span class="pill clean">DB 원본과 같음</span>';
+        else {
+            if (s.changedCells) h += `<span class="pill changed">수정 ${s.changedCells}칸 (${s.changedRows}라인)</span>`;
+            if (s.newRows) h += `<span class="pill new">추가 ${s.newRows}라인</span>`;
+            if (s.deleted) h += `<span class="pill deleted">삭제 ${s.deleted}라인</span>`;
+            if (s.moved) h += '<span class="pill changed">순서 변경</span>';
+        }
+        // 임시 저장 상태
+        if (state.draftSavedAt) {
+            h += ` <span class="pill ok" title="브라우저에 임시 저장된 수정본이 있습니다">임시 저장 ${esc(state.draftSavedAt)}</span>`;
+            if (hasUnsaved()) h += ' <span class="pill stale" title="임시 저장 후 또 수정했습니다">저장 안 한 수정 있음</span>';
+        } else if (s.dirty) {
+            h += ' <span class="pill stale" title="새로고침하거나 다른 PID 를 불러오면 사라집니다">임시 저장 안 함</span>';
+        }
+        $('editStatus').innerHTML = h;
+        $('tbDiff').textContent = s.dirty ? (s.changedRows + s.newRows + s.deleted) : '';
+        $('btnRevert').disabled = !s.dirty && !state.draftSavedAt;
+        $('btnSaveDraft').disabled = state.logic.method === 'JAVA';
+    }
+
+    // 수정 발생 : 상태 갱신 + 실시간 실행 (임시 저장은 버튼을 눌렀을 때만)
+    let autoTimer;
+    function onEdited() {
+        if (!state.logic) return;
+        if (state.result) state.stale = true;
+        renderEditStatus();
+        renderRunStatus();
+        if (state.tab === 'diff') renderPanel();
+        if ($('autoRun').checked) {
+            clearTimeout(autoTimer);
+            autoTimer = setTimeout(() => {
+                if (state.running) state.rerun = true;
+                else run({ auto: true });
+            }, AUTO_RUN_DELAY);
+        }
+        if (hot) hot.render();
+    }
+
+    // ---------- 브라우저 임시 저장 ([임시 저장] 버튼 / Ctrl+S 를 눌렀을 때만, DB 저장 아님) ----------
+    const draftKey = () => state.logic ? `draft.${state.logic.pid}@${state.versionParam || 'latest'}.${state.logic.houid}` : '';
+
+    // 라인 내용 비교용 서명 (행 ID 제외)
+    const rowsSig = (rows) => JSON.stringify(rows.map((o) => [o.douid || '', ...EDIT_PROPS.map((p) => norm(o[p]))]));
+
+    // 마지막 임시 저장(없으면 DB 원본) 이후에 고친 내용이 있는지
+    function hasUnsaved() {
+        if (!state.logic || !hot) return false;
+        return rowsSig(gridRows()) !== (state.savedSig !== null ? state.savedSig : state.dbSig);
+    }
+
+    // 성공 안내 : 오른쪽 아래 토스트 (3.5초 뒤 사라짐, 포커스를 뺏지 않음)
+    function flash(msg) {
+        $('toastText').textContent = msg;
+        $('toast').classList.add('show');
+        clearTimeout(flash.timer);
+        flash.timer = setTimeout(() => $('toast').classList.remove('show'), 3500);
+    }
+
+    function saveDraft() {
+        if (!state.logic || !hot || state.logic.method === 'JAVA') return;
+        // 편집 중인 셀 값도 저장되도록 먼저 반영
+        const editor = hot.getActiveEditor();
+        if (editor && editor.isOpened()) editor.finishEditing();
+
+        const key = draftKey();
+        const rows = gridRows();
+        if (!editStats().dirty) {
+            if (state.draftSavedAt && confirm('DB 원본과 같습니다. 브라우저에 임시 저장된 수정본을 지울까요?')) {
+                storeDel(key);
+                state.draftSavedAt = null;
+                state.savedSig = null;
+                renderEditStatus();
+                flash('임시 저장본을 지웠습니다.');
+            } else if (!state.draftSavedAt) {
+                flash('DB 원본과 같아 임시 저장할 내용이 없습니다.');
+            }
+            return;
+        }
+        const savedAt = new Date().toLocaleString();
+        storeSet(key, JSON.stringify({ savedAt, specCols: state.specCols, resCols: state.resCols,
+            rows: rows.map((o) => Object.assign({}, o)) }));
+        if (!storeGet(key)) {
+            showWarn('브라우저 저장소에 저장하지 못했습니다 (시크릿 창 / 저장소 차단 / 용량 초과 확인).', true);
+            return;
+        }
+        state.draftSavedAt = savedAt;
+        state.savedSig = rowsSig(rows);
+        renderEditStatus();
+        flash(`브라우저에 임시 저장했습니다 (${savedAt}). DB 에는 저장되지 않습니다.`);
+    }
+
+    function readDraft() {
+        const raw = storeGet(draftKey());
+        if (!raw) return null;
+        try { return JSON.parse(raw); } catch (e) { return null; }
+    }
+
+    // ---------- 버전 목록 ----------
+    let versionsReq = 0;
+    const versionLabel = (v, latest, regDate) => (String(v) === TEST_VERSION ? 'TEST' : `v${v}`) + (latest ? ' (최신)' : '') + (regDate ? ` · ${regDate}` : '');
+
+    async function loadVersions(keep) {
+        const pid = $('pid').value.trim();
+        const sel = $('version');
+        const want = keep !== undefined ? keep : sel.value;
+        sel.innerHTML = '<option value="">최신</option>';
+        if (!pid) return;
+        const req = ++versionsReq;
+        try {
+            const res = await fetch(API.versions + encodeURIComponent(pid), { headers: { Accept: 'application/json' } });
+            const list = await res.json();
+            if (req !== versionsReq) return;
+            if (!res.ok || !Array.isArray(list)) throw new Error((list && list.error) || `HTTP ${res.status}`);
+            const latest = list.find((v) => v.latest);
+            sel.innerHTML = '';
+            sel.add(new Option(latest ? `최신 (v${latest.version}${latest.regDate ? ' · ' + latest.regDate : ''})` : '최신', ''));
+            list.forEach((v) => sel.add(new Option(versionLabel(v.version, v.latest, v.regDate), String(v.version))));
+        } catch (e) {
+            console.warn('버전 목록 로딩 실패:', e);
+        }
+        if (want && ![...sel.options].some((o) => o.value === want)) sel.add(new Option(versionLabel(want, false), want));
+        sel.value = want || '';
+    }
+
+    // ---------- PID 불러오기 ----------
+    async function loadLogic(opts = {}) {
+        const pid = $('pid').value.trim();
+        if (!pid) return alert('PID 를 입력하세요.');
+        if (state.logic && hasUnsaved() && !opts.force
+            && !confirm('임시 저장하지 않은 수정이 있습니다. 다른 PID/버전을 불러오면 이 수정은 사라집니다.\n계속할까요? (남기려면 취소 후 [임시 저장])')) return;
+
+        const version = $('version').value;
+        const btn = $('btnLoad');
+        btn.disabled = true;
+        btn.innerHTML = BUSY_HTML('불러오는 중');
+        try {
+            const qs = new URLSearchParams({ pid });
+            if (version) qs.set('version', version);
+            const res = await fetch(`${API.logic}?${qs}`, { headers: { Accept: 'application/json' } });
+            let json = null;
+            try { json = await res.json(); } catch (e) { /* JSON 아님 */ }
+            if (!res.ok || !json || json.error) throw new Error((json && json.error) || `HTTP ${res.status}`);
+
+            state.logic = json;
+            state.versionParam = version;
+            clearResult();
+            state.selectedRid = null;
+
+            const rows = (json.rows || []).map(toGridRow);
+            state.original = new Map(rows.map((o) => [o.douid, Object.assign({}, o)]));
+            state.originalOrder = rows.map((o) => o.douid);
+
+            const usedSpec = Math.max(0, ...(json.rows || []).map((r) => (r.spec || []).length));
+            const usedRes = Math.max(0, ...(json.rows || []).map((r) => (r.key || []).length));
+            state.specCols = Math.min(MAX_SPEC, Math.max(3, usedSpec + 1));
+            state.resCols = Math.min(MAX_RES, Math.max(2, usedRes + 1));
+
+            // 브라우저에 임시 보관한 수정본이 있으면 이어서 할지 묻는다
+            let data = rows;
+            state.dbSig = rowsSig(rows);
+            state.savedSig = null;
+            state.draftSavedAt = null;
+            const draft = readDraft();
+            if (draft) state.draftSavedAt = draft.savedAt;
+            if (draft && !opts.ignoreDraft && confirm(`이 PID 의 수정본이 브라우저에 임시 저장되어 있습니다 (${draft.savedAt}).\n이어서 편집할까요?\n(취소 : DB 원본으로 시작. 임시 저장본은 남아 있고 [DB 원본으로 되돌리기] 로 지울 수 있습니다)`)) {
+                data = draft.rows || rows;
+                state.savedSig = rowsSig(data);
+                state.specCols = Math.max(state.specCols, draft.specCols || 0);
+                state.resCols = Math.max(state.resCols, draft.resCols || 0);
+            } else if (draft) {
+                // DB 원본으로 시작 : 임시 저장본은 지우지 않는다 (지금 화면은 저장본과 다름)
+                state.savedSig = rowsSig(draft.rows || []);
+            }
+
+            initGrid(data.map((o) => Object.assign({}, o, { _rid: newRid() })));
+            $('editorEmpty').hidden = true;
+            if (json.method === 'JAVA') {
+                $('editorEmpty').hidden = false;
+                $('editorEmpty').textContent = `${json.pid} 는 JAVA 방식 PID 라 라인이 없어 편집할 수 없습니다.\n▶ 실행 하면 DB 원본(JAVA)으로 실행한 결과를 볼 수 있습니다.`;
+            }
+
+            setFloorEnabled(json.isFloorSpec);
+            renderPidInfo();
+            updateRunButton();
+            ['btnAddSpec', 'btnAddKey', 'btnCopyTsv'].forEach((id) => { $(id).disabled = json.method === 'JAVA'; });
+            renderEditStatus();
+            renderRunStatus();
+            hideWarn();
+            renderPanel();
+            updateUrl();
+        } catch (e) {
+            console.error(e);
+            showWarn(`PID 불러오기 실패: ${e.message}`, true);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = BTN_LOAD_HTML;
+        }
+    }
+
+    function clearResult() {
+        state.result = null;
+        state.sent = [];
+        state.idxOf = new Map();
+        state.stepIdx = [];
+        state.curStep = 0;
+        state.stale = false;
+    }
+
+    // 실행 버튼 : PID 를 불러온 뒤에만
+    function updateRunButton() {
+        $('btnRun').disabled = !state.logic || state.running;
+        $('btnRun').title = state.logic ? '수정본으로 실행 (Ctrl+Enter)' : '먼저 PID 를 불러오세요';
+        $('stepLoad').classList.toggle('done', !!state.logic);
+    }
+
+    function renderPidInfo() {
+        const l = state.logic;
+        if (!l) { $('pidInfo').innerHTML = ''; return; }
+        const ver = l.version === Number(TEST_VERSION) ? 'TEST' : `v${l.version}`;
+        let h = `<b>${esc(l.pid)}</b> ${esc(l.name || '')}<span class="tag">${esc(ver)}${l.latestVersion === l.version ? ' (최신)' : ''}</span>`;
+        if (l.regDate) h += `<span class="tag">${esc(l.regDate)}</span>`;
+        if (l.isFloorSpec === 'Y') h += '<span class="tag">층별 PID</span>';
+        if (l.method === 'JAVA') h += '<span class="tag">JAVA</span>';
+        h += ` · ${(l.rows || []).length}라인`;
+        $('pidInfo').innerHTML = h;
+    }
+
+    function setFloorEnabled(isFloor) {
+        const on = isFloor === 'Y';
+        $('floor').disabled = !on;
+        $('floorInfo').textContent = on ? '층별 PID' : '층별 PID 아님';
+        $('floorInfo').className = 'hint' + (on ? ' on' : '');
+    }
+
+    // ---------- 실행 ----------
+    async function run(opts = {}) {
+        if (!state.logic) { if (!opts.auto) alert('먼저 PID 를 불러오세요.'); return; }
+        const project = $('project').value.trim();
+        if (!project) { if (!opts.auto) alert('공사번호를 입력하세요.'); return; }
+        if (!opts.auto && $('pid').value.trim() !== state.logic.pid
+            && !confirm(`입력한 PID(${$('pid').value.trim()})가 불러온 PID(${state.logic.pid})와 다릅니다.\n불러온 ${state.logic.pid} 로 실행할까요?`)) return;
+        if (state.running) { state.rerun = true; return; }
+
+        // 편집 중인 셀 값을 먼저 반영 (실시간 실행 중에는 입력을 방해하지 않는다)
+        const editor = hot && hot.getActiveEditor();
+        if (editor && editor.isOpened()) {
+            if (opts.auto) return;
+            editor.finishEditing();
+        }
+        const sent = state.logic.method === 'JAVA' ? [] : gridRows();
+        const body = {
+            project,
+            pid: state.logic.pid,
+            version: state.versionParam === '' ? null : Number(state.versionParam),
+            floor: $('floor').disabled ? null : ($('floor').value.trim() || null),
+            beforePid: $('beforePid').value.trim() || null,
+            rows: state.logic.method === 'JAVA' ? null : sent.map(toApiRow),
+        };
+
+        state.running = true;
+        state.rerun = false;
+        const btn = $('btnRun');
+        btn.disabled = true;
+        btn.innerHTML = BUSY_HTML('실행 중');
+        renderRunStatus();
+        const startedAt = performance.now();
+        // 같은 라인을 계속 보고 있도록 현재 단계의 라인을 기억
+        const keepRid = state.curStep ? (state.sent[state.stepIdx[state.curStep - 1]] || {})._rid : state.selectedRid;
+        try {
+            const res = await fetch(API.simulate, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify(body),
+            });
+            let json = null;
+            try { json = await res.json(); } catch (e) { /* JSON 아님 */ }
+            if (!res.ok || !json || json.error) throw new Error((json && json.error) || `HTTP ${res.status}`);
+
+            // 결과 라인 i ↔ 보낸 그리드 행 i
+            state.result = json;
+            state.sent = sent;
+            state.idxOf = new Map();
+            sent.forEach((o, i) => { if (i < (json.lines || []).length) state.idxOf.set(o._rid, i); });
+            state.stepIdx = [];
+            (json.debug || []).forEach((d, i) => { if (d && d.step) state.stepIdx[d.step - 1] = i; });
+            state.stale = false;
+            state.elapsed = ((performance.now() - startedAt) / 1000).toFixed(1);
+
+            // 기억한 라인이 이번에도 실행됐으면 그 단계, 아니면 첫 단계
+            const keepIdx = idxOfRid(keepRid);
+            const keepDbg = keepIdx >= 0 ? dbgAt(keepIdx) : null;
+            state.curStep = keepDbg && keepDbg.step ? keepDbg.step : (state.stepIdx.length ? 1 : 0);
+
+            const warnings = (json.warnings || []).filter((w) => !w.startsWith('DB 미저장 수정본으로 실행'))
+                .concat((json.subPids || []).filter((s) => s.error).map((s) => `하위 PID ${s.pid} 실행 실패 : ${s.error}`));
+            if (warnings.length) showWarn(warnings.map((w) => `• ${w}`).join('\n')); else hideWarn();
+
+            if (hot) hot.render();
+            renderSummary();
+            renderRunStatus();
+            renderPanel();
+            updateUrl();
+        } catch (e) {
+            console.error(e);
+            showWarn(`실행 실패: ${e.message}`, true);
+        } finally {
+            state.running = false;
+            btn.innerHTML = BTN_RUN_HTML;
+            updateRunButton();
+            renderRunStatus();
+            // 실행 중에 또 고쳤으면 한 번 더
+            if (state.rerun && $('autoRun').checked) {
+                state.rerun = false;
+                setTimeout(() => run({ auto: true }), 50);
+            }
+        }
+    }
+
+    function renderRunStatus() {
+        const r = state.result;
+        $('runProgress').hidden = !state.running;
+        let h = '';
+        if (state.running) h += '<span class="pill running"><span class="spinner" aria-hidden="true"></span>실행 중</span> ';
+        if (!r) {
+            if (!state.running) h += `<span class="meta">${state.logic ? '실행하면 라인마다 TRUE / FALSE 와 그 시점의 값이 표와 아래에 표시됩니다' : 'PID 를 불러온 뒤 실행하세요'}</span>`;
+            $('runStatus').innerHTML = h;
+            ['tbFinal', 'tbElvEnt', 'tbSub', 'tbWatch'].forEach((id) => { $(id).textContent = ''; });
+            renderStepper();
+            return;
+        }
+        const cnt = { TRUE: 0, FALSE: 0, UNREAD: 0 };
+        (r.lines || []).forEach((l) => { cnt[l.state] = (cnt[l.state] || 0) + 1; });
+        h += r.javaMethod ? '<span class="pill ok">JAVA 실행결과</span>'
+            : `<span class="pill true">TRUE ${cnt.TRUE}</span> <span class="pill false">FALSE ${cnt.FALSE}</span> <span class="pill unread">미실행 ${cnt.UNREAD}</span>`;
+        h += ` <span class="meta">${esc(r.projectNo || r.iOuid)} · ${state.elapsed}초</span>`;
+        h += state.stale ? ' <span class="pill stale" title="실행 후 수정했습니다. 다시 실행하세요">수정 후 미실행</span>' : ' <span class="pill ok">최신 결과</span>';
+        $('runStatus').innerHTML = h;
+        $('tbFinal').textContent = Object.keys(r.resultMap || {}).length;
+        $('tbElvEnt').textContent = Object.keys(r.elvEnt || {}).length;
+        $('tbSub').textContent = (r.subPids || []).length || '';
+        renderStepper();
+    }
+
+    function renderSummary() {
+        const lines = (state.result && state.result.lines) || [];
+        const cnt = { TRUE: 0, FALSE: 0, UNREAD: 0 };
+        lines.forEach((l) => { cnt[l.state] = (cnt[l.state] || 0) + 1; });
+        $('stTotal').textContent = lines.length;
+        $('stReaded').textContent = cnt.TRUE + cnt.FALSE;
+        $('stTrue').textContent = cnt.TRUE;
+        $('stFalse').textContent = cnt.FALSE;
+        $('stUnread').textContent = cnt.UNREAD;
+    }
+
+    function showWarn(msg, error) {
+        $('warnBar').hidden = false;
+        $('warnText').textContent = msg;
+        $('warnBar').classList.toggle('error', !!error);
+    }
+    function hideWarn() { $('warnBar').hidden = true; }
+
+    function updateUrl() {
+        const qs = new URLSearchParams();
+        if (state.logic) qs.set('pid', state.logic.pid);
+        if (state.versionParam) qs.set('version', state.versionParam);
+        const project = $('project').value.trim();
+        if (project) qs.set('project', project);
+        history.replaceState(null, '', `${location.pathname}?${qs}`);
+    }
+
+    // ---------- 디버거 : 단계 이동 ----------
+    const totalSteps = () => state.stepIdx.length;
+
+    function renderStepper() {
+        const n = totalSteps();
+        const cur = state.curStep;
+        if (!n) $('stepInfo').innerHTML = '단계 -';
+        else {
+            const i = state.stepIdx[cur - 1];
+            const line = lineAt(i);
+            const o = state.sent[i];
+            $('stepInfo').innerHTML = `단계 <b>${cur}</b> / ${n}` + (line ? ` · ${o && o.addr ? esc(o.addr) : (o && o.no ? 'NO ' + esc(o.no) : '')} ${line.state}` : '');
+        }
+        $('btnFirst').disabled = $('btnPrev').disabled = !n || cur <= 1;
+        $('btnLast').disabled = $('btnNext').disabled = !n || cur >= n;
+    }
+
+    // 단계 이동 : 그리드 / 라인별 결과 / 변수 / 라인 상세가 모두 그 라인을 따라간다
+    function setStep(step, opts = {}) {
+        const n = totalSteps();
+        if (!n) return;
+        state.curStep = Math.max(1, Math.min(n, step));
+        const i = state.stepIdx[state.curStep - 1];
+        const o = state.sent[i];
+        if (o) state.selectedRid = o._rid;
+
+        if (hot) {
+            if (!opts.fromGrid && o) {
+                const v = visualRowOf(o._rid);
+                if (v >= 0) {
+                    selectingFromCode = true;
+                    // selectCell 이 그 칸이 보이도록 스크롤한다
+                    try { hot.selectCell(v, 2, v, 2, true, false); } catch (e) { /* 무시 */ }
+                    selectingFromCode = false;
+                }
+            }
+            hot.render();
+        }
+        renderStepper();
+        if (state.tab === 'debug') markCurrentDebugRow(true);
+        else renderPanel();
+    }
+
+    // ---------- 하단 패널 ----------
+    function kvTable(map, opts = {}) {
+        const entries = Object.entries(map || {});
+        if (!entries.length) return '<div class="empty">데이터 없음</div>';
+        entries.sort((a, b) => (a[0].startsWith('OUTPUT') ? 1 : 0) - (b[0].startsWith('OUTPUT') ? 1 : 0));
+        return '<table class="kv"><tbody>' + entries.map(([k, v]) => {
+            const val = nvl(v);
+            const hit = opts.highlight && opts.highlight.has(k) ? ' class="hit"' : '';
+            return `<tr${hit} data-k="${esc((k + ' ' + val).toLowerCase())}"><th>${esc(k)}</th>`
+                + (val === '' ? '<td class="blank">(빈 값)</td>' : `<td>${br(val)}</td>`) + '</tr>';
+        }).join('') + '</tbody></table>';
+    }
+
+    function searchBox(ph) { return `<input type="search" placeholder="${esc(ph)}" data-kv-search style="margin-bottom:8px">`; }
+
+    function renderPanel() {
+        const body = $('panelBody');
+        const r = state.result;
+        $('debugTools').hidden = state.tab !== 'debug';
+        let h = '';
+        switch (state.tab) {
+            case 'debug': renderDebugTable(); return;
+            case 'line': h = `<div class="pad">${lineDetail()}</div>`; break;
+            case 'watch': h = `<div class="pad">${watchView()}</div>`; break;
+            case 'final':
+                h = `<div class="pad">${!r ? '<div class="empty">실행하면 최종 OUTPUT 이 표시됩니다.</div>' : searchBox('키 / 값 검색') + kvTable(r.resultMap)}</div>`;
+                break;
+            case 'elvEnt':
+                h = `<div class="pad">${!r ? '<div class="empty">실행하면 PID 실행 후 최종 영업사양이 표시됩니다.</div>' : searchBox('특성코드 / 값 검색') + kvTable(r.elvEnt)}</div>`;
+                break;
+            case 'sub': h = `<div class="pad">${subPidTable()}</div>`; break;
+            case 'diff': h = `<div class="pad">${diffTable()}</div>`; break;
+        }
+        body.innerHTML = h;
+        const search = body.querySelector('[data-kv-search]');
+        if (search) {
+            search.addEventListener('input', () => {
+                const q = search.value.trim().toLowerCase();
+                body.querySelectorAll('.kv tr[data-k]').forEach((tr) => { tr.hidden = q && !tr.dataset.k.includes(q); });
+            });
+        }
+    }
+
+    // ----- 라인별 결과 (pidSimulatorUp 과 같은 표 + 그 시점의 값 / 바뀐 값) -----
+    function isVisible(i) {
+        const line = lineAt(i);
+        const dbg = dbgAt(i);
+        const st = stateCls(line);
+        if (state.filter === 'true' && st !== 'true') return false;
+        if (state.filter === 'false' && st !== 'false') return false;
+        if (state.filter === 'readed' && st === 'unread') return false;
+        if (state.filter === 'unread' && st !== 'unread') return false;
+        if (state.onlyChanged && !(dbg && dbg.changes.length)) return false;
+        const kw = state.keyword.toLowerCase();
+        if (!kw) return true;
+        const o = state.sent[i] || {};
+        const text = [o.no, o.addr, o.gotoAddr, o.remarks, line.output,
+            ...(line.conditions || []).flatMap((c) => [c.spec, c.con]),
+            ...(line.results || []).flatMap((kv) => [kv.key, kv.val]),
+            ...((dbg && dbg.conds) || []).map((c) => c.specValue),
+            ...((dbg && dbg.changes) || []).flatMap((c) => [c.key, c.after])].map(nvl).join(' ').toLowerCase();
+        return text.includes(kw);
+    }
+
+    function condChip(c) {
+        const cls = c.compare === 'T' ? 'cellTrue' : (c.compare === 'F' ? 'cellFalse' : '');
+        const conShown = norm(c.con) !== '' && c.conValue !== c.con ? `${c.con} → ${c.conValue}` : nvl(c.con);
+        // 그 시점의 SPEC 값 (불일치면 눈에 띄게)
+        const now = `<span class="now${c.compare === 'F' ? ' diff' : ''}">[${esc(shownVal(c.specValue))}]</span>`;
+        const mk = c.compare === 'T' ? '<span class="mk" aria-hidden="true">✓</span>' : (c.compare === 'F' ? '<span class="mk" aria-hidden="true">✗</span>' : '');
+        return `<span class="chip ${cls}" title="${esc(condTitle(c))}">${mk}<span class="k">${esc(c.spec)}</span> = <span class="v">${esc(conShown)}</span>${now}</span>`;
+    }
+
+    function renderDebugTable() {
+        const body = $('panelBody');
+        const r = state.result;
+        if (!r) {
+            body.innerHTML = '<div class="empty">▶ 실행하면 라인마다 TRUE / FALSE, 조건을 비교한 그 시점의 값, 바뀐 값이 표시됩니다.</div>';
+            $('shownCount').textContent = '';
+            return;
+        }
+        if (r.javaMethod) {
+            body.innerHTML = `<div class="pad"><div class="section-title">JAVA 실행결과 (${Object.keys(r.resultMap || {}).length}건)</div>${kvTable(r.resultMap)}</div>`;
+            $('shownCount').textContent = '';
+            return;
+        }
+        // 그리드 행 객체 → 화면 위치 (한 번만 계산)
+        const visual = new Map();
+        if (hot) for (let v = 0; v < hot.countRows(); v++) visual.set(hot.getSourceDataAtCell(hot.toPhysicalRow(v), '_rid'), v);
+
+        let h = '<table class="dbg"><thead><tr><th>단계</th><th>#</th><th>NO</th><th>ADDR</th><th>결과</th>'
+            + '<th class="grp-spec">조건 (SPEC = CON [그 시점 값])</th><th class="grp-key">결과 (KEY = VAL)</th>'
+            + '<th>바뀐 값</th><th>GOTO</th><th>REMARK</th></tr></thead><tbody>';
+        let shown = 0;
+        (r.lines || []).forEach((line, i) => {
+            if (!isVisible(i)) return;
+            shown++;
+            const dbg = dbgAt(i) || { step: 0, conds: [], changes: [] };
+            const o = state.sent[i] || {};
+            const st = stateCls(line);
+            const trCls = st === 'true' ? 'rowTrue' : (st === 'false' ? 'rowFalse' : 'unread');
+            const cur = dbg.step && dbg.step === state.curStep ? ' cur' : '';
+
+            // 미실행 라인은 그 시점 값이 없으므로 조건만 표시
+            const conds = dbg.step ? dbg.conds.map(condChip).join('')
+                : (line.conditions || []).filter((c) => c.spec).map((c) => `<span class="chip"><span class="k">${esc(c.spec)}</span> = <span class="v">${esc(c.con)}</span></span>`).join('');
+            const results = (line.results || []).filter((kv) => kv.key || kv.val)
+                .map((kv) => `<span class="chip res"><span class="k">${esc(kv.key)}</span>${norm(kv.val) !== '' ? ` = <span class="v">${br(kv.val)}</span>` : ''}</span>`).join('');
+            // 바뀐 값 (CALL 라인은 하위 PID 결과가 한꺼번에 들어오므로 앞의 몇 개만, 나머지는 라인 상세에서)
+            const CHG_MAX = 6;
+            let changes = dbg.changes.slice(0, CHG_MAX)
+                .map((c) => `<span class="chip chg" title="${esc(c.key)} : ${esc(shownVal(c.before))} → ${esc(shownVal(c.after))}"><span class="k">${esc(c.key)}</span> `
+                    + (c.before !== null && c.before !== undefined ? `<span class="old">${esc(shownVal(c.before))}</span>` : '')
+                    + `→ <span class="new">${esc(shownVal(c.after))}</span></span>`).join('');
+            if (dbg.changes.length > CHG_MAX) changes += `<span class="chip" title="더블클릭하면 라인 상세에서 모두 볼 수 있습니다">+${dbg.changes.length - CHG_MAX}개</span>`;
+
+            h += `<tr class="${trCls}${cur}" data-i="${i}">`
+                + `<td class="step">${dbg.step || ''}</td>`
+                + `<td>${visual.has(o._rid) ? visual.get(o._rid) + 1 : ''}</td>`
+                + `<td>${esc(o.no || (o.douid ? '' : '새'))}</td>`
+                + `<td class="addr">${esc(o.addr)}</td>`
+                + `<td class="status">${st === 'unread' ? '-' : line.state}</td>`
+                + `<td class="chips">${conds}</td><td class="chips">${results}</td><td class="chips">${changes}</td>`
+                + `<td class="goto">${esc(o.gotoAddr)}</td><td class="remark">${esc(o.remarks)}</td></tr>`;
+        });
+        h += '</tbody></table>';
+        body.innerHTML = shown ? h : '<div class="empty">필터 조건에 맞는 라인이 없습니다.</div>';
+        $('shownCount').textContent = `${shown} / ${(r.lines || []).length} 라인`;
+        markCurrentDebugRow(false);
+    }
+
+    // 현재 단계 라인 강조 (+ 보이게 스크롤)
+    function markCurrentDebugRow(scroll) {
+        const body = $('panelBody');
+        body.querySelectorAll('tr.cur').forEach((tr) => tr.classList.remove('cur'));
+        if (!state.curStep) return;
+        const i = state.stepIdx[state.curStep - 1];
+        const tr = body.querySelector(`tr[data-i="${i}"]`);
+        if (!tr) return;
+        tr.classList.add('cur');
+        if (scroll) {
+            const head = body.querySelector('thead');
+            const headH = head ? head.getBoundingClientRect().height : 0;
+            const b = body.getBoundingClientRect();
+            const r = tr.getBoundingClientRect();
+            if (r.top < b.top + headH) body.scrollTop -= (b.top + headH) - r.top + 4;
+            else if (r.bottom > b.bottom) body.scrollTop += r.bottom - b.bottom + 4;
+        }
+    }
+
+    // ----- 라인 상세 -----
+    function lineDetail() {
+        const o = state.selectedRid ? rowByRid(state.selectedRid) : null;
+        if (!o) return '<div class="empty">그리드나 라인별 결과에서 라인을 고르면 조건 비교 / 바뀐 값 / OUTPUT 이 표시됩니다.</div>';
+        const i = idxOfRid(o._rid);
+        const line = i >= 0 ? lineAt(i) : null;
+        const dbg = i >= 0 ? dbgAt(i) : null;
+        let h = '<div class="section-title">';
+        if (line) h += `<span class="badge ${stateCls(line)}">${line.state === 'UNREAD' ? '미실행' : line.state}</span> `;
+        if (dbg && dbg.step) h += `<span style="color:var(--cur)">단계 ${dbg.step}</span> · `;
+        h += `${o.no ? 'NO ' + esc(o.no) : (o.douid ? '' : '새 라인')}${o.addr ? ' · ADDR ' + esc(o.addr) : ''}${o.gotoAddr ? ' · GOTO ' + esc(o.gotoAddr) : ''}`;
+        if (state.stale && line) h += ' <span class="pill stale">수정 전 결과</span>';
+        h += '</div>';
+        if (o.remarks) h += `<div style="color:var(--muted);margin-bottom:6px">${esc(o.remarks)}</div>`;
+        if (!line) return h + '<div class="empty">' + (state.result ? '이 라인은 실행 결과가 없습니다 (실행 후 추가한 라인이거나 빈 라인).' : '▶ 실행하면 이 라인의 결과가 표시됩니다.') + '</div>';
+        if (!dbg || !dbg.step) return h + '<div class="empty">이 라인은 실행되지 않았습니다 (앞 라인의 GOTO / STOP 으로 건너뜀).</div>';
+
+        h += '<div class="section-title">조건 (그 시점의 값으로 비교)</div>';
+        if (!dbg.conds.length) h += '<div class="empty" style="padding:6px">조건 없음 (항상 만족)</div>';
+        else {
+            h += '<table class="kv"><thead><tr><th>SPEC</th><th>그 시점 값</th><th>CON</th><th>CON 계산값</th><th>결과</th></tr></thead><tbody>';
+            dbg.conds.forEach((c) => {
+                const cls = c.compare === 'T' ? 'cellTrue' : (c.compare === 'F' ? 'cellFalse' : '');
+                h += `<tr><th>SPEC${c.idx} ${esc(c.spec)}${c.note ? `<div class="note">※ ${esc(c.note)}</div>` : ''}</th>`
+                    + `<td>${esc(shownVal(c.specValue))}</td><td>${esc(shownVal(c.con))}</td>`
+                    + `<td>${norm(c.con) === '' ? '<span class="note">빈 CON = 항상 일치</span>' : esc(shownVal(c.conValue))}</td>`
+                    + `<td class="${cls}">${c.compare === 'T' ? '일치' : (c.compare === 'F' ? '불일치' : '')}</td></tr>`;
+            });
+            h += '</tbody></table>';
+        }
+
+        h += '<div class="cols-2"><div>';
+        h += '<div class="section-title">이 라인으로 바뀐 값</div>';
+        h += dbg.changes.length
+            ? '<table class="kv"><thead><tr><th>KEY</th><th>이전</th><th>이후</th></tr></thead><tbody>'
+                + dbg.changes.map((c) => `<tr><th>${esc(c.key)}</th><td class="old">${esc(shownVal(c.before))}</td><td class="newv">${br(shownVal(c.after))}</td></tr>`).join('')
+                + '</tbody></table>'
+            : `<div class="empty" style="padding:6px">${line.state === 'TRUE' ? '바뀐 값 없음' : '조건 불만족 : 실행하지 않음'}</div>`;
+        h += '</div><div>';
+        h += '<div class="section-title">OUTPUT</div>';
+        h += line.output ? `<table class="kv"><tbody>${line.output.split('\n').map((s) => {
+            const k = s.indexOf(' = ');
+            return k > 0 ? `<tr><th>${esc(s.substring(0, k))}</th><td>${br(s.substring(k + 3))}</td></tr>` : `<tr><td colspan="2">${br(s)}</td></tr>`;
+        }).join('')}</tbody></table>` : '<div class="empty" style="padding:6px">출력 없음</div>';
+        h += '</div></div>';
+
+        if (line.resultMap) {
+            const keys = new Set((line.results || []).map((kv) => nvl(kv.key)));
+            const shown = Object.fromEntries(Object.entries(line.resultMap).filter(([k]) => !k.startsWith('OUTPUT11')));
+            h += `<div class="section-title">이 라인(CALL) 실행 후 resultMap (${Object.keys(shown).length}건)</div>`
+                + searchBox('키 / 값 검색') + kvTable(shown, { highlight: keys });
+        }
+        return h;
+    }
+
+    // ----- 변수 : 현재 단계까지 실행했을 때의 값 (resultMap) -----
+    function watchKeys() {
+        return (storeGet('watch') || '').split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
+    }
+
+    function watchView() {
+        const r = state.result;
+        if (!r || r.javaMethod) return '<div class="empty">▶ 실행하면 단계별 값이 표시됩니다.</div>';
+        if (!state.curStep) return '<div class="empty">실행된 라인이 없습니다.</div>';
+
+        // 현재 단계까지의 변경을 차례로 적용 + 키별 마지막으로 바뀐 단계
+        const vals = {}, lastStep = {}, changedNow = new Set();
+        for (let s = 1; s <= state.curStep; s++) {
+            const d = dbgAt(state.stepIdx[s - 1]);
+            (d.changes || []).forEach((c) => {
+                vals[c.key] = c.after;
+                lastStep[c.key] = s;
+                if (s === state.curStep) changedNow.add(c.key);
+            });
+        }
+        $('tbWatch').textContent = Object.keys(vals).length;
+
+        const pins = watchKeys();
+        let h = `<div class="section-title">단계 ${state.curStep} 까지 실행했을 때의 값 (resultMap ${Object.keys(vals).length}건)</div>`;
+        h += `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">`
+            + `<input type="search" data-kv-search placeholder="키 / 값 검색">`
+            + `<label class="hint" style="color:var(--muted)">감시할 키 <input id="watchInput" value="${esc(pins.join(', '))}" placeholder="EL_A, EL_B" style="width:220px;padding:4px 8px;border:1px solid var(--border);border-radius:5px"></label>`
+            + '<span class="hint" style="color:var(--muted)">노란색 = 이 단계에서 바뀐 값 · 단계 링크를 누르면 그 단계로 이동</span></div>';
+
+        const keys = Object.keys(vals);
+        // 감시 키 먼저 (값이 아직 없어도 표시), 그 다음 이 단계에서 바뀐 키, 나머지
+        const order = [...pins, ...keys.filter((k) => !pins.includes(k)).sort((a, b) => (changedNow.has(b) ? 1 : 0) - (changedNow.has(a) ? 1 : 0))];
+        if (!order.length) return h + '<div class="empty">아직 바뀐 값이 없습니다.</div>';
+        h += '<table class="kv"><thead><tr><th>KEY</th><th>값</th><th>마지막 변경</th></tr></thead><tbody>';
+        order.forEach((k) => {
+            const has = Object.prototype.hasOwnProperty.call(vals, k);
+            const cls = [changedNow.has(k) ? 'hit' : '', pins.includes(k) ? 'pin' : ''].filter(Boolean).join(' ');
+            h += `<tr class="${cls}" data-k="${esc((k + ' ' + nvl(vals[k])).toLowerCase())}"><th>${esc(k)}</th>`
+                + (has ? `<td>${br(shownVal(vals[k]))}</td>` : '<td class="blank">(아직 resultMap 에 없음)</td>')
+                + `<td>${has ? `<span class="link" data-step="${lastStep[k]}">단계 ${lastStep[k]}</span>` : ''}</td></tr>`;
+        });
+        return h + '</tbody></table>';
+    }
+
+    function subPidTable() {
+        const r = state.result;
+        if (!r) return '<div class="empty">실행하면 CALL 로 실행된 하위 PID 가 표시됩니다 (DB 최신 버전).</div>';
+        const list = r.subPids || [];
+        if (!list.length) return '<div class="empty">CALL 로 실행된 하위 PID 가 없습니다.</div>';
+        return '<table class="kv"><thead><tr><th>하위 PID</th><th>이름</th><th>실행 버전</th><th>호출</th><th>깊이</th><th>오류</th></tr></thead><tbody>'
+            + list.map((s) => `<tr><th>${'↳'.repeat(Math.max(0, s.depth - 2))}${esc(s.pid)}</th><td>${esc(s.name || '')}</td>`
+                + `<td>${s.runVersion === null || s.runVersion === undefined ? '-' : (String(s.runVersion) === TEST_VERSION ? 'TEST' : 'v' + s.runVersion)}${s.runVersion === s.latestVersion ? ' (최신)' : ''}</td>`
+                + `<td>${s.callCount}회</td><td>${s.depth}</td><td style="color:var(--false-strong)">${esc(s.error || '')}</td></tr>`).join('')
+            + '</tbody></table>';
+    }
+
+    // 변경 내역 : PLM 에 옮겨 적기 쉽도록 라인 / 칸 / DB 값 → 수정 값
+    function propLabel(p) {
+        let m;
+        if ((m = /^s(\d+)$/.exec(p))) return `SPEC${m[1]}`;
+        if ((m = /^c(\d+)$/.exec(p))) return `CON${m[1]}`;
+        if ((m = /^k(\d+)$/.exec(p))) return `KEY${m[1]}`;
+        if ((m = /^v(\d+)$/.exec(p))) return `VAL${m[1]}`;
+        return { addr: 'ADDR', gotoAddr: 'GOTO', remarks: 'REMARKS' }[p] || p;
+    }
+
+    function diffTable() {
+        if (!state.logic) return '<div class="empty">PID 를 불러오세요.</div>';
+        const rows = gridRows();
+        const present = new Set(rows.filter((o) => o.douid).map((o) => o.douid));
+        let h = '';
+        const items = [];
+        rows.forEach((o, i) => {
+            const where = `${i + 1}번째 줄${o.no ? ' (NO ' + o.no + ')' : ''}${o.addr ? ' · ' + o.addr : ''}`;
+            if (!o.douid) {
+                const cells = EDIT_PROPS.filter((p) => norm(o[p]) !== '').map((p) => `${propLabel(p)}=${o[p]}`).join(', ');
+                items.push(`<tr><th>${esc(where)}</th><td><span class="pill new">추가</span></td><td></td><td class="newv">${esc(cells)}</td></tr>`);
+                return;
+            }
+            const orig = state.original.get(o.douid);
+            if (!orig) return;
+            EDIT_PROPS.filter((p) => norm(orig[p]) !== norm(o[p])).forEach((p) => {
+                items.push(`<tr><th>${esc(where)}</th><td>${esc(propLabel(p))}</td>`
+                    + `<td class="old">${esc(norm(orig[p]) || '(빈 칸)')}</td><td class="newv">${esc(norm(o[p]) || '(빈 칸)')}</td></tr>`);
+            });
+        });
+        state.originalOrder.filter((d) => !present.has(d)).forEach((d) => {
+            const orig = state.original.get(d);
+            items.push(`<tr><th>NO ${esc(orig.no || '')}${orig.addr ? ' · ' + esc(orig.addr) : ''}</th><td><span class="pill deleted">삭제</span></td>`
+                + `<td class="old" colspan="2">${esc(EDIT_PROPS.filter((p) => norm(orig[p]) !== '').map((p) => `${propLabel(p)}=${orig[p]}`).join(', '))}</td></tr>`);
+        });
+        if (editStats().moved) h += '<div class="hint" style="color:#b45309;margin-bottom:6px">라인 순서가 DB 원본과 다릅니다.</div>';
+        if (!items.length) return h + '<div class="empty">DB 원본과 같습니다.</div>';
+        return h + '<table class="kv"><thead><tr><th>라인</th><th>칸</th><th>DB 원본</th><th>수정</th></tr></thead><tbody>' + items.join('') + '</tbody></table>';
+    }
+
+    // ---------- TSV 복사 (엑셀 / PLM 붙여넣기용) ----------
+    async function copyTsv() {
+        const headers = ['NO', 'ADDR'];
+        for (let i = 1; i <= state.specCols; i++) headers.push(`SPEC${i}`, `CON${i}`);
+        for (let i = 1; i <= state.resCols; i++) headers.push(`KEY${i}`, `VAL${i}`);
+        headers.push('GOTO', 'REMARKS');
+        const cell = (v) => norm(v).replace(/[\t\r\n]+/g, ' ');
+        const lines = [headers.join('\t')];
+        gridRows().forEach((o) => {
+            const r = [o.no, o.addr];
+            for (let i = 1; i <= state.specCols; i++) r.push(o[specProp(i)], o[conProp(i)]);
+            for (let i = 1; i <= state.resCols; i++) r.push(o[keyProp(i)], o[valProp(i)]);
+            r.push(o.gotoAddr, o.remarks);
+            lines.push(r.map(cell).join('\t'));
+        });
+        const text = lines.join('\n');
+        try {
+            await navigator.clipboard.writeText(text);
+            flash(`TSV ${lines.length - 1}라인을 클립보드에 복사했습니다. 엑셀에 붙여넣을 수 있습니다.`);
+        } catch (e) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/tab-separated-values;charset=utf-8' }));
+            a.download = `PID_${state.logic.pid}_playground.tsv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+    }
+
+    // ---------- 이벤트 ----------
+    $('searchForm').addEventListener('submit', (e) => { e.preventDefault(); loadLogic(); });
+    $('btnRun').addEventListener('click', () => run());
+    $('btnAdv').addEventListener('click', () => {
+        const open = $('advPanel').hidden;
+        $('advPanel').hidden = !open;
+        $('btnAdv').setAttribute('aria-expanded', String(open));
+    });
+    $('btnRevert').addEventListener('click', () => {
+        if (!confirm('모든 수정을 버리고 DB 원본으로 되돌릴까요? (브라우저 임시 저장본도 지웁니다)')) return;
+        storeDel(draftKey());
+        loadLogic({ force: true, ignoreDraft: true });
+    });
+    function addCols(kind) {
+        if (kind === 'spec') {
+            if (state.specCols >= MAX_SPEC) return alert(`SPEC 은 최대 ${MAX_SPEC}개입니다.`);
+            state.specCols++;
+        } else {
+            if (state.resCols >= MAX_RES) return alert(`KEY 는 최대 ${MAX_RES}개입니다.`);
+            state.resCols++;
+        }
+        const { cols, headers } = buildColumns();
+        hot.updateSettings({ columns: cols, colHeaders: headers });
+    }
+    $('btnAddSpec').addEventListener('click', () => addCols('spec'));
+    $('btnAddKey').addEventListener('click', () => addCols('key'));
+    $('btnCopyTsv').addEventListener('click', copyTsv);
+
+    // 실시간 실행 설정은 브라우저에 기억 (처음에는 켜 둔다)
+    $('autoRun').checked = storeGet('autoRun') !== 'N';
+    $('autoRun').addEventListener('change', () => {
+        storeSet('autoRun', $('autoRun').checked ? 'Y' : 'N');
+        if ($('autoRun').checked && state.stale) run({ auto: true });
+    });
+
+    $('tabs').addEventListener('click', (e) => {
+        const b = e.target.closest('button.tab[data-tab]');
+        if (!b) return;
+        state.tab = b.dataset.tab;
+        document.querySelectorAll('#tabs button.tab').forEach((x) => {
+            x.classList.toggle('active', x === b);
+            x.setAttribute('aria-selected', String(x === b));
+        });
+        renderPanel();
+    });
+
+    // 디버거 단계 이동
+    $('btnFirst').addEventListener('click', () => setStep(1));
+    $('btnPrev').addEventListener('click', () => setStep(state.curStep - 1));
+    $('btnNext').addEventListener('click', () => setStep(state.curStep + 1));
+    $('btnLast').addEventListener('click', () => setStep(totalSteps()));
+
+    // 라인별 결과 필터 / 검색
+    $('filterSeg').addEventListener('click', (e) => {
+        const b = e.target.closest('button[data-filter]');
+        if (!b) return;
+        document.querySelectorAll('#filterSeg button').forEach((x) => {
+            x.classList.toggle('active', x === b);
+            x.setAttribute('aria-pressed', String(x === b));
+        });
+        state.filter = b.dataset.filter;
+        renderDebugTable();
+    });
+    $('onlyChanged').addEventListener('change', (e) => { state.onlyChanged = e.target.checked; renderDebugTable(); });
+    let kwTimer;
+    $('keyword').addEventListener('input', (e) => {
+        clearTimeout(kwTimer);
+        kwTimer = setTimeout(() => { state.keyword = e.target.value.trim(); renderDebugTable(); }, 200);
+    });
+
+    // 패널 클릭 : 라인별 결과 행 → 그 라인 / 단계로, 변수의 단계 링크 → 그 단계로
+    $('panelBody').addEventListener('click', (e) => {
+        const link = e.target.closest('[data-step]');
+        if (link) return setStep(Number(link.dataset.step));
+        const tr = e.target.closest('table.dbg tbody tr[data-i]');
+        if (!tr) return;
+        const i = Number(tr.dataset.i);
+        const dbg = dbgAt(i);
+        if (dbg && dbg.step) return setStep(dbg.step);
+        // 미실행 라인 : 그리드에서 그 라인만 선택
+        const o = state.sent[i] || {};
+        const v = visualRowOf(o._rid);
+        state.selectedRid = o._rid || null;
+        if (v >= 0 && hot) {
+            selectingFromCode = true;
+            try { hot.selectCell(v, 2, v, 2, true, false); } catch (err) { /* 무시 */ }
+            selectingFromCode = false;
+        }
+    });
+    // 라인별 결과 행 더블클릭 : 라인 상세로
+    $('panelBody').addEventListener('dblclick', (e) => {
+        if (!e.target.closest('table.dbg tbody tr[data-i]')) return;
+        document.querySelector('#tabs button.tab[data-tab="line"]').click();
+    });
+    $('panelBody').addEventListener('change', (e) => {
+        if (e.target.id !== 'watchInput') return;
+        storeSet('watch', e.target.value);
+        renderPanel();
+    });
+
+    let pidTimer;
+    $('pid').addEventListener('input', () => {
+        clearTimeout(pidTimer);
+        pidTimer = setTimeout(() => loadVersions(''), 400);
+    });
+
+    // 단축키 : Ctrl+Enter 실행, F10 다음 단계, Shift+F10 이전 단계
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            e.stopPropagation();
+            run();
+            return;
+        }
+        // Ctrl+S : 임시 저장 (브라우저의 '페이지 저장' 대신)
+        if ((e.key === 's' || e.key === 'S') && (e.ctrlKey || e.metaKey) && state.logic) {
+            e.preventDefault();
+            e.stopPropagation();
+            saveDraft();
+            return;
+        }
+        if (e.key === 'F10') {
+            e.preventDefault();
+            e.stopPropagation();
+            setStep(state.curStep + (e.shiftKey ? -1 : 1));
+        }
+    }, true);
+
+    $('btnSaveDraft').addEventListener('click', saveDraft);
+    $('btnWarnClose').addEventListener('click', hideWarn);
+    $('btnEmptyLoad').addEventListener('click', () => {
+        if ($('pid').value.trim()) loadLogic();
+        else $('pid').focus();
+    });
+
+    // 범례 / 단축키 : 바깥을 누르거나 Esc 로 닫기
+    document.addEventListener('click', (e) => {
+        document.querySelectorAll('details.pop[open]').forEach((d) => { if (!d.contains(e.target)) d.open = false; });
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('details.pop[open]').forEach((d) => { d.open = false; d.querySelector('summary').focus(); });
+    });
+
+    // 패널 높이 : 더블클릭하면 크게 ↔ 작게
+    $('hresizer').addEventListener('dblclick', () => {
+        const cur = $('hresizer').nextElementSibling.getBoundingClientRect().height;
+        const h = cur < window.innerHeight * 0.5 ? Math.round(window.innerHeight * 0.7) : Math.round(window.innerHeight * 0.3);
+        document.documentElement.style.setProperty('--panel-h', `${h}px`);
+        storeSet('panelHeight', String(h));
+        if (hot) hot.refreshDimensions();
+    });
+
+    // 임시 저장하지 않은 수정이 있으면 페이지를 떠날 때 브라우저가 확인을 묻는다 (자동 저장하지 않음)
+    window.addEventListener('beforeunload', (e) => {
+        if (!hasUnsaved()) return;
+        e.preventDefault();
+        e.returnValue = '';
+    });
+
+    // 하단 패널 높이 조절 (브라우저에 기억)
+    (function initResizer() {
+        const KEY = 'panelHeight';
+        const saved = Number(storeGet(KEY));
+        if (saved) document.documentElement.style.setProperty('--panel-h', `${saved}px`);
+        const bar = $('hresizer');
+        let resizing = false;
+        bar.addEventListener('mousedown', (e) => { resizing = true; bar.classList.add('active'); document.body.style.userSelect = 'none'; e.preventDefault(); });
+        window.addEventListener('mousemove', (e) => {
+            if (!resizing) return;
+            const h = Math.max(120, Math.min(window.innerHeight * 0.8, window.innerHeight - e.clientY));
+            document.documentElement.style.setProperty('--panel-h', `${Math.round(h)}px`);
+        });
+        window.addEventListener('mouseup', () => {
+            if (!resizing) return;
+            resizing = false;
+            bar.classList.remove('active');
+            document.body.style.userSelect = '';
+            storeSet(KEY, String(parseInt(getComputedStyle(document.documentElement).getPropertyValue('--panel-h'), 10)));
+            if (hot) hot.refreshDimensions();
+        });
+    })();
+
+    // ---------- 초기화 : 주소의 pid / version / project 로 불러오고 실행 ----------
+    (async function init() {
+        renderStepper();
+        if (typeof Handsontable === 'undefined') {
+            showWarn('Handsontable 을 불러오지 못했습니다 (cdn.jsdelivr.net 접속 확인).', true);
+            return;
+        }
+        const params = new URLSearchParams(location.search);
+        if (params.get('pid')) $('pid').value = params.get('pid');
+        if (params.get('project')) $('project').value = params.get('project');
+        await loadVersions(params.get('version') || '');
+        if (params.get('pid')) {
+            await loadLogic();
+            if (state.logic && params.get('project')) run();
+        } else {
+            $('pid').focus();
+        }
+    })();
+</script>
+</body>
+</html>

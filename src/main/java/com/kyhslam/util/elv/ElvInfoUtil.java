@@ -20,6 +20,21 @@ public class ElvInfoUtil {
 
         String query = """
                 SELECT 
+                    V.EL_ARFQ AS EL_ARFQ,
+                    V.EL_EHTH AS EL_EHTH, --	승강로 전장; TOTAL HEIGHT
+                    COD(V.EL_EMRLHSCP) AS EL_EMRLHSCP, --◎ MRL ; 승강로 CP
+                    V.EL_EHTRH AS EL_EHTRH, --주행거리
+                    NVL(COD(V.EL_ERPW), '') AS EL_ERPW,
+                    NVL(COD(V.EL_DBGMS), '') AS EL_DBGMS, -- BGM SPEAKER
+                    NVL(COD(V.EL_DSV1), '') AS EL_DSV1, --감시반1)
+                    NVL(COD(V.EL_DSV2), '') AS EL_DSV2, --감시반2)
+                    COD(V.EL_ADRV) AS EL_ADRV, --운행방식
+                    COD(V.EL_AGRS) AS EL_AGRS, --◎ GROUP SYSTEM
+                    COD(V.EL_AMS) AS EL_AMS, --◎ MASTER/SLAVE
+                    COD(V.EL_ECP2CP) AS EL_ECP2CP, --◎ CP TO CP (GROUP CAR)
+                    COD(V.EL_DCCA) AS EL_DCCA, --COMPEN종류
+                    COD(V.EL_AUSE) AS EL_AUSE, -- 용도 (한글은 CODN)
+                    COD(V.EL_DETS) AS EL_DETS, --◎ ETS 적용)
                     NVL(COD(V.EL_ERPW), '') AS EL_ERPW,
                     NVL(COD(V.EL_CHPB0), '') AS EL_CHPB0, --BUTTON_(CP)
                     NVL(COD(V.EL_CHPB1), '') AS EL_CHPB1, --BUTTON_(CP)
@@ -124,7 +139,6 @@ public class ElvInfoUtil {
                        COD(V.CO_LAND1) AS CO_LAND1, --국가코드
                        COD(V.EL_AARRT) AS EL_AARRT, -- CAR배열 형식
                        COD(V.EL_ACD2) AS EL_ACD2, --적용코드
-                       V.EL_ADRV, --운행방식
                        V.EL_AEVAUX, --
                        V.EL_AEVFQ,
                        V.EL_AEXP,
@@ -134,10 +148,8 @@ public class ElvInfoUtil {
                        V.EL_AFQ, --층수
                        COD(V.EL_AOPEN) AS EL_AOPEN, -- 열림방식
                        COD(V.EL_ARDR) AS EL_ARDR, -- RENDERING
-                       CODN(v.EL_AUSE) AS EL_AUSE, -- 용도
                        COD(V.EL_AVOLT) AS EL_AVOLT_동력전원,
                        COD(V.EL_BABD) AS EL_BABD, -- ◎ ABD적용(ANTI-BOUNCING DEVICE)
-                       COD(V.EL_ARFQ) AS EL_ARFQ,
                        COD(V.EL_DCRG) AS RGS적용,
                        COD(V.EL_BCL) AS EL_BCL, --천장종류
                        COD(V.EL_BWCAD) AS EL_BWCAD,
@@ -179,8 +191,6 @@ public class ElvInfoUtil {
                        COD(V.EL_EHM) AS EL_EHM, --	승강로 재질
                        COD(V.EL_EHO) AS EL_EHO, --	승강로 OVERHEAD
                        COD(V.EL_EHP) AS EL_EHP, --	승강로 PIT
-                       COD(V.EL_EHTH) AS EL_EHTH, --	승강로 전장; TOTAL HEIGHT
-                       COD(V.EL_EHTRH) AS EL_EHTRH, --주행거리
                        COD(V.EL_EHV) AS EL_EHV, --승강로 세로;YY
                        COD(V.EL_ELADHH) AS EL_ELADHH, --	◎ LADDER; HH
                        COD(V.EL_ELADRD) AS EL_ELADRD, --	◎ LADDER; RD
@@ -208,7 +218,7 @@ public class ElvInfoUtil {
                        COD(V.EL_ETMINV) AS EL_ETMINV, --	INVERTER용량
                        COD(V.EL_ETMM) AS EL_ETMM, --	MOTOR용량
                        COD(V.EL_EWM1) AS EL_EWM1 --	◎ WALL ; 후면중앙
-                    , V.*
+                       , V.*
                 FROM ELV_INFO$VF V, ELV_INFO$ID A 
                   WHERE 
                       V.vf$identity = A.id$ouid and V.vf$ouid = A.id$wip 
