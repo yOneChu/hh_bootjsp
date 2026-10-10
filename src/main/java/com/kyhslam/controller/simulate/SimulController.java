@@ -46,7 +46,6 @@ public class SimulController {
     }
 
 
-
     @Description("호기의 PICK 정보 추출 (pickMap : 품번 → PICK, separateInfo : 품번-PICK → 수량)")
     @GetMapping("/getPick")
     @ResponseBody

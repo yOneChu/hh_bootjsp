@@ -1101,7 +1101,7 @@
             + '</tr>';
     }
 
-    /* ── simulateVariableData : Base64(UTF-8 JSON) → [{assoOuid, qty, cmt, color}] ── */
+    /* ── simulateVariableData : Base64(UTF-8 JSON) → [{assoOuid, qty, cmt, color, partNo, partName, glCode, spec}] ── */
     function decodeVariables(b64) {
         if (!b64) return [];
         try {
@@ -1127,13 +1127,14 @@
         const body = vars.map(function (v, i) {
             return '<tr><td class="sub tnum">' + (i + 1) + '</td>'
                 + '<td class="tnum" style="font-weight:600;">' + cell(v.partNo) + '</td>'
+                + '<td>' + cell(v.partName) + '</td>'
                 + '<td class="sub tnum">' + cell(v.glCode) + '</td>'
                 + '<td>' + cell(v.spec) + '</td>'
                 + '<td class="num" style="font-weight:700;">' + cell(fmtQty(v.qty)) + '</td>'
                 + '<td>' + cell(v.cmt) + '</td></tr>';
         }).join('');
         $row.after('<tr class="var-row" data-key="' + esc($row.attr('data-key')) + '"><td colspan="' + COLS + '">'
-            + '<table class="var-table"><thead><tr><th>#</th><th>품번</th><th>G/L CODE</th><th>SPEC</th><th class="num">수량</th><th>주석</th></tr></thead>'
+            + '<table class="var-table"><thead><tr><th>#</th><th>품번</th><th>자재명</th><th>G/L CODE</th><th>SPEC</th><th class="num">수량</th><th>주석</th></tr></thead>'
             + '<tbody>' + body + '</tbody></table></td></tr>');
         $btn.attr('aria-expanded', 'true');
     });

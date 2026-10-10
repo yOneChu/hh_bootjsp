@@ -277,6 +277,8 @@ public class BlockSubaeManager {
 						HashMap<String, String> childPartInfo = generatePartInfo(partOfPart);
 						HashMap<String, String> variable = vAction.getOtherLevelVariable(assoOuid, childPartInfo,
 								child_qty, child_cmt, child_color, isCalculated);
+						// 화면 표시용 자재명 (PID 계산 입력인 childPartInfo 에는 넣지 않는다)
+						variable.put("partName", BlockUtil.NVL(partOfPart.get("PARTNAME"), ""));
 						variableList.add(variable);
 					}
 				}
@@ -330,7 +332,7 @@ public class BlockSubaeManager {
 		long lPartOuid = Long.parseLong(partOuid.substring(partOuid.indexOf('@') + 1), 16);
 		return ctx.getDb().queryForList(
 				" SELECT A.SF$OUID, AS$END1, AS$END2, END1_HEXOUID, END2_HEXOUID, CMT, QTY, COLOR, "
-				+ " B.MD$NUMBER AS PARTNO, B.G_L_CODE, B.SPEC, B.PART_SIZE, C.MD$NUMBER AS B_NO "
+				+ " B.MD$NUMBER AS PARTNO, B.MD$DESC AS PARTNAME, B.G_L_CODE, B.SPEC, B.PART_SIZE, C.MD$NUMBER AS B_NO "
 				+ " FROM PARTOFPART$AC A "
 				+ " LEFT OUTER JOIN NORMALPART$VF B ON AS$END2 = VF$OUID "
 				+ " LEFT OUTER JOIN BLOCKNO$SF C ON C.SF$OUID = GETID(B.BLOCKNO) "

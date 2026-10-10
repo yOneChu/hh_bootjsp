@@ -236,6 +236,11 @@
         .empty-card button.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
 
         .handsontable td { font-family: var(--mono); font-size: 12.5px; }
+        /* 그리드 확대/축소 : 글자 · 줄 높이를 배율만큼 (행 높이 · 열 너비는 JS 에서) */
+        #grid .handsontable th, #grid .handsontable td { height: calc(22px * var(--grid-zoom, 1)); line-height: calc(21px * var(--grid-zoom, 1)); }
+        #grid .handsontable th { font-size: calc(12.5px * var(--grid-zoom, 1)); }
+        #grid .handsontable td, #grid .handsontableInput { font-size: calc(12.5px * var(--grid-zoom, 1)); }
+        #grid .handsontableInput { line-height: calc(21px * var(--grid-zoom, 1)); }
         .handsontable td.pg-state, .handsontable td.pg-output { font-family: var(--sans); }
         .handsontable td.pg-true { background: var(--true-bg); }
         .handsontable td.pg-false { background: var(--false-bg); }
@@ -282,10 +287,27 @@
         #stepInfo { min-width: 150px; text-align: center; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
         #stepInfo b { color: var(--cur); font-size: 13px; }
 
+        /* 결과 테이블 확대/축소 */
+        .zoom { display: flex; align-items: center; }
+        .zoom button { border-radius: 0; margin-left: -1px; min-width: 32px; padding: 4px 9px; }
+        .zoom button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
+        .zoom button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+        .zoom button:disabled { cursor: not-allowed; }
+        #zoomLevel, #gridZoomLevel { min-width: 56px; font-variant-numeric: tabular-nums; }
+
         .tabs { flex: none; display: flex; align-items: flex-end; gap: 2px; padding: 6px 12px 0; border-bottom: 1px solid var(--border); background: var(--surface-2); overflow-x: auto; }
         .tabs button.tab { border-radius: 6px 6px 0 0; border-bottom: none; min-height: 30px; padding: 4px 12px; background: #e9eef4; color: var(--text-2); }
         .tabs button.tab[aria-selected="true"] { background: var(--surface); font-weight: 700; color: var(--primary); position: relative; top: 1px; box-shadow: inset 0 2px 0 var(--primary); }
         .tabs button.tab b { color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+        /* 만든 사람 (탭 줄 오른쪽 끝) */
+        .credit {
+            margin-left: auto; align-self: center; margin-bottom: 5px; flex: none;
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 3px 12px; border: 1px solid #bfdbfe; border-radius: 999px;
+            background: #eff6ff; color: var(--primary-dark);
+            font-size: 12px; font-weight: 700; white-space: nowrap; user-select: none;
+        }
+        .credit .ico { color: var(--primary); }
 
         .panel-tools { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 14px; border-bottom: 1px solid #eef1f4; font-size: 12px; }
         .panel-tools[hidden] { display: none; }
@@ -300,6 +322,8 @@
         .panel-body { flex: 1; overflow: auto; position: relative; }
         .panel-body .pad { padding: 10px 14px; }
         .panel-body .empty { color: var(--muted); padding: 28px; text-align: center; }
+        /* 결과 테이블만 확대/축소 (zoom 은 레이아웃까지 함께 바뀌어 스크롤 · 고정 헤더가 그대로 동작) */
+        #panelBody table { zoom: var(--table-zoom, 1); }
 
         /* 라인별 결과 표 */
         table.dbg { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
@@ -393,6 +417,7 @@
         <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 010 10h-3"/></symbol>
         <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1"/></symbol>
         <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
         <symbol id="i-first" viewBox="0 0 24 24"><path d="M6 5v14M18 5l-9 7 9 7z"/></symbol>
         <symbol id="i-prev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
         <symbol id="i-next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
@@ -484,6 +509,11 @@
             <svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg>TSV 복사</button>
     </div>
     <div class="toolbar-right">
+        <div class="zoom" role="group" aria-label="편집 표 확대/축소 (표 위에서 Ctrl+휠)">
+            <button type="button" id="btnGridZoomOut" aria-label="편집 표 축소" title="편집 표 축소"><svg class="ico" aria-hidden="true"><use href="#i-minus"/></svg></button>
+            <button type="button" id="gridZoomLevel" title="100%로 되돌리기">100%</button>
+            <button type="button" id="btnGridZoomIn" aria-label="편집 표 확대" title="편집 표 확대"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
+        </div>
         <button type="button" class="danger" id="btnRevert" title="모든 수정과 임시 저장본을 버리고 DB 원본으로 되돌립니다" disabled>
             <svg class="ico" aria-hidden="true"><use href="#i-undo"/></svg>DB 원본으로 되돌리기</button>
         <details class="pop">
@@ -513,6 +543,8 @@
                     <li><span class="row-k">오른쪽 클릭</span>라인 추가 · 복제 · 삭제</li>
                     <li><span class="row-k">행 번호 끌기</span>라인 순서 바꾸기</li>
                     <li><span class="row-k">결과 표 더블클릭</span>라인 상세 보기</li>
+                    <li><span class="row-k"><kbd>Ctrl</kbd>+휠 (편집 표 위)</span>편집 표 확대 / 축소</li>
+                    <li><span class="row-k"><kbd>Ctrl</kbd>+휠 · <kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></span>결과 표 확대 / 축소</li>
                 </ul>
             </div>
         </details>
@@ -555,6 +587,11 @@
             <button type="button" class="icon" id="btnNext" aria-label="다음 단계" title="다음 단계 (F10)"><svg class="ico" aria-hidden="true"><use href="#i-next"/></svg></button>
             <button type="button" class="icon" id="btnLast" aria-label="마지막 단계" title="마지막 단계"><svg class="ico" aria-hidden="true"><use href="#i-last"/></svg></button>
         </div>
+        <div class="zoom" role="group" aria-label="결과 표 확대/축소 (Ctrl+휠, 결과 영역에서 + / - / 0)">
+            <button type="button" id="btnZoomOut" aria-label="축소" title="축소"><svg class="ico" aria-hidden="true"><use href="#i-minus"/></svg></button>
+            <button type="button" id="zoomLevel" title="100%로 되돌리기">100%</button>
+            <button type="button" id="btnZoomIn" aria-label="확대" title="확대"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
+        </div>
     </div>
     <div class="tabs" id="tabs" role="tablist" aria-label="디버그 보기">
         <button type="button" class="tab active" role="tab" aria-selected="true" data-tab="debug">라인별 결과</button>
@@ -564,6 +601,7 @@
         <button type="button" class="tab" role="tab" aria-selected="false" data-tab="elvEnt">최종 영업사양 <b id="tbElvEnt"></b></button>
         <button type="button" class="tab" role="tab" aria-selected="false" data-tab="sub">하위 PID <b id="tbSub"></b></button>
         <button type="button" class="tab" role="tab" aria-selected="false" data-tab="diff">변경 내역 <b id="tbDiff"></b></button>
+        <span class="credit" title="Copyright © 2026 수배로직설계팀 · 김영환 M. All rights reserved."><svg class="ico sm" aria-hidden="true"><use href="#i-check"/></svg>© 2026 수배로직설계팀 · 김영환 M</span>
     </div>
     <div class="panel-tools" id="debugTools">
         <div class="seg" id="filterSeg" role="group" aria-label="라인 필터">
@@ -718,6 +756,7 @@
 
     // ---------- Handsontable ----------
     let hot = null;
+    let gridZoom = 1;     // 편집 그리드 배율 (하단 결과 표와 따로)
 
     function buildColumns() {
         const cols = [
@@ -736,9 +775,16 @@
         }
         cols.push({ data: 'gotoAddr', width: 60 }, { data: 'remarks', width: 160 }, { data: '_output', readOnly: true, width: 260 });
         headers.push('GOTO', 'REMARKS', 'OUTPUT (실행 결과)');
-        cols.forEach((c) => { c.renderer = cellRenderer; });
+        cols.forEach((c) => { c.renderer = cellRenderer; c.width = Math.round(c.width * gridZoom); });
         return { cols, headers };
     }
+
+    // 그리드 확대/축소 : Handsontable 은 셀 위치를 JS 로 계산하므로 CSS zoom 대신 크기 자체를 배율만큼 바꾼다
+    const gridSizeSettings = () => ({
+        rowHeights: Math.round(23 * gridZoom),
+        columnHeaderHeight: Math.round(25 * gridZoom),
+        rowHeaderWidth: Math.round(50 * gridZoom),
+    });
 
     const PG_CLASSES = ['pg-true', 'pg-false', 'pg-unread', 'pg-stale', 'pg-cmp-T', 'pg-cmp-F', 'pg-state', 'pg-addr', 'pg-goto',
         'pg-output', 'pg-key', 'pg-ro', 'pg-new', 'pg-changed', 'pg-cur'];
@@ -820,6 +866,7 @@
             columns: cols,
             colHeaders: headers,
             rowHeaders: true,
+            ...gridSizeSettings(),
             licenseKey: 'non-commercial-and-evaluation',
             width: '100%',
             height: '100%',
@@ -1755,6 +1802,82 @@
         storeSet('watch', e.target.value);
         renderPanel();
     });
+
+    // ---------- 결과 테이블 확대/축소 — 배율은 브라우저에 기억 ----------
+    const ZOOM = { min: 0.5, max: 2, step: 0.1, key: 'tableZoom' };
+    let tableZoom = 1;
+
+    function setZoom(z, save = true) {
+        tableZoom = Math.round(Math.min(ZOOM.max, Math.max(ZOOM.min, z)) * 10) / 10;
+        document.documentElement.style.setProperty('--table-zoom', tableZoom);
+        $('zoomLevel').textContent = `${Math.round(tableZoom * 100)}%`;
+        $('btnZoomOut').disabled = tableZoom <= ZOOM.min;
+        $('btnZoomIn').disabled = tableZoom >= ZOOM.max;
+        // 배율이 바뀌어도 현재 단계 라인은 화면 안에 두기
+        markCurrentDebugRow(true);
+        if (save) storeSet(ZOOM.key, String(tableZoom));
+    }
+
+    $('btnZoomOut').addEventListener('click', () => setZoom(tableZoom - ZOOM.step));
+    $('btnZoomIn').addEventListener('click', () => setZoom(tableZoom + ZOOM.step));
+    $('zoomLevel').addEventListener('click', () => setZoom(1));
+    // Ctrl + 휠: 결과 영역 위에서는 브라우저 전체 확대 대신 테이블만 확대/축소
+    $('panelBody').addEventListener('wheel', (e) => {
+        if (!e.ctrlKey) return;
+        e.preventDefault();
+        setZoom(tableZoom + (e.deltaY < 0 ? ZOOM.step : -ZOOM.step));
+    }, { passive: false });
+    // 결과 영역에 포커스가 있을 때 + / - / 0 (검색 · 입력칸에서는 그대로 입력)
+    $('panelBody').addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey || e.altKey || e.target.closest('input, textarea, select')) return;
+        switch (e.key) {
+            case '+': case '=': setZoom(tableZoom + ZOOM.step); break;
+            case '-': setZoom(tableZoom - ZOOM.step); break;
+            case '0': setZoom(1); break;
+            default: return;
+        }
+        e.preventDefault();
+    });
+
+    setZoom(Number(storeGet(ZOOM.key)) || 1, false);
+
+    // ---------- 편집 그리드 확대/축소 — 결과 표와 따로, 배율은 브라우저에 기억 ----------
+    const GRID_ZOOM_KEY = 'gridZoom';
+
+    function setGridZoom(z, save = true) {
+        const prev = gridZoom;
+        gridZoom = Math.round(Math.min(ZOOM.max, Math.max(ZOOM.min, z)) * 10) / 10;
+        document.documentElement.style.setProperty('--grid-zoom', gridZoom);
+        $('gridZoomLevel').textContent = `${Math.round(gridZoom * 100)}%`;
+        $('btnGridZoomOut').disabled = gridZoom <= ZOOM.min;
+        $('btnGridZoomIn').disabled = gridZoom >= ZOOM.max;
+        if (hot && gridZoom !== prev) {
+            hot.updateSettings({ columns: buildColumns().cols, ...gridSizeSettings() });
+            // 마우스로 너비를 바꾼 열도 같은 비율로
+            try {
+                const resize = hot.getPlugin('manualColumnResize');
+                for (let c = 0; c < hot.countCols(); c++) {
+                    const w = resize.columnWidthsMap.getValueAtIndex(hot.toPhysicalColumn(c));
+                    if (w) resize.setManualSize(c, Math.round(w * gridZoom / prev));
+                }
+                hot.render();
+            } catch (e) { /* 무시 */ }
+        }
+        if (save) storeSet(GRID_ZOOM_KEY, String(gridZoom));
+    }
+
+    $('btnGridZoomOut').addEventListener('click', () => setGridZoom(gridZoom - ZOOM.step));
+    $('btnGridZoomIn').addEventListener('click', () => setGridZoom(gridZoom + ZOOM.step));
+    $('gridZoomLevel').addEventListener('click', () => setGridZoom(1));
+    // Ctrl + 휠: 편집 표 위에서는 브라우저 전체 확대 대신 편집 표만 (Handsontable 스크롤보다 먼저 받도록 capture)
+    document.querySelector('.editor-wrap').addEventListener('wheel', (e) => {
+        if (!e.ctrlKey) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setGridZoom(gridZoom + (e.deltaY < 0 ? ZOOM.step : -ZOOM.step));
+    }, { passive: false, capture: true });
+
+    setGridZoom(Number(storeGet(GRID_ZOOM_KEY)) || 1, false);
 
     let pidTimer;
     $('pid').addEventListener('input', () => {

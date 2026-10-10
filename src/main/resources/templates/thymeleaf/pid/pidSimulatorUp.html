@@ -128,6 +128,14 @@
         #sourceInfo { color: var(--head-text); font-size: 12px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
         #sourceInfo b { font-family: var(--mono); }
         #sourceInfo .warn { color: #fca5a5; font-weight: 700; }
+        /* 만든 사람 (하위 PID 줄 오른쪽 끝) */
+        .credit {
+            margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 6px;
+            padding: 3px 12px; border: 1px solid #3b82f6; border-radius: 999px;
+            background: #1e3a8a; color: #eff6ff;
+            font-size: 12px; font-weight: 700; white-space: nowrap; user-select: none;
+        }
+        .credit .ico { color: #93c5fd; }
 
         /* 추가 조건 (접기/펼치기) */
         .adv {
@@ -597,6 +605,7 @@
         <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
         <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
         <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 19V5M8 7h7"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-11"/></symbol>
         <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
         <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></symbol>
         <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
@@ -676,6 +685,7 @@
                 <svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg>
                 <svg class="ico sm" aria-hidden="true"><use href="#i-layers"/></svg>하위 PID 버전</button>
             <span id="subHint" aria-live="polite"></span>
+            <span class="credit" title="Copyright © 2026 수배로직설계팀 · 김영환 M. All rights reserved."><svg class="ico sm" aria-hidden="true"><use href="#i-check"/></svg>© 2026 수배로직설계팀 · 김영환 M</span>
         </div>
         <div class="sub-body" id="subBody">
             <div class="sub-list" id="subList"></div>
