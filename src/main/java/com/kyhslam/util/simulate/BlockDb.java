@@ -31,6 +31,11 @@ public class BlockDb implements AutoCloseable {
 		return new BlockDb(con);
 	}
 
+	/** 블록 시뮬 전용 커넥션 풀(BlockDbPool)에서 받는다. close() 하면 풀로 반납된다. */
+	public static BlockDb openPooled() throws SQLException {
+		return new BlockDb(BlockDbPool.getConnection());
+	}
+
 	public List<Map<String, String>> queryForList(String sql, Object... params) throws SQLException {
 		List<Map<String, String>> result = new ArrayList<Map<String, String>>();
 		try (PreparedStatement ps = prepare(sql, params)) {

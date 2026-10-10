@@ -353,16 +353,24 @@
         .delta.up   { color: var(--c-add); }
         .delta.down { color: var(--c-delete); }
 
-        /* 주석 단어 단위 비교 */
-        .tok-del { background: rgba(196,43,37,.18); color: var(--c-delete); border-radius: 3px; padding: 0 2px; }
-        .tok-ins { background: rgba(23,128,74,.18);  color: var(--c-add);    border-radius: 3px; padding: 0 2px; }
-        .dark .tok-del { background: rgba(255,107,97,.22); }
-        .dark .tok-ins { background: rgba(61,208,127,.20); }
-        #simTable td.before.chg.cmt-diff { background: transparent; }
+        /* 주석 단어 단위 비교 : 글자는 본문색 그대로, 바뀐 단어만 옅은 배경 + 밑줄로 표시 */
+        .tok-del, .tok-ins {
+            color: var(--ink); font-weight: 600;
+            border-radius: 2px; padding: 0 1px;
+            text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px;
+        }
+        .tok-del { background: rgba(196,43,37,.10); text-decoration-color: var(--c-delete); }
+        .tok-ins { background: rgba(23,128,74,.10);  text-decoration-color: var(--c-add); }
+        .dark .tok-del { background: rgba(255,107,97,.16); }
+        .dark .tok-ins { background: rgba(61,208,127,.14); }
+
+        /* 주석 칸 : 칸 전체를 칠하지 않고 왼쪽 막대로만 변경 표시 (긴 글 가독성) */
+        #simTable tr.item-row td.cmt.chg {
+            background: transparent; color: var(--ink); font-weight: 400; line-height: 1.6;
+            box-shadow: inset 3px 0 0 var(--sc);
+        }
+        #simTable tr.item-row td.before.cmt.chg { color: var(--ink-2); box-shadow: inset 3px 0 0 var(--c-delete); }
         #simTable td.before.chg.cmt-diff .v { text-decoration: none; }
-        /* 단어 비교 칸은 바뀐 단어만 굵게 */
-        #simTable td.cmt-diff { font-weight: 400; }
-        .tok-del, .tok-ins { font-weight: 700; }
 
         .what { display: block; font-size: 10.5px; font-weight: 500; color: var(--ink-3); margin-top: 2px; padding-left: 22px; }
 

@@ -114,7 +114,7 @@ public class BlockSimulateService {
 
             long t = System.currentTimeMillis();
             List<BlockInfo> blockinfoList;
-            try (BlockDb db = BlockDb.open()) {
+            try (BlockDb db = BlockDb.openPooled()) {
                 blockinfoList = findBLocksByOPT(db, blockOPTList);
             }
             log.info("[simulateBlock] 품목 {} 블럭 조회 : {}ms, 블럭 {}개", blockOPTList, System.currentTimeMillis() - t, blockinfoList.size());
@@ -184,7 +184,7 @@ public class BlockSimulateService {
      */
     public Map<String, Object> getPidVersions(String blockNo) throws Exception {
         Map<String, Object> result = new HashMap<String, Object>();
-        try (BlockDb db = BlockDb.open()) {
+        try (BlockDb db = BlockDb.openPooled()) {
             result.put("block", findPidVersions(db, Collections.singletonList(blockNo)));
             result.put("elp", findPidVersions(db, elpPids(Collections.singletonList(blockNo))));
         }
@@ -238,7 +238,7 @@ public class BlockSimulateService {
         ForkJoinPool forkJoinPool = new ForkJoinPool(BlockConsts.SIMULATE_THREAD_COUNT);
         try {
             forkJoinPool.submit(() -> distinctProductNoList.parallelStream().map(productNo -> {
-                try (BlockDb db = BlockDb.open()) {
+                try (BlockDb db = BlockDb.openPooled()) {
                     return simulateBlock(new BlockContext(db, pidRepository, blockPidRepository, elpPidRepository, elpPidVersion, saveErrorLog), productNo, distinctBlockList);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -263,7 +263,7 @@ public class BlockSimulateService {
      */
     private synchronized BlockPidRepository getPidRepository() {
         String stamp;
-        try (BlockDb db = BlockDb.open()) {
+        try (BlockDb db = BlockDb.openPooled()) {
             Map<String, String> row = db.queryForFirst(
                     " SELECT COUNT(1) CNT, SUM(ORA_HASH(PID || '#' || LAST_HOUID)) HSUM FROM VARIANT_ID ");
             stamp = row == null ? null : row.get("CNT") + "#" + row.get("HSUM");
