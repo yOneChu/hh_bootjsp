@@ -33,6 +33,9 @@ public class BlockSimulateService {
     /** PID 캐시 최대 유지시간 (변경 감지를 못 하는 같은 버전 직접 수정 대비) */
     private static final long PID_CACHE_TTL_MS = 10 * 60 * 1000L;
 
+    /** PID 호출 통계 로그에 표시할 PID 수 (자체시간 상위) */
+    private static final int PID_STATS_TOP_N = 20;
+
     /** 요청 간 공유하는 PID 캐시. VARIANT_ID 가 바뀌었거나 TTL 이 지나면 새로 만든다. */
     private BlockPidRepository pidRepository;
     private String pidStamp;
@@ -302,6 +305,7 @@ public class BlockSimulateService {
         BlockSubaeManager subaeManager = new BlockSubaeManager(ctx, consOuid);
         Map<String, String[]> topLevelBomMap4Simulate = subaeManager.bomSimulate(blockList);
         t = lap(productNo, "bomSimulate 합계", t);
+        log.info("[simulateBlock] {} - {}", productNo, ctx.getPidCallStats().summary(PID_STATS_TOP_N));
 
         // filter topLevelBomMap4Simulate's value[1] is not 0
         topLevelBomMap4Simulate = topLevelBomMap4Simulate.entrySet().stream()

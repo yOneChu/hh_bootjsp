@@ -42,12 +42,23 @@ public class BlockVariant
 
 	private PidVariantMap calcVariantPID(PidInfo pid, Map partInfo, PidVariantMap resultMap, int depth) throws Exception
 	{
+		if(pid == null)
+			throw new PidNotFoundException("PID IS NULL");
+
+		PidCallStats stats = ctx.getPidCallStats();
+		long start = stats.begin();
+		try {
+			return doCalcVariantPID(pid, partInfo, resultMap, depth);
+		} finally {
+			stats.end(pid.getPid(), pid.getMethod(), depth, start);
+		}
+	}
+
+	private PidVariantMap doCalcVariantPID(PidInfo pid, Map partInfo, PidVariantMap resultMap, int depth) throws Exception
+	{
 		Map<String, String> elvData = null;
 
 		HashMap localElvEnt = (HashMap) elvEnt.clone();
-
-		if(pid == null)
-			throw new PidNotFoundException("PID IS NULL");
 
 		// "최초실행(depth=1)이면  resultMap은 null이므로 초기화해준다.
 		if(resultMap == null)

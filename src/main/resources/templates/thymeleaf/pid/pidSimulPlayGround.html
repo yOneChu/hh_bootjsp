@@ -1,9 +1,35 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>PID 플레이그라운드</title>
+
+    <script>
+        // 페이지 렌더 전 사이드바 상태 적용 (깜빡임 방지)
+        if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+    </script>
+
+    <!-- 사이드바(fragments/newSideBar.html) 마크업용 Tailwind : 이 화면 스타일과 섞이지 않도록 #sidebar 안에만 적용 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+    <script>
+        tailwind.config = {
+            corePlugins: { preflight: false },
+            important: '#sidebar',
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: { blue: '#0071E3', blueD: '#0A84FF', ink: '#1D1D1F', gray1: '#8E8E93' }
+                    },
+                    boxShadow: {
+                        btn: '0 2px 10px rgba(0,113,227,.35)',
+                    }
+                }
+            }
+        }
+    </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@14.3.0/dist/handsontable.full.min.css">
     <script src="https://cdn.jsdelivr.net/npm/handsontable@14.3.0/dist/handsontable.full.min.js"></script>
     <style>
@@ -92,6 +118,12 @@
             border: 1px solid #cbd2da; border-bottom-width: 2px; border-radius: 4px;
             background: #f8fafc; color: var(--text-2); font-family: var(--mono); font-size: 11px; line-height: 16px;
         }
+
+        /* ===== 사이드바 (fragments/newSideBar.html) : 본문은 #appContent 가 body 대신 세로 배치 ===== */
+        #appContent { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+        #sidebar { font-family: 'Pretendard Variable', var(--sans); color: #1D1D1F; }
+        header #sbToggle { width: 30px; min-height: 30px; padding: 0; margin-left: -6px; background: transparent; border-color: transparent; }
+        header #sbToggle:hover { background: #334155; }
 
         /* ===== 헤더 : ① 불러오기 → ② 실행 대상 → 실행 ===== */
         header { flex: none; background: var(--head-bg); color: var(--head-text); padding: 8px 16px; }
@@ -404,6 +436,11 @@
 </head>
 <body>
 
+<!-- ═══════════ Left Sidebar (fragments/newSideBar.html) ═══════════ -->
+<div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+
+<div id="appContent">
+
 <!-- 아이콘 (SVG, 장식용은 aria-hidden) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
@@ -433,6 +470,9 @@
     <form id="searchForm" autocomplete="off">
         <div class="head-row">
             <div class="brand">
+                <button type="button" id="sbToggle" title="사이드바 열기/닫기" aria-label="사이드바 열기/닫기">
+                    <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                </button>
                 <h1>PID 플레이그라운드</h1>
                 <span class="nosave" title="수정한 로직은 DB 에 저장되지 않습니다. 이 화면에서 실행할 때만 사용됩니다">
                     <svg class="ico sm" aria-hidden="true"><use href="#i-lock"/></svg>DB 미저장</span>
@@ -612,6 +652,8 @@
     <div class="panel-body" id="panelBody" role="tabpanel" tabindex="0"><div class="empty">실행하면 라인별 결과가 여기에 표시됩니다.</div></div>
 </section>
 
+</div><!-- /#appContent -->
+
 <script>
     const API = {
         versions: '/simulplay/pidVersions?pid=',
@@ -743,6 +785,11 @@
 
     // ---------- Handsontable ----------
     let hot = null;
+
+    // 사이드바를 열고 닫으면 편집 영역 너비가 바뀌므로 그리드 크기를 다시 잡는다
+    document.getElementById('appContent').addEventListener('transitionend', (e) => {
+        if (e.target === e.currentTarget && e.propertyName === 'padding-left' && hot) hot.refreshDimensions();
+    });
     let gridZoom = 1;     // 편집 그리드 배율 (하단 결과 표와 따로)
     let fitWidths = {};   // 불러온 내용에 맞춘 열 너비 (배율 1 기준)
 
@@ -1896,6 +1943,10 @@
             $('pid').focus();
         }
     })();
+
+    /* ── 사이드바 현재 메뉴 활성화 ── */
+    document.querySelectorAll('#sidebar .sb-link').forEach(function (a) { a.classList.remove('active'); });
+    document.querySelector('#sidebar a[href="/simulplay/pidSimulPlayGround"]')?.classList.add('active');
 </script>
 </body>
 </html>

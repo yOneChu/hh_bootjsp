@@ -26,6 +26,8 @@ public class BlockContext {
 	private final Map<String, Map<String, String>> codeNameCache = new HashMap<String, Map<String, String>>();
 	/** Java 메서드 PID 의 DB 조회 결과 (층마다 같은 값을 다시 조회하지 않도록 호기 1건 계산 동안 재사용) */
 	private final Map<String, Object> javaMethodCache = new HashMap<String, Object>();
+	/** PID 호출 통계 (호기 1건) */
+	private final PidCallStats pidCallStats = new PidCallStats();
 
 	public interface Loader<T> {
 		T load() throws Exception;
@@ -65,6 +67,7 @@ public class BlockContext {
 	}
 	public BlockSpecLoader getSpecLoader() { return specLoader; }
 	public boolean isSaveErrorLog() { return saveErrorLog; }
+	public PidCallStats getPidCallStats() { return pidCallStats; }
 
 	/** dos.get(ouid) 의 "name@필드" 값 */
 	public Map<String, String> getCodeNames(String ouid) throws Exception {
