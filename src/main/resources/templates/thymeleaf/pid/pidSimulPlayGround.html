@@ -198,7 +198,7 @@
         .pop-body i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,.12); flex: none; }
         .pop-body .row-k { min-width: 120px; display: inline-flex; gap: 3px; }
 
-        /* ===== 알림 : 오류는 띠(닫기 가능), 성공 안내는 토스트 ===== */
+        /* ===== 알림 : 오류 · 경고는 띠 (닫기 가능) ===== */
         .warn-bar {
             flex: none; display: flex; align-items: flex-start; gap: 10px;
             padding: 6px 16px; background: #fff7ed; border-bottom: 1px solid #fed7aa; color: #9a3412; font-size: 12.5px;
@@ -207,15 +207,6 @@
         .warn-bar.error { background: #fef2f2; border-color: #fecaca; color: var(--danger); }
         .warn-bar #warnText { flex: 1; white-space: pre-line; max-height: 84px; overflow: auto; }
         .warn-bar button { min-height: 24px; padding: 2px 6px; background: transparent; border-color: transparent; color: inherit; }
-        .toast {
-            position: fixed; right: 18px; bottom: 18px; z-index: 100;
-            display: flex; align-items: center; gap: 8px;
-            max-width: min(440px, calc(100vw - 36px)); padding: 10px 14px;
-            background: #0f172a; color: #f8fafc; border-radius: 8px; box-shadow: 0 10px 30px rgba(15, 23, 42, .3);
-            font-size: 12.5px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s, transform .2s;
-        }
-        .toast.show { opacity: 1; transform: none; }
-        .toast .ico { color: #86efac; }
 
         /* ===== 편집 그리드 ===== */
         .editor-wrap { flex: 1; min-height: 140px; position: relative; background: var(--surface); }
@@ -280,6 +271,11 @@
         .progress::before { content: ''; position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; background: var(--primary); animation: indet 1.1s ease-in-out infinite; }
         @keyframes indet { to { left: 100%; } }
 
+        /* 디버그 패널 접기 : 머리줄(실행 요약 · 단계 이동)만 남기고 편집 표를 넓게 */
+        .panel.collapsed { height: auto; min-height: 0; }
+        .panel.collapsed > .tabs, .panel.collapsed > .panel-tools, .panel.collapsed > .panel-body { display: none; }
+        .panel.collapsed > .panel-head { border-bottom: 0; }
+        #btnPanelToggle { min-width: 84px; }
         .panel-head { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
         .run-summary { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; }
         .run-summary .meta { color: var(--muted); }
@@ -413,9 +409,7 @@
     <defs>
         <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
         <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
-        <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></symbol>
         <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 010 10h-3"/></symbol>
-        <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1"/></symbol>
         <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
         <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
         <symbol id="i-first" viewBox="0 0 24 24"><path d="M6 5v14M18 5l-9 7 9 7z"/></symbol>
@@ -425,6 +419,8 @@
         <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol>
         <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
         <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-11"/></symbol>
+        <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+        <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
         <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></symbol>
         <symbol id="i-key" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
         <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></symbol>
@@ -489,7 +485,7 @@
                 <label for="beforePid">전처리 PID</label>
                 <input id="beforePid" name="beforePid" placeholder="EL_P001, EL_P002" spellcheck="false" aria-describedby="advHint">
             </div>
-            <span class="hint" id="advHint">CALL 하위 PID 와 전처리 PID 는 DB 최신 버전으로 실행됩니다. 수정본은 불러온 PID 에만 적용됩니다.</span>
+            <span class="hint" id="advHint">CALL 하위 PID 와 전처리 PID 는 최신 버전으로 실행됩니다. 수정본은 불러온 PID 에만 적용됩니다.</span>
         </div>
     </form>
 </header>
@@ -499,14 +495,10 @@
     <div class="grp" id="editStatus" aria-live="polite"><span class="pill clean">불러온 PID 없음</span></div>
     <span class="sep" aria-hidden="true"></span>
     <div class="grp">
-        <button type="button" id="btnSaveDraft" title="지금 수정본을 이 브라우저에 임시 저장합니다 (Ctrl+S). DB 에는 저장되지 않습니다" disabled>
-            <svg class="ico" aria-hidden="true"><use href="#i-save"/></svg>임시 저장</button>
         <button type="button" id="btnAddSpec" title="SPEC/CON 열 추가 (최대 30)" disabled>
             <svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>SPEC 열</button>
         <button type="button" id="btnAddKey" title="KEY/VAL 열 추가 (최대 20)" disabled>
             <svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>KEY 열</button>
-        <button type="button" id="btnCopyTsv" title="편집 내용을 탭 구분 텍스트로 복사 (엑셀 붙여넣기용)" disabled>
-            <svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg>TSV 복사</button>
     </div>
     <div class="toolbar-right">
         <div class="zoom" role="group" aria-label="편집 표 확대/축소 (표 위에서 Ctrl+휠)">
@@ -514,7 +506,7 @@
             <button type="button" id="gridZoomLevel" title="100%로 되돌리기">100%</button>
             <button type="button" id="btnGridZoomIn" aria-label="편집 표 확대" title="편집 표 확대"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
         </div>
-        <button type="button" class="danger" id="btnRevert" title="모든 수정과 임시 저장본을 버리고 DB 원본으로 되돌립니다" disabled>
+        <button type="button" class="danger" id="btnRevert" title="모든 수정을 버리고 DB 원본으로 되돌립니다" disabled>
             <svg class="ico" aria-hidden="true"><use href="#i-undo"/></svg>DB 원본으로 되돌리기</button>
         <details class="pop">
             <summary><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>범례</summary>
@@ -536,7 +528,6 @@
             <div class="pop-body">
                 <ul>
                     <li><span class="row-k"><kbd>Ctrl</kbd>+<kbd>Enter</kbd></span>실행</li>
-                    <li><span class="row-k"><kbd>Ctrl</kbd>+<kbd>S</kbd></span>임시 저장 (브라우저)</li>
                     <li><span class="row-k"><kbd>F10</kbd></span>다음 단계</li>
                     <li><span class="row-k"><kbd>Shift</kbd>+<kbd>F10</kbd></span>이전 단계</li>
                     <li><span class="row-k"><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span>되돌리기 / 다시 실행</li>
@@ -576,7 +567,7 @@
 
 <!-- ===== 하단 디버그 패널 ===== -->
 <div class="hresizer" id="hresizer" role="separator" aria-orientation="horizontal" aria-label="디버그 패널 높이 조절" title="끌어서 높이 조절 · 더블클릭하면 크게/작게"></div>
-<section class="panel" aria-label="디버그">
+<section class="panel" id="debugPanel" aria-label="디버그">
     <div class="progress" id="runProgress" hidden aria-hidden="true"></div>
     <div class="panel-head">
         <div class="run-summary" id="runStatus" role="status" aria-live="polite"></div>
@@ -592,6 +583,8 @@
             <button type="button" id="zoomLevel" title="100%로 되돌리기">100%</button>
             <button type="button" id="btnZoomIn" aria-label="확대" title="확대"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
         </div>
+        <button type="button" id="btnPanelToggle" aria-expanded="true" aria-controls="debugPanel" title="결과 영역 접기 (편집 표를 넓게)">
+            <svg class="ico" aria-hidden="true"><use href="#i-down"/></svg><span>접기</span></button>
     </div>
     <div class="tabs" id="tabs" role="tablist" aria-label="디버그 보기">
         <button type="button" class="tab active" role="tab" aria-selected="true" data-tab="debug">라인별 결과</button>
@@ -618,8 +611,6 @@
     </div>
     <div class="panel-body" id="panelBody" role="tabpanel" tabindex="0"><div class="empty">실행하면 라인별 결과가 여기에 표시됩니다.</div></div>
 </section>
-
-<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg><span id="toastText"></span></div>
 
 <script>
     const API = {
@@ -649,7 +640,6 @@
     const shownVal = (v) => (v === null || v === undefined ? '(없음)' : (String(v) === '' ? '(빈 값)' : String(v)));
     const storeGet = (k) => { try { return localStorage.getItem(STORE_PREFIX + k); } catch (e) { return null; } };
     const storeSet = (k, v) => { try { localStorage.setItem(STORE_PREFIX + k, v); } catch (e) { /* 무시 */ } };
-    const storeDel = (k) => { try { localStorage.removeItem(STORE_PREFIX + k); } catch (e) { /* 무시 */ } };
 
     // ---------- 상태 ----------
     const state = {
@@ -668,9 +658,6 @@
         running: false,
         rerun: false,         // 실행 중에 또 수정됨 → 끝나면 다시 실행
         selectedRid: null,    // 선택한 그리드 행 ID
-        dbSig: '',            // DB 원본 라인 서명
-        savedSig: null,       // 브라우저에 임시 저장한 라인 서명 (없으면 null)
-        draftSavedAt: null,   // 임시 저장 시각 (없으면 null)
         tab: 'debug',
         filter: 'all',
         keyword: '',
@@ -757,6 +744,34 @@
     // ---------- Handsontable ----------
     let hot = null;
     let gridZoom = 1;     // 편집 그리드 배율 (하단 결과 표와 따로)
+    let fitWidths = {};   // 불러온 내용에 맞춘 열 너비 (배율 1 기준)
+
+    // 열 너비를 내용(머리글 · 값)에 맞춘다 : 너무 좁거나 넓지 않게 최소/최대 안에서
+    const FIT = { spec: [64, 220], con: [64, 220], key: [64, 220], val: [64, 260], addr: [56, 120], gotoAddr: [52, 120], remarks: [80, 320] };
+    let measureCtx = null;
+    function textWidth(text, bold) {
+        if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
+        measureCtx.font = `${bold ? 'bold ' : ''}12.5px ${getComputedStyle(document.documentElement).getPropertyValue('--mono')}`;
+        return measureCtx.measureText(text).width;
+    }
+    function computeFitWidths(data) {
+        const props = ['addr', 'gotoAddr', 'remarks'];
+        for (let i = 1; i <= state.specCols; i++) props.push(specProp(i), conProp(i));
+        for (let i = 1; i <= state.resCols; i++) props.push(keyProp(i), valProp(i));
+        const header = (p) => ({ addr: 'ADDR', gotoAddr: 'GOTO', remarks: 'REMARKS' }[p]
+            || p.replace(/^s/, 'SPEC').replace(/^c/, 'CON').replace(/^k/, 'KEY').replace(/^v/, 'VAL'));
+        fitWidths = {};
+        props.forEach((p) => {
+            const kind = /^s\d/.test(p) ? 'spec' : /^c\d/.test(p) ? 'con' : /^k\d/.test(p) ? 'key' : /^v\d/.test(p) ? 'val' : p;
+            const bold = kind === 'key' || p === 'addr' || p === 'gotoAddr';
+            let w = textWidth(header(p), true);
+            data.forEach((o) => { const v = norm(o[p]); if (v !== '') w = Math.max(w, textWidth(v, bold)); });
+            // 좌우 여백 + SPEC/CON 칸의 ✓ / ✗ 표시 자리
+            w += 14 + (kind === 'spec' || kind === 'con' ? 16 : 0);
+            const [min, max] = FIT[kind];
+            fitWidths[p] = Math.round(Math.min(max, Math.max(min, w)));
+        });
+    }
 
     function buildColumns() {
         const cols = [
@@ -775,7 +790,7 @@
         }
         cols.push({ data: 'gotoAddr', width: 60 }, { data: 'remarks', width: 160 }, { data: '_output', readOnly: true, width: 260 });
         headers.push('GOTO', 'REMARKS', 'OUTPUT (실행 결과)');
-        cols.forEach((c) => { c.renderer = cellRenderer; c.width = Math.round(c.width * gridZoom); });
+        cols.forEach((c) => { c.renderer = cellRenderer; c.width = Math.round((fitWidths[c.data] || c.width) * gridZoom); });
         return { cols, headers };
     }
 
@@ -855,8 +870,14 @@
     let selectingFromCode = false;
 
     function initGrid(data) {
+        computeFitWidths(data);
         const { cols, headers } = buildColumns();
         if (hot) {
+            // 이전 PID 에서 마우스로 바꾼 너비는 지우고 새 내용 기준으로
+            try {
+                const resize = hot.getPlugin('manualColumnResize');
+                for (let c = 0; c < hot.countCols(); c++) resize.clearManualSize(c);
+            } catch (e) { /* 무시 */ }
             hot.updateSettings({ columns: cols, colHeaders: headers });
             hot.loadData(data);
             return;
@@ -967,20 +988,12 @@
             if (s.deleted) h += `<span class="pill deleted">삭제 ${s.deleted}라인</span>`;
             if (s.moved) h += '<span class="pill changed">순서 변경</span>';
         }
-        // 임시 저장 상태
-        if (state.draftSavedAt) {
-            h += ` <span class="pill ok" title="브라우저에 임시 저장된 수정본이 있습니다">임시 저장 ${esc(state.draftSavedAt)}</span>`;
-            if (hasUnsaved()) h += ' <span class="pill stale" title="임시 저장 후 또 수정했습니다">저장 안 한 수정 있음</span>';
-        } else if (s.dirty) {
-            h += ' <span class="pill stale" title="새로고침하거나 다른 PID 를 불러오면 사라집니다">임시 저장 안 함</span>';
-        }
         $('editStatus').innerHTML = h;
         $('tbDiff').textContent = s.dirty ? (s.changedRows + s.newRows + s.deleted) : '';
-        $('btnRevert').disabled = !s.dirty && !state.draftSavedAt;
-        $('btnSaveDraft').disabled = state.logic.method === 'JAVA';
+        $('btnRevert').disabled = !s.dirty;
     }
 
-    // 수정 발생 : 상태 갱신 + 실시간 실행 (임시 저장은 버튼을 눌렀을 때만)
+    // 수정 발생 : 상태 갱신 + 실시간 실행
     let autoTimer;
     function onEdited() {
         if (!state.logic) return;
@@ -998,64 +1011,8 @@
         if (hot) hot.render();
     }
 
-    // ---------- 브라우저 임시 저장 ([임시 저장] 버튼 / Ctrl+S 를 눌렀을 때만, DB 저장 아님) ----------
-    const draftKey = () => state.logic ? `draft.${state.logic.pid}@${state.versionParam || 'latest'}.${state.logic.houid}` : '';
-
-    // 라인 내용 비교용 서명 (행 ID 제외)
-    const rowsSig = (rows) => JSON.stringify(rows.map((o) => [o.douid || '', ...EDIT_PROPS.map((p) => norm(o[p]))]));
-
-    // 마지막 임시 저장(없으면 DB 원본) 이후에 고친 내용이 있는지
-    function hasUnsaved() {
-        if (!state.logic || !hot) return false;
-        return rowsSig(gridRows()) !== (state.savedSig !== null ? state.savedSig : state.dbSig);
-    }
-
-    // 성공 안내 : 오른쪽 아래 토스트 (3.5초 뒤 사라짐, 포커스를 뺏지 않음)
-    function flash(msg) {
-        $('toastText').textContent = msg;
-        $('toast').classList.add('show');
-        clearTimeout(flash.timer);
-        flash.timer = setTimeout(() => $('toast').classList.remove('show'), 3500);
-    }
-
-    function saveDraft() {
-        if (!state.logic || !hot || state.logic.method === 'JAVA') return;
-        // 편집 중인 셀 값도 저장되도록 먼저 반영
-        const editor = hot.getActiveEditor();
-        if (editor && editor.isOpened()) editor.finishEditing();
-
-        const key = draftKey();
-        const rows = gridRows();
-        if (!editStats().dirty) {
-            if (state.draftSavedAt && confirm('DB 원본과 같습니다. 브라우저에 임시 저장된 수정본을 지울까요?')) {
-                storeDel(key);
-                state.draftSavedAt = null;
-                state.savedSig = null;
-                renderEditStatus();
-                flash('임시 저장본을 지웠습니다.');
-            } else if (!state.draftSavedAt) {
-                flash('DB 원본과 같아 임시 저장할 내용이 없습니다.');
-            }
-            return;
-        }
-        const savedAt = new Date().toLocaleString();
-        storeSet(key, JSON.stringify({ savedAt, specCols: state.specCols, resCols: state.resCols,
-            rows: rows.map((o) => Object.assign({}, o)) }));
-        if (!storeGet(key)) {
-            showWarn('브라우저 저장소에 저장하지 못했습니다 (시크릿 창 / 저장소 차단 / 용량 초과 확인).', true);
-            return;
-        }
-        state.draftSavedAt = savedAt;
-        state.savedSig = rowsSig(rows);
-        renderEditStatus();
-        flash(`브라우저에 임시 저장했습니다 (${savedAt}). DB 에는 저장되지 않습니다.`);
-    }
-
-    function readDraft() {
-        const raw = storeGet(draftKey());
-        if (!raw) return null;
-        try { return JSON.parse(raw); } catch (e) { return null; }
-    }
+    // DB 원본과 다른 수정이 있는지 (다른 PID 를 불러오거나 페이지를 떠날 때 확인)
+    const hasUnsaved = () => !!(state.logic && hot && editStats().dirty);
 
     // ---------- 버전 목록 ----------
     let versionsReq = 0;
@@ -1089,7 +1046,7 @@
         const pid = $('pid').value.trim();
         if (!pid) return alert('PID 를 입력하세요.');
         if (state.logic && hasUnsaved() && !opts.force
-            && !confirm('임시 저장하지 않은 수정이 있습니다. 다른 PID/버전을 불러오면 이 수정은 사라집니다.\n계속할까요? (남기려면 취소 후 [임시 저장])')) return;
+            && !confirm('수정한 내용이 있습니다. 다른 PID/버전을 불러오면 이 수정은 사라집니다.\n계속할까요?')) return;
 
         const version = $('version').value;
         const btn = $('btnLoad');
@@ -1117,24 +1074,7 @@
             state.specCols = Math.min(MAX_SPEC, Math.max(3, usedSpec + 1));
             state.resCols = Math.min(MAX_RES, Math.max(2, usedRes + 1));
 
-            // 브라우저에 임시 보관한 수정본이 있으면 이어서 할지 묻는다
-            let data = rows;
-            state.dbSig = rowsSig(rows);
-            state.savedSig = null;
-            state.draftSavedAt = null;
-            const draft = readDraft();
-            if (draft) state.draftSavedAt = draft.savedAt;
-            if (draft && !opts.ignoreDraft && confirm(`이 PID 의 수정본이 브라우저에 임시 저장되어 있습니다 (${draft.savedAt}).\n이어서 편집할까요?\n(취소 : DB 원본으로 시작. 임시 저장본은 남아 있고 [DB 원본으로 되돌리기] 로 지울 수 있습니다)`)) {
-                data = draft.rows || rows;
-                state.savedSig = rowsSig(data);
-                state.specCols = Math.max(state.specCols, draft.specCols || 0);
-                state.resCols = Math.max(state.resCols, draft.resCols || 0);
-            } else if (draft) {
-                // DB 원본으로 시작 : 임시 저장본은 지우지 않는다 (지금 화면은 저장본과 다름)
-                state.savedSig = rowsSig(draft.rows || []);
-            }
-
-            initGrid(data.map((o) => Object.assign({}, o, { _rid: newRid() })));
+            initGrid(rows.map((o) => Object.assign({}, o, { _rid: newRid() })));
             $('editorEmpty').hidden = true;
             if (json.method === 'JAVA') {
                 $('editorEmpty').hidden = false;
@@ -1144,7 +1084,7 @@
             setFloorEnabled(json.isFloorSpec);
             renderPidInfo();
             updateRunButton();
-            ['btnAddSpec', 'btnAddKey', 'btnCopyTsv'].forEach((id) => { $(id).disabled = json.method === 'JAVA'; });
+            ['btnAddSpec', 'btnAddKey'].forEach((id) => { $(id).disabled = json.method === 'JAVA'; });
             renderEditStatus();
             renderRunStatus();
             hideWarn();
@@ -1624,7 +1564,7 @@
 
     function subPidTable() {
         const r = state.result;
-        if (!r) return '<div class="empty">실행하면 CALL 로 실행된 하위 PID 가 표시됩니다 (DB 최신 버전).</div>';
+        if (!r) return '<div class="empty">실행하면 CALL 로 실행된 하위 PID 가 표시됩니다 (최신 버전).</div>';
         const list = r.subPids || [];
         if (!list.length) return '<div class="empty">CALL 로 실행된 하위 PID 가 없습니다.</div>';
         return '<table class="kv"><thead><tr><th>하위 PID</th><th>이름</th><th>실행 버전</th><th>호출</th><th>깊이</th><th>오류</th></tr></thead><tbody>'
@@ -1674,35 +1614,6 @@
         return h + '<table class="kv"><thead><tr><th>라인</th><th>칸</th><th>DB 원본</th><th>수정</th></tr></thead><tbody>' + items.join('') + '</tbody></table>';
     }
 
-    // ---------- TSV 복사 (엑셀 / PLM 붙여넣기용) ----------
-    async function copyTsv() {
-        const headers = ['NO', 'ADDR'];
-        for (let i = 1; i <= state.specCols; i++) headers.push(`SPEC${i}`, `CON${i}`);
-        for (let i = 1; i <= state.resCols; i++) headers.push(`KEY${i}`, `VAL${i}`);
-        headers.push('GOTO', 'REMARKS');
-        const cell = (v) => norm(v).replace(/[\t\r\n]+/g, ' ');
-        const lines = [headers.join('\t')];
-        gridRows().forEach((o) => {
-            const r = [o.no, o.addr];
-            for (let i = 1; i <= state.specCols; i++) r.push(o[specProp(i)], o[conProp(i)]);
-            for (let i = 1; i <= state.resCols; i++) r.push(o[keyProp(i)], o[valProp(i)]);
-            r.push(o.gotoAddr, o.remarks);
-            lines.push(r.map(cell).join('\t'));
-        });
-        const text = lines.join('\n');
-        try {
-            await navigator.clipboard.writeText(text);
-            flash(`TSV ${lines.length - 1}라인을 클립보드에 복사했습니다. 엑셀에 붙여넣을 수 있습니다.`);
-        } catch (e) {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/tab-separated-values;charset=utf-8' }));
-            a.download = `PID_${state.logic.pid}_playground.tsv`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-        }
-    }
-
     // ---------- 이벤트 ----------
     $('searchForm').addEventListener('submit', (e) => { e.preventDefault(); loadLogic(); });
     $('btnRun').addEventListener('click', () => run());
@@ -1712,9 +1623,8 @@
         $('btnAdv').setAttribute('aria-expanded', String(open));
     });
     $('btnRevert').addEventListener('click', () => {
-        if (!confirm('모든 수정을 버리고 DB 원본으로 되돌릴까요? (브라우저 임시 저장본도 지웁니다)')) return;
-        storeDel(draftKey());
-        loadLogic({ force: true, ignoreDraft: true });
+        if (!confirm('모든 수정을 버리고 DB 원본으로 되돌릴까요?')) return;
+        loadLogic({ force: true });
     });
     function addCols(kind) {
         if (kind === 'spec') {
@@ -1729,7 +1639,6 @@
     }
     $('btnAddSpec').addEventListener('click', () => addCols('spec'));
     $('btnAddKey').addEventListener('click', () => addCols('key'));
-    $('btnCopyTsv').addEventListener('click', copyTsv);
 
     // 실시간 실행 설정은 브라우저에 기억 (처음에는 켜 둔다)
     $('autoRun').checked = storeGet('autoRun') !== 'N';
@@ -1893,13 +1802,6 @@
             run();
             return;
         }
-        // Ctrl+S : 임시 저장 (브라우저의 '페이지 저장' 대신)
-        if ((e.key === 's' || e.key === 'S') && (e.ctrlKey || e.metaKey) && state.logic) {
-            e.preventDefault();
-            e.stopPropagation();
-            saveDraft();
-            return;
-        }
         if (e.key === 'F10') {
             e.preventDefault();
             e.stopPropagation();
@@ -1907,7 +1809,6 @@
         }
     }, true);
 
-    $('btnSaveDraft').addEventListener('click', saveDraft);
     $('btnWarnClose').addEventListener('click', hideWarn);
     $('btnEmptyLoad').addEventListener('click', () => {
         if ($('pid').value.trim()) loadLogic();
@@ -1932,7 +1833,22 @@
         if (hot) hot.refreshDimensions();
     });
 
-    // 임시 저장하지 않은 수정이 있으면 페이지를 떠날 때 브라우저가 확인을 묻는다 (자동 저장하지 않음)
+    // 디버그 패널 접기 / 펼치기 (브라우저에 기억) : 접으면 머리줄만 남기고 편집 표가 나머지 높이를 쓴다
+    function setPanelCollapsed(collapsed, save = true) {
+        $('debugPanel').classList.toggle('collapsed', collapsed);
+        $('hresizer').hidden = collapsed;
+        const btn = $('btnPanelToggle');
+        btn.setAttribute('aria-expanded', String(!collapsed));
+        btn.title = collapsed ? '결과 영역 펼치기' : '결과 영역 접기 (편집 표를 넓게)';
+        btn.innerHTML = `<svg class="ico" aria-hidden="true"><use href="#i-${collapsed ? 'up' : 'down'}"/></svg><span>${collapsed ? '펼치기' : '접기'}</span>`;
+        if (save) storeSet('panelCollapsed', collapsed ? 'Y' : 'N');
+        if (hot) hot.refreshDimensions();
+        if (!collapsed && state.tab === 'debug') markCurrentDebugRow(true);
+    }
+    $('btnPanelToggle').addEventListener('click', () => setPanelCollapsed(!$('debugPanel').classList.contains('collapsed')));
+    setPanelCollapsed(storeGet('panelCollapsed') === 'Y', false);
+
+    // 수정한 내용이 있으면 페이지를 떠날 때 브라우저가 확인을 묻는다
     window.addEventListener('beforeunload', (e) => {
         if (!hasUnsaved()) return;
         e.preventDefault();
