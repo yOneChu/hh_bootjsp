@@ -181,6 +181,21 @@ public class PIDSimul {
 			}
 			result.subPids.add(sub);
 		}
+		for (SimContext.SubPidCall c : ctx.getSubPidCalls()) {
+			PIDSimulResult.SubPidCall call = new PIDSimulResult.SubPidCall();
+			call.from = c.from;
+			call.to = c.to;
+			call.depth = c.depth;
+			call.count = c.count;
+			result.subPidCalls.add(call);
+		}
+		for (SimContext.SubPidCall c : ctx.getDeclaredCalls()) {
+			PIDSimulResult.SubPidCall call = new PIDSimulResult.SubPidCall();
+			call.from = c.from;
+			call.to = c.to;
+			call.count = c.count;
+			result.subPidDeclaredCalls.add(call);
+		}
 	}
 
 	/**

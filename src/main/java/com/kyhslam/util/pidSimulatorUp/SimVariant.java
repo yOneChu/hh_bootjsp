@@ -22,6 +22,10 @@ public class SimVariant
 	private final SimContext ctx;
 	private HashMap elvEnt = null;
 	private List<Map> floorMasterList = null;
+	/** 이 인스턴스가 실행 중인 PID (CALL 호출 관계 기록용) */
+	private String runningPid = null;
+	/** 이 인스턴스를 CALL 로 만든 PID (CALL 호출 관계 기록용) */
+	private String callerPid = null;
 
 	public SimVariant(SimContext ctx, HashMap elvEnt, List<Map> floorMasterList)
 	{
@@ -67,6 +71,8 @@ public class SimVariant
 		if(pid == null)
 			throw new PidNotFoundException("PID IS NULL");
 
+		runningPid = pid.getPid();
+
 		// "최초실행(depth=1)이면  resultMap은 null이므로 초기화해준다.
 		if(resultMap == null)
 			resultMap = new SimVariantMap();
@@ -89,6 +95,8 @@ public class SimVariant
 					: ctx.getPidRepository().getLogic(ctx.getDb(), pid.getPid(), pid.getVersion()); //PID의 모든 라인 정보
 
 			ArrayList data = (ArrayList) pidLogicMap.get("data");
+
+			recordDeclaredCalls(pid.getPid(), data);
 
 			String prev_GOTO = "";
 
@@ -244,6 +252,7 @@ public class SimVariant
 						throw new PidInfiniteLoopException(val);
 
 					SimVariant variant = new SimVariant(ctx, localElvEnt, floorMasterList);
+					variant.callerPid = runningPid;
 					SimVariantMap innerFunctionMap = variant.calcVariantPID(val, partInfo, depth+1);
 
 					if(innerFunctionMap != null)
@@ -347,9 +356,32 @@ public class SimVariant
 		return result;
 	}
 
+	/** 로직에 적힌 CALL 대상을 조건과 무관하게 기록 (호출 관계도의 '실행 안 된 호출' 표시용. 실행에는 영향 없음) */
+	private void recordDeclaredCalls(String PID, ArrayList data)
+	{
+		if (data == null)
+			return;
+		for (Object o : data) {
+			SimVariantMap row = (SimVariantMap) o;
+			ArrayList keyList = (ArrayList) row.get("keyList");
+			ArrayList valList = (ArrayList) row.get("valList");
+			if (keyList == null || valList == null)
+				continue;
+			for (int j = 0; j < keyList.size() && j < valList.size(); j++) {
+				if (!"CALL".equals(keyList.get(j)))
+					continue;
+				String val = SimUtil.NVL(valList.get(j), "").trim();
+				// 계산식 등 PID 이름이 아닌 값은 제외
+				if (val.matches("^[A-Za-z0-9_]+$"))
+					ctx.recordDeclaredCall(PID, val);
+			}
+		}
+	}
+
 	/** CALL 하위 PID 정보 : 지정 버전이 있으면 그 버전, 없으면 최신 버전 (실행 기록을 남긴다) */
 	private PidInfo getSubPIDInfo(String PID, int depth) throws Exception
 	{
+		ctx.recordSubPidCall(callerPid, PID, depth);
 		Integer version = ctx.getSubPidVersion(PID);
 		PidInfo info;
 		try {

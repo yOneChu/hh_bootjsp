@@ -36,6 +36,16 @@ public class PIDSimulatorUpController {
         return "thymeleaf/pid/pidSimulatorUp";
     }
 
+    /**
+     * @apiNote PID 호출 관계도 (마인드맵) 팝업 : 시뮬레이터 화면(opener)의 실행 결과를 읽어 그린다
+     * @return
+     */
+    @GetMapping("/pidSimulatorMindMap")
+    public String pidSimulatorMindMapView() {
+        //http://localhost:8070/simulateup/pidSimulatorMindMap
+        return "thymeleaf/pid/pidSimulatorMindMap";
+    }
+
     @Description("PID 시뮬레이션 (PIDSimulator 화면의 [실행] : 행별 조건/결과, 최종 결과값, 최종 영업사양)")
     @GetMapping("/simulatePid")
     @ResponseBody

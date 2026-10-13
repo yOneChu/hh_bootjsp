@@ -623,6 +623,7 @@
         <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
         <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
         <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="i-tree" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2a2 2 0 012-2h8a2 2 0 012 2v2"/></symbol>
     </defs>
 </svg>
 
@@ -659,6 +660,8 @@
                 <svg class="ico" aria-hidden="true"><use href="#i-play"/></svg><span>실행</span><kbd>Enter</kbd></button>
             <button type="button" id="btnCodeDict" title="SPEC 특성코드의 한글명 / 값 목록을 새 창으로 봅니다">
                 <svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span>특성코드 사전</span></button>
+            <button type="button" id="btnMindMap" title="실행한 PID 가 CALL 로 호출한 하위 PID 의 호출 관계도를 새 창으로 봅니다">
+                <svg class="ico" aria-hidden="true"><use href="#i-tree"/></svg><span>호출 관계도</span></button>
             <div class="head-spacer"></div>
             <div id="sourceInfo" aria-live="polite"></div>
         </div>
@@ -806,6 +809,8 @@
     // 화면 파라미터 = API 파라미터 (주소창 공유/새로고침 시 그대로 재실행). version : '' 최신, -1 TEST, 그 외 지정 버전
     const PARAM_NAMES = ['project', 'pid', 'version', 'floor', 'beforePid'];
     const CODE_POPUP_URL = '/pid/pidSimulCodePopup';
+    // 하위 PID 호출 관계도 (마인드맵) 팝업
+    const MINDMAP_POPUP_URL = '/simulateup/pidSimulatorMindMap';
     // 라인 상세 조건의 사양명(CODE -> CODENAME)
     const CODE_API = '/api/getElvCodeList?key=subae';
     // 브라우저 저장 키 (기존 pidSimulMain 화면과 따로 기억)
@@ -816,6 +821,7 @@
     const BUSY_HTML = (t) => `<span class="spinner" aria-hidden="true"></span><span>${t}</span>`;
     const area = $('resultArea');
     let codePopup = null;
+    let mindMapPopup = null;
     // 특성코드(대문자) -> 사양명(CODENAME). 라인 상세의 조건 표시용
     const specNames = new Map();
     const state = {
@@ -1571,6 +1577,7 @@
         setAdvOpen(false);
         focusResult();
         syncCodePopup();
+        syncMindMapPopup();
     }
 
     // ---------- CSV 저장 (지금 보이는 라인만, 엑셀에서 한글이 깨지지 않도록 BOM 포함) ----------
@@ -1623,6 +1630,46 @@
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    // ---------- 호출 관계도(마인드맵) 팝업 ----------
+    // 팝업(pidSimulatorMindMap)이 호출: 현재 실행 결과의 대상 PID 와 CALL 하위 PID, 호출 관계 (실행 전이면 null)
+    window.getPidCallMap = function () {
+        const r = state.result;
+        if (!r) return null;
+        const q = state.query || {};
+        return {
+            project: nvl(q.project) || nvl(r.projectNo),
+            projectNo: r.projectNo,
+            projectTitle: r.projectTitle,
+            root: {
+                pid: r.pid, name: r.pidName, runVersion: r.runVersion, latestVersion: r.latestVersion,
+                version: r.version, testVersion: !!r.testVersion, javaMethod: !!r.javaMethod,
+                isFloorSpec: r.isFloorSpec, floor: r.floor,
+            },
+            subPids: r.subPids || [],
+            // 서버가 호출 관계를 주지 않으면 null (팝업은 깊이로 추정)
+            subPidCalls: Array.isArray(r.subPidCalls) ? r.subPidCalls : null,
+            // 실행한 PID 로직에 적힌 CALL 대상 (실행 안 된 호출 표시용)
+            subPidDeclaredCalls: Array.isArray(r.subPidDeclaredCalls) ? r.subPidDeclaredCalls : [],
+        };
+    };
+
+    function openMindMapPopup() {
+        if (mindMapPopup && !mindMapPopup.closed) {
+            mindMapPopup.focus();
+            syncMindMapPopup();
+            return;
+        }
+        mindMapPopup = window.open(MINDMAP_POPUP_URL, 'pidSimulUpMindMap', 'width=1400,height=900,resizable=yes,scrollbars=yes');
+        if (!mindMapPopup) alert('팝업이 차단되었습니다. 브라우저에서 이 사이트의 팝업을 허용해 주세요.');
+    }
+
+    // 재실행하면 열려 있는 관계도도 새 결과로 갱신
+    function syncMindMapPopup() {
+        try {
+            if (mindMapPopup && !mindMapPopup.closed && typeof mindMapPopup.syncFromOpener === 'function') mindMapPopup.syncFromOpener();
+        } catch (e) { /* 팝업 로딩 중이면 팝업이 스스로 읽어감 */ }
     }
 
     // ---------- 특성코드 사전 팝업 ----------
@@ -1784,6 +1831,7 @@
     });
     $('btnAdv').addEventListener('click', () => setAdvOpen($('advPanel').hidden));
     $('btnCodeDict').addEventListener('click', openCodePopup);
+    $('btnMindMap').addEventListener('click', openMindMapPopup);
 
     // PID 를 바꾸면 버전 선택을 '최신'으로 되돌리고, 입력이 멈추면 그 PID 의 버전 목록을 불러온다
     let pidTimer;

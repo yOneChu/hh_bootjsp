@@ -48,6 +48,18 @@ public class PIDSimulResult {
 		public Map<String, Object> resultMap;
 	}
 
+	/** CALL 호출 관계 1건 */
+	public static class SubPidCall {
+		/** 호출한 PID */
+		public String from;
+		/** 호출된 PID */
+		public String to;
+		/** 호출된 PID 의 깊이 (바로 아래 CALL 이 2) */
+		public int depth;
+		/** 호출 횟수 */
+		public int count;
+	}
+
 	/** CALL 로 실행된 하위 PID (화면 상단의 하위 PID 버전 선택) */
 	public static class SubPid {
 		public String pid;
@@ -101,6 +113,10 @@ public class PIDSimulResult {
 	public List<String> warnings = new ArrayList<String>();
 	/** CALL 로 실행된 하위 PID (처음 호출된 순서, 전처리 PID 제외) */
 	public List<SubPid> subPids = new ArrayList<SubPid>();
+	/** CALL 호출 관계 (호출한 PID → 호출된 PID, 처음 호출된 순서). 호출 관계도(마인드맵) 화면용 */
+	public List<SubPidCall> subPidCalls = new ArrayList<SubPidCall>();
+	/** 실행한 PID 로직에 적힌 CALL 대상 (조건과 무관, count : CALL 라인 수). 호출 관계도의 '실행 안 된 호출' 표시용 */
+	public List<SubPidCall> subPidDeclaredCalls = new ArrayList<SubPidCall>();
 
 	/** 콘솔 출력 */
 	public void print(PrintStream out, boolean showUnread) {

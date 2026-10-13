@@ -21,6 +21,20 @@ public class SimContext {
 	private final Map<String, Integer> subPidVersions = new HashMap<String, Integer>();
 	/** CALL 로 실행된 하위 PID 기록 (처음 호출된 순서) */
 	private final Map<String, SubPidRun> subPidRuns = new LinkedHashMap<String, SubPidRun>();
+	/** CALL 호출 관계 (호출한 PID → 호출된 PID, 처음 호출된 순서). 호출 관계도(마인드맵) 화면용 */
+	private final Map<String, SubPidCall> subPidCalls = new LinkedHashMap<String, SubPidCall>();
+
+	/** CALL 호출 관계 1건 (같은 관계는 횟수만 더한다) */
+	public static class SubPidCall {
+		/** 호출한 PID */
+		public String from;
+		/** 호출된 PID */
+		public String to;
+		/** 호출된 PID 의 깊이 (대상 PID 가 1, 바로 아래 CALL 이 2) */
+		public int depth;
+		/** 호출 횟수 */
+		public int count;
+	}
 
 	/** CALL 로 실행된 하위 PID 1건의 기록 */
 	public static class SubPidRun {
@@ -109,6 +123,44 @@ public class SimContext {
 	}
 
 	public Collection<SubPidRun> getSubPidRuns() { return subPidRuns.values(); }
+
+	/** CALL 호출 관계 기록 (대상 PID 실행 구간만. 호출한 PID 를 모르면 남기지 않는다) */
+	public void recordSubPidCall(String from, String to, int depth) {
+		if (!subPidTracking || from == null || to == null)
+			return;
+		String key = from + " -> " + to;
+		SubPidCall call = subPidCalls.get(key);
+		if (call == null) {
+			call = new SubPidCall();
+			call.from = from;
+			call.to = to;
+			call.depth = depth;
+			subPidCalls.put(key, call);
+		}
+		call.count++;
+	}
+
+	public Collection<SubPidCall> getSubPidCalls() { return subPidCalls.values(); }
+
+	/** 실행한 PID 의 로직에 적힌 CALL 대상 (조건과 무관하게 전부. 실행 여부는 subPidCalls 와 비교) */
+	private final Map<String, SubPidCall> declaredCalls = new LinkedHashMap<String, SubPidCall>();
+
+	/** 실행한 PID 로직의 CALL 라인 기록 (대상 PID 실행 구간만. 같은 관계는 라인 수만 더한다) */
+	public void recordDeclaredCall(String from, String to) {
+		if (!subPidTracking || from == null || to == null)
+			return;
+		String key = from + " -> " + to;
+		SubPidCall call = declaredCalls.get(key);
+		if (call == null) {
+			call = new SubPidCall();
+			call.from = from;
+			call.to = to;
+			declaredCalls.put(key, call);
+		}
+		call.count++;
+	}
+
+	public Collection<SubPidCall> getDeclaredCalls() { return declaredCalls.values(); }
 
 	/** StringUtil.isPidPattern */
 	public boolean isPidPattern(String value) throws Exception {
