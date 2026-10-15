@@ -1,11 +1,14 @@
 package com.kyhslam.controller.extract;
 
+import com.kyhslam.MasterDataCache;
+import com.kyhslam.dto.CodeInfoDTO;
 import com.kyhslam.util.gongsaExtract.GongSaCsvWriter;
 import com.kyhslam.util.gongsaExtract.GongSaExtractResult;
 import com.kyhslam.util.gongsaExtract.GongSaExtractService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -19,9 +22,15 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 공사번호 추출
@@ -41,6 +50,7 @@ import java.util.Map;
 public class GongsaExtractController {
 
     private final GongSaExtractService gongSaExtractService;
+    private final MasterDataCache masterDataCache;
 
     /**
      * 공사번호 추출 화면
@@ -48,6 +58,53 @@ public class GongsaExtractController {
     @GetMapping("/extract/gongsa")
     public String gongsaExtract() {
         return "thymeleaf/gongsa/gongsaExtract";
+    }
+
+    /**
+     * 특성 CODE 검색 목록 (서버 기동 시 MasterDataCache 에 담아 둔 목록, DB 조회 없음)
+     * 예) /extract/gongsa/specs?tableType=shipelv -> [{ "code": "EL_ETM", "name": "권상기" }, ...]
+     */
+    @GetMapping("/extract/gongsa/specs")
+    @ResponseBody
+    public ResponseEntity<List<Map<String, String>>> specs(@RequestParam(defaultValue = "elv") String tableType) {
+        List<CodeInfoDTO> codes = "shipelv".equals(tableType)
+                ? masterDataCache.getShipCodeList()
+                : masterDataCache.getCodeListV2();
+
+        List<Map<String, String>> list = new ArrayList<>(codes.size());
+        for (CodeInfoDTO dto : codes) {
+            if (dto.getCode() == null) continue;
+            Map<String, String> m = new HashMap<>();
+            m.put("code", dto.getCode());
+            m.put("name", dto.getCodeName() == null ? "" : dto.getCodeName());
+            list.add(m);
+        }
+        // 캐시는 서버 재기동 때만 바뀌므로 브라우저도 잠시 재사용
+        return ResponseEntity.ok().cacheControl(CacheControl.maxAge(10, TimeUnit.MINUTES)).body(list);
+    }
+
+    /**
+     * 값 CODE 제안 목록 (코드형 특성만, MasterDataCache 사용)
+     * 조건은 doscoditm.DES 와 비교하므로 value 는 DES(typeVal), name 은 doscoditm.NAME(typeName)
+     * 예) /extract/gongsa/specValues?tableType=elv&spec=EL_ETM -> [{ "value": "YJ140", "name": "..." }, ...]
+     */
+    @GetMapping("/extract/gongsa/specValues")
+    @ResponseBody
+    public ResponseEntity<List<Map<String, String>>> specValues(@RequestParam(defaultValue = "elv") String tableType,
+                                                                @RequestParam String spec) {
+        List<CodeInfoDTO> values = masterDataCache.getCodeValues("shipelv".equals(tableType), spec);
+
+        List<Map<String, String>> list = new ArrayList<>(values.size());
+        Set<String> seen = new HashSet<>();
+        for (CodeInfoDTO dto : values) {
+            if (!seen.add(dto.getTypeVal())) continue;
+            Map<String, String> m = new HashMap<>();
+            m.put("value", dto.getTypeVal());
+            m.put("name", dto.getTypeName() == null ? "" : dto.getTypeName());
+            list.add(m);
+        }
+        list.sort(Comparator.comparing(m -> m.get("value")));
+        return ResponseEntity.ok().cacheControl(CacheControl.maxAge(10, TimeUnit.MINUTES)).body(list);
     }
 
     /**

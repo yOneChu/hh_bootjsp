@@ -1763,4 +1763,91 @@ public class MLBCommonUtil {
 
         return result;
     }
+
+    //선박용 엘리베이터 특성값 리스트 (getCodeList 의 선박용, 공사번호 추출 화면의 값 CODE 제안)
+    public static ArrayList<CodeInfoDTO> getShipCodeValueList() {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<CodeInfoDTO> result = new  ArrayList<>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                    SELECT a.name AS CODE,
+                    a.TIT AS CODENAME,
+                    c.NAME AS TYPENAME,
+                    c.DES AS TYPEVAL,
+                    b.name AS NAME
+                    FROM HDEL_SYSTEM.dosfld a
+                        INNER JOIN HDEL_SYSTEM.doscod b
+                        ON a.TYPECLAS  = b.OUID
+                        INNER JOIN HDEL_SYSTEM.DOSCODITM c
+                        ON c.DOSCOD = b.OUID
+                        WHERE TYPE=24 AND DOSCLAS=2706224418
+                    """;
+
+            pstmt = con.prepareStatement(sql);
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                CodeInfoDTO dto = new  CodeInfoDTO();
+                dto.setCode(rs.getString("CODE"));
+                dto.setCodeName(rs.getString("CODENAME"));
+                dto.setTypeName(rs.getString("TYPENAME"));
+                dto.setTypeVal(rs.getString("TYPEVAL"));
+                dto.setName(rs.getString("NAME"));
+                result.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        return result;
+    }
+
+    //선박용 엘리베이터 특성코드 (공사번호 추출 화면의 특성 CODE 검색 목록)
+    public static ArrayList<CodeInfoDTO> getShipCodeList() {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<CodeInfoDTO> result = new  ArrayList<>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                    SELECT
+                        A.NAME AS CODE,
+                        A.TIT AS CODENAME
+                    FROM HDEL_SYSTEM.dosfld A
+                    WHERE A.DOSCLAS = '2706224418'
+                    """;
+
+            pstmt = con.prepareStatement(sql);
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                CodeInfoDTO dto = new  CodeInfoDTO();
+                dto.setCode(rs.getString("CODE")); // 특성코드
+                dto.setCodeName(rs.getString("CODENAME")); // 사양명
+                result.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        return result;
+    }
 }

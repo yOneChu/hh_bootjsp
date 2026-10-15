@@ -1,6 +1,7 @@
 package com.kyhslam.controller.extract;
 
 import com.kyhslam.service.WongaService;
+import com.kyhslam.util.wonga.DrwNumberSearchCondition;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -35,6 +36,7 @@ public class WongaController {
     @GetMapping("/extract/wonga")
     public String searchWonga(Model model) {
         model.addAttribute("form", wongaService.toForm(new HashMap<String, String>()));
+        model.addAttribute("defaultSpecList", DrwNumberSearchCondition.DEFAULT_SPEC_LIST);   // 추출데이터 '기본값으로' 버튼
         return VIEW;
     }
 
@@ -49,6 +51,7 @@ public class WongaController {
 
         model.addAllAttributes(wongaService.search(form));
         model.addAttribute("form", wongaService.toForm(form));
+        model.addAttribute("defaultSpecList", DrwNumberSearchCondition.DEFAULT_SPEC_LIST);
         return VIEW;
     }
 
