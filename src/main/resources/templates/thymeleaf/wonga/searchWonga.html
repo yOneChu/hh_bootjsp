@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>원가절감 실적 조회</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "맑은 고딕", "Malgun Gothic", sans-serif; font-size: 12px; color: #222; background: #fff; }
+        .layout { display: flex; min-height: 100vh; }
+
+        /* 조회조건 (ListOfBasedOnDrwNumber_left.jsp) */
+        .side { width: 240px; flex-shrink: 0; padding: 10px 8px; border-right: 1px solid #ccc; background: #fafafa; }
+        #pgmTitle { border: 2px solid #333366; font-size: 16px; text-align: center; font-weight: bold; background-color: #ccccff; padding: 10px; margin-bottom: 12px; }
+        .group { margin: 0 0 10px; font-weight: bold; }
+        .group > .label::before { content: "■ "; color: #333366; }
+        .group input[type=text], .group input[type=date], .group textarea { width: 100%; margin-top: 3px; font-size: 12px; }
+        .group ul { list-style: none; padding-left: 6px; margin: 4px 0 0; }
+        .group li { margin-bottom: 4px; font-weight: normal; }
+        .range input[type=text] { width: 44%; }
+        .check { display: block; font-weight: normal; margin-top: 4px; }
+        .hint { font-weight: normal; color: #666; }
+        #slidebtn { font-size: 1.5em; text-decoration: none; margin-left: 4px; }
+        #specListarea { display: none; height: 160px; }
+        #searchbtn { width: 100%; height: 34px; font-size: 16px; cursor: pointer; }
+
+        /* 조회결과 (ListOfBasedOnDrwNumber_right.jsp) */
+        .main { flex: 1; min-width: 0; padding: 10px 14px; overflow-x: auto; }
+        .summary { margin: 6px 0 10px; }
+        .message { font-size: 16px; font-weight: bold; margin-top: 20px; }
+        #dataTable { border: #e0e0e0 1px solid; border-collapse: collapse; }
+        #dataTable td { padding: 8px; white-space: nowrap; height: 30px; }
+        #dataTable tr.title { background-color: #D3DFE6; text-align: center; font-weight: bold; }
+        #dataTable tr.even { background-color: #EEEEEE; }
+        .guide { color: #555; line-height: 1.8; margin-top: 20px; }
+
+        #loading { display: none; text-align: center; margin-top: 80px; }
+    </style>
+</head>
+<body>
+<div class="layout">
+
+    <!-- WongaController.search (POST /extract/wonga/search) -->
+    <form class="side" name="frm" method="post" action="/extract/wonga/search" onsubmit="return searchList();">
+        <div id="pgmTitle">원가절감 실적조회</div>
+
+        <div class="group">
+            <span class="label">G_L_CODE</span>
+            <input type="text" id="g_l_code" name="g_l_code" th:value="${form['g_l_code']}">
+            <label class="check"><input type="checkbox" id="chk_detail" name="chk_detail" th:checked="${form['chk_detail'] != null}"> 호기별 세부 사양 조회</label>
+        </div>
+
+        <div class="group">
+            <span class="label">SPEC</span>
+            <ul>
+                <li>- 기 종 :<br><input type="text" id="EL_ATYP" name="EL_ATYP" th:value="${form['EL_ATYP']}"></li>
+                <li>- CAR SAFETY :<br><input type="text" id="EL_ECSF" name="EL_ECSF" th:value="${form['EL_ECSF']}"></li>
+                <li>- TM :<br><input type="text" id="EL_ETM" name="EL_ETM" th:value="${form['EL_ETM']}"></li>
+                <li class="range">- 속 도 :<br>
+                    <input type="text" id="EL_ASPD_1" name="EL_ASPD_1" th:value="${form['EL_ASPD_1']}"> ~
+                    <input type="text" id="EL_ASPD_2" name="EL_ASPD_2" th:value="${form['EL_ASPD_2']}"></li>
+                <li class="range">- 인 승 :<br>
+                    <input type="text" id="EL_AMAN_1" name="EL_AMAN_1" th:value="${form['EL_AMAN_1']}"> ~
+                    <input type="text" id="EL_AMAN_2" name="EL_AMAN_2" th:value="${form['EL_AMAN_2']}"></li>
+                <li class="range">- CAR출입구폭;JJ :<br>
+                    <input type="text" id="EL_ECJJ_1" name="EL_ECJJ_1" th:value="${form['EL_ECJJ_1']}"> ~
+                    <input type="text" id="EL_ECJJ_2" name="EL_ECJJ_2" th:value="${form['EL_ECJJ_2']}"></li>
+            </ul>
+        </div>
+
+        <div class="group">
+            <span class="label">자재번호</span> (<span id="nowRow">0</span>/<span id="totalRow">200</span>건)
+            <span class="hint"><br>여러 건은 콤마(,)로 구분, * 와일드카드</span>
+            <textarea id="PARTNO" name="PARTNO" rows="8" onkeyup="fn_checkByte(this);" th:text="${form['PARTNO']}"></textarea>
+        </div>
+
+        <div class="group">
+            <span class="label">BLOCK NO.</span>
+            <input type="text" id="BLOCKNO" name="BLOCKNO" th:value="${form['BLOCKNO']}">
+        </div>
+
+        <div class="group">
+            <span class="label">추출데이터</span><a href="#" id="slidebtn" onclick="toggleSpec(); return false;">+</a>
+            <textarea id="specListarea" name="specList" th:text="${form['specList']}"></textarea>
+        </div>
+
+        <div class="group">
+            <span class="label">기간</span>
+            <label class="check" style="display:inline; margin-left: 40px;"><input type="checkbox" id="chk_year" onclick="setLastYear(this);"> 최근 1년</label>
+            <div class="hint" style="margin-top:4px;">Start 날짜</div>
+            <input type="date" id="start_date_day" name="start_date_day" max="9999-12-31" th:value="${form['start_date_day']}">
+            <div class="hint" style="margin-top:4px;">End 날짜</div>
+            <input type="date" id="end_date_day" name="end_date_day" max="9999-12-31" th:value="${form['end_date_day']}">
+            <label class="check" style="margin-top:8px;"><input type="checkbox" id="chk_general" name="chk_general" th:checked="${form['chk_general'] != null}"> 일반현장만 조회</label>
+            <label class="check"><input type="checkbox" id="chk_bom" name="chk_bom" onclick="changeCondition();" th:checked="${form['chk_bom'] != null}"> 현장 BOM 추출</label>
+        </div>
+
+        <button type="submit" id="searchbtn">검색</button>
+    </form>
+
+    <div class="main">
+        <div id="loading">
+            <h3>원가절감 실적 검색 중입니다...</h3>
+            <div>최대 5분까지 소요될 수 있습니다.</div>
+        </div>
+
+        <div id="resultArea">
+            <div th:unless="${searched}" class="guide">
+                좌측에 조회 조건을 입력한 후 [검색] 버튼을 눌러주세요.<br>
+                - 도면번호(G_L_CODE), 자재번호, 블럭번호 중 1가지 이상 입력<br>
+                - 최대 조회 기간 1년, 최대 10,000건
+            </div>
+
+            <div th:if="${message}" class="message" th:text="${message}">데이터가 없습니다.</div>
+
+            <th:block th:if="${rows}">
+                <div class="summary">
+                    <b th:text="|- 총${cnt}건(총자재수량 ${mengeSum}개)|">- 총0건(총자재수량 0개)</b>
+                    <input type="button" value="excel" onclick="downloadExcel('dataTable', '원가절감실적조회')">
+                </div>
+                <table id="dataTable">
+                    <tr class="title">
+                        <td th:each="col : ${head}" th:text="${col}">TITLE</td>
+                    </tr>
+                    <tr th:each="row, st : ${rows}" th:class="${st.odd} ? '' : 'even'">
+                        <td th:each="cell : ${row}" th:text="${cell}">*</td>
+                    </tr>
+                    <tr class="title">
+                        <td th:each="col : ${head}" th:text="${col}">TITLE</td>
+                    </tr>
+                </table>
+            </th:block>
+        </div>
+    </div>
+</div>
+
+<script th:inline="none">
+    var maxRows = 200; // 최대 줄바꿈
+
+    window.onload = function () {
+        var end = document.getElementById("end_date_day");
+        if (!end.value) end.value = toDateStr(new Date());
+        if (document.getElementById("chk_bom").checked) changeCondition();
+        fn_checkByte(document.getElementById("PARTNO"));
+    };
+
+    function toDateStr(d) {
+        var m = ("0" + (d.getMonth() + 1)).slice(-2);
+        var day = ("0" + d.getDate()).slice(-2);
+        return d.getFullYear() + "-" + m + "-" + day;
+    }
+
+    function setLastYear(chk) {
+        if (!chk.checked) return;
+        var today = new Date();
+        var beforeYear = new Date();
+        beforeYear.setDate(today.getDate() - 365);
+        document.getElementById("start_date_day").value = toDateStr(beforeYear);
+        document.getElementById("end_date_day").value = toDateStr(today);
+    }
+
+    function toggleSpec() {
+        var area = document.getElementById("specListarea");
+        var opened = area.style.display === "block";
+        area.style.display = opened ? "none" : "block";
+        document.getElementById("slidebtn").innerHTML = opened ? "+" : "-";
+    }
+
+    function val(id) {
+        return document.getElementById(id).value;
+    }
+
+    function searchList() {
+        var start = val("start_date_day");
+        var end = val("end_date_day");
+
+        if (start.length < 8 || end.length < 8) {
+            alert('날짜 조건을 형식에 맞게 입력해주세요 (ex: yyyy-mm-dd)');
+            return false;
+        }
+
+        var diff = new Date(end) - new Date(start);
+        var currDay = 24 * 60 * 60 * 1000; // 시 * 분 * 초 * 밀리세컨
+
+        if (parseInt(diff / currDay) > 365) {
+            alert('최대 조회 가능 기간은 1년 입니다.');
+            return false;
+        }
+        if (diff < 0) {
+            alert('시작/종료 연월을 확인해주세요.');
+            return false;
+        }
+        if (document.getElementById("chk_bom").checked && val("PARTNO").length == 0) {
+            alert('현장 BOM 추출 옵션 선택 시 자재번호는 필수 입력 조건 입니다.');
+            return false;
+        }
+
+        var nums = ["EL_ASPD_1", "EL_ASPD_2", "EL_AMAN_1", "EL_AMAN_2", "EL_ECJJ_1", "EL_ECJJ_2"];
+        for (var i = 0; i < nums.length; i++) {
+            if (isNaN(val(nums[i]))) {
+                alert('속도/인승/CAR출입폭은 숫자만 입력하여 주십시요.');
+                return false;
+            }
+        }
+
+        if (val("g_l_code").trim().length == 0 && val("PARTNO").trim().length == 0 && val("BLOCKNO").trim().length == 0) {
+            alert('도면번호, 자재번호, 블럭번호 중 1가지 이상을 입력해야 합니다.');
+            return false;
+        }
+
+        document.getElementById("resultArea").style.display = "none";
+        document.getElementById("loading").style.display = "block";
+        document.getElementById("searchbtn").disabled = true;
+        return true;
+    }
+
+    function fn_checkByte(obj) {
+        var text_val = obj.value; // 입력한 문자
+        var text_rows = text_val.length == 0 ? 0 : text_val.split("\n").length; // 줄바꿈 개수
+
+        if (text_rows > maxRows) {
+            alert('최대 ' + maxRows + '건까지만 입력가능합니다.');
+            obj.value = text_val.split("\n").slice(0, maxRows).join("\n");
+            text_rows = maxRows;
+        }
+        var nowRow = document.getElementById("nowRow");
+        nowRow.style.color = text_rows >= maxRows ? "red" : "green";
+        nowRow.innerText = text_rows;
+    }
+
+    // 현장 BOM 추출 선택 시 > 타 조회조건 비활성화 & 자재번호 최대 10건
+    function changeCondition() {
+        var bom = document.getElementById("chk_bom").checked;
+        var ids = ["g_l_code", "chk_detail", "EL_ATYP", "EL_ECSF", "EL_ETM", "EL_ASPD_1", "EL_ASPD_2",
+            "EL_AMAN_1", "EL_AMAN_2", "EL_ECJJ_1", "EL_ECJJ_2", "BLOCKNO", "specListarea", "chk_general"];
+
+        for (var i = 0; i < ids.length; i++) {
+            var el = document.getElementById(ids[i]);
+            if (bom) {
+                if (el.type === "checkbox") el.checked = false;
+                else if (ids[i] !== "specListarea") el.value = "";
+            }
+            el.disabled = bom;
+        }
+
+        maxRows = bom ? 10 : 200;
+        document.getElementById("totalRow").innerText = maxRows;
+        fn_checkByte(document.getElementById("PARTNO"));
+    }
+
+    function downloadExcel(targetId, SaveFileName) {
+        var today = new Date();
+        SaveFileName = SaveFileName + "_" + today.getFullYear() + "_" + (today.getMonth() + 1) + "_" + today.getDate()
+            + "_" + today.getHours() + "_" + today.getMinutes() + "_" + today.getSeconds() + "_" + today.getMilliseconds();
+
+        // table to excel file
+        var table = document.getElementById(targetId);
+        var html = '<html><head><meta charset="UTF-8"></head><body><table>' + table.innerHTML + '</table></body></html>';
+        var blob = new Blob([html], {type: 'application/vnd.ms-excel;charset=utf-8'});
+        var link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = SaveFileName + '.xls';
+        link.click();
+    }
+</script>
+</body>
+</html>
