@@ -1,6 +1,10 @@
-package com.kyhslam.util.gongsaExtract;
+package com.kyhslam.service;
 
 import com.kyhslam.util.PLMDBConnection;
+import com.kyhslam.util.gongsaExtract.GongSaExtractParam;
+import com.kyhslam.util.gongsaExtract.GongSaExtractResult;
+import com.kyhslam.util.gongsaExtract.MsrTitleResolver;
+import com.kyhslam.util.gongsaExtract.SpecConditionBuilder;
 import org.springframework.stereotype.Service;
 
 import java.sql.Connection;
@@ -12,10 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 공사번호 추출 조회
- * (원본: dyna.plmetc.product.productNumExt.getSearchDesignedList() / getSpecQuery())
- */
 @Service
 public class GongSaExtractService {
 
@@ -243,4 +243,5 @@ public class GongSaExtractService {
 
         return mainSQL.toString();
     }
+
 }

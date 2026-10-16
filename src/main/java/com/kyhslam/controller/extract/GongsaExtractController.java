@@ -2,9 +2,9 @@ package com.kyhslam.controller.extract;
 
 import com.kyhslam.MasterDataCache;
 import com.kyhslam.dto.CodeInfoDTO;
+import com.kyhslam.service.GongSaExtractService;
 import com.kyhslam.util.gongsaExtract.GongSaCsvWriter;
 import com.kyhslam.util.gongsaExtract.GongSaExtractResult;
-import com.kyhslam.util.gongsaExtract.GongSaExtractService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +70,10 @@ public class GongsaExtractController {
         List<CodeInfoDTO> codes = "shipelv".equals(tableType)
                 ? masterDataCache.getShipCodeList()
                 : masterDataCache.getCodeListV2();
+        // 서버 기동 직후 캐시 로딩 전이면 빈 목록이 브라우저에 캐시되지 않도록 실패로 응답 (화면에서 다시 시도)
+        if (codes.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).cacheControl(CacheControl.noStore()).build();
+        }
 
         List<Map<String, String>> list = new ArrayList<>(codes.size());
         for (CodeInfoDTO dto : codes) {

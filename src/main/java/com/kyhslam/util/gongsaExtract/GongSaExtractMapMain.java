@@ -1,5 +1,7 @@
 package com.kyhslam.util.gongsaExtract;
 
+import com.kyhslam.service.GongSaExtractService;
+
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
