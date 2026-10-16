@@ -30,7 +30,7 @@ public class MLBCommonUtil {
         PartInfoDTO result = new PartInfoDTO();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
             String sql = """
                 SELECT
                 A.VF$OUID AS OID,
@@ -121,7 +121,7 @@ public class MLBCommonUtil {
         ArrayList<PartInfoDTO> result = new ArrayList<>();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
             String sql = """
                   with ouid as
                      ( select A.vf$ouid from NORMALPART$vf A, NORMALPART$id B
@@ -210,7 +210,7 @@ public class MLBCommonUtil {
         PartDTO result = new PartDTO();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
             String sql = """
                 SELECT
                 A.VF$OUID AS OID,
@@ -335,7 +335,7 @@ public class MLBCommonUtil {
         }
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
             String sql = """
                 SELECT
                 A.VF$OUID AS OID,
@@ -486,7 +486,7 @@ public class MLBCommonUtil {
                 + "AND A.MD$NUMBER IN (" + inParams.toString() + ")\n";
 
 
-        try (Connection conn = PLMDBConnection.getConnection();
+        try (Connection conn = PLMDBPool.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             // 3. 품번 파라미터 바인딩
@@ -564,7 +564,7 @@ public class MLBCommonUtil {
         ArrayList<String> result = new ArrayList<>();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
             String sql = """
                   with ouid as
                      ( select A.vf$ouid from NORMALPART$vf A, NORMALPART$id B
@@ -631,7 +631,7 @@ public class MLBCommonUtil {
         ArrayList<PartInfoDTO> result = new ArrayList<>();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
             String sql = """
                   with ouid as
                      ( select A.vf$ouid from NORMALPART$vf A, NORMALPART$id B
@@ -717,7 +717,7 @@ public class MLBCommonUtil {
         ArrayList<PartInfoDTO> result = new ArrayList<>();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
             String sql = """
                   with ouid as
                      ( select A.vf$ouid from NORMALPART$vf A, NORMALPART$id B
@@ -795,7 +795,7 @@ public class MLBCommonUtil {
         ArrayList<String> result = new ArrayList<>();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
             String sql = """
                   select A.vf$ouid AS OID from NORMALPART$vf A, NORMALPART$id B
                   where A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip
@@ -858,7 +858,7 @@ public class MLBCommonUtil {
         String parentSize = parentDto.getPartSize();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
             String sql = """
                   SELECT
                     TO_CHAR(LEVEL) AS P_LEVEL,
@@ -989,7 +989,7 @@ public class MLBCommonUtil {
         String parentQty = parentDto.getQty();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
             String sql = """
                   SELECT
                     TO_CHAR(LEVEL) AS P_LEVEL,
@@ -1119,7 +1119,7 @@ public class MLBCommonUtil {
         ArrayList<PartInfoDTO> result = new ArrayList<>();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
             String sql = """
                   SELECT
                     TO_CHAR(LEVEL) AS P_LEVEL,
@@ -1232,9 +1232,9 @@ public class MLBCommonUtil {
 
 
             if (con == null || con.isClosed()) {
-                con = PLMDBConnection.getConnection();
+                con = PLMDBPool.getConnection();
             } else {
-                con = PLMDBConnection.getConnection();
+                con = PLMDBPool.getConnection();
             }
 
             String sql = """
@@ -1358,9 +1358,9 @@ public class MLBCommonUtil {
 
 
             if (con == null || con.isClosed()) {
-                con = PLMDBConnection.getConnection();
+                con = PLMDBPool.getConnection();
             } else {
-                con = PLMDBConnection.getConnection();
+                con = PLMDBPool.getConnection();
             }
 
             String sql = """
@@ -1493,9 +1493,9 @@ public class MLBCommonUtil {
 
 
             if (con == null || con.isClosed()) {
-                con = PLMDBConnection.getConnection();
+                con = PLMDBPool.getConnection();
             } else {
-                con = PLMDBConnection.getConnection();
+                con = PLMDBPool.getConnection();
             }
 
             String sql = """
@@ -1629,7 +1629,7 @@ public class MLBCommonUtil {
         ArrayList<CodeInfoDTO> result = new  ArrayList<>();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
 
             String sql = """
                     SELECT a.name AS CODE,
@@ -1685,7 +1685,7 @@ public class MLBCommonUtil {
         ArrayList<HashMap<String, String>> result = new  ArrayList<>();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
 
             String sql = """
                     SELECT 
@@ -1732,7 +1732,7 @@ public class MLBCommonUtil {
         ArrayList<CodeInfoDTO> result = new  ArrayList<>();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
 
             String sql = """
                     SELECT 
@@ -1774,7 +1774,7 @@ public class MLBCommonUtil {
         ArrayList<CodeInfoDTO> result = new  ArrayList<>();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
 
             String sql = """
                     SELECT a.name AS CODE,
@@ -1822,7 +1822,7 @@ public class MLBCommonUtil {
         ArrayList<CodeInfoDTO> result = new  ArrayList<>();
 
         try {
-            con = PLMDBConnection.getConnection();
+            con = PLMDBPool.getConnection();
 
             String sql = """
                     SELECT
@@ -1841,6 +1841,130 @@ public class MLBCommonUtil {
                 dto.setCodeName(rs.getString("CODENAME")); // 사양명
                 result.add(dto);
             }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        return result;
+    }
+
+    //blockNo로 특정기간에 제품에 수배된 자재 찾기
+    /**
+     * @apiNote blockNo로 특정기간에 제품에 수배된 자재 찾기
+     * @param proCreDate 제품 생성일 (시작, YYYYMMDD)
+     * @param proCreDateTo 제품 생성일 (종료, YYYYMMDD)
+     * @param blockNo
+     * @param partCreDate 자재 생성일
+     */
+    public static ArrayList<HashMap<String, String>> searchBomGetPartNo(String proCreDate, String proCreDateTo, String blockNo, String partCreDate) {
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<HashMap<String, String>> result = new ArrayList<>();
+
+        try {
+            con = PLMDBPool.getConnection();
+            String sql = """
+                  with ouid as
+                   ( select A.vf$ouid AS VFOID from product$vf A, product$id B 
+                      where A.vf$identity = B.id$ouid and A.vf$ouid = B.id$wip 
+                      --AND SUBSTR(A.MD$CDATE, 0, 6) IN('202609', '202610') 
+                        AND SUBSTR(A.MD$CDATE, 0, 8) BETWEEN ? AND ? -- '20261013' ~ '20261016' 제품 생성일
+                      AND A.MD$NUMBER NOT LIKE 'TEST%'
+                      ) 
+                  SELECT 
+                        (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) AS PARENTNO
+                      , (SELECT D.VF$VERSION FROM PRODUCT$VF D WHERE D.VF$OUID = PE.PRODUCTOUID) AS PARENTVER
+                      , (SELECT TO_CHAR(TO_DATE(D.MD$CDATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') FROM PRODUCT$VF D WHERE D.VF$OUID = PE.PRODUCTOUID) AS PARENTVER_CDATE
+                      , (SELECT TO_CHAR(TO_DATE(D.APP_DATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') FROM PRODUCT$VF D WHERE D.VF$OUID = PE.PRODUCTOUID) AS PARENTVER_APPDATE 
+                       , CODN(NP.NATION) AS NATION --자재코드(Ownership)
+                       , NP.MD$NUMBER AS PARTNO
+                       , NP.MD$DESC AS PARTNAME 
+                       , NP.VF$VERSION AS VERSION 
+                       , NVL(NP.G_L_CODE, '') AS GLCODE 
+                       , NVL(NP.SPEC, '') AS SPEC 
+                       , NVL(NP.PART_SIZE, '') AS PART_SIZE 
+                       , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) AS BLOCKNO
+                       , (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) AS BLOCK_OPT 
+                       , NVL(COD(NP.UOM), '') AS UOM 
+                       , PE.QTY AS QTY 
+                       , VP.WORK_QTY 
+                       , PE.CMT AS CMT 
+                       , NVL(COD(NP.ORIGIN_DIV), '') AS DIV 
+                       , NP.MD$USER AS USERID 
+                       , VP.UCHECK -- 수정여부 
+                       --, VP.MCHECK 
+                       --, NVL(COD(NP.PART_DIVISION), '') AS PART_DIVISION 
+                      , TO_CHAR(TO_DATE(PE.CDATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS CDATE -- 자재 등록일 
+                      , TO_CHAR(TO_DATE(VP.MDATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS MDATE -- 자재 수정일 
+                       , VP.user5 
+                      FROM 
+                       PARTOFEBOM PE 
+                      INNER JOIN NORMALPART$VF NP ON PE.PARTOUID = NP.VF$OUID
+                      LEFT OUTER JOIN VARIABLEPART_NEW VP ON VP.PRODUCTOUID = PE.PRODUCTOUID AND VP.ASSOOUID = PE.ASSOOUID 
+                      WHERE 
+                       -- PE.PRODUCTOUID = 제품의OID 
+                      PE.PRODUCTOUID IN (SELECT VFOID FROM ouid) 
+                      AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = ? -- BlockNo
+                      AND SUBSTR(PE.CDATE, 0, 8) = ? -- BOM 자재 등록일
+                """;
+
+            pstmt = con.prepareStatement(sql.toString());
+            pstmt.setString(1, proCreDate);
+            pstmt.setString(2, proCreDateTo);
+            pstmt.setString(3, blockNo);
+            pstmt.setString(4, partCreDate);
+
+            //System.out.println("sql.toString() = " + sql.toString());
+
+            rs = pstmt.executeQuery();
+
+            PartInfoDTO tempDto = new PartInfoDTO();
+
+            while(rs.next()) {
+                String PARENTNO = rs.getString("PARENTNO");
+                String PARENTVER =  rs.getString("PARENTVER");
+                String PARENTVER_CDATE = rs.getString("PARENTVER_CDATE");
+                String PARENTVER_APPDATE = rs.getString("PARENTVER_APPDATE");
+
+                String PARTNO = rs.getString("PARTNO");
+                String PARTNAME = rs.getString("PARTNAME");
+                String BLOCKNO = rs.getString("BLOCKNO");
+                String CMT = rs.getString("CMT");
+                String SPEC = rs.getString("SPEC");
+                String CDATE = rs.getString("CDATE");
+                String MDATE = rs.getString("MDATE");
+                String QTY = rs.getString("QTY");
+                String GLCODE = rs.getString("GLCODE");
+                String PART_SIZE = rs.getString("PART_SIZE");
+                String UOM = rs.getString("UOM");
+
+
+                HashMap<String, String> dto = new HashMap<>();
+
+                dto.put("PARENTNO", PARENTNO);
+                dto.put("PARENTVER", PARENTVER);
+                dto.put("PARENTVER_CDATE", PARENTVER_CDATE);
+                dto.put("PARENTVER_APPDATE", PARENTVER_APPDATE);
+                dto.put("PARTNO", PARTNO);
+                dto.put("PARTNAME", PARTNAME);
+                dto.put("BLOCKNO", BLOCKNO);
+                dto.put("CMT", CMT);
+                dto.put("SPEC", SPEC);
+                dto.put("CDATE", CDATE);
+                dto.put("MDATE", MDATE);
+                dto.put("QTY", QTY);
+                dto.put("GLCODE", GLCODE);
+                dto.put("PART_SIZE", PART_SIZE);
+                dto.put("UOM", UOM);
+
+                result.add(dto);
+
+            } //end while
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 @Controller
 @RequiredArgsConstructor
@@ -58,5 +59,23 @@ public class MLBController {
     @GetMapping("/thyTest")
     public String thyTest() {
         return "thymeleaf/excelTest";
+    }
+
+
+    @Description("blockNo로 특정기간에 제품에 수배된 자재 찾기 화면")
+    @GetMapping("/searchBomGetPartNo")
+    public String searchBomGetPartNo() {
+        return "thymeleaf/logic/searchBomGetPartNo";
+    }
+
+    @Description("blockNo로 특정기간에 제품에 수배된 자재 찾기")
+    @CrossOrigin
+    @PostMapping("/searchBomGetPartNo")
+    @ResponseBody
+    public ArrayList<HashMap<String, String>> searchBomGetPartNo(String proCreDate, String proCreDateTo, String blockNo, String partCreDate) {
+
+        ArrayList<HashMap<String, String>> result = MLBCommonUtil.searchBomGetPartNo(proCreDate, proCreDateTo, blockNo, partCreDate);
+
+        return result;
     }
 }
