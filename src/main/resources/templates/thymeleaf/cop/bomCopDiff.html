@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>호기 BOM 비교 · SENTINEL</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        SENTINEL 4F · 호기 BOM 비교 (CopMainController : GET /cop/diff?a=기준호기&b=비교호기)
+
+        같은 사양의 두 호기 BOM 을 어셈블리 · 위치번호(pos) 기준으로 정렬해 비교한다.
+          일치     : 품번 · 수량 모두 같음
+          수량 변경 : 품번 같고 수량만 다름
+          품번 변경 : 같은 위치에 다른 품번
+          누락     : 기준(A)에만 있음
+          추가     : 비교(B)에만 있음
+
+        데이터 : 지금은 화면 안의 샘플 (loadBomPair). 실제 연동 시 loadBomPair 만 fetch 로 바꾸면 된다.
+                 반환 형식 : { a: BOM, b: BOM }
+                 BOM = { productNo, site, spec, assemblies: [{ code, name, parts: [{ pos, partNo, name, qty, unit, spec }] }] }
+    -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <style>
+        /* ════════════ 토큰 (SENTINEL 공통) ════════════ */
+        :root {
+            --void:    #04060A;
+            --panel:   #0C1018;
+            --panel-2: #111723;
+            --panel-3: #161D2B;
+            --line:    rgba(255,255,255,.08);
+            --line-2:  rgba(255,255,255,.15);
+
+            --ink:   #F4F6FA;
+            --ink-2: #AEB6C4;
+            --ink-3: #7C8596;
+
+            --scan:   #7FE3FF;  --scan-dim:  rgba(127,227,255,.13);
+            --alert:  #FF5A36;  --alert-dim: rgba(255,90,54,.15);
+            --warn:   #FFB020;  --warn-dim:  rgba(255,176,32,.14);
+            --ok:     #5EF0A6;  --ok-dim:    rgba(94,240,166,.13);
+            --chg:    #B79CFF;  --chg-dim:   rgba(183,156,255,.15);
+            --same:   rgba(127,227,255,.22);
+
+            --mono: "D2Coding", Consolas, "SF Mono", Menlo, monospace;
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+            --ease-out: cubic-bezier(.16,1,.3,1);
+            --nav-h: 64px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; background: var(--void); }
+        body { margin: 0; min-height: 100vh; font-family: var(--sans); color: var(--ink); background: var(--void); word-break: keep-all; overflow-wrap: anywhere; }
+        h1, h2, h3, h4, p { margin: 0; }
+        a { color: inherit; text-decoration: none; }
+        button, input, select { font: inherit; color: inherit; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 2px solid var(--scan); outline-offset: 2px; border-radius: 6px; }
+        .mono { font-family: var(--mono); }
+        .tnum { font-variant-numeric: tabular-nums; }
+        .wrap { width: 100%; max-width: 1760px; margin: 0 auto; padding: 0 16px; }
+        @media (min-width: 900px) { .wrap { padding: 0 28px; } }
+        .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        .demo { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line-2); font: 700 10px/1.4 var(--mono); letter-spacing: .12em; color: var(--ink-3); }
+
+        /* ════════════ 상단 바 (관제 화면과 같음) ════════════ */
+        .nav { position: sticky; top: 0; z-index: 40; background: rgba(4,6,10,.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+        .nav-in { height: var(--nav-h); display: flex; align-items: center; gap: 16px; }
+        .brand { display: flex; align-items: center; gap: 12px; flex: none; }
+        .brand-mark { position: relative; width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--scan); }
+        .brand-mark::after { content: ""; position: absolute; left: 50%; top: 50%; width: 50%; height: 1.5px; background: var(--scan); transform-origin: 0 50%; animation: spin 3s linear infinite; }
+        .brand b { font: 800 14px/1 var(--sans); letter-spacing: .3em; }
+        .crumb { display: none; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-2); }
+        .crumb .floor { font: 700 13px/1 var(--mono); color: var(--alert); text-shadow: 0 0 10px rgba(255,90,54,.55); padding: 5px 8px; border-radius: 6px; background: #000; border: 1px solid var(--line-2); }
+        .crumb b { color: var(--ink); font-weight: 750; }
+        @media (min-width: 720px) { .crumb { display: flex; } }
+        .nav-tools { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; cursor: pointer;
+            font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap;
+            transition: background .2s, border-color .2s, transform .2s var(--ease-out), opacity .2s;
+        }
+        .btn:hover:not(:disabled) { background: rgba(255,255,255,.06); border-color: var(--ink-3); }
+        .btn:active:not(:disabled) { transform: scale(.97); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-solid { background: var(--ink); color: var(--void); border-color: var(--ink); }
+        .btn-solid:hover:not(:disabled) { background: #fff; box-shadow: 0 8px 22px -8px rgba(127,227,255,.6); }
+        .btn-sm { min-height: 34px; padding: 0 12px; font-size: 13px; }
+
+        .card { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; min-width: 0; }
+
+        /* ════════════ 1. 비교 대상 ════════════ */
+        .pick { margin-top: 18px; padding: 18px; display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); align-items: end; }
+        @media (min-width: 1000px) { .pick { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; } }
+        .side-in { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+        .side-in label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+        .side-tag { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 7px; font: 800 12px/1 var(--mono); }
+        .side-tag.a { background: var(--scan); color: #001018; }
+        .side-tag.b { background: var(--chg); color: #120A24; }
+        .side-in input {
+            width: 100%; min-height: 48px; padding: 0 14px; border-radius: 13px; border: 1px solid var(--line-2); background: var(--panel-2);
+            font: 700 18px var(--mono); letter-spacing: .02em;
+        }
+        .side-in input:focus { outline: none; border-color: var(--scan); box-shadow: 0 0 0 3px var(--scan-dim); }
+        .side-in input[aria-invalid="true"] { border-color: var(--alert); }
+        .side-meta { font-size: 12.5px; color: var(--ink-3); min-height: 18px; }
+        .swap {
+            width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--line-2); background: var(--panel-2); cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center; color: var(--ink-2); justify-self: center;
+            transition: transform .4s var(--ease-out), border-color .2s, color .2s;
+        }
+        .swap:hover { border-color: var(--scan); color: var(--scan); transform: rotate(180deg); }
+        @media (max-width: 999px) { .swap { transform: rotate(90deg); } .swap:hover { transform: rotate(270deg); } }
+        .pick .btn-solid { min-height: 48px; padding: 0 26px; border-radius: 13px; font-size: 15px; }
+        .peers { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-3); }
+        .peers button { min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; cursor: pointer; font: 600 12.5px var(--mono); color: var(--ink-2); }
+        .peers button:hover { border-color: var(--chg); color: var(--chg); }
+        .pick-err { grid-column: 1 / -1; font-size: 13px; font-weight: 700; color: var(--alert); }
+
+        /* ════════════ 2. 요약 + 정렬 띠 ════════════ */
+        .overview { margin-top: 16px; padding: 18px; display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 1100px) { .overview { grid-template-columns: 300px minmax(0, 1fr); align-items: center; } }
+
+        .score { display: flex; align-items: center; gap: 18px; }
+        .ring {
+            flex: none; position: relative; width: 112px; height: 112px; border-radius: 50%;
+            background: conic-gradient(var(--scan) calc(var(--p, 0) * 1%), rgba(255,255,255,.07) 0);
+            transition: --p 1s;
+        }
+        .ring::before { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: var(--panel); }
+        .ring div { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .ring b { font: 800 30px/1 var(--mono); }
+        .ring small { margin-top: 4px; font-size: 11.5px; color: var(--ink-3); font-weight: 700; }
+        .score-txt h2 { font-size: 18px; font-weight: 800; letter-spacing: -.01em; line-height: 1.35; }
+        .score-txt p { margin-top: 6px; font-size: 13px; color: var(--ink-3); line-height: 1.5; }
+
+        .counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+        @media (min-width: 720px) { .counts { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+        .cnt {
+            display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; border-radius: 13px; cursor: pointer; text-align: left;
+            border: 1px solid var(--line); background: var(--panel-2); transition: border-color .2s, opacity .2s, background .2s;
+        }
+        .cnt:hover { border-color: var(--line-2); }
+        .cnt[aria-pressed="false"] { opacity: .4; }
+        .cnt .sym { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font: 800 14px/1 var(--mono); flex: none; }
+        .cnt .lb { font-size: 12.5px; color: var(--ink-2); font-weight: 650; white-space: nowrap; }
+        .cnt .n { margin-left: auto; font: 800 18px/1 var(--mono); }
+
+        /* 상태별 색 (색 + 기호 + 글자로 구분) */
+        .s-SAME    { --c: var(--ink-3); --cd: rgba(255,255,255,.06); }
+        .s-QTY     { --c: var(--warn);  --cd: var(--warn-dim); }
+        .s-CHANGED { --c: var(--chg);   --cd: var(--chg-dim); }
+        .s-REMOVED { --c: var(--alert); --cd: var(--alert-dim); }
+        .s-ADDED   { --c: var(--ok);    --cd: var(--ok-dim); }
+        .cnt .sym, .chip-st .sym { background: var(--cd); color: var(--c); }
+        .cnt .n { color: var(--c); }
+        .cnt.s-SAME .n { color: var(--ink-2); }
+
+        /* 정렬 띠 : 열 하나 = 위치 하나, 위 = A, 아래 = B */
+        .dna-wrap { min-width: 0; }
+        .dna-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px; color: var(--ink-3); }
+        .dna-head b { font: 700 11px/1 var(--mono); letter-spacing: .14em; color: var(--ink-2); }
+        .dna { display: flex; gap: 6px; height: 104px; }
+        .dna-g { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; cursor: pointer; border-radius: 8px; padding: 0 2px; transition: background .2s; }
+        .dna-g:hover, .dna-g.on { background: rgba(255,255,255,.04); }
+        .dna-g .gl { height: 18px; font-size: 10.5px; font-weight: 700; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 2px; }
+        .dna-g.on .gl { color: var(--ink); }
+        .dna-cols { flex: 1; display: flex; gap: 2px; }
+        .col { flex: 1 1 0; min-width: 2px; display: flex; flex-direction: column; gap: 0; transform-origin: center; }
+        .col i { display: block; border-radius: 2px; }
+        .col .ta, .col .tb { height: 30px; }
+        .col .lk { height: 26px; width: 2px; margin: 0 auto; border-radius: 1px; }
+        .col.s-SAME .ta, .col.s-SAME .tb { background: var(--same); }
+        .col.s-SAME .lk { background: rgba(127,227,255,.14); }
+        .col.s-QTY .ta, .col.s-QTY .tb, .col.s-QTY .lk { background: var(--warn); }
+        .col.s-CHANGED .ta { background: var(--scan); } .col.s-CHANGED .tb { background: var(--chg); }
+        .col.s-CHANGED .lk { background: repeating-linear-gradient(180deg, var(--chg) 0 3px, transparent 3px 6px); }
+        .col.s-REMOVED .ta { background: var(--alert); } .col.s-REMOVED .tb { box-shadow: inset 0 0 0 1px rgba(255,90,54,.45); }
+        .col.s-ADDED .tb { background: var(--ok); }      .col.s-ADDED .ta { box-shadow: inset 0 0 0 1px rgba(94,240,166,.45); }
+        .col.hl .ta, .col.hl .tb { outline: 1.5px solid #fff; outline-offset: 1px; }
+        .dna-axis { display: flex; justify-content: space-between; margin-top: 6px; font: 600 11px/1 var(--mono); color: var(--ink-3); }
+        .dna-axis span:first-child { color: var(--scan); } .dna-axis span:last-child { color: var(--chg); }
+        .seq .col { animation: grow .55s var(--ease-out) both; }
+        @keyframes grow { from { transform: scaleY(0); opacity: 0; } to { transform: none; opacity: 1; } }
+
+        /* ════════════ 3. 어셈블리 + 비교표 ════════════ */
+        .work { margin: 16px 0 32px; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+        @media (min-width: 1100px) { .work { grid-template-columns: 290px minmax(0, 1fr); } }
+
+        .asm { padding: 14px; position: sticky; top: calc(var(--nav-h) + 12px); }
+        @media (max-width: 1099px) { .asm { position: static; } }
+        .asm h2, .tbl-head h2 { font-size: 15px; font-weight: 800; }
+        .asm-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+        @media (max-width: 1099px) { .asm-list { flex-direction: row; flex-wrap: wrap; } }
+        .asm-btn {
+            width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center;
+            padding: 10px 12px; border-radius: 12px; border: 1px solid transparent; background: transparent; cursor: pointer; text-align: left;
+            transition: background .15s, border-color .15s;
+        }
+        .asm-btn:hover { background: rgba(255,255,255,.04); }
+        .asm-btn[aria-pressed="true"] { background: var(--panel-3); border-color: var(--line-2); }
+        .asm-btn .nm { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .asm-btn .dc { font: 700 12px/1 var(--mono); padding: 4px 7px; border-radius: 999px; background: var(--alert-dim); color: var(--alert); }
+        .asm-btn .dc.zero { background: rgba(255,255,255,.05); color: var(--ink-3); }
+        .asm-btn .bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: rgba(255,255,255,.06); overflow: hidden; display: flex; }
+        .asm-btn .bar i { display: block; height: 100%; }
+        @media (max-width: 1099px) { .asm-list li { flex: 1 1 200px; } }
+
+        .tbl-card { overflow: hidden; }
+        .tbl-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+        .tbl-head .sub { font-size: 12.5px; color: var(--ink-3); }
+        .tools { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .search { position: relative; }
+        .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+        .search input { width: 220px; max-width: 100%; min-height: 36px; padding: 0 10px 0 32px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); font-size: 13.5px; }
+        .search input:focus { outline: none; border-color: var(--scan); box-shadow: 0 0 0 3px var(--scan-dim); }
+        .search input::placeholder { color: var(--ink-3); }
+        .tg { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; color: var(--ink-2); cursor: pointer; user-select: none; }
+        .sw { position: relative; width: 38px; height: 22px; flex: none; }
+        .sw input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+        .sw .t { position: absolute; inset: 0; border-radius: 999px; background: rgba(255,255,255,.14); transition: background .2s; }
+        .sw .k { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s; }
+        .sw input:checked + .t { background: var(--scan); }
+        .sw input:checked ~ .k { transform: translateX(16px); }
+        .sw input:focus-visible + .t { outline: 2px solid var(--scan); outline-offset: 2px; }
+
+        .tbl-scroll { overflow-x: auto; }
+        table { width: 100%; min-width: 980px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 13.5px; }
+        thead th {
+            position: sticky; top: 0; z-index: 2; background: var(--panel-2); text-align: left; padding: 10px 10px; font-size: 12px; font-weight: 700; color: var(--ink-3);
+            border-bottom: 1px solid var(--line); white-space: nowrap;
+        }
+        thead th.ga { color: var(--scan); } thead th.gb { color: var(--chg); }
+        thead tr.grp th { font: 800 11px/1 var(--mono); letter-spacing: .14em; padding-top: 12px; padding-bottom: 6px; border-bottom: none; }
+        th.num, td.num { text-align: right; }
+        th.mid, td.mid { text-align: center; }
+        td { padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,.04); vertical-align: middle; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        td.pn { font-family: var(--mono); font-size: 13px; }
+        td.pos { font-family: var(--mono); color: var(--ink-3); }
+        td.mid { border-left: 1px solid var(--line); border-right: 1px solid var(--line); background: rgba(255,255,255,.012); }
+        td.empty { color: var(--ink-3); }
+        td.empty span { display: inline-block; width: 100%; height: 1px; border-top: 1px dashed rgba(255,255,255,.12); vertical-align: middle; }
+        tr.r:hover td { background: rgba(255,255,255,.03); }
+        tr.r.hl td { background: rgba(127,227,255,.07); }
+        tr.r.s-SAME td:not(.mid) { color: var(--ink-3); }
+        td.da { background: rgba(255,90,54,.07); color: #FFB4A3 !important; }
+        td.db { background: rgba(94,240,166,.07); color: #B8FAD7 !important; }
+        tr.r.s-REMOVED td.a { background: rgba(255,90,54,.05); }
+        tr.r.s-ADDED td.b { background: rgba(94,240,166,.05); }
+
+        .chip-st { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--c); }
+        .chip-st .sym { width: 20px; height: 20px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font: 800 12px/1 var(--mono); }
+        .delta { display: block; font: 700 11.5px/1 var(--mono); margin-top: 3px; color: var(--c); }
+        .why { display: inline-block; margin-top: 5px; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; color: var(--ink-2); border: 1px solid var(--line-2); }
+        .why:hover { color: var(--ink); border-color: var(--ink-2); background: rgba(255,255,255,.05); }
+
+        tbody.g tr.gh td { padding: 0; border-bottom: 1px solid var(--line); background: var(--panel); }
+        .gh-btn {
+            width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 12px; border: none; background: transparent; cursor: pointer; text-align: left;
+            font-size: 13.5px; font-weight: 800;
+        }
+        .gh-btn:hover { background: rgba(255,255,255,.03); }
+        .gh-btn svg { transition: transform .25s var(--ease-out); color: var(--ink-3); }
+        .gh-btn[aria-expanded="false"] svg { transform: rotate(-90deg); }
+        .gh-btn .cd { font: 600 12px/1 var(--mono); color: var(--ink-3); }
+        .gh-btn .sm { margin-left: auto; display: flex; gap: 6px; }
+        .gh-btn .sm span { font: 700 11.5px/1 var(--mono); padding: 4px 7px; border-radius: 6px; background: var(--cd); color: var(--c); }
+        .tbl-empty { padding: 56px 20px; text-align: center; color: var(--ink-3); line-height: 1.7; }
+        .tbl-empty b { display: block; color: var(--ink); font-size: 16px; margin-bottom: 4px; }
+
+        .tip {
+            position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, calc(-100% - 12px));
+            padding: 8px 11px; border-radius: 10px; background: rgba(4,6,10,.94); border: 1px solid var(--line-2);
+            font-size: 12.5px; white-space: nowrap; box-shadow: 0 10px 24px rgba(0,0,0,.5);
+        }
+        .tip b { font-family: var(--mono); margin-right: 6px; }
+
+        .loading .dna, .loading .tbl-card { opacity: .35; transition: opacity .2s; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════ 상단 바 ═══════════ -->
+<header class="nav">
+    <div class="wrap nav-in">
+        <a class="brand" href="/cop/main" aria-label="SENTINEL 메인으로">
+            <span class="brand-mark" aria-hidden="true"></span><b>SENTINEL</b>
+        </a>
+        <div class="crumb" aria-label="현재 위치">
+            <span aria-hidden="true" style="color:var(--line-2)">/</span>
+            <span class="floor">4F</span><b>호기 BOM 비교</b>
+        </div>
+        <div class="nav-tools">
+            <span class="demo" title="샘플 데이터">DEMO</span>
+            <a class="btn btn-sm" href="/cop/radar">관제</a>
+            <a class="btn btn-sm" href="/cop/main">메인</a>
+        </div>
+    </div>
+</header>
+
+<main class="wrap" id="main">
+
+    <!-- ═══════════ 1. 비교 대상 ═══════════ -->
+    <form class="card pick" id="pickForm" novalidate aria-label="비교할 호기 선택">
+        <div class="side-in">
+            <label for="inA"><span class="side-tag a" aria-hidden="true">A</span>기준 호기</label>
+            <input id="inA" list="hogiList" autocomplete="off" spellcheck="false" placeholder="예) TEST-632560" aria-describedby="metaA pickErr">
+            <span class="side-meta" id="metaA"></span>
+        </div>
+        <button type="button" class="swap" id="btnSwap" aria-label="기준과 비교 호기 바꾸기" title="A ↔ B 바꾸기">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg>
+        </button>
+        <div class="side-in">
+            <label for="inB"><span class="side-tag b" aria-hidden="true">B</span>비교 호기</label>
+            <input id="inB" list="hogiList" autocomplete="off" spellcheck="false" placeholder="예) H2-71413" aria-describedby="metaB pickErr">
+            <span class="side-meta" id="metaB"></span>
+        </div>
+        <button type="submit" class="btn btn-solid" id="btnCompare">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg>
+            비교
+        </button>
+        <p class="pick-err" id="pickErr" role="alert" hidden></p>
+        <div class="peers" id="peers"></div>
+        <datalist id="hogiList"></datalist>
+    </form>
+
+    <!-- ═══════════ 2. 요약 + 정렬 띠 ═══════════ -->
+    <section class="card overview" aria-labelledby="scoreTitle">
+        <div class="score">
+            <div class="ring" id="ring" style="--p:0" role="img" aria-label="일치율">
+                <div><b class="tnum" id="rate">—</b><small>일치율</small></div>
+            </div>
+            <div class="score-txt">
+                <h2 id="scoreTitle">두 호기를 고르고<br>비교를 누르세요</h2>
+                <p id="scoreSub">같은 사양이라면 BOM 도 같아야 합니다.</p>
+            </div>
+        </div>
+        <div class="dna-wrap">
+            <div class="counts" id="counts" role="group" aria-label="상태 필터"></div>
+            <div class="dna-head"><b>BOM ALIGNMENT</b><span>열 하나 = 위치 하나 · 위 A / 아래 B · 끊기거나 색이 다른 곳이 차이</span></div>
+            <div class="dna" id="dna" aria-hidden="true"></div>
+            <div class="dna-axis" aria-hidden="true"><span id="axisA">A</span><span id="axisB">B</span></div>
+            <p class="sr" id="dnaSummary" aria-live="polite"></p>
+        </div>
+    </section>
+
+    <!-- ═══════════ 3. 어셈블리 + 비교표 ═══════════ -->
+    <div class="work">
+        <nav class="card asm" aria-labelledby="asmTitle">
+            <h2 id="asmTitle">어셈블리</h2>
+            <ul class="asm-list" id="asmList"></ul>
+        </nav>
+
+        <section class="card tbl-card" aria-labelledby="tblTitle">
+            <div class="tbl-head">
+                <h2 id="tblTitle">자재 비교</h2>
+                <span class="sub tnum" id="tblSub"></span>
+                <div class="tools">
+                    <label class="search">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                        <input type="search" id="q" placeholder="품번 · 자재명 검색" aria-label="품번 또는 자재명 검색" autocomplete="off">
+                    </label>
+                    <label class="tg">
+                        <span class="sw"><input type="checkbox" id="onlyDiff" checked><span class="t"></span><span class="k"></span></span>
+                        다른 것만
+                    </label>
+                    <button type="button" class="btn btn-sm" id="btnCsv">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+                        CSV
+                    </button>
+                </div>
+            </div>
+            <div class="tbl-scroll">
+                <table id="tbl">
+                    <colgroup>
+                        <col style="width:56px"><col style="width:120px"><col><col style="width:84px">
+                        <col style="width:128px">
+                        <col style="width:120px"><col><col style="width:84px">
+                    </colgroup>
+                    <thead>
+                        <tr class="grp"><th colspan="4" class="ga" id="thA">A · 기준</th><th class="mid">비교</th><th colspan="3" class="gb" id="thB">B · 비교</th></tr>
+                        <tr>
+                            <th scope="col">위치</th><th scope="col">품번</th><th scope="col">자재명</th><th scope="col" class="num">수량</th>
+                            <th scope="col" class="mid">상태</th>
+                            <th scope="col">품번</th><th scope="col">자재명</th><th scope="col" class="num">수량</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+            <div class="tbl-empty" id="tblEmpty" hidden></div>
+        </section>
+    </div>
+</main>
+
+<div class="tip" id="tip" hidden></div>
+
+<script th:inline="none">
+(function () {
+    "use strict";
+
+    var $ = function (id) { return document.getElementById(id); };
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    var ST = {
+        SAME:    { name: "일치",      sym: "=" },
+        QTY:     { name: "수량 변경", sym: "Δ" },
+        CHANGED: { name: "품번 변경", sym: "⇄" },
+        REMOVED: { name: "B 누락",    sym: "−" },
+        ADDED:   { name: "B 추가",    sym: "+" }
+    };
+    var ST_KEYS = ["QTY", "CHANGED", "REMOVED", "ADDED", "SAME"];
+
+    /* =========================================================
+       샘플 데이터 (실제 연동 시 loadBomPair 를 fetch 로 교체)
+       ========================================================= */
+    var SAMPLE_SPEC = "ELV 15인승 · 105m/min · 12층";
+    var SAMPLE_HOGI = ["TEST-632560", "H2-71413", "H3-15690", "H3-59200", "H1-69092", "H4-20915", "H2-48211", "H1-77820"];
+
+    // 같은 사양 호기의 표준 BOM — 호기마다 조금씩 달라진다
+    var BASE = [
+        { code: "A10", name: "권상기 ASSY", parts: [
+            [10, "P-5001-15", "권상기 본체", 1, "EA", "YJ140"], [20, "P-5010-02", "브레이크 라이닝", 2, "EA"], [30, "P-5022-07", "시브", 1, "EA", "Ø400"],
+            [40, "P-1102-07", "브라켓", 10, "EA"], [50, "P-1450-21", "앵커볼트", 16, "EA", "M16"], [60, "P-5030-11", "방진고무", 4, "EA"], [70, "P-5041-03", "엔코더", 1, "EA"] ] },
+        { code: "A20", name: "카 ASSY", parts: [
+            [10, "P-2740-03", "카 프레임", 1, "EA"], [20, "P-2751-08", "카 바닥판", 1, "EA"], [30, "P-2760-04", "카 천장", 1, "EA"],
+            [40, "P-2772-12", "카 조작반(COP)", 1, "EA"], [50, "P-2780-05", "핸드레일", 2, "EA"], [60, "P-2790-09", "비상조명", 1, "EA"], [70, "P-2795-01", "하중검출장치", 1, "EA"] ] },
+        { code: "A30", name: "카 도어 ASSY", parts: [
+            [10, "P-3318-11", "도어행거", 2, "EA"], [20, "P-3320-04", "도어 패널", 2, "EA"], [30, "P-3330-06", "도어 모터", 1, "EA"],
+            [40, "P-3902-01", "도어 인터록", 1, "EA"], [50, "P-3340-02", "세이프티 슈", 2, "EA"] ] },
+        { code: "A40", name: "승강장 도어 ASSY", parts: [
+            [10, "P-3410-07", "승강장 도어 패널", 24, "EA"], [20, "P-3420-03", "문턱(실)", 12, "EA"], [30, "P-3430-05", "승강장 버튼", 12, "EA"],
+            [40, "P-3440-08", "홀 랜턴", 12, "EA"], [50, "P-3318-12", "승강장 도어행거", 24, "EA"] ] },
+        { code: "A50", name: "가이드레일 ASSY", parts: [
+            [10, "P-2210-04", "가이드레일 T89", 18, "EA"], [20, "P-2220-01", "레일 브라켓", 36, "EA"], [30, "P-2230-06", "레일 클립", 144, "EA"], [40, "P-2240-02", "피쉬플레이트", 16, "EA"] ] },
+        { code: "A60", name: "로프 · 균형추", parts: [
+            [10, "P-4420-02", "와이어로프 Ø10", 480, "M"], [20, "P-2805-12", "균형추 프레임", 1, "EA"], [30, "P-2810-03", "균형추 블록", 32, "EA"], [40, "P-4430-05", "로프 소켓", 12, "EA"] ] },
+        { code: "A70", name: "제어반 ASSY", parts: [
+            [10, "P-6100-01", "제어반", 1, "EA"], [20, "P-6110-07", "인버터", 1, "EA"], [30, "P-6130-09", "제어반 케이블", 3, "EA"],
+            [40, "P-6620-04", "리미트 스위치", 6, "EA"], [50, "P-6140-02", "트래블링 케이블", 60, "M"] ] },
+        { code: "A80", name: "안전장치", parts: [
+            [10, "P-7011-06", "조속기", 1, "EA"], [20, "P-7020-03", "비상정지장치", 2, "EA"], [30, "P-7030-08", "완충기", 2, "EA"], [40, "P-7040-01", "조속기 로프", 70, "M"] ] }
+    ];
+    var EXTRA = [["P-9010-01", "보강 플레이트", 2, "EA"], ["P-9020-04", "케이블 덕트", 8, "M"], ["P-9030-02", "방음 패드", 4, "EA"], ["P-9040-07", "점검 스위치", 1, "EA"]];
+
+    /** 호기번호로 그 호기의 BOM 을 만든다 (같은 번호는 항상 같은 결과) */
+    function sampleBom(productNo) {
+        // 발표 시연용 대표 사례 : 표준 BOM 그대로 + 브라켓만 120EA (관제 화면의 TEST-632560 과 같은 이상)
+        var showcase = productNo === "TEST-632560";
+        var rnd = showcase ? function () { return 0.99; } : rng(hashInt(productNo));
+        var assemblies = BASE.map(function (asm) {
+            var parts = [];
+            asm.parts.forEach(function (p) {
+                var r = rnd();
+                var part = { pos: p[0], partNo: p[1], name: p[2], qty: p[3], unit: p[4], spec: p[5] || "" };
+                if (r < 0.02) return;                                                      // 빠진 자재
+                if (r < 0.06) part.qty = Math.max(1, part.qty + (rnd() < .5 ? -1 : 1) * Math.max(1, Math.round(part.qty * (0.08 + rnd() * 0.2))));
+                else if (r < 0.085) part.partNo = part.partNo.slice(0, -2) + pad(+part.partNo.slice(-2) + 1); // 개정 품번
+                parts.push(part);
+            });
+            if (rnd() < 0.1) {
+                var e = EXTRA[Math.floor(rnd() * EXTRA.length)];
+                parts.push({ pos: 90, partNo: e[0], name: e[1], qty: e[2], unit: e[3], spec: "" });
+            }
+            return { code: asm.code, name: asm.name, parts: parts };
+        });
+        if (showcase) {
+            assemblies[0].parts.forEach(function (p) { if (p.partNo === "P-1102-07") p.qty = 120; });
+        }
+        return { productNo: productNo, site: "샘플현장 " + "ABCDEFGH".charAt(hashInt(productNo) % 8) + "-" + (hashInt(productNo + "s") % 40 + 1), spec: SAMPLE_SPEC, assemblies: assemblies };
+    }
+
+    function loadBomPair(a, b) {
+        return new Promise(function (resolve) {
+            setTimeout(function () { resolve({ a: sampleBom(a), b: sampleBom(b) }); }, reduceMotion ? 0 : 450);
+        });
+    }
+
+    /* =========================================================
+       비교 (정렬)
+       ========================================================= */
+    var rows = [], groups = [];
+    var filter = { st: { QTY: true, CHANGED: true, REMOVED: true, ADDED: true, SAME: true }, asm: null, q: "", onlyDiff: true };
+    var collapsed = {};
+    var pair = null;
+
+    function diff(A, B) {
+        rows = []; groups = [];
+        var codes = [];
+        A.assemblies.concat(B.assemblies).forEach(function (g) { if (codes.indexOf(g.code) < 0) codes.push(g.code); });
+        codes.forEach(function (code) {
+            var ga = A.assemblies.filter(function (g) { return g.code === code; })[0] || { parts: [] };
+            var gb = B.assemblies.filter(function (g) { return g.code === code; })[0] || { parts: [] };
+            var poses = [];
+            ga.parts.concat(gb.parts).forEach(function (p) { if (poses.indexOf(p.pos) < 0) poses.push(p.pos); });
+            poses.sort(function (x, y) { return x - y; });
+            var grp = { code: code, name: ga.name || gb.name, rows: [] };
+            poses.forEach(function (pos) {
+                var pa = ga.parts.filter(function (p) { return p.pos === pos; })[0];
+                var pb = gb.parts.filter(function (p) { return p.pos === pos; })[0];
+                var st = !pb ? "REMOVED" : !pa ? "ADDED" : pa.partNo !== pb.partNo ? "CHANGED" : pa.qty !== pb.qty ? "QTY" : "SAME";
+                var row = { id: code + "-" + pos, asm: code, asmName: grp.name, pos: pos, a: pa, b: pb, st: st };
+                grp.rows.push(row); rows.push(row);
+            });
+            groups.push(grp);
+        });
+    }
+
+    function count(list, st) { return list.filter(function (r) { return r.st === st; }).length; }
+
+    /* =========================================================
+       그리기
+       ========================================================= */
+    function renderAll() {
+        renderScore();
+        renderCounts();
+        renderDna();
+        renderAsm();
+        renderTable();
+    }
+
+    function renderScore() {
+        var same = count(rows, "SAME"), total = rows.length, diffN = total - same;
+        var rate = total ? Math.round(same / total * 1000) / 10 : 0;
+        $("rate").textContent = rate.toFixed(1);
+        animateRing(rate);
+        $("ring").setAttribute("aria-label", "일치율 " + rate + "%");
+        $("scoreTitle").innerHTML = diffN
+            ? '<span class="tnum" style="color:var(--alert)">' + diffN + '</span>곳이 다릅니다'
+            : '두 BOM 이 완전히 같습니다';
+        $("scoreSub").textContent = "전체 " + total + "개 위치 · " + groups.length + "개 어셈블리 비교";
+        $("dnaSummary").textContent = "일치율 " + rate + "%. 수량 변경 " + count(rows, "QTY") + ", 품번 변경 " + count(rows, "CHANGED") +
+            ", B 누락 " + count(rows, "REMOVED") + ", B 추가 " + count(rows, "ADDED") + ".";
+    }
+
+    var ringFrom = 0;
+    function animateRing(to) {
+        if (reduceMotion) { $("ring").style.setProperty("--p", to); ringFrom = to; return; }
+        var start = performance.now(), from = ringFrom;
+        (function step(now) {
+            var p = Math.min(1, (now - start) / 900), v = from + (to - from) * (1 - Math.pow(1 - p, 3));
+            $("ring").style.setProperty("--p", v);
+            if (p < 1) requestAnimationFrame(step); else ringFrom = to;
+        })(start);
+    }
+
+    function renderCounts() {
+        $("counts").innerHTML = ST_KEYS.map(function (k) {
+            return '<button type="button" class="cnt s-' + k + '" data-st="' + k + '" aria-pressed="' + filter.st[k] + '">' +
+                '<span class="sym" aria-hidden="true">' + ST[k].sym + '</span><span class="lb">' + ST[k].name + '</span>' +
+                '<span class="n tnum">' + count(rows, k) + '</span></button>';
+        }).join("");
+        $("counts").querySelectorAll(".cnt").forEach(function (b) {
+            b.addEventListener("click", function () {
+                var k = b.dataset.st;
+                filter.st[k] = !filter.st[k];
+                b.setAttribute("aria-pressed", filter.st[k]);
+                if (k === "SAME" && filter.st.SAME && filter.onlyDiff) { filter.onlyDiff = false; $("onlyDiff").checked = false; }
+                renderTable();
+            });
+        });
+    }
+
+    function renderDna() {
+        var dna = $("dna");
+        dna.classList.remove("seq");
+        dna.innerHTML = groups.map(function (g) {
+            return '<div class="dna-g' + (filter.asm === g.code ? " on" : "") + '" data-asm="' + g.code + '" style="flex-grow:' + g.rows.length + '">' +
+                '<span class="gl">' + esc(g.name) + '</span><div class="dna-cols">' +
+                g.rows.map(function (r, i) {
+                    return '<span class="col s-' + r.st + '" data-id="' + r.id + '" style="animation-delay:' + (i * 18) + 'ms"><i class="ta"></i><i class="lk"></i><i class="tb"></i></span>';
+                }).join("") + '</div></div>';
+        }).join("");
+        if (!reduceMotion) { void dna.offsetWidth; dna.classList.add("seq"); }
+    }
+
+    function renderAsm() {
+        $("asmList").innerHTML = [{ code: null, name: "전체 어셈블리", rows: rows }].concat(groups).map(function (g) {
+            var d = g.rows.filter(function (r) { return r.st !== "SAME"; }).length;
+            var bar = ST_KEYS.filter(function (k) { return k !== "SAME"; }).map(function (k) {
+                var n = count(g.rows, k);
+                return n ? '<i class="s-' + k + '" style="width:' + (n / g.rows.length * 100) + '%;background:var(--c)"></i>' : "";
+            }).join("");
+            return '<li><button type="button" class="asm-btn" data-asm="' + (g.code || "") + '" aria-pressed="' + (filter.asm === g.code) + '">' +
+                '<span class="nm">' + esc(g.name) + '</span><span class="dc tnum' + (d ? "" : " zero") + '">' + (d ? d + " 차이" : "일치") + '</span>' +
+                '<span class="bar" aria-hidden="true">' + bar + '</span></button></li>';
+        }).join("");
+        $("asmList").querySelectorAll(".asm-btn").forEach(function (b) {
+            b.addEventListener("click", function () { setAsm(b.dataset.asm || null); });
+        });
+    }
+
+    function setAsm(code) {
+        filter.asm = code;
+        $("asmList").querySelectorAll(".asm-btn").forEach(function (b) { b.setAttribute("aria-pressed", (b.dataset.asm || null) === code); });
+        $("dna").querySelectorAll(".dna-g").forEach(function (g) { g.classList.toggle("on", g.dataset.asm === code); });
+        renderTable();
+    }
+
+    function visibleRow(r) {
+        if (filter.onlyDiff && r.st === "SAME") return false;
+        if (!filter.st[r.st]) return false;
+        if (filter.asm && r.asm !== filter.asm) return false;
+        if (filter.q) {
+            var s = [r.a && r.a.partNo, r.a && r.a.name, r.b && r.b.partNo, r.b && r.b.name].join(" ").toLowerCase();
+            if (s.indexOf(filter.q) < 0) return false;
+        }
+        return true;
+    }
+
+    function renderTable() {
+        var tbl = $("tbl");
+        Array.prototype.slice.call(tbl.tBodies).forEach(function (b) { b.remove(); });
+        var shown = 0;
+        groups.forEach(function (g) {
+            var vis = g.rows.filter(visibleRow);
+            if (!vis.length) return;
+            shown += vis.length;
+            var tb = document.createElement("tbody");
+            tb.className = "g";
+            var open = !collapsed[g.code];
+            var sums = ST_KEYS.filter(function (k) { return k !== "SAME"; }).map(function (k) {
+                var n = count(g.rows, k);
+                return n ? '<span class="s-' + k + '" title="' + ST[k].name + '">' + ST[k].sym + n + '</span>' : "";
+            }).join("");
+            tb.innerHTML = '<tr class="gh"><td colspan="8"><button type="button" class="gh-btn" aria-expanded="' + open + '" data-asm="' + g.code + '">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>' +
+                esc(g.name) + ' <span class="cd">' + g.code + '</span><span class="sm">' + sums + '</span></button></td></tr>' +
+                (open ? vis.map(rowHtml).join("") : "");
+            tbl.appendChild(tb);
+        });
+        $("tblSub").textContent = shown + " / " + rows.length + " 위치 표시";
+        var empty = $("tblEmpty");
+        if (!rows.length) {
+            empty.hidden = false;
+            empty.innerHTML = "<b>비교할 호기를 선택하세요</b>기준(A)과 비교(B) 호기번호를 넣고 비교를 누르면 차이가 표시됩니다.";
+        } else if (!shown) {
+            empty.hidden = false;
+            empty.innerHTML = filter.onlyDiff && !filter.q && !filter.asm
+                ? "<b>차이가 없습니다</b>두 호기의 BOM 이 모든 위치에서 같습니다."
+                : "<b>조건에 맞는 자재가 없습니다</b>필터나 검색어를 바꿔 보세요.";
+        } else {
+            empty.hidden = true;
+        }
+    }
+
+    function rowHtml(r) {
+        var a = r.a, b = r.b;
+        var pnDiff = r.st === "CHANGED", qtyDiff = r.st === "QTY" || r.st === "CHANGED";
+        var nameDiff = a && b && a.name !== b.name;
+        function side(p, cls, other) {
+            if (!p) return '<td class="pn empty ' + cls + '"><span></span></td><td class="empty ' + cls + '"><span></span></td><td class="num empty ' + cls + '"><span></span></td>';
+            var mark = cls === "a" ? "da" : "db";
+            return '<td class="pn ' + cls + (pnDiff ? " " + mark : "") + '" title="' + esc(p.partNo) + '">' + esc(p.partNo) + '</td>' +
+                '<td class="' + cls + (nameDiff ? " " + mark : "") + '" title="' + esc(p.name + (p.spec ? " · " + p.spec : "")) + '">' + esc(p.name) + (p.spec ? ' <span style="color:var(--ink-3)">' + esc(p.spec) + '</span>' : "") + '</td>' +
+                '<td class="num tnum ' + cls + (qtyDiff && other && p.qty !== other.qty ? " " + mark : "") + '">' + p.qty.toLocaleString("ko-KR") + ' <span style="color:var(--ink-3);font-size:11.5px">' + p.unit + '</span></td>';
+        }
+        var delta = "";
+        if (r.st === "QTY") {
+            var d = b.qty - a.qty;
+            delta = '<span class="delta tnum">' + (d > 0 ? "+" : "") + d.toLocaleString("ko-KR") + " " + b.unit + (a.qty ? " (" + (b.qty / a.qty).toFixed(1) + "배)" : "") + '</span>';
+        }
+        // 다른 행은 비교 호기(B) 기준으로 원인 추적(3F)으로 연결
+        var p = b || a, why = r.st === "SAME" || !pair ? "" :
+            '<a class="why" href="/cop/trace?no=' + encodeURIComponent(pair.b.productNo) + '&part=' + encodeURIComponent(p.partNo) + '&name=' + encodeURIComponent(p.name) + '" title="원인 추적">원인 →</a>';
+        return '<tr class="r s-' + r.st + '" id="row-' + r.id + '" data-id="' + r.id + '">' +
+            '<td class="pos tnum">' + r.pos + '</td>' + side(a, "a", b) +
+            '<td class="mid s-' + r.st + '"><span class="chip-st"><span class="sym" aria-hidden="true">' + ST[r.st].sym + '</span>' + ST[r.st].name + '</span>' + delta + why + '</td>' +
+            side(b, "b", a) + '</tr>';
+    }
+
+    /* 표 이벤트 */
+    $("tbl").addEventListener("click", function (e) {
+        var gb = e.target.closest(".gh-btn");
+        if (gb) { collapsed[gb.dataset.asm] = !collapsed[gb.dataset.asm]; renderTable(); return; }
+    });
+    $("tbl").addEventListener("mouseover", function (e) { var tr = e.target.closest("tr.r"); hlCol(tr && tr.dataset.id); });
+    $("tbl").addEventListener("mouseleave", function () { hlCol(null); });
+    function hlCol(id) {
+        $("dna").querySelectorAll(".col.hl").forEach(function (c) { c.classList.remove("hl"); });
+        if (id) { var c = $("dna").querySelector('.col[data-id="' + id + '"]'); if (c) c.classList.add("hl"); }
+    }
+
+    /* 정렬 띠 이벤트 : 열을 누르면 표의 그 행으로 */
+    $("dna").addEventListener("click", function (e) {
+        var col = e.target.closest(".col"), grp = e.target.closest(".dna-g");
+        if (col) {
+            var r = rows.filter(function (x) { return x.id === col.dataset.id; })[0];
+            if (!r) return;
+            if (!visibleRow(r)) { filter.onlyDiff = r.st !== "SAME" && filter.onlyDiff; $("onlyDiff").checked = filter.onlyDiff; filter.st[r.st] = true; filter.q = ""; $("q").value = ""; renderCounts(); }
+            if (filter.asm && filter.asm !== r.asm) setAsm(null);
+            collapsed[r.asm] = false;
+            renderTable();
+            var tr = $("row-" + r.id);
+            if (tr) {
+                tr.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+                tr.classList.add("hl");
+                setTimeout(function () { tr.classList.remove("hl"); }, 1600);
+            }
+        } else if (grp) {
+            setAsm(filter.asm === grp.dataset.asm ? null : grp.dataset.asm);
+        }
+    });
+    $("dna").addEventListener("mousemove", function (e) {
+        var col = e.target.closest(".col"), tip = $("tip");
+        if (!col) { tip.hidden = true; return; }
+        var r = rows.filter(function (x) { return x.id === col.dataset.id; })[0];
+        var p = r.a || r.b;
+        tip.innerHTML = '<b>' + esc(r.asm + "-" + r.pos) + '</b>' + esc(p.name) + ' · <span style="color:var(--c)" class="s-' + r.st + '">' + ST[r.st].name + '</span>';
+        var rc = col.getBoundingClientRect();
+        tip.style.left = (rc.left + rc.width / 2) + "px"; tip.style.top = rc.top + "px";
+        tip.hidden = false;
+    });
+    $("dna").addEventListener("mouseleave", function () { $("tip").hidden = true; });
+
+    /* 도구 */
+    $("q").addEventListener("input", function () { filter.q = this.value.trim().toLowerCase(); renderTable(); });
+    $("onlyDiff").addEventListener("change", function () { filter.onlyDiff = this.checked; renderTable(); });
+    $("btnCsv").addEventListener("click", function () {
+        if (!rows.length) return;
+        var head = ["어셈블리", "위치", "상태", "A 품번", "A 자재명", "A 수량", "B 품번", "B 자재명", "B 수량", "단위"];
+        var lines = [head].concat(rows.filter(visibleRow).map(function (r) {
+            var a = r.a || {}, b = r.b || {};
+            return [r.asmName, r.pos, ST[r.st].name, a.partNo || "", a.name || "", a.qty == null ? "" : a.qty, b.partNo || "", b.name || "", b.qty == null ? "" : b.qty, (a.unit || b.unit || "")];
+        })).map(function (l) { return l.map(function (v) { v = String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(","); });
+        var blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+        var link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "BOM비교_" + pair.a.productNo + "_vs_" + pair.b.productNo + ".csv";
+        document.body.appendChild(link); link.click(); link.remove();
+        setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+    });
+
+    /* =========================================================
+       비교 대상 선택
+       ========================================================= */
+    $("hogiList").innerHTML = SAMPLE_HOGI.map(function (h) { return '<option value="' + h + '">'; }).join("");
+
+    function renderPeers() {
+        var a = $("inA").value.trim();
+        var list = SAMPLE_HOGI.filter(function (h) { return h !== a; }).slice(0, 5);
+        $("peers").innerHTML = '<span>같은 사양 추천</span>' + list.map(function (h) {
+            return '<button type="button" data-h="' + h + '" aria-label="' + h + ' 를 비교 호기로">' + h + '</button>';
+        }).join("") + '<span style="margin-left:auto" class="demo">SAMPLE · ' + SAMPLE_SPEC + '</span>';
+        $("peers").querySelectorAll("button").forEach(function (b) {
+            b.addEventListener("click", function () { $("inB").value = b.dataset.h; compare(); });
+        });
+    }
+    $("inA").addEventListener("change", renderPeers);
+
+    $("btnSwap").addEventListener("click", function () {
+        var t = $("inA").value; $("inA").value = $("inB").value; $("inB").value = t;
+        renderPeers();
+        if ($("inA").value && $("inB").value) compare();
+    });
+
+    $("pickForm").addEventListener("submit", function (e) { e.preventDefault(); compare(); });
+
+    function compare() {
+        var a = $("inA").value.trim().toUpperCase(), b = $("inB").value.trim().toUpperCase();
+        $("inA").value = a; $("inB").value = b;
+        var err = !a ? ["inA", "기준 호기(A)를 입력하세요."] : !b ? ["inB", "비교 호기(B)를 입력하세요."] : a === b ? ["inB", "서로 다른 두 호기를 고르세요."] : null;
+        $("inA").removeAttribute("aria-invalid"); $("inB").removeAttribute("aria-invalid");
+        $("pickErr").hidden = !err;
+        if (err) { $("pickErr").textContent = err[1]; $(err[0]).setAttribute("aria-invalid", "true"); $(err[0]).focus(); return; }
+
+        document.body.classList.add("loading");
+        $("btnCompare").disabled = true;
+        loadBomPair(a, b).then(function (res) {
+            pair = res;
+            $("metaA").textContent = res.a.site + " · " + res.a.spec;
+            $("metaB").textContent = res.b.site + " · " + res.b.spec;
+            $("thA").textContent = "A · " + a; $("thB").textContent = "B · " + b;
+            $("axisA").textContent = "A · " + a; $("axisB").textContent = "B · " + b;
+            filter.asm = null; collapsed = {};
+            diff(res.a, res.b);
+            renderAll();
+            history.replaceState(null, "", location.pathname + "?a=" + encodeURIComponent(a) + "&b=" + encodeURIComponent(b));
+        }).then(function () {
+            document.body.classList.remove("loading");
+            $("btnCompare").disabled = false;
+        });
+    }
+
+    /* =========================================================
+       유틸
+       ========================================================= */
+    function hashInt(s) {
+        var h = 2166136261; s = String(s);
+        for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+        return h >>> 0;
+    }
+    function rng(seed) {   // mulberry32
+        return function () {
+            seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+            var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+            t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        };
+    }
+    function pad(n) { return n < 10 ? "0" + n : "" + n; }
+    function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+    }
+
+    /* =========================================================
+       시작 : ?a=&b= 가 있으면 바로 비교
+       관제 화면에서는 의심 호기를 ?b= 로 넘긴다 → 같은 사양의 정상 호기를 기준(A)으로 자동 선택
+       ========================================================= */
+    var qs = new URLSearchParams(location.search);
+    var qb = (qs.get("b") || (qs.get("a") ? "" : "TEST-632560")).toUpperCase();
+    var qa = (qs.get("a") || SAMPLE_HOGI.filter(function (h) { return h !== qb && h !== "TEST-632560"; })[0]).toUpperCase();
+    $("inA").value = qa;
+    renderPeers();
+    $("inB").value = qb || SAMPLE_HOGI.filter(function (h) { return h !== qa; })[0];
+    renderTable();
+    compare();
+})();
+</script>
+</body>
+</html>

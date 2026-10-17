@@ -116,4 +116,43 @@ public class CycleTest {
         System.out.println(" ----------- end ------------");
     }
 
+
+    @Description("changeAttribute 와 동일한 흐름을 서비스 함수 한 번으로 수행")
+    @Test
+    public void equalInfoCycle() {
+
+        Map<String, Object> attrs = new LinkedHashMap<>();
+        attrs.put("EL_ZFDA", "20261003");    // 기계구조 최초설계
+        attrs.put("EL_ZFDB", "20261003");    // 기계의장 최초설계
+        attrs.put("EL_ZFDC", "20261003");    // 전기구조 최초설계
+        attrs.put("EL_ZFDD", "20261003");    // 전기_의장 최초 설계
+
+        OneCycleFunc.OneCycleResult result = oneCycleFunc.runEqualInfoCycle("TEST-632560", attrs);
+        System.out.println("##### 동일정보 원사이클 결과 : " + result);
+    }
+
+
+    @Description("WIP 생성 -> 속성값 변경 -> 종속사양 산출 -> BOM 계산")
+    @Test
+    public void cycleWithAttr() {
+
+        Map<String, Object> attrs = new LinkedHashMap<>();
+        attrs.put("EL_ZFDA", "20261003");
+
+        OneCycleFunc.OneCycleResult result = oneCycleFunc.runOneCycle("TEST-630231", attrs);
+        System.out.println("##### 원사이클(속성변경) 결과 : " + result);
+    }
+
+
+    @Description("속성값 변경만 단독 수행")
+    @Test
+    public void attrChangeOnly() {
+
+        Map<String, Object> attrs = new LinkedHashMap<>();
+        attrs.put("EL_ZFDA", "20261003");
+
+        OneCycleFunc.AttrChangeResult result = oneCycleFunc.runAttrChange("TEST-630231", attrs, true);
+        System.out.println("##### 속성값 변경 결과 : " + result);
+    }
+
 }

@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>BOM 원사이클 자동화</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        BOM 원사이클 자동화 화면 (BomManageController)
+          화면   : GET  /cop/bom
+          로그인 : POST /cop/bom/login  { userid, pwd }  -> 본인 PLM 계정으로 로그인, 세션은 서버 HttpSession 에 보관 (비밀번호 저장 안 함)
+          단계   : POST /cop/bom/{wip | equal | attr | jongsoksung | bom}  { ouid, ... }
+          실행 순서 : WIP 생성 -> 동일정보 만들기 -> 속성값 변경 -> 종속사양 산출 -> BOM 계산
+                      (동일정보 만들기를 켜면 WIP 는 원본에, 이후 단계는 새로 만든 TEST 호기에 수행된다)
+    -->
+
+    <script>
+        // 페이지 렌더 전 다크모드/사이드바 상태 적용 (깜빡임 방지) — 기본값: 다크
+        if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+    </script>
+
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/resources/dist/googleFont.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <script>
+        tailwind.config = {
+            // Bootstrap(adminlte) 기반 사이드바 마크업을 쓰므로 preflight 는 끈다
+            corePlugins: { preflight: false },
+            important: true,
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: { blue: '#0071E3', gray1: '#8E8E93' }
+                    },
+                    boxShadow: { btn: '0 2px 10px rgba(0,113,227,.35)' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* ════════════ 토큰 ════════════ */
+        :root {
+            --paper:   #F3F4F6;
+            --sheet:   #FFFFFF;
+            --sheet-2: #F8F9FB;
+            --ink:     #15171A;
+            --ink-2:   #4B5159;
+            --ink-3:   #6B717A;
+            --rule:    #E1E4E8;
+            --rule-2:  #EDEFF2;
+            --focus:   #0071E3;
+
+            --accent:      #0066D6;
+            --accent-2:    #4F46E5;
+            --accent-tint: rgba(0,102,214,.08);
+
+            --ok:     #15803D;  --ok-tint:     rgba(21,128,61,.10);
+            --warn:   #B45309;  --warn-tint:   rgba(180,83,9,.10);
+            --danger: #C42B25;  --danger-tint: rgba(196,43,37,.09);
+            --idle:   #8A9099;  --idle-tint:   rgba(138,144,153,.12);
+
+            --shadow-1: 0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
+            --shadow-2: 0 12px 32px -12px rgba(16,24,40,.18);
+
+            --hero-a: #0B1F3A;
+            --hero-b: #1B2F6B;
+
+            --mono: Consolas, "D2Coding", "SF Mono", Menlo, monospace;
+        }
+        html.dark {
+            --paper:   #000000;
+            --sheet:   #16171A;
+            --sheet-2: #1D1F23;
+            --ink:     #F2F3F5;
+            --ink-2:   #B4B9C0;
+            --ink-3:   #8E949C;
+            --rule:    #2E3136;
+            --rule-2:  #25272B;
+            --focus:   #0A84FF;
+
+            --accent:      #3B9BFF;
+            --accent-2:    #8B85FF;
+            --accent-tint: rgba(59,155,255,.12);
+
+            --ok:     #4ADE80;  --ok-tint:     rgba(74,222,128,.12);
+            --warn:   #FBBF24;  --warn-tint:   rgba(251,191,36,.12);
+            --danger: #FF6B61;  --danger-tint: rgba(255,107,97,.12);
+            --idle:   #7D838B;  --idle-tint:   rgba(125,131,139,.16);
+
+            --shadow-1: 0 1px 0 rgba(255,255,255,.03) inset;
+            --shadow-2: 0 16px 40px -16px rgba(0,0,0,.7);
+
+            --hero-a: #07152B;
+            --hero-b: #16245A;
+        }
+
+        html { -webkit-font-smoothing: antialiased; }
+        body {
+            font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--paper);
+            color: var(--ink);
+            word-break: keep-all;
+            overflow-wrap: anywhere;
+        }
+        h1, h2, h3, h4 { margin: 0; }
+        main p, header p { margin: 0; }
+        main label { margin-bottom: 0; font-weight: inherit; }
+        [hidden] { display: none !important; }
+        .tnum { font-variant-numeric: tabular-nums; }
+        .mono { font-family: var(--mono); }
+        :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+        .sr-only-bm { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+        /* ── 상단 바 (다른 화면과 공통) ── */
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 9px; border: none; cursor: pointer;
+            background: transparent; color: var(--ink); transition: background .15s;
+        }
+        .icon-btn:hover { background: rgba(127,127,127,.12); }
+        .ios-switch { position: relative; width: 46px; height: 27px; cursor: pointer; margin: 0; }
+        .ios-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ios-switch .track { position: absolute; inset: 0; border-radius: 999px; background: #D2D2D7; transition: background .2s; }
+        .dark .ios-switch .track { background: #38383A; }
+        .ios-switch input:checked + .track { background: #34C759; }
+        .ios-switch input:focus-visible + .track { outline: 2px solid var(--focus); outline-offset: 2px; }
+        .ios-switch .knob {
+            position: absolute; top: 2.5px; left: 2.5px; width: 22px; height: 22px;
+            border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: transform .2s;
+        }
+        .ios-switch input:checked ~ .knob { transform: translateX(19px); }
+
+        /* ════════════ 레이아웃 ════════════
+           헤더와 본문이 같은 컨테이너(.bm-wrap)를 써서 좌우 끝선이 맞도록 한다. */
+        .bm-wrap { width: 100%; max-width: 1600px; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
+        @media (min-width: 640px) { .bm-wrap { padding-left: 24px; padding-right: 24px; } }
+        @media (min-width: 1280px) { .bm-wrap { padding-left: 32px; padding-right: 32px; } }
+
+        .bm-topbar { height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .bm-main { padding-top: 24px; padding-bottom: 56px; display: flex; flex-direction: column; gap: 20px; }
+
+        /* 설정 : 로그인 · 대상 호기 · 속성값 (같은 높이로 맞춤) */
+        .bm-setup { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: stretch; }
+        @media (min-width: 900px) {
+            .bm-setup { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .bm-setup > .is-wide { grid-column: 1 / -1; }
+        }
+        @media (min-width: 1400px) {
+            .bm-setup { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.45fr); }
+            .bm-setup > .is-wide { grid-column: auto; }
+        }
+        .bm-setup > .bm-card { display: flex; flex-direction: column; min-width: 0; }
+        .bm-setup > .bm-card > .bm-card-body { flex: 1; display: flex; flex-direction: column; }
+
+        .bm-section-label {
+            display: flex; align-items: center; gap: 10px; margin-top: 4px;
+            font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3);
+        }
+        .bm-section-label b { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 7px; background: var(--accent-tint); color: var(--accent); font-size: 12px; letter-spacing: 0; }
+        .bm-section-label::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+
+        /* ════════════ 히어로 ════════════ */
+        .bm-hero {
+            position: relative; overflow: hidden; border-radius: 20px;
+            background:
+                radial-gradient(900px 320px at 85% -20%, rgba(99,102,241,.45), transparent 60%),
+                radial-gradient(600px 300px at 0% 120%, rgba(14,165,233,.30), transparent 60%),
+                linear-gradient(135deg, var(--hero-a), var(--hero-b));
+            color: #fff;
+            padding: 28px 24px;
+            display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px;
+            box-shadow: var(--shadow-2);
+        }
+        .bm-hero::after {   /* 은은한 격자 */
+            content: ""; position: absolute; inset: 0; pointer-events: none;
+            background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+            background-size: 32px 32px;
+            mask-image: linear-gradient(90deg, transparent, #000 45%, #000);
+            -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%, #000);
+        }
+        .bm-hero > * { position: relative; z-index: 1; }
+        @media (min-width: 1100px) { .bm-hero { grid-template-columns: minmax(0, 1fr) auto; padding: 34px 36px; align-items: center; } }
+
+        .bm-eyebrow {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-size: 11.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+            color: rgba(255,255,255,.72);
+        }
+        .bm-eyebrow i { width: 6px; height: 6px; border-radius: 50%; background: #34D399; box-shadow: 0 0 0 4px rgba(52,211,153,.2); }
+        .bm-hero h2 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; margin-top: 10px; }
+        @media (min-width: 640px) { .bm-hero h2 { font-size: 36px; } }
+        .bm-hero-desc { margin-top: 10px; font-size: 15px; line-height: 1.6; color: rgba(255,255,255,.78); max-width: 640px; }
+        .bm-flowline { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; color: rgba(255,255,255,.82); }
+        .bm-flowline span { padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.14); }
+        .bm-flowline svg { opacity: .55; }
+
+        .bm-hero-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+        @media (min-width: 1100px) { .bm-hero-side { width: 440px; } }
+        .bm-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+        .bm-kpi {
+            border-radius: 14px; padding: 12px 14px; min-width: 0;
+            background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+            backdrop-filter: blur(6px);
+        }
+        .bm-kpi dt { font-size: 11.5px; color: rgba(255,255,255,.66); font-weight: 600; }
+        .bm-kpi dd { margin: 4px 0 0; font-size: 22px; font-weight: 800; letter-spacing: -.01em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bm-kpi dd small { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.6); margin-left: 2px; }
+        .bm-kpi.is-target dd { font-size: 15px; font-family: var(--mono); padding-top: 4px; }
+
+        .bm-cta-row { display: flex; gap: 10px; }
+        .bm-cta {
+            flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            min-height: 52px; padding: 0 22px; border-radius: 14px; border: none; cursor: pointer;
+            font-size: 16px; font-weight: 700; letter-spacing: -.01em;
+            background: #fff; color: #0B1F3A;
+            box-shadow: 0 10px 24px -8px rgba(0,0,0,.45);
+            transition: transform .15s ease, box-shadow .15s ease, opacity .15s;
+        }
+        .bm-cta:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 14px 28px -8px rgba(0,0,0,.5); }
+        .bm-cta:active:not(:disabled) { transform: translateY(0) scale(.99); }
+        .bm-cta:disabled { opacity: .55; cursor: not-allowed; }
+        .bm-cta-stop {
+            min-height: 52px; padding: 0 18px; border-radius: 14px; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14.5px;
+            background: rgba(255,255,255,.08); color: #fff; border: 1px solid rgba(255,255,255,.28);
+        }
+        .bm-cta-stop:hover { background: rgba(255,255,255,.16); }
+        .bm-cta-note { font-size: 12.5px; color: rgba(255,255,255,.68); }
+
+        /* ════════════ 파이프라인 레일 ════════════ */
+        .bm-card {
+            background: var(--sheet); border: 1px solid var(--rule); border-radius: 18px;
+            box-shadow: var(--shadow-1);
+        }
+        .bm-card-head { display: flex; align-items: center; gap: 12px; padding: 18px 20px 0; }
+        .bm-card-head h3 { font-size: 16px; font-weight: 750; letter-spacing: -.01em; }
+        .bm-card-head p { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+        .bm-card-head .bm-head-tools { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+        .bm-card-body { padding: 16px 20px 20px; }
+        .bm-badge-ico {
+            width: 34px; height: 34px; border-radius: 10px; flex: none;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: var(--accent-tint); color: var(--accent);
+        }
+
+        .bm-rail {
+            --gap: 14px;
+            display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap);
+            padding: 20px;
+        }
+        @media (min-width: 720px) { .bm-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1240px) { .bm-rail { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+
+        .bm-node {
+            position: relative; min-width: 0;
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+            padding: 16px 14px 14px; border-radius: 16px;
+            background: var(--sheet-2); border: 1px solid var(--rule-2);
+            transition: border-color .25s, background .25s, opacity .25s, box-shadow .25s;
+        }
+        .bm-node[data-enabled="false"] { opacity: .5; }
+        .bm-node[data-status="running"] { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-tint); background: var(--sheet); }
+        .bm-node[data-status="done"]    { border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+        .bm-node[data-status="warn"]    { border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+        .bm-node[data-status="fail"]    { border-color: color-mix(in srgb, var(--danger) 50%, transparent); background: var(--danger-tint); }
+
+        .bm-node-top { align-self: stretch; display: flex; align-items: center; justify-content: space-between; }
+        .bm-node-no { font-size: 11px; font-weight: 800; letter-spacing: .12em; color: var(--ink-3); }
+
+        .bm-sw { position: relative; width: 38px; height: 22px; cursor: pointer; margin: 0; flex: none; }
+        .bm-sw input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 1; }
+        .bm-sw .t { position: absolute; inset: 0; border-radius: 999px; background: var(--rule); transition: background .2s; }
+        .bm-sw .k { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .2s; }
+        .bm-sw input:checked + .t { background: var(--accent); }
+        .bm-sw input:checked ~ .k { transform: translateX(16px); }
+        .bm-sw input:focus-visible + .t { outline: 2px solid var(--focus); outline-offset: 2px; }
+        .bm-sw input:disabled { cursor: not-allowed; }
+
+        .bm-node-icon {
+            position: relative; margin-top: 10px;
+            width: 56px; height: 56px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: var(--sheet); color: var(--ink-2); border: 1.5px solid var(--rule);
+            transition: background .25s, color .25s, border-color .25s;
+        }
+        .bm-node[data-status="running"] .bm-node-icon { color: var(--accent); border-color: transparent; }
+        .bm-node[data-status="running"] .bm-node-icon::after {
+            content: ""; position: absolute; inset: -3px; border-radius: 50%;
+            border: 3px solid var(--accent-tint); border-top-color: var(--accent);
+            animation: bm-spin .9s linear infinite;
+        }
+        .bm-node[data-status="done"] .bm-node-icon { background: var(--ok); border-color: var(--ok); color: #fff; }
+        .bm-node[data-status="warn"] .bm-node-icon { background: var(--warn); border-color: var(--warn); color: #fff; }
+        .bm-node[data-status="fail"] .bm-node-icon { background: var(--danger); border-color: var(--danger); color: #fff; }
+        .dark .bm-node[data-status="done"] .bm-node-icon,
+        .dark .bm-node[data-status="warn"] .bm-node-icon { color: #0B0C0E; }
+        @keyframes bm-spin { to { transform: rotate(360deg); } }
+
+        /* 단계 사이 연결선 (5열 배치일 때만) */
+        .bm-link { display: none; }
+        @media (min-width: 1240px) {
+            .bm-link {
+                /* 아이콘 중심 높이 = 패딩 16 + 상단줄 22 + 간격 10 + 반지름 28 */
+                display: block; position: absolute; top: 75px; height: 3px; border-radius: 3px;
+                left: calc(50% + 36px); width: calc(100% + var(--gap) - 72px);
+                background: var(--rule); overflow: hidden; z-index: 2; pointer-events: none;
+            }
+            .bm-link i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--ok), var(--accent)); transform: scaleX(0); transform-origin: left; transition: transform .5s cubic-bezier(.4,0,.2,1); }
+            .bm-node[data-status="done"] .bm-link i,
+            .bm-node[data-status="warn"] .bm-link i,
+            .bm-node[data-status="skip"] .bm-link i { transform: scaleX(1); }
+        }
+
+        .bm-node h4 { margin-top: 12px; font-size: 15.5px; font-weight: 750; letter-spacing: -.01em; }
+        .bm-node-desc { margin-top: 4px; font-size: 12.5px; line-height: 1.45; color: var(--ink-3); min-height: 36px; }
+        /* 상태줄부터는 카드 아래쪽에 붙여 단계끼리 높이를 맞춘다 */
+        .bm-node-foot { margin-top: auto; padding-top: 14px; display: flex; align-items: center; gap: 8px; }
+        .bm-node-time { font-size: 12.5px; color: var(--ink-3); font-weight: 600; }
+        .bm-node-msg {
+            margin: 8px 0 10px; font-size: 12px; line-height: 1.45; color: var(--ink-2);
+            align-self: stretch; min-height: 34px;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .bm-node[data-status="fail"] .bm-node-msg { color: var(--danger); }
+        /* BOM 단계 안의 전개 옵션 */
+        .bm-node-opts { margin-top: 10px; display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+        .bm-node-opts .bm-opt span { flex-direction: row; gap: 4px; padding: 5px 9px; border-radius: 8px; }
+        .bm-node-opts .bm-opt b { font-size: 12px; font-weight: 700; }
+        .bm-node-opts .bm-opt small { font-size: 11px; }
+        .bm-node-count { margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-tint); padding: 4px 10px; border-radius: 8px; }
+        .bm-node-count.is-zero { color: var(--ink-3); background: var(--idle-tint); }
+
+        .bm-node-run {
+            align-self: stretch; min-height: 36px; border-radius: 10px; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            font-size: 13px; font-weight: 650;
+            background: transparent; color: var(--accent); border: 1px solid var(--rule);
+            transition: background .15s, border-color .15s;
+        }
+        .bm-node-run:hover:not(:disabled) { background: var(--accent-tint); border-color: var(--accent); }
+        .bm-node-run:disabled { color: var(--ink-3); cursor: not-allowed; opacity: .6; }
+
+        .bm-pill {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap;
+            background: var(--idle-tint); color: var(--idle);
+        }
+        .bm-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .bm-pill[data-s="running"] { background: var(--accent-tint); color: var(--accent); }
+        .bm-pill[data-s="running"]::before { animation: bm-blink 1s ease-in-out infinite; }
+        .bm-pill[data-s="done"] { background: var(--ok-tint); color: var(--ok); }
+        .bm-pill[data-s="warn"] { background: var(--warn-tint); color: var(--warn); }
+        .bm-pill[data-s="fail"] { background: var(--danger-tint); color: var(--danger); }
+        @keyframes bm-blink { 50% { opacity: .25; } }
+
+        /* 진행 바 (레일 상단) */
+        .bm-progress { height: 4px; background: var(--rule-2); border-radius: 0 0 18px 18px; overflow: hidden; }
+        .bm-progress i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transform: scaleX(0); transform-origin: left; transition: transform .45s cubic-bezier(.4,0,.2,1); }
+
+        /* ════════════ 폼 ════════════ */
+        .bm-field { display: flex; flex-direction: column; gap: 6px; }
+        .bm-field + .bm-field { margin-top: 12px; }
+        .bm-label { font-size: 13px; font-weight: 650; color: var(--ink-2); }
+        .bm-input-wrap { position: relative; display: flex; align-items: center; }
+        .bm-input-wrap > svg { position: absolute; left: 12px; color: var(--ink-3); pointer-events: none; }
+        .bm-input {
+            width: 100%; min-height: 44px; padding: 0 12px 0 38px; border-radius: 11px;
+            border: 1px solid var(--rule); background: var(--sheet-2); color: var(--ink);
+            font-size: 15px; transition: border-color .15s, box-shadow .15s, background .15s;
+        }
+        .bm-input.no-ico { padding-left: 12px; }
+        .bm-input::placeholder { color: var(--ink-3); opacity: .8; }
+        .bm-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint); background: var(--sheet); }
+        .bm-input[aria-invalid="true"] { border-color: var(--danger); }
+        .bm-input:disabled { opacity: .6; cursor: not-allowed; }
+        .bm-eye {
+            position: absolute; right: 4px; width: 38px; height: 38px; border: none; border-radius: 9px;
+            background: transparent; color: var(--ink-3); cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .bm-eye:hover { background: var(--rule-2); color: var(--ink); }
+        .bm-err { font-size: 12.5px; color: var(--danger); font-weight: 600; }
+        .bm-help { font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
+
+        .bm-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            min-height: 44px; padding: 0 16px; border-radius: 11px; cursor: pointer;
+            font-size: 14.5px; font-weight: 700; border: 1px solid transparent; white-space: nowrap;
+            transition: background .15s, border-color .15s, opacity .15s, transform .1s;
+        }
+        .bm-btn:active:not(:disabled) { transform: scale(.98); }
+        .bm-btn:disabled { opacity: .5; cursor: not-allowed; }
+        .bm-btn-primary { background: var(--accent); color: #fff; }
+        .dark .bm-btn-primary { color: #04111F; }
+        .bm-btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+        .bm-btn-ghost { background: transparent; color: var(--ink-2); border-color: var(--rule); }
+        .bm-btn-ghost:hover:not(:disabled) { background: var(--rule-2); color: var(--ink); }
+        .bm-btn-sm { min-height: 34px; padding: 0 12px; font-size: 13px; border-radius: 9px; }
+        .bm-btn-block { width: 100%; }
+
+        .bm-spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: bm-spin .7s linear infinite; }
+
+        /* 로그인 상태 */
+        .bm-user {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 14px; border-radius: 14px;
+            background: var(--ok-tint); border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent);
+        }
+        .bm-avatar {
+            width: 40px; height: 40px; border-radius: 12px; flex: none;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff;
+        }
+        .bm-user-id { font-size: 16px; font-weight: 800; font-family: var(--mono); }
+        .bm-user-sub { font-size: 12.5px; color: var(--ok); font-weight: 650; display: inline-flex; align-items: center; gap: 5px; }
+
+        /* 대상 호기 */
+        .bm-target-row { display: flex; gap: 8px; }
+        .bm-target-row .bm-input-wrap { flex: 1; min-width: 0; }
+        .bm-target-info {
+            margin-top: 12px; padding: 12px 14px; border-radius: 12px;
+            background: var(--sheet-2); border: 1px dashed var(--rule);
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .bm-kv { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13px; }
+        .bm-kv dt { color: var(--ink-3); font-weight: 600; flex: none; }
+        .bm-kv dd { margin: 0; font-family: var(--mono); font-weight: 700; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+        .bm-kv dd.is-new { color: var(--accent); }
+
+        /* 속성값 */
+        .bm-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .bm-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            min-height: 32px; padding: 0 11px; border-radius: 999px; cursor: pointer;
+            font-size: 12.5px; font-weight: 650;
+            background: var(--sheet-2); color: var(--ink-2); border: 1px solid var(--rule);
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .bm-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-tint); }
+        .bm-attr-list { display: flex; flex-direction: column; gap: 8px; }
+        .bm-attr {
+            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; gap: 6px; align-items: start;
+        }
+        .bm-attr .bm-input { min-height: 40px; font-size: 14px; padding-left: 10px; }
+        .bm-attr .code { font-family: var(--mono); text-transform: none; }
+        .bm-attr-del {
+            width: 36px; height: 40px; border-radius: 9px; border: none; cursor: pointer;
+            background: transparent; color: var(--ink-3); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .bm-attr-del:hover { background: var(--danger-tint); color: var(--danger); }
+        .bm-attr-meta { grid-column: 1 / -1; display: flex; gap: 10px; font-size: 12px; color: var(--ink-3); padding: 0 2px; margin-top: -2px; }
+        .bm-attr-meta .cur { font-family: var(--mono); }
+        .bm-attr-meta .ok { color: var(--ok); font-weight: 700; }
+        .bm-attr-meta .ng { color: var(--warn); font-weight: 700; }
+        .bm-empty { padding: 16px; border-radius: 12px; border: 1px dashed var(--rule); text-align: center; font-size: 13px; color: var(--ink-3); }
+        .bm-attr-list { flex: 1; }
+        .bm-attr-list > .bm-empty, .bm-fill-empty {
+            flex: 1; min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; line-height: 1.5;
+        }
+        .bm-attr-list > .bm-empty svg, .bm-fill-empty svg { color: var(--ink-3); opacity: .7; }
+        .bm-attr-list > .bm-empty b, .bm-fill-empty b { color: var(--ink-2); font-size: 13.5px; }
+
+        /* BOM 전개 옵션 */
+        .bm-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        .bm-opt { position: relative; cursor: pointer; margin: 0; }
+        .bm-opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+        .bm-opt span {
+            display: flex; flex-direction: column; align-items: center; gap: 2px;
+            padding: 10px 6px; border-radius: 12px; border: 1px solid var(--rule); background: var(--sheet-2);
+            transition: border-color .15s, background .15s, color .15s;
+        }
+        .bm-opt b { font-size: 14px; font-weight: 750; }
+        .bm-opt small { font-size: 11.5px; color: var(--ink-3); font-family: var(--mono); }
+        .bm-opt input:checked + span { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); }
+        .bm-opt input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+        /* ════════════ 결과 / 로그 ════════════ */
+        .bm-summary {
+            margin: 16px 20px 0; padding: 16px 18px; border-radius: 14px;
+            display: flex; align-items: center; gap: 14px;
+            background: var(--sheet-2); border: 1px solid var(--rule);
+        }
+        .bm-summary[data-s="done"] { background: var(--ok-tint); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+        .bm-summary[data-s="fail"] { background: var(--danger-tint); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
+        .bm-summary[data-s="running"] { background: var(--accent-tint); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+        .bm-summary-ico { width: 40px; height: 40px; border-radius: 12px; flex: none; display: inline-flex; align-items: center; justify-content: center; background: var(--sheet); color: var(--ink-3); }
+        .bm-summary[data-s="done"] .bm-summary-ico { color: var(--ok); }
+        .bm-summary[data-s="fail"] .bm-summary-ico { color: var(--danger); }
+        .bm-summary[data-s="running"] .bm-summary-ico { color: var(--accent); }
+        .bm-summary h4 { font-size: 15px; font-weight: 750; }
+        .bm-summary p { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+
+        .bm-log { list-style: none; margin: 0; padding: 8px 20px 20px; max-height: 520px; overflow-y: auto; }
+        .bm-log li {
+            position: relative; display: grid; grid-template-columns: 64px 18px minmax(0, 1fr); gap: 10px;
+            padding: 10px 0; border-bottom: 1px solid var(--rule-2); font-size: 13.5px;
+            animation: bm-in .25s ease-out;
+        }
+        .bm-log li:last-child { border-bottom: none; }
+        .bm-log time { font-family: var(--mono); font-size: 12px; color: var(--ink-3); padding-top: 2px; }
+        .bm-log .dot { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-top: 1px; color: #fff; background: var(--idle); }
+        .bm-log li[data-l="ok"] .dot { background: var(--ok); }
+        .bm-log li[data-l="warn"] .dot { background: var(--warn); }
+        .bm-log li[data-l="fail"] .dot { background: var(--danger); }
+        .bm-log li[data-l="run"] .dot { background: var(--accent); }
+        .dark .bm-log li[data-l="ok"] .dot, .dark .bm-log li[data-l="warn"] .dot { color: #0B0C0E; }
+        .bm-log .tag { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 6px; font-size: 11.5px; font-weight: 700; background: var(--rule-2); color: var(--ink-2); }
+        .bm-log .msg { color: var(--ink); line-height: 1.5; }
+        .bm-log .sub { display: block; font-size: 12px; color: var(--ink-3); font-family: var(--mono); margin-top: 2px; }
+        @keyframes bm-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+        /* ════════════ 토스트 / 모달 ════════════ */
+        .bm-toast {
+            position: fixed; left: 50%; bottom: 28px; z-index: 1000; transform: translate(-50%, 20px);
+            display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 32px);
+            padding: 12px 18px; border-radius: 14px; font-size: 14px; font-weight: 650;
+            background: #15171A; color: #fff; box-shadow: 0 16px 36px -10px rgba(0,0,0,.5);
+            opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+        }
+        .dark .bm-toast { background: #F2F3F5; color: #15171A; }
+        .bm-toast.show { opacity: 1; transform: translate(-50%, 0); }
+        .bm-toast[data-l="fail"] { background: var(--danger); color: #fff; }
+
+        .bm-modal { position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .bm-modal-bg { position: absolute; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(3px); }
+        .bm-modal-box {
+            position: relative; width: 100%; max-width: 440px; border-radius: 20px; padding: 24px;
+            background: var(--sheet); border: 1px solid var(--rule); box-shadow: var(--shadow-2);
+            animation: bm-pop .2s ease-out;
+        }
+        @keyframes bm-pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+        .bm-modal-box h3 { font-size: 18px; font-weight: 800; }
+        .bm-modal-box p { margin: 10px 0 0; font-size: 14px; color: var(--ink-2); line-height: 1.6; }
+        .bm-modal-steps { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--sheet-2); font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .bm-modal-steps b { padding: 2px 8px; border-radius: 6px; background: var(--accent-tint); color: var(--accent); font-weight: 700; }
+        .bm-modal-warn { margin-top: 12px; display: flex; gap: 8px; font-size: 13px; color: var(--warn); font-weight: 650; line-height: 1.5; }
+        .bm-modal-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 8px; }
+
+        @keyframes bm-shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); } }
+        .bm-shake { animation: bm-shake .45s; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+
+<!-- ═══════════ Left Sidebar (fragments/newSideBar.html) ═══════════ -->
+<div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+
+<div id="appContent">
+
+<!-- ═══════════ Top Bar ═══════════ -->
+<header class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-black/60 border-b border-black/5 dark:border-white/10">
+    <div class="bm-wrap bm-topbar">
+        <div class="flex items-center gap-3">
+            <button type="button" id="sbToggle" class="icon-btn -ml-2" title="사이드바 열기/닫기" aria-label="사이드바 열기/닫기">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
+            <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-[16px] font-bold tracking-tight leading-none">BOM 원사이클 자동화</h1>
+                <p class="text-[11px] text-apple-gray1 leading-none mt-[3px]">Logic Design Intelligence Platform</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <label for="darkModeToggle" class="text-[12.5px] font-medium text-apple-gray1 cursor-pointer" id="themeLabel" style="margin:0;">다크모드</label>
+            <label class="ios-switch">
+                <input type="checkbox" id="darkModeToggle" aria-label="다크모드">
+                <span class="track"></span><span class="knob"></span>
+            </label>
+        </div>
+    </div>
+</header>
+
+<main class="bm-wrap bm-main">
+
+    <!-- ═══════════ 히어로 ═══════════ -->
+    <section class="bm-hero" aria-labelledby="heroTitle">
+        <div>
+            <span class="bm-eyebrow"><i aria-hidden="true"></i>PLM Automation · One-Cycle</span>
+            <h2 id="heroTitle">사양 변경부터 BOM 계산까지,<br>버튼 한 번으로.</h2>
+            <p class="bm-hero-desc">PLM 화면에서 단계마다 직접 처리하던 작업을 본인 계정으로 자동 실행합니다. 원하는 단계만 골라 순서대로 실행하거나, 단계별로 따로 실행할 수 있습니다.</p>
+            <div class="bm-flowline" aria-label="실행 순서">
+                <span>WIP 생성</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                <span>동일정보 만들기</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                <span>속성값 변경</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                <span>종속사양 산출</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                <span>BOM 계산</span>
+            </div>
+        </div>
+
+        <div class="bm-hero-side">
+            <dl class="bm-kpis">
+                <div class="bm-kpi is-target"><dt>대상 호기</dt><dd id="kpiTarget" title="">—</dd></div>
+                <div class="bm-kpi"><dt>진행</dt><dd><span id="kpiDone" class="tnum">0</span><small>/ <span id="kpiTotal" class="tnum">4</span> 단계</small></dd></div>
+                <div class="bm-kpi"><dt>소요 시간</dt><dd id="kpiTime" class="tnum">00:00</dd></div>
+            </dl>
+            <div class="bm-cta-row">
+                <button type="button" class="bm-cta" id="btnRun">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.52.85l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>
+                    <span id="btnRunText">선택한 단계 실행</span>
+                </button>
+                <button type="button" class="bm-cta-stop" id="btnStop" hidden>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+                    중지
+                </button>
+            </div>
+            <p class="bm-cta-note" id="ctaNote">로그인과 대상 호기 확인 후 실행할 수 있습니다.</p>
+        </div>
+    </section>
+
+    <!-- ═══════════ 1. 준비 : 로그인 · 대상 호기 · 속성값 ═══════════ -->
+    <h2 class="bm-section-label"><b>1</b>준비</h2>
+    <div class="bm-setup">
+
+            <!-- 로그인 -->
+            <section class="bm-card" id="loginCard" aria-labelledby="loginTitle">
+                <div class="bm-card-head">
+                    <span class="bm-badge-ico" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </span>
+                    <div>
+                        <h3 id="loginTitle">PLM 로그인</h3>
+                        <p>본인 사번/비밀번호로 PLM 에 로그인합니다.</p>
+                    </div>
+                </div>
+                <div class="bm-card-body">
+                    <form id="loginForm" novalidate>
+                        <div class="bm-field">
+                            <label class="bm-label" for="userid">사번</label>
+                            <div class="bm-input-wrap">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                <input class="bm-input mono" id="userid" name="username" autocomplete="username" inputmode="numeric" placeholder="예) 2035570" aria-describedby="loginErr">
+                            </div>
+                        </div>
+                        <div class="bm-field">
+                            <label class="bm-label" for="pwd">비밀번호</label>
+                            <div class="bm-input-wrap">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></svg>
+                                <input class="bm-input" id="pwd" type="password" name="password" autocomplete="current-password" placeholder="PLM 비밀번호" aria-describedby="loginErr" style="padding-right:46px">
+                                <button type="button" class="bm-eye" id="btnEye" aria-label="비밀번호 보기" aria-pressed="false">
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="bm-err" id="loginErr" role="alert" style="margin-top:10px" hidden></p>
+                        <button type="submit" class="bm-btn bm-btn-primary bm-btn-block" id="btnLogin" style="margin-top:16px">로그인</button>
+                        <p class="bm-help" style="margin-top:10px">비밀번호는 저장하지 않으며, 로그인 세션은 이 브라우저 세션 동안만 유지됩니다.</p>
+                    </form>
+
+                    <div id="userBox" hidden>
+                        <div class="bm-user">
+                            <span class="bm-avatar" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </span>
+                            <div style="min-width:0">
+                                <div class="bm-user-id" id="userIdText"></div>
+                                <span class="bm-user-sub">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                                    PLM 연결됨
+                                </span>
+                            </div>
+                            <button type="button" class="bm-btn bm-btn-ghost bm-btn-sm" id="btnLogout" style="margin-left:auto">로그아웃</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 대상 호기 -->
+            <section class="bm-card" id="targetCard" aria-labelledby="targetTitle">
+                <div class="bm-card-head">
+                    <span class="bm-badge-ico" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+                    </span>
+                    <div>
+                        <h3 id="targetTitle">대상 호기</h3>
+                        <p>프로젝트호기번호로 WIP 영업사양을 찾습니다.</p>
+                    </div>
+                </div>
+                <div class="bm-card-body">
+                    <form id="targetForm" novalidate>
+                        <label class="bm-label" for="productNo">프로젝트호기번호</label>
+                        <div class="bm-target-row" style="margin-top:6px">
+                            <div class="bm-input-wrap">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                                <input class="bm-input mono" id="productNo" autocomplete="off" spellcheck="false" placeholder="예) TEST-632560" aria-describedby="targetErr">
+                            </div>
+                            <button type="submit" class="bm-btn bm-btn-ghost" id="btnResolve">확인</button>
+                        </div>
+                        <p class="bm-err" id="targetErr" role="alert" style="margin-top:8px" hidden></p>
+                    </form>
+
+                    <dl class="bm-target-info" id="targetInfo" hidden>
+                        <div class="bm-kv"><dt>원본 호기</dt><dd id="tSourceNo"></dd></div>
+                        <div class="bm-kv"><dt>영업사양</dt><dd id="tSourceOuid" style="font-weight:500;font-size:12px"></dd></div>
+                        <div class="bm-kv" id="tNewRow" hidden><dt>현재 대상 (신규)</dt><dd class="is-new" id="tNewNo"></dd></div>
+                        <div class="bm-kv" id="tResetRow" hidden><dt></dt><dd><button type="button" class="bm-btn bm-btn-ghost bm-btn-sm" id="btnResetTarget">원본 호기로 되돌리기</button></dd></div>
+                    </dl>
+                    <div class="bm-empty bm-fill-empty" id="targetEmpty" style="margin-top:12px">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/></svg>
+                        <b>아직 확인한 호기가 없습니다</b>
+                        <span>호기번호를 입력하고 확인을 누르면<br>원본 호기와 영업사양(WIP) 정보가 표시됩니다.</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 속성값 -->
+            <section class="bm-card is-wide" aria-labelledby="attrTitle">
+                <div class="bm-card-head">
+                    <span class="bm-badge-ico" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+                    </span>
+                    <div>
+                        <h3 id="attrTitle">변경할 속성값</h3>
+                        <p>특성코드와 값을 입력합니다. 비워두면 속성값 변경은 건너뜁니다.</p>
+                    </div>
+                </div>
+                <div class="bm-card-body">
+                    <div class="bm-presets" role="group" aria-label="자주 쓰는 속성">
+                        <button type="button" class="bm-chip" data-preset="design">+ 최초설계일 4종</button>
+                        <button type="button" class="bm-chip" data-preset="designer">+ 담당 설계자</button>
+                        <button type="button" class="bm-chip" data-preset="manager">+ 기계/전기 담당자</button>
+                    </div>
+                    <div class="bm-attr-list" id="attrList"></div>
+                    <div style="display:flex;gap:8px;margin-top:auto;padding-top:12px">
+                        <button type="button" class="bm-btn bm-btn-ghost bm-btn-sm" id="btnAddAttr">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                            행 추가
+                        </button>
+                        <button type="button" class="bm-btn bm-btn-ghost bm-btn-sm" id="btnReadAttr" style="margin-left:auto">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+                            현재값 조회
+                        </button>
+                    </div>
+                    <datalist id="codeList">
+                        <option value="EL_ZFDA">기계구조 최초설계</option>
+                        <option value="EL_ZFDB">기계의장 최초설계</option>
+                        <option value="EL_ZFDC">전기구조 최초설계</option>
+                        <option value="EL_ZFDD">전기_의장 최초설계</option>
+                        <option value="designer">담당 설계자 사번</option>
+                        <option value="MANAGER_M">기계 담당자명</option>
+                        <option value="MANAGER_E">전기 담당자명</option>
+                        <option value="md$user">담당자명</option>
+                        <option value="md$description">현장명</option>
+                    </datalist>
+                </div>
+            </section>
+
+    </div>
+
+    <!-- ═══════════ 2. 실행 : 파이프라인 ═══════════ -->
+    <h2 class="bm-section-label"><b>2</b>실행</h2>
+    <section class="bm-card" aria-labelledby="railTitle">
+        <div class="bm-card-head">
+            <span class="bm-badge-ico" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="3"/><circle cx="19" cy="12" r="3"/><path d="M8 12h8"/></svg>
+            </span>
+            <div>
+                <h3 id="railTitle">실행 단계</h3>
+                <p>스위치로 일괄 실행할 단계를 고르고, 각 단계는 <b>단독 실행</b>으로 따로 돌릴 수 있습니다.</p>
+            </div>
+        </div>
+        <div class="bm-rail" id="rail"></div>
+        <div class="bm-progress" aria-hidden="true"><i id="progressBar"></i></div>
+    </section>
+
+    <!-- ═══════════ 3. 결과 : 요약 / 기록 ═══════════ -->
+    <h2 class="bm-section-label"><b>3</b>결과</h2>
+        <section class="bm-card" aria-labelledby="logTitle" style="min-width:0">
+            <div class="bm-card-head">
+                <span class="bm-badge-ico" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+                </span>
+                <div>
+                    <h3 id="logTitle">실행 결과</h3>
+                    <p>각 단계의 PLM 응답과 처리 시간을 기록합니다.</p>
+                </div>
+                <div class="bm-head-tools">
+                    <button type="button" class="bm-btn bm-btn-ghost bm-btn-sm" id="btnClearLog">기록 지우기</button>
+                </div>
+            </div>
+
+            <div class="bm-summary" id="summary" data-s="idle" aria-live="polite">
+                <span class="bm-summary-ico" id="summaryIco" aria-hidden="true"></span>
+                <div style="min-width:0">
+                    <h4 id="summaryTitle">실행 대기 중</h4>
+                    <p id="summaryText">로그인 → 대상 호기 확인 → 단계 선택 → 실행 순서로 진행하세요.</p>
+                </div>
+            </div>
+
+            <ol class="bm-log" id="log" aria-label="실행 기록"></ol>
+            <div class="bm-card-body" id="logEmpty" style="padding-top:0">
+                <div class="bm-empty">아직 실행 기록이 없습니다.</div>
+            </div>
+        </section>
+</main>
+</div><!-- /#appContent -->
+
+<!-- 실행 확인 모달 -->
+<div class="bm-modal" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" hidden>
+    <div class="bm-modal-bg" data-close></div>
+    <div class="bm-modal-box">
+        <h3 id="confirmTitle">아래 단계를 실행할까요?</h3>
+        <p>대상 호기 <b class="mono" id="confirmTarget"></b> 에 대해 순서대로 실행합니다.</p>
+        <div class="bm-modal-steps" id="confirmSteps"></div>
+        <div class="bm-modal-warn" id="confirmWarn" hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:1px"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+            <span>동일정보 만들기는 PLM 에 새 TEST 호기를 등록합니다. 이후 단계는 새 호기에 수행됩니다.</span>
+        </div>
+        <div class="bm-modal-actions">
+            <button type="button" class="bm-btn bm-btn-ghost" data-close>취소</button>
+            <button type="button" class="bm-btn bm-btn-primary" id="confirmOk">실행</button>
+        </div>
+    </div>
+</div>
+
+<div class="bm-toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+<script th:inline="none">
+(function () {
+    "use strict";
+
+    var BASE = "/cop/bom";
+    var STORE_KEY = "copBom.form";          // 사번 / 호기번호 / 속성 / 옵션 / 단계 선택 (비밀번호 제외)
+
+    var ICON = {
+        wip:   '<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+        equal: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+        attr:  '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+        jong:  '<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3M12 12V8"/>',
+        bom:   '<path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
+        check: '<path d="M20 6 9 17l-5-5"/>',
+        x:     '<path d="M18 6 6 18M6 6l12 12"/>',
+        alert: '<path d="M12 8v5M12 17h.01"/>',
+        play:  '<path d="M6 4l14 8-14 8z"/>',
+        clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        minus: '<path d="M5 12h14"/>'
+    };
+    function svg(name, size, sw) {
+        return '<svg width="' + (size || 16) + '" height="' + (size || 16) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (sw || 2) +
+               '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[name] + '</svg>';
+    }
+
+    var STEPS = [
+        { key: "wip",   name: "WIP 생성",        desc: "수정 가능한 작업 버전(WIP)을 만듭니다",         url: "/wip",         on: true  },
+        { key: "equal", name: "동일정보 만들기", desc: "사양을 그대로 복사해 TEST 호기를 생성합니다",    url: "/equal",       on: false },
+        { key: "attr",  name: "속성값 변경",     desc: "입력한 특성값을 한 번에 변경합니다",            url: "/attr",        on: true  },
+        { key: "jong",  name: "종속사양 산출",   desc: "변경된 사양으로 종속사양을 다시 계산합니다",    url: "/jongsoksung", on: true  },
+        { key: "bom",   name: "BOM 계산",        desc: "구성·자재·사양 전개로 BOM 을 계산합니다",       url: "/bom",         on: true  }
+    ];
+    var STATUS_TEXT = { idle: "대기", running: "실행 중", done: "완료", warn: "주의", fail: "실패", skip: "건너뜀", cancel: "중단" };
+
+    var state = {
+        user: null,
+        source: null,     // { no, ouid }  사용자가 확인한 원본 호기
+        target: null,     // { no, ouid }  지금 단계를 수행할 호기 (동일정보 후에는 신규 호기)
+        busy: false,
+        stopReq: false,
+        runStart: 0,
+        doneCount: 0,
+        runTotal: 0
+    };
+    var timers = { total: null, step: null };
+
+    var $ = function (id) { return document.getElementById(id); };
+
+    /* =========================================================
+       파이프라인 레일
+       ========================================================= */
+
+    function renderRail() {
+        var html = STEPS.map(function (s, i) {
+            return '' +
+                '<article class="bm-node" data-key="' + s.key + '" data-status="idle" data-enabled="' + s.on + '">' +
+                    (i < STEPS.length - 1 ? '<span class="bm-link"><i></i></span>' : '') +
+                    '<div class="bm-node-top">' +
+                        '<span class="bm-node-no">STEP 0' + (i + 1) + '</span>' +
+                        '<label class="bm-sw" title="일괄 실행에 포함">' +
+                            '<input type="checkbox" class="step-on" aria-label="' + s.name + ' 일괄 실행에 포함"' + (s.on ? " checked" : "") + '>' +
+                            '<span class="t"></span><span class="k"></span>' +
+                        '</label>' +
+                    '</div>' +
+                    '<div class="bm-node-icon">' + svg(s.key, 24, 1.9) + '</div>' +
+                    '<h4>' + s.name + '</h4>' +
+                    '<p class="bm-node-desc">' + s.desc + '</p>' +
+                    (s.key === "attr" ? '<span class="bm-node-count" id="attrCount"></span>' : '') +
+                    (s.key === "bom" ?
+                        '<div class="bm-node-opts" role="group" aria-label="BOM 전개 옵션">' +
+                            '<label class="bm-opt"><input type="checkbox" id="optC" checked><span><b>구성</b><small>c</small></span></label>' +
+                            '<label class="bm-opt"><input type="checkbox" id="optM" checked><span><b>자재</b><small>m</small></span></label>' +
+                            '<label class="bm-opt"><input type="checkbox" id="optF" checked><span><b>사양</b><small>f</small></span></label>' +
+                        '</div>' : '') +
+                    '<div class="bm-node-foot">' +
+                        '<span class="bm-pill" data-s="idle">' + STATUS_TEXT.idle + '</span>' +
+                        '<span class="bm-node-time tnum">—</span>' +
+                    '</div>' +
+                    '<p class="bm-node-msg"></p>' +
+                    '<button type="button" class="bm-node-run">' + svg("play", 12, 2.4) + '단독 실행</button>' +
+                '</article>';
+        }).join("");
+        $("rail").innerHTML = html;
+
+        STEPS.forEach(function (s) {
+            var node = nodeOf(s.key);
+            node.querySelector(".step-on").addEventListener("change", function () {
+                s.on = this.checked;
+                node.dataset.enabled = s.on;
+                state.runTotal = 0;
+                state.doneCount = 0;
+                updateKpis();
+                saveForm();
+            });
+            node.querySelector(".bm-node-run").addEventListener("click", function () { runSingle(s); });
+        });
+        ["optC", "optM", "optF"].forEach(function (id) { $(id).addEventListener("change", saveForm); });
+    }
+
+    /** 저장된 단계 선택을 레일에 반영 */
+    function syncRail() {
+        STEPS.forEach(function (s) {
+            var node = nodeOf(s.key);
+            node.querySelector(".step-on").checked = s.on;
+            node.dataset.enabled = s.on;
+        });
+    }
+
+    function updateAttrCount() {
+        var el = $("attrCount");
+        if (!el) return;
+        var attrs = readAttrs();
+        var n = attrs ? Object.keys(attrs).length : 0;
+        el.textContent = n ? n + "개 속성 변경" : "변경할 속성 없음";
+        el.classList.toggle("is-zero", !n);
+    }
+
+    function nodeOf(key) { return $("rail").querySelector('.bm-node[data-key="' + key + '"]'); }
+
+    function setStep(key, status, message, elapsed) {
+        var node = nodeOf(key);
+        node.dataset.status = status;
+        var pill = node.querySelector(".bm-pill");
+        pill.dataset.s = status;
+        pill.textContent = STATUS_TEXT[status];
+        var ico = node.querySelector(".bm-node-icon");
+        if (status === "done") ico.innerHTML = svg("check", 24, 2.6);
+        else if (status === "fail") ico.innerHTML = svg("x", 24, 2.6);
+        else if (status === "warn") ico.innerHTML = svg("alert", 24, 2.8);
+        else ico.innerHTML = svg(key, 24, 1.9);
+        if (message !== undefined) {
+            var msg = node.querySelector(".bm-node-msg");
+            msg.textContent = message || "";
+            msg.title = message || "";
+        }
+        if (elapsed !== undefined) node.querySelector(".bm-node-time").textContent = elapsed == null ? "—" : fmtSec(elapsed);
+    }
+
+    function resetSteps() {
+        STEPS.forEach(function (s) { setStep(s.key, "idle", "", null); });
+        setProgress(0);
+    }
+
+    function setProgress(ratio) { $("progressBar").style.transform = "scaleX(" + Math.max(0, Math.min(1, ratio)) + ")"; }
+
+    /* =========================================================
+       서버 호출
+       ========================================================= */
+
+    function api(path, body, method) {
+        return fetch(BASE + path, {
+            method: method || "POST",
+            headers: { "Content-Type": "application/json" },
+            body: method === "GET" ? undefined : JSON.stringify(body || {}),
+            credentials: "same-origin"
+        }).then(function (res) {
+            return res.json().catch(function () { return { success: false, message: "서버 응답을 읽지 못했습니다. (HTTP " + res.status + ")" }; })
+                .then(function (data) {
+                    if (data && data.needLogin) onLoggedOut("PLM 세션이 만료되었습니다. 다시 로그인하세요.");
+                    return data || {};
+                });
+        }).catch(function () {
+            return { success: false, message: "서버에 연결하지 못했습니다." };
+        });
+    }
+
+    /* =========================================================
+       로그인
+       ========================================================= */
+
+    $("loginForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var userid = $("userid").value.trim(), pwd = $("pwd").value;
+        showErr("loginErr", null);
+        $("userid").removeAttribute("aria-invalid");
+        $("pwd").removeAttribute("aria-invalid");
+        if (!userid) { $("userid").setAttribute("aria-invalid", "true"); showErr("loginErr", "사번을 입력하세요."); $("userid").focus(); return; }
+        if (!pwd) { $("pwd").setAttribute("aria-invalid", "true"); showErr("loginErr", "비밀번호를 입력하세요."); $("pwd").focus(); return; }
+
+        busyBtn($("btnLogin"), true, "로그인 중");
+        api("/login", { userid: userid, pwd: pwd }).then(function (r) {
+            busyBtn($("btnLogin"), false, "로그인");
+            $("pwd").value = "";
+            if (!r.success) {
+                showErr("loginErr", r.message || "로그인에 실패했습니다.");
+                $("pwd").setAttribute("aria-invalid", "true");
+                $("pwd").focus();
+                addLog("fail", "로그인", r.message);
+                return;
+            }
+            onLoggedIn(r.userid);
+            addLog("ok", "로그인", "PLM 로그인 성공", r.userid + " · " + fmtSec(r.elapsedMillis));
+            toast("PLM 에 로그인했습니다.");
+            saveForm();
+            if (!state.source) $("productNo").focus();
+        });
+    });
+
+    $("btnLogout").addEventListener("click", function () {
+        api("/logout").then(function () {
+            onLoggedOut();
+            addLog("info", "로그인", "로그아웃");
+        });
+    });
+
+    $("btnEye").addEventListener("click", function () {
+        var show = $("pwd").type === "password";
+        $("pwd").type = show ? "text" : "password";
+        this.setAttribute("aria-pressed", show);
+        this.setAttribute("aria-label", show ? "비밀번호 숨기기" : "비밀번호 보기");
+    });
+
+    function onLoggedIn(userid) {
+        state.user = userid;
+        $("userIdText").textContent = userid;
+        $("loginForm").hidden = true;
+        $("userBox").hidden = false;
+        updateKpis();
+    }
+
+    function onLoggedOut(reason) {
+        var was = state.user;
+        state.user = null;
+        $("loginForm").hidden = false;
+        $("userBox").hidden = true;
+        if (reason) {
+            showErr("loginErr", reason);
+            if (was) {
+                shake($("loginCard"));
+                toast(reason, "fail");
+            }
+        }
+        updateKpis();
+    }
+
+    /* =========================================================
+       대상 호기
+       ========================================================= */
+
+    $("targetForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        resolveTarget();
+    });
+    $("productNo").addEventListener("input", function () {
+        if (state.source && this.value.trim() !== state.source.no) clearTarget();
+    });
+    $("btnResetTarget").addEventListener("click", function () {
+        if (!state.source) return;
+        state.target = { no: state.source.no, ouid: state.source.ouid };
+        renderTarget();
+        addLog("info", "대상 호기", "원본 호기로 되돌림", state.source.no);
+    });
+
+    function resolveTarget() {
+        var no = $("productNo").value.trim();
+        showErr("targetErr", null);
+        $("productNo").removeAttribute("aria-invalid");
+        if (!no) {
+            $("productNo").setAttribute("aria-invalid", "true");
+            showErr("targetErr", "프로젝트호기번호를 입력하세요.");
+            $("productNo").focus();
+            return Promise.resolve(false);
+        }
+        busyBtn($("btnResolve"), true, "");
+        return api("/resolve", { productNo: no }).then(function (r) {
+            busyBtn($("btnResolve"), false, "확인");
+            if (!r.success) {
+                clearTarget();
+                $("productNo").setAttribute("aria-invalid", "true");
+                showErr("targetErr", (r.message || "호기를 찾지 못했습니다.") + " 번호를 확인하세요.");
+                return false;
+            }
+            state.source = { no: r.productNo, ouid: r.ouid };
+            state.target = { no: r.productNo, ouid: r.ouid };
+            renderTarget();
+            resetSteps();
+            addLog("ok", "대상 호기", "WIP 영업사양 확인", r.productNo + " · " + r.ouid);
+            saveForm();
+            return true;
+        });
+    }
+
+    function clearTarget() {
+        state.source = null;
+        state.target = null;
+        renderTarget();
+    }
+
+    function renderTarget() {
+        var s = state.source, t = state.target;
+        $("targetInfo").hidden = !s;
+        $("targetEmpty").hidden = !!s;
+        if (s) {
+            $("tSourceNo").textContent = s.no;
+            $("tSourceOuid").textContent = s.ouid;
+            var changed = t && t.ouid !== s.ouid;
+            $("tNewRow").hidden = !changed;
+            $("tResetRow").hidden = !changed;
+            if (changed) $("tNewNo").textContent = t.no || t.ouid;
+        }
+        var label = !t ? "—" : (s && t.ouid !== s.ouid ? s.no + " → " + (t.no || "신규") : t.no);
+        $("kpiTarget").textContent = label;
+        $("kpiTarget").title = label;
+        updateKpis();
+    }
+
+    /* =========================================================
+       속성값
+       ========================================================= */
+
+    var CODE_NAME = {};
+    Array.prototype.forEach.call($("codeList").options, function (o) { CODE_NAME[o.value] = o.textContent; });
+
+    function addAttr(code, value, focus) {
+        var row = document.createElement("div");
+        row.className = "bm-attr";
+        row.innerHTML =
+            '<input class="bm-input code" list="codeList" placeholder="특성코드" aria-label="특성코드" spellcheck="false">' +
+            '<input class="bm-input val" placeholder="값" aria-label="값">' +
+            '<button type="button" class="bm-attr-del" aria-label="이 속성 삭제">' + svg("x", 15, 2.2) + '</button>' +
+            '<div class="bm-attr-meta"><span class="nm"></span><span class="cur"></span><span class="vf"></span></div>';
+        row.querySelector(".code").value = code || "";
+        row.querySelector(".val").value = value || "";
+        row.querySelector(".bm-attr-del").addEventListener("click", function () { row.remove(); renderAttrEmpty(); saveForm(); });
+        row.querySelector(".code").addEventListener("input", function () { updateAttrMeta(row); saveForm(); });
+        row.querySelector(".val").addEventListener("input", function () { row.querySelector(".vf").textContent = ""; saveForm(); });
+        $("attrList").appendChild(row);
+        updateAttrMeta(row);
+        renderAttrEmpty();
+        if (focus) row.querySelector(code ? ".val" : ".code").focus();
+        return row;
+    }
+
+    function updateAttrMeta(row, current) {
+        var code = row.querySelector(".code").value.trim();
+        row.querySelector(".nm").textContent = CODE_NAME[code] || "";
+        if (current !== undefined) row.querySelector(".cur").textContent = "현재: " + (current == null || current === "" ? "(없음)" : current);
+    }
+
+    function attrRows() { return Array.prototype.slice.call($("attrList").querySelectorAll(".bm-attr")); }
+
+    function readAttrs() {
+        var attrs = {}, n = 0;
+        attrRows().forEach(function (row) {
+            var code = row.querySelector(".code").value.trim();
+            if (!code) return;
+            attrs[code] = row.querySelector(".val").value.trim();
+            n++;
+        });
+        return n ? attrs : null;
+    }
+
+    function renderAttrEmpty() {
+        var empty = $("attrList").querySelector(".bm-empty");
+        if (attrRows().length === 0 && !empty) {
+            $("attrList").insertAdjacentHTML("beforeend",
+                '<div class="bm-empty">' + svg("attr", 26, 1.8) +
+                '<b>변경할 속성이 없습니다</b><span>위의 빠른 추가를 누르거나 행을 추가하세요.<br>비워두면 속성값 변경 단계는 건너뜁니다.</span></div>');
+        } else if (attrRows().length > 0 && empty) {
+            empty.remove();
+        }
+    }
+
+    function upsertAttr(code, value) {
+        var row = attrRows().filter(function (r) { return r.querySelector(".code").value.trim() === code; })[0];
+        if (row) { if (value !== undefined) row.querySelector(".val").value = value; return row; }
+        return addAttr(code, value);
+    }
+
+    document.querySelectorAll(".bm-chip[data-preset]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            var p = this.dataset.preset, row;
+            if (p === "design") {
+                var today = ymd(new Date());
+                ["EL_ZFDA", "EL_ZFDB", "EL_ZFDC", "EL_ZFDD"].forEach(function (c) { row = upsertAttr(c, today); });
+            } else if (p === "designer") {
+                row = upsertAttr("designer", state.user || "");
+            } else if (p === "manager") {
+                upsertAttr("MANAGER_M", undefined);
+                row = upsertAttr("MANAGER_E", undefined);
+            }
+            if (row) row.querySelector(".val").focus();
+            saveForm();
+        });
+    });
+
+    $("btnAddAttr").addEventListener("click", function () { addAttr("", "", true); });
+
+    $("btnReadAttr").addEventListener("click", function () {
+        var attrs = readAttrs();
+        if (!attrs) { toast("조회할 특성코드를 먼저 입력하세요.", "fail"); return; }
+        if (!requireReady()) return;
+        var btn = this;
+        busyBtn(btn, true, "조회 중");
+        api("/attrValues", { ouid: state.target.ouid, codes: Object.keys(attrs) }).then(function (r) {
+            busyBtn(btn, false, null);
+            if (!r.success) { toast(r.message || "조회에 실패했습니다.", "fail"); return; }
+            showCurrent(r.current || {});
+            addLog("info", "속성값", "현재 속성값 조회", state.target.no);
+        });
+    });
+
+    function showCurrent(current, requested) {
+        attrRows().forEach(function (row) {
+            var code = row.querySelector(".code").value.trim();
+            if (!(code in current)) return;
+            updateAttrMeta(row, current[code]);
+            var vf = row.querySelector(".vf");
+            if (requested && code in requested) {
+                var ok = String(requested[code]) === String(current[code] == null ? "" : current[code]);
+                vf.className = "vf " + (ok ? "ok" : "ng");
+                vf.textContent = ok ? "✓ 반영됨" : "반영 확인 필요";
+            } else {
+                vf.textContent = "";
+            }
+        });
+    }
+
+    /* =========================================================
+       단계 실행
+       ========================================================= */
+
+    function payloadFor(step) {
+        var body = { ouid: state.target.ouid };
+        if (step.key === "attr") body.attrs = readAttrs();
+        if (step.key === "bom") { body.c = $("optC").checked; body.m = $("optM").checked; body.f = $("optF").checked; }
+        return body;
+    }
+
+    /** 단계 하나 실행. 결과 status 로 resolve (done / warn / fail / skip) */
+    function execStep(step) {
+        // 실행 전 확인 (서버까지 가지 않아도 되는 경우)
+        if (step.key === "attr" && !readAttrs()) {
+            setStep(step.key, "skip", "변경할 속성이 없어 건너뜀", null);
+            addLog("info", step.name, "변경할 속성이 없어 건너뜀");
+            return Promise.resolve("skip");
+        }
+        if (step.key === "bom" && !$("optC").checked && !$("optM").checked && !$("optF").checked) {
+            setStep(step.key, "fail", "전개 옵션을 하나 이상 선택하세요.", null);
+            addLog("fail", step.name, "전개 옵션을 하나 이상 선택하세요.");
+            return Promise.resolve("fail");
+        }
+
+        var target = state.target;
+        var started = Date.now();
+        setStep(step.key, "running", "PLM 처리 중…", 0);
+        addLog("run", step.name, "시작", target.no);
+        clearInterval(timers.step);
+        timers.step = setInterval(function () {
+            nodeOf(step.key).querySelector(".bm-node-time").textContent = fmtSec(Date.now() - started);
+        }, 200);
+
+        return api(step.url, payloadFor(step)).then(function (r) {
+            clearInterval(timers.step);
+            var elapsed = r.elapsedMillis || (Date.now() - started);
+            var status = r.success ? "done" : "fail";
+            var msg = r.message || (r.success ? "완료" : "실패");
+
+            // WIP 는 이미 WIP 인 경우 PLM 이 오류 메시지를 주지만 이후 단계 진행에는 문제가 없다.
+            if (step.key === "wip" && r.success && /오류|확인 필요/.test(msg)) status = "warn";
+
+            if (step.key === "equal" && r.success) {
+                state.target = { no: r.newProductNo || "", ouid: r.newOuid };
+                renderTarget();
+            }
+            if (step.key === "attr" && r.success) {
+                showCurrent(r.current || {}, r.requested || {});
+                if (r.verified === false) status = "warn";
+            }
+
+            setStep(step.key, status, msg, elapsed);
+            var sub = step.key === "equal" && r.success ? target.no + " → " + (r.newProductNo || r.newOuid) : target.no;
+            addLog(status === "done" ? "ok" : status, step.name, msg, sub + " · " + fmtSec(elapsed));
+            return status;
+        });
+    }
+
+    function runSingle(step) {
+        if (state.busy || !requireReady()) return;
+        state.runStart = Date.now();
+        state.doneCount = 0;
+        state.runTotal = 1;
+        setProgress(0);
+        setBusy(true);
+        startTotalTimer();
+        setSummary("running", step.name + " 실행 중", state.target.no + " 에 대해 단독 실행합니다.");
+        execStep(step).then(function (status) {
+            finishRun(status === "fail" ? "fail" : "done", [step], status === "fail" ? step : null);
+        });
+    }
+
+    function runPipeline() {
+        var steps = STEPS.filter(function (s) { return s.on; });
+        state.stopReq = false;
+        state.runStart = Date.now();
+        state.doneCount = 0;
+        state.runTotal = steps.length;
+        setBusy(true);
+        resetSteps();
+        STEPS.forEach(function (s) { if (!s.on) setStep(s.key, "skip", "실행에서 제외", null); });
+        updateKpis();
+        startTotalTimer();
+        setSummary("running", "원사이클 실행 중", steps.map(function (s) { return s.name; }).join(" → "));
+        addLog("info", "원사이클", "일괄 실행 시작", state.target.no + " · " + steps.length + "단계");
+
+        var i = 0;
+        (function next() {
+            if (i >= steps.length) { finishRun("done", steps); return; }
+            if (state.stopReq) {
+                steps.slice(i).forEach(function (s) { setStep(s.key, "cancel", "사용자가 중지함", null); });
+                finishRun("stop", steps);
+                return;
+            }
+            var step = steps[i];
+            execStep(step).then(function (status) {
+                state.doneCount++;
+                setProgress(state.doneCount / steps.length);
+                updateKpis();
+                if (status === "fail") {
+                    steps.slice(i + 1).forEach(function (s) { setStep(s.key, "cancel", "앞 단계 실패로 중단", null); });
+                    finishRun("fail", steps, step);
+                    return;
+                }
+                if (!state.user) {   // 세션 만료
+                    steps.slice(i + 1).forEach(function (s) { setStep(s.key, "cancel", "로그인 필요", null); });
+                    finishRun("fail", steps, step);
+                    return;
+                }
+                i++;
+                next();
+            });
+        })();
+    }
+
+    function finishRun(result, steps, failed) {
+        stopTotalTimer();
+        var elapsed = Date.now() - state.runStart;
+        if (state.runTotal === 1 && result !== "stop") { state.doneCount = 1; setProgress(1); }
+        updateKpis();
+        setBusy(false);
+        var who = state.target ? state.target.no : "";
+        if (result === "done") {
+            setSummary("done", "실행 완료", (steps.length > 1 ? steps.length + "개 단계를 " : "") + fmtSec(elapsed) + " 만에 처리했습니다. 대상 : " + who);
+            toast("실행이 완료되었습니다.");
+        } else if (result === "stop") {
+            setSummary("fail", "실행 중지", "사용자가 실행을 중지했습니다. 진행한 단계까지는 PLM 에 반영되었습니다.");
+        } else {
+            setSummary("fail", (failed ? failed.name : "") + " 실패", "해당 단계의 메시지를 확인하고 다시 실행하세요. 앞 단계까지는 PLM 에 반영되었습니다.");
+            toast((failed ? failed.name + " " : "") + "실패", "fail");
+        }
+        addLog(result === "done" ? "ok" : "fail", "원사이클", result === "done" ? "완료" : result === "stop" ? "중지" : "실패", "총 " + fmtSec(elapsed));
+    }
+
+    $("btnRun").addEventListener("click", function () {
+        if (state.busy) return;
+        var steps = STEPS.filter(function (s) { return s.on; });
+        if (!steps.length) { toast("실행할 단계를 하나 이상 켜세요.", "fail"); return; }
+        if (!requireReady()) return;
+        openConfirm(steps);
+    });
+
+    $("btnStop").addEventListener("click", function () {
+        state.stopReq = true;
+        this.disabled = true;
+        $("ctaNote").textContent = "진행 중인 단계가 끝나면 중지합니다…";
+    });
+
+    /** 로그인과 대상 호기가 준비됐는지 확인하고, 안 됐으면 해당 입력으로 안내 */
+    function requireReady() {
+        if (!state.user) {
+            showErr("loginErr", "먼저 PLM 에 로그인하세요.");
+            shake($("loginCard"));
+            $("loginCard").scrollIntoView({ behavior: "smooth", block: "center" });
+            $("userid").value ? $("pwd").focus() : $("userid").focus();
+            return false;
+        }
+        if (!state.target) {
+            showErr("targetErr", "대상 호기를 먼저 확인하세요.");
+            shake($("targetCard"));
+            $("targetCard").scrollIntoView({ behavior: "smooth", block: "center" });
+            $("productNo").focus();
+            return false;
+        }
+        return true;
+    }
+
+    /* =========================================================
+       확인 모달
+       ========================================================= */
+
+    var lastFocus = null;
+
+    function openConfirm(steps) {
+        lastFocus = document.activeElement;
+        $("confirmTarget").textContent = state.target.no;
+        $("confirmSteps").innerHTML = steps.map(function (s, i) {
+            return (i ? '<span aria-hidden="true">→</span>' : "") + "<b>" + s.name + "</b>";
+        }).join("");
+        $("confirmWarn").hidden = !steps.some(function (s) { return s.key === "equal"; });
+        $("confirmModal").hidden = false;
+        $("confirmOk").focus();
+    }
+    function closeConfirm() {
+        $("confirmModal").hidden = true;
+        if (lastFocus) lastFocus.focus();
+    }
+    $("confirmModal").addEventListener("click", function (e) { if (e.target.closest("[data-close]")) closeConfirm(); });
+    $("confirmModal").addEventListener("keydown", function (e) {
+        if (e.key === "Escape") closeConfirm();
+        if (e.key === "Tab") {   // 포커스 가두기
+            var f = this.querySelectorAll("button");
+            var first = f[0], last = f[f.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+    });
+    $("confirmOk").addEventListener("click", function () {
+        $("confirmModal").hidden = true;
+        runPipeline();
+    });
+
+    /* =========================================================
+       상태 표시
+       ========================================================= */
+
+    function setBusy(busy) {
+        state.busy = busy;
+        $("btnRun").disabled = busy;
+        $("btnRunText").textContent = busy ? "실행 중…" : "선택한 단계 실행";
+        $("btnStop").hidden = !busy || state.runTotal <= 1;
+        $("btnStop").disabled = false;
+        document.querySelectorAll(".bm-node-run, .step-on, #btnLogout, #btnResolve, #productNo, #btnResetTarget, #btnReadAttr")
+            .forEach(function (el) { el.disabled = busy; });
+        updateKpis();
+    }
+
+    function updateKpis() {
+        var enabled = STEPS.filter(function (s) { return s.on; }).length;
+        // 실행 중이거나 실행 직후에는 그 실행의 진행률, 그 외에는 켜진 단계 수
+        $("kpiTotal").textContent = state.runTotal || enabled;
+        $("kpiDone").textContent = state.doneCount;
+        if (!state.busy) {
+            var note = !state.user ? "PLM 에 로그인하면 실행할 수 있습니다."
+                     : !state.target ? "대상 호기를 확인하면 실행할 수 있습니다."
+                     : enabled ? enabled + "개 단계를 순서대로 실행합니다."
+                     : "실행할 단계를 하나 이상 켜세요.";
+            $("ctaNote").textContent = note;
+        } else if (!state.stopReq) {
+            $("ctaNote").textContent = "PLM 에서 처리 중입니다. BOM 계산은 수십 초 이상 걸릴 수 있습니다.";
+        }
+    }
+
+    function startTotalTimer() {
+        stopTotalTimer();
+        $("kpiTime").textContent = "00:00";
+        timers.total = setInterval(function () { $("kpiTime").textContent = fmtClock(Date.now() - state.runStart); }, 250);
+    }
+    function stopTotalTimer() {
+        clearInterval(timers.total);
+        if (state.runStart) $("kpiTime").textContent = fmtClock(Date.now() - state.runStart);
+    }
+
+    function setSummary(s, title, text) {
+        $("summary").dataset.s = s;
+        $("summaryTitle").textContent = title;
+        $("summaryText").textContent = text;
+        $("summaryIco").innerHTML = s === "done" ? svg("check", 20, 2.6)
+                                  : s === "fail" ? svg("x", 20, 2.6)
+                                  : s === "running" ? '<span class="bm-spinner"></span>'
+                                  : svg("clock", 20, 2);
+    }
+
+    function addLog(level, tag, message, sub) {
+        var li = document.createElement("li");
+        li.dataset.l = level;
+        var ico = level === "ok" ? "check" : level === "fail" ? "x" : level === "warn" ? "alert" : level === "run" ? "play" : "minus";
+        li.innerHTML =
+            '<time class="tnum">' + clock(new Date()) + '</time>' +
+            '<span class="dot">' + svg(ico, 11, 3) + '</span>' +
+            '<div class="msg"><span class="tag"></span><span class="t"></span><span class="sub"></span></div>';
+        li.querySelector(".tag").textContent = tag;
+        li.querySelector(".t").textContent = message || "";
+        if (sub) li.querySelector(".sub").textContent = sub; else li.querySelector(".sub").remove();
+        $("log").insertBefore(li, $("log").firstChild);
+        $("logEmpty").hidden = true;
+    }
+
+    $("btnClearLog").addEventListener("click", function () {
+        $("log").innerHTML = "";
+        $("logEmpty").hidden = false;
+    });
+
+    var toastTimer = null;
+    function toast(msg, level) {
+        var t = $("toast");
+        t.textContent = msg;
+        t.dataset.l = level || "";
+        t.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { t.classList.remove("show"); }, 3500);
+    }
+
+    function showErr(id, msg) {
+        $(id).hidden = !msg;
+        $(id).textContent = msg || "";
+    }
+
+    function busyBtn(btn, busy, label) {
+        if (busy) {
+            btn.dataset.html = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="bm-spinner" aria-hidden="true"></span>' + (label ? "<span>" + label + "</span>" : '<span class="sr-only-bm">처리 중</span>');
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = label ? label : (btn.dataset.html || "");
+        }
+    }
+
+    function shake(el) {
+        el.classList.remove("bm-shake");
+        void el.offsetWidth;
+        el.classList.add("bm-shake");
+    }
+
+    /* =========================================================
+       입력 기억 (비밀번호 제외)
+       ========================================================= */
+
+    function saveForm() {
+        updateAttrCount();
+        try {
+            localStorage.setItem(STORE_KEY, JSON.stringify({
+                userid: $("userid").value.trim() || state.user || "",
+                productNo: $("productNo").value.trim(),
+                attrs: attrRows().map(function (r) { return [r.querySelector(".code").value, r.querySelector(".val").value]; }),
+                opts: [$("optC").checked, $("optM").checked, $("optF").checked],
+                steps: STEPS.map(function (s) { return s.on; })
+            }));
+        } catch (e) { /* 저장 불가 환경 무시 */ }
+    }
+
+    function loadForm() {
+        var f = null;
+        try { f = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch (e) { f = null; }
+        if (!f) return;
+        if (f.userid) $("userid").value = f.userid;
+        if (f.productNo) $("productNo").value = f.productNo;
+        (f.attrs || []).forEach(function (a) { addAttr(a[0], a[1]); });
+        if (f.opts) { $("optC").checked = !!f.opts[0]; $("optM").checked = !!f.opts[1]; $("optF").checked = !!f.opts[2]; }
+        if (f.steps) STEPS.forEach(function (s, i) { if (typeof f.steps[i] === "boolean") s.on = f.steps[i]; });
+    }
+
+    /** 다른 화면(이상감지 관제 등)에서 ?productNo= 로 넘어오면 그 호기를 대상으로 채운다 */
+    function applyQuery() {
+        var no = new URLSearchParams(location.search).get("productNo");
+        if (no) $("productNo").value = no.trim();
+    }
+
+    $("userid").addEventListener("change", saveForm);
+
+    /* =========================================================
+       유틸
+       ========================================================= */
+
+    function pad(n) { return n < 10 ? "0" + n : "" + n; }
+    function ymd(d) { return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()); }
+    function clock(d) { return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()); }
+    function fmtSec(ms) { return ms == null ? "—" : (ms / 1000).toFixed(ms < 10000 ? 1 : 0) + "초"; }
+    function fmtClock(ms) { var s = Math.floor(ms / 1000); return pad(Math.floor(s / 60)) + ":" + pad(s % 60); }
+
+    /* =========================================================
+       시작
+       ========================================================= */
+
+    renderRail();          // 전개 옵션 체크박스가 레일 안에 있으므로 loadForm 보다 먼저
+    loadForm();
+    applyQuery();
+    syncRail();
+    renderAttrEmpty();
+    updateAttrCount();
+    setSummary("idle", "실행 대기 중", "로그인 → 대상 호기 확인 → 단계 선택 → 실행 순서로 진행하세요.");
+    updateKpis();
+
+    // 서버 세션에 PLM 로그인이 남아 있으면 이어서 사용
+    api("/me", null, "GET").then(function (r) {
+        if (r.success && r.userid) {
+            onLoggedIn(r.userid);
+            if ($("productNo").value.trim()) resolveTarget();
+        }
+    });
+
+    /* ── 다크모드 (localStorage 키 'theme' 공유) ── */
+    (function initTheme() {
+        var dark = localStorage.getItem('theme') !== 'light';
+        document.documentElement.classList.toggle('dark', dark);
+        $('darkModeToggle').checked = dark;
+        $('themeLabel').textContent = dark ? '다크모드' : '라이트모드';
+        if (dark) localStorage.setItem('theme', 'dark');
+    })();
+    $('darkModeToggle').addEventListener('change', function () {
+        document.documentElement.classList.toggle('dark', this.checked);
+        localStorage.setItem('theme', this.checked ? 'dark' : 'light');
+        $('themeLabel').textContent = this.checked ? '다크모드' : '라이트모드';
+    });
+
+    /* ── 사이드바 현재 메뉴 활성화 ── */
+    document.querySelectorAll('#sidebar .sb-link').forEach(function (a) { a.classList.remove('active'); });
+    var navLink = document.querySelector('#sidebar a[href="/cop/bom"]');
+    if (navLink) navLink.classList.add('active');
+})();
+</script>
+
+</body>
+</html>

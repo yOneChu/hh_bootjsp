@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>이상 리포트 · SENTINEL</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        SENTINEL 2F · 이상 리포트 (CopMainController : GET /cop/report?period=week|month|quarter)
+
+        기간별 BOM 이상 탐지 건수 · 유형 · 조치 결과 · 원인 위치를 한 장으로 정리한다.
+        화면은 다크, 인쇄(PDF 저장)는 흰 A4 가로 보고서로 바뀐다.
+
+        데이터 : 지금은 화면 안의 샘플 (loadReport). 실제 연동 시 loadReport 만 서버 호출로 바꾸면 된다.
+                 반환 형식은 makeSample() 이 만드는 객체 참고.
+    -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <style>
+        /* ════════════ 토큰 (SENTINEL 공통) ════════════ */
+        :root {
+            --void:    #04060A;
+            --panel:   #0C1018;
+            --panel-2: #111723;
+            --panel-3: #161D2B;
+            --line:    rgba(255,255,255,.08);
+            --line-2:  rgba(255,255,255,.15);
+            --grid:    rgba(255,255,255,.06);
+
+            --ink:   #F4F6FA;
+            --ink-2: #AEB6C4;
+            --ink-3: #7C8596;
+
+            --scan:   #7FE3FF;  --scan-dim:  rgba(127,227,255,.13);
+            --alert:  #FF5A36;  --alert-dim: rgba(255,90,54,.15);
+            --warn:   #FFB020;  --warn-dim:  rgba(255,176,32,.14);
+            --ok:     #5EF0A6;  --ok-dim:    rgba(94,240,166,.13);
+            --chg:    #B79CFF;
+
+            /* 이상 유형 색 (관제 화면 구역과 같은 의미) */
+            --t-QTY: #FF5A36; --t-MISSING: #FFB020; --t-SPEC: #B79CFF; --t-DUP: #7FE3FF;
+
+            --mono: "D2Coding", Consolas, "SF Mono", Menlo, monospace;
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+            --ease-out: cubic-bezier(.16,1,.3,1);
+            --nav-h: 64px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; background: var(--void); }
+        body { margin: 0; min-height: 100vh; font-family: var(--sans); color: var(--ink); background: var(--void); word-break: keep-all; overflow-wrap: anywhere; }
+        h1, h2, h3, h4, p { margin: 0; }
+        a { color: inherit; text-decoration: none; }
+        button { font: inherit; color: inherit; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 2px solid var(--scan); outline-offset: 2px; border-radius: 6px; }
+        .mono { font-family: var(--mono); }
+        .tnum { font-variant-numeric: tabular-nums; }
+        .wrap { width: 100%; max-width: 1560px; margin: 0 auto; padding: 0 16px; }
+        @media (min-width: 900px) { .wrap { padding: 0 28px; } }
+        .demo { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line-2); font: 700 10px/1.4 var(--mono); letter-spacing: .12em; color: var(--ink-3); }
+
+        /* ════════════ 상단 바 ════════════ */
+        .nav { position: sticky; top: 0; z-index: 40; background: rgba(4,6,10,.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+        .nav-in { height: var(--nav-h); display: flex; align-items: center; gap: 16px; }
+        .brand { display: flex; align-items: center; gap: 12px; flex: none; }
+        .brand-mark { position: relative; width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--scan); }
+        .brand-mark::after { content: ""; position: absolute; left: 50%; top: 50%; width: 50%; height: 1.5px; background: var(--scan); transform-origin: 0 50%; animation: spin 3s linear infinite; }
+        .brand b { font: 800 14px/1 var(--sans); letter-spacing: .3em; }
+        .crumb { display: none; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-2); }
+        .crumb .floor { font: 700 13px/1 var(--mono); color: var(--alert); text-shadow: 0 0 10px rgba(255,90,54,.55); padding: 5px 8px; border-radius: 6px; background: #000; border: 1px solid var(--line-2); }
+        .crumb b { color: var(--ink); font-weight: 750; }
+        @media (min-width: 720px) { .crumb { display: flex; } }
+        .nav-tools { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; cursor: pointer;
+            font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap;
+            transition: background .2s, border-color .2s, transform .2s var(--ease-out);
+        }
+        .btn:hover { background: rgba(255,255,255,.06); border-color: var(--ink-3); }
+        .btn:active { transform: scale(.97); }
+        .btn-sm { min-height: 34px; padding: 0 12px; font-size: 13px; }
+        .btn-solid { background: var(--ink); color: var(--void); border-color: var(--ink); }
+        .btn-solid:hover { background: #fff; box-shadow: 0 8px 22px -8px rgba(127,227,255,.6); }
+
+        .card { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; min-width: 0; padding: 18px 20px; }
+        .c-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; margin-bottom: 14px; }
+        .c-head h2 { font-size: 15.5px; font-weight: 800; letter-spacing: -.01em; }
+        .c-head .sub { font-size: 12.5px; color: var(--ink-3); }
+        .c-head .right { margin-left: auto; }
+
+        /* ════════════ 리포트 머리 ════════════ */
+        .head { margin-top: 18px; padding: 26px 26px 22px; display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr);
+                background: radial-gradient(700px 240px at 0% 0%, rgba(127,227,255,.10), transparent 60%), linear-gradient(180deg, var(--panel-2), var(--panel)); }
+        @media (min-width: 1100px) { .head { grid-template-columns: minmax(0, 1fr) auto; align-items: start; } }
+        .kicker { font: 700 12px/1 var(--mono); letter-spacing: .2em; color: var(--scan); }
+        .head h1 { margin-top: 12px; font-size: clamp(26px, 2.8vw, 38px); font-weight: 850; letter-spacing: -.025em; line-height: 1.2; }
+        .head h1 small { display: block; margin-top: 6px; font: 600 14px/1.4 var(--mono); color: var(--ink-3); letter-spacing: 0; }
+        .summary { margin-top: 16px; max-width: 980px; font-size: 16.5px; line-height: 1.75; color: var(--ink-2); }
+        .summary b { color: var(--ink); font-weight: 750; }
+        .summary .up { color: var(--alert); font-weight: 750; }
+        .summary .down { color: var(--ok); font-weight: 750; }
+        .head-tools { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+        @media (max-width: 1099px) { .head-tools { align-items: flex-start; } }
+        .seg { display: inline-flex; padding: 3px; border-radius: 12px; background: var(--panel-3); border: 1px solid var(--line); }
+        .seg button { min-height: 36px; padding: 0 14px; border: none; border-radius: 9px; background: transparent; cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--ink-2); }
+        .seg button[aria-pressed="true"] { background: var(--ink); color: var(--void); }
+        .tool-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .meta-line { font-size: 12px; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+
+        /* ════════════ 그리드 ════════════ */
+        .grid { margin: 16px 0 32px; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 1000px) {
+            .grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+            .s3 { grid-column: span 3; } .s4 { grid-column: span 4; } .s5 { grid-column: span 5; }
+            .s6 { grid-column: span 6; } .s7 { grid-column: span 7; } .s8 { grid-column: span 8; } .s12 { grid-column: span 12; }
+        }
+        @media (min-width: 1000px) and (max-width: 1299px) { .kpi.s3 { grid-column: span 6; } .s4.flex4 { grid-column: span 6; } }
+
+        /* KPI */
+        .kpi { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+        .kpi dt { font: 700 11px/1.3 var(--mono); letter-spacing: .14em; color: var(--ink-3); text-transform: uppercase; }
+        .kpi dd { margin: 0; }
+        .kpi .v { font-size: 38px; font-weight: 850; letter-spacing: -.025em; line-height: 1; }
+        .kpi .v small { font-size: 15px; font-weight: 650; color: var(--ink-3); margin-left: 4px; letter-spacing: 0; }
+        .kpi .d { display: inline-flex; align-items: center; gap: 5px; font: 700 12.5px/1 var(--mono); padding: 5px 8px; border-radius: 7px; align-self: flex-start; }
+        .kpi .d.good { color: var(--ok); background: var(--ok-dim); }
+        .kpi .d.bad  { color: var(--alert); background: var(--alert-dim); }
+        .kpi .cap { font-size: 12.5px; color: var(--ink-3); }
+
+        /* 범례 */
+        .legend { display: flex; flex-wrap: wrap; gap: 6px; }
+        .lg { display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; cursor: pointer; font-size: 12.5px; font-weight: 650; color: var(--ink-2); }
+        .lg i { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+        .lg[aria-pressed="false"] { opacity: .4; }
+        .lg[aria-pressed="false"] i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--c); }
+
+        .chart { position: relative; width: 100%; }
+        .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+        .tip {
+            position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, calc(-100% - 12px));
+            padding: 9px 12px; border-radius: 10px; background: rgba(4,6,10,.95); border: 1px solid var(--line-2);
+            font-size: 12.5px; line-height: 1.6; box-shadow: 0 10px 24px rgba(0,0,0,.5); white-space: nowrap;
+        }
+        .tip b { font-family: var(--mono); }
+        .tip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+
+        /* 유형 비중 */
+        .types { display: flex; flex-direction: column; gap: 14px; }
+        .ty-top { display: flex; align-items: baseline; gap: 8px; font-size: 14px; }
+        .ty-top b { font-weight: 750; }
+        .ty-top .n { margin-left: auto; font: 800 17px/1 var(--mono); }
+        .ty-top .p { font: 600 12.5px/1 var(--mono); color: var(--ink-3); min-width: 42px; text-align: right; }
+        .ty-bar { margin-top: 7px; height: 10px; border-radius: 5px; background: rgba(255,255,255,.05); overflow: hidden; }
+        .ty-bar i { display: block; height: 100%; border-radius: 5px; background: var(--c); transform-origin: left; animation: growx .9s var(--ease-out) both; }
+        .ty-sub { margin-top: 5px; font-size: 12px; color: var(--ink-3); }
+        @keyframes growx { from { transform: scaleX(0); } }
+
+        /* 조치 흐름 */
+        .flow { display: flex; flex-direction: column; gap: 10px; }
+        .fl { display: grid; grid-template-columns: 92px minmax(0, 1fr) 64px; gap: 12px; align-items: center; font-size: 13.5px; }
+        .fl .lb { color: var(--ink-2); font-weight: 650; }
+        .fl .tr { height: 30px; border-radius: 8px; background: rgba(255,255,255,.04); overflow: hidden; }
+        .fl .tr i { display: flex; align-items: center; height: 100%; padding-left: 10px; border-radius: 8px; font: 700 12px/1 var(--mono); color: #04060A; transform-origin: left; animation: growx .9s var(--ease-out) both; white-space: nowrap; }
+        .fl .n { text-align: right; font: 800 16px/1 var(--mono); }
+        .flow-foot { margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        .ff { padding: 10px 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+        .ff small { display: block; font-size: 11.5px; color: var(--ink-3); }
+        .ff b { display: block; margin-top: 4px; font: 800 18px/1 var(--mono); }
+
+        /* 원인 위치 (3F 연결) */
+        .cause { display: flex; flex-direction: column; gap: 8px; }
+        .cs { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+        .cs .ix { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--alert-dim); color: var(--alert); font: 800 13px/1 var(--mono); }
+        .cs b { display: block; font-size: 14px; font-weight: 750; }
+        .cs small { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-3); }
+        .cs .pc { font: 800 18px/1 var(--mono); }
+        .cs .pc small { display: inline; font-size: 12px; margin-left: 2px; }
+
+        /* 히트맵 */
+        .heat { display: grid; gap: 4px; font-size: 12px; }
+        .heat .hl { color: var(--ink-2); font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; padding-right: 6px; }
+        .heat .hh { color: var(--ink-3); font: 600 11px/1 var(--mono); text-align: center; padding-bottom: 4px; align-self: end; }
+        .heat .hc { height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font: 700 11.5px/1 var(--mono); color: rgba(255,255,255,.88);
+                    background: rgba(255,90,54,var(--a)); border: 1px solid rgba(255,255,255,.04); }
+        .heat .hc.z { color: transparent; background: rgba(255,255,255,.025); }
+        .heat .ht { font: 700 12px/1 var(--mono); color: var(--ink-2); display: flex; align-items: center; justify-content: flex-end; }
+        .heat-scale { margin-top: 10px; display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-3); }
+        .heat-scale i { width: 120px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, rgba(255,90,54,.08), rgba(255,90,54,.95)); }
+
+        /* 반복 이상 */
+        .rep { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+        .rep th { text-align: left; font-size: 11.5px; font-weight: 700; color: var(--ink-3); padding: 0 8px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+        .rep td { padding: 11px 8px; border-bottom: 1px solid rgba(255,255,255,.04); vertical-align: middle; }
+        .rep tr:last-child td { border-bottom: none; }
+        .rep .rk { font: 800 15px/1 var(--mono); color: var(--ink-3); width: 34px; }
+        .rep tr:first-child .rk { color: var(--alert); }
+        .rep .pn { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); display: block; margin-top: 2px; }
+        .rep .cnt { font: 800 16px/1 var(--mono); text-align: right; }
+        .spark { display: block; }
+        .rep a.go { font-size: 12.5px; font-weight: 700; color: var(--scan); white-space: nowrap; }
+        .rep a.go:hover { text-decoration: underline; }
+        th.num { text-align: right; }
+
+        /* 대표 사례 */
+        .case { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: center;
+                background: linear-gradient(90deg, rgba(255,90,54,.08), transparent 60%), var(--panel); border-color: rgba(255,90,54,.28); }
+        @media (min-width: 1000px) { .case { grid-template-columns: minmax(0, 1fr) auto; } }
+        .case .kicker { color: var(--alert); }
+        .case h3 { margin-top: 10px; font-size: 20px; font-weight: 800; line-height: 1.4; }
+        .case p { margin-top: 6px; font-size: 14px; color: var(--ink-2); line-height: 1.65; max-width: 900px; }
+        .case-steps { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; }
+        .case-steps span { padding: 5px 9px; border-radius: 8px; background: var(--panel-3); border: 1px solid var(--line); }
+        .case-steps span.hot { background: var(--alert-dim); border-color: rgba(255,90,54,.4); color: #FFC5B8; }
+        .case-steps em { font-style: normal; color: var(--ink-3); }
+        .case .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+
+        .foot-note { margin: -16px 0 32px; font-size: 12px; color: var(--ink-3); display: flex; gap: 8px; align-items: center; }
+
+        .toast { position: fixed; left: 50%; bottom: 26px; z-index: 80; transform: translate(-50%, 16px); padding: 12px 18px; border-radius: 12px; background: var(--ink); color: var(--void); font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; }
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+        .print-only { display: none; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+        }
+
+        /* ════════════ 인쇄 : 흰 A4 가로 보고서 ════════════ */
+        @page { size: A4 landscape; margin: 10mm; }
+        @media print {
+            :root {
+                --void: #FFFFFF; --panel: #FFFFFF; --panel-2: #F6F7F9; --panel-3: #EEF0F3;
+                --line: #DDE1E6; --line-2: #C9CED5; --grid: #ECEEF1;
+                --ink: #111418; --ink-2: #3A414A; --ink-3: #6A717B;
+                --scan: #0B7FA3; --scan-dim: rgba(11,127,163,.10);
+                --alert: #D6361B; --alert-dim: rgba(214,54,27,.10);
+                --warn: #B7790A; --ok: #138A4F; --ok-dim: rgba(19,138,79,.10);
+                --t-QTY: #D6361B; --t-MISSING: #D99A14; --t-SPEC: #7B5CD6; --t-DUP: #1C9CC4;
+            }
+            html, body { background: #fff !important; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 11px; }
+            .nav, .no-print, .toast, .tip { display: none !important; }
+            .print-only { display: block; }
+            .wrap { max-width: none; padding: 0; }
+            .card { border-radius: 8px; padding: 10px 12px; break-inside: avoid; box-shadow: none; }
+            .head { margin-top: 0; padding: 12px 14px; background: #fff; border: none; border-bottom: 2px solid #111418; border-radius: 0; }
+            .head h1 { font-size: 22px; margin-top: 4px; }
+            .summary { font-size: 12.5px; margin-top: 8px; max-width: none; }
+            .grid { margin: 8px 0 0; gap: 8px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+            .s3 { grid-column: span 3 !important; } .s4 { grid-column: span 4 !important; } .s5 { grid-column: span 5 !important; }
+            .s6 { grid-column: span 6 !important; } .s7 { grid-column: span 7 !important; } .s8 { grid-column: span 8 !important; } .s12 { grid-column: span 12 !important; }
+            .kpi .v { font-size: 24px; }
+            .c-head { margin-bottom: 6px; }
+            .heat .hc { height: 18px; color: #111 !important; }
+            .heat .hc.z { color: transparent !important; }
+            /* 1쪽 : 머리 · KPI · 추이 · 유형 / 2쪽 : 조치 · 원인 · 분포 · 반복 이상 · 사례 */
+            .page-break { break-before: page; }
+            .cs { padding: 6px 10px; } .cs .ix { width: 26px; height: 26px; }
+            .fl .tr { height: 20px; } .flow { gap: 6px; } .flow-foot { margin-top: 8px; } .ff { padding: 6px 10px; }
+            .rep td { padding: 5px 8px; }
+            .case { background: #fff; }
+            .case h3 { font-size: 16px; } .case p { font-size: 12px; }
+            .case-steps span.hot { color: var(--alert); font-weight: 700; }
+            .foot-note { margin: 6px 0 0; }
+            .ty-bar i, .fl .tr i { animation: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════ 상단 바 ═══════════ -->
+<header class="nav">
+    <div class="wrap nav-in">
+        <a class="brand" href="/cop/main" aria-label="SENTINEL 메인으로">
+            <span class="brand-mark" aria-hidden="true"></span><b>SENTINEL</b>
+        </a>
+        <div class="crumb" aria-label="현재 위치">
+            <span aria-hidden="true" style="color:var(--line-2)">/</span>
+            <span class="floor">2F</span><b>이상 리포트</b>
+        </div>
+        <div class="nav-tools">
+            <span class="demo" title="샘플 데이터">DEMO</span>
+            <a class="btn btn-sm" href="/cop/radar">관제</a>
+            <a class="btn btn-sm" href="/cop/main">메인</a>
+        </div>
+    </div>
+</header>
+
+<main class="wrap" id="main">
+
+    <!-- ═══════════ 리포트 머리 ═══════════ -->
+    <section class="card head" aria-labelledby="rTitle">
+        <div>
+            <span class="kicker">SENTINEL · BOM ANOMALY REPORT</span>
+            <h1 id="rTitle"><span id="rTitleText">BOM 이상 리포트</span><small id="rRange">—</small></h1>
+            <p class="summary" id="summary" aria-live="polite"></p>
+        </div>
+        <div class="head-tools no-print">
+            <div class="seg" role="group" aria-label="기간">
+                <button type="button" data-p="week" aria-pressed="false">주간</button>
+                <button type="button" data-p="month" aria-pressed="true">월간</button>
+                <button type="button" data-p="quarter" aria-pressed="false">분기</button>
+            </div>
+            <div class="tool-row">
+                <button type="button" class="btn btn-sm" id="btnLink">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+                    링크 복사
+                </button>
+                <button type="button" class="btn btn-sm" id="btnCsv">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+                    CSV
+                </button>
+                <button type="button" class="btn btn-sm btn-solid" id="btnPrint">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    인쇄 · PDF 저장
+                </button>
+            </div>
+            <span class="meta-line"><span class="demo">SAMPLE</span>작성 <span class="tnum" id="genAt">—</span></span>
+        </div>
+        <p class="print-only meta-line">SENTINEL BOM 이상감지 플랫폼 · 작성 <span class="tnum" id="genAtP"></span> · 샘플 데이터</p>
+    </section>
+
+    <div class="grid">
+        <!-- KPI -->
+        <dl class="card kpi s3"><dt>탐지 건수</dt><dd class="v tnum"><span id="kTotal">—</span><small>건</small></dd><dd><span class="d" id="kTotalD"></span></dd><dd class="cap" id="kTotalC"></dd></dl>
+        <dl class="card kpi s3"><dt>조치 완료율</dt><dd class="v tnum"><span id="kDone">—</span><small>%</small></dd><dd><span class="d" id="kDoneD"></span></dd><dd class="cap" id="kDoneC"></dd></dl>
+        <dl class="card kpi s3"><dt>평균 조치 시간</dt><dd class="v tnum"><span id="kTime">—</span><small>시간</small></dd><dd><span class="d" id="kTimeD"></span></dd><dd class="cap" id="kTimeC"></dd></dl>
+        <dl class="card kpi s3"><dt>위험 (80+)</dt><dd class="v tnum"><span id="kCrit">—</span><small>건</small></dd><dd><span class="d" id="kCritD"></span></dd><dd class="cap" id="kCritC"></dd></dl>
+
+        <!-- 추이 -->
+        <section class="card s8" aria-labelledby="trendTitle">
+            <div class="c-head">
+                <h2 id="trendTitle">탐지 추이</h2><span class="sub" id="trendSub"></span>
+                <div class="legend right no-print" id="legend" role="group" aria-label="유형 표시"></div>
+            </div>
+            <div class="chart" id="trend" role="img"></div>
+        </section>
+
+        <!-- 유형 비중 -->
+        <section class="card s4" aria-labelledby="typeTitle">
+            <div class="c-head"><h2 id="typeTitle">유형별 비중</h2><span class="sub">관제 레이더 4개 구역</span></div>
+            <div class="types" id="types"></div>
+        </section>
+
+        <!-- 조치 흐름 -->
+        <section class="card s4 flex4 page-break" aria-labelledby="flowTitle">
+            <div class="c-head"><h2 id="flowTitle">조치 결과</h2><span class="sub">탐지 → 확인 → 조치</span></div>
+            <div class="flow" id="flow"></div>
+            <div class="flow-foot" id="flowFoot"></div>
+        </section>
+
+        <!-- 원인 위치 -->
+        <section class="card s4 flex4" aria-labelledby="causeTitle">
+            <div class="c-head"><h2 id="causeTitle">원인 위치</h2><span class="sub">3F 원인 추적 결과 집계</span></div>
+            <div class="cause" id="cause"></div>
+        </section>
+
+        <!-- 히트맵 -->
+        <section class="card s4" aria-labelledby="heatTitle">
+            <div class="c-head"><h2 id="heatTitle">어셈블리별 분포</h2><span class="sub" id="heatSub"></span></div>
+            <div class="heat" id="heat" role="table" aria-label="어셈블리별 기간별 탐지 건수"></div>
+            <div class="heat-scale" aria-hidden="true">적음 <i></i> 많음</div>
+        </section>
+
+        <!-- 반복 이상 -->
+        <section class="card s7" aria-labelledby="repTitle">
+            <div class="c-head"><h2 id="repTitle">반복 이상 TOP 5</h2><span class="sub">같은 자재에서 되풀이된 이상 — 규칙 개선 후보</span></div>
+            <table class="rep">
+                <thead><tr><th>#</th><th>자재</th><th>주 원인</th><th>추이</th><th class="num">건수</th><th class="no-print"></th></tr></thead>
+                <tbody id="rep"></tbody>
+            </table>
+        </section>
+
+        <!-- 대표 사례 -->
+        <section class="card case s5" aria-labelledby="caseTitle">
+            <div>
+                <span class="kicker">대표 사례 · CASE</span>
+                <h3 id="caseTitle">TEST-632560 브라켓 120EA — 정지층수 입력 오류</h3>
+                <p>EL_STOP 12 를 122 로 입력해 브라켓이 12배 수배될 뻔했습니다. 탐지부터 원인 확인까지 4분, BOM 계산 직후 발주 전에 막았습니다.</p>
+                <div class="case-steps">
+                    <span>14:02 입력</span><em>→</em><span>14:05 BOM 계산</span><em>→</em><span class="hot">14:06 탐지</span><em>→</em><span>14:09 원인 확인</span>
+                </div>
+            </div>
+            <div class="btns no-print">
+                <a class="btn btn-sm" href="/cop/trace">원인 추적 보기</a>
+                <a class="btn btn-sm" href="/cop/diff?b=TEST-632560">BOM 비교</a>
+            </div>
+        </section>
+    </div>
+    <p class="foot-note"><span class="demo">DEMO</span>발표용 샘플 집계입니다. 실제 지표는 관제 데이터와 연동 후 같은 형식으로 채워집니다.</p>
+</main>
+
+<div class="tip" id="tip" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script th:inline="none">
+(function () {
+    "use strict";
+
+    var $ = function (id) { return document.getElementById(id); };
+    var TYPES = ["QTY", "MISSING", "SPEC", "DUP"];
+    var TYPE_NAME = { QTY: "수량 급증", MISSING: "자재 누락", SPEC: "사양 불일치", DUP: "중복 수배" };
+    var TYPE_DESC = { QTY: "같은 사양보다 수량이 튐", MISSING: "하위 자재가 비어 있음", SPEC: "영업사양과 자재 타입 불일치", DUP: "같은 품번 이중 전개" };
+    var ASM = ["권상기", "카", "카 도어", "승강장 도어", "가이드레일", "로프·균형추", "제어반", "안전장치"];
+    var PERIOD = {
+        week:    { label: "주간", days: 7,  bucket: "day",  thisName: "이번 주",   prevName: "지난주" },
+        month:   { label: "월간", days: 30, bucket: "day",  thisName: "이번 달",   prevName: "지난달" },
+        quarter: { label: "분기", days: 91, bucket: "week", thisName: "이번 분기", prevName: "지난 분기" }
+    };
+    var hidden = {};          // 추이 그래프에서 숨긴 유형
+    var report = null;
+
+    /* =========================================================
+       샘플 집계 (실제 연동 시 loadReport 를 서버 호출로 교체)
+       ========================================================= */
+    function makeSample(pk) {
+        var p = PERIOD[pk], rnd = rng(hashInt("report-" + pk));
+        var end = new Date(2026, 9, 17), start = new Date(end); start.setDate(end.getDate() - p.days + 1);
+        var rate = { QTY: 0.95, MISSING: 0.6, SPEC: 0.42, DUP: 0.3 };
+
+        // 일별 → 버킷 (월간/주간 : 일, 분기 : 주)
+        var days = [];
+        for (var i = 0; i < p.days; i++) {
+            var d = new Date(start); d.setDate(start.getDate() + i);
+            var t = i / Math.max(1, p.days - 1), trend = 1.25 - 0.45 * t;   // 감소 추세 (탐지 → 규칙 개선 효과)
+            var row = { date: d };
+            TYPES.forEach(function (k) { row[k] = poisson(rnd, rate[k] * trend * (d.getDay() === 0 || d.getDay() === 6 ? 0.35 : 1.15)); });
+            days.push(row);
+        }
+        if (pk !== "quarter") days[days.length - 1].QTY = Math.max(days[days.length - 1].QTY, 1);   // 오늘 (TEST-632560 브라켓)
+        var buckets = [];
+        if (p.bucket === "day") {
+            buckets = days.map(function (r) { return assign({ label: md(r.date), full: ymd(r.date) }, pick4(r)); });
+        } else {
+            for (var w = 0; w < days.length; w += 7) {
+                var chunk = days.slice(w, w + 7), b = { label: md(chunk[0].date), full: ymd(chunk[0].date) + " ~ " + ymd(chunk[chunk.length - 1].date) };
+                TYPES.forEach(function (k) { b[k] = chunk.reduce(function (s, r) { return s + r[k]; }, 0); });
+                buckets.push(b);
+            }
+        }
+        var byType = {}; TYPES.forEach(function (k) { byType[k] = buckets.reduce(function (s, b) { return s + b[k]; }, 0); });
+        var total = TYPES.reduce(function (s, k) { return s + byType[k]; }, 0);
+
+        var ignored = Math.round(total * 0.07), done = Math.round(total * 0.79), ack = Math.round(total * 0.08);
+        var open = Math.max(0, total - ignored - done - ack);
+        var crit = Math.max(1, Math.round(total * 0.09));
+
+        // 어셈블리 × 히트맵 칸 (주간 : 7일, 월간 : 5주, 분기 : 13주 → 6칸으로 묶음)
+        var cols = pk === "week" ? days.map(function (r) { return [r]; }) : chunkInto(days, pk === "month" ? 5 : 6);
+        var asmW = [1.6, 0.9, 1.1, 0.8, 0.7, 0.9, 1.0, 0.5];
+        var heat = ASM.map(function (name, ai) {
+            return { name: name, cells: cols.map(function (c) {
+                var n = c.reduce(function (s, r) { return s + r.QTY + r.MISSING + r.SPEC + r.DUP; }, 0);
+                return Math.round(n * asmW[ai] / 7.5 * (0.6 + rnd() * 0.8));
+            }) };
+        });
+        var heatCols = cols.map(function (c) { return pk === "week" ? md(c[0].date).slice(3) + "일" : md(c[0].date); });
+
+        var causes = [
+            { name: "영업사양 입력 오류", sub: "값이 같은 사양 호기와 다름 (예 : EL_STOP 122)", pct: 46 },
+            { name: "수배 로직 · 매핑 규칙", sub: "이전 버전 규칙 적용, 조건 겹침", pct: 23 },
+            { name: "종속사양 산출 미완료", sub: "산출 중단으로 사양 값이 빔", pct: 19 },
+            { name: "기준정보 · 기타", sub: "품번 개정 누락 등", pct: 12 }
+        ];
+        var reps = [
+            { part: "브라켓", no: "P-1102-07", cause: "EL_STOP 입력 오류", n: Math.round(total * 0.09) + 2, link: "/cop/trace" },
+            { part: "조속기", no: "P-7011-06", cause: "종속사양 산출 미완료", n: Math.round(total * 0.07) + 1, link: "/cop/trace?no=H4-49768&part=P-7011-06&name=" + encodeURIComponent("조속기") },
+            { part: "도어행거", no: "P-3318-11", cause: "경로 조건 겹침", n: Math.round(total * 0.06) + 1, link: "/cop/trace?no=H3-15690&part=P-3318-11&name=" + encodeURIComponent("도어행거") },
+            { part: "와이어로프", no: "P-4420-02", cause: "승강행정 값 이상", n: Math.round(total * 0.05) + 1, link: "/cop/trace?no=H1-77820&part=P-4420-02&name=" + encodeURIComponent("와이어로프") },
+            { part: "제어반 케이블", no: "P-6130-09", cause: "매핑 규칙 v3 적용", n: Math.round(total * 0.04) + 1, link: "/cop/trace?no=H1-69092&part=P-6130-09&name=" + encodeURIComponent("제어반 케이블") }
+        ].map(function (r, i) { r.spark = Array.apply(null, Array(8)).map(function (_, j) { return Math.max(0, Math.round(r.n / 8 * (1.5 - j * 0.12) + (rnd() - .5) * 2)); }); return r; });
+
+        return {
+            period: pk, label: p.label, thisName: p.thisName, prevName: p.prevName, bucket: p.bucket,
+            start: start, end: end, buckets: buckets, byType: byType, total: total,
+            prev: { total: Math.round(total * 1.22), doneRate: 64, hours: 9.1, crit: crit + 3 },
+            done: done, ack: ack, open: open, ignored: ignored, crit: crit, hours: 5.4,
+            heat: heat, heatCols: heatCols, causes: causes, reps: reps,
+            generatedAt: new Date()
+        };
+    }
+
+    function loadReport(pk) { return Promise.resolve(makeSample(pk)); }
+
+    /* =========================================================
+       그리기
+       ========================================================= */
+    function render(r) {
+        report = r;
+        var doneRate = Math.round(r.done / r.total * 100);
+        var diff = Math.round((r.total - r.prev.total) / r.prev.total * 100);
+        var topType = TYPES.slice().sort(function (a, b) { return r.byType[b] - r.byType[a]; })[0];
+
+        $("rTitleText").textContent = "BOM 이상 리포트 · " + r.label;
+        $("rRange").textContent = ymd(r.start) + " ~ " + ymd(r.end) + "  ·  " + r.total + "건";
+        $("genAt").textContent = $("genAtP").textContent = ymd(r.generatedAt) + " " + pad(r.generatedAt.getHours()) + ":" + pad(r.generatedAt.getMinutes());
+        document.title = "BOM 이상 리포트 (" + r.label + ") · SENTINEL";
+
+        $("summary").innerHTML =
+            r.thisName + " BOM 이상은 <b>" + r.total + "건</b> 탐지되어 " + r.prevName + "보다 " +
+            (diff <= 0 ? '<span class="down">' + Math.abs(diff) + "% 줄었습니다</span>" : '<span class="up">' + diff + "% 늘었습니다</span>") + ". " +
+            "가장 많은 유형은 <b>" + TYPE_NAME[topType] + "(" + Math.round(r.byType[topType] / r.total * 100) + "%)</b>이고, " +
+            "원인의 <b>" + r.causes[0].pct + "%</b>가 <b>" + r.causes[0].name + "</b>였습니다. " +
+            "조치 완료율은 <b>" + doneRate + "%</b>, 평균 조치 시간은 <b>" + r.hours + "시간</b>으로 " + r.prevName + "(" + r.prev.hours + "시간)보다 빨라졌습니다.";
+
+        kpi("kTotal", r.total, diff, "%", true, r.prevName + " " + r.prev.total + "건");
+        kpi("kDone", doneRate, doneRate - r.prev.doneRate, "%p", false, "조치 " + r.done + " / 탐지 " + r.total);
+        kpi("kTime", r.hours, Math.round((r.hours - r.prev.hours) * 10) / 10, "h", true, r.prevName + " " + r.prev.hours + "시간");
+        kpi("kCrit", r.crit, r.crit - r.prev.crit, "건", true, "모두 발주 전 조치");
+
+        renderLegend();
+        renderTrend();
+        renderTypes(r);
+        renderFlow(r);
+        renderCause(r);
+        renderHeat(r);
+        renderRep(r);
+    }
+
+    /** lowerIsGood : 값이 줄면 좋은 지표 */
+    function kpi(id, v, d, unit, lowerIsGood, cap) {
+        $(id).textContent = typeof v === "number" ? v.toLocaleString("ko-KR") : v;
+        var good = lowerIsGood ? d <= 0 : d >= 0;
+        var el = $(id + "D");
+        el.className = "d " + (good ? "good" : "bad");
+        el.textContent = (d > 0 ? "▲ +" : d < 0 ? "▼ " : "– ") + d + unit + " vs 이전";
+        $(id + "C").textContent = cap;
+    }
+
+    function renderLegend() {
+        $("legend").innerHTML = TYPES.map(function (k) {
+            return '<button type="button" class="lg" data-t="' + k + '" aria-pressed="' + !hidden[k] + '" style="--c:var(--t-' + k + ')"><i></i>' + TYPE_NAME[k] + '</button>';
+        }).join("");
+        $("legend").querySelectorAll(".lg").forEach(function (b) {
+            b.addEventListener("click", function () { hidden[b.dataset.t] = !hidden[b.dataset.t]; renderLegend(); renderTrend(); });
+        });
+    }
+
+    /** 누적 막대 (유형별) + 이동 평균 선 */
+    function renderTrend() {
+        var r = report, box = $("trend");
+        var W = Math.max(320, box.clientWidth), H = 250, padL = 34, padR = 8, padT = 12, padB = 28;
+        var bs = r.buckets, n = bs.length;
+        var vis = TYPES.filter(function (k) { return !hidden[k]; });
+        var sums = bs.map(function (b) { return vis.reduce(function (s, k) { return s + b[k]; }, 0); });
+        var max = niceMax(Math.max.apply(null, sums.concat([4])));
+        var cw = (W - padL - padR) / n, bw = Math.max(3, Math.min(28, cw * 0.62));
+        var y = function (v) { return padT + (H - padT - padB) * (1 - v / max); };
+        var out = [];
+        // 격자
+        for (var g = 0; g <= 4; g++) {
+            var gv = max / 4 * g, gy = y(gv);
+            out.push('<line x1="' + padL + '" y1="' + gy.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + gy.toFixed(1) + '" stroke="var(--grid)"/>');
+            out.push('<text x="' + (padL - 8) + '" y="' + (gy + 4).toFixed(1) + '" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="Consolas, monospace">' + Math.round(gv) + '</text>');
+        }
+        // 막대
+        bs.forEach(function (b, i) {
+            var x = padL + cw * i + (cw - bw) / 2, acc = 0;
+            vis.forEach(function (k) {
+                if (!b[k]) return;
+                var y0 = y(acc), y1 = y(acc + b[k]);
+                out.push('<rect x="' + x.toFixed(1) + '" y="' + y1.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + Math.max(0, y0 - y1 - 1).toFixed(1) + '" rx="2" fill="var(--t-' + k + ')"/>');
+                acc += b[k];
+            });
+            out.push('<rect class="hit" data-i="' + i + '" x="' + (padL + cw * i).toFixed(1) + '" y="' + padT + '" width="' + cw.toFixed(1) + '" height="' + (H - padT - padB) + '" fill="transparent"/>');
+            var every = n > 40 ? 7 : n > 16 ? 5 : 1;
+            if (i % every === 0 || i === n - 1) out.push('<text x="' + (padL + cw * i + cw / 2).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="var(--ink-3)" font-family="Consolas, monospace">' + b.label + '</text>');
+        });
+        // 이동 평균 (흐름을 보여줌)
+        var win = r.bucket === "day" ? 7 : 3, pts = [];
+        sums.forEach(function (_, i) {
+            var s = sums.slice(Math.max(0, i - win + 1), i + 1);
+            pts.push([padL + cw * i + cw / 2, y(s.reduce(function (a, b) { return a + b; }, 0) / s.length)]);
+        });
+        out.push('<path d="' + pts.map(function (p, i) { return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(" ") + '" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="1 0" stroke-linejoin="round" opacity=".85"/>');
+        box.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' + out.join("") + '</svg>';
+
+        var avg = sums.reduce(function (a, b) { return a + b; }, 0) / n;
+        $("trendSub").textContent = (r.bucket === "day" ? "일별" : "주별") + " · 선 = " + win + (r.bucket === "day" ? "일" : "주") + " 이동평균 · 평균 " + avg.toFixed(1) + "건";
+        box.setAttribute("aria-label", "탐지 추이 " + (r.bucket === "day" ? "일별" : "주별") + " 누적 막대. 첫 구간 " + sums[0] + "건, 마지막 구간 " + sums[n - 1] + "건, 평균 " + avg.toFixed(1) + "건.");
+
+        box.querySelectorAll(".hit").forEach(function (h) {
+            h.addEventListener("mousemove", function (e) {
+                var b = bs[+h.dataset.i], tip = $("tip");
+                tip.innerHTML = '<b>' + b.full + '</b><br>' + TYPES.map(function (k) {
+                    return '<i style="background:var(--t-' + k + ')"></i>' + TYPE_NAME[k] + ' <b>' + b[k] + '</b>';
+                }).join("<br>");
+                tip.style.left = e.clientX + "px"; tip.style.top = e.clientY + "px"; tip.hidden = false;
+            });
+            h.addEventListener("mouseleave", function () { $("tip").hidden = true; });
+        });
+    }
+
+    function renderTypes(r) {
+        var max = Math.max.apply(null, TYPES.map(function (k) { return r.byType[k]; }));
+        $("types").innerHTML = TYPES.slice().sort(function (a, b) { return r.byType[b] - r.byType[a]; }).map(function (k, i) {
+            var pct = Math.round(r.byType[k] / r.total * 100);
+            return '<div style="--c:var(--t-' + k + ')"><div class="ty-top"><b>' + TYPE_NAME[k] + '</b><span class="n tnum">' + r.byType[k] + '</span><span class="p tnum">' + pct + '%</span></div>' +
+                '<div class="ty-bar"><i style="width:' + (r.byType[k] / max * 100).toFixed(1) + '%;animation-delay:' + (i * 80) + 'ms"></i></div>' +
+                '<div class="ty-sub">' + TYPE_DESC[k] + '</div></div>';
+        }).join("");
+    }
+
+    function renderFlow(r) {
+        var confirmed = r.total - r.ignored;
+        var rows = [
+            ["탐지", r.total, "var(--ink-2)"],
+            ["실제 이상", confirmed, "var(--warn)"],
+            ["조치 완료", r.done, "var(--ok)"]
+        ];
+        $("flow").innerHTML = rows.map(function (x, i) {
+            return '<div class="fl"><span class="lb">' + x[0] + '</span><span class="tr"><i style="width:' + (x[1] / r.total * 100).toFixed(1) + '%;background:' + x[2] + ';animation-delay:' + (i * 120) + 'ms">' +
+                Math.round(x[1] / r.total * 100) + '%</i></span><span class="n tnum">' + x[1] + '</span></div>';
+        }).join("");
+        $("flowFoot").innerHTML =
+            '<div class="ff"><small>오탐</small><b class="tnum">' + r.ignored + '</b></div>' +
+            '<div class="ff"><small>확인 중</small><b class="tnum" style="color:var(--warn)">' + r.ack + '</b></div>' +
+            '<div class="ff"><small>미조치</small><b class="tnum" style="color:var(--alert)">' + r.open + '</b></div>';
+    }
+
+    function renderCause(r) {
+        $("cause").innerHTML = r.causes.map(function (c, i) {
+            return '<div class="cs"><span class="ix">' + (i + 1) + '</span><span><b>' + esc(c.name) + '</b><small>' + esc(c.sub) + '</small></span>' +
+                '<span class="pc tnum">' + c.pct + '<small>%</small></span></div>';
+        }).join("");
+    }
+
+    function renderHeat(r) {
+        var max = Math.max.apply(null, r.heat.map(function (h) { return Math.max.apply(null, h.cells); }).concat([1]));
+        var nc = r.heatCols.length;
+        var box = $("heat");
+        box.style.gridTemplateColumns = "84px repeat(" + nc + ", minmax(0, 1fr)) 34px";
+        var html = '<span role="columnheader"></span>' + r.heatCols.map(function (c) { return '<span class="hh" role="columnheader">' + c + '</span>'; }).join("") + '<span class="hh" role="columnheader">계</span>';
+        r.heat.forEach(function (h) {
+            var sum = h.cells.reduce(function (a, b) { return a + b; }, 0);
+            html += '<span class="hl" role="rowheader">' + esc(h.name) + '</span>' + h.cells.map(function (v, i) {
+                return '<span class="hc' + (v ? "" : " z") + '" role="cell" style="--a:' + (v ? (0.12 + v / max * 0.83).toFixed(2) : 0) + '" title="' + esc(h.name) + ' · ' + r.heatCols[i] + ' : ' + v + '건">' + v + '</span>';
+            }).join("") + '<span class="ht tnum" role="cell">' + sum + '</span>';
+        });
+        box.innerHTML = html;
+        $("heatSub").textContent = r.period === "week" ? "일별" : "기간을 " + nc + "칸으로 나눔";
+    }
+
+    function renderRep(r) {
+        $("rep").innerHTML = r.reps.map(function (x, i) {
+            return '<tr><td class="rk tnum">' + (i + 1) + '</td><td><b>' + esc(x.part) + '</b><span class="pn">' + x.no + '</span></td>' +
+                '<td>' + esc(x.cause) + '</td><td>' + spark(x.spark) + '</td><td class="cnt tnum">' + x.n + '</td>' +
+                '<td class="no-print"><a class="go" href="' + x.link + '">원인 →</a></td></tr>';
+        }).join("");
+    }
+
+    function spark(v) {
+        var W = 90, H = 24, max = Math.max.apply(null, v.concat([1]));
+        var pts = v.map(function (n, i) { return (i / (v.length - 1) * W).toFixed(1) + "," + (H - 2 - n / max * (H - 4)).toFixed(1); }).join(" ");
+        return '<svg class="spark" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true"><polyline points="' + pts + '" fill="none" stroke="var(--alert)" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+    }
+
+    /* =========================================================
+       도구
+       ========================================================= */
+    function setPeriod(pk, push) {
+        document.querySelectorAll(".seg button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.p === pk); });
+        if (push) history.replaceState(null, "", location.pathname + "?period=" + pk);
+        loadReport(pk).then(render);
+    }
+    document.querySelectorAll(".seg button").forEach(function (b) {
+        b.addEventListener("click", function () { setPeriod(b.dataset.p, true); });
+    });
+
+    $("btnPrint").addEventListener("click", function () { window.print(); });
+    // 인쇄 직전 그래프를 인쇄 폭에 맞춰 다시 그림
+    window.addEventListener("beforeprint", function () { if (report) renderTrend(); });
+    window.addEventListener("afterprint", function () { if (report) renderTrend(); });
+
+    $("btnLink").addEventListener("click", function () {
+        var url = location.href;
+        var ok = function () { toast("리포트 링크를 복사했습니다"); };
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(ok, fallback);
+        else fallback();
+        function fallback() {
+            var t = document.createElement("textarea"); t.value = url; document.body.appendChild(t); t.select();
+            try { document.execCommand("copy"); ok(); } catch (e) { toast("복사하지 못했습니다. 주소창의 링크를 사용하세요"); }
+            t.remove();
+        }
+    });
+
+    $("btnCsv").addEventListener("click", function () {
+        if (!report) return;
+        var lines = [["구간", "수량 급증", "자재 누락", "사양 불일치", "중복 수배", "합계"].join(",")].concat(report.buckets.map(function (b) {
+            return [b.full, b.QTY, b.MISSING, b.SPEC, b.DUP, b.QTY + b.MISSING + b.SPEC + b.DUP].join(",");
+        }));
+        var blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "BOM이상리포트_" + report.label + "_" + ymd(report.end) + ".csv";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    });
+
+    var rt = null;
+    window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { if (report) renderTrend(); }, 120); });
+
+    var toastTimer = null;
+    function toast(msg) {
+        $("toast").textContent = msg; $("toast").classList.add("show");
+        clearTimeout(toastTimer); toastTimer = setTimeout(function () { $("toast").classList.remove("show"); }, 2600);
+    }
+
+    /* =========================================================
+       유틸
+       ========================================================= */
+    function pick4(r) { return { QTY: r.QTY, MISSING: r.MISSING, SPEC: r.SPEC, DUP: r.DUP }; }
+    function chunkInto(arr, k) { var out = [], size = Math.ceil(arr.length / k); for (var i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; }
+    function niceMax(v) { var step = v <= 5 ? 1 : v <= 10 ? 2 : v <= 25 ? 5 : 10; return Math.ceil(v / step / 4) * step * 4; }
+    function poisson(rnd, l) { var L = Math.exp(-l), k = 0, p = 1; do { k++; p *= rnd(); } while (p > L); return k - 1; }
+    function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
+    function pad(n) { return n < 10 ? "0" + n : "" + n; }
+    function md(d) { return pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+    function ymd(d) { return d.getFullYear() + "-" + md(d); }
+    function hashInt(s) { var h = 2166136261; s = String(s); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+    function rng(seed) {
+        return function () {
+            seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+            var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+            t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        };
+    }
+    function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+    }
+
+    /* 시작 */
+    var qp = new URLSearchParams(location.search).get("period");
+    setPeriod(PERIOD[qp] ? qp : "month", false);
+})();
+</script>
+</body>
+</html>

@@ -32,8 +32,11 @@ import java.util.stream.Collectors;
 /**
  * PLM(DynaPLM) 원사이클 처리.
  *
- * 영업사양 하나에 대해 [로그인 -> WIP 생성 -> 종속사양 산출 -> BOM 계산] 을 한 번에 수행한다.
+ * 영업사양 하나에 대해 [로그인 -> WIP 생성 -> (속성값 변경) -> 종속사양 산출 -> BOM 계산] 을 한 번에 수행한다.
  * 각 단계는 public 메서드로 분리되어 있어 개별 호출도 가능하다.
+ *  - 속성값 변경 없이 : {@link #runOneCycle(String)}
+ *  - 속성값 변경 포함 : {@link #runOneCycle(String, Map)}
+ *  - 동일정보 생성부터 : {@link #runEqualInfoCycle(String, Map)} (동일정보 생성 -> 속성값 변경 -> 종속사양 산출 -> BOM 계산)
  *
  * 별도 기능 : 동일정보 만들기 (기존 호기의 사양을 그대로 복사해 새 공사정보(TEST 호기) 생성) - {@link #runEqualInfo(String)}
  * 별도 기능 : 호기 속성정보 변경 ({특성코드: 값} 으로 여러 속성을 한 번에 변경) - {@link #runAttrChange(String, Map, boolean)}
@@ -110,6 +113,30 @@ public class OneCycleFunc {
      * @param pwd       PLM 비밀번호
      */
     public OneCycleResult runOneCycle(String productNo, String userid, String pwd) {
+        return runOneCycle(productNo, null, userid, pwd);
+    }
+
+    /**
+     * 원사이클 실행 (속성값 변경 포함) : 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> WIP 생성
+     *                                  -> 속성값 변경 -> 종속사양 산출 -> BOM 계산
+     *
+     * @param productNo 프로젝트호기번호 (ELV_INFO$VF.MD$NUMBER)
+     * @param attrs     바꿀 속성 {특성코드: 값}. null 이거나 비어 있으면 속성값 변경은 건너뛴다.
+     */
+    public OneCycleResult runOneCycle(String productNo, Map<String, ?> attrs) {
+        return runOneCycle(productNo, attrs, plmUserId, plmPassword);
+    }
+
+    /**
+     * 원사이클 실행 (속성값 변경 포함) : 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> WIP 생성
+     *                                  -> 속성값 변경 -> 종속사양 산출 -> BOM 계산
+     *
+     * @param productNo 프로젝트호기번호 (ELV_INFO$VF.MD$NUMBER)
+     * @param attrs     바꿀 속성 {특성코드: 값}. null 이거나 비어 있으면 속성값 변경은 건너뛴다.
+     * @param userid    PLM 사용자 ID
+     * @param pwd       PLM 비밀번호
+     */
+    public OneCycleResult runOneCycle(String productNo, Map<String, ?> attrs, String userid, String pwd) {
 
         long startTime = System.currentTimeMillis();
         OneCycleResult result = new OneCycleResult();
@@ -136,19 +163,8 @@ public class OneCycleFunc {
             //    이미 WIP 인 경우 등 실패하더라도 종속사양 산출은 시도해본다. (산출 결과 메시지로 원인 판단)
             result.setMakeWipMessage(makeWip(session, vfOuid));
 
-            // 4) 종속사양 산출
-            String jongsoksungMessage = executeJongsoksung(session, vfOuid);
-            result.setJongsoksungMessage(jongsoksungMessage);
-            if (jongsoksungMessage == null) {
-                result.setMessage("종속사양 산출 응답을 확인하지 못했습니다.");
-                return result;
-            }
-
-            // 5) BOM 계산 (구성전개 c / 자재전개 m / 사양전개 f)
-            String bomMessage = bomCalStart(session, vfOuid);
-            result.setBomMessage(bomMessage);
-            result.setSuccess(bomMessage != null);
-            result.setMessage(bomMessage != null ? bomMessage : "BOM 계산 응답을 확인하지 못했습니다.");
+            // 4) 속성값 변경 -> 5) 종속사양 산출 -> 6) BOM 계산
+            runCycleSteps(session, vfOuid, attrs, result);
 
         } catch (Exception e) {
             result.setMessage("원사이클 처리 중 오류 : " + e.getMessage());
@@ -159,6 +175,108 @@ public class OneCycleFunc {
         }
 
         return result;
+    }
+
+    /**
+     * 동일정보 생성 + 원사이클 : 원본 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> 원본 WIP 생성
+     *                          -> 동일정보 생성 -> 속성값 변경 -> 종속사양 산출 -> BOM 계산
+     *
+     * @param sourceNo 원본 프로젝트호기번호
+     * @param attrs    신규 호기에 바꿀 속성 {특성코드: 값}. null 이거나 비어 있으면 속성값 변경은 건너뛴다.
+     * @return 결과. productNo / objectOuid 는 새로 만들어진 호기, sourceProductNo 는 원본 호기
+     */
+    public OneCycleResult runEqualInfoCycle(String sourceNo, Map<String, ?> attrs) {
+        return runEqualInfoCycle(sourceNo, attrs, plmUserId, plmPassword);
+    }
+
+    /**
+     * 동일정보 생성 + 원사이클 : 원본 프로젝트호기번호 -> 영업사양 ouid 조회 -> 로그인 -> 원본 WIP 생성
+     *                          -> 동일정보 생성 -> 속성값 변경 -> 종속사양 산출 -> BOM 계산
+     *
+     * @param sourceNo 원본 프로젝트호기번호
+     * @param attrs    신규 호기에 바꿀 속성 {특성코드: 값}. null 이거나 비어 있으면 속성값 변경은 건너뛴다.
+     * @param userid   PLM 사용자 ID
+     * @param pwd      PLM 비밀번호
+     */
+    public OneCycleResult runEqualInfoCycle(String sourceNo, Map<String, ?> attrs, String userid, String pwd) {
+
+        long startTime = System.currentTimeMillis();
+        OneCycleResult result = new OneCycleResult();
+        result.setSourceProductNo(sourceNo);
+
+        try {
+            // 1) 원본 프로젝트호기번호 -> 영업사양 ouid
+            String sourceOuid = toObjectOuid(sourceNo);
+            if (sourceOuid == null || sourceOuid.isBlank()) {
+                result.setMessage("프로젝트호기번호에 해당하는 영업사양(WIP)을 찾지 못했습니다. productNo = " + sourceNo);
+                return result;
+            }
+
+            // 2) 로그인 (이후 모든 단계가 같은 세션을 사용)
+            PlmSession session = login(userid, pwd);
+            if (session == null) {
+                result.setMessage("PLM 로그인 실패. 아이디/비밀번호를 확인하세요.");
+                return result;
+            }
+            result.setLoginSuccess(true);
+
+            // 3) 원본 WIP 생성 (동일정보로 만든 호기는 이미 WIP 이므로 원본에 대해 수행)
+            result.setMakeWipMessage(makeWip(session, sourceOuid));
+
+            // 4) 동일정보 생성
+            String newOuid = makeEqualInfo(session, sourceOuid);
+            if (newOuid == null) {
+                result.setMessage("동일정보 생성에 실패했습니다.");
+                return result;
+            }
+            result.setObjectOuid(newOuid);
+            result.setProductNo(findProductNoWithRetry(newOuid));
+            System.out.println("[동일정보 생성] " + sourceNo + " -> " + result.getProductNo() + " (" + newOuid + ")");
+
+            // 5) 속성값 변경 -> 6) 종속사양 산출 -> 7) BOM 계산
+            runCycleSteps(session, newOuid, attrs, result);
+
+        } catch (Exception e) {
+            result.setMessage("동일정보 원사이클 처리 중 오류 : " + e.getMessage());
+            e.printStackTrace();
+
+        } finally {
+            result.setElapsedMillis(System.currentTimeMillis() - startTime);
+        }
+
+        return result;
+    }
+
+    /**
+     * 사이클 공통 단계 : 속성값 변경 -> 종속사양 산출 -> BOM 계산. 결과는 result 에 채운다.
+     * 속성값 변경에 실패하면 바뀌지 않은 사양으로 계산하게 되므로 중단한다.
+     */
+    private void runCycleSteps(PlmSession session, String vfOuid, Map<String, ?> attrs, OneCycleResult result) {
+
+        // 속성값 변경
+        if (attrs != null && !attrs.isEmpty()) {
+            String attrMessage = changeAttr(session, vfOuid, attrs);
+            result.setAttrMessage(attrMessage);
+            if (attrMessage == null) {
+                result.setMessage("속성정보 변경에 실패했습니다.");
+                return;
+            }
+            result.setAttrCurrent(getAttrValues(session, vfOuid, attrs.keySet()));
+        }
+
+        // 종속사양 산출
+        String jongsoksungMessage = executeJongsoksung(session, vfOuid);
+        result.setJongsoksungMessage(jongsoksungMessage);
+        if (jongsoksungMessage == null) {
+            result.setMessage("종속사양 산출 응답을 확인하지 못했습니다.");
+            return;
+        }
+
+        // BOM 계산 (구성전개 c / 자재전개 m / 사양전개 f)
+        String bomMessage = bomCalStart(session, vfOuid);
+        result.setBomMessage(bomMessage);
+        result.setSuccess(bomMessage != null);
+        result.setMessage(bomMessage != null ? bomMessage : "BOM 계산 응답을 확인하지 못했습니다.");
     }
 
     /**
@@ -426,13 +544,7 @@ public class OneCycleFunc {
             result.setNewObjectOuid(newOuid);
 
             // 4) PLM 이 새로 채번한 호기번호(TEST 번호) 조회
-            String newProductNo = "";
-            for (int i = 1; i <= MAX_RETRY && newProductNo.isBlank(); i++) {
-                newProductNo = findProductNo(newOuid);
-                if (newProductNo.isBlank() && i < MAX_RETRY) {
-                    sleep(RETRY_INTERVAL);
-                }
-            }
+            String newProductNo = findProductNoWithRetry(newOuid);
             result.setNewProductNo(newProductNo);
             result.setSuccess(true);
             result.setMessage(newProductNo.isBlank()
@@ -578,6 +690,19 @@ public class OneCycleFunc {
         }
 
         return productNo == null ? "" : productNo;
+    }
+
+    /** 동일정보 생성 직후에는 채번이 늦게 보일 수 있어 재시도하며 호기번호를 조회한다. 끝내 없으면 빈 문자열 */
+    private String findProductNoWithRetry(String vfOuid) {
+
+        String productNo = "";
+        for (int i = 1; i <= MAX_RETRY && productNo.isBlank(); i++) {
+            productNo = findProductNo(vfOuid);
+            if (productNo.isBlank() && i < MAX_RETRY) {
+                sleep(RETRY_INTERVAL);
+            }
+        }
+        return productNo;
     }
 
 
@@ -1111,14 +1236,23 @@ public class OneCycleFunc {
         /** 로그인 성공 여부 */
         private boolean loginSuccess;
 
-        /** 요청한 프로젝트호기번호 */
+        /** 요청한 프로젝트호기번호 (동일정보 사이클이면 새로 만들어진 호기번호) */
         private String productNo;
+
+        /** 동일정보 사이클의 원본 프로젝트호기번호 (일반 원사이클이면 null) */
+        private String sourceProductNo;
 
         /** 프로젝트호기번호로 조회한 대상 영업사양 (elv_info$vf@xxxxxxxx) */
         private String objectOuid;
 
         /** WIP 생성 결과 메시지 */
         private String makeWipMessage;
+
+        /** 속성값 변경 결과 메시지 (변경할 속성이 없으면 null) */
+        private String attrMessage;
+
+        /** 속성값 변경 후 다시 읽은 값 {특성코드: 값} */
+        private Map<String, String> attrCurrent;
 
         /** 종속사양 산출 결과 메시지 */
         private String jongsoksungMessage;

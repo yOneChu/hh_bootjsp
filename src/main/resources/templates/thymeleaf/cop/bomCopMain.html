@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SENTINEL · BOM 이상감지</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        BOM 이상감지 플랫폼 SENTINEL — 메인 화면 (CopMainController : GET /cop/main)
+
+        화면 구성
+          1. 레이더   : 점 하나 = 호기 BOM 하나. 스윕이 지나가며 이상 BOM 을 잡아 탐지 로그에 기록 (샘플 데이터)
+          2. 이상 유형 : 수량 급증 / 자재 누락 / 사양 불일치 / 중복 수배
+          3. 승강로   : 스크롤하면 엘리베이터 카가 B1 → 6F 로 올라가며 처리 단계를 보여줌
+          4. 문       : 하위 화면으로 가는 메뉴. 마우스를 올리거나 포커스하면 문이 열림
+                        하위 화면 주소는 아래 MODULES (script) 에서 관리. ready:false 면 '준비 중'
+
+        외부 라이브러리 없음 (사내망 대응). 레이더는 canvas 2D.
+        화면의 수치·호기번호는 모두 샘플이며 DEMO 표시를 붙였다.
+    -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <style>
+        /* ════════════ 토큰 ════════════ */
+        :root {
+            --void:    #04060A;
+            --deep:    #080B12;
+            --panel:   #0D111A;
+            --panel-2: #121826;
+            --line:    rgba(255,255,255,.09);
+            --line-2:  rgba(255,255,255,.16);
+
+            --ink:     #F4F6FA;
+            --ink-2:   #AEB6C4;
+            --ink-3:   #7C8596;
+
+            --scan:    #7FE3FF;          /* 정상 · 스캔 */
+            --scan-dim: rgba(127,227,255,.14);
+            --alert:   #FF5A36;          /* 이상 */
+            --alert-dim: rgba(255,90,54,.16);
+            --ok:      #5EF0A6;
+
+            --mono: "D2Coding", Consolas, "SF Mono", Menlo, monospace;
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+
+            --ease-out: cubic-bezier(.16,1,.3,1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; background: var(--void); }
+        body {
+            margin: 0; min-height: 100vh; overflow-x: hidden;
+            font-family: var(--sans); color: var(--ink); background: var(--void);
+            word-break: keep-all; overflow-wrap: anywhere;
+        }
+        h1, h2, h3, h4, p { margin: 0; }
+        a { color: inherit; text-decoration: none; }
+        :focus-visible { outline: 2px solid var(--scan); outline-offset: 3px; border-radius: 6px; }
+        .mono { font-family: var(--mono); }
+        .tnum { font-variant-numeric: tabular-nums; }
+        .wrap { width: 100%; max-width: 1360px; margin: 0 auto; padding: 0 20px; }
+        @media (min-width: 900px) { .wrap { padding: 0 40px; } }
+
+        .skip { position: absolute; left: 12px; top: -60px; z-index: 100; padding: 10px 14px; border-radius: 8px; background: var(--ink); color: var(--void); font-weight: 700; }
+        .skip:focus { top: 12px; }
+
+        .demo {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line-2);
+            font: 700 10px/1.4 var(--mono); letter-spacing: .12em; color: var(--ink-3);
+        }
+
+        /* ════════════ 상단 바 ════════════ */
+        .nav {
+            position: fixed; inset: 0 0 auto 0; z-index: 50;
+            transition: background .3s, border-color .3s, backdrop-filter .3s;
+            border-bottom: 1px solid transparent;
+        }
+        .nav.scrolled { background: rgba(4,6,10,.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-color: var(--line); }
+        .nav-in { height: 68px; display: flex; align-items: center; gap: 28px; }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-mark {
+            position: relative; width: 30px; height: 30px; border-radius: 50%;
+            border: 1.5px solid var(--scan);
+        }
+        .brand-mark::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; border: 1px solid rgba(127,227,255,.45); }
+        .brand-mark::after {
+            content: ""; position: absolute; left: 50%; top: 50%; width: 50%; height: 1.5px; background: var(--scan);
+            transform-origin: 0 50%; animation: spin 3s linear infinite;
+        }
+        .brand b { font: 800 15px/1 var(--sans); letter-spacing: .32em; }
+        .brand small { display: block; margin-top: 4px; font-size: 11px; color: var(--ink-3); letter-spacing: .02em; }
+        .nav-links { display: none; gap: 26px; margin-left: auto; font-size: 14px; color: var(--ink-2); }
+        .nav-links a { padding: 8px 0; transition: color .2s; }
+        .nav-links a:hover { color: var(--ink); }
+        @media (min-width: 900px) { .nav-links { display: flex; } }
+        .nav-cta {
+            margin-left: auto; display: inline-flex; align-items: center; gap: 8px;
+            min-height: 40px; padding: 0 16px; border-radius: 999px;
+            background: var(--ink); color: var(--void); font-size: 14px; font-weight: 700;
+            transition: transform .2s var(--ease-out), box-shadow .2s;
+        }
+        .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 24px -8px rgba(127,227,255,.6); }
+        @media (min-width: 900px) { .nav-cta { margin-left: 0; } }
+
+        /* ════════════ 1. 레이더 히어로 ════════════ */
+        .hero { position: relative; min-height: 100vh; padding: 110px 0 40px; display: flex; flex-direction: column; overflow: hidden; }
+        .hero::before {   /* 바닥 그리드 */
+            content: ""; position: absolute; inset: 0; pointer-events: none;
+            background-image:
+                linear-gradient(rgba(127,227,255,.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(127,227,255,.035) 1px, transparent 1px);
+            background-size: 56px 56px;
+            mask-image: radial-gradient(ellipse 80% 70% at 65% 45%, #000 20%, transparent 75%);
+            -webkit-mask-image: radial-gradient(ellipse 80% 70% at 65% 45%, #000 20%, transparent 75%);
+        }
+        .hero-grid { position: relative; flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; align-items: center; }
+        @media (min-width: 1100px) { .hero-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 24px; } }
+
+        .eyebrow { display: inline-flex; align-items: center; gap: 10px; font: 600 12px/1 var(--mono); letter-spacing: .22em; color: var(--scan); text-transform: uppercase; }
+        .eyebrow .live { width: 8px; height: 8px; border-radius: 50%; background: var(--alert); box-shadow: 0 0 0 0 rgba(255,90,54,.6); animation: livepulse 1.6s infinite; }
+        @keyframes livepulse { 0% { box-shadow: 0 0 0 0 rgba(255,90,54,.55); } 70% { box-shadow: 0 0 0 10px rgba(255,90,54,0); } 100% { box-shadow: 0 0 0 0 rgba(255,90,54,0); } }
+
+        .hero h1 {
+            margin-top: 22px; font-size: clamp(40px, 6.4vw, 88px); font-weight: 850; line-height: 1.04; letter-spacing: -.035em;
+        }
+        .hero h1 .strike { position: relative; color: var(--ink-3); }
+        .hero h1 .strike::after {
+            content: ""; position: absolute; left: -2%; right: -2%; top: 54%; height: .09em; background: var(--alert);
+            transform: scaleX(0); transform-origin: left; animation: strike .9s .9s var(--ease-out) forwards;
+        }
+        @keyframes strike { to { transform: scaleX(1); } }
+        .hero h1 em { font-style: normal; background: linear-gradient(100deg, #fff 10%, var(--scan) 90%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hero-lead { margin-top: 24px; max-width: 520px; font-size: clamp(16px, 1.35vw, 19px); line-height: 1.65; color: var(--ink-2); }
+
+        .hero-actions { margin-top: 36px; display: flex; flex-wrap: wrap; gap: 12px; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            min-height: 54px; padding: 0 26px; border-radius: 999px; font-size: 16px; font-weight: 700;
+            transition: transform .25s var(--ease-out), background .2s, box-shadow .25s, border-color .2s;
+        }
+        .btn-solid { background: var(--ink); color: var(--void); }
+        .btn-solid:hover { transform: translateY(-2px); box-shadow: 0 14px 34px -10px rgba(127,227,255,.55); }
+        .btn-ghost { border: 1px solid var(--line-2); color: var(--ink); }
+        .btn-ghost:hover { border-color: var(--ink-2); background: rgba(255,255,255,.04); }
+        .btn svg { transition: transform .25s var(--ease-out); }
+        .btn:hover svg { transform: translateX(3px); }
+
+        /* 레이더 */
+        .radar-box { position: relative; width: 100%; max-width: 720px; margin: 0 auto; aspect-ratio: 1 / 1; }
+        #radar { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+        .radar-hud {
+            position: absolute; font: 500 11px/1.5 var(--mono); color: var(--ink-3); letter-spacing: .08em; pointer-events: none;
+        }
+        .radar-hud b { color: var(--ink-2); font-weight: 600; }
+        .hud-tl { top: 2%; left: 0; }
+        .hud-tr { top: 2%; right: 0; text-align: right; }
+        .hud-bl { bottom: 2%; left: 0; }
+        .hud-br { bottom: 2%; right: 0; text-align: right; }
+
+        /* 탐지 로그 (레이더가 잡을 때마다 추가) */
+        .feed {
+            position: relative; margin-top: 28px; max-width: 520px;
+            border: 1px solid var(--line); border-radius: 16px; background: rgba(13,17,26,.66);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        }
+        .feed-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); font: 600 11.5px/1 var(--mono); letter-spacing: .14em; color: var(--ink-2); }
+        .feed-head .demo { margin-left: auto; }
+        .feed ol { list-style: none; margin: 0; padding: 4px 0; height: 172px; overflow: hidden; }
+        .feed li {
+            display: grid; grid-template-columns: 70px 1fr auto; gap: 12px; align-items: center;
+            padding: 9px 16px; font-size: 13.5px; animation: feedin .5s var(--ease-out);
+        }
+        .feed li + li { border-top: 1px solid rgba(255,255,255,.04); }
+        .feed time { font: 500 12px/1 var(--mono); color: var(--ink-3); }
+        .feed .what { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .feed .what b { font-family: var(--mono); font-weight: 600; margin-right: 8px; }
+        .feed .what span { color: var(--ink-2); }
+        .feed .tag { font: 700 11px/1 var(--sans); padding: 5px 8px; border-radius: 6px; color: var(--alert); background: var(--alert-dim); white-space: nowrap; }
+        .feed .empty { grid-column: 1 / -1; color: var(--ink-3); font-size: 13px; padding: 8px 0; }
+        @keyframes feedin { from { opacity: 0; transform: translateY(-8px); background: var(--alert-dim); } to { opacity: 1; transform: none; background: transparent; } }
+
+        /* 하단 계기판 */
+        .gauges {
+            position: relative; margin-top: 40px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+            border-top: 1px solid var(--line);
+        }
+        @media (min-width: 900px) { .gauges { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .gauge { padding: 22px 4px 0; }
+        .gauge + .gauge { padding-left: 20px; border-left: 1px solid var(--line); }
+        @media (max-width: 899px) { .gauge:nth-child(3) { border-left: none; padding-left: 4px; } }
+        .gauge dt { font: 600 11px/1.3 var(--mono); letter-spacing: .14em; color: var(--ink-3); text-transform: uppercase; }
+        .gauge dd { margin: 8px 0 0; font-size: clamp(28px, 3vw, 40px); font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+        .gauge dd small { font-size: .45em; font-weight: 600; color: var(--ink-3); margin-left: 4px; letter-spacing: 0; }
+        .gauge dd.is-alert { color: var(--alert); }
+        .gauges-note { position: relative; margin-top: 14px; font-size: 12px; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+
+        /* ════════════ 공통 섹션 ════════════ */
+        section { position: relative; }
+        .sec { padding: 140px 0; }
+        .sec-head { max-width: 860px; }
+        .sec-kicker { font: 600 12px/1 var(--mono); letter-spacing: .24em; color: var(--scan); text-transform: uppercase; }
+        .sec-title { margin-top: 18px; font-size: clamp(32px, 4.6vw, 60px); font-weight: 800; line-height: 1.12; letter-spacing: -.03em; }
+        .sec-title .dim { color: var(--ink-3); }
+        .sec-lead { margin-top: 20px; font-size: clamp(16px, 1.3vw, 18px); line-height: 1.7; color: var(--ink-2); max-width: 680px; }
+
+        .reveal { opacity: 0; transform: translateY(28px); transition: opacity .9s var(--ease-out), transform .9s var(--ease-out); }
+        .reveal.in { opacity: 1; transform: none; }
+
+        /* ════════════ 2. 이상 유형 ════════════ */
+        .types { margin-top: 64px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+        @media (min-width: 720px) { .types { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1200px) { .types { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .type {
+            position: relative; overflow: hidden; padding: 26px 24px 24px; border-radius: 20px;
+            background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--line);
+            transition: border-color .3s, transform .4s var(--ease-out);
+        }
+        .type:hover { border-color: rgba(255,90,54,.45); transform: translateY(-4px); }
+        .type-no { font: 600 12px/1 var(--mono); color: var(--ink-3); letter-spacing: .14em; }
+        .type svg.viz { display: block; width: 100%; height: 96px; margin: 22px 0 22px; overflow: visible; }
+        .type h3 { font-size: 21px; font-weight: 800; letter-spacing: -.01em; }
+        .type p { margin-top: 10px; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
+        .type code { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); display: block; margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line-2); }
+        .viz .base { stroke: rgba(127,227,255,.55); }
+        .viz .base-f { fill: rgba(127,227,255,.55); }
+        .viz .hot { stroke: var(--alert); }
+        .viz .hot-f { fill: var(--alert); }
+        .viz .ghost { stroke: var(--alert); stroke-dasharray: 4 4; fill: none; }
+        .type:hover .viz .pulse { animation: vizpulse 1.2s ease-in-out infinite; }
+        @keyframes vizpulse { 50% { opacity: .35; } }
+
+        /* ════════════ 3. 승강로 ════════════ */
+        .shaft-sec { padding-bottom: 60px; }
+        .shaft-grid { margin-top: 72px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 40px; }
+        @media (min-width: 1000px) { .shaft-grid { grid-template-columns: 340px minmax(0, 1fr); gap: 72px; } }
+
+        .shaft-sticky { display: none; }
+        @media (min-width: 1000px) { .shaft-sticky { display: block; position: sticky; top: 14vh; height: 72vh; } }
+        .shaft {
+            position: relative; height: 100%; display: grid; grid-template-columns: 120px 1fr; gap: 24px;
+        }
+        /* 층 표시기 (엘리베이터 위 디스플레이) */
+        .indicator {
+            grid-column: 1 / -1; display: flex; align-items: center; gap: 16px;
+            padding: 14px 18px; border-radius: 14px; background: #000; border: 1px solid var(--line-2);
+            box-shadow: inset 0 0 24px rgba(255,90,54,.06);
+        }
+        .seg {
+            font: 700 44px/1 var(--mono); letter-spacing: .04em; color: var(--alert);
+            text-shadow: 0 0 12px rgba(255,90,54,.7), 0 0 2px rgba(255,90,54,.9);
+            min-width: 2.4ch;
+        }
+        .arrow-ind { color: var(--alert); filter: drop-shadow(0 0 6px rgba(255,90,54,.7)); transition: opacity .3s; }
+        .arrow-ind.idle { opacity: .15; }
+        .indicator .lbl { margin-left: auto; text-align: right; }
+        .indicator .lbl small { display: block; font: 600 10.5px/1 var(--mono); letter-spacing: .16em; color: var(--ink-3); }
+        .indicator .lbl b { display: block; margin-top: 6px; font-size: 15px; font-weight: 750; }
+
+        .well {
+            position: relative; border-radius: 12px; background: linear-gradient(90deg, #06080D, #0B0F17 50%, #06080D);
+            border: 1px solid var(--line); overflow: hidden;
+        }
+        .well::before, .well::after {   /* 가이드 레일 */
+            content: ""; position: absolute; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, #2A3140, #151A24);
+        }
+        .well::before { left: 12px; } .well::after { right: 12px; }
+        .cable { position: absolute; left: 50%; top: 0; width: 1.5px; background: repeating-linear-gradient(180deg, #4A5262 0 3px, #2A3040 3px 6px); transform: translateX(-50%); transition: height .9s var(--ease-out); }
+        .car {
+            position: absolute; left: 22px; right: 22px; height: 64px; border-radius: 6px;
+            background: linear-gradient(180deg, #E9EEF6, #B7C0CF); box-shadow: 0 0 0 1px rgba(255,255,255,.4) inset, 0 10px 30px rgba(127,227,255,.25);
+            transition: top .9s var(--ease-out);
+        }
+        .car::before { content: ""; position: absolute; left: 50%; top: 8px; bottom: 8px; width: 1px; background: rgba(0,0,0,.35); }
+        .car::after { content: ""; position: absolute; left: 10px; right: 10px; top: 6px; height: 3px; border-radius: 2px; background: var(--scan); box-shadow: 0 0 10px var(--scan); }
+
+        .floors-col { position: relative; display: flex; flex-direction: column; }
+        .floor-mark {
+            flex: 1; display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--line);
+            font: 600 13px/1 var(--mono); color: var(--ink-3); transition: color .3s;
+        }
+        .floor-mark:last-child { border-bottom: 1px solid var(--line); }
+        .floor-mark i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid currentColor; transition: background .3s, box-shadow .3s; }
+        .floor-mark.active { color: var(--ink); }
+        .floor-mark.active i { background: var(--alert); border-color: var(--alert); box-shadow: 0 0 10px var(--alert); }
+        .floor-mark.passed { color: var(--ink-2); }
+        .floor-mark.passed i { background: var(--ink-2); }
+
+        .floor {
+            min-height: 64vh; display: flex; flex-direction: column; justify-content: center;
+            padding: 40px 0; border-top: 1px solid var(--line);
+        }
+        .floor:first-child { border-top: none; }
+        .floor-no { font: 700 13px/1 var(--mono); letter-spacing: .2em; color: var(--alert); }
+        .floor h3 { margin-top: 16px; font-size: clamp(30px, 3.6vw, 48px); font-weight: 800; letter-spacing: -.025em; line-height: 1.15; }
+        .floor p { margin-top: 16px; max-width: 560px; font-size: 17px; line-height: 1.7; color: var(--ink-2); }
+        .floor .api { margin-top: 22px; display: inline-flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); font: 500 13px/1.3 var(--mono); color: var(--ink-2); align-self: flex-start; max-width: 100%; }
+        .floor .api b { color: var(--scan); font-weight: 600; }
+        .floor.is-top h3 { color: var(--alert); }
+        .floor.is-top .api b { color: var(--alert); }
+        .floor .new { display: inline-block; margin-left: 10px; vertical-align: middle; font: 700 11px/1 var(--mono); letter-spacing: .14em; padding: 5px 8px; border-radius: 6px; background: var(--alert); color: #000; }
+
+        /* ════════════ 4. 문 (하위 화면) ════════════ */
+        .doors { margin-top: 64px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+        @media (min-width: 720px) { .doors { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1150px) { .doors { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+        .door {
+            position: relative; display: block; min-height: 300px; border-radius: 18px; overflow: hidden;
+            background: radial-gradient(120% 90% at 50% 0%, #142033, var(--panel) 70%);
+            border: 1px solid var(--line); isolation: isolate;
+        }
+        .door-frame {   /* 문 위 층 표시 */
+            position: absolute; top: 0; left: 0; right: 0; z-index: 3; height: 44px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            background: #000; border-bottom: 1px solid var(--line-2);
+            font: 700 15px/1 var(--mono); color: var(--alert); letter-spacing: .1em;
+            text-shadow: 0 0 10px rgba(255,90,54,.6);
+        }
+        .door-frame .soon { color: var(--ink-3); text-shadow: none; font-size: 11px; letter-spacing: .14em; }
+        .door-panel {
+            position: absolute; top: 44px; bottom: 0; width: 50%; z-index: 2;
+            background:
+                linear-gradient(90deg, rgba(255,255,255,.0), rgba(255,255,255,.07) 40%, rgba(255,255,255,0) 60%),
+                linear-gradient(180deg, #2B3240, #1A1F2A);
+            border: 1px solid rgba(255,255,255,.08);
+            transition: transform .85s var(--ease-out);
+            display: flex; align-items: center; overflow: hidden;
+        }
+        .door-panel.l { left: 0; justify-content: flex-end; padding-right: 18px; border-right-color: rgba(0,0,0,.6); }
+        .door-panel.r { right: 0; justify-content: flex-start; padding-left: 18px; }
+        .door-panel span { font-size: 19px; font-weight: 800; letter-spacing: -.01em; color: #E9EDF4; white-space: nowrap; }
+        .door-panel small { display: block; font: 600 10.5px/1 var(--mono); letter-spacing: .16em; color: var(--ink-3); margin-bottom: 8px; }
+        .door-panel.l span { text-align: right; }
+        .door:hover .door-panel.l, .door:focus-visible .door-panel.l, .door.open .door-panel.l { transform: translateX(-101%); }
+        .door:hover .door-panel.r, .door:focus-visible .door-panel.r, .door.open .door-panel.r { transform: translateX(101%); }
+
+        .door-room { position: relative; z-index: 1; padding: 70px 26px 26px; min-height: 300px; display: flex; flex-direction: column; }
+        .door-room .ico { width: 46px; height: 46px; border-radius: 13px; display: inline-flex; align-items: center; justify-content: center; background: var(--scan-dim); color: var(--scan); }
+        .door-room h3 { margin-top: 18px; font-size: 22px; font-weight: 800; letter-spacing: -.015em; }
+        .door-room p { margin-top: 10px; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
+        .door-room .go { margin-top: auto; padding-top: 22px; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14.5px; color: var(--scan); }
+        .door-room .go.off { color: var(--ink-3); }
+        .door.is-live .door-frame::after { content: "OPEN"; position: absolute; right: 14px; font-size: 10.5px; letter-spacing: .16em; color: var(--ok); text-shadow: 0 0 8px rgba(94,240,166,.6); }
+
+        /* ════════════ 5. 마무리 ════════════ */
+        .launch { padding: 160px 0 120px; text-align: center; overflow: hidden; }
+        .launch::before {
+            content: ""; position: absolute; left: 50%; top: 50%; width: 900px; height: 900px; transform: translate(-50%, -50%);
+            border-radius: 50%; pointer-events: none;
+            background: repeating-radial-gradient(circle, rgba(127,227,255,.07) 0 1px, transparent 1px 90px);
+            mask-image: radial-gradient(circle, #000 30%, transparent 70%); -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 70%);
+        }
+        .launch h2 { position: relative; font-size: clamp(36px, 6vw, 84px); font-weight: 850; letter-spacing: -.035em; line-height: 1.06; }
+        .launch p { position: relative; margin: 22px auto 0; max-width: 560px; font-size: 18px; line-height: 1.65; color: var(--ink-2); }
+        .launch .hero-actions { position: relative; justify-content: center; }
+
+        footer { border-top: 1px solid var(--line); padding: 28px 0 40px; font-size: 13px; color: var(--ink-3); }
+        footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+        footer a:hover { color: var(--ink); }
+
+        .toast {
+            position: fixed; left: 50%; bottom: 30px; z-index: 80; transform: translate(-50%, 16px);
+            padding: 12px 18px; border-radius: 12px; background: var(--ink); color: var(--void); font-weight: 700; font-size: 14px;
+            opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; max-width: calc(100vw - 32px);
+        }
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+            .reveal { opacity: 1; transform: none; }
+            .hero h1 .strike::after { transform: scaleX(1); }
+        }
+    </style>
+</head>
+<body>
+
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+
+<!-- ═══════════ 상단 바 ═══════════ -->
+<header class="nav" id="nav">
+    <div class="wrap nav-in">
+        <a class="brand" href="/cop/main" aria-label="SENTINEL 메인">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span><b>SENTINEL</b><small>BOM 이상감지 플랫폼</small></span>
+        </a>
+        <nav class="nav-links" aria-label="주요 메뉴">
+            <a href="#types">이상 유형</a>
+            <a href="#shaft">처리 흐름</a>
+            <a href="#doors">기능</a>
+        </nav>
+        <a class="nav-cta" href="/cop/bom">
+            원사이클 실행
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+    </div>
+</header>
+
+<main id="main">
+
+    <!-- ═══════════ 1. 레이더 ═══════════ -->
+    <section class="hero" aria-labelledby="heroTitle">
+        <div class="wrap hero-grid">
+            <div>
+                <span class="eyebrow"><span class="live" aria-hidden="true"></span>BOM Anomaly Radar</span>
+                <h1 id="heroTitle">
+                    BOM 오류를<br>
+                    <span class="strike">찾지</span> 않습니다.<br>
+                    <em>먼저 봅니다.</em>
+                </h1>
+                <p class="hero-lead">수천 호기의 BOM 을 하나의 레이더 위에 올렸습니다. 수량이 튀거나, 자재가 빠지거나, 사양과 맞지 않는 BOM 은 사람이 찾기 전에 붉게 떠오릅니다.</p>
+
+                <div class="hero-actions">
+                    <a class="btn btn-solid" href="/cop/radar">
+                        관제 시작
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </a>
+                    <a class="btn btn-ghost" href="#shaft">어떻게 동작하나요</a>
+                </div>
+
+                <div class="feed" aria-labelledby="feedTitle">
+                    <div class="feed-head">
+                        <span class="eyebrow" style="color:var(--alert);letter-spacing:.14em;font-size:11px" id="feedTitle"><span class="live" aria-hidden="true"></span>탐지 로그</span>
+                        <span class="demo">DEMO</span>
+                    </div>
+                    <ol id="feed" aria-live="polite" aria-label="실시간 탐지 로그 (샘플)">
+                        <li><span class="empty">레이더가 스캔 중입니다…</span></li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="radar-box">
+                <canvas id="radar" role="img" aria-label="호기 BOM 레이더. 점 하나가 호기 하나이며, 붉은 점은 이상이 감지된 BOM 입니다. (샘플 데이터)"></canvas>
+                <div class="radar-hud hud-tl" aria-hidden="true">SCAN · <b id="hudAngle">000°</b><br>RANGE · <b>전 호기</b></div>
+                <div class="radar-hud hud-tr" aria-hidden="true">TRACKING<br><b id="hudCount">0</b> BOM</div>
+                <div class="radar-hud hud-bl" aria-hidden="true">● 정상 &nbsp; <span style="color:var(--alert)">●</span> 이상</div>
+                <div class="radar-hud hud-br" aria-hidden="true">SAMPLE DATA</div>
+            </div>
+        </div>
+
+        <div class="wrap">
+            <dl class="gauges">
+                <div class="gauge"><dt>감시 중인 호기</dt><dd class="tnum"><span data-count="1248">0</span><small>호기</small></dd></div>
+                <div class="gauge"><dt>오늘 탐지</dt><dd class="tnum is-alert"><span id="gDetected">0</span><small>건</small></dd></div>
+                <div class="gauge"><dt>평균 탐지 시간</dt><dd class="tnum"><span data-count="3.2" data-dec="1">0</span><small>초</small></dd></div>
+                <div class="gauge"><dt>자동화 단계</dt><dd class="tnum"><span data-count="6">0</span><small>단계</small></dd></div>
+            </dl>
+            <p class="gauges-note"><span class="demo">DEMO</span>발표용 샘플 수치입니다. 실제 지표는 이상감지 관제 화면에서 연결됩니다.</p>
+        </div>
+    </section>
+
+    <!-- ═══════════ 2. 이상 유형 ═══════════ -->
+    <section class="sec" id="types" aria-labelledby="typesTitle">
+        <div class="wrap">
+            <div class="sec-head reveal">
+                <p class="sec-kicker">01 · What we catch</p>
+                <h2 class="sec-title" id="typesTitle">이상은 네 가지 얼굴로<br><span class="dim">나타납니다.</span></h2>
+                <p class="sec-lead">BOM 이상은 대부분 조용합니다. 계산은 끝났고 오류 메시지도 없습니다. SENTINEL 은 같은 사양의 다른 호기들과 비교해, 혼자 튀는 BOM 을 찾아냅니다.</p>
+            </div>
+
+            <div class="types">
+                <article class="type reveal">
+                    <span class="type-no">TYPE 01</span>
+                    <svg class="viz" viewBox="0 0 240 96" aria-hidden="true">
+                        <g stroke-width="10" stroke-linecap="round">
+                            <line class="base" x1="22" y1="90" x2="22" y2="62"/><line class="base" x1="56" y1="90" x2="56" y2="58"/>
+                            <line class="base" x1="90" y1="90" x2="90" y2="64"/><line class="hot pulse" x1="124" y1="90" x2="124" y2="8"/>
+                            <line class="base" x1="158" y1="90" x2="158" y2="60"/><line class="base" x1="192" y1="90" x2="192" y2="63"/>
+                            <line class="base" x1="226" y1="90" x2="226" y2="59"/>
+                        </g>
+                        <line x1="8" y1="61" x2="236" y2="61" stroke="rgba(255,255,255,.25)" stroke-dasharray="3 5"/>
+                    </svg>
+                    <h3>수량 급증</h3>
+                    <p>같은 사양의 호기들은 브라켓 4개를 쓰는데, 이 호기만 48개를 씁니다.</p>
+                    <code>QTY ×12 · 동일 사양 평균 대비</code>
+                </article>
+
+                <article class="type reveal">
+                    <span class="type-no">TYPE 02</span>
+                    <svg class="viz" viewBox="0 0 240 96" aria-hidden="true">
+                        <g stroke-width="2" fill="none">
+                            <path class="base" d="M120 10 V32 M40 32 H200 M40 32 V52 M93 32 V52 M147 32 V52 M200 32 V52"/>
+                        </g>
+                        <rect class="base-f" x="104" y="2" width="32" height="14" rx="3"/>
+                        <rect class="base-f" x="26" y="52" width="28" height="22" rx="4"/>
+                        <rect class="base-f" x="79" y="52" width="28" height="22" rx="4"/>
+                        <rect class="ghost pulse" x="133" y="52" width="28" height="22" rx="4" stroke-width="1.6"/>
+                        <rect class="base-f" x="186" y="52" width="28" height="22" rx="4"/>
+                        <text x="147" y="92" text-anchor="middle" class="hot-f" font-family="Consolas, monospace" font-size="11">MISSING</text>
+                    </svg>
+                    <h3>자재 누락</h3>
+                    <p>권상기는 있는데, 그 아래 있어야 할 하위 자재가 통째로 비어 있습니다.</p>
+                    <code>CHILD 0 · 기대 하위 자재 12</code>
+                </article>
+
+                <article class="type reveal">
+                    <span class="type-no">TYPE 03</span>
+                    <svg class="viz" viewBox="0 0 240 96" aria-hidden="true">
+                        <rect x="10" y="22" width="86" height="52" rx="8" fill="none" stroke="rgba(255,255,255,.3)"/>
+                        <text x="53" y="44" text-anchor="middle" fill="#AEB6C4" font-family="Consolas, monospace" font-size="11">SPEC</text>
+                        <text x="53" y="62" text-anchor="middle" fill="#F4F6FA" font-family="Consolas, monospace" font-size="13" font-weight="700">EL_ETM=A</text>
+                        <rect x="144" y="22" width="86" height="52" rx="8" fill="none" class="hot pulse" stroke-width="1.6"/>
+                        <text x="187" y="44" text-anchor="middle" fill="#AEB6C4" font-family="Consolas, monospace" font-size="11">BOM</text>
+                        <text x="187" y="62" text-anchor="middle" class="hot-f" font-family="Consolas, monospace" font-size="13" font-weight="700">권상기 B</text>
+                        <path d="M102 48 H138" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>
+                        <path class="hot" d="M112 40 L128 56 M128 40 L112 56" stroke-width="2.4" stroke-linecap="round"/>
+                    </svg>
+                    <h3>사양 불일치</h3>
+                    <p>영업사양은 A 타입 권상기인데, BOM 에는 B 타입 자재가 전개되어 있습니다.</p>
+                    <code>SPEC ≠ PART · 매핑 규칙 위반</code>
+                </article>
+
+                <article class="type reveal">
+                    <span class="type-no">TYPE 04</span>
+                    <svg class="viz" viewBox="0 0 240 96" aria-hidden="true">
+                        <g font-family="Consolas, monospace" font-size="12">
+                            <rect x="20" y="8" width="200" height="20" rx="4" fill="rgba(255,255,255,.05)"/>
+                            <text x="30" y="22" fill="#AEB6C4">P-2210-04  가이드레일</text>
+                            <rect x="20" y="38" width="200" height="20" rx="4" class="pulse" fill="rgba(255,90,54,.16)" stroke="#FF5A36"/>
+                            <text x="30" y="52" fill="#FF5A36">P-3318-11  도어행거</text>
+                            <rect x="20" y="68" width="200" height="20" rx="4" class="pulse" fill="rgba(255,90,54,.16)" stroke="#FF5A36"/>
+                            <text x="30" y="82" fill="#FF5A36">P-3318-11  도어행거</text>
+                        </g>
+                    </svg>
+                    <h3>중복 수배</h3>
+                    <p>같은 품번이 서로 다른 경로로 두 번 전개되어, 자재가 두 배로 발주됩니다.</p>
+                    <code>DUP ×2 · 동일 품번 이중 전개</code>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 3. 승강로 ═══════════ -->
+    <section class="sec shaft-sec" id="shaft" aria-labelledby="shaftTitle">
+        <div class="wrap">
+            <div class="sec-head reveal">
+                <p class="sec-kicker">02 · How it works</p>
+                <h2 class="sec-title" id="shaftTitle">BOM 이 계산되는 과정을<br><span class="dim">엘리베이터처럼 올라갑니다.</span></h2>
+                <p class="sec-lead">스크롤하면 엘리베이터가 한 층씩 올라갑니다. 각 층은 PLM 에서 실제로 자동 실행되는 단계이고, 맨 위층에서 이상을 판정합니다.</p>
+            </div>
+
+            <div class="shaft-grid">
+                <div class="shaft-sticky" aria-hidden="true">
+                    <div class="shaft" style="grid-template-rows: auto 1fr; row-gap: 18px;">
+                        <div class="indicator">
+                            <svg class="arrow-ind idle" id="indArrow" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4 4 14h5v6h6v-6h5z"/></svg>
+                            <span class="seg tnum" id="indFloor">B1</span>
+                            <span class="lbl"><small>NOW</small><b id="indName">호기 확인</b></span>
+                        </div>
+                        <div class="well" id="well">
+                            <span class="cable" id="cable"></span>
+                            <span class="car" id="car"></span>
+                        </div>
+                        <div class="floors-col" id="floorMarks"></div>
+                    </div>
+                </div>
+
+                <div id="floors"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 4. 문 (하위 화면) ═══════════ -->
+    <section class="sec" id="doors" aria-labelledby="doorsTitle">
+        <div class="wrap">
+            <div class="sec-head reveal">
+                <p class="sec-kicker">03 · Choose your floor</p>
+                <h2 class="sec-title" id="doorsTitle">어느 층으로<br><span class="dim">가시겠습니까?</span></h2>
+                <p class="sec-lead">문에 마우스를 올리면 열립니다. 각 문은 SENTINEL 의 기능 화면으로 이어집니다.</p>
+            </div>
+            <div class="doors" id="doorGrid"></div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 5. 마무리 ═══════════ -->
+    <section class="launch" aria-labelledby="launchTitle">
+        <div class="wrap reveal">
+            <h2 id="launchTitle">검토는 사람이,<br><em style="font-style:normal;color:var(--scan)">감시는 SENTINEL 이.</em></h2>
+            <p>설계자는 판단이 필요한 BOM 만 봅니다. 나머지 수천 개는 레이더가 지킵니다.</p>
+            <div class="hero-actions">
+                <a class="btn btn-solid" href="/cop/bom">
+                    원사이클 자동화 열기
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+                <a class="btn btn-ghost" href="#main">맨 위로</a>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div class="wrap">
+        <span><b style="color:var(--ink-2);letter-spacing:.2em">SENTINEL</b> · BOM 이상감지 플랫폼</span>
+        <span>수배로직설계팀</span>
+        <a href="/extract/gongsa" style="margin-left:auto">기존 분석 시스템으로 →</a>
+    </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script th:inline="none">
+(function () {
+    "use strict";
+
+    var $ = function (id) { return document.getElementById(id); };
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    /* =========================================================
+       하위 화면 (문). 새 화면을 만들면 href 를 바꾸고 ready:true 로.
+       ========================================================= */
+    var MODULES = [
+        { floor: "6F", name: "이상감지 관제",       sub: "LIVE RADAR",   href: "/cop/radar",   ready: true,
+          desc: "전 호기 BOM 을 실시간으로 스캔하고, 이상 BOM 을 위험도 순으로 보여줍니다.",
+          icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12 19 5"/>' },
+        { floor: "5F", name: "BOM 원사이클 자동화", sub: "ONE-CYCLE",    href: "/cop/bom",     ready: true,
+          desc: "WIP 생성부터 속성값 변경, 종속사양 산출, BOM 계산까지 한 번에 실행합니다.",
+          icon: '<path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>' },
+        { floor: "4F", name: "호기 BOM 비교",       sub: "DIFF",         href: "/cop/diff",    ready: true,
+          desc: "같은 사양의 두 호기 BOM 을 나란히 놓고, 다른 자재만 골라 보여줍니다.",
+          icon: '<rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/><path d="M6.5 9h0M17.5 13h0"/>' },
+        { floor: "3F", name: "이상 원인 추적",      sub: "ROOT CAUSE",   href: "/cop/trace",   ready: true,
+          desc: "이상 자재가 어떤 영업사양·로직 규칙에서 나왔는지 거꾸로 따라갑니다.",
+          icon: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 6H14a4 4 0 0 1 0 8h-4a4 4 0 0 0 0 8h5.5"/>' },
+        { floor: "2F", name: "이상 리포트",         sub: "REPORT",       href: "/cop/report",  ready: true,
+          desc: "기간별 탐지 건수와 유형, 조치 결과를 한 장으로 정리해 공유합니다.",
+          icon: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>' },
+        { floor: "1F", name: "감지 규칙 관리",      sub: "RULES",        href: "/cop/rules",   ready: true,
+          desc: "수량 허용 범위, 필수 하위 자재 같은 판정 기준을 직접 정하고 조정합니다.",
+          icon: '<path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>' }
+    ];
+
+    /* 승강로 층 (아래 → 위) — BomManageController 의 실제 단계와 같음 */
+    var FLOORS = [
+        { no: "B1", name: "호기 확인",     api: "POST /cop/bom/resolve",
+          title: "어떤 호기를 볼지 정합니다.",
+          text: "프로젝트호기번호로 PLM 의 작업 중인 영업사양(WIP)을 찾습니다. 모든 단계는 여기서 찾은 하나의 대상을 기준으로 움직입니다." },
+        { no: "1F", name: "WIP 생성",      api: "POST /cop/bom/wip",
+          title: "수정 가능한 버전을 엽니다.",
+          text: "확정된 사양은 건드리지 않고, 작업용 버전(WIP)을 새로 만들어 그 위에서만 바꿉니다." },
+        { no: "2F", name: "동일정보 만들기", api: "POST /cop/bom/equal",
+          title: "실험용 쌍둥이를 만듭니다.",
+          text: "원본 호기의 사양을 그대로 복사해 TEST 호기를 만듭니다. 실제 호기는 그대로 두고 마음껏 바꿔볼 수 있습니다." },
+        { no: "3F", name: "속성값 변경",   api: "POST /cop/bom/attr",
+          title: "바꾸고 싶은 값만 바꿉니다.",
+          text: "설계일, 담당자, 사양 특성값을 한 번에 바꾸고, 실제로 반영됐는지 다시 읽어 확인합니다." },
+        { no: "4F", name: "종속사양 산출", api: "POST /cop/bom/jongsoksung",
+          title: "연결된 사양이 따라 움직입니다.",
+          text: "바뀐 값에 따라 종속된 사양을 PLM 이 다시 계산합니다. 사람이 하나하나 고치던 부분입니다." },
+        { no: "5F", name: "BOM 계산",      api: "POST /cop/bom/bom",
+          title: "BOM 이 새로 만들어집니다.",
+          text: "구성 · 자재 · 사양 전개로 최종 BOM 을 계산합니다. 여기까지가 지금 자동으로 실행되는 부분입니다." },
+        { no: "6F", name: "이상감지",      api: "SENTINEL · 판정", top: true,
+          title: "그리고, 이상을 판정합니다.",
+          text: "계산된 BOM 을 같은 사양의 다른 호기들과 대조해 수량 급증 · 자재 누락 · 사양 불일치 · 중복 수배를 찾아냅니다." }
+    ];
+
+    /* 레이더 샘플 이상 (DEMO) */
+    var ANOMALIES = [
+        { no: "TEST-632560", type: "수량 급증",   detail: "브라켓 ×48 (평균 ×4)" },
+        { no: "H2-48211",    type: "자재 누락",   detail: "권상기 하위 자재 0건" },
+        { no: "H2-51007",    type: "사양 불일치", detail: "EL_ETM A ↔ 권상기 B" },
+        { no: "H3-10294",    type: "중복 수배",   detail: "도어행거 이중 전개" },
+        { no: "H1-77820",    type: "수량 급증",   detail: "와이어로프 길이 +38%" },
+        { no: "H4-20915",    type: "자재 누락",   detail: "제어반 케이블 누락" }
+    ];
+
+    /* =========================================================
+       1. 레이더
+       ========================================================= */
+    var canvas = $("radar"), ctx = canvas.getContext("2d");
+    var W = 0, H = 0, DPR = 1, CX = 0, CY = 0, R = 0;
+    var blips = [];
+    var sweep = -Math.PI / 2;
+    var SWEEP_SPEED = 0.85;                // rad/s
+    var TRAIL = Math.PI * 0.85;            // 잔상 길이
+    var detected = 0;
+
+    // 결정적 난수 (매번 같은 배치)
+    var seed = 20261017;
+    function rnd() { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }
+
+    (function makeBlips() {
+        var i;
+        for (i = 0; i < 260; i++) {
+            // 바깥쪽일수록 많게 (면적 보정)
+            var r = 0.12 + Math.sqrt(rnd()) * 0.82;
+            blips.push({ r: r, a: rnd() * Math.PI * 2, s: 0.6 + rnd() * 1.1, anomaly: null, hit: 0 });
+        }
+        ANOMALIES.forEach(function (an, k) {
+            blips.push({ r: 0.32 + rnd() * 0.56, a: (k / ANOMALIES.length) * Math.PI * 2 + rnd() * 0.6, s: 2.6, anomaly: an, hit: 0, seen: false });
+        });
+        $("hudCount").textContent = blips.length.toLocaleString("ko-KR");
+    })();
+
+    function resize() {
+        var rect = canvas.getBoundingClientRect();
+        DPR = Math.min(window.devicePixelRatio || 1, 2);
+        W = rect.width; H = rect.height;
+        canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        CX = W / 2; CY = H / 2; R = Math.min(W, H) / 2 - 34;
+    }
+
+    function angDist(a, b) {   // 스윕(b)이 a 를 지난 뒤 얼마나 지났는지 (0 ~ 2π)
+        var d = (b - a) % (Math.PI * 2);
+        return d < 0 ? d + Math.PI * 2 : d;
+    }
+
+    function drawStatic() {
+        // 동심원
+        ctx.lineWidth = 1;
+        for (var i = 1; i <= 4; i++) {
+            ctx.beginPath();
+            ctx.arc(CX, CY, R * i / 4, 0, Math.PI * 2);
+            ctx.strokeStyle = i === 4 ? "rgba(127,227,255,.28)" : "rgba(127,227,255,.10)";
+            ctx.stroke();
+        }
+        // 십자선
+        ctx.strokeStyle = "rgba(127,227,255,.08)";
+        ctx.beginPath();
+        ctx.moveTo(CX - R, CY); ctx.lineTo(CX + R, CY);
+        ctx.moveTo(CX, CY - R); ctx.lineTo(CX, CY + R);
+        ctx.stroke();
+        // 눈금
+        for (var d = 0; d < 360; d += 5) {
+            var a = d * Math.PI / 180, long = d % 30 === 0;
+            var r1 = R + 4, r2 = R + (long ? 12 : 7);
+            ctx.beginPath();
+            ctx.moveTo(CX + Math.cos(a) * r1, CY + Math.sin(a) * r1);
+            ctx.lineTo(CX + Math.cos(a) * r2, CY + Math.sin(a) * r2);
+            ctx.strokeStyle = long ? "rgba(127,227,255,.45)" : "rgba(127,227,255,.18)";
+            ctx.stroke();
+            if (long) {
+                ctx.fillStyle = "rgba(174,182,196,.55)";
+                ctx.font = "10px Consolas, monospace";
+                ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                var deg = (d + 90) % 360;   // 위쪽을 000 으로
+                ctx.fillText(("00" + deg).slice(-3), CX + Math.cos(a) * (R + 24), CY + Math.sin(a) * (R + 24));
+            }
+        }
+    }
+
+    function drawSweep() {
+        if (ctx.createConicGradient) {
+            var g = ctx.createConicGradient(sweep - TRAIL, CX, CY);
+            var stop = TRAIL / (Math.PI * 2);
+            g.addColorStop(0, "rgba(127,227,255,0)");
+            g.addColorStop(stop * 0.97, "rgba(127,227,255,.16)");
+            g.addColorStop(stop, "rgba(127,227,255,.32)");
+            g.addColorStop(Math.min(1, stop + 0.0001), "rgba(127,227,255,0)");
+            ctx.beginPath();
+            ctx.moveTo(CX, CY);
+            ctx.arc(CX, CY, R, sweep - TRAIL, sweep);
+            ctx.closePath();
+            ctx.fillStyle = g;
+            ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.moveTo(CX, CY);
+        ctx.lineTo(CX + Math.cos(sweep) * R, CY + Math.sin(sweep) * R);
+        ctx.strokeStyle = "rgba(127,227,255,.9)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+
+    function drawBlips(t) {
+        blips.forEach(function (b) {
+            var x = CX + Math.cos(b.a) * b.r * R, y = CY + Math.sin(b.a) * b.r * R;
+            var since = angDist(b.a, sweep);
+            var glow = Math.max(0, 1 - since / TRAIL);
+
+            if (!b.anomaly) {
+                ctx.beginPath();
+                ctx.arc(x, y, b.s, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(127,227,255," + (0.16 + glow * 0.8).toFixed(3) + ")";
+                ctx.fill();
+                return;
+            }
+
+            // 이상 BOM : 한 번 잡히면 계속 붉게 남는다
+            if (b.seen || glow > 0.96) {
+                var pulse = (t / 1000) % 1.6 / 1.6;
+                ctx.beginPath();
+                ctx.arc(x, y, 6 + pulse * 22, 0, Math.PI * 2);
+                ctx.strokeStyle = "rgba(255,90,54," + (0.55 * (1 - pulse)).toFixed(3) + ")";
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(x, y, 4.2, 0, Math.PI * 2);
+                ctx.fillStyle = "#FF5A36";
+                ctx.shadowColor = "#FF5A36"; ctx.shadowBlur = 14;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // 라벨
+                var right = x < CX + R * 0.35;
+                var lx = x + (right ? 16 : -16), ly = y - 14;
+                ctx.beginPath();
+                ctx.moveTo(x + (right ? 5 : -5), y - 4);
+                ctx.lineTo(lx, ly);
+                ctx.lineTo(lx + (right ? 10 : -10), ly);
+                ctx.strokeStyle = "rgba(255,90,54,.7)"; ctx.lineWidth = 1; ctx.stroke();
+                ctx.textAlign = right ? "left" : "right"; ctx.textBaseline = "middle";
+                ctx.font = "600 11.5px Consolas, monospace";
+                ctx.fillStyle = "#FFD6CC";
+                ctx.fillText(b.anomaly.no, lx + (right ? 14 : -14), ly - 7);
+                ctx.font = "600 11px 'Pretendard Variable', sans-serif";
+                ctx.fillStyle = "rgba(255,90,54,.95)";
+                ctx.fillText(b.anomaly.type, lx + (right ? 14 : -14), ly + 8);
+
+                if (!b.seen) { b.seen = true; onDetect(b.anomaly); }
+            } else {
+                ctx.beginPath();
+                ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(127,227,255,.25)";
+                ctx.fill();
+            }
+        });
+    }
+
+    var last = 0, running = true;
+    function frame(t) {
+        if (!running) return;
+        var dt = last ? Math.min(0.05, (t - last) / 1000) : 0;
+        last = t;
+        var before = sweep;
+        sweep += dt * SWEEP_SPEED;
+        // 한 바퀴 돌 때마다 탐지 상태 초기화 → 다시 잡으며 로그가 계속 흐르게
+        if (Math.floor((before + Math.PI / 2) / (Math.PI * 2)) !== Math.floor((sweep + Math.PI / 2) / (Math.PI * 2))) {
+            blips.forEach(function (b) { if (b.anomaly && Math.random() < 0.5) b.seen = false; });
+        }
+
+        ctx.clearRect(0, 0, W, H);
+        drawStatic();
+        drawSweep();
+        drawBlips(t);
+
+        var deg = Math.round(((sweep + Math.PI / 2) * 180 / Math.PI) % 360);
+        $("hudAngle").textContent = ("00" + deg).slice(-3) + "°";
+        requestAnimationFrame(frame);
+    }
+
+    // 화면 밖이면 멈춤
+    if ("IntersectionObserver" in window) {
+        new IntersectionObserver(function (es) {
+            var vis = es[0].isIntersecting;
+            if (vis && !running && !reduceMotion) { running = true; last = 0; requestAnimationFrame(frame); }
+            if (!vis) running = false;
+        }).observe(canvas);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+    if (reduceMotion) {
+        // 정지 화면 : 모든 이상을 표시한 상태로 한 번만 그림
+        running = false;
+        blips.forEach(function (b) { if (b.anomaly) b.seen = true; });
+        ctx.clearRect(0, 0, W, H); drawStatic(); drawSweep(); drawBlips(0);
+        ANOMALIES.forEach(onDetect);
+    } else {
+        requestAnimationFrame(frame);
+    }
+
+    /* 탐지 로그 */
+    function onDetect(an) {
+        detected++;
+        $("gDetected").textContent = detected;
+        var ol = $("feed");
+        var empty = ol.querySelector(".empty");
+        if (empty) ol.innerHTML = "";
+        var li = document.createElement("li");
+        var now = new Date();
+        li.innerHTML = '<time></time><span class="what"><b></b><span></span></span><span class="tag"></span>';
+        li.querySelector("time").textContent = pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
+        li.querySelector("b").textContent = an.no;
+        li.querySelector(".what span").textContent = an.detail;
+        li.querySelector(".tag").textContent = an.type;
+        ol.insertBefore(li, ol.firstChild);
+        while (ol.children.length > 4) ol.removeChild(ol.lastChild);
+    }
+
+    /* =========================================================
+       2. 숫자 카운트업 / 등장 효과
+       ========================================================= */
+    function countUp(el) {
+        var to = parseFloat(el.dataset.count), dec = parseInt(el.dataset.dec || "0", 10);
+        if (reduceMotion) { el.textContent = to.toLocaleString("ko-KR", { minimumFractionDigits: dec, maximumFractionDigits: dec }); return; }
+        var start = performance.now(), dur = 1400;
+        (function step(now) {
+            var p = Math.min(1, (now - start) / dur);
+            var v = to * (1 - Math.pow(1 - p, 4));
+            el.textContent = v.toLocaleString("ko-KR", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+            if (p < 1) requestAnimationFrame(step);
+        })(start);
+    }
+
+    if ("IntersectionObserver" in window) {
+        var io = new IntersectionObserver(function (es) {
+            es.forEach(function (e) {
+                if (!e.isIntersecting) return;
+                if (e.target.dataset.count) countUp(e.target); else e.target.classList.add("in");
+                io.unobserve(e.target);
+            });
+        }, { threshold: 0.15 });
+        document.querySelectorAll("[data-count]").forEach(function (el) { io.observe(el); });
+        // 같은 줄 카드는 조금씩 늦게
+        document.querySelectorAll(".reveal").forEach(function (el, i) {
+            var sib = el.parentElement.querySelectorAll(":scope > .reveal");
+            var idx = Array.prototype.indexOf.call(sib, el);
+            el.style.transitionDelay = (idx > 0 ? idx * 90 : 0) + "ms";
+            io.observe(el);
+        });
+    } else {
+        document.querySelectorAll(".reveal").forEach(function (el) { el.classList.add("in"); });
+        document.querySelectorAll("[data-count]").forEach(countUp);
+    }
+
+    /* =========================================================
+       3. 승강로
+       ========================================================= */
+    (function buildShaft() {
+        $("floors").innerHTML = FLOORS.map(function (f, i) {
+            return '<article class="floor' + (f.top ? " is-top" : "") + '" data-i="' + i + '">' +
+                '<span class="floor-no">' + f.no + ' · ' + f.name + '</span>' +
+                '<h3>' + f.title + (f.top ? '<span class="new">NEW</span>' : '') + '</h3>' +
+                '<p>' + f.text + '</p>' +
+                '<span class="api"><b>' + (f.top ? "◆" : "▸") + '</b>' + f.api + '</span>' +
+            '</article>';
+        }).join("");
+        // 오른쪽 층 표시 (위 → 아래)
+        $("floorMarks").innerHTML = FLOORS.slice().reverse().map(function (f) {
+            return '<span class="floor-mark" data-no="' + f.no + '"><i></i>' + f.no + '</span>';
+        }).join("");
+    })();
+
+    var floorEls = Array.prototype.slice.call(document.querySelectorAll(".floor"));
+    var curFloor = -1, arrowTimer = null;
+
+    function setFloor(i) {
+        if (i === curFloor) return;
+        var up = i > curFloor;
+        curFloor = i;
+        var f = FLOORS[i];
+        $("indFloor").textContent = f.no;
+        $("indName").textContent = f.name;
+
+        var arrow = $("indArrow");
+        arrow.classList.remove("idle");
+        arrow.style.transform = up ? "none" : "rotate(180deg)";
+        clearTimeout(arrowTimer);
+        arrowTimer = setTimeout(function () { arrow.classList.add("idle"); }, 900);
+
+        // 카 위치 : 층 수만큼 나눈 칸의 가운데
+        var well = $("well"), n = FLOORS.length;
+        var cell = well.clientHeight / n;
+        var top = (n - 1 - i) * cell + (cell - 64) / 2;
+        $("car").style.top = top + "px";
+        $("cable").style.height = top + "px";
+
+        document.querySelectorAll(".floor-mark").forEach(function (m, k) {
+            var idx = n - 1 - k;
+            m.classList.toggle("active", idx === i);
+            m.classList.toggle("passed", idx < i);
+        });
+    }
+
+    function onScrollShaft() {
+        var mid = window.innerHeight * 0.5, best = 0;
+        floorEls.forEach(function (el, i) { if (el.getBoundingClientRect().top < mid) best = i; });
+        setFloor(best);
+    }
+
+    // 승강로 높이와 층 칸 높이 맞춤 (층 표시 칸 = 승강로 칸)
+    function syncShaft() {
+        var well = $("well");
+        $("floorMarks").style.height = well.clientHeight + "px";
+        var keep = curFloor; curFloor = -1; setFloor(Math.max(0, keep));
+    }
+
+    /* =========================================================
+       4. 문
+       ========================================================= */
+    $("doorGrid").innerHTML = MODULES.map(function (m) {
+        var halves = splitName(m.name);
+        return '<a class="door reveal' + (m.ready ? " is-live" : "") + '" href="' + (m.ready ? m.href : "#doors") + '"' +
+                    (m.ready ? "" : ' data-soon="' + m.name + '" aria-disabled="true"') + '>' +
+                '<span class="door-frame" aria-hidden="true">' + m.floor +
+                    (m.ready ? "" : '<span class="soon">· 준비 중</span>') + '</span>' +
+                '<span class="door-panel l" aria-hidden="true"><span><small>' + m.sub + '</small>' + halves[0] + '</span></span>' +
+                '<span class="door-panel r" aria-hidden="true"><span><small>&nbsp;</small>' + halves[1] + '</span></span>' +
+                '<span class="door-room">' +
+                    '<span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + m.icon + '</svg></span>' +
+                    '<h3>' + m.name + '</h3>' +
+                    '<p>' + m.desc + '</p>' +
+                    '<span class="go' + (m.ready ? "" : " off") + '">' + (m.ready ? "들어가기 →" : "준비 중입니다") + '</span>' +
+                '</span>' +
+            '</a>';
+    }).join("");
+
+    // 문 이름을 왼쪽/오른쪽 문짝에 나눠 씀 ("BOM 원사이클 자동화" → "BOM 원사이클" | "자동화")
+    function splitName(name) {
+        var w = name.split(" ");
+        if (w.length === 1) { var h = Math.ceil(name.length / 2); return [name.slice(0, h), name.slice(h)]; }
+        var k = Math.ceil(w.length / 2);
+        return [w.slice(0, k).join(" "), w.slice(k).join(" ")];
+    }
+
+    document.querySelectorAll(".door").forEach(function (d) {
+        if (window.IntersectionObserver && io) io.observe(d); else d.classList.add("in");
+        // 터치 기기 : 첫 탭은 문 열기, 두 번째 탭에 이동
+        d.addEventListener("touchstart", function () { d.classList.add("open"); }, { passive: true });
+        d.addEventListener("click", function (e) {
+            if (d.dataset.soon) {
+                e.preventDefault();
+                d.classList.add("open");
+                toast(d.dataset.soon + " 화면은 준비 중입니다.");
+            }
+        });
+    });
+
+    /* =========================================================
+       공통
+       ========================================================= */
+    var ticking = false;
+    window.addEventListener("scroll", function () {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(function () {
+            $("nav").classList.toggle("scrolled", window.scrollY > 20);
+            onScrollShaft();
+            ticking = false;
+        });
+    }, { passive: true });
+    window.addEventListener("resize", syncShaft);
+    window.addEventListener("load", syncShaft);
+    syncShaft();
+    onScrollShaft();
+
+    var toastTimer = null;
+    function toast(msg) {
+        var t = $("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { t.classList.remove("show"); }, 2600);
+    }
+
+    function pad(n) { return n < 10 ? "0" + n : "" + n; }
+})();
+</script>
+</body>
+</html>
