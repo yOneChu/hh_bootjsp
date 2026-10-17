@@ -46,6 +46,16 @@ public class PIDSimulatorUpController {
         return "thymeleaf/pid/pidSimulatorMindMap";
     }
 
+    /**
+     * @apiNote 최신 버전 비교 팝업 : 시뮬레이터 화면(opener)의 버전 지정 실행 결과와 전체 최신 버전 실행 결과의 최종 OUTPUT 비교
+     * @return
+     */
+    @GetMapping("/pidSimulatorCompare")
+    public String pidSimulatorCompareView() {
+        //http://localhost:8070/simulateup/pidSimulatorCompare
+        return "thymeleaf/pid/pidSimulatorCompare";
+    }
+
     @Description("PID 시뮬레이션 (PIDSimulator 화면의 [실행] : 행별 조건/결과, 최종 결과값, 최종 영업사양)")
     @GetMapping("/simulatePid")
     @ResponseBody

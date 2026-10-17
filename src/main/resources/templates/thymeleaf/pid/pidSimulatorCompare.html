@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>최종 OUTPUT 비교 (버전 지정 ↔ 전체 최신)</title>
+    <style>
+        /* ===== 디자인 토큰 (PID 실행 시뮬레이터와 같은 체계 : 어두운 헤더 + 밝은 작업 영역) ===== */
+        :root {
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --border: #d9dee5;
+            --text: #0f172a;
+            --text-2: #334155;
+            --muted: #5b6676;
+            --primary: #2563eb;
+            --focus: #2563eb;
+            --head-bg: #1e293b;
+            --head-border: #475569;
+            --head-text: #f8fafc;
+            --head-muted: #a5b4c8;
+
+            /* A : 버전 지정 실행 (주황) / B : 전체 최신 실행 (파랑) */
+            --a: #b45309;
+            --a-bg: #fffbeb;
+            --a-cell: #fef3c7;
+            --a-line: #fcd34d;
+            --b: #1d4ed8;
+            --b-bg: #eff6ff;
+            --b-cell: #dbeafe;
+            --b-line: #93c5fd;
+            --same: #15803d;
+            --same-bg: #e7f6ec;
+            --diff: #b91c1c;
+            --diff-bg: #fdecec;
+
+            --mono: Consolas, "D2Coding", "Cascadia Mono", "Courier New", monospace;
+            --sans: "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+            --radius: 6px;
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0; display: flex; flex-direction: column;
+            background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px;
+        }
+        .ico { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .ico.sm { width: 14px; height: 14px; }
+        button {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            min-height: 30px; padding: 4px 12px;
+            border: 1px solid var(--border); border-radius: var(--radius);
+            background: var(--surface); color: var(--text-2);
+            font: inherit; font-size: 12.5px; white-space: nowrap; cursor: pointer;
+        }
+        button:hover:not(:disabled) { background: #eef2f7; }
+        button:disabled { opacity: .5; cursor: not-allowed; }
+        button.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+        button.primary:hover:not(:disabled) { background: #1d4ed8; }
+        button:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+        /* ----- 헤더 ----- */
+        header { flex: none; background: var(--head-bg); color: var(--head-text); padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        header h1 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+        header h1 .ico { color: #fcd34d; }
+        #headInfo { color: var(--head-muted); font-size: 12px; }
+        #headInfo b { color: var(--head-text); font-family: var(--mono); }
+        .head-actions { margin-left: auto; display: flex; gap: 8px; }
+        header button { border-color: var(--head-border); background: #334155; color: var(--head-text); }
+        header button:hover:not(:disabled) { background: #475569; }
+
+        /* ----- 비교 조건 카드 (A / B) ----- */
+        .sides { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px 16px 0; }
+        .side { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; border-top: 3px solid; min-width: 0; }
+        .side.a { border-top-color: var(--a); }
+        .side.b { border-top-color: var(--b); }
+        .side h2 { margin: 0 0 6px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .side.a h2 { color: var(--a); }
+        .side.b h2 { color: var(--b); }
+        .side h2 .tag { font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 4px; color: #fff; }
+        .side.a h2 .tag { background: var(--a); }
+        .side.b h2 .tag { background: var(--b); }
+        .side .desc { color: var(--muted); font-size: 12px; }
+        .vers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; max-height: 64px; overflow: auto; }
+        .ver {
+            display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px;
+            border: 1px solid var(--a-line); border-radius: 999px; background: var(--a-bg);
+            font-size: 12px; white-space: nowrap;
+        }
+        .ver .pid { font-family: var(--mono); font-weight: 700; color: var(--text); }
+        .ver .v { color: var(--a); font-weight: 700; }
+        .ver .lt { color: var(--muted); }
+        .ver.err { border-color: #fca5a5; background: var(--diff-bg); }
+        .ver.root { border-style: dashed; }
+
+        /* ----- 도구 줄 ----- */
+        .toolbar { flex: none; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px 8px; }
+        .seg { display: flex; }
+        .seg button { border-radius: 0; margin-left: -1px; }
+        .seg button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
+        .seg button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+        .seg button b { font-variant-numeric: tabular-nums; }
+        .seg button[aria-pressed="true"] { background: #1e293b; color: #fff; border-color: #1e293b; position: relative; z-index: 1; }
+        .toolbar input[type=search] {
+            height: 30px; width: 240px; padding: 4px 9px;
+            border: 1px solid var(--border); border-radius: var(--radius); font: inherit; font-size: 12.5px;
+        }
+        #shown { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+        .toolbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+        .toolbar label { display: inline-flex; align-items: center; gap: 5px; color: var(--text-2); font-size: 12.5px; cursor: pointer; }
+
+        /* ----- 결과 ----- */
+        main { flex: 1; min-height: 0; padding: 0 16px 16px; display: flex; flex-direction: column; }
+        .card { flex: 1; min-height: 0; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+        thead th {
+            position: sticky; top: 0; z-index: 1; background: #f1f5f9; color: var(--text-2);
+            text-align: left; font-size: 12px; font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border);
+        }
+        thead th.a { color: var(--a); box-shadow: inset 0 -3px 0 var(--a-line); }
+        thead th.b { color: var(--b); box-shadow: inset 0 -3px 0 var(--b-line); }
+        tbody td { padding: 6px 10px; border-bottom: 1px solid #edf0f4; vertical-align: top; overflow-wrap: anywhere; }
+        tbody tr:hover td { background: #f8fafc; }
+        td.no { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+        td.key { font-family: var(--mono); font-weight: 700; }
+        td.val { font-family: var(--mono); white-space: pre-wrap; }
+        td.val .none { color: var(--muted); font-style: italic; font-family: var(--sans); }
+        tr.diff td.val.a, tr.only-a td.val.a { background: var(--a-cell); }
+        tr.diff td.val.b, tr.only-b td.val.b { background: var(--b-cell); }
+        tr.diff:hover td.val.a, tr.only-a:hover td.val.a { background: #fde68a; }
+        tr.diff:hover td.val.b, tr.only-b:hover td.val.b { background: #bfdbfe; }
+        .st {
+            display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px;
+            font-size: 11.5px; font-weight: 700; white-space: nowrap;
+        }
+        .st.same { background: var(--same-bg); color: var(--same); }
+        .st.diff { background: var(--diff-bg); color: var(--diff); }
+        .st.only-a { background: var(--a-bg); color: var(--a); border: 1px solid var(--a-line); }
+        .st.only-b { background: var(--b-bg); color: var(--b); border: 1px solid var(--b-line); }
+        mark { background: #fef08a; color: inherit; padding: 0; }
+
+        /* ----- 상태 화면 (불러오는 중 / 오류 / 차이 없음) ----- */
+        .state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 48px 24px; text-align: center; color: var(--text-2); }
+        .state h3 { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+        .state p { margin: 0; color: var(--muted); max-width: 560px; line-height: 1.6; }
+        .state.ok h3 { color: var(--same); }
+        .state.err h3 { color: var(--diff); }
+        .spinner { width: 22px; height: 22px; border: 3px solid #cbd5e1; border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+
+        @media (max-width: 760px) {
+            .sides { grid-template-columns: 1fr; }
+            .toolbar .right { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-compare" viewBox="0 0 24 24"><path d="M8 3v14M4 13l4 4 4-4M16 21V7M12 11l4-4 4 4"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-11"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol>
+</svg>
+
+<header>
+    <h1><svg class="ico" aria-hidden="true"><use href="#i-compare"/></svg>최종 OUTPUT 비교</h1>
+    <span id="headInfo"></span>
+    <div class="head-actions">
+        <button type="button" id="btnReload" title="시뮬레이터의 지금 결과로 다시 비교합니다 (전체 최신 버전도 다시 실행)">
+            <svg class="ico sm" aria-hidden="true"><use href="#i-refresh"/></svg>다시 비교</button>
+        <button type="button" id="btnCsv" disabled title="지금 보이는 비교 행을 CSV 파일로 저장합니다">
+            <svg class="ico sm" aria-hidden="true"><use href="#i-download"/></svg>CSV 저장</button>
+    </div>
+</header>
+
+<section class="sides" aria-label="비교 조건">
+    <div class="side a">
+        <h2><span class="tag">A</span>버전 지정 실행 <small class="desc">(시뮬레이터의 지금 결과)</small></h2>
+        <div class="desc" id="aDesc">-</div>
+        <div class="vers" id="aVers"></div>
+    </div>
+    <div class="side b">
+        <h2><span class="tag">B</span>전체 최신 실행</h2>
+        <div class="desc" id="bDesc">같은 공사번호 · 층 · 전처리 PID 로, 대상 PID 와 모든 하위 PID 를 최신 버전으로 실행합니다.</div>
+    </div>
+</section>
+
+<div class="toolbar" id="toolbar" hidden>
+    <div class="seg" id="filterSeg" role="group" aria-label="비교 결과 필터"></div>
+    <input type="search" id="q" placeholder="키 / 값 검색  ( / )" aria-label="키 또는 값 검색" spellcheck="false">
+    <span id="shown" aria-live="polite"></span>
+    <div class="right">
+        <label title="OUTPUT 으로 시작하는 내부 참조용 키를 숨깁니다"><input type="checkbox" id="hideInner" checked> OUTPUTxxxx 키 숨기기</label>
+    </div>
+</div>
+
+<main>
+    <div class="card" id="area"></div>
+</main>
+
+<script>
+    // 시뮬레이터와 같은 실행 API (전체 최신 = version / subVersions 를 빼고 실행)
+    const API_URL = '/simulateup/simulatePid';
+    const TEST_VERSION = -1;
+    const STORE_HIDE = 'pidSimulUp.compare.hideInner';
+
+    // 비교 상태 : 값 다름 / A 에만 / B 에만 / 같음
+    const KINDS = {
+        diff: { text: '값 다름', title: '두 실행에 모두 있지만 값이 다름' },
+        'only-a': { text: 'A 에만', title: '버전 지정 실행에만 있는 키' },
+        'only-b': { text: 'B 에만', title: '전체 최신 실행에만 있는 키' },
+        same: { text: '같음', title: '두 실행의 값이 같음' },
+    };
+    const FILTERS = [
+        ['changed', '차이 전체', (k) => k !== 'same'],
+        ['diff', '값 다름', (k) => k === 'diff'],
+        ['only-a', 'A 에만', (k) => k === 'only-a'],
+        ['only-b', 'B 에만', (k) => k === 'only-b'],
+        ['same', '같음', (k) => k === 'same'],
+        ['all', '전체', () => true],
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const state = {
+        src: null,      // 시뮬레이터의 getPidCompareSource()
+        base: null,     // 전체 최신 실행 결과
+        rows: [],       // {key, a, b, inA, inB, kind}
+        filter: 'changed',
+        q: '',
+        hideInner: true,  // 기본 : OUTPUTxxxx 키 숨김
+        req: 0,
+    };
+    // 사용자가 직접 끈 경우('N')만 보여준다
+    try { state.hideInner = localStorage.getItem(STORE_HIDE) !== 'N'; } catch (e) { /* 무시 */ }
+    $('hideInner').checked = state.hideInner;
+
+    // ---------- 유틸 ----------
+    function esc(v) {
+        if (v === null || v === undefined) return '';
+        return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    const nvl = (v) => (v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v)));
+    const has = (v) => v !== null && v !== undefined && v !== '';
+    const verText = (v) => (!has(v) ? '-' : Number(v) === TEST_VERSION ? 'TEST' : `v${v}`);
+    const isInner = (k) => k.startsWith('OUTPUT');
+
+    // 검색어 강조
+    function hl(text) {
+        const s = esc(text);
+        if (!state.q) return s;
+        const q = esc(state.q).replace(/[.*+?^${}()|\\]/g, '\\$&').replace(/\[/g, '\\[').replace(/\]/g, '\\]');
+        return s.replace(new RegExp(q, 'gi'), (m) => `<mark>${m}</mark>`);
+    }
+
+    // ---------- 데이터 ----------
+    function readFromOpener() {
+        try {
+            const op = window.opener;
+            if (op && !op.closed && typeof op.getPidCompareSource === 'function') return { ok: true, data: op.getPidCompareSource() };
+        } catch (e) { /* 다른 출처이거나 닫힘 */ }
+        return { ok: false, data: null };
+    }
+
+    // 두 결과의 최종 OUTPUT 을 키 단위로 맞춘다 (A 의 키 순서, 그 뒤에 B 에만 있는 키)
+    function diffRows(a, b) {
+        const keys = Object.keys(a);
+        Object.keys(b).forEach((k) => { if (!(k in a)) keys.push(k); });
+        return keys.map((key) => {
+            const inA = key in a, inB = key in b;
+            const va = nvl(a[key]), vb = nvl(b[key]);
+            const kind = !inA ? 'only-b' : !inB ? 'only-a' : va === vb ? 'same' : 'diff';
+            return { key, a: va, b: vb, inA, inB, kind };
+        });
+    }
+
+    // ---------- 그리기 ----------
+    function renderSides() {
+        const s = state.src;
+        if (!s) {
+            $('headInfo').textContent = '';
+            $('aDesc').textContent = '-';
+            $('aVers').innerHTML = '';
+            return;
+        }
+        $('headInfo').innerHTML = `${esc(s.projectNo)} / <b>${esc(s.pid)}</b>${s.pidName ? ` ${esc(s.pidName)}` : ''}`
+            + (s.floor ? ` · 층 ${esc(s.floor)}` : '');
+        const t = s.targets || [];
+        $('aDesc').textContent = t.length ? `최신이 아닌 버전을 지정한 PID ${t.length}개 (나머지는 최신)` : '버전을 지정한 PID 가 없습니다 (전체 최신 실행)';
+        $('aVers').innerHTML = t.map((x) => {
+            const latest = has(x.latestVersion) && Number(x.runVersion) !== Number(x.latestVersion) ? `<span class="lt">최신 ${esc(verText(x.latestVersion))}</span>` : '<span class="lt">= 최신</span>';
+            return `<span class="ver${x.root ? ' root' : ''}${x.error ? ' err' : ''}" title="${esc((x.root ? '대상 PID' : '하위 PID') + (x.name ? ` · ${x.name}` : '') + (x.error ? `\n실패 : ${x.error}` : ''))}">`
+                + `<span class="pid">${esc(x.pid)}</span><span class="v">${esc(verText(x.error ? x.requested : x.runVersion))}</span>${x.error ? '<span class="lt">실패</span>' : latest}</span>`;
+        }).join('');
+    }
+
+    function renderBaseInfo(sec) {
+        const r = state.base;
+        if (!r) return;
+        const subs = (r.subPids || []).length;
+        $('bDesc').innerHTML = `대상 PID <b>${esc(r.pid)} ${esc(verText(r.runVersion))}</b> (최신) · 하위 PID ${subs}개 모두 최신`
+            + (sec !== undefined ? ` · ${sec}초` : '');
+    }
+
+    function setArea(html) {
+        $('area').innerHTML = html;
+    }
+    function stateHtml(cls, icon, title, msg, retry) {
+        return `<div class="state ${cls}" role="${cls === 'err' ? 'alert' : 'status'}">`
+            + (icon === 'spin' ? '<span class="spinner" aria-hidden="true"></span>' : icon ? `<svg class="ico" style="width:28px;height:28px" aria-hidden="true"><use href="#i-${icon}"/></svg>` : '')
+            + `<h3>${esc(title)}</h3>${msg ? `<p>${msg}</p>` : ''}`
+            + (retry ? '<button type="button" class="primary" data-retry><svg class="ico sm" aria-hidden="true"><use href="#i-refresh"/></svg>다시 비교</button>' : '')
+            + '</div>';
+    }
+
+    function renderFilter() {
+        const base = state.rows.filter((r) => !state.hideInner || !isInner(r.key));
+        $('filterSeg').innerHTML = FILTERS.map(([key, text, test]) => {
+            const n = base.filter((r) => test(r.kind)).length;
+            return `<button type="button" data-filter="${key}" aria-pressed="${state.filter === key}">${text} <b>${n}</b></button>`;
+        }).join('');
+    }
+
+    function visibleRows() {
+        const test = (FILTERS.find((f) => f[0] === state.filter) || FILTERS[0])[2];
+        const q = state.q.toLowerCase();
+        return state.rows.filter((r) => (!state.hideInner || !isInner(r.key)) && test(r.kind)
+            && (!q || r.key.toLowerCase().includes(q) || r.a.toLowerCase().includes(q) || r.b.toLowerCase().includes(q)));
+    }
+
+    function renderTable() {
+        renderFilter();
+        const rows = visibleRows();
+        const total = state.rows.filter((r) => !state.hideInner || !isInner(r.key)).length;
+        const changed = state.rows.filter((r) => r.kind !== 'same' && (!state.hideInner || !isInner(r.key))).length;
+        $('shown').textContent = `${rows.length} / ${total}건 표시`;
+        $('btnCsv').disabled = !rows.length;
+
+        if (!changed && state.filter === 'changed' && !state.q) {
+            setArea(stateHtml('ok', 'check', `두 실행의 최종 OUTPUT 이 모두 같습니다 (${total}건)`,
+                '지정한 버전으로 실행해도 최종 결과값은 전체 최신 버전과 차이가 없습니다. 같은 값을 보려면 위의 [전체] 를 누르세요.'));
+            return;
+        }
+        if (!rows.length) {
+            setArea(stateHtml('', '', '조건에 맞는 키가 없습니다', '필터나 검색어를 바꿔 보세요.'));
+            return;
+        }
+        const val = (r, side) => {
+            const inSide = side === 'a' ? r.inA : r.inB;
+            const v = side === 'a' ? r.a : r.b;
+            if (!inSide) return '<span class="none">(키 없음)</span>';
+            return v === '' ? '<span class="none">(빈 값)</span>' : hl(v);
+        };
+        setArea('<table><colgroup><col style="width:52px"><col style="width:24%"><col><col><col style="width:96px"></colgroup>'
+            + '<thead><tr><th scope="col">#</th><th scope="col">KEY</th>'
+            + '<th scope="col" class="a">A · 버전 지정 실행</th><th scope="col" class="b">B · 전체 최신 실행</th><th scope="col">비교</th></tr></thead><tbody>'
+            + rows.map((r, i) => `<tr class="${r.kind}"><td class="no">${i + 1}</td><td class="key">${hl(r.key)}</td>`
+                + `<td class="val a">${val(r, 'a')}</td><td class="val b">${val(r, 'b')}</td>`
+                + `<td><span class="st ${r.kind}" title="${esc(KINDS[r.kind].title)}">${esc(KINDS[r.kind].text)}</span></td></tr>`).join('')
+            + '</tbody></table>');
+    }
+
+    // ---------- 비교 실행 ----------
+    async function compare() {
+        const { ok, data } = readFromOpener();
+        state.src = data;
+        state.base = null;
+        state.rows = [];
+        const req = ++state.req;
+        renderSides();
+        $('toolbar').hidden = true;
+        $('btnCsv').disabled = true;
+        $('bDesc').textContent = '같은 공사번호 · 층 · 전처리 PID 로, 대상 PID 와 모든 하위 PID 를 최신 버전으로 실행합니다.';
+
+        if (!data) {
+            setArea(stateHtml('', 'alert', ok ? '실행 결과가 없습니다' : '시뮬레이터와 연결되지 않았습니다',
+                ok ? '시뮬레이터에서 PID 를 실행한 뒤 [최신과 비교] 를 누르세요.'
+                    : '이 창은 PID 실행 시뮬레이터의 [최신과 비교] 버튼으로 열어야 합니다. 시뮬레이터 창이 닫혔다면 다시 열어 주세요.'));
+            return;
+        }
+        if (!(data.targets || []).length) {
+            setArea(stateHtml('', 'check', '이미 전체 최신 버전으로 실행한 결과입니다',
+                '시뮬레이터에서 PID 버전이나 하위 PID 버전을 최신이 아닌 버전으로 골라 실행하면, 여기서 전체 최신 실행과 비교합니다.'));
+            return;
+        }
+
+        // 전체 최신 : 이번 실행 조건에서 버전 지정만 뺀다
+        const qs = new URLSearchParams(data.params || {});
+        qs.delete('version');
+        qs.delete('subVersions');
+        qs.delete('test');
+        setArea(stateHtml('', 'spin', '전체 최신 버전으로 실행하는 중…', 'PLM DB 에서 PID 로직과 영업사양을 읽어 실행하고 있습니다. 하위 PID 가 많으면 시간이 걸립니다.'));
+        $('btnReload').disabled = true;
+        const startedAt = performance.now();
+        try {
+            const res = await fetch(`${API_URL}?${qs}`, { headers: { Accept: 'application/json' } });
+            let json = null;
+            try { json = await res.json(); } catch (e) { /* 본문이 JSON 이 아님 */ }
+            if (req !== state.req) return;
+            if (!res.ok || !json || json.error) throw new Error((json && json.error) || `HTTP ${res.status} ${res.statusText}`);
+
+            state.base = json;
+            state.rows = diffRows(data.resultMap || {}, json.resultMap || {});
+            renderBaseInfo(((performance.now() - startedAt) / 1000).toFixed(1));
+            // 차이가 없으면 같은 값을 바로 보여주지 않고 '모두 같음' 안내
+            state.filter = 'changed';
+            $('toolbar').hidden = false;
+            renderTable();
+        } catch (e) {
+            if (req !== state.req) return;
+            console.error(e);
+            setArea(stateHtml('err', 'alert', '전체 최신 버전 실행에 실패했습니다', esc(e.message), true));
+        } finally {
+            if (req === state.req) $('btnReload').disabled = false;
+        }
+    }
+
+    // 시뮬레이터가 다시 실행하면 호출 (팝업이 열려 있을 때)
+    window.syncFromOpener = compare;
+
+    // ---------- CSV (지금 보이는 행, 엑셀 한글 깨짐 방지 BOM) ----------
+    const csvCell = (v) => (/[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    function exportCsv() {
+        const s = state.src || {};
+        const lines = [ ['KEY', 'A 버전 지정 실행', 'B 전체 최신 실행', '비교'].map(csvCell).join(',') ];
+        visibleRows().forEach((r) => lines.push([r.key, r.inA ? r.a : '(키 없음)', r.inB ? r.b : '(키 없음)', KINDS[r.kind].text].map(csvCell).join(',')));
+        const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `PID비교_${s.projectNo || ''}_${s.pid || ''}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    // ---------- 이벤트 ----------
+    $('btnReload').addEventListener('click', compare);
+    $('btnCsv').addEventListener('click', exportCsv);
+    $('area').addEventListener('click', (e) => { if (e.target.closest('[data-retry]')) compare(); });
+    $('filterSeg').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-filter]');
+        if (!b) return;
+        state.filter = b.dataset.filter;
+        renderTable();
+    });
+    let qTimer;
+    $('q').addEventListener('input', (e) => {
+        clearTimeout(qTimer);
+        qTimer = setTimeout(() => { state.q = e.target.value.trim(); renderTable(); }, 150);
+    });
+    $('hideInner').addEventListener('change', (e) => {
+        state.hideInner = e.target.checked;
+        try { localStorage.setItem(STORE_HIDE, state.hideInner ? 'Y' : 'N'); } catch (err) { /* 무시 */ }
+        if (state.base) renderTable();
+    });
+    document.addEventListener('keydown', (e) => {
+        const typing = e.target.closest && e.target.closest('input, textarea');
+        if (e.key === '/' && !typing && !$('toolbar').hidden) { e.preventDefault(); $('q').focus(); $('q').select(); }
+        else if (e.key === 'Escape' && e.target === $('q') && $('q').value) {
+            $('q').value = '';
+            state.q = '';
+            renderTable();
+        }
+    });
+
+    compare();
+</script>
+</body>
+</html>

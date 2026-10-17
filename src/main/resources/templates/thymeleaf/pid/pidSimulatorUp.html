@@ -185,6 +185,9 @@
         .toolbar label.chk { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; font-size: 12.5px; color: var(--text-2); }
         #shownCount { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
         #btnFinal { font-weight: 700; color: var(--primary); border-color: #bfdbfe; background: #eff6ff; }
+        #btnCompare:not(:disabled) { color: #b45309; border-color: #fcd34d; background: #fffbeb; font-weight: 700; }
+        #btnCompare:not(:disabled):hover { background: #fef3c7; }
+        #btnCompare:disabled { cursor: not-allowed; }
         .toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
         /* 결과 테이블 확대/축소 */
@@ -467,6 +470,7 @@
             background: #0f172a;
             white-space: nowrap;
         }
+        .sub-item[hidden] { display: none !important; }   /* 표 보기(display:grid) 보다 우선 */
         .sub-item .sub-pid { color: #e2e8f0; font-size: 12px; cursor: default; }
         .sub-item .sub-depth { color: #64748b; font-size: 11px; }
         .sub-item select { min-width: 0; padding: 2px 4px; font-size: 12px; }
@@ -475,6 +479,51 @@
         .sub-item.changed { border-color: #fbbf24; box-shadow: 0 0 0 1px #fbbf24 inset; }
         .sub-item.error { border-color: #f87171; }
         .sub-item.error .sub-pid { color: #fca5a5; }
+        /* 검색 / 필터 / 표 보기 */
+        .sub-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+        .sub-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        header .sub-tools input[type=search] { width: 220px; height: 26px; font-size: 12px; }
+        .sub-seg { display: flex; }
+        header .sub-seg button { min-height: 26px; padding: 2px 9px; font-size: 12px; border-radius: 0; margin-left: -1px; }
+        header .sub-seg button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
+        header .sub-seg button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+        header .sub-seg button.active { background: #e2e8f0; border-color: #e2e8f0; color: #0f172a; position: relative; z-index: 1; }
+        header .sub-seg button:disabled { opacity: .45; cursor: default; }
+        .sub-seg button b { margin-left: 3px; font-variant-numeric: tabular-nums; }
+        #subShown { color: #94a3b8; font-size: 12px; }
+        header .sub-tools #btnSubView { min-height: 26px; padding: 2px 10px; font-size: 12px; margin-left: auto; }
+        header .sub-tools #btnSubView[aria-pressed="true"] { background: #475569; }
+        .sub-empty { color: #94a3b8; font-size: 12px; padding: 4px 2px; }
+        /* 칩 보기에서는 표 전용 칸을 숨긴다 */
+        .sub-item .sub-name, .sub-item .sub-num, .sub-item .sub-quick, .sub-thead { display: none; }
+        /* 표 보기 : 한 줄에 하위 PID 하나, 열 머리글로 정렬 */
+        .sub-list.as-table { display: block; max-height: min(45vh, 420px); border: 1px solid #334155; border-radius: 5px; }
+        .sub-list.as-table .sub-thead, .sub-list.as-table .sub-item {
+            display: grid; align-items: center; column-gap: 8px;
+            grid-template-columns: minmax(170px, 1.2fr) minmax(120px, 1.6fr) 44px 54px 64px 64px minmax(150px, auto) 170px;
+        }
+        .sub-list.as-table .sub-thead { position: sticky; top: 0; z-index: 1; background: #1e293b; border-bottom: 1px solid #475569; padding: 0 8px; }
+        .sub-thead button {
+            min-height: 26px; padding: 2px 0; justify-content: flex-start; gap: 2px;
+            background: transparent !important; border: 0; color: #94a3b8; font-size: 11.5px; font-weight: 600;
+        }
+        .sub-thead button:hover { color: #f8fafc; }
+        .sub-thead button.num { justify-content: flex-end; }
+        .sub-thead button[aria-sort="ascending"]::after { content: '▲'; font-size: 9px; }
+        .sub-thead button[aria-sort="descending"]::after { content: '▼'; font-size: 9px; }
+        .sub-thead span { color: #94a3b8; font-size: 11.5px; font-weight: 600; }
+        .sub-list.as-table .sub-item { border: 0; border-bottom: 1px solid #1e293b; border-radius: 0; padding: 3px 8px; background: transparent; }
+        .sub-list.as-table .sub-item:hover { background: #172033; }
+        .sub-list.as-table .sub-item.applied { box-shadow: inset 3px 0 0 #a78bfa; }
+        .sub-list.as-table .sub-item.changed { box-shadow: inset 3px 0 0 #fbbf24; background: #2a2410; }
+        .sub-list.as-table .sub-item.error { box-shadow: inset 3px 0 0 #f87171; }
+        .sub-list.as-table .sub-name { display: block; color: #94a3b8; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+        .sub-list.as-table .sub-num { display: block; color: #cbd5e1; font-size: 12px; text-align: right; font-family: var(--mono); }
+        .sub-list.as-table .sub-quick { display: flex; flex-wrap: wrap; gap: 3px; }
+        .sub-list.as-table .sub-pid { font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; }
+        .sub-list.as-table .sub-item select { width: 100%; }
+        header .sub-quick button { min-height: 22px; padding: 0 7px; font-size: 11.5px; border-radius: 11px; background: transparent; }
+        header .sub-quick button.on { background: #e2e8f0; border-color: #e2e8f0; color: #0f172a; font-weight: 700; }
         .sub-actions { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
         .sub-actions button { padding: 5px 12px; font-size: 12px; }
         #subHint { color: #94a3b8; font-size: 12px; }
@@ -623,6 +672,7 @@
         <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
         <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
         <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="i-compare" viewBox="0 0 24 24"><path d="M8 3v14M4 13l4 4 4-4M16 21V7M12 11l4-4 4 4"/></symbol>
         <symbol id="i-tree" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2a2 2 0 012-2h8a2 2 0 012 2v2"/></symbol>
     </defs>
 </svg>
@@ -694,7 +744,17 @@
             <span class="credit" title="Copyright © 2026 수배로직설계팀 · 김영환 M. All rights reserved."><svg class="ico sm" aria-hidden="true"><use href="#i-check"/></svg>© 2026 수배로직설계팀 · 김영환 M</span>
         </div>
         <div class="sub-body" id="subBody">
-            <div class="sub-list" id="subList"></div>
+            <div class="sub-main">
+                <!-- 하위 PID 가 많을 때 : 검색 / 필터 / 표 보기 -->
+                <div class="sub-tools">
+                    <input type="search" id="subQ" placeholder="하위 PID · 이름 검색" aria-label="하위 PID 검색" spellcheck="false">
+                    <div class="sub-seg" id="subFilter" role="group" aria-label="하위 PID 필터"></div>
+                    <span id="subShown"></span>
+                    <button type="button" id="btnSubView" aria-pressed="false" title="하위 PID 를 표로 크게 보기 (정렬, 버전 바로 선택)">
+                        <svg class="ico sm" aria-hidden="true"><use href="#i-list"/></svg><span>표로 보기</span></button>
+                </div>
+                <div class="sub-list" id="subList"></div>
+            </div>
             <div class="sub-actions">
                 <button type="button" class="primary" id="btnSubRun" title="고른 하위 PID 버전으로 다시 실행합니다">
                     <svg class="ico" aria-hidden="true"><use href="#i-play"/></svg>하위 버전 적용 실행</button>
@@ -729,6 +789,8 @@
     </div>
     <span class="sep" aria-hidden="true"></span>
     <button type="button" id="btnFinal"><svg class="ico" aria-hidden="true"><use href="#i-target"/></svg>최종 OUTPUT (<span id="stFinal">0</span>)</button>
+    <button type="button" id="btnCompare" disabled title="최신이 아닌 버전(PID 또는 하위 PID)을 지정해 실행했을 때, 전체 최신 버전으로 실행한 최종 OUTPUT 과 비교합니다">
+        <svg class="ico" aria-hidden="true"><use href="#i-compare"/></svg>최신과 비교</button>
     <button type="button" id="btnElvEnt" title="PID 실행 후 최종 영업사양"><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg>최종 영업사양 (<span id="stElvEnt">0</span>)</button>
     <button type="button" id="btnCsv" title="지금 보이는 라인(필터 · 검색 적용)을 CSV 파일로 저장합니다. 엑셀에서 바로 열 수 있습니다"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>CSV 저장</button>
     <span class="sep" aria-hidden="true"></span>
@@ -811,6 +873,8 @@
     const CODE_POPUP_URL = '/pid/pidSimulCodePopup';
     // 하위 PID 호출 관계도 (마인드맵) 팝업
     const MINDMAP_POPUP_URL = '/simulateup/pidSimulatorMindMap';
+    // 버전 지정 실행 ↔ 전체 최신 실행의 최종 OUTPUT 비교 팝업
+    const COMPARE_POPUP_URL = '/simulateup/pidSimulatorCompare';
     // 라인 상세 조건의 사양명(CODE -> CODENAME)
     const CODE_API = '/api/getElvCodeList?key=subae';
     // 브라우저 저장 키 (기존 pidSimulMain 화면과 따로 기억)
@@ -822,6 +886,7 @@
     const area = $('resultArea');
     let codePopup = null;
     let mindMapPopup = null;
+    let comparePopup = null;
     // 특성코드(대문자) -> 사양명(CODENAME). 라인 상세의 조건 표시용
     const specNames = new Map();
     const state = {
@@ -986,12 +1051,13 @@
     }
 
     const subVerText = (v) => (String(v) === TEST_VERSION ? 'TEST' : `v${v}`);
+    const hasVal = (v) => v !== null && v !== undefined;
 
     function renderSubPids() {
         const list = (state.result && state.result.subPids) || [];
         pendingSubVersions = '';
         $('subRow').hidden = !list.length;
-        $('subList').innerHTML = list.map((s) => {
+        $('subList').innerHTML = list.map((s, i) => {
             const applied = s.requestedVersion !== null && s.requestedVersion !== undefined;
             let opts = `<option value="">${esc(latestLabel(s.versions))}</option>`;
             (s.versions || []).forEach((v) => {
@@ -1012,14 +1078,143 @@
                 s.error ? `오류 : ${s.error}` : '',
             ].filter(Boolean).join('\n');
             const cls = ['sub-item', applied ? 'applied' : '', s.error ? 'error' : ''].filter(Boolean).join(' ');
-            return `<label class="${cls}" title="${esc(title)}" data-applied="${applied ? esc(String(s.requestedVersion)) : ''}">`
-                + (s.depth > 2 ? `<span class="sub-depth">${'↳'.repeat(s.depth - 2)}</span>` : '')
-                + `<span class="sub-pid">${s.error ? '<svg class="ico sm warn-ico" aria-hidden="true"><use href="#i-alert"/></svg> ' : ''}${esc(s.pid)}</span>`
-                + `<select data-sub-pid="${esc(s.pid)}">${opts}</select></label>`;
+            // 표 보기 : 바로 누르는 단추 = 최신 + TEST + 최신 바로 이전 버전들 (나머지는 선택 목록)
+            const quickVers = (s.versions || []).filter((v) => String(v.version) === TEST_VERSION)
+                .concat((s.versions || []).filter((v) => String(v.version) !== TEST_VERSION && !v.latest).slice(0, SUB_QUICK_PREV));
+            const quick = `<button type="button" data-quick="" title="${esc(latestLabel(s.versions))}">최신</button>`
+                + quickVers.map((v) => `<button type="button" data-quick="${esc(String(v.version))}"`
+                    + ` title="${esc(versionLabel(String(v.version), v.latest, v.regDate))}">${esc(subVerText(v.version))}</button>`).join('');
+            const hasTest = (s.versions || []).some((v) => String(v.version) === TEST_VERSION);
+            return `<div class="${cls}" title="${esc(title)}" data-applied="${applied ? esc(String(s.requestedVersion)) : ''}"`
+                + ` data-order="${i}" data-test="${hasTest ? 'Y' : ''}">`
+                + `<span class="sub-pid">${s.depth > 2 ? `<span class="sub-depth">${'↳'.repeat(s.depth - 2)}</span>` : ''}`
+                + `${s.error ? '<svg class="ico sm warn-ico" aria-hidden="true"><use href="#i-alert"/></svg> ' : ''}${esc(s.pid)}</span>`
+                + `<span class="sub-name">${esc(s.name || '')}</span>`
+                + `<span class="sub-num">${esc(s.depth)}</span>`
+                + `<span class="sub-num">${esc(s.callCount)}</span>`
+                + `<span class="sub-num">${s.error ? '실패' : esc(hasVal(s.runVersion) ? subVerText(s.runVersion) : '')}</span>`
+                + `<span class="sub-num">${esc(hasVal(s.latestVersion) ? subVerText(s.latestVersion) : '')}</span>`
+                + `<span class="sub-quick">${quick}</span>`
+                + `<select data-sub-pid="${esc(s.pid)}" aria-label="${esc(s.pid)} 버전">${opts}</select></div>`;
         }).join('');
         // 이번 실행에 적용된 버전을 선택해 둔다
         subSelects().forEach((sel) => { sel.value = sel.closest('.sub-item').dataset.applied; });
+        // 새로 실행하면 '변경' 은 없으므로 전체로
+        if (subView.filter === 'changed') subView.filter = 'all';
+        renderSubFilter();
+        sortSubList();
         updateSubHint();
+    }
+
+    // ---------- 하위 PID 검색 / 필터 / 표 보기 ----------
+    const SUB_QUICK_PREV = 3;  // 표 보기에서 단추로 바로 고르는 최신 이전 버전 수
+    const SUB_VIEW_KEY = STORE_PREFIX + 'subView';
+    const SUB_FILTERS = [
+        ['all', '전체', () => true],
+        ['applied', '지정', (it) => it.dataset.applied !== ''],
+        ['changed', '변경', (it) => it.querySelector('select').value !== it.dataset.applied],
+        ['error', '실패', (it) => it.classList.contains('error')],
+        ['test', 'TEST 있음', (it) => it.dataset.test === 'Y'],
+    ];
+    // 표 보기 열 : [정렬 키, 머리글, 숫자 열 여부]
+    // 주의 : 대괄호 두 개를 붙여 쓰면 Thymeleaf 인라인 식으로 읽혀 템플릿 오류가 나므로 띄어 쓴다
+    const SUB_COLS = [
+        ['pid', 'PID'], ['name', '이름'], ['depth', '깊이', true], ['calls', '호출', true],
+        ['run', '실행', true], ['latest', '최신', true],
+    ];
+    const subView = { table: false, filter: 'all', q: '', sort: 'order', dir: 1 };
+    try { subView.table = localStorage.getItem(SUB_VIEW_KEY) === 'table'; } catch (e) { /* 무시 */ }
+
+    function renderSubFilter() {
+        $('subFilter').innerHTML = SUB_FILTERS.map(([key, text]) =>
+            `<button type="button" data-sub-filter="${key}">${text}<b></b></button>`).join('');
+    }
+
+    // 정렬 값 (실행 / 최신 버전은 TEST(-1) 가 가장 작게)
+    function subSortValue(item, key) {
+        const s = subPidInfo(item.querySelector('select').dataset.subPid) || {};
+        switch (key) {
+            case 'pid': return s.pid || '';
+            case 'name': return s.name || '';
+            case 'depth': return s.depth || 0;
+            case 'calls': return s.callCount || 0;
+            case 'run': return hasVal(s.runVersion) ? Number(s.runVersion) : -Infinity;
+            case 'latest': return hasVal(s.latestVersion) ? Number(s.latestVersion) : -Infinity;
+            default: return Number(item.dataset.order);
+        }
+    }
+
+    // 칩 보기는 처음 호출된 순서, 표 보기는 고른 열 순서 (같으면 호출 순서)
+    function sortSubList() {
+        const list = $('subList');
+        const items = [...list.querySelectorAll('.sub-item')];
+        const key = subView.table ? subView.sort : 'order';
+        items.sort((a, b) => {
+            const x = subSortValue(a, key), y = subSortValue(b, key);
+            const c = typeof x === 'string' ? x.localeCompare(y) : x - y;
+            return (c * (key === 'order' ? 1 : subView.dir)) || (a.dataset.order - b.dataset.order);
+        });
+        let head = list.querySelector('.sub-thead');
+        if (!head) {
+            head = document.createElement('div');
+            head.className = 'sub-thead';
+            head.innerHTML = SUB_COLS.map(([k, text, num]) =>
+                `<button type="button" data-sub-sort="${k}"${num ? ' class="num"' : ''}>${text}</button>`).join('')
+                + '<span>버전 바로 선택</span><span>버전</span>';
+        }
+        head.querySelectorAll('[data-sub-sort]').forEach((b) => {
+            if (b.dataset.subSort === subView.sort) b.setAttribute('aria-sort', subView.dir > 0 ? 'ascending' : 'descending');
+            else b.removeAttribute('aria-sort');
+        });
+        list.replaceChildren(head, ...items);
+        list.classList.toggle('as-table', subView.table);
+        $('btnSubView').setAttribute('aria-pressed', String(subView.table));
+        $('btnSubView').querySelector('span').textContent = subView.table ? '칩으로 보기' : '표로 보기';
+    }
+
+    // 검색어 + 필터로 보일 항목을 고르고, 필터 단추에 개수를 적는다
+    function applySubFilter() {
+        const items = [...$('subList').querySelectorAll('.sub-item')];
+        const q = subView.q.toUpperCase();
+        const matchQ = (it) => {
+            if (!q) return true;
+            const s = subPidInfo(it.querySelector('select').dataset.subPid) || {};
+            return (s.pid || '').toUpperCase().includes(q) || (s.name || '').toUpperCase().includes(q);
+        };
+        const byQ = items.filter(matchQ);
+        const test = (SUB_FILTERS.find((f) => f[0] === subView.filter) || SUB_FILTERS[0])[2];
+        let shown = 0;
+        items.forEach((it) => {
+            const on = byQ.includes(it) && test(it);
+            it.hidden = !on;
+            if (on) shown++;
+        });
+        $('subFilter').querySelectorAll('[data-sub-filter]').forEach((b) => {
+            const f = SUB_FILTERS.find((x) => x[0] === b.dataset.subFilter);
+            const n = byQ.filter(f[2]).length;
+            b.classList.toggle('active', f[0] === subView.filter);
+            b.disabled = !n && f[0] !== 'all' && f[0] !== subView.filter;
+            b.querySelector('b').textContent = n;
+        });
+        $('subShown').textContent = shown === items.length ? '' : `${shown} / ${items.length}개 표시`;
+        let empty = $('subList').querySelector('.sub-empty');
+        if (!shown && items.length) {
+            if (!empty) {
+                empty = document.createElement('div');
+                empty.className = 'sub-empty';
+                $('subList').appendChild(empty);
+            }
+            empty.textContent = '조건에 맞는 하위 PID 가 없습니다.';
+        } else if (empty) empty.remove();
+    }
+
+    // 표 보기의 버전 단추 : 지금 고른 버전을 표시
+    function syncSubQuick() {
+        subSelects().forEach((sel) => {
+            sel.closest('.sub-item').querySelectorAll('[data-quick]').forEach((b) => {
+                b.classList.toggle('on', b.dataset.quick === sel.value);
+            });
+        });
     }
 
     // 고른 버전이 이번 실행과 다른 하위 PID 표시 + 안내
@@ -1037,6 +1232,8 @@
             + (applied ? ` · 버전 지정 ${applied}개` : ' · 모두 최신')
             + (changed ? ` · <span class="changed">변경 ${changed}개 (적용 실행 필요)</span>` : '');
         $('btnSubReset').disabled = !applied && !changed;
+        syncSubQuick();
+        applySubFilter();
     }
 
     // PID 가 바뀌면 하위 PID 버전 선택은 의미가 없으므로 비운다
@@ -1225,6 +1422,7 @@
         $('stUnread').textContent = cnt.unread;
         $('stFinal').textContent = Object.keys(finalResultMap()).length;
         $('stElvEnt').textContent = Object.keys(finalElvEnt()).length;
+        $('btnCompare').disabled = !compareTargets().length;
         $('toolbar').hidden = false;
         syncFilterUI();
     }
@@ -1578,6 +1776,7 @@
         focusResult();
         syncCodePopup();
         syncMindMapPopup();
+        syncComparePopup();
     }
 
     // ---------- CSV 저장 (지금 보이는 라인만, 엑셀에서 한글이 깨지지 않도록 BOM 포함) ----------
@@ -1669,6 +1868,57 @@
     function syncMindMapPopup() {
         try {
             if (mindMapPopup && !mindMapPopup.closed && typeof mindMapPopup.syncFromOpener === 'function') mindMapPopup.syncFromOpener();
+        } catch (e) { /* 팝업 로딩 중이면 팝업이 스스로 읽어감 */ }
+    }
+
+    // ---------- 최신 버전 비교 팝업 ----------
+    // 이번 실행에서 버전을 지정한 PID (대상 PID + 하위 PID). 없으면 전체 최신 실행이라 비교할 것이 없다
+    function compareTargets() {
+        const r = state.result;
+        if (!r) return [];
+        const list = [];
+        if (hasVal(r.version)) {
+            list.push({ pid: r.pid, name: r.pidName, root: true, requested: r.version,
+                runVersion: r.testVersion ? Number(TEST_VERSION) : r.runVersion, latestVersion: r.latestVersion });
+        }
+        (r.subPids || []).filter((s) => hasVal(s.requestedVersion)).forEach((s) => list.push({
+            pid: s.pid, name: s.name, root: false, requested: s.requestedVersion,
+            runVersion: s.runVersion, latestVersion: s.latestVersion, error: s.error,
+        }));
+        return list;
+    }
+
+    // 팝업(pidSimulatorCompare)이 호출: 이번 실행 조건 / 버전 지정 PID / 최종 OUTPUT (실행 전이면 null)
+    window.getPidCompareSource = function () {
+        const r = state.result;
+        if (!r || !state.query) return null;
+        return {
+            params: Object.assign({}, state.query.params),
+            projectNo: r.projectNo,
+            projectTitle: r.projectTitle,
+            pid: r.pid,
+            pidName: r.pidName,
+            floor: r.floor,
+            targets: compareTargets(),
+            resultMap: r.resultMap || {},
+            javaMethod: !!r.javaMethod,
+        };
+    };
+
+    function openComparePopup() {
+        if (comparePopup && !comparePopup.closed) {
+            comparePopup.focus();
+            syncComparePopup();
+            return;
+        }
+        comparePopup = window.open(COMPARE_POPUP_URL, 'pidSimulUpCompare', 'width=1280,height=860,resizable=yes,scrollbars=yes');
+        if (!comparePopup) alert('팝업이 차단되었습니다. 브라우저에서 이 사이트의 팝업을 허용해 주세요.');
+    }
+
+    // 재실행하면 열려 있는 비교 창도 새 결과로 다시 비교
+    function syncComparePopup() {
+        try {
+            if (comparePopup && !comparePopup.closed && typeof comparePopup.syncFromOpener === 'function') comparePopup.syncFromOpener();
         } catch (e) { /* 팝업 로딩 중이면 팝업이 스스로 읽어감 */ }
     }
 
@@ -1800,7 +2050,8 @@
                 throw new Error((json && json.error) || `HTTP ${res.status} ${res.statusText}`);
             }
 
-            state.query = { project: getParam('project'), pid: getParam('pid'), version: getParam('version') };
+            // params : 이번 실행 조건 그대로 (최신 비교 팝업이 전체 최신 실행에 사용)
+            state.query = { project: getParam('project'), pid: getParam('pid'), version: getParam('version'), params: Object.fromEntries(query) };
             loadResult(json);
             renderSourceInfo(((performance.now() - startedAt) / 1000).toFixed(1));
 
@@ -1853,6 +2104,49 @@
     // ---------- 이벤트: 하위 PID 버전 ----------
     $('subList').addEventListener('change', (e) => {
         if (e.target.matches('select[data-sub-pid]')) updateSubHint();
+    });
+    $('subList').addEventListener('click', (e) => {
+        // 표 보기 : 버전 단추 → 그 줄의 선택 목록에 반영
+        const q = e.target.closest('[data-quick]');
+        if (q) {
+            q.closest('.sub-item').querySelector('select').value = q.dataset.quick;
+            updateSubHint();
+            return;
+        }
+        // 표 보기 : 열 머리글 → 정렬 (같은 열을 다시 누르면 반대로, 세 번째는 호출 순서로)
+        const h = e.target.closest('[data-sub-sort]');
+        if (!h) return;
+        const key = h.dataset.subSort;
+        if (subView.sort !== key) { subView.sort = key; subView.dir = 1; }
+        else if (subView.dir > 0) subView.dir = -1;
+        else { subView.sort = 'order'; subView.dir = 1; }
+        sortSubList();
+        applySubFilter();
+    });
+    let subQTimer;
+    $('subQ').addEventListener('input', (e) => {
+        clearTimeout(subQTimer);
+        subQTimer = setTimeout(() => { subView.q = e.target.value.trim(); applySubFilter(); }, 150);
+    });
+    $('subQ').addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && e.target.value) {
+            e.stopPropagation();
+            e.target.value = '';
+            subView.q = '';
+            applySubFilter();
+        }
+    });
+    $('subFilter').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-sub-filter]');
+        if (!b) return;
+        subView.filter = b.dataset.subFilter;
+        applySubFilter();
+    });
+    $('btnSubView').addEventListener('click', () => {
+        subView.table = !subView.table;
+        try { localStorage.setItem(SUB_VIEW_KEY, subView.table ? 'table' : 'chip'); } catch (e) { /* 무시 */ }
+        sortSubList();
+        applySubFilter();
     });
     $('btnSubRun').addEventListener('click', run);
     // 하위 PID 버전 접기 / 펼치기 (처음에는 펼친 상태)
@@ -1947,6 +2241,7 @@
         document.querySelectorAll('details.pop[open]').forEach((d) => { if (!d.contains(e.target)) d.open = false; });
     });
     $('btnElvEnt').addEventListener('click', showElvEnt);
+    $('btnCompare').addEventListener('click', openComparePopup);
     $('btnCsv').addEventListener('click', exportCsv);
 
     // ---------- 이벤트: 결과 테이블 (클릭 / 키보드 / 드래그 이동) ----------
