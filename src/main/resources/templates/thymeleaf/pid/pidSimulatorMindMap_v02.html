@@ -1,0 +1,1714 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PID 호출 관계도</title>
+    <script>
+        // 화면을 그리기 전에 테마를 정한다 (깜빡임 방지) : 저장한 값 > 시스템 설정
+        (function () {
+            var t = null;
+            try { t = localStorage.getItem('pidSimulUp.mindMap.theme'); } catch (e) { /* 무시 */ }
+            if (t !== 'light' && t !== 'dark') t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+    <style>
+        /* ===== 디자인 토큰 =====
+           두 테마는 '밝기'만 다르고 색의 의미는 같다 :
+           녹색 = 실행됨 / 빨강 = 실패 / 회색 점선 = 미실행 / 보라 = 버전 지정 / 하늘색 = 선택 / 노랑 = 검색 / 파랑~보라 = 대상 PID */
+        :root, :root[data-theme="dark"] {
+            color-scheme: dark;
+            --bg: #060b16;
+            --canvas: #0a1222;
+            --panel: #0c1424;
+            --surface: #111b2f;
+            --surface-2: #17233a;
+            --surface-3: #1f2e4b;
+            --line: rgba(148, 163, 184, .14);
+            --line-strong: rgba(148, 163, 184, .28);
+            --line-hover: rgba(148, 163, 184, .45);
+            --ink: #eef3fb;
+            --ink-2: #c6d1e1;
+            --muted: #8d9bb3;
+            --strong: #ffffff;
+            --accent: #38bdf8;
+            --accent-ring: rgba(56, 189, 248, .2);
+            --run-ink: #4ade80;
+            --run-bg: rgba(34, 197, 94, .12);
+            --run-border: rgba(74, 222, 128, .45);
+            --err: #f87171;
+            --err-ink: #fecaca;
+            --err-bg: rgba(239, 68, 68, .12);
+            --err-border: rgba(248, 113, 113, .5);
+            --spec: #c4b5fd;
+            --spec-bg: rgba(139, 92, 246, .16);
+            --spec-border: rgba(167, 139, 250, .5);
+            --shared: #5eead4;
+
+            --head-bg: linear-gradient(180deg, #101b33 0%, #0b1428 100%);
+            --head-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+            --toolbar-bg: rgba(0, 0, 0, .18);
+            --soft-bg: rgba(255, 255, 255, .04);
+            --kpi-bg: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .02));
+            --track: rgba(255, 255, 255, .08);
+            --input-bg: #070d1a;
+            --placeholder: #66758f;
+            --pressed-bg: linear-gradient(135deg, rgba(59, 130, 246, .38), rgba(139, 92, 246, .38));
+            --pressed-border: rgba(129, 140, 248, .75);
+            --pressed-ink: #ffffff;
+            --overlay-bg: rgba(12, 20, 36, .88);
+            --overlay-shadow: 0 12px 36px rgba(0, 0, 0, .45);
+            --panel-shadow: -10px 0 30px rgba(0, 0, 0, .25);
+            --vignette: radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(2, 6, 15, .6) 100%);
+            --notice-bg: rgba(251, 191, 36, .12);
+            --notice-border: rgba(251, 191, 36, .45);
+            --notice-ink: #fde68a;
+            --scroll: #24334f;
+            --scroll-hover: #33476b;
+            --node-hover: brightness(1.22);
+        }
+        :root[data-theme="light"] {
+            color-scheme: light;
+            --bg: #eef2f7;
+            --canvas: #f4f7fb;
+            --panel: #ffffff;
+            --surface: #f8fafc;
+            --surface-2: #ffffff;
+            --surface-3: #eef2f8;
+            --line: rgba(15, 23, 42, .09);
+            --line-strong: rgba(15, 23, 42, .17);
+            --line-hover: rgba(15, 23, 42, .3);
+            --ink: #0f172a;
+            --ink-2: #334155;
+            --muted: #5b6b82;
+            --strong: #0f172a;
+            --accent: #0284c7;
+            --accent-ring: rgba(2, 132, 199, .18);
+            --run-ink: #15803d;
+            --run-bg: #dcfce7;
+            --run-border: #86efac;
+            --err: #dc2626;
+            --err-ink: #991b1b;
+            --err-bg: #fef2f2;
+            --err-border: #fca5a5;
+            --spec: #6d28d9;
+            --spec-bg: #f3e8ff;
+            --spec-border: #c4b5fd;
+            --shared: #0f766e;
+
+            --head-bg: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            --head-shadow: 0 6px 20px rgba(15, 23, 42, .06);
+            --toolbar-bg: #f8fafc;
+            --soft-bg: #f1f5f9;
+            --kpi-bg: linear-gradient(180deg, #ffffff, #f8fafc);
+            --track: #e2e8f0;
+            --input-bg: #ffffff;
+            --placeholder: #8a98ad;
+            --pressed-bg: linear-gradient(135deg, #dbeafe, #ede9fe);
+            --pressed-border: #818cf8;
+            --pressed-ink: #1e1b4b;
+            --overlay-bg: rgba(255, 255, 255, .94);
+            --overlay-shadow: 0 12px 36px rgba(15, 23, 42, .12);
+            --panel-shadow: -10px 0 30px rgba(15, 23, 42, .05);
+            --vignette: radial-gradient(ellipse at 50% 45%, transparent 60%, rgba(15, 23, 42, .05) 100%);
+            --notice-bg: #fffbeb;
+            --notice-border: #fcd34d;
+            --notice-ink: #92400e;
+            --scroll: #cbd5e1;
+            --scroll-hover: #94a3b8;
+            --node-hover: brightness(.97) saturate(1.1);
+        }
+        :root {
+            --grad: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --mono: Consolas, "D2Coding", "Cascadia Mono", "Courier New", monospace;
+            --sans: "Pretendard", "Pretendard Variable", "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+            --radius: 8px;
+            --panel-w: 360px;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: var(--sans);
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--ink);
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        /* 테마를 바꿀 때 바탕색이 부드럽게 넘어가게 */
+        header, .toolbar, aside, .stage, .legend, .kpi, .target, dl.facts, .links, .bars, button, .search input {
+            transition: background-color .25s, border-color .25s, color .25s, box-shadow .25s;
+        }
+        .ico { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+        .ico.sm { width: 14px; height: 14px; vertical-align: -2px; }
+
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 10px; border: 2px solid var(--panel); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--scroll-hover); }
+
+        button {
+            font: inherit;
+            display: inline-flex; align-items: center; gap: 6px;
+            min-height: 32px; padding: 5px 11px;
+            border: 1px solid var(--line-strong); border-radius: var(--radius);
+            background: var(--surface-2); color: var(--ink-2); cursor: pointer; white-space: nowrap;
+        }
+        button:hover:not(:disabled) { background: var(--surface-3); color: var(--ink); border-color: var(--line-hover); }
+        button:active:not(:disabled) { transform: translateY(1px); }
+        button:disabled { opacity: .4; cursor: not-allowed; }
+        button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        button[aria-pressed="true"] { background: var(--pressed-bg); border-color: var(--pressed-border); color: var(--pressed-ink); }
+
+        /* ===== 헤더 : 위 줄 = 제목 + 대상 + 핵심 지표 / 아래 줄 = 도구 ===== */
+        header {
+            flex: none; position: relative; z-index: 2;
+            background: var(--head-bg);
+            border-bottom: 1px solid var(--line);
+            box-shadow: var(--head-shadow);
+        }
+        header::before {
+            content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6 50%, #22d3ee);
+        }
+        .hero { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 14px 20px 12px; }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .logo {
+            width: 40px; height: 40px; border-radius: 11px; flex: none;
+            display: grid; place-items: center; color: #fff;
+            background: var(--grad);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, .4), inset 0 1px 0 rgba(255, 255, 255, .28);
+        }
+        .logo .ico { width: 21px; height: 21px; }
+        .brand h1 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -.01em; white-space: nowrap; color: var(--strong); }
+        .brand small { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+        .target {
+            display: flex; align-items: center; gap: 10px; min-width: 0;
+            padding: 7px 16px; border-radius: 999px;
+            background: var(--soft-bg); border: 1px solid var(--line); color: var(--muted);
+        }
+        .target:empty { display: none; }
+        .target .proj { font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+        .target .sep { width: 1px; height: 14px; background: var(--line-strong); }
+        .target b { color: var(--strong); font-family: var(--mono); font-size: 15px; letter-spacing: .02em; }
+        .target .name { color: var(--ink-2); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .stats { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+        .kpi {
+            min-width: 96px; padding: 6px 13px 7px; border-radius: 11px;
+            background: var(--kpi-bg); border: 1px solid var(--line);
+        }
+        .kpi > span { display: block; font-size: 11px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+        .kpi b { display: block; font-size: 22px; line-height: 1.15; font-weight: 800; color: var(--strong); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+        .kpi b em { font-style: normal; }
+        .kpi b small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 3px; }
+        .kpi.ok b { color: var(--run-ink); }
+        .kpi.err b { color: var(--err); }
+        .kpi .meter { height: 3px; margin-top: 5px; border-radius: 2px; background: var(--track); overflow: hidden; }
+        .kpi .meter i { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg, #16a34a, #4ade80); transition: width .9s cubic-bezier(.2, .8, .3, 1); }
+        .kpi.err .meter i { background: linear-gradient(90deg, #ef4444, #f97316); }
+
+        .toolbar {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            padding: 8px 20px 10px; border-top: 1px solid var(--line); background: var(--toolbar-bg);
+        }
+        .toolbar .sep { width: 1px; height: 22px; background: var(--line-strong); margin: 0 4px; }
+        .head-spacer { flex: 1; }
+        .search { position: relative; display: flex; align-items: center; }
+        .search input {
+            width: 250px; min-height: 32px; padding: 5px 62px 5px 34px;
+            border: 1px solid var(--line-strong); border-radius: 999px;
+            background: var(--input-bg); color: var(--ink); font: inherit;
+        }
+        .search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+        .search input::placeholder { color: var(--placeholder); }
+        .search .ico { position: absolute; left: 12px; color: var(--muted); pointer-events: none; }
+        .search .count { position: absolute; right: 12px; font-size: 11px; font-weight: 600; color: var(--accent); pointer-events: none; }
+        .seg { display: inline-flex; }
+        .seg button { border-radius: 0; margin-left: -1px; }
+        .seg button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
+        .seg button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+        .seg button[aria-pressed="true"] { position: relative; z-index: 1; }
+        .zoom-val { min-width: 56px; justify-content: center; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink) !important; }
+        /* 테마 단추 : 지금 테마의 반대 아이콘 (누르면 그쪽으로) */
+        #btnTheme .i-sun, :root[data-theme="light"] #btnTheme .i-moon { display: inline-block; }
+        #btnTheme .i-moon, :root[data-theme="light"] #btnTheme .i-sun { display: none; }
+
+        /* ===== 본문 : 캔버스 + 상세 패널 ===== */
+        main { flex: 1; min-height: 0; display: flex; }
+        .stage { position: relative; flex: 1; min-width: 0; overflow: hidden; background: var(--canvas); }
+        /* 가장자리를 살짝 어둡게 (화면 연출만, 이미지 저장에는 포함 안 됨) */
+        .stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--vignette); }
+        #map { display: block; width: 100%; height: 100%; cursor: grab; user-select: none; touch-action: none; }
+        #map.panning { cursor: grabbing; }
+        .m-node { cursor: pointer; outline: none; }
+        .m-node .m-card { transition: filter .15s; }
+        .m-node:hover .m-card { filter: var(--node-hover); }
+        .m-node:focus-visible .m-card { stroke: var(--accent); stroke-width: 3px; }
+        .m-toggle { cursor: pointer; }
+        .m-toggle:hover rect { stroke: var(--accent); }
+
+        .notice, .empty, .legend { z-index: 1; }
+        .notice {
+            position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+            max-width: calc(100% - 32px);
+            padding: 8px 14px; border-radius: 10px;
+            background: var(--notice-bg); border: 1px solid var(--notice-border); color: var(--notice-ink); font-size: 12px;
+            backdrop-filter: blur(8px);
+        }
+        .notice[hidden] { display: none; }
+
+        .empty {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+            color: var(--muted); text-align: center; padding: 16px;
+        }
+        .empty[hidden] { display: none; }
+        .empty-ico {
+            width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; color: #fff;
+            background: var(--grad); box-shadow: 0 10px 40px rgba(99, 102, 241, .4);
+        }
+        .empty-ico .ico { width: 30px; height: 30px; }
+        .empty h2 { margin: 0; font-size: 18px; color: var(--ink); }
+        .empty p { margin: 0; max-width: 46ch; }
+
+        /* 범례 (캔버스 왼쪽 아래) */
+        .legend {
+            position: absolute; left: 14px; bottom: 14px; max-width: calc(100% - 28px); max-height: calc(100% - 28px);
+            overflow: auto;
+            border-radius: 12px;
+            background: var(--overlay-bg); border: 1px solid var(--line-strong);
+            box-shadow: var(--overlay-shadow);
+            backdrop-filter: blur(12px);
+            font-size: 12px; color: var(--ink-2);
+        }
+        .legend[hidden] { display: none; }
+        .legend summary { padding: 8px 14px; cursor: pointer; font-weight: 700; color: var(--ink); user-select: none; }
+        .legend summary:hover { color: var(--strong); }
+        .legend[open] summary { border-bottom: 1px solid var(--line); }
+        .legend .groups { display: grid; grid-template-columns: repeat(3, minmax(0, auto)); gap: 4px 28px; padding: 12px 16px 4px; }
+        .legend h4 { margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--muted); }
+        .legend dl { display: grid; grid-template-columns: 62px auto; gap: 8px 10px; align-items: center; margin: 0 0 10px; }
+        .legend dt { display: flex; align-items: center; justify-content: center; }
+        .legend dd { margin: 0; line-height: 1.35; white-space: nowrap; }
+        .legend dd b { color: var(--ink); }
+        .legend dd small { display: block; color: var(--muted); font-size: 11px; }
+        .legend dt svg { display: block; overflow: visible; }
+        .legend .guess-item[hidden] { display: none; }
+        .legend .hint { margin: 0; padding: 8px 16px 10px; border-top: 1px solid var(--line); color: var(--muted); }
+
+        /* ===== 상세 패널 ===== */
+        aside {
+            flex: none; width: var(--panel-w);
+            display: flex; flex-direction: column;
+            background: var(--panel); border-left: 1px solid var(--line);
+            box-shadow: var(--panel-shadow);
+            min-height: 0; position: relative; z-index: 1;
+        }
+        .panel-body { flex: 1; overflow: auto; padding: 20px 20px 28px; }
+        .panel-body h2 { margin: 0; font-size: 22px; font-family: var(--mono); color: var(--strong); letter-spacing: .01em; word-break: break-all; }
+        .panel-body .sub { margin: 4px 0 0; color: var(--ink-2); }
+        .panel-body h3 {
+            margin: 26px 0 10px; font-size: 12.5px; font-weight: 700; color: var(--ink);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .panel-body h3::before { content: ''; flex: none; width: 3px; height: 13px; border-radius: 2px; background: var(--grad); }
+        .panel-body h3 small { margin-left: auto; color: var(--muted); font-weight: 500; font-size: 11.5px; text-align: right; }
+        .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+        .chip { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--line-strong); color: var(--ink-2); background: var(--soft-bg); }
+        .chip.root { background: var(--grad); border-color: transparent; color: #fff; }
+        .chip.spec { background: var(--spec-bg); border-color: var(--spec-border); color: var(--spec); }
+        .chip.err { background: var(--err-bg); border-color: var(--err-border); color: var(--err); }
+        .chip.run { background: var(--run-bg); border-color: var(--run-border); color: var(--run-ink); }
+        .chip.idle { background: transparent; border-style: dashed; color: var(--muted); }
+        dl.facts {
+            display: grid; grid-template-columns: max-content 1fr; margin: 16px 0 0;
+            border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden;
+        }
+        dl.facts dt, dl.facts dd { padding: 8px 12px; border-top: 1px solid var(--line); }
+        dl.facts dt:first-of-type, dl.facts dd:first-of-type { border-top: 0; }
+        dl.facts dt { color: var(--muted); }
+        dl.facts dd { margin: 0; color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+        .err-box {
+            margin-top: 14px; padding: 10px 12px; border-radius: 10px;
+            background: var(--err-bg); border: 1px solid var(--err-border); color: var(--err-ink); white-space: pre-wrap; overflow-wrap: anywhere;
+        }
+        .links {
+            list-style: none; margin: 0; padding: 4px; display: flex; flex-direction: column; gap: 1px;
+            border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+        }
+        .links button {
+            width: 100%; border: 0; border-radius: 8px; background: transparent; min-height: 34px; padding: 6px 9px;
+            justify-content: space-between; text-align: left;
+        }
+        .links button:hover:not(:disabled) { background: var(--surface-3); }
+        .links .pid { font-family: var(--mono); font-weight: 700; color: var(--ink); }
+        .links .nm { flex: 1; min-width: 0; margin-left: 8px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .links .cnt { padding: 1px 8px; border-radius: 999px; background: var(--soft-bg); color: var(--ink-2); font-variant-numeric: tabular-nums; font-size: 11.5px; }
+        .links .cnt:empty { display: none; }
+        .links.err .pid { color: var(--err); }
+        .links.spec .pid { color: var(--spec); }
+        .links.shared .pid { color: var(--shared); }
+        .links.idle .pid { color: var(--muted); }
+        .none { color: var(--muted); margin: 0; }
+        .bars { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+        .bar { display: grid; grid-template-columns: 52px 1fr 30px; align-items: center; gap: 10px; font-size: 12px; }
+        .bar span:first-child { color: var(--muted); }
+        .bar .track { height: 8px; background: var(--track); border-radius: 999px; overflow: hidden; }
+        .bar .fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #3b82f6, #22d3ee); box-shadow: 0 0 10px rgba(56, 189, 248, .45); }
+        .bar b { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+        .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+        .actions button.primary {
+            background: var(--grad); border-color: transparent; color: #fff; font-weight: 700;
+            box-shadow: 0 6px 18px rgba(99, 102, 241, .35);
+        }
+        .actions button.primary:hover:not(:disabled) { background: var(--grad); filter: brightness(1.12); color: #fff; border-color: transparent; }
+        .back { margin-bottom: 14px; background: transparent; border-color: var(--line); }
+
+        @media (max-width: 1280px) {
+            .stats { margin-left: 0; }
+        }
+        @media (max-width: 900px) {
+            main { flex-direction: column; }
+            aside { width: auto; height: 42%; border-left: 0; border-top: 1px solid var(--line); }
+            .legend { display: none; }
+            .search input { width: 180px; }
+        }
+        /* ===== 그리기 연출 : 선이 상위에서 하위로 그어지고, 선 끝에서 상자가 나타난다 ===== */
+        @keyframes mmDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+        @keyframes mmPop {
+            0% { opacity: 0; transform: scale(.82); }
+            65% { opacity: 1; transform: scale(1.04); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes mmFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes mmGlow { 0% { stroke-opacity: .9; stroke-width: 7; } 100% { stroke-opacity: 0; stroke-width: 18; } }
+        /* 실행된 호출 선 위를 흐르는 빛 (상위 → 하위 방향) */
+        @keyframes mmFlow { to { stroke-dashoffset: -18; } }
+        .mm-draw { stroke-dasharray: 1 1; stroke-dashoffset: 1; animation: mmDraw .28s cubic-bezier(.4, 0, .2, 1) var(--delay, 0ms) both; }
+        .mm-pop { transform-box: fill-box; transform-origin: center; animation: mmPop .38s cubic-bezier(.2, .8, .3, 1) var(--delay, 0ms) both; }
+        .mm-fade { animation: mmFade .32s ease-out var(--delay, 0ms) both; }
+        .mm-glow { fill: none; opacity: 0; animation: mmFade 0s linear var(--delay, 0ms) forwards, mmGlow .8s ease-out var(--delay, 0ms) both; pointer-events: none; }
+        .flow { pointer-events: none; animation: mmFade .5s ease-out var(--delay, 0ms) both, mmFlow 1.1s linear var(--delay, 0ms) infinite; }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { transition: none !important; }
+            .mm-draw, .mm-pop, .mm-fade, .mm-glow, .flow { animation: none !important; }
+            .mm-draw { stroke-dashoffset: 0; }
+            .mm-glow, .flow { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+        <symbol id="i-tree" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2a2 2 0 012-2h8a2 2 0 012 2v2"/></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+        <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+        <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v16M6 14l6 6 6-6"/></symbol>
+        <symbol id="i-right" viewBox="0 0 24 24"><path d="M4 12h16M14 6l6 6-6 6"/></symbol>
+        <symbol id="i-expand" viewBox="0 0 24 24"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"/></symbol>
+        <symbol id="i-collapse" viewBox="0 0 24 24"><path d="M7 4l5 5 5-5M7 20l5-5 5 5"/></symbol>
+        <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-6-6-9 9"/></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
+        <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></symbol>
+        <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+        <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></symbol>
+        <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    </defs>
+</svg>
+
+<header>
+    <div class="hero">
+        <div class="brand">
+            <span class="logo"><svg class="ico" aria-hidden="true"><use href="#i-tree"/></svg></span>
+            <div>
+                <h1>PID 호출 관계도</h1>
+                <small>Call Relationship Map</small>
+            </div>
+        </div>
+        <div class="target" id="target"></div>
+        <div class="stats" id="stats"></div>
+    </div>
+    <div class="toolbar">
+        <label class="search" title="PID 또는 이름으로 찾기 (Enter : 다음 결과로 이동, / : 바로 입력)">
+            <svg class="ico sm" aria-hidden="true"><use href="#i-search"/></svg>
+            <input type="search" id="q" placeholder="PID / 이름 찾기" spellcheck="false" aria-label="PID 또는 이름 찾기">
+            <span class="count" id="qCount" aria-live="polite"></span>
+        </label>
+        <span class="sep" aria-hidden="true"></span>
+        <div class="seg" role="group" aria-label="그리는 방향">
+            <button type="button" id="dirH" aria-pressed="true" title="왼쪽에서 오른쪽으로 (상위 → 하위). 하위가 많을 때 보기 좋습니다">
+                <svg class="ico sm" aria-hidden="true"><use href="#i-right"/></svg>가로</button>
+            <button type="button" id="dirV" aria-pressed="false" title="위에서 아래로 (상위 → 하위)">
+                <svg class="ico sm" aria-hidden="true"><use href="#i-down"/></svg>세로</button>
+        </div>
+        <button type="button" id="btnExpand" title="모든 가지 펼치기 (다른 위치에서 이미 펼친 PID 는 제외)">
+            <svg class="ico sm" aria-hidden="true"><use href="#i-expand"/></svg>모두 펼치기</button>
+        <button type="button" id="btnCollapse" title="대상 PID 바로 아래만 남기고 접기">
+            <svg class="ico sm" aria-hidden="true"><use href="#i-collapse"/></svg>모두 접기</button>
+        <button type="button" id="btnIdle" aria-pressed="true" title="로직에 CALL 은 있지만 이번 실행에서 호출되지 않은 PID 를 회색 점선으로 표시">
+            <svg class="ico sm" aria-hidden="true"><use href="#i-eye"/></svg>미실행 표시</button>
+        <span class="head-spacer"></span>
+        <div class="seg" role="group" aria-label="확대 / 축소">
+            <button type="button" id="zoomOut" title="축소 (-)" aria-label="축소"><svg class="ico sm" aria-hidden="true"><use href="#i-minus"/></svg></button>
+            <button type="button" id="zoomVal" class="zoom-val" title="기본 비율 (50%) 로 보기">50%</button>
+            <button type="button" id="zoomIn" title="확대 (+)" aria-label="확대"><svg class="ico sm" aria-hidden="true"><use href="#i-plus"/></svg></button>
+        </div>
+        <button type="button" id="btnFit" title="전체가 한 화면에 들어오게 맞추기 (0)">
+            <svg class="ico sm" aria-hidden="true"><use href="#i-fit"/></svg>화면 맞춤</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button type="button" id="btnPng" title="지금 펼쳐진 관계도 전체를 PNG 이미지로 저장">
+            <svg class="ico sm" aria-hidden="true"><use href="#i-image"/></svg>이미지 저장</button>
+        <button type="button" id="btnReload" title="시뮬레이터의 최신 실행 결과를 다시 읽기">
+            <svg class="ico sm" aria-hidden="true"><use href="#i-refresh"/></svg>다시 읽기</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button type="button" id="btnTheme" title="다크 / 라이트 화면 전환">
+            <svg class="ico sm i-sun" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ico sm i-moon" aria-hidden="true"><use href="#i-moon"/></svg><span id="themeLabel">라이트</span></button>
+    </div>
+</header>
+
+<main>
+    <div class="stage" id="stage">
+        <svg id="map" role="tree" aria-label="PID 호출 관계도">
+            <defs>
+                <!-- 점 모눈 (24px 작은 점 + 120px 큰 점) -->
+                <pattern id="gridMinor" width="24" height="24" patternUnits="userSpaceOnUse">
+                    <circle id="dotMinor" cx="12" cy="12" r="1" fill="#1b2943"/>
+                </pattern>
+                <pattern id="grid" width="120" height="120" patternUnits="userSpaceOnUse">
+                    <rect width="120" height="120" fill="url(#gridMinor)"/>
+                    <circle id="dotMajor" cx="12" cy="12" r="1.8" fill="#2a3c5f"/>
+                </pattern>
+                <!-- 대상 PID 상자 -->
+                <linearGradient id="gRoot" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#2563eb"/>
+                    <stop offset="1" stop-color="#7c3aed"/>
+                </linearGradient>
+            </defs>
+            <g id="viewport">
+                <rect id="mapBg" x="-50000" y="-50000" width="100000" height="100000" fill="#0a1222"/>
+                <rect x="-50000" y="-50000" width="100000" height="100000" fill="url(#grid)"/>
+                <g id="layerBands"></g>
+                <g id="layerEdges"></g>
+                <g id="layerNodes"></g>
+            </g>
+        </svg>
+        <div class="notice" id="notice" hidden></div>
+        <div class="empty" id="empty" hidden>
+            <div class="empty-ico"><svg class="ico" aria-hidden="true"><use href="#i-tree"/></svg></div>
+            <h2 id="emptyTitle">실행 결과가 없습니다</h2>
+            <p id="emptyText">시뮬레이터에서 PID 를 실행하면 호출 관계도를 그립니다.</p>
+            <button type="button" id="btnEmptyReload"><svg class="ico sm" aria-hidden="true"><use href="#i-refresh"/></svg>다시 읽기</button>
+        </div>
+        <details class="legend" id="legend" hidden>
+            <summary>범례 (색 / 선 보는 법)</summary>
+            <div class="groups">
+                <div>
+                    <h4>상자 색 = 실행 결과</h4>
+                    <dl>
+                        <dt data-sw="root"></dt>
+                        <dd><b>대상 PID</b><small>시뮬레이터에서 실행한 PID (맨 앞)</small></dd>
+                        <dt data-sw="run"></dt>
+                        <dd><b>실행됨</b><small>위 PID 가 호출해서 실제로 실행</small></dd>
+                        <dt data-sw="err"></dt>
+                        <dd><b>실행 실패</b><small>호출했지만 실패 (지정 버전 없음 등)</small></dd>
+                        <dt data-sw="idle"></dt>
+                        <dd><b>미실행</b><small>로직에 CALL 은 있지만 이번에 호출 안 됨<br>(조건 불충족, GOTO 로 건너뜀)</small></dd>
+                    </dl>
+                </div>
+                <div>
+                    <h4>오른쪽 위 배지 = 버전 / 참고</h4>
+                    <dl>
+                        <dt data-sw="vRun"></dt>
+                        <dd><b>실행한 버전</b><small>최신 버전으로 실행</small></dd>
+                        <dt data-sw="vSpec"></dt>
+                        <dd><b>버전 지정 실행</b><small>시뮬레이터에서 고른 버전으로 실행</small></dd>
+                        <dt data-sw="vIdle"></dt>
+                        <dd><b>미실행</b><small>이번 실행 전체에서 한 번도 실행 안 됨</small></dd>
+                        <dt data-sw="vElse"></dt>
+                        <dd><b>다른 곳에서 실행</b><small>여기선 미실행이지만 다른 PID 아래에서는 실행됨</small></dd>
+                        <dt data-sw="vRef"></dt>
+                        <dd><b>하위는 첫 위치에</b><small>실행됨. 같은 PID 를 여러 곳에서 호출해<br>하위는 처음 나온 위치에만 펼침</small></dd>
+                    </dl>
+                </div>
+                <div>
+                    <h4>선 = 호출</h4>
+                    <dl>
+                        <dt data-sw="eRun"></dt>
+                        <dd><b>실행된 호출</b><small>흐르는 빛 = 호출 방향, 선 위 ×N : N번 호출</small></dd>
+                        <dt data-sw="eIdle"></dt>
+                        <dd><b>실행 안 된 호출</b><small>로직에 CALL 만 있고 호출 안 됨</small></dd>
+                        <dt data-sw="eErr"></dt>
+                        <dd><b>실패한 호출</b></dd>
+                        <dt class="guess-item" id="legendGuessDt" hidden data-sw="eGuess"></dt>
+                        <dd class="guess-item" id="legendGuess" hidden><b>추정한 호출</b><small>서버 재기동 전 : 깊이로 추정한 관계</small></dd>
+                    </dl>
+                    <h4>그 밖의 표시</h4>
+                    <dl>
+                        <dt data-sw="tog"></dt>
+                        <dd><b>접힌 하위 3개</b><small>누르면 펼치고, − 를 누르면 접음</small></dd>
+                        <dt data-sw="sel"></dt>
+                        <dd><b>선택한 PID</b><small>하늘색 점선 : 같은 PID 의 다른 위치</small></dd>
+                        <dt data-sw="match"></dt>
+                        <dd><b>검색 결과</b></dd>
+                    </dl>
+                </div>
+            </div>
+            <p class="hint">휠 : 확대/축소, 빈 곳 끌기 : 이동, 상자 클릭 : 오른쪽에 상세. 전처리 PID 는 포함하지 않습니다.</p>
+        </details>
+    </div>
+    <aside aria-label="상세 정보">
+        <div class="panel-body" id="panel"></div>
+    </aside>
+</main>
+
+<script>
+    // 시뮬레이터 화면 (새 탭 실행용, opener 주소를 모를 때)
+    const SIMULATOR_URL = '/simulateup/pidSimulatorUp';
+    const TEST_VERSION = -1;
+    // 노드 크기와 간격 (SVG 좌표)
+    const NODE = { w: 220, h: 72, r: 10 };
+    const GAP = {
+        v: { level: 80, sib: 20 },   // 세로 : 단계 간격 / 형제 간격
+        h: { level: 112, sib: 14 },  // 가로
+    };
+    const BAND_LABEL = 112;          // 깊이 띠 이름 칸
+    const ZOOM_MIN = 0.1, ZOOM_MAX = 3;
+    const DEFAULT_ZOOM = 0.5;        // 처음 열 때 / 방향을 바꿀 때 비율
+    // 실행된 호출 선 위의 흐르는 빛 : 보이는 상자가 이보다 많으면 끈다 (화면 이동이 무거워지지 않게)
+    const FLOW_MAX = 300;
+    // 고유 하위 PID 가 이보다 많으면 처음에는 깊이 4 부터 접어 둔다
+    const AUTO_COLLAPSE = 200;
+    // 그리기 연출 : 깊이 한 단계 간격 / 선 긋는 시간 / 같은 깊이 안의 순차 간격 (ms). 새로 보이는 상자가 많으면 생략
+    const ANIM = { step: 330, edge: 280, stagger: 22, maxStagger: 360, maxNodes: 800 };
+    // 기본 방향을 가로로 바꾸면서 키를 새로 둔다 (예전에 저장된 세로 값은 쓰지 않음)
+    const STORE_DIR = 'pidSimulUp.mindMap.dir2';
+    const STORE_LEGEND = 'pidSimulUp.mindMap.legend';
+    const STORE_IDLE = 'pidSimulUp.mindMap.idle';
+    const STORE_THEME = 'pidSimulUp.mindMap.theme';   // head 의 테마 선택 스크립트와 같은 키
+
+    // 노드 색 (SVG 안에 직접 넣어 이미지 저장에도 그대로 나온다)
+    // 두 테마는 같은 이름표를 쓰고 '밝기'만 다르다. 의미 색 (녹색 실행 / 빨강 실패 / 회색 점선 미실행 / 보라 지정 /
+    // 하늘색 선택 / 노랑 검색 / 파랑 접힘 단추 / 파랑~보라 대상 PID) 은 두 테마에서 같은 계열을 유지한다
+    const PALETTE = {
+        dark: {
+            canvas: '#0a1222', dotMinor: '#1b2943', dotMajor: '#2a3c5f',
+            ink: '#eef3fb', muted: '#8d9bb3', line: '#7c8aa3', lineHot: '#e2e8f0',
+            run: '#22c55e', runHot: '#86efac', flow: '#dcfce7', glowOp: .14,                   // 실제로 실행된 CALL 선
+            idle: '#56657e', idleHot: '#a3b1c6', idleBg: '#0c1424', idleStroke: '#3b4a63',      // 실행 안 된 CALL
+            runBg: '#111b2f', runStroke: '#1f6b3d', runBadge: '#123d26', runText: '#4ade80',    // 실행된 PID 상자
+            errStroke: '#8a2f36',
+            root: 'url(#gRoot)', rootGlow: '#818cf8', rootText: '#ffffff', rootMuted: '#dbe4ff', rootBadge: '#3730a3',
+            err: '#f87171', errBg: '#2a1418', errBadge: '#dc2626',
+            spec: '#7c3aed', cycle: '#b45309',
+            idleBadge: '#273449', idleBadgeText: '#cbd5e1', refBadge: '#16305a', refBadgeText: '#93c5fd',
+            match: '#3a3212', matchStroke: '#facc15', select: '#38bdf8',
+            shadow: '#000000', shadowOp: .38, shadowY: 5, sheen: .03,
+            toggle: '#0c1424', toggleStroke: '#56657e', toggleOn: '#1e3a8a', toggleOnStroke: '#60a5fa',
+            band: '#ffffff', bandOp: .025, bandText: '#c6d1e1', bandMuted: '#8d9bb3', pill: '#111b2f', pillStroke: '#26354f',
+            pillRoot: '#1e1b4b', pillRootStroke: '#6366f1', pillRootText: '#c7d2fe',
+        },
+        light: {
+            canvas: '#f4f7fb', dotMinor: '#d3dce8', dotMajor: '#b6c3d6',
+            ink: '#0f172a', muted: '#5b6b82', line: '#64748b', lineHot: '#0f172a',
+            run: '#16a34a', runHot: '#15803d', flow: '#ffffff', glowOp: .12,
+            idle: '#94a3b8', idleHot: '#475569', idleBg: '#f8fafc', idleStroke: '#a3b1c4',
+            runBg: '#ffffff', runStroke: '#86d7a2', runBadge: '#dcfce7', runText: '#166534',
+            errStroke: '#f5a3a3',
+            root: 'url(#gRoot)', rootGlow: '#a5b4fc', rootText: '#ffffff', rootMuted: '#e0e7ff', rootBadge: '#3730a3',
+            err: '#dc2626', errBg: '#fef2f2', errBadge: '#dc2626',
+            spec: '#7c3aed', cycle: '#b45309',
+            idleBadge: '#e2e8f0', idleBadgeText: '#475569', refBadge: '#dbeafe', refBadgeText: '#1e40af',
+            match: '#fef9c3', matchStroke: '#eab308', select: '#0284c7',
+            shadow: '#0f172a', shadowOp: .07, shadowY: 3, sheen: 0,
+            toggle: '#ffffff', toggleStroke: '#94a3b8', toggleOn: '#2563eb', toggleOnStroke: '#1d4ed8',
+            band: '#0f172a', bandOp: .03, bandText: '#334155', bandMuted: '#64748b', pill: '#ffffff', pillStroke: '#d3dce8',
+            pillRoot: '#eef2ff', pillRootStroke: '#a5b4fc', pillRootText: '#3730a3',
+        },
+    };
+    let C = PALETTE.dark;
+    const FONT = '"Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif';
+    const MONO = 'Consolas, "D2Coding", "Cascadia Mono", "Courier New", monospace';
+
+    const $ = (id) => document.getElementById(id);
+    const svg = $('map');
+    const vp = $('viewport');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const state = {
+        data: null,          // opener 의 getPidCallMap()
+        info: new Map(),     // PID → {pid, name, runVersion, latestVersion, requestedVersion, depth, callCount, error}
+        kids: new Map(),     // PID → [{to, count}] (처음 호출된 순서)
+        parents: new Map(),  // PID → [{from, count}]
+        inferred: false,     // 호출 관계를 깊이로 추정했는지
+        idle: new Map(),     // PID → [{to, count}] 로직에 CALL 은 있지만 실행 안 된 대상 (count : CALL 라인 수)
+        declOrder: new Map(),// PID → [대상 PID] 로직에 적힌 CALL 순서
+        showIdle: true,      // 실행 안 된 호출 표시
+        root: null,          // 표시 트리의 루트 노드
+        nodes: new Map(),    // 노드 id → 노드
+        byPid: new Map(),    // PID → [노드] (같은 PID 가 여러 위치에 나올 수 있음)
+        dir: 'h',
+        view: { k: DEFAULT_ZOOM, x: 0, y: 0 },
+        selected: null,      // 선택한 노드 id
+        matches: [],         // 검색에 맞는 PID
+        matchIdx: -1,
+        bounds: null,
+        shown: null,         // 직전에 그린 노드 id (새로 보이는 노드만 그리기 연출. null 이면 전부 새로 그림)
+    };
+    let seq = 0;
+
+    // ---------- 유틸 ----------
+    function esc(v) {
+        if (v === null || v === undefined) return '';
+        return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    const has = (v) => v !== null && v !== undefined && v !== '';
+    const verText = (v) => (!has(v) ? '-' : Number(v) === TEST_VERSION ? 'TEST' : `v${v}`);
+
+    // 글자 폭 측정 (노드 안에서 말줄임)
+    const measureCtx = document.createElement('canvas').getContext('2d');
+    function fit(text, font, maxW) {
+        text = text || '';
+        measureCtx.font = font;
+        if (measureCtx.measureText(text).width <= maxW) return text;
+        let lo = 0, hi = text.length;
+        while (lo < hi) {
+            const mid = (lo + hi + 1) >> 1;
+            if (measureCtx.measureText(text.slice(0, mid) + '…').width <= maxW) lo = mid; else hi = mid - 1;
+        }
+        return text.slice(0, lo) + '…';
+    }
+    function textW(text, font) {
+        measureCtx.font = font;
+        return measureCtx.measureText(text).width;
+    }
+
+    // ---------- 데이터 ----------
+    // 시뮬레이터 화면(opener)에서 현재 실행 결과를 읽어온다
+    function readFromOpener() {
+        try {
+            const op = window.opener;
+            if (op && !op.closed && typeof op.getPidCallMap === 'function') return { ok: true, data: op.getPidCallMap() };
+        } catch (e) { /* 다른 출처이거나 닫힘 */ }
+        return { ok: false, data: null };
+    }
+
+    // 하위 PID 정보와 호출 관계를 정리한다
+    function prepare(data) {
+        const info = new Map(), kids = new Map(), parents = new Map();
+        const root = data.root;
+        info.set(root.pid, {
+            pid: root.pid, name: root.name, runVersion: root.testVersion ? TEST_VERSION : root.runVersion,
+            latestVersion: root.latestVersion, requestedVersion: root.version, depth: 1, callCount: 0, isRoot: true,
+            javaMethod: root.javaMethod, isFloorSpec: root.isFloorSpec, floor: root.floor,
+        });
+        (data.subPids || []).forEach((s) => {
+            if (!info.has(s.pid)) info.set(s.pid, Object.assign({}, s));
+        });
+
+        const addEdge = (from, to, count) => {
+            if (!kids.has(from)) kids.set(from, []);
+            if (!parents.has(to)) parents.set(to, []);
+            const k = kids.get(from).find((e) => e.to === to);
+            if (k) { k.count += count; parents.get(to).find((e) => e.from === from).count += count; return; }
+            kids.get(from).push({ to, count });
+            parents.get(to).push({ from, count });
+        };
+
+        let inferred = false;
+        const calls = data.subPidCalls;
+        if (calls && (calls.length || !(data.subPids || []).length)) {
+            calls.forEach((c) => {
+                if (!info.has(c.to)) info.set(c.to, { pid: c.to, depth: c.depth, callCount: c.count });
+                if (!info.has(c.from)) info.set(c.from, { pid: c.from, depth: Math.max(1, c.depth - 1), callCount: 0 });
+                addEdge(c.from, c.to, c.count || 1);
+            });
+        } else {
+            // 호출 관계가 없는 결과 : subPids 는 처음 호출된 순서(깊이 우선)이므로 바로 앞의 한 단계 위 PID 를 부모로 본다
+            inferred = (data.subPids || []).length > 0;
+            const stack = [root.pid];
+            (data.subPids || []).forEach((s) => {
+                const d = Math.max(2, s.depth || 2);
+                stack.length = Math.min(stack.length, d - 1);
+                addEdge(stack[stack.length - 1] || root.pid, s.pid, s.callCount || 1);
+                stack[d - 1] = s.pid;
+            });
+        }
+        // 관계에 나오지 않는 하위 PID 는 대상 PID 아래에 붙인다
+        info.forEach((v, pid) => {
+            if (pid !== root.pid && !parents.has(pid)) {
+                addEdge(root.pid, pid, v.callCount || 1);
+                v.orphan = true;
+            }
+        });
+        // 실행한 PID 로직의 CALL 대상 중 그 PID 에서 실행되지 않은 것
+        const idle = new Map(), declOrder = new Map();
+        (data.subPidDeclaredCalls || []).forEach((c) => {
+            if (!declOrder.has(c.from)) declOrder.set(c.from, []);
+            if (!declOrder.get(c.from).includes(c.to)) declOrder.get(c.from).push(c.to);
+            if ((kids.get(c.from) || []).some((e) => e.to === c.to)) return;
+            if (!idle.has(c.from)) idle.set(c.from, []);
+            idle.get(c.from).push({ to: c.to, count: c.count || 1 });
+        });
+        return { info, kids, parents, inferred, idle, declOrder };
+    }
+
+    // 표시 트리 노드 : 같은 PID 는 처음 나온 위치에서만 펼치고, 그 외 위치는 접힌 '참조' 노드로 둔다
+    function makeNode(pid, parent, count) {
+        const node = {
+            id: 'n' + (seq++), pid, parent, count, level: parent ? parent.level + 1 : 0,
+            kids: [], built: false, open: false, ref: false, cycle: false,
+        };
+        state.nodes.set(node.id, node);
+        if (!state.byPid.has(pid)) state.byPid.set(pid, []);
+        state.byPid.get(pid).push(node);
+        // 위쪽 경로에 같은 PID 가 있으면 순환 호출
+        for (let p = parent; p; p = p.parent) {
+            if (p.pid === pid) { node.cycle = true; node.built = true; break; }
+        }
+        return node;
+    }
+    function buildKids(node) {
+        if (node.built) return;
+        node.built = true;
+        // 실행된 호출 + 실행 안 된 호출을 로직에 적힌 순서로 (로직 순서를 모르면 실행된 순서대로 뒤에)
+        const order = state.declOrder.get(node.pid) || [];
+        const pos = (to) => { const i = order.indexOf(to); return i < 0 ? Infinity : i; };
+        const items = (state.kids.get(node.pid) || []).map((e) => ({ to: e.to, count: e.count, idle: false }))
+            .concat((state.idle.get(node.pid) || []).map((e) => ({ to: e.to, count: e.count, idle: true })))
+            .sort((a, b) => (pos(a.to) === pos(b.to) ? 0 : pos(a.to) < pos(b.to) ? -1 : 1));
+        node.kids = items.map((e) => {
+            const n = makeNode(e.to, node, e.count);
+            if (e.idle) { n.idle = true; n.built = true; n.cycle = false; }
+            return n;
+        });
+    }
+    function buildTree() {
+        seq = 0;
+        state.nodes.clear();
+        state.byPid.clear();
+        const seen = new Set();
+        const walk = (node) => {
+            if (node.cycle || node.idle) return;
+            if (seen.has(node.pid)) { node.ref = true; return; }   // 펼치면 그때 하위를 만든다
+            seen.add(node.pid);
+            buildKids(node);
+            node.open = true;
+            node.kids.forEach(walk);
+        };
+        state.root = makeNode(state.data.root.pid, null, 0);
+        walk(state.root);
+        // 너무 크면 깊이 4 부터 접는다
+        if (seen.size > AUTO_COLLAPSE) state.nodes.forEach((n) => { if (n.level >= 3) n.open = false; });
+    }
+
+    const kidCount = (pid) => (state.kids.get(pid) || []).length;
+    const idleCount = (pid) => (state.idle.get(pid) || []).length;
+    // 화면에 보일 자식 (미실행 표시를 끄면 실행 안 된 호출은 뺀다)
+    const shownKids = (n) => n.kids.filter((c) => state.showIdle || !c.idle);
+    const shownCount = (n) => (n.built ? shownKids(n).length : kidCount(n.pid) + (state.showIdle ? idleCount(n.pid) : 0));
+    // 같은 PID 중 처음 펼친 위치 (from 을 주면 그 PID 아래의 실행 안 된 호출 노드)
+    const firstNode = (pid, from) => {
+        const list = state.byPid.get(pid) || [];
+        if (from) { const n = list.find((x) => x.idle && x.parent && x.parent.pid === from); if (n) return n; }
+        return list.find((n) => !n.ref && !n.cycle && !n.idle) || list[0];
+    };
+
+    // 상자 색 = 실행 결과 : root(대상) / run(실행됨) / err(실패) / idle(미실행). 버전 등은 배지로 표시
+    function kindOf(node) {
+        const s = state.info.get(node.pid) || {};
+        if (!node.parent) return 'root';
+        if (node.idle) return 'idle';
+        if (s.error) return 'err';
+        return 'run';
+    }
+
+    // ---------- 배치 (상위 → 하위, 부모는 자식들의 가운데) ----------
+    function layout() {
+        const g = GAP[state.dir];
+        const cross = state.dir === 'v' ? NODE.w : NODE.h;
+        const step = state.dir === 'v' ? NODE.h + g.level : NODE.w + g.level;
+        const measure = (n) => {
+            const vis = n.open ? shownKids(n) : [];
+            if (!vis.length) return (n.span = cross);
+            let sum = 0;
+            vis.forEach((c, i) => { sum += measure(c) + (i ? g.sib : 0); });
+            return (n.span = Math.max(cross, sum));
+        };
+        const place = (n, start) => {
+            const center = start + n.span / 2;
+            if (state.dir === 'v') { n.x = center - NODE.w / 2; n.y = n.level * step; }
+            else { n.x = n.level * step; n.y = center - NODE.h / 2; }
+            const vis = n.open ? shownKids(n) : [];
+            if (!vis.length) return;
+            let total = 0;
+            vis.forEach((c, i) => { total += c.span + (i ? g.sib : 0); });
+            let s = center - total / 2;
+            vis.forEach((c) => { place(c, s); s += c.span + g.sib; });
+        };
+        measure(state.root);
+        place(state.root, 0);
+    }
+
+    function visibleNodes() {
+        const out = [];
+        const walk = (n) => { out.push(n); if (n.open) shownKids(n).forEach(walk); };
+        walk(state.root);
+        return out;
+    }
+
+    // ---------- 그리기 ----------
+    function edgePath(p, c) {
+        if (state.dir === 'v') {
+            const x1 = p.x + NODE.w / 2, y1 = p.y + NODE.h, x2 = c.x + NODE.w / 2, y2 = c.y;
+            const mid = y1 + (y2 - y1) / 2;
+            if (Math.abs(x2 - x1) < 1) return `M${x1},${y1}V${y2}`;
+            const d = Math.sign(x2 - x1), r = Math.min(10, Math.abs(x2 - x1) / 2, (y2 - y1) / 4);
+            return `M${x1},${y1}V${mid - r}Q${x1},${mid} ${x1 + d * r},${mid}H${x2 - d * r}Q${x2},${mid} ${x2},${mid + r}V${y2}`;
+        }
+        const x1 = p.x + NODE.w, y1 = p.y + NODE.h / 2, x2 = c.x, y2 = c.y + NODE.h / 2;
+        const mid = x1 + (x2 - x1) / 2;
+        if (Math.abs(y2 - y1) < 1) return `M${x1},${y1}H${x2}`;
+        const d = Math.sign(y2 - y1), r = Math.min(10, Math.abs(y2 - y1) / 2, (x2 - x1) / 4);
+        return `M${x1},${y1}H${mid - r}Q${mid},${y1} ${mid},${y1 + d * r}V${y2 - d * r}Q${mid},${y2} ${mid + r},${y2}H${x2}`;
+    }
+
+    function badgeOf(node, s) {
+        if (!node.parent) {
+            if (s.javaMethod) return { text: 'JAVA', fg: C.rootBadge, bg: '#ffffff' };
+            return { text: verText(s.runVersion), fg: C.rootBadge, bg: '#ffffff' };
+        }
+        if (node.idle) return state.info.has(node.pid)
+            ? { text: '다른 곳 실행', fg: C.runText, bg: 'none', stroke: C.run }
+            : { text: '미실행', fg: C.idleBadgeText, bg: C.idleBadge };
+        if (s.error) return { text: '실패', fg: '#ffffff', bg: C.errBadge };
+        if (node.cycle) return { text: '순환', fg: '#ffffff', bg: C.cycle };
+        if (node.ref && kidCount(node.pid)) return { text: '하위↗', fg: C.refBadgeText, bg: C.refBadge };
+        if (has(s.requestedVersion)) return { text: `${verText(s.runVersion)} 지정`, fg: '#ffffff', bg: C.spec };
+        if (has(s.runVersion)) return { text: verText(s.runVersion), fg: C.runText, bg: C.runBadge };
+        return null;
+    }
+
+    function metaOf(node, s) {
+        if (!node.parent) {
+            const n = kidCount(node.pid), m = idleCount(node.pid);
+            return (n ? `대상 PID, 바로 아래 ${n}개 호출` : '대상 PID, 하위 호출 없음') + (m ? `, 미실행 ${m}` : '');
+        }
+        if (node.idle) return state.info.has(node.pid) ? '여기선 미실행, 다른 곳에서 실행됨' : '이번 실행에서 호출 안 됨';
+        if (node.cycle) return '순환 호출 (위쪽에 같은 PID)';
+        if (node.ref) {
+            const n = kidCount(node.pid);
+            const v = has(s.requestedVersion) ? `${verText(s.runVersion)} 지정, ` : '';
+            return n ? `${v}하위 ${n}개는 첫 위치에 펼침` : `${v}호출 ${node.count || 1}회`;
+        }
+        const parts = [`호출 ${node.count || 1}회`];
+        const n = kidCount(node.pid);
+        if (n) parts.push(`하위 ${n}`);
+        if (idleCount(node.pid)) parts.push(`미실행 ${idleCount(node.pid)}`);
+        if ((state.parents.get(node.pid) || []).length > 1) parts.push(`호출처 ${state.parents.get(node.pid).length}곳`);
+        return parts.join(', ');
+    }
+
+    // a : 그리기 연출 시각 {edge, node} (없으면 바로 표시)
+    function nodeSvg(node, a) {
+        const s = state.info.get(node.pid) || {};
+        const kind = kindOf(node);
+        const isRoot = kind === 'root';
+        const accent = { run: C.run, err: C.err }[kind];
+        let fill = { root: C.root, run: C.runBg, err: C.errBg, idle: C.idleBg }[kind];
+        const matched = state.matches.includes(node.pid);
+        if (matched && !isRoot) fill = C.match;
+        const selected = state.selected === node.id;
+        const twin = !selected && state.selected && state.nodes.get(state.selected) && state.nodes.get(state.selected).pid === node.pid;
+        const textC = isRoot ? C.rootText : (node.idle ? C.muted : C.ink);
+        const mutedC = isRoot ? C.rootMuted : C.muted;
+        const badge = badgeOf(node, s);
+        const badgeW = badge ? Math.ceil(textW(badge.text, `bold 11px ${FONT}`)) + 14 : 0;
+        const pidFont = `bold 15px ${MONO}`;
+        const pidText = fit(node.pid, pidFont, NODE.w - 28 - badgeW - 6);
+        const nameText = fit(s.name || (node.idle ? '이름 정보 없음 (실행 안 됨)' : s.error ? '이름 없음 (실행 실패)' : ''), `13px ${FONT}`, NODE.w - 28);
+        const metaText = fit(metaOf(node, s), `11.5px ${FONT}`, NODE.w - 28);
+        // 점선 테두리는 미실행 상자만
+        const dash = node.idle ? ' stroke-dasharray="5 3"' : '';
+        const baseStroke = { root: C.rootGlow, run: C.runStroke, err: C.errStroke, idle: C.idleStroke }[kind];
+        const stroke = selected || twin ? C.select : (matched && !isRoot ? C.matchStroke : baseStroke);
+        const sw = selected ? 2.5 : (twin || matched ? 1.5 : 1);
+        const tip = [node.pid + (s.name ? ` ${s.name}` : ''), s.error ? `실패 : ${s.error}` : ''].filter(Boolean).join('\n');
+
+        let h = `<g class="m-node" data-id="${node.id}" transform="translate(${node.x},${node.y})" tabindex="0" role="treeitem"`
+            + ` aria-label="${esc(node.pid + ' ' + (s.name || ''))}" aria-selected="${selected}"`
+            + (shownCount(node) ? ` aria-expanded="${node.open}"` : '') + '>'
+            + `<title>${esc(tip)}</title>`;
+        // 연출은 안쪽 그룹에 (바깥 그룹의 위치(transform)를 덮어쓰지 않게)
+        h += a ? `<g class="mm-pop" style="--delay:${a.node}ms">` : '<g>';
+        if (a) {
+            const glow = { root: C.rootGlow, run: C.run, err: C.err, idle: C.idleStroke }[kind];
+            h += `<rect class="mm-glow" width="${NODE.w}" height="${NODE.h}" rx="${NODE.r}" stroke="${glow}" style="--delay:${a.node + 120}ms"/>`;
+        }
+        // 바닥 그림자 (흐림 필터 없이 : 상자가 많아도 가볍게)
+        if (!node.idle) h += `<rect y="${C.shadowY}" width="${NODE.w}" height="${NODE.h}" rx="${NODE.r}" fill="${C.shadow}" fill-opacity="${C.shadowOp}"/>`;
+        // 대상 PID 는 바깥 빛 테두리
+        if (isRoot) h += `<rect x="-6" y="-6" width="${NODE.w + 12}" height="${NODE.h + 12}" rx="${NODE.r + 6}" fill="none" stroke="${C.rootGlow}" stroke-opacity=".35" stroke-width="2"/>`;
+        if (selected) h += `<rect x="-6" y="-6" width="${NODE.w + 12}" height="${NODE.h + 12}" rx="${NODE.r + 6}" fill="none" stroke="${C.select}" stroke-opacity=".3" stroke-width="6"/>`;
+        h += `<rect class="m-card" width="${NODE.w}" height="${NODE.h}" rx="${NODE.r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"${twin ? ' stroke-dasharray="4 3"' : dash}/>`;
+        // 위쪽 반사광
+        if (!node.idle) h += `<rect x="1" y="1" width="${NODE.w - 2}" height="${NODE.h / 2}" rx="${NODE.r - 1}" fill="#ffffff" fill-opacity="${isRoot ? .1 : C.sheen}"/>`;
+        if (accent) h += `<rect x="6" y="12" width="3.5" height="${NODE.h - 24}" rx="1.75" fill="${accent}"/>`;
+        h += `<text x="18" y="26" font-family='${MONO}' font-size="15" font-weight="700" fill="${textC}">${esc(pidText)}</text>`;
+        if (badge) {
+            h += `<rect x="${NODE.w - 10 - badgeW}" y="10" width="${badgeW}" height="20" rx="10" fill="${badge.bg}"${badge.stroke ? ` stroke="${badge.stroke}"` : ''}/>`
+                + `<text x="${NODE.w - 10 - badgeW / 2}" y="24" text-anchor="middle" font-family='${FONT}' font-size="11" font-weight="700" fill="${badge.fg}">${esc(badge.text)}</text>`;
+        }
+        h += `<text x="18" y="46" font-family='${FONT}' font-size="13" font-weight="600" fill="${textC}" fill-opacity="${isRoot ? 1 : .9}">${esc(nameText)}</text>`;
+        h += `<text x="18" y="63" font-family='${FONT}' font-size="11.5" fill="${mutedC}">${esc(metaText)}</text>`;
+        h += '</g></g>';
+
+        // 펼치기 / 접기 단추
+        const n = shownCount(node);
+        if (n && !node.cycle && !node.idle) {
+            // 노드 바깥 (선 위) 에 둔다 : 노드 글자를 가리지 않게
+            const cx = state.dir === 'v' ? node.x + NODE.w / 2 : node.x + NODE.w + 18;
+            const cy = state.dir === 'v' ? node.y + NODE.h + 15 : node.y + NODE.h / 2;
+            const label = node.open ? '−' : `+${n}`;
+            const w = node.open ? 22 : Math.max(28, textW(label, `bold 11.5px ${FONT}`) + 14);
+            // 접힌 가지(+N)는 눌러 볼 수 있다는 것이 눈에 띄게 파랑으로
+            h += `<g class="m-toggle" data-toggle="${node.id}" transform="translate(${cx},${cy})" role="button" tabindex="-1">`
+                + (a ? `<g class="mm-fade" style="--delay:${a.node + 200}ms">` : '<g>')
+                + `<title>${node.open ? '가지 접기' : `하위 ${n}개 펼치기`}</title>`
+                + `<rect x="${-w / 2}" y="-11" width="${w}" height="22" rx="11" fill="${node.open ? C.toggle : C.toggleOn}" stroke="${node.open ? C.toggleStroke : C.toggleOnStroke}" stroke-width="1.3"/>`
+                + `<text y="4" text-anchor="middle" font-family='${FONT}' font-size="${node.open ? 15 : 11.5}" font-weight="700" fill="${node.open ? C.ink : '#ffffff'}" dy="${node.open ? 1 : 0}">${label}</text>`
+                + '</g></g>';
+        }
+        return h;
+    }
+
+    // 새로 보이는 노드의 연출 시각 : 가장 얕은 새 노드부터 깊이 순서로, 선을 먼저 긋고 그 끝에서 상자가 나타난다
+    function animPlan(nodes) {
+        const prev = state.shown;
+        state.shown = new Set(nodes.map((n) => n.id));
+        if (reduceMotion) return new Map();
+        const fresh = nodes.filter((n) => !prev || !prev.has(n.id));
+        if (!fresh.length || fresh.length > ANIM.maxNodes) return new Map();
+        const base = Math.min(...fresh.map((n) => n.level));
+        const idx = new Map();
+        const plan = new Map();
+        fresh.forEach((n) => {
+            const i = idx.get(n.level) || 0;
+            idx.set(n.level, i + 1);
+            const lag = Math.min(i * ANIM.stagger, ANIM.maxStagger);
+            // 상대 깊이 r : 처음 그릴 때는 대상 PID 가 0, 가지를 펼칠 때는 새로 보이는 자식이 0 (바로 선부터)
+            const t = (n.level - base) * ANIM.step + lag;
+            plan.set(n.id, n.parent ? { edge: t, node: t + ANIM.edge * .75 } : { edge: 0, node: lag });
+        });
+        return plan;
+    }
+
+    function render() {
+        layout();
+        const nodes = visibleNodes();
+        const fullDraw = !state.shown;
+        const plan = animPlan(nodes);
+
+        // 선택한 노드의 위쪽 경로 (선을 진하게)
+        const hot = new Set();
+        for (let p = state.nodes.get(state.selected); p && p.parent; p = p.parent) hot.add(p.id);
+
+        // 테두리
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, maxLevel = 0;
+        nodes.forEach((n) => {
+            minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
+            maxX = Math.max(maxX, n.x + NODE.w); maxY = Math.max(maxY, n.y + NODE.h);
+            maxLevel = Math.max(maxLevel, n.level);
+        });
+
+        // 깊이 띠 (도면의 구역 표시처럼 단계마다 번갈아 칠한다)
+        const g = GAP[state.dir];
+        let bands = '';
+        for (let lv = 0; lv <= maxLevel; lv++) {
+            const label = lv === 0 ? '대상 PID' : `깊이 ${lv + 1}`;
+            // 전부 새로 그릴 때는 깊이 띠도 단계별로 나타난다
+            const ba = fullDraw && plan.size ? ` class="mm-fade" style="--delay:${Math.max(0, lv * ANIM.step - 120)}ms"` : '';
+            const count = nodes.filter((n) => n.level === lv).length;
+            // 깊이 이름표 (알약 모양) : 이름 + 상자 수
+            const sub = lv ? `  ${count}개` : '';
+            const pw = textW(label, `bold 12.5px ${FONT}`) + (sub ? textW(sub, `12.5px ${FONT}`) : 0) + 28;
+            const pill = (px, py) => `<g${ba} transform="translate(${px},${py})">`
+                + `<rect x="${-pw / 2}" y="-14" width="${pw}" height="28" rx="14" fill="${lv ? C.pill : C.pillRoot}" stroke="${lv ? C.pillStroke : C.pillRootStroke}"/>`
+                + `<text y="4.5" text-anchor="middle" font-family='${FONT}' font-size="12.5" font-weight="700" fill="${lv ? C.bandText : C.pillRootText}">${label}`
+                + (sub ? `<tspan font-weight="400" fill="${C.bandMuted}">${sub}</tspan>` : '') + '</text></g>';
+            if (state.dir === 'v') {
+                const y = lv * (NODE.h + g.level) - g.level / 2;
+                const x = minX - BAND_LABEL - 24, w = maxX - x + 40;
+                bands += `<rect${ba} x="${x}" y="${y}" width="${w}" height="${NODE.h + g.level}" fill="${C.band}" fill-opacity="${lv % 2 ? 0 : C.bandOp}"/>`
+                    + pill(x + 14 + pw / 2, y + (NODE.h + g.level) / 2);
+            } else {
+                const x = lv * (NODE.w + g.level) - g.level / 2;
+                const y = minY - 56, hgt = maxY - y + 30;
+                bands += `<rect${ba} x="${x}" y="${y}" width="${NODE.w + g.level}" height="${hgt}" fill="${C.band}" fill-opacity="${lv % 2 ? 0 : C.bandOp}"/>`
+                    + pill(x + (NODE.w + g.level) / 2, y + 26);
+            }
+        }
+        $('layerBands').innerHTML = bands;
+
+        // 선
+        let edges = '', tags = '';
+        const flowOn = !reduceMotion && !state.inferred && nodes.length <= FLOW_MAX;
+        nodes.forEach((n) => {
+            if (!n.open) return;
+            shownKids(n).forEach((c) => {
+                const s = state.info.get(c.pid) || {};
+                const isHot = hot.has(c.id);
+                // 실행 안 된 호출 : 회색 점선 (호출 횟수 표시 없음)
+                const a = plan.get(c.id);
+                // 점선은 그어지는 연출 대신 서서히 나타난다
+                const fadeAttr = a ? ` class="mm-fade" style="--delay:${a.edge}ms"` : '';
+                const drawAttr = a ? ` class="mm-draw" pathLength="1" style="--delay:${a.edge}ms"` : '';
+                if (c.idle) {
+                    edges += `<path${fadeAttr} d="${edgePath(n, c)}" fill="none" stroke="${isHot ? C.idleHot : C.idle}" stroke-width="${isHot ? 2.4 : 1.4}" stroke-dasharray="5 4"><title>${esc(n.pid)} 의 로직에 CALL ${esc(c.pid)} 가 있지만 이번 실행에서 호출 안 됨</title></path>`;
+                    return;
+                }
+                // 실패 : 빨강 / 서버가 준 호출 관계(실제 실행된 CALL) : 녹색 / 깊이로 추정한 관계 : 회색
+                const color = s.error ? C.err : state.inferred ? (isHot ? C.lineHot : C.line) : (isHot ? C.runHot : C.run);
+                const dash = s.error ? ' stroke-dasharray="6 4"' : '';
+                const d = edgePath(n, c);
+                // 실행된 호출은 넓고 옅은 선을 밑에 깔아 빛나 보이게
+                if (!dash) edges += `<path${fadeAttr} d="${d}" fill="none" stroke="${color}" stroke-opacity="${isHot ? C.glowOp * 2 : C.glowOp}" stroke-width="${isHot ? 10 : 7}" stroke-linecap="round"/>`;
+                edges += `<path${dash ? fadeAttr : drawAttr} d="${d}" fill="none" stroke="${color}" stroke-width="${isHot ? 3.2 : (state.inferred || s.error ? 1.6 : 2.2)}"${dash}/>`;
+                // 흐르는 빛 : 상위 → 하위로 호출이 흘러가는 방향
+                if (flowOn && !dash) edges += `<path class="flow" d="${d}" fill="none" stroke="${C.flow}" stroke-opacity=".85" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 16" style="--delay:${a ? a.node + 250 : 0}ms"/>`;
+                if (c.count > 1) {
+                    const t = `×${c.count}`;
+                    const w = textW(t, `bold 11px ${FONT}`) + 12;
+                    const tx = state.dir === 'v' ? c.x + NODE.w / 2 : c.x - 16 - w / 2;
+                    const ty = state.dir === 'v' ? c.y - 14 : c.y + NODE.h / 2;
+                    tags += `<g transform="translate(${tx},${ty})"${a ? ` class="mm-fade" style="--delay:${a.node}ms"` : ''}><title>${esc(n.pid)} 에서 ${c.count}회 호출</title>`
+                        + `<rect x="${-w / 2}" y="-10" width="${w}" height="20" rx="10" fill="${C.canvas}" stroke="${color}"/>`
+                        + `<text y="4" text-anchor="middle" font-family='${FONT}' font-size="11" font-weight="700" fill="${color}">${t}</text></g>`;
+                }
+            });
+        });
+        $('layerEdges').innerHTML = edges + tags;
+        $('layerNodes').innerHTML = nodes.map((n) => nodeSvg(n, plan.get(n.id))).join('');
+
+        // 띠 포함 전체 범위 (화면 맞춤 / 이미지 저장)
+        state.bounds = state.dir === 'v'
+            ? { x: minX - BAND_LABEL - 24, y: minY - g.level / 2, w: maxX - minX + BAND_LABEL + 64, h: maxY - minY + g.level }
+            : { x: minX - g.level / 2, y: minY - 56, w: maxX - minX + g.level, h: maxY - minY + 86 };
+    }
+
+    // ---------- 확대 / 이동 ----------
+    function applyView() {
+        const v = state.view;
+        vp.setAttribute('transform', `translate(${v.x},${v.y}) scale(${v.k})`);
+        $('zoomVal').textContent = `${Math.round(v.k * 100)}%`;
+        $('zoomOut').disabled = v.k <= ZOOM_MIN + 1e-6;
+        $('zoomIn').disabled = v.k >= ZOOM_MAX - 1e-6;
+    }
+    let anim = 0;
+    function animateTo(target, ms = 280) {
+        cancelAnimationFrame(anim);
+        if (reduceMotion) { state.view = target; applyView(); return; }
+        const from = Object.assign({}, state.view), t0 = performance.now();
+        const step = (t) => {
+            const p = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - p, 3);
+            state.view = { k: from.k + (target.k - from.k) * e, x: from.x + (target.x - from.x) * e, y: from.y + (target.y - from.y) * e };
+            applyView();
+            if (p < 1) anim = requestAnimationFrame(step);
+        };
+        anim = requestAnimationFrame(step);
+    }
+    const clampK = (k) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, k));
+    // 화면 좌표 (px, py) 를 고정하고 확대/축소
+    function zoomAt(k, px, py, smooth) {
+        const v = state.view, k2 = clampK(k);
+        const target = { k: k2, x: px - (px - v.x) * (k2 / v.k), y: py - (py - v.y) * (k2 / v.k) };
+        if (smooth) animateTo(target, 180); else { cancelAnimationFrame(anim); state.view = target; applyView(); }
+    }
+    function zoomBy(f) {
+        const r = svg.getBoundingClientRect();
+        zoomAt(state.view.k * f, r.width / 2, r.height / 2, true);
+    }
+    function fitView(smooth = true) {
+        const b = state.bounds, r = svg.getBoundingClientRect();
+        if (!b || !r.width) return;
+        const k = clampK(Math.min((r.width - 48) / b.w, (r.height - 48) / b.h, 1.15));
+        const target = { k, x: (r.width - b.w * k) / 2 - b.x * k, y: (r.height - b.h * k) / 2 - b.y * k };
+        if (smooth) animateTo(target); else { state.view = target; applyView(); }
+    }
+    // 기본 보기 (50%) : 다 들어가면 가운데, 넘치면 그리는 방향의 시작(대상 PID)부터 보이게
+    function defaultView() {
+        const b = state.bounds, r = svg.getBoundingClientRect(), root = state.root, k = DEFAULT_ZOOM;
+        if (!b || !r.width) return Object.assign({}, state.view, { k });
+        const fitsW = b.w * k <= r.width - 48, fitsH = b.h * k <= r.height - 48;
+        const x = fitsW ? (r.width - b.w * k) / 2 - b.x * k
+            : state.dir === 'h' ? 24 - b.x * k : r.width / 2 - (root.x + NODE.w / 2) * k;
+        const y = fitsH ? (r.height - b.h * k) / 2 - b.y * k
+            : state.dir === 'v' ? 24 - b.y * k : r.height / 2 - (root.y + NODE.h / 2) * k;
+        return { k, x, y };
+    }
+    // 노드가 화면 가운데 오도록 (너무 작게 보이면 읽을 수 있는 크기로)
+    function centerOn(node) {
+        const r = svg.getBoundingClientRect();
+        const k = state.view.k < 0.7 ? 0.95 : state.view.k;
+        animateTo({ k, x: r.width / 2 - (node.x + NODE.w / 2) * k, y: r.height / 2 - (node.y + NODE.h / 2) * k });
+    }
+
+    svg.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const r = svg.getBoundingClientRect();
+        const f = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0015));
+        zoomAt(state.view.k * f, e.clientX - r.left, e.clientY - r.top, false);
+    }, { passive: false });
+
+    let pan = null;
+    svg.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0 || e.target.closest('.m-node, .m-toggle')) return;
+        pan = { x: e.clientX, y: e.clientY, vx: state.view.x, vy: state.view.y, moved: false };
+        svg.setPointerCapture(e.pointerId);
+        svg.classList.add('panning');
+    });
+    svg.addEventListener('pointermove', (e) => {
+        if (!pan) return;
+        const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
+        if (Math.abs(dx) + Math.abs(dy) > 3) pan.moved = true;
+        cancelAnimationFrame(anim);
+        state.view.x = pan.vx + dx; state.view.y = pan.vy + dy;
+        applyView();
+    });
+    const endPan = () => {
+        if (!pan) return;
+        // 빈 곳을 클릭만 하면 선택 해제 (요약으로)
+        if (!pan.moved && state.selected) select(null);
+        pan = null;
+        svg.classList.remove('panning');
+    };
+    svg.addEventListener('pointerup', endPan);
+    svg.addEventListener('pointercancel', endPan);
+
+    // ---------- 선택 / 펼치기 ----------
+    function toggle(node, open) {
+        if (!node || node.cycle) return;
+        buildKids(node);
+        if (!shownKids(node).length) return;
+        node.open = open === undefined ? !node.open : open;
+        render();
+        renderPanel();
+    }
+    // 노드가 보이도록 위쪽 가지를 펼친다
+    function reveal(node) {
+        for (let p = node.parent; p; p = p.parent) { buildKids(p); p.open = true; }
+    }
+    function select(id, opts = {}) {
+        state.selected = id;
+        render();
+        renderPanel();
+        const node = state.nodes.get(id);
+        if (node && opts.center) centerOn(node);
+        if (node && opts.focus) {
+            const el = $('layerNodes').querySelector(`[data-id="${id}"]`);
+            if (el) el.focus({ preventScroll: true });
+        }
+    }
+    function goPid(pid, from) {
+        const node = firstNode(pid, from);
+        if (!node) return;
+        if (node.idle && !state.showIdle) setShowIdle(true);
+        reveal(node);
+        select(node.id, { center: true });
+    }
+
+    $('layerNodes').addEventListener('click', (e) => {
+        const t = e.target.closest('[data-toggle]');
+        if (t) { toggle(state.nodes.get(t.dataset.toggle)); return; }
+        const n = e.target.closest('.m-node');
+        if (n) select(n.dataset.id === state.selected ? null : n.dataset.id);
+    });
+    $('layerNodes').addEventListener('dblclick', (e) => {
+        const n = e.target.closest('.m-node');
+        if (n) toggle(state.nodes.get(n.dataset.id));
+    });
+    $('layerNodes').addEventListener('keydown', (e) => {
+        const el = e.target.closest('.m-node');
+        if (!el) return;
+        const node = state.nodes.get(el.dataset.id);
+        if (e.key === 'Enter') { e.preventDefault(); select(node.id, { focus: true }); }
+        else if (e.key === ' ') { e.preventDefault(); toggle(node); select(node.id, { focus: true }); }
+    });
+
+    // ---------- 상세 패널 ----------
+    function linkList(items, cls) {
+        if (!items.length) return '<p class="none">없음</p>';
+        return `<ul class="links ${cls || ''}">` + items.map((it) => {
+            const s = state.info.get(it.pid) || {};
+            return `<li><button type="button" data-go="${esc(it.pid)}"${it.from ? ` data-from="${esc(it.from)}"` : ''} title="${esc(it.pid)} 로 이동">`
+                + `<span class="pid">${esc(it.pid)}</span><span class="nm">${esc(s.name || '')}</span>`
+                + `<span class="cnt">${esc(it.note || '')}</span></button></li>`;
+        }).join('') + '</ul>';
+    }
+
+    function summaryHtml() {
+        const d = state.data, root = state.info.get(d.root.pid);
+        const subs = [...state.info.values()].filter((s) => !s.isRoot);
+        const fails = subs.filter((s) => s.error);
+        const specs = subs.filter((s) => has(s.requestedVersion) && !s.error);
+        const shared = subs.filter((s) => (state.parents.get(s.pid) || []).length > 1);
+        const callTotal = [...state.kids.values()].reduce((a, l) => a + l.length, 0);
+        const byDepth = new Map();
+        subs.forEach((s) => byDepth.set(s.depth || 2, (byDepth.get(s.depth || 2) || 0) + 1));
+        const maxDepth = Math.max(1, ...byDepth.keys());
+        const maxCnt = Math.max(1, ...byDepth.values());
+        const most = subs.slice().sort((a, b) => (b.callCount || 0) - (a.callCount || 0)).filter((s) => (s.callCount || 0) > 1).slice(0, 8);
+
+        let h = `<h2>${esc(root.pid)}</h2><p class="sub">${esc(root.name || '')}</p>`
+            + '<div class="chips"><span class="chip root">대상 PID</span>'
+            + (root.javaMethod ? '<span class="chip">JAVA</span>' : '')
+            + (root.isFloorSpec === 'Y' ? `<span class="chip">층별 PID${root.floor ? ` ${esc(root.floor)}` : ''}</span>` : '') + '</div>'
+            + '<dl class="facts">'
+            + `<dt>공사번호</dt><dd>${esc(d.projectNo || d.project || '-')}</dd>`
+            + `<dt>실행 버전</dt><dd>${esc(verText(root.runVersion))}${has(root.latestVersion) && root.runVersion !== root.latestVersion ? ` (최신 ${esc(verText(root.latestVersion))})` : ''}</dd>`
+            + `<dt>하위 PID</dt><dd>${subs.length}개 (중복 제외)</dd>`
+            + `<dt>호출 관계</dt><dd>${callTotal}건</dd>`
+            + `<dt>최대 깊이</dt><dd>${subs.length ? maxDepth : 1}</dd>`
+            + `<dt>실행 실패</dt><dd>${fails.length ? `<b style="color:var(--err)">${fails.length}건</b>` : '없음'}</dd>`
+            + '</dl>';
+
+        if (subs.length) {
+            h += '<h3>깊이별 하위 PID <small>처음 호출된 깊이 기준</small></h3><div class="bars">';
+            [...byDepth.keys()].sort((a, b) => a - b).forEach((k) => {
+                const v = byDepth.get(k);
+                h += `<div class="bar"><span>깊이 ${k}</span><span class="track"><span class="fill" style="width:${(v / maxCnt) * 100}%;display:block"></span></span><b>${v}</b></div>`;
+            });
+            h += '</div>';
+        }
+        h += `<h3>실행 실패 <small>${fails.length}</small></h3>`
+            + linkList(fails.map((s) => ({ pid: s.pid, note: '' })), 'err');
+        h += `<h3>버전 지정 실행 <small>${specs.length}</small></h3>`
+            + linkList(specs.map((s) => ({ pid: s.pid, note: verText(s.runVersion) })), 'spec');
+        h += `<h3>여러 PID 가 호출 <small>${shared.length}</small></h3>`
+            + linkList(shared.map((s) => ({ pid: s.pid, note: `${state.parents.get(s.pid).length}곳` })));
+        if (most.length) {
+            h += '<h3>많이 호출된 PID <small>상위 8</small></h3>'
+                + linkList(most.map((s) => ({ pid: s.pid, note: `${s.callCount}회` })));
+        }
+        const idles = [];
+        state.idle.forEach((list, from) => list.forEach((e) => idles.push({ pid: e.to, from, note: `${from} 에서` })));
+        h += `<h3>실행 안 된 호출 <small>${idles.length}건, 로직에 CALL 은 있지만 호출 안 됨</small></h3>`
+            + linkList(idles, 'idle');
+        if (!subs.length) h += '<p class="none" style="margin-top:18px">이 PID 는 CALL 로 호출한 하위 PID 가 없습니다.</p>';
+        return h;
+    }
+
+    // 실행 안 된 호출 노드의 상세
+    function idleHtml(node) {
+        const s = state.info.get(node.pid);
+        const path = [];
+        for (let p = node; p; p = p.parent) path.unshift(p.pid);
+        return '<button type="button" class="back" data-back><svg class="ico sm" aria-hidden="true"><use href="#i-left"/></svg>전체 요약</button>'
+            + `<h2>${esc(node.pid)}</h2><p class="sub">${esc((s && s.name) || '')}</p>`
+            + `<div class="chips"><span class="chip idle">여기서 미실행</span>${s ? '<span class="chip run">다른 곳에서는 실행됨</span>' : ''}</div>`
+            + '<dl class="facts">'
+            + `<dt>호출하는 PID</dt><dd>${esc(node.parent.pid)}</dd>`
+            + `<dt>CALL 라인</dt><dd>${esc(node.count)}개</dd>`
+            + `<dt>다른 곳 실행</dt><dd>${s ? `실행됨 (${esc(verText(s.runVersion))})` : '이번 실행에서 한 번도 실행 안 됨'}</dd>`
+            + `<dt>호출 경로</dt><dd style="font-family:var(--mono);font-size:12px">${path.map(esc).join(' ▸ ')}</dd>`
+            + '</dl>'
+            + `<p class="none" style="margin-top:14px">${esc(node.parent.pid)} 의 로직에 CALL ${esc(node.pid)} 라인이 있지만, 조건이 맞지 않거나 GOTO 로 건너뛰어 이번 실행에서는 호출되지 않았습니다.</p>`
+            + '<div class="actions">'
+            + `<button type="button" class="primary" data-run="${esc(node.pid)}" title="같은 공사번호로 이 PID 를 새 탭에서 시뮬 실행"><svg class="ico sm" aria-hidden="true"><use href="#i-play"/></svg>이 PID 실행 (새 탭)</button>`
+            + (s ? `<button type="button" data-go="${esc(node.pid)}" title="실행된 위치로 이동"><svg class="ico sm" aria-hidden="true"><use href="#i-target"/></svg>실행된 위치로 이동</button>` : '')
+            + '</div>';
+    }
+
+    function nodeHtml(node) {
+        if (node.idle) return idleHtml(node);
+        const s = state.info.get(node.pid) || {};
+        const kind = kindOf(node);
+        const parents = state.parents.get(node.pid) || [];
+        const kids = state.kids.get(node.pid) || [];
+        const path = [];
+        for (let p = node; p; p = p.parent) path.unshift(p.pid);
+        const others = (state.byPid.get(node.pid) || []).length;
+
+        let h = '<button type="button" class="back" data-back><svg class="ico sm" aria-hidden="true"><use href="#i-left"/></svg>전체 요약</button>'
+            + `<h2>${esc(node.pid)}</h2><p class="sub">${esc(s.name || (s.error ? '이름을 읽지 못했습니다' : ''))}</p><div class="chips">`;
+        if (kind === 'root') h += '<span class="chip root">대상 PID</span>';
+        if (kind === 'run') h += '<span class="chip run">실행됨</span>';
+        if (s.error) h += '<span class="chip err">실행 실패</span>';
+        if (has(s.requestedVersion) && node.parent) h += `<span class="chip spec">${esc(verText(s.requestedVersion))} 지정</span>`;
+        if (parents.length > 1) h += `<span class="chip">호출처 ${parents.length}곳</span>`;
+        if (node.ref && kids.length) h += '<span class="chip">하위는 첫 위치에 펼침</span>';
+        if (node.cycle) h += '<span class="chip err">순환 호출</span>';
+        if (s.orphan) h += '<span class="chip">호출 위치 모름</span>';
+        h += '</div><dl class="facts">'
+            + `<dt>실행 버전</dt><dd>${esc(verText(s.runVersion))}</dd>`
+            + `<dt>최신 버전</dt><dd>${esc(verText(s.latestVersion))}</dd>`
+            + (node.parent ? `<dt>지정 버전</dt><dd>${has(s.requestedVersion) ? esc(verText(s.requestedVersion)) : '없음 (최신)'}</dd>` : '')
+            + (node.parent ? `<dt>처음 호출 깊이</dt><dd>${esc(s.depth)}</dd>` : '')
+            + (node.parent ? `<dt>전체 호출 횟수</dt><dd>${esc(s.callCount || 0)}회</dd>` : '')
+            + (node.parent ? `<dt>이 위치</dt><dd>깊이 ${node.level + 1}, ${esc(node.parent.pid)} 에서 ${node.count}회</dd>` : '')
+            + `<dt>호출 경로</dt><dd style="font-family:var(--mono);font-size:12px">${path.map(esc).join(' ▸ ')}</dd>`
+            + '</dl>';
+        if (s.error) h += `<div class="err-box">${esc(s.error)}</div>`;
+
+        h += '<div class="actions">'
+            + `<button type="button" class="primary" data-run="${esc(node.pid)}" title="같은 공사번호로 이 PID 를 새 탭에서 시뮬 실행"><svg class="ico sm" aria-hidden="true"><use href="#i-play"/></svg>이 PID 실행 (새 탭)</button>`
+            + (node.ref ? `<button type="button" data-go="${esc(node.pid)}" title="하위까지 펼쳐 둔 위치로 이동"><svg class="ico sm" aria-hidden="true"><use href="#i-target"/></svg>펼친 위치로 이동</button>` : '')
+            + `<button type="button" data-center="${node.id}"><svg class="ico sm" aria-hidden="true"><use href="#i-target"/></svg>화면 가운데로</button>`
+            + (shownCount(node) && !node.cycle ? `<button type="button" data-toggle-panel="${node.id}">${node.open ? '가지 접기' : '가지 펼치기'}</button>` : '')
+            + '</div>';
+
+        if (node.parent) {
+            h += `<h3>이 PID 를 호출한 PID <small>${parents.length}</small></h3>`
+                + linkList(parents.map((p) => ({ pid: p.from, note: `${p.count}회` })));
+        }
+        h += `<h3>이 PID 가 호출한 PID <small>${kids.length}</small></h3>`
+            + linkList(kids.map((k) => ({ pid: k.to, note: `${k.count}회` })));
+        const idles = state.idle.get(node.pid) || [];
+        h += `<h3>로직에 있지만 실행 안 된 CALL <small>${idles.length}</small></h3>`
+            + linkList(idles.map((k) => ({ pid: k.to, from: node.pid, note: `라인 ${k.count}` })), 'idle');
+        if (others > 1) h += `<p class="none" style="margin-top:14px">같은 PID 가 관계도에 ${others}곳 나옵니다. 선택하면 다른 위치는 파란 점선으로 표시됩니다.</p>`;
+        return h;
+    }
+
+    function renderPanel() {
+        const panel = $('panel');
+        if (!state.data) { panel.innerHTML = '<p class="none">시뮬레이터 실행 결과를 기다리는 중입니다.</p>'; return; }
+        const node = state.nodes.get(state.selected);
+        panel.innerHTML = node ? nodeHtml(node) : summaryHtml();
+    }
+
+    $('panel').addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        if (b.hasAttribute('data-back')) select(null);
+        else if (b.dataset.go) goPid(b.dataset.go, b.dataset.from);
+        else if (b.dataset.center) centerOn(state.nodes.get(b.dataset.center));
+        else if (b.dataset.togglePanel) toggle(state.nodes.get(b.dataset.togglePanel));
+        else if (b.dataset.run) runInNewTab(b.dataset.run);
+    });
+
+    // 시뮬레이터를 새 탭으로 열어 이 PID 실행 (지정 버전으로 실행한 하위 PID 면 그 버전)
+    function runInNewTab(pid) {
+        const d = state.data;
+        if (!d || !d.project) return;
+        let base = SIMULATOR_URL;
+        try { if (window.opener && !window.opener.closed) base = window.opener.location.pathname; } catch (e) { /* 기본 주소 */ }
+        const qs = new URLSearchParams({ project: d.project, pid });
+        const s = state.info.get(pid);
+        if (s && !s.isRoot && has(s.requestedVersion)) qs.set('version', String(s.requestedVersion));
+        window.open(`${base}?${qs}`, '_blank');
+    }
+
+    // ---------- 검색 ----------
+    function runSearch(jump) {
+        const q = $('q').value.trim().toUpperCase();
+        if (!q || !state.data) {
+            state.matches = []; state.matchIdx = -1; $('qCount').textContent = '';
+            render();
+            return;
+        }
+        const prev = state.matches.join(',');
+        const idlePids = [];
+        state.idle.forEach((list) => list.forEach((e) => { if (!state.info.has(e.to) && !idlePids.includes(e.to)) idlePids.push(e.to); }));
+        state.matches = [...state.info.values()]
+            .filter((s) => s.pid.toUpperCase().includes(q) || (s.name || '').toUpperCase().includes(q))
+            .map((s) => s.pid)
+            .concat(idlePids.filter((p) => p.toUpperCase().includes(q)));
+        if (state.matches.join(',') !== prev) state.matchIdx = -1;
+        if (jump && state.matches.length) {
+            state.matchIdx = (state.matchIdx + 1) % state.matches.length;
+            goPid(state.matches[state.matchIdx]);
+        } else {
+            render();
+        }
+        $('qCount').textContent = state.matches.length
+            ? (state.matchIdx >= 0 ? `${state.matchIdx + 1}/${state.matches.length}` : `${state.matches.length}건`) : '없음';
+    }
+    let qTimer;
+    $('q').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(() => runSearch(false), 150); });
+    $('q').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); clearTimeout(qTimer); runSearch(true); }
+        if (e.key === 'Escape') { $('q').value = ''; runSearch(false); }
+    });
+
+    // ---------- 도구 ----------
+    function setDir(dir, keepView) {
+        state.dir = dir;
+        $('dirV').setAttribute('aria-pressed', String(dir === 'v'));
+        $('dirH').setAttribute('aria-pressed', String(dir === 'h'));
+        try { localStorage.setItem(STORE_DIR, dir); } catch (e) { /* 무시 */ }
+        if (!state.data) return;
+        state.shown = null;
+        render();
+        if (!keepView) animateTo(defaultView());
+    }
+    $('dirV').addEventListener('click', () => setDir('v'));
+    $('dirH').addEventListener('click', () => setDir('h'));
+    function setShowIdle(on) {
+        state.showIdle = on;
+        $('btnIdle').setAttribute('aria-pressed', String(on));
+        try { localStorage.setItem(STORE_IDLE, on ? 'Y' : 'N'); } catch (e) { /* 무시 */ }
+        const sel = state.nodes.get(state.selected);
+        if (!on && sel && sel.idle) state.selected = null;
+    }
+    $('btnIdle').addEventListener('click', () => {
+        setShowIdle(!state.showIdle);
+        if (!state.data) return;
+        render(); renderPanel(); fitView();
+    });
+    $('btnExpand').addEventListener('click', () => {
+        if (!state.data) return;
+        // 참조/순환 노드는 그대로 두고, 처음 나온 위치는 모두 펼친다
+        state.nodes.forEach((n) => { if (!n.ref && !n.cycle) { buildKids(n); n.open = true; } });
+        render(); renderPanel(); fitView();
+    });
+    $('btnCollapse').addEventListener('click', () => {
+        if (!state.data) return;
+        state.nodes.forEach((n) => { n.open = !n.parent; });
+        const sel = state.nodes.get(state.selected);
+        if (sel && sel.level > 1) state.selected = null;
+        render(); renderPanel(); fitView();
+    });
+    $('zoomIn').addEventListener('click', () => zoomBy(1.25));
+    $('zoomOut').addEventListener('click', () => zoomBy(1 / 1.25));
+    $('zoomVal').addEventListener('click', () => {
+        const r = svg.getBoundingClientRect();
+        zoomAt(DEFAULT_ZOOM, r.width / 2, r.height / 2, true);
+    });
+    $('btnFit').addEventListener('click', () => fitView());
+    $('btnReload').addEventListener('click', () => window.syncFromOpener());
+    $('btnEmptyReload').addEventListener('click', () => window.syncFromOpener());
+    $('btnPng').addEventListener('click', savePng);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.target.closest('input, textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.key === '+' || e.key === '=') zoomBy(1.25);
+        else if (e.key === '-') zoomBy(1 / 1.25);
+        else if (e.key === '0') fitView();
+        else if (e.key === '/') { e.preventDefault(); $('q').focus(); }
+        else if (e.key === 'Escape' && state.selected) select(null);
+    });
+    window.addEventListener('resize', () => { if (state.data) applyView(); });
+
+    // ---------- 이미지 저장 ----------
+    function savePng() {
+        if (!state.data || !state.bounds) return;
+        const b = state.bounds, pad = 24;
+        const W = b.w + pad * 2, H = b.h + pad * 2 + 40;
+        // 제목 줄을 붙인 독립 SVG 를 만들어 캔버스로 옮긴다
+        const clone = svg.cloneNode(true);
+        clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        clone.setAttribute('width', W);
+        clone.setAttribute('height', H);
+        clone.setAttribute('viewBox', `${b.x - pad} ${b.y - pad - 40} ${W} ${H}`);
+        clone.removeAttribute('style');
+        const v = clone.querySelector('#viewport');
+        v.setAttribute('transform', '');
+        // 화면 연출 전용 요소는 이미지에서 뺀다 (CSS 가 없으면 그대로 보이므로)
+        clone.querySelectorAll('.flow, .mm-glow').forEach((el) => el.remove());
+        const d = state.data;
+        const title = `${d.projectNo || d.project || ''}  ${d.root.pid}${d.root.name ? '  ' + d.root.name : ''}  호출 관계도`;
+        v.insertAdjacentHTML('beforeend', `<text x="${b.x}" y="${b.y - 22}" font-family='${FONT}' font-size="17" font-weight="700" fill="${C.ink}">${esc(title)}</text>`);
+        const scale = Math.min(2, Math.max(0.5, 8000 / Math.max(W, H)));
+        const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml;charset=utf-8' }));
+        const img = new Image();
+        img.onload = () => {
+            const cv = document.createElement('canvas');
+            cv.width = Math.round(W * scale); cv.height = Math.round(H * scale);
+            const ctx = cv.getContext('2d');
+            ctx.fillStyle = C.canvas; ctx.fillRect(0, 0, cv.width, cv.height);
+            ctx.scale(scale, scale);
+            ctx.drawImage(img, 0, 0, W, H);
+            URL.revokeObjectURL(url);
+            cv.toBlob((blob) => {
+                if (!blob) { alert('이미지가 너무 커서 저장하지 못했습니다. 일부 가지를 접고 다시 시도하세요.'); return; }
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `${d.projectNo || d.project || 'PID'}_${d.root.pid}_호출관계도.png`;
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+            }, 'image/png');
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); alert('이미지로 바꾸지 못했습니다.'); };
+        img.src = url;
+    }
+
+    // ---------- 머리글 ----------
+    function renderHeader() {
+        const d = state.data;
+        if (!d) { $('target').innerHTML = ''; $('stats').innerHTML = ''; document.title = 'PID 호출 관계도'; return; }
+        const root = state.info.get(d.root.pid);
+        const proj = d.projectNo || d.project || '';
+        $('target').innerHTML = (proj ? `<span class="proj">${esc(proj)}</span><span class="sep"></span>` : '')
+            + `<b>${esc(root.pid)}</b>`
+            + (root.name ? `<span class="name" title="${esc(root.name)}">${esc(root.name)}</span>` : '');
+        $('target').title = d.projectTitle || '';
+        const subs = [...state.info.values()].filter((s) => !s.isRoot);
+        const fails = subs.filter((s) => s.error).length;
+        const maxDepth = subs.length ? Math.max(...subs.map((s) => s.depth || 2)) : 1;
+        const idleN = [...state.idle.values()].reduce((a, l) => a + l.length, 0);
+        const rate = subs.length ? Math.floor(((subs.length - fails) / subs.length) * 1000) / 10 : 100;
+        const kpi = (label, val, unit, cls, dec) => `<div class="kpi${cls ? ' ' + cls : ''}"><span>${label}</span>`
+            + `<b><em data-to="${val}" data-dec="${dec || 0}">${val}</em><small>${unit}</small></b>`;
+        $('stats').innerHTML = kpi('하위 PID', subs.length, '개') + '</div>'
+            + kpi('최대 깊이', maxDepth, '단계') + '</div>'
+            + kpi('실행 성공률', rate, '%', fails ? 'err' : 'ok', rate % 1 ? 1 : 0)
+            + `<div class="meter"><i style="width:0"></i></div></div>`
+            + kpi('실행 실패', fails, '건', fails ? 'err' : '') + '</div>'
+            + kpi('미실행 호출', idleN, '건') + '</div>';
+        countUp($('stats'));
+        const meter = $('stats').querySelector('.meter i');
+        requestAnimationFrame(() => requestAnimationFrame(() => { meter.style.width = `${rate}%`; }));
+        document.title = `${root.pid} 호출 관계도`;
+    }
+
+    // 숫자가 0 부터 올라가며 나타난다
+    function countUp(box) {
+        box.querySelectorAll('[data-to]').forEach((el) => {
+            const to = Number(el.dataset.to), dec = Number(el.dataset.dec) || 0;
+            if (reduceMotion || !to) { el.textContent = to.toFixed(dec); return; }
+            const t0 = performance.now(), ms = 900;
+            const tick = (t) => {
+                const p = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - p, 3);
+                el.textContent = (to * e).toFixed(dec);
+                if (p < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+        });
+    }
+
+    function setEmpty(title, text) {
+        $('empty').hidden = !title;
+        $('legend').hidden = !!title;
+        if (title) { $('emptyTitle').textContent = title; $('emptyText').textContent = text; }
+        ['btnIdle', 'btnExpand', 'btnCollapse', 'zoomIn', 'zoomOut', 'zoomVal', 'btnFit', 'btnPng', 'dirV', 'dirH'].forEach((id) => { $(id).disabled = !!title; });
+        $('q').disabled = !!title;
+    }
+
+    // 시뮬레이터에서 실행할 때마다 호출됨 (팝업을 열 때도 한 번)
+    window.syncFromOpener = function () {
+        const { ok, data } = readFromOpener();
+        state.selected = null;
+        state.matches = []; state.matchIdx = -1;
+        $('q').value = ''; $('qCount').textContent = '';
+        if (!data || !data.root || !data.root.pid) {
+            state.data = null;
+            $('layerBands').innerHTML = $('layerEdges').innerHTML = $('layerNodes').innerHTML = '';
+            $('notice').hidden = true;
+            setEmpty(ok ? '실행 결과가 없습니다' : '시뮬레이터와 연결되지 않았습니다',
+                ok ? '시뮬레이터에서 PID 를 실행하면 호출 관계도를 그립니다. 실행 후에는 자동으로 다시 그립니다.'
+                    : '이 창은 PID 실행 시뮬레이터의 [호출 관계도] 버튼으로 열어야 합니다. 시뮬레이터 창이 닫혔다면 다시 열어 주세요.');
+            renderHeader();
+            renderPanel();
+            return;
+        }
+        state.data = data;
+        Object.assign(state, prepare(data));
+        buildTree();
+        setEmpty(null);
+        $('notice').hidden = !state.inferred;
+        $('notice').textContent = '서버가 호출 관계를 주지 않아 처음 호출된 깊이로 추정해 회색 선으로 그렸습니다. 서버를 재기동하면 실제 실행된 호출이 녹색 선으로 나옵니다.';
+        $('legendGuess').hidden = !state.inferred;
+        $('legendGuessDt').hidden = !state.inferred;
+        renderHeader();
+        state.shown = null;
+        render();
+        renderPanel();
+        introView();
+    };
+
+    // 처음 그릴 때 : 조금 멀리서 기본 비율(50%) 위치로 천천히 다가간다
+    function introView() {
+        const target = defaultView(), r = svg.getBoundingClientRect();
+        if (reduceMotion) { state.view = target; applyView(); return; }
+        const f = 0.88, cx = r.width / 2, cy = r.height / 2;
+        state.view = { k: target.k * f, x: cx - (cx - target.x) * f, y: cy - (cy - target.y) * f };
+        applyView();
+        animateTo(target, 900);
+    }
+
+    // ---------- 테마 (다크 / 라이트) ----------
+    // 범례 견본도 관계도와 같은 팔레트로 그린다 (테마를 바꿔도 범례와 상자 색이 어긋나지 않게)
+    function legendSwatches() {
+        const card = (fill, stroke, extra = '') => `<svg width="34" height="20"><rect x=".5" y=".5" width="33" height="19" rx="5" fill="${fill}"${stroke ? ` stroke="${stroke}"` : ''}${extra}/>`;
+        const bar = (c) => `<rect x="3" y="4" width="3" height="12" rx="1.5" fill="${c}"/>`;
+        const badge = (w, text, bg, fg, stroke) => `<svg width="${w}" height="18"><rect x=".5" y=".5" width="${w - 1}" height="17" rx="8.5" fill="${bg}"${stroke ? ` stroke="${stroke}"` : ''}/>`
+            + `<text x="${w / 2}" y="13" text-anchor="middle" font-family='${FONT}' font-size="10.5" font-weight="700" fill="${fg}">${text}</text></svg>`;
+        const line = (c, w, dash, glow) => '<svg width="38" height="12">'
+            + (glow ? `<path d="M1 6H37" stroke="${c}" stroke-opacity="${C.glowOp + .04}" stroke-width="7"/>` : '')
+            + `<path d="M1 6H37" stroke="${c}" stroke-width="${w}"${dash ? ` stroke-dasharray="${dash}"` : ''}/></svg>`;
+        const sw = {
+            root: card(C.root, '') + '</svg>',
+            run: card(C.runBg, C.runStroke) + bar(C.run) + '</svg>',
+            err: card(C.errBg, C.errStroke) + bar(C.err) + '</svg>',
+            idle: card(C.idleBg, C.idleStroke, ' stroke-dasharray="4 3"') + '</svg>',
+            vRun: badge(40, 'v12', C.runBadge, C.runText),
+            vSpec: badge(50, 'v4 지정', C.spec, '#ffffff'),
+            vIdle: badge(40, '미실행', C.idleBadge, C.idleBadgeText),
+            vElse: badge(62, '다른 곳 실행', 'none', C.runText, C.run),
+            vRef: badge(40, '하위↗', C.refBadge, C.refBadgeText),
+            eRun: line(C.run, 2.2, '', true),
+            eIdle: line(C.idle, 2, '5 4'),
+            eErr: line(C.err, 2, '6 4'),
+            eGuess: line(C.line, 2),
+            tog: `<svg width="28" height="20"><rect x="1" y="1" width="26" height="18" rx="9" fill="${C.toggleOn}" stroke="${C.toggleOnStroke}"/>`
+                + `<text x="14" y="14" text-anchor="middle" font-family='${FONT}' font-size="11" font-weight="700" fill="#ffffff">+3</text></svg>`,
+            sel: `<svg width="34" height="20"><rect x="1" y="1" width="32" height="18" rx="5" fill="${C.runBg}" stroke="${C.select}" stroke-width="2"/></svg>`,
+            match: card(C.match, C.matchStroke) + '</svg>',
+        };
+        document.querySelectorAll('#legend [data-sw]').forEach((dt) => { dt.innerHTML = sw[dt.dataset.sw] || ''; });
+    }
+    function applyTheme(theme, save) {
+        state.theme = theme === 'light' ? 'light' : 'dark';
+        C = PALETTE[state.theme];
+        document.documentElement.setAttribute('data-theme', state.theme);
+        if (save) { try { localStorage.setItem(STORE_THEME, state.theme); } catch (e) { /* 무시 */ } }
+        // 캔버스 바탕 / 점 모눈
+        $('mapBg').setAttribute('fill', C.canvas);
+        $('dotMinor').setAttribute('fill', C.dotMinor);
+        $('dotMajor').setAttribute('fill', C.dotMajor);
+        const next = state.theme === 'dark' ? '라이트' : '다크';
+        $('themeLabel').textContent = next;
+        $('btnTheme').setAttribute('aria-label', `${next} 화면으로 바꾸기`);
+        legendSwatches();
+        // 같은 상자를 그대로 다시 그린다 (state.shown 이 같으므로 그리기 연출은 없음)
+        if (state.data) render();
+    }
+    $('btnTheme').addEventListener('click', () => applyTheme(state.theme === 'dark' ? 'light' : 'dark', true));
+    // 직접 고른 적이 없으면 운영체제 설정을 따라간다
+    try {
+        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+            let saved = null;
+            try { saved = localStorage.getItem(STORE_THEME); } catch (err) { /* 무시 */ }
+            if (!saved) applyTheme(e.matches ? 'light' : 'dark', false);
+        });
+    } catch (e) { /* 오래된 브라우저 */ }
+
+    // ---------- 시작 ----------
+    applyTheme(document.documentElement.getAttribute('data-theme'), false);
+    // 범례는 처음엔 접어 둔다 (관계도를 넓게). 사용자가 펼쳐 두면 그대로 기억
+    try { $('legend').open = localStorage.getItem(STORE_LEGEND) === 'Y'; } catch (e) { $('legend').open = false; }
+    $('legend').addEventListener('toggle', () => {
+        try { localStorage.setItem(STORE_LEGEND, $('legend').open ? 'Y' : 'N'); } catch (e) { /* 무시 */ }
+    });
+    try { if (localStorage.getItem(STORE_DIR) === 'v') state.dir = 'v'; } catch (e) { /* 무시 */ }
+    try { state.showIdle = localStorage.getItem(STORE_IDLE) !== 'N'; } catch (e) { /* 무시 */ }
+    $('btnIdle').setAttribute('aria-pressed', String(state.showIdle));
+    $('dirV').setAttribute('aria-pressed', String(state.dir === 'v'));
+    $('dirH').setAttribute('aria-pressed', String(state.dir === 'h'));
+    applyView();
+    window.syncFromOpener();
+</script>
+</body>
+</html>

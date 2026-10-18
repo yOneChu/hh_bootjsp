@@ -262,6 +262,23 @@
             backdrop-filter: blur(8px);
         }
         .notice[hidden] { display: none; }
+        .stage.focused .notice { top: 64px; }
+
+        /* 가지 보기 경로 (캔버스 왼쪽 위) : 대상 PID ▸ … ▸ 지금 보는 가지 */
+        .crumb {
+            position: absolute; top: 14px; left: 14px; z-index: 1; max-width: calc(100% - 28px);
+            display: flex; align-items: center; gap: 2px; flex-wrap: wrap;
+            padding: 5px 6px 5px 12px; border-radius: 12px;
+            background: var(--overlay-bg); border: 1px solid var(--line-strong);
+            box-shadow: var(--overlay-shadow); backdrop-filter: blur(12px);
+            font-size: 12px; color: var(--muted);
+        }
+        .crumb[hidden] { display: none; }
+        .crumb .lbl { display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; font-weight: 700; color: var(--ink); }
+        .crumb .gt { padding: 0 2px; color: var(--muted); }
+        .crumb .step { min-height: 26px; padding: 2px 8px; border: 0; background: transparent; font-family: var(--mono); font-weight: 700; color: var(--accent); }
+        .crumb .cur { padding: 2px 8px; border-radius: 6px; background: var(--soft-bg); font-family: var(--mono); font-weight: 800; color: var(--strong); }
+        .crumb .exit { margin-left: 8px; min-height: 28px; padding: 3px 10px; }
 
         .empty {
             position: absolute; inset: 0;
@@ -424,6 +441,11 @@
         <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
         <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
         <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></symbol>
+        <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+        <symbol id="i-box" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h6M7 14h9"/></symbol>
+        <symbol id="i-rows" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="5" rx="1.5"/><rect x="3" y="14" width="18" height="5" rx="1.5"/></symbol>
+        <symbol id="i-focus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M3 8V5a2 2 0 012-2h3M16 3h3a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M8 21H5a2 2 0 01-2-2v-3"/></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
         <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
     </defs>
 </svg>
@@ -459,6 +481,14 @@
             <svg class="ico sm" aria-hidden="true"><use href="#i-collapse"/></svg>모두 접기</button>
         <button type="button" id="btnIdle" aria-pressed="true" title="로직에 CALL 은 있지만 이번 실행에서 호출되지 않은 PID 를 회색 점선으로 표시">
             <svg class="ico sm" aria-hidden="true"><use href="#i-eye"/></svg>미실행 표시</button>
+        <button type="button" id="btnGrid" aria-pressed="true" title="하위가 없는 형제 PID 가 6개 이상이면 한 줄로 늘어세우지 않고 격자로 묶어 놓기">
+            <svg class="ico sm" aria-hidden="true"><use href="#i-grid"/></svg>묶어 보기</button>
+        <div class="seg" role="group" aria-label="상자 크기">
+            <button type="button" id="sizeFull" aria-pressed="true" title="PID, 이름, 호출 정보를 모두 표시">
+                <svg class="ico sm" aria-hidden="true"><use href="#i-box"/></svg>기본</button>
+            <button type="button" id="sizeCompact" aria-pressed="false" title="PID 와 배지만 표시해 한 화면에 더 많이 (이름은 마우스를 올리거나 클릭해서 확인)">
+                <svg class="ico sm" aria-hidden="true"><use href="#i-rows"/></svg>작게</button>
+        </div>
         <span class="head-spacer"></span>
         <div class="seg" role="group" aria-label="확대 / 축소">
             <button type="button" id="zoomOut" title="축소 (-)" aria-label="축소"><svg class="ico sm" aria-hidden="true"><use href="#i-minus"/></svg></button>
@@ -505,6 +535,7 @@
             </g>
         </svg>
         <div class="notice" id="notice" hidden></div>
+        <nav class="crumb" id="crumb" hidden aria-label="보고 있는 가지"></nav>
         <div class="empty" id="empty" hidden>
             <div class="empty-ico"><svg class="ico" aria-hidden="true"><use href="#i-tree"/></svg></div>
             <h2 id="emptyTitle">실행 결과가 없습니다</h2>
@@ -558,6 +589,8 @@
                     <dl>
                         <dt data-sw="tog"></dt>
                         <dd><b>접힌 하위 3개</b><small>누르면 펼치고, − 를 누르면 접음</small></dd>
+                        <dt data-sw="grp"></dt>
+                        <dd><b>하위 없는 PID 묶음</b><small>하위가 없는 형제 6개 이상을 격자로 묶음<br>상자 왼쪽 위 ×N : N번 호출</small></dd>
                         <dt data-sw="sel"></dt>
                         <dd><b>선택한 PID</b><small>하늘색 점선 : 같은 PID 의 다른 위치</small></dd>
                         <dt data-sw="match"></dt>
@@ -565,7 +598,7 @@
                     </dl>
                 </div>
             </div>
-            <p class="hint">휠 : 확대/축소, 빈 곳 끌기 : 이동, 상자 클릭 : 오른쪽에 상세. 전처리 PID 는 포함하지 않습니다.</p>
+            <p class="hint">휠 : 확대/축소, 빈 곳 끌기 : 이동, 상자 클릭 : 오른쪽에 상세, F : 선택한 PID 가지만 보기, Esc : 전체 보기. 전처리 PID 는 포함하지 않습니다.</p>
         </details>
     </div>
     <aside aria-label="상세 정보">
@@ -577,15 +610,18 @@
     // 시뮬레이터 화면 (새 탭 실행용, opener 주소를 모를 때)
     const SIMULATOR_URL = '/simulateup/pidSimulatorUp';
     const TEST_VERSION = -1;
-    // 노드 크기와 간격 (SVG 좌표)
-    const NODE = { w: 220, h: 72, r: 10 };
-    const GAP = {
-        v: { level: 80, sib: 20 },   // 세로 : 단계 간격 / 형제 간격
-        h: { level: 112, sib: 14 },  // 가로
+    // 노드 크기와 간격 (SVG 좌표). full : 기본 상자 / compact : 작게 보기 (PID + 배지만, 이름 등은 툴팁과 상세 패널)
+    // gap.v / gap.h : 세로 / 가로 방향의 단계 간격, 형제 간격. zoom : 처음 열 때 / 방향을 바꿀 때 비율
+    const SIZES = {
+        full: { w: 220, h: 72, r: 10, zoom: 0.5, gap: { v: { level: 80, sib: 20 }, h: { level: 112, sib: 14 } } },
+        compact: { w: 172, h: 34, r: 7, zoom: 0.8, gap: { v: { level: 64, sib: 10 }, h: { level: 92, sib: 8 } } },
     };
+    let NODE = SIZES.full;
+    // 하위가 없는 형제가 min 개 이상이면 격자로 묶는다. maxMain : 상위→하위 방향으로 놓는 최대 칸 수
+    // gap.main / gap.cross : 격자 칸 간격 (펼치기 단추가 들어갈 자리 포함), pad : 묶음 테두리 여백
+    const GRID = { min: 6, maxMain: 4, gap: { v: { main: 36, cross: 14 }, h: { main: 50, cross: 18 } }, pad: 10 };
     const BAND_LABEL = 112;          // 깊이 띠 이름 칸
     const ZOOM_MIN = 0.1, ZOOM_MAX = 3;
-    const DEFAULT_ZOOM = 0.5;        // 처음 열 때 / 방향을 바꿀 때 비율
     // 실행된 호출 선 위의 흐르는 빛 : 보이는 상자가 이보다 많으면 끈다 (화면 이동이 무거워지지 않게)
     const FLOW_MAX = 300;
     // 고유 하위 PID 가 이보다 많으면 처음에는 깊이 4 부터 접어 둔다
@@ -596,6 +632,8 @@
     const STORE_DIR = 'pidSimulUp.mindMap.dir2';
     const STORE_LEGEND = 'pidSimulUp.mindMap.legend';
     const STORE_IDLE = 'pidSimulUp.mindMap.idle';
+    const STORE_SIZE = 'pidSimulUp.mindMap.size';
+    const STORE_GRID = 'pidSimulUp.mindMap.grid';
     const STORE_THEME = 'pidSimulUp.mindMap.theme';   // head 의 테마 선택 스크립트와 같은 키
 
     // 노드 색 (SVG 안에 직접 넣어 이미지 저장에도 그대로 나온다)
@@ -659,7 +697,11 @@
         nodes: new Map(),    // 노드 id → 노드
         byPid: new Map(),    // PID → [노드] (같은 PID 가 여러 위치에 나올 수 있음)
         dir: 'h',
-        view: { k: DEFAULT_ZOOM, x: 0, y: 0 },
+        size: 'full',        // 상자 크기 (SIZES 의 키)
+        grid: true,          // 하위 없는 형제를 격자로 묶기
+        focus: null,         // 가지 보기 중심 노드 id (null 이면 전체)
+        levels: null,        // 직전 배치의 깊이별 위치 {pos, size, base}
+        view: { k: SIZES.full.zoom, x: 0, y: 0 },
         selected: null,      // 선택한 노드 id
         matches: [],         // 검색에 맞는 PID
         matchIdx: -1,
@@ -834,50 +876,93 @@
         return 'run';
     }
 
+    // 지금 그리는 트리의 맨 앞 (가지 보기 중이면 그 노드)
+    const viewRoot = () => state.nodes.get(state.focus) || state.root;
+    // 가지 보기 범위 안의 노드인지
+    function inFocus(node) {
+        if (!state.focus) return true;
+        for (let p = node; p; p = p.parent) if (p.id === state.focus) return true;
+        return false;
+    }
+
     // ---------- 배치 (상위 → 하위, 부모는 자식들의 가운데) ----------
+    // 하위가 없는 자식이 많으면 한 줄로 늘어세우지 않고 격자로 묶는다 (n.grid, 자식은 c.cell).
+    // 격자는 상위→하위 방향으로도 칸을 쓰므로, 깊이마다 가장 넓은 격자만큼 다음 깊이를 민다 (깊이 띠가 어긋나지 않게)
     function layout() {
-        const g = GAP[state.dir];
-        const cross = state.dir === 'v' ? NODE.w : NODE.h;
-        const step = state.dir === 'v' ? NODE.h + g.level : NODE.w + g.level;
+        const V = state.dir === 'v', g = NODE.gap[state.dir], gg = GRID.gap[state.dir];
+        const cross = V ? NODE.w : NODE.h, main = V ? NODE.h : NODE.w;
+        const top = viewRoot(), base = top.level;
+        const levelMain = [];
+        const isBranch = (c) => c.open && shownKids(c).length > 0;
         const measure = (n) => {
+            const lv = n.level - base;
+            levelMain[lv] = Math.max(levelMain[lv] || 0, main);
+            n.grid = null;
             const vis = n.open ? shownKids(n) : [];
-            if (!vis.length) return (n.span = cross);
-            let sum = 0;
-            vis.forEach((c, i) => { sum += measure(c) + (i ? g.sib : 0); });
+            vis.forEach((c) => { c.cell = false; });
+            const leaves = state.grid ? vis.filter((c) => !isBranch(c)) : [];
+            if (leaves.length >= GRID.min) {
+                const m = Math.min(GRID.maxMain, Math.ceil(Math.sqrt(leaves.length / 2)));
+                const k = Math.ceil(leaves.length / m);
+                // 접힌 가지가 있으면 끝 칸의 펼치기 단추가 테두리 안에 들어오게 여백을 더 둔다
+                const toggled = leaves.some((c) => shownCount(c) && !c.cycle && !c.idle);
+                n.grid = { cells: leaves, m, k, padEnd: toggled ? (V ? 30 : 44) : GRID.pad, span: k * cross + (k - 1) * gg.cross + GRID.pad * 2 };
+                leaves.forEach((c) => { c.cell = true; c.span = cross; });
+                levelMain[lv + 1] = Math.max(levelMain[lv + 1] || 0, m * main + (m - 1) * gg.main);
+            }
+            let sum = n.grid ? n.grid.span : 0;
+            vis.filter((c) => !c.cell).forEach((c, i) => { sum += measure(c) + (i || n.grid ? g.sib : 0); });
             return (n.span = Math.max(cross, sum));
         };
+        top.cell = false;
+        measure(top);
+        const pos = [0];
+        for (let i = 1; i < levelMain.length; i++) pos[i] = pos[i - 1] + levelMain[i - 1] + g.level;
+        const at = (n, m, c) => { if (V) { n.x = c; n.y = m; } else { n.x = m; n.y = c; } };
         const place = (n, start) => {
-            const center = start + n.span / 2;
-            if (state.dir === 'v') { n.x = center - NODE.w / 2; n.y = n.level * step; }
-            else { n.x = n.level * step; n.y = center - NODE.h / 2; }
-            const vis = n.open ? shownKids(n) : [];
-            if (!vis.length) return;
-            let total = 0;
-            vis.forEach((c, i) => { total += c.span + (i ? g.sib : 0); });
+            const lv = n.level - base, center = start + n.span / 2;
+            at(n, pos[lv], center - cross / 2);
+            const items = (n.open ? shownKids(n) : []).filter((c) => !c.cell);
+            let total = n.grid ? n.grid.span : 0;
+            items.forEach((c, i) => { total += c.span + (i || n.grid ? g.sib : 0); });
             let s = center - total / 2;
-            vis.forEach((c) => { place(c, s); s += c.span + g.sib; });
+            items.forEach((c) => { place(c, s); s += c.span + g.sib; });
+            if (!n.grid) return;
+            // 격자 : 읽는 순서 (왼쪽 → 오른쪽, 위 → 아래) 로 로직 순서대로 채운다
+            const gr = n.grid, m0 = pos[lv + 1], c0 = s + GRID.pad;
+            gr.cells.forEach((c, i) => {
+                const mi = V ? Math.floor(i / gr.k) : i % gr.m;
+                const ci = V ? i % gr.k : Math.floor(i / gr.m);
+                at(c, m0 + mi * (main + gg.main), c0 + ci * (cross + gg.cross));
+            });
+            const mLen = GRID.pad + gr.m * main + (gr.m - 1) * gg.main + gr.padEnd;
+            gr.box = V ? { x: s, y: m0 - GRID.pad, w: gr.span, h: mLen } : { x: m0 - GRID.pad, y: s, w: mLen, h: gr.span };
         };
-        measure(state.root);
-        place(state.root, 0);
+        place(top, 0);
+        state.levels = { pos, size: levelMain, base };
     }
 
     function visibleNodes() {
         const out = [];
         const walk = (n) => { out.push(n); if (n.open) shownKids(n).forEach(walk); };
-        walk(state.root);
+        walk(viewRoot());
         return out;
     }
 
     // ---------- 그리기 ----------
     function edgePath(p, c) {
+        return state.dir === 'v' ? edgePathTo(p, c.x + NODE.w / 2, c.y) : edgePathTo(p, c.x, c.y + NODE.h / 2);
+    }
+    // 부모 p 에서 점 (x2, y2) 까지 꺾인 선
+    function edgePathTo(p, x2, y2) {
         if (state.dir === 'v') {
-            const x1 = p.x + NODE.w / 2, y1 = p.y + NODE.h, x2 = c.x + NODE.w / 2, y2 = c.y;
+            const x1 = p.x + NODE.w / 2, y1 = p.y + NODE.h;
             const mid = y1 + (y2 - y1) / 2;
             if (Math.abs(x2 - x1) < 1) return `M${x1},${y1}V${y2}`;
             const d = Math.sign(x2 - x1), r = Math.min(10, Math.abs(x2 - x1) / 2, (y2 - y1) / 4);
             return `M${x1},${y1}V${mid - r}Q${x1},${mid} ${x1 + d * r},${mid}H${x2 - d * r}Q${x2},${mid} ${x2},${mid + r}V${y2}`;
         }
-        const x1 = p.x + NODE.w, y1 = p.y + NODE.h / 2, x2 = c.x, y2 = c.y + NODE.h / 2;
+        const x1 = p.x + NODE.w, y1 = p.y + NODE.h / 2;
         const mid = x1 + (x2 - x1) / 2;
         if (Math.abs(y2 - y1) < 1) return `M${x1},${y1}H${x2}`;
         const d = Math.sign(y2 - y1), r = Math.min(10, Math.abs(y2 - y1) / 2, (x2 - x1) / 4);
@@ -933,18 +1018,24 @@
         const twin = !selected && state.selected && state.nodes.get(state.selected) && state.nodes.get(state.selected).pid === node.pid;
         const textC = isRoot ? C.rootText : (node.idle ? C.muted : C.ink);
         const mutedC = isRoot ? C.rootMuted : C.muted;
+        // 작게 보기 : 한 줄 (PID + 배지). 이름과 호출 정보는 툴팁 / 상세 패널로
+        const compact = state.size === 'compact';
         const badge = badgeOf(node, s);
-        const badgeW = badge ? Math.ceil(textW(badge.text, `bold 11px ${FONT}`)) + 14 : 0;
-        const pidFont = `bold 15px ${MONO}`;
-        const pidText = fit(node.pid, pidFont, NODE.w - 28 - badgeW - 6);
+        const badgeFs = compact ? 10 : 11, badgeH = compact ? 16 : 20;
+        const badgeW = badge ? Math.ceil(textW(badge.text, `bold ${badgeFs}px ${FONT}`)) + (compact ? 10 : 14) : 0;
+        const badgeX = NODE.w - (compact ? 6 : 10) - badgeW, badgeY = compact ? (NODE.h - badgeH) / 2 : 10;
+        const textX = compact ? 15 : 18;
+        const pidFs = compact ? 13 : 15;
+        const pidText = fit(node.pid, `bold ${pidFs}px ${MONO}`, NODE.w - textX - 10 - badgeW - 6);
+        const meta = metaOf(node, s);
         const nameText = fit(s.name || (node.idle ? '이름 정보 없음 (실행 안 됨)' : s.error ? '이름 없음 (실행 실패)' : ''), `13px ${FONT}`, NODE.w - 28);
-        const metaText = fit(metaOf(node, s), `11.5px ${FONT}`, NODE.w - 28);
+        const metaText = fit(meta, `11.5px ${FONT}`, NODE.w - 28);
         // 점선 테두리는 미실행 상자만
         const dash = node.idle ? ' stroke-dasharray="5 3"' : '';
         const baseStroke = { root: C.rootGlow, run: C.runStroke, err: C.errStroke, idle: C.idleStroke }[kind];
         const stroke = selected || twin ? C.select : (matched && !isRoot ? C.matchStroke : baseStroke);
         const sw = selected ? 2.5 : (twin || matched ? 1.5 : 1);
-        const tip = [node.pid + (s.name ? ` ${s.name}` : ''), s.error ? `실패 : ${s.error}` : ''].filter(Boolean).join('\n');
+        const tip = [node.pid + (s.name ? ` ${s.name}` : ''), compact ? meta : '', s.error ? `실패 : ${s.error}` : ''].filter(Boolean).join('\n');
 
         let h = `<g class="m-node" data-id="${node.id}" transform="translate(${node.x},${node.y})" tabindex="0" role="treeitem"`
             + ` aria-label="${esc(node.pid + ' ' + (s.name || ''))}" aria-selected="${selected}"`
@@ -964,14 +1055,24 @@
         h += `<rect class="m-card" width="${NODE.w}" height="${NODE.h}" rx="${NODE.r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"${twin ? ' stroke-dasharray="4 3"' : dash}/>`;
         // 위쪽 반사광
         if (!node.idle) h += `<rect x="1" y="1" width="${NODE.w - 2}" height="${NODE.h / 2}" rx="${NODE.r - 1}" fill="#ffffff" fill-opacity="${isRoot ? .1 : C.sheen}"/>`;
-        if (accent) h += `<rect x="6" y="12" width="3.5" height="${NODE.h - 24}" rx="1.75" fill="${accent}"/>`;
-        h += `<text x="18" y="26" font-family='${MONO}' font-size="15" font-weight="700" fill="${textC}">${esc(pidText)}</text>`;
+        const barY = compact ? 8 : 12;
+        if (accent) h += `<rect x="${compact ? 5 : 6}" y="${barY}" width="3.5" height="${NODE.h - barY * 2}" rx="1.75" fill="${accent}"/>`;
+        h += `<text x="${textX}" y="${compact ? NODE.h / 2 + 4.5 : 26}" font-family='${MONO}' font-size="${pidFs}" font-weight="700" fill="${textC}">${esc(pidText)}</text>`;
         if (badge) {
-            h += `<rect x="${NODE.w - 10 - badgeW}" y="10" width="${badgeW}" height="20" rx="10" fill="${badge.bg}"${badge.stroke ? ` stroke="${badge.stroke}"` : ''}/>`
-                + `<text x="${NODE.w - 10 - badgeW / 2}" y="24" text-anchor="middle" font-family='${FONT}' font-size="11" font-weight="700" fill="${badge.fg}">${esc(badge.text)}</text>`;
+            h += `<rect x="${badgeX}" y="${badgeY}" width="${badgeW}" height="${badgeH}" rx="${badgeH / 2}" fill="${badge.bg}"${badge.stroke ? ` stroke="${badge.stroke}"` : ''}/>`
+                + `<text x="${badgeX + badgeW / 2}" y="${badgeY + (compact ? 11.5 : 14)}" text-anchor="middle" font-family='${FONT}' font-size="${badgeFs}" font-weight="700" fill="${badge.fg}">${esc(badge.text)}</text>`;
         }
-        h += `<text x="18" y="46" font-family='${FONT}' font-size="13" font-weight="600" fill="${textC}" fill-opacity="${isRoot ? 1 : .9}">${esc(nameText)}</text>`;
-        h += `<text x="18" y="63" font-family='${FONT}' font-size="11.5" fill="${mutedC}">${esc(metaText)}</text>`;
+        if (!compact) {
+            h += `<text x="18" y="46" font-family='${FONT}' font-size="13" font-weight="600" fill="${textC}" fill-opacity="${isRoot ? 1 : .9}">${esc(nameText)}</text>`;
+            h += `<text x="18" y="63" font-family='${FONT}' font-size="11.5" fill="${mutedC}">${esc(metaText)}</text>`;
+        }
+        // 격자 칸은 선 위 ×N 대신 상자 왼쪽 위 모서리에 호출 횟수
+        if (node.cell && !node.idle && node.count > 1) {
+            const t = `×${node.count}`, tc = s.error ? C.err : state.inferred ? C.line : C.run;
+            const tw = textW(t, `bold 10.5px ${FONT}`) + 10;
+            h += `<g transform="translate(${10 + tw / 2},0)"><rect x="${-tw / 2}" y="-9" width="${tw}" height="18" rx="9" fill="${C.canvas}" stroke="${tc}"/>`
+                + `<text y="3.5" text-anchor="middle" font-family='${FONT}' font-size="10.5" font-weight="700" fill="${tc}">${t}</text></g>`;
+        }
         h += '</g></g>';
 
         // 펼치기 / 접기 단추
@@ -1009,7 +1110,7 @@
             const lag = Math.min(i * ANIM.stagger, ANIM.maxStagger);
             // 상대 깊이 r : 처음 그릴 때는 대상 PID 가 0, 가지를 펼칠 때는 새로 보이는 자식이 0 (바로 선부터)
             const t = (n.level - base) * ANIM.step + lag;
-            plan.set(n.id, n.parent ? { edge: t, node: t + ANIM.edge * .75 } : { edge: 0, node: lag });
+            plan.set(n.id, n.parent && n.id !== state.focus ? { edge: t, node: t + ANIM.edge * .75 } : { edge: 0, node: lag });
         });
         return plan;
     }
@@ -1025,21 +1126,23 @@
         for (let p = state.nodes.get(state.selected); p && p.parent; p = p.parent) hot.add(p.id);
 
         // 테두리
+        const L = state.levels;
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, maxLevel = 0;
         nodes.forEach((n) => {
             minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
             maxX = Math.max(maxX, n.x + NODE.w); maxY = Math.max(maxY, n.y + NODE.h);
-            maxLevel = Math.max(maxLevel, n.level);
+            maxLevel = Math.max(maxLevel, n.level - L.base);
         });
 
-        // 깊이 띠 (도면의 구역 표시처럼 단계마다 번갈아 칠한다)
-        const g = GAP[state.dir];
+        // 깊이 띠 (도면의 구역 표시처럼 단계마다 번갈아 칠한다). 가지 보기 중이면 깊이는 원래 트리 기준
+        const g = NODE.gap[state.dir];
         let bands = '';
         for (let lv = 0; lv <= maxLevel; lv++) {
-            const label = lv === 0 ? '대상 PID' : `깊이 ${lv + 1}`;
+            const label = lv ? `깊이 ${L.base + lv + 1}` : state.focus ? '가지 중심' : '대상 PID';
             // 전부 새로 그릴 때는 깊이 띠도 단계별로 나타난다
             const ba = fullDraw && plan.size ? ` class="mm-fade" style="--delay:${Math.max(0, lv * ANIM.step - 120)}ms"` : '';
-            const count = nodes.filter((n) => n.level === lv).length;
+            const count = nodes.filter((n) => n.level - L.base === lv).length;
+            const band = L.size[lv] + g.level;
             // 깊이 이름표 (알약 모양) : 이름 + 상자 수
             const sub = lv ? `  ${count}개` : '';
             const pw = textW(label, `bold 12.5px ${FONT}`) + (sub ? textW(sub, `12.5px ${FONT}`) : 0) + 28;
@@ -1048,25 +1151,28 @@
                 + `<text y="4.5" text-anchor="middle" font-family='${FONT}' font-size="12.5" font-weight="700" fill="${lv ? C.bandText : C.pillRootText}">${label}`
                 + (sub ? `<tspan font-weight="400" fill="${C.bandMuted}">${sub}</tspan>` : '') + '</text></g>';
             if (state.dir === 'v') {
-                const y = lv * (NODE.h + g.level) - g.level / 2;
+                const y = L.pos[lv] - g.level / 2;
                 const x = minX - BAND_LABEL - 24, w = maxX - x + 40;
-                bands += `<rect${ba} x="${x}" y="${y}" width="${w}" height="${NODE.h + g.level}" fill="${C.band}" fill-opacity="${lv % 2 ? 0 : C.bandOp}"/>`
-                    + pill(x + 14 + pw / 2, y + (NODE.h + g.level) / 2);
+                bands += `<rect${ba} x="${x}" y="${y}" width="${w}" height="${band}" fill="${C.band}" fill-opacity="${lv % 2 ? 0 : C.bandOp}"/>`
+                    + pill(x + 14 + pw / 2, y + band / 2);
             } else {
-                const x = lv * (NODE.w + g.level) - g.level / 2;
+                const x = L.pos[lv] - g.level / 2;
                 const y = minY - 56, hgt = maxY - y + 30;
-                bands += `<rect${ba} x="${x}" y="${y}" width="${NODE.w + g.level}" height="${hgt}" fill="${C.band}" fill-opacity="${lv % 2 ? 0 : C.bandOp}"/>`
-                    + pill(x + (NODE.w + g.level) / 2, y + 26);
+                bands += `<rect${ba} x="${x}" y="${y}" width="${band}" height="${hgt}" fill="${C.band}" fill-opacity="${lv % 2 ? 0 : C.bandOp}"/>`
+                    + pill(x + band / 2, y + 26);
             }
         }
         $('layerBands').innerHTML = bands;
+        renderCrumb();
 
         // 선
         let edges = '', tags = '';
         const flowOn = !reduceMotion && !state.inferred && nodes.length <= FLOW_MAX;
         nodes.forEach((n) => {
             if (!n.open) return;
+            if (n.grid) edges += groupSvg(n, plan, hot, flowOn);
             shownKids(n).forEach((c) => {
+                if (c.cell) return;   // 격자 칸은 묶음 선 하나로 (groupSvg)
                 const s = state.info.get(c.pid) || {};
                 const isHot = hot.has(c.id);
                 // 실행 안 된 호출 : 회색 점선 (호출 횟수 표시 없음)
@@ -1105,6 +1211,78 @@
         state.bounds = state.dir === 'v'
             ? { x: minX - BAND_LABEL - 24, y: minY - g.level / 2, w: maxX - minX + BAND_LABEL + 64, h: maxY - minY + g.level }
             : { x: minX - g.level / 2, y: minY - 56, w: maxX - minX + g.level, h: maxY - minY + 86 };
+    }
+
+    // 격자로 묶은 하위 없는 자식들 : 묶음 테두리 하나와, 부모에서 테두리까지 선 하나
+    function groupSvg(n, plan, hot, flowOn) {
+        const gr = n.grid, b = gr.box;
+        const runN = gr.cells.filter((c) => !c.idle).length;
+        const isHot = gr.cells.some((c) => hot.has(c.id));
+        // 연출 시각은 가장 먼저 나타나는 칸 기준
+        const a = gr.cells.map((c) => plan.get(c.id)).filter(Boolean).sort((p, q) => p.edge - q.edge)[0];
+        const color = !runN ? (isHot ? C.idleHot : C.idle) : state.inferred ? (isHot ? C.lineHot : C.line) : (isHot ? C.runHot : C.run);
+        const d = state.dir === 'v' ? edgePathTo(n, b.x + b.w / 2, b.y) : edgePathTo(n, b.x, b.y + b.h / 2);
+        const fadeAttr = a ? ` class="mm-fade" style="--delay:${a.edge}ms"` : '';
+        const drawAttr = a ? ` class="mm-draw" pathLength="1" style="--delay:${a.edge}ms"` : '';
+        const tip = `${n.pid} 가 호출한 하위 없는 PID ${gr.cells.length}개 (실행 ${runN}, 미실행 ${gr.cells.length - runN})`;
+        const t = `${gr.cells.length}개`, tw = textW(t, `bold 11px ${FONT}`) + 14;
+        let h = `<g${fadeAttr}><title>${esc(tip)}</title>`
+            + `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${NODE.r + 4}" fill="${color}" fill-opacity=".05" stroke="${color}" stroke-opacity=".55" stroke-dasharray="6 4"/>`
+            + `<g transform="translate(${b.x + b.w - 14 - tw / 2},${b.y})"><rect x="${-tw / 2}" y="-10" width="${tw}" height="20" rx="10" fill="${C.canvas}" stroke="${color}"/>`
+            + `<text y="4" text-anchor="middle" font-family='${FONT}' font-size="11" font-weight="700" fill="${color}">${t}</text></g></g>`;
+        // 모두 미실행이면 회색 점선
+        if (!runN) return h + `<path${fadeAttr} d="${d}" fill="none" stroke="${color}" stroke-width="${isHot ? 2.4 : 1.4}" stroke-dasharray="5 4"/>`;
+        h += `<path${fadeAttr} d="${d}" fill="none" stroke="${color}" stroke-opacity="${isHot ? C.glowOp * 2 : C.glowOp}" stroke-width="${isHot ? 10 : 7}" stroke-linecap="round"/>`
+            + `<path${drawAttr} d="${d}" fill="none" stroke="${color}" stroke-width="${isHot ? 3.2 : (state.inferred ? 1.6 : 2.2)}"/>`;
+        if (flowOn) h += `<path class="flow" d="${d}" fill="none" stroke="${C.flow}" stroke-opacity=".85" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 16" style="--delay:${a ? a.node + 250 : 0}ms"/>`;
+        return h;
+    }
+
+    // 가지 보기 경로 : 대상 PID ▸ … ▸ 중심 PID. 앞쪽 단계를 누르면 그 가지로 올라간다
+    function renderCrumb() {
+        const f = state.focus && state.nodes.get(state.focus);
+        $('crumb').hidden = !f;
+        $('stage').classList.toggle('focused', !!f);
+        if (!f) { $('crumb').innerHTML = ''; return; }
+        const path = [];
+        for (let p = f; p; p = p.parent) path.unshift(p);
+        // 경로가 길면 가운데를 줄인다
+        const items = path.length > 6 ? path.slice(0, 1).concat(null, path.slice(-4)) : path;
+        const s = state.info.get(f.pid) || {};
+        $('crumb').innerHTML = '<span class="lbl"><svg class="ico sm" aria-hidden="true"><use href="#i-focus"/></svg>가지 보기</span>'
+            + items.map((p, i) => (i ? '<span class="gt" aria-hidden="true">▸</span>' : '')
+                + (!p ? '<span class="gt">…</span>'
+                    : p === f ? `<span class="cur" title="${esc(f.pid + (s.name ? ' ' + s.name : ''))}">${esc(p.pid)}</span>`
+                        : `<button type="button" class="step" data-crumb="${p.id}" title="${esc(p.pid)} ${p.parent ? '가지로 올라가기' : '(전체 보기)'}">${esc(p.pid)}</button>`)).join('')
+            + '<button type="button" class="exit" data-crumb="" title="전체 관계도로 돌아가기 (Esc)"><svg class="ico sm" aria-hidden="true"><use href="#i-x"/></svg>전체 보기</button>';
+    }
+    $('crumb').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-crumb]');
+        if (b) setFocus(b.dataset.crumb);
+    });
+
+    // 이 노드 아래 가지만 그린다 (id 가 없거나 대상 PID 면 전체 보기)
+    function setFocus(id) {
+        const prev = state.nodes.get(state.focus);
+        const node = id ? state.nodes.get(id) : null;
+        const f = node && node.parent && !node.cycle && !node.idle ? node : null;
+        if (f) { buildKids(f); f.open = true; }
+        state.focus = f ? f.id : null;
+        const sel = state.nodes.get(state.selected);
+        if (sel && !inFocus(sel)) state.selected = null;
+        state.shown = null;
+        render();
+        renderPanel();
+        // 위로 올라가거나 전체로 나오면 방금 보던 가지를 가운데에
+        if (prev && prev !== f && inFocus(prev)) centerOn(prev);
+        else animateTo(defaultView());
+    }
+
+    // 배치가 바뀐 뒤 (상자 크기 / 묶어 보기) : 선택한 상자가 있으면 그곳을, 없으면 기본 보기로
+    function viewAfterRelayout() {
+        const sel = state.nodes.get(state.selected);
+        if (sel && state.shown && state.shown.has(sel.id)) centerOn(sel);
+        else animateTo(defaultView());
     }
 
     // ---------- 확대 / 이동 ----------
@@ -1146,9 +1324,9 @@
         const target = { k, x: (r.width - b.w * k) / 2 - b.x * k, y: (r.height - b.h * k) / 2 - b.y * k };
         if (smooth) animateTo(target); else { state.view = target; applyView(); }
     }
-    // 기본 보기 (50%) : 다 들어가면 가운데, 넘치면 그리는 방향의 시작(대상 PID)부터 보이게
+    // 기본 보기 (NODE.zoom) : 다 들어가면 가운데, 넘치면 그리는 방향의 시작(대상 PID / 가지 중심)부터 보이게
     function defaultView() {
-        const b = state.bounds, r = svg.getBoundingClientRect(), root = state.root, k = DEFAULT_ZOOM;
+        const b = state.bounds, r = svg.getBoundingClientRect(), root = viewRoot(), k = NODE.zoom;
         if (!b || !r.width) return Object.assign({}, state.view, { k });
         const fitsW = b.w * k <= r.width - 48, fitsH = b.h * k <= r.height - 48;
         const x = fitsW ? (r.width - b.w * k) / 2 - b.x * k
@@ -1224,6 +1402,8 @@
         const node = firstNode(pid, from);
         if (!node) return;
         if (node.idle && !state.showIdle) setShowIdle(true);
+        // 보고 있는 가지 밖이면 전체 보기로 나간다
+        if (!inFocus(node)) { state.focus = null; state.shown = null; }
         reveal(node);
         select(node.id, { center: true });
     }
@@ -1366,6 +1546,10 @@
             + (node.ref ? `<button type="button" data-go="${esc(node.pid)}" title="하위까지 펼쳐 둔 위치로 이동"><svg class="ico sm" aria-hidden="true"><use href="#i-target"/></svg>펼친 위치로 이동</button>` : '')
             + `<button type="button" data-center="${node.id}"><svg class="ico sm" aria-hidden="true"><use href="#i-target"/></svg>화면 가운데로</button>`
             + (shownCount(node) && !node.cycle ? `<button type="button" data-toggle-panel="${node.id}">${node.open ? '가지 접기' : '가지 펼치기'}</button>` : '')
+            + (state.focus === node.id
+                ? '<button type="button" data-focus="" title="전체 관계도로 돌아가기 (Esc)"><svg class="ico sm" aria-hidden="true"><use href="#i-x"/></svg>전체 보기</button>'
+                : node.parent && shownCount(node) && !node.cycle
+                    ? `<button type="button" data-focus="${node.id}" title="이 PID 아래 가지만 그리기 (F)"><svg class="ico sm" aria-hidden="true"><use href="#i-focus"/></svg>이 가지만 보기</button>` : '')
             + '</div>';
 
         if (node.parent) {
@@ -1392,6 +1576,7 @@
         const b = e.target.closest('button');
         if (!b) return;
         if (b.hasAttribute('data-back')) select(null);
+        else if (b.hasAttribute('data-focus')) setFocus(b.dataset.focus);
         else if (b.dataset.go) goPid(b.dataset.go, b.dataset.from);
         else if (b.dataset.center) centerOn(state.nodes.get(b.dataset.center));
         else if (b.dataset.togglePanel) toggle(state.nodes.get(b.dataset.togglePanel));
@@ -1475,16 +1660,35 @@
     });
     $('btnCollapse').addEventListener('click', () => {
         if (!state.data) return;
-        state.nodes.forEach((n) => { n.open = !n.parent; });
+        // 가지 보기 중이면 그 중심 바로 아래까지 남긴다
+        state.nodes.forEach((n) => { n.open = !n.parent || n.id === state.focus; });
         const sel = state.nodes.get(state.selected);
-        if (sel && sel.level > 1) state.selected = null;
+        if (sel && sel.level > viewRoot().level + 1) state.selected = null;
         render(); renderPanel(); fitView();
     });
+    function setSize(size, relayout) {
+        state.size = size === 'compact' ? 'compact' : 'full';
+        NODE = SIZES[state.size];
+        $('sizeFull').setAttribute('aria-pressed', String(state.size === 'full'));
+        $('sizeCompact').setAttribute('aria-pressed', String(state.size === 'compact'));
+        $('zoomVal').title = `기본 비율 (${Math.round(NODE.zoom * 100)}%) 로 보기`;
+        try { localStorage.setItem(STORE_SIZE, state.size); } catch (e) { /* 무시 */ }
+        if (relayout && state.data) { render(); viewAfterRelayout(); }
+    }
+    $('sizeFull').addEventListener('click', () => setSize('full', true));
+    $('sizeCompact').addEventListener('click', () => setSize('compact', true));
+    function setGrid(on, relayout) {
+        state.grid = on;
+        $('btnGrid').setAttribute('aria-pressed', String(on));
+        try { localStorage.setItem(STORE_GRID, on ? 'Y' : 'N'); } catch (e) { /* 무시 */ }
+        if (relayout && state.data) { render(); viewAfterRelayout(); }
+    }
+    $('btnGrid').addEventListener('click', () => setGrid(!state.grid, true));
     $('zoomIn').addEventListener('click', () => zoomBy(1.25));
     $('zoomOut').addEventListener('click', () => zoomBy(1 / 1.25));
     $('zoomVal').addEventListener('click', () => {
         const r = svg.getBoundingClientRect();
-        zoomAt(DEFAULT_ZOOM, r.width / 2, r.height / 2, true);
+        zoomAt(NODE.zoom, r.width / 2, r.height / 2, true);
     });
     $('btnFit').addEventListener('click', () => fitView());
     $('btnReload').addEventListener('click', () => window.syncFromOpener());
@@ -1497,7 +1701,11 @@
         else if (e.key === '-') zoomBy(1 / 1.25);
         else if (e.key === '0') fitView();
         else if (e.key === '/') { e.preventDefault(); $('q').focus(); }
-        else if (e.key === 'Escape' && state.selected) select(null);
+        else if (e.key === 'f' || e.key === 'F') { if (state.selected) setFocus(state.selected); }
+        else if (e.key === 'Escape') {
+            if (state.selected) select(null);
+            else if (state.focus) setFocus(null);
+        }
     });
     window.addEventListener('resize', () => { if (state.data) applyView(); });
 
@@ -1592,7 +1800,7 @@
         $('empty').hidden = !title;
         $('legend').hidden = !!title;
         if (title) { $('emptyTitle').textContent = title; $('emptyText').textContent = text; }
-        ['btnIdle', 'btnExpand', 'btnCollapse', 'zoomIn', 'zoomOut', 'zoomVal', 'btnFit', 'btnPng', 'dirV', 'dirH'].forEach((id) => { $(id).disabled = !!title; });
+        ['btnIdle', 'btnGrid', 'sizeFull', 'sizeCompact', 'btnExpand', 'btnCollapse', 'zoomIn', 'zoomOut', 'zoomVal', 'btnFit', 'btnPng', 'dirV', 'dirH'].forEach((id) => { $(id).disabled = !!title; });
         $('q').disabled = !!title;
     }
 
@@ -1600,8 +1808,10 @@
     window.syncFromOpener = function () {
         const { ok, data } = readFromOpener();
         state.selected = null;
+        state.focus = null;
         state.matches = []; state.matchIdx = -1;
         $('q').value = ''; $('qCount').textContent = '';
+        renderCrumb();
         if (!data || !data.root || !data.root.pid) {
             state.data = null;
             $('layerBands').innerHTML = $('layerEdges').innerHTML = $('layerNodes').innerHTML = '';
@@ -1666,6 +1876,8 @@
                 + `<text x="14" y="14" text-anchor="middle" font-family='${FONT}' font-size="11" font-weight="700" fill="#ffffff">+3</text></svg>`,
             sel: `<svg width="34" height="20"><rect x="1" y="1" width="32" height="18" rx="5" fill="${C.runBg}" stroke="${C.select}" stroke-width="2"/></svg>`,
             match: card(C.match, C.matchStroke) + '</svg>',
+            grp: `<svg width="42" height="22"><rect x="1" y="1" width="40" height="20" rx="6" fill="${C.run}" fill-opacity=".05" stroke="${C.run}" stroke-opacity=".55" stroke-dasharray="4 3"/>`
+                + `<rect x="5" y="5" width="14" height="12" rx="2" fill="${C.runBg}" stroke="${C.runStroke}"/><rect x="23" y="5" width="14" height="12" rx="2" fill="${C.runBg}" stroke="${C.runStroke}"/></svg>`,
         };
         document.querySelectorAll('#legend [data-sw]').forEach((dt) => { dt.innerHTML = sw[dt.dataset.sw] || ''; });
     }
@@ -1705,6 +1917,9 @@
     try { if (localStorage.getItem(STORE_DIR) === 'v') state.dir = 'v'; } catch (e) { /* 무시 */ }
     try { state.showIdle = localStorage.getItem(STORE_IDLE) !== 'N'; } catch (e) { /* 무시 */ }
     $('btnIdle').setAttribute('aria-pressed', String(state.showIdle));
+    try { setSize(localStorage.getItem(STORE_SIZE), false); } catch (e) { setSize('full', false); }
+    try { setGrid(localStorage.getItem(STORE_GRID) !== 'N', false); } catch (e) { setGrid(true, false); }
+    state.view.k = NODE.zoom;
     $('dirV').setAttribute('aria-pressed', String(state.dir === 'v'));
     $('dirH').setAttribute('aria-pressed', String(state.dir === 'h'));
     applyView();
