@@ -228,7 +228,7 @@
         src: null,      // 시뮬레이터의 getPidCompareSource()
         base: null,     // 전체 최신 실행 결과
         rows: [],       // {key, a, b, inA, inB, kind}
-        filter: 'changed',
+        filter: 'all',
         q: '',
         hideInner: true,  // 기본 : OUTPUTxxxx 키 숨김
         req: 0,
@@ -404,8 +404,8 @@
             state.base = json;
             state.rows = diffRows(data.resultMap || {}, json.resultMap || {});
             renderBaseInfo(((performance.now() - startedAt) / 1000).toFixed(1));
-            // 차이가 없으면 같은 값을 바로 보여주지 않고 '모두 같음' 안내
-            state.filter = 'changed';
+            // 기본 : 전체 키를 보여준다
+            state.filter = 'all';
             $('toolbar').hidden = false;
             renderTable();
         } catch (e) {

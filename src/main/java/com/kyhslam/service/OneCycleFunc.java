@@ -35,8 +35,8 @@ import java.util.stream.Collectors;
  * 영업사양 하나에 대해 [로그인 -> WIP 생성 -> (속성값 변경) -> 종속사양 산출 -> BOM 계산] 을 한 번에 수행한다.
  * 각 단계는 public 메서드로 분리되어 있어 개별 호출도 가능하다.
  *  - 속성값 변경 없이 : {@link #runOneCycle(String)}
- *  - 속성값 변경 포함 : {@link #runOneCycle(String, Map)}
- *  - 동일정보 생성부터 : {@link #runEqualInfoCycle(String, Map)} (동일정보 생성 -> 속성값 변경 -> 종속사양 산출 -> BOM 계산)
+ *  - 속성값 변경 포함 : {@link #runOneCycleS(String, Map)}
+ *  - 동일정보 생성부터 : {@link #runEqualInfoCycle(tring, Map)} (동일정보 생성 -> 속성값 변경 -> 종속사양 산출 -> BOM 계산)
  *
  * 별도 기능 : 동일정보 만들기 (기존 호기의 사양을 그대로 복사해 새 공사정보(TEST 호기) 생성) - {@link #runEqualInfo(String)}
  * 별도 기능 : 호기 속성정보 변경 ({특성코드: 값} 으로 여러 속성을 한 번에 변경) - {@link #runAttrChange(String, Map, boolean)}
