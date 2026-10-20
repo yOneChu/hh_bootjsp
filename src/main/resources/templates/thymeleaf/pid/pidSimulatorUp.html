@@ -1,9 +1,35 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>PID 실행 시뮬레이터 (Up)</title>
+
+    <script>
+        // 페이지 렌더 전 사이드바 상태 적용 (깜빡임 방지)
+        try { if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed'); } catch (e) { /* 무시 */ }
+    </script>
+
+    <!-- 사이드바(fragments/newSideBar.html) 마크업용 Tailwind : 이 화면 스타일과 섞이지 않도록 #sidebar 안에만 적용 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+    <script>
+        tailwind.config = {
+            corePlugins: { preflight: false },
+            important: '#sidebar',
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: { blue: '#0071E3', blueD: '#0A84FF', ink: '#1D1D1F', gray1: '#8E8E93' }
+                    },
+                    boxShadow: {
+                        btn: '0 2px 10px rgba(0,113,227,.35)',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         /* ===== 디자인 토큰 (PID 플레이그라운드와 같은 체계 : 어두운 헤더 + 밝은 작업 영역) ===== */
         :root {
@@ -65,6 +91,10 @@
         .ico { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
         .ico.sm { width: 13px; height: 13px; vertical-align: -2px; }
 
+        /* ===== 사이드바 (fragments/newSideBar.html) : 본문은 #appContent 가 body 대신 세로 배치 ===== */
+        #appContent { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+        #sidebar { font-family: 'Pretendard Variable', var(--sans); color: #1D1D1F; }
+
         /* ===== 버튼 ===== */
         button {
             display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -124,6 +154,8 @@
         header button.run:hover:not(:disabled) { background: var(--run-dark); }
         header button.run kbd { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.35); color: #fff; }
         header button[aria-expanded="true"] { background: #475569; }
+        header #sbToggle { width: 30px; min-height: 30px; padding: 0; margin-left: -6px; background: transparent; border-color: transparent; }
+        header #sbToggle:hover { background: #334155; }
         .head-spacer { flex: 1; }
         #sourceInfo { color: var(--head-text); font-size: 12px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
         #sourceInfo b { font-family: var(--mono); }
@@ -649,6 +681,11 @@
 </head>
 <body>
 
+<!-- ═══════════ Left Sidebar (fragments/newSideBar.html) ═══════════ -->
+<div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+
+<div id="appContent">
+
 <!-- 아이콘 (SVG, 장식용은 aria-hidden) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
@@ -659,7 +696,6 @@
         <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
         <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></symbol>
         <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
-        <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
         <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
         <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
         <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
@@ -682,6 +718,9 @@
     <form id="searchForm" autocomplete="off">
         <div class="head-row">
             <div class="brand">
+                <button type="button" id="sbToggle" title="사이드바 열기/닫기" aria-label="사이드바 열기/닫기">
+                    <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                </button>
                 <h1>PID 실행 시뮬레이터</h1>
                 <span class="brand-chip" title="PLM DB 의 PID 로직과 영업사양으로 직접 실행합니다 (조회 전용)">
                     <svg class="ico sm" aria-hidden="true"><use href="#i-db"/></svg>PLM DB 직접 실행</span>
@@ -711,7 +750,7 @@
             <button type="button" id="btnCodeDict" title="SPEC 특성코드의 한글명 / 값 목록을 새 창으로 봅니다">
                 <svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span>특성코드 사전</span></button>
             <button type="button" id="btnMindMap" title="실행한 PID 가 CALL 로 호출한 하위 PID 의 호출 관계도를 새 창으로 봅니다">
-                <svg class="ico" aria-hidden="true"><use href="#i-tree"/></svg><span>호출 관계도</span></button>
+                <svg class="ico" aria-hidden="true"><use href="#i-tree"/></svg><span>호출 관계도(Mind-Map)</span></button>
             <div class="head-spacer"></div>
             <div id="sourceInfo" aria-live="polite"></div>
         </div>
@@ -792,7 +831,6 @@
     <button type="button" id="btnCompare" disabled title="최신이 아닌 버전(PID 또는 하위 PID)을 지정해 실행했을 때, 전체 최신 버전으로 실행한 최종 OUTPUT 과 비교합니다">
         <svg class="ico" aria-hidden="true"><use href="#i-compare"/></svg>최신과 비교</button>
     <button type="button" id="btnElvEnt" title="PID 실행 후 최종 영업사양"><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg>최종 영업사양 (<span id="stElvEnt">0</span>)</button>
-    <button type="button" id="btnCsv" title="지금 보이는 라인(필터 · 검색 적용)을 CSV 파일로 저장합니다. 엑셀에서 바로 열 수 있습니다"><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>CSV 저장</button>
     <span class="sep" aria-hidden="true"></span>
     <label class="chk" title="JSP 원본처럼 SPEC/CON, KEY/VAL을 각각 컬럼으로 펼쳐서 봅니다"><input type="checkbox" id="fullView"> 원본 컬럼 펼치기</label>
     <label class="chk"><input type="checkbox" id="hideBlank"> 빈 라인 숨기기</label>
@@ -862,6 +900,8 @@
     </aside>
 </div>
 
+</div><!-- /#appContent -->
+
 <script>
     // PID 시뮬 실행 API (PIDSimulatorUpController → PIDSimulatorUpService → util.pidSimulatorUp.PIDSimul)
     const API_URL = '/simulateup/simulatePid';
@@ -901,7 +941,7 @@
         selectedIdx: -1,
         drawerMode: '',   // 'row' | 'final' | 'elvEnt'
         result: null,     // 서버 응답 (PIDSimulResult)
-        query: null,      // 마지막으로 성공한 조회 조건 (CSV 파일명 / CALL 새 탭용)
+        query: null,      // 마지막으로 성공한 조회 조건 (CALL 새 탭 / 최신 비교용)
     };
 
     // ---------- 유틸 ----------
@@ -1393,7 +1433,7 @@
         ].map(nvl).join(' ').toLowerCase();
     }
 
-    // 현재 필터 · 검색어 · 빈 라인 숨기기 기준으로 화면에 보일 라인인지 (테이블 · CSV 공통)
+    // 현재 필터 · 검색어 · 빈 라인 숨기기 기준으로 화면에 보일 라인인지
     function isVisible(row) {
         const status = classify(row);
         if (state.filter === 'true' && status !== 'true') return false;
@@ -1777,58 +1817,6 @@
         syncCodePopup();
         syncMindMapPopup();
         syncComparePopup();
-    }
-
-    // ---------- CSV 저장 (지금 보이는 라인만, 엑셀에서 한글이 깨지지 않도록 BOM 포함) ----------
-    const csvCell = (v) => {
-        const s = nvl(v);
-        return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    };
-
-    function exportCsv() {
-        if (state.result && state.result.javaMethod) return alert('JAVA 방식 PID 는 라인 정보가 없습니다. 최종 OUTPUT 을 확인하세요.');
-        const head = ['#', 'ADDR', '결과', '조건 (SPEC = CON)', '영업사양값', '결과 (KEY = VAL)', 'GOTO', 'OUTPUT', 'REMARK'];
-        const lines = [head.map(csvCell).join(',')];
-        let count = 0;
-        state.rows.forEach((row, i) => {
-            if (!isVisible(row)) return;
-            count++;
-            const status = classify(row);
-            const specs = row.specList || [], cons = row.conList || [], cmps = row.compareResultList || [];
-            const keys = row.keyList || [], vals = row.valList || [];
-            const conds = [], actuals = [], results = [];
-            for (let j = 0; j < usedLength(specs, cons); j++) {
-                if (nvl(specs[j]) === '' && nvl(cons[j]) === '') continue;
-                const c = nvl(cmps[j]);
-                conds.push(`${nvl(specs[j])} = ${nvl(cons[j])}${c === 'F' ? ' (불일치)' : ''}`);
-                const act = actualValue(row, j);
-                if (act !== undefined) actuals.push(`${nvl(specs[j])} = ${actualText(act)}`);
-            }
-            for (let j = 0; j < usedLength(keys, vals); j++) {
-                if (nvl(keys[j]) === '' && nvl(vals[j]) === '') continue;
-                results.push(`${nvl(keys[j])} = ${nvl(vals[j])}`);
-            }
-            lines.push([
-                row.line_no || i + 1, row.ADDR,
-                status === 'unread' ? '미실행' : status.toUpperCase(),
-                conds.join('\n'), actuals.join('\n'), results.join('\n'),
-                row.GOTO, outputLines(row).join('\n'), row.REMARKS,
-            ].map(csvCell).join(','));
-        });
-        if (!count) return alert('저장할 라인이 없습니다. 필터 · 검색 조건을 확인하세요.');
-
-        const q = state.query || { project: 'result', pid: '' };
-        const r = state.result || {};
-        const ver = r.testVersion ? 'TEST' : (r.runVersion !== undefined ? `v${r.runVersion}` : '');
-        const name = `PID_${q.project}_${q.pid}${ver ? '_' + ver : ''}`.replace(/[\\/:*?"<>|\s$@]+/g, '_') + '.csv';
-        const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     }
 
     // ---------- 호출 관계도(마인드맵) 팝업 ----------
@@ -2242,7 +2230,6 @@
     });
     $('btnElvEnt').addEventListener('click', showElvEnt);
     $('btnCompare').addEventListener('click', openComparePopup);
-    $('btnCsv').addEventListener('click', exportCsv);
 
     // ---------- 이벤트: 결과 테이블 (클릭 / 키보드 / 드래그 이동) ----------
     let suppressClick = false;
@@ -2437,6 +2424,10 @@
         if (hasParam && getParam('project') && getParam('pid')) run();
         else $('project').focus();
     })();
+
+    /* ── 사이드바 현재 메뉴 활성화 ── */
+    document.querySelectorAll('#sidebar .sb-link').forEach(function (a) { a.classList.remove('active'); });
+    document.querySelector('#sidebar a[href="/simulateup/pidSimulatorUp"]')?.classList.add('active');
 </script>
 </body>
 </html>

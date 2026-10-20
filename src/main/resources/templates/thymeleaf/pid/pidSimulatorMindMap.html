@@ -9,7 +9,7 @@
         (function () {
             var t = null;
             try { t = localStorage.getItem('pidSimulUp.mindMap.theme'); } catch (e) { /* 무시 */ }
-            if (t !== 'light' && t !== 'dark') t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+            if (t !== 'light' && t !== 'dark') t = 'dark';   // 직접 고른 적이 없으면 다크
             document.documentElement.setAttribute('data-theme', t);
         })();
     </script>
@@ -1898,14 +1898,6 @@
         if (state.data) render();
     }
     $('btnTheme').addEventListener('click', () => applyTheme(state.theme === 'dark' ? 'light' : 'dark', true));
-    // 직접 고른 적이 없으면 운영체제 설정을 따라간다
-    try {
-        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
-            let saved = null;
-            try { saved = localStorage.getItem(STORE_THEME); } catch (err) { /* 무시 */ }
-            if (!saved) applyTheme(e.matches ? 'light' : 'dark', false);
-        });
-    } catch (e) { /* 오래된 브라우저 */ }
 
     // ---------- 시작 ----------
     applyTheme(document.documentElement.getAttribute('data-theme'), false);
