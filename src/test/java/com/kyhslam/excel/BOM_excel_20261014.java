@@ -11,6 +11,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.util.StopWatch;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.math.BigDecimal;
@@ -34,7 +35,8 @@ public class BOM_excel_20261014 {
 
         ArrayList<String> hogiList = new ArrayList<>();
 
-        String fileName = "d:\\excel\\20260910 사양변경내역_R1_261014.xlsx";
+        //String fileName = "d:\\excel\\20260910 사양변경내역_R1_261014.xlsx";
+        String fileName = "d:\\excel\\20261020 마운트_R1_v01.xlsx";
 
         FileInputStream fis = null;
         FileOutputStream fos = null;
@@ -43,15 +45,23 @@ public class BOM_excel_20261014 {
         try {
             // 1. 엑셀 파일 읽기
             fis = new FileInputStream(fileName);
+
             workbook = new XSSFWorkbook(fis);
-
-
             Sheet sheet = workbook.getSheetAt(1);
+
+            //workbook = WorkbookFactory.create(fis);
+            //Sheet sheet = workbook.getSheetAt(2);
+
 
             int rowCnt = sheet.getPhysicalNumberOfRows();
 
             for (int i = 2; i < rowCnt; i++) {
                 Row row = sheet.getRow(i);
+
+                // 1. 빈 행이거나, 필터/수동 숨김 처리된 행이면 건너뛰기
+                if (row == null || row.getZeroHeight()) {
+                    continue;
+                }
 
                 Cell cell0 = row.getCell(3); //호기번호
                 String hogi = cell0.getStringCellValue();
@@ -59,17 +69,15 @@ public class BOM_excel_20261014 {
                 Cell cell5 = row.getCell(5); //자재번호
                 String partNo = cell5.getStringCellValue();
 
-                Cell cell7 = row.getCell(7); //BOM변경일
+                Cell cell7 = row.getCell(10); //BOM변경일
                 //String changeDate = cell7.getStringCellValue();
                 String changeDate = getCellString(cell7, "yyyy-MM-dd");
-
-
 
                 hogi = hogi.substring(0, 9);
                 System.out.println((i) + " > hogi = " + hogi + " , " + changeDate);
 
                 //영업사양
-                /*ArrayList<HashMap<String, String>> list = ElvInfoUtil.findElvData(hogi);
+               /* ArrayList<HashMap<String, String>> list = ElvInfoUtil.findElvData(hogi);
 
                 HashMap<String, String> rMap = new HashMap<>();
 
@@ -85,26 +93,28 @@ public class BOM_excel_20261014 {
                 System.out.println("MANAGER_M = " + MANAGER_M);
                 System.out.println("MANAGER_E = " + MANAGER_E);
 
-                row.createCell(9).setCellValue(MANAGER_M);
-                row.createCell(10).setCellValue(MANAGER_E);*/
+                row.createCell(11).setCellValue(MANAGER_M);
+                row.createCell(12).setCellValue(MANAGER_E);
+*/
 
 
                 //1.호기번호의 최신 OID
                 HashMap<String, String> pMap = getProductInfo(hogi, changeDate);
 
-                row.createCell(11).setCellValue(pMap.get("CRE_USER")); // ECO 등록자
-
                 //GUBUN
-                row.createCell(12).setCellValue(pMap.get("GUBUN")); // 구분
-                row.createCell(13).setCellValue(pMap.get("EC_CLASS_DESC")); // 구분내역_실시시기
+                row.createCell(13).setCellValue(pMap.get("GUBUN")); // 구분
+                row.createCell(14).setCellValue(pMap.get("EC_CLASS_DESC")); // 구분내역_실시시기
 
-                row.createCell(14).setCellValue(pMap.get("ECONO"));
-                row.createCell(15).setCellValue(pMap.get("ECONAME"));
+                row.createCell(15).setCellValue(pMap.get("CRE_USER")); // ECO 등록자
 
-                row.createCell(16).setCellValue(pMap.get("APPROVAL_DATE"));
-                row.createCell(17).setCellValue(pMap.get("CONTENT"));
-                row.createCell(18).setCellValue(pMap.get("REMARKS1"));
-                row.createCell(19).setCellValue(pMap.get("REMARKS2"));
+                row.createCell(16).setCellValue(pMap.get("ECONO"));
+                row.createCell(17).setCellValue(pMap.get("ECONAME")); // ECO 제목
+                row.createCell(18).setCellValue(pMap.get("APPROVAL_DATE"));
+
+                row.createCell(19).setCellValue(pMap.get("CONTENT"));
+                row.createCell(20).setCellValue(pMap.get("REMARKS1"));
+                row.createCell(21).setCellValue(pMap.get("REMARKS2"));
+
 
             }
 
