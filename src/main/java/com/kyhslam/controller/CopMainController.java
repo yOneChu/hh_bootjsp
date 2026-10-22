@@ -15,6 +15,7 @@ import java.util.Map;
  *
  *   GET /cop                    -> /cop/main 으로 이동
  *   GET /cop/main               : 메인 화면 (하위 화면으로 연결되는 첫 화면)
+ *   GET /cop2/main              : 임원 보고용 메인 화면 (간결한 버전)
  *   GET /cop/radar              : 6F 이상감지 관제 화면
  *   GET /cop/radar/anomalies    : 관제 화면 데이터 (BomAnomalyService, 지금은 데모)
  *   GET /cop/diff               : 4F 호기 BOM 비교 화면 (?a=기준호기&b=비교호기)
@@ -39,6 +40,12 @@ public class CopMainController {
     @GetMapping("/cop/main")
     public String main() {
         return "thymeleaf/cop/bomCopMain";
+    }
+
+    /** 임원 보고용 메인 화면 (bomCopMain 의 간결한 버전) */
+    @GetMapping("/cop2/main")
+    public String main2() {
+        return "thymeleaf/cop2/copMain";
     }
 
     @GetMapping("/cop/radar")

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SENTINEL · BOM 이상감지</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        BOM 이상감지 플랫폼 SENTINEL — 임원 보고용 메인 화면 (cop/bomCopMain.html 의 간결한 버전)
+
+        화면 구성 (위 → 아래, 한 화면에 한 메시지)
+          0. 히어로   : 핵심 메시지 + 오늘의 BOM 상태 카드
+          1. 성과     : 도입 전/후 비교 숫자 4개
+          2. 이상 유형 : 수량 급증 / 자재 누락 / 사양 불일치 / 중복 수배
+          3. 처리 흐름 : 호기 확인 → … → 이상 판정 (7단계)
+          4. 기능     : 하위 화면 바로가기. 주소는 아래 MODULES (script) 에서 관리. ready:false 면 '준비 중'
+
+        외부 라이브러리 없음 (사내망 대응). 폰트는 CDN 이 막히면 맑은 고딕으로 표시된다.
+        화면의 수치·호기번호는 모두 샘플이며 DEMO 표시를 붙였다.
+    -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <style>
+        /* ════════════ 토큰 ════════════ */
+        :root {
+            --bg:       #F6F7F9;
+            --surface:  #FFFFFF;
+            --line:     #E4E7EC;
+            --line-2:   #D0D5DD;
+
+            --ink:      #0B1220;
+            --ink-2:    #3F4A5C;
+            --ink-3:    #667085;
+
+            --brand:    #1E40AF;          /* 신뢰 · 주요 동작 */
+            --brand-2:  #2F5BEA;
+            --brand-bg: #EEF2FF;
+            --alert:    #D92D20;          /* 이상 */
+            --alert-bg: #FEF3F2;
+            --ok:       #067647;          /* 정상 */
+            --ok-bg:    #ECFDF3;
+            --warn:     #B54708;
+            --warn-bg:  #FFFAEB;
+
+            --radius:   16px;
+            --shadow:   0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+            --shadow-lg: 0 12px 32px -12px rgba(16,24,40,.18);
+
+            --mono: "D2Coding", Consolas, "SF Mono", Menlo, monospace;
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+            --ease-out: cubic-bezier(.16,1,.3,1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; background: var(--bg); }
+        body {
+            margin: 0; min-height: 100vh; overflow-x: hidden;
+            font-family: var(--sans); font-size: 16px; line-height: 1.6; color: var(--ink); background: var(--bg);
+            word-break: keep-all; overflow-wrap: anywhere;
+        }
+        h1, h2, h3, p, ol, ul, dl, dd { margin: 0; }
+        ol, ul { padding: 0; list-style: none; }
+        a { color: inherit; text-decoration: none; }
+        :focus-visible { outline: 3px solid var(--brand-2); outline-offset: 3px; border-radius: 8px; }
+        .tnum { font-variant-numeric: tabular-nums; }
+        .mono { font-family: var(--mono); }
+        .wrap { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        @media (min-width: 900px) { .wrap { padding: 0 40px; } }
+
+        .skip { position: absolute; left: 12px; top: -60px; z-index: 100; padding: 10px 14px; border-radius: 8px; background: var(--ink); color: #fff; font-weight: 700; }
+        .skip:focus { top: 12px; }
+
+        .demo {
+            display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px;
+            border: 1px solid var(--line-2); background: var(--surface);
+            font: 700 11px/1.5 var(--sans); letter-spacing: .08em; color: var(--ink-3);
+        }
+
+        /* ════════════ 상단 바 ════════════ */
+        .nav {
+            position: sticky; top: 0; z-index: 50;
+            background: rgba(246,247,249,.85); backdrop-filter: saturate(1.4) blur(12px); -webkit-backdrop-filter: saturate(1.4) blur(12px);
+            border-bottom: 1px solid transparent; transition: border-color .2s;
+        }
+        .nav.scrolled { border-color: var(--line); }
+        .nav-in { height: 64px; display: flex; align-items: center; gap: 32px; }
+        .brand { display: flex; align-items: center; gap: 10px; }
+        .brand-mark {
+            width: 30px; height: 30px; border-radius: 9px; background: var(--brand); color: #fff;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .brand b { font-size: 15px; font-weight: 800; letter-spacing: .18em; }
+        .brand small { display: block; font-size: 11.5px; line-height: 1.2; color: var(--ink-3); }
+        .nav-links { display: none; gap: 28px; margin-left: auto; font-size: 14.5px; font-weight: 500; color: var(--ink-2); }
+        .nav-links a { padding: 8px 0; transition: color .15s; }
+        .nav-links a:hover { color: var(--ink); }
+        @media (min-width: 900px) { .nav-links { display: flex; } }
+
+        /* ════════════ 버튼 ════════════ */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            min-height: 48px; padding: 0 22px; border-radius: 12px; font-size: 15.5px; font-weight: 700;
+            border: 1px solid transparent; cursor: pointer;
+            transition: background .15s, border-color .15s, box-shadow .2s, transform .2s var(--ease-out);
+        }
+        .btn-primary { background: var(--brand); color: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.08); }
+        .btn-primary:hover { background: #1A3A9E; box-shadow: 0 8px 20px -8px rgba(30,64,175,.55); transform: translateY(-1px); }
+        .btn-line { background: var(--surface); border-color: var(--line-2); color: var(--ink); }
+        .btn-line:hover { border-color: var(--ink-3); }
+        .btn-sm { min-height: 40px; padding: 0 16px; font-size: 14px; border-radius: 10px; }
+        .btn svg { transition: transform .2s var(--ease-out); }
+        .btn:hover svg { transform: translateX(2px); }
+        .nav .btn { margin-left: auto; }
+        @media (min-width: 900px) { .nav .btn { margin-left: 0; } }
+
+        /* ════════════ 0. 히어로 ════════════ */
+        .hero { padding: 56px 0 72px; }
+        @media (min-width: 1000px) { .hero { padding: 88px 0 96px; } }
+        .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 48px; align-items: center; }
+        @media (min-width: 1000px) { .hero-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; } }
+
+        .kicker {
+            display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+            background: var(--brand-bg); color: var(--brand); font-size: 13px; font-weight: 700;
+        }
+        .kicker i { width: 7px; height: 7px; border-radius: 50%; background: var(--brand-2); }
+        .hero h1 {
+            margin-top: 22px; font-size: clamp(36px, 5vw, 60px); font-weight: 800;
+            line-height: 1.16; letter-spacing: -.035em; text-wrap: balance;
+        }
+        .hero h1 em { font-style: normal; color: var(--brand); }
+        .hero-lead { margin-top: 22px; max-width: 34em; font-size: clamp(16.5px, 1.4vw, 19px); line-height: 1.7; color: var(--ink-2); }
+        .hero-actions { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 12px; }
+
+        /* 오늘의 BOM 상태 카드 */
+        .status {
+            background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
+            box-shadow: var(--shadow-lg); overflow: hidden;
+        }
+        .status-head { display: flex; align-items: center; gap: 10px; padding: 18px 22px; border-bottom: 1px solid var(--line); }
+        .status-head h2 { font-size: 15px; font-weight: 700; }
+        .status-head .live { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 0 rgba(6,118,71,.5); animation: live 2s infinite; }
+        @keyframes live { 70% { box-shadow: 0 0 0 8px rgba(6,118,71,0); } 100% { box-shadow: 0 0 0 0 rgba(6,118,71,0); } }
+        .status-head time { margin-left: auto; font-size: 13px; color: var(--ink-3); }
+
+        .status-nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 22px 22px 6px; }
+        .status-nums div + div { border-left: 1px solid var(--line); padding-left: 18px; }
+        .status-nums dt { font-size: 13px; font-weight: 600; color: var(--ink-3); }
+        .status-nums dd { margin-top: 6px; font-size: clamp(26px, 3vw, 34px); font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+        .status-nums dd small { margin-left: 3px; font-size: 14px; font-weight: 600; color: var(--ink-3); letter-spacing: 0; }
+        .status-nums .is-ok { color: var(--ok); }
+        .status-nums .is-alert { color: var(--alert); }
+
+        .health { padding: 16px 22px 20px; }
+        .health-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--line); gap: 2px; }
+        .health-bar span { display: block; height: 100%; transform-origin: left; transition: transform 1.2s var(--ease-out); }
+        .health-bar .ok { background: var(--ok); }
+        .health-bar .bad { background: var(--alert); min-width: 8px; }
+        .health-bar.pre span { transform: scaleX(0); }
+        .health-cap { margin-top: 10px; display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-3); }
+        .health-cap b { color: var(--ink); font-weight: 700; }
+
+        .alerts { border-top: 1px solid var(--line); }
+        .alerts-title { padding: 14px 22px 6px; font-size: 13px; font-weight: 700; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+        .alerts-title .demo { margin-left: auto; }
+        .alerts li {
+            display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center;
+            padding: 12px 22px; border-top: 1px solid #F0F2F5;
+        }
+        .alerts li:first-child { border-top: none; }
+        .alerts .no { font: 600 14px/1.3 var(--mono); color: var(--ink); }
+        .alerts .detail { grid-column: 1; font-size: 13.5px; color: var(--ink-3); }
+        .chip {
+            grid-row: 1 / span 2; grid-column: 2;
+            display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
+            font-size: 12.5px; font-weight: 700; white-space: nowrap;
+            color: var(--alert); background: var(--alert-bg);
+        }
+        .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .chip.mid { color: var(--warn); background: var(--warn-bg); }
+        .status-foot { padding: 14px 22px; border-top: 1px solid var(--line); background: #FAFBFC; }
+        .status-foot a { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--brand); }
+        .status-foot a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+        /* ════════════ 공통 섹션 ════════════ */
+        .sec { padding: 88px 0; }
+        @media (min-width: 1000px) { .sec { padding: 112px 0; } }
+        .sec.alt { background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+        .sec-head { max-width: 720px; }
+        .sec-no { font-size: 14px; font-weight: 700; color: var(--brand); letter-spacing: .02em; }
+        .sec-title { margin-top: 12px; font-size: clamp(28px, 3.4vw, 42px); font-weight: 800; line-height: 1.25; letter-spacing: -.03em; text-wrap: balance; }
+        .sec-lead { margin-top: 16px; font-size: 17px; line-height: 1.7; color: var(--ink-2); }
+
+        .reveal { opacity: 0; transform: translateY(16px); transition: opacity .7s var(--ease-out), transform .7s var(--ease-out); }
+        .reveal.in { opacity: 1; transform: none; }
+
+        /* ════════════ 1. 성과 (도입 전 / 후) ════════════ */
+        .impact { margin-top: 48px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+        @media (min-width: 640px) { .impact { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1100px) { .impact { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .kpi { padding: 26px 24px; border-radius: var(--radius); background: var(--bg); border: 1px solid var(--line); }
+        .kpi dt { font-size: 14.5px; font-weight: 700; color: var(--ink-2); }
+        .kpi dd.big { margin-top: 14px; font-size: clamp(36px, 3.6vw, 46px); font-weight: 800; letter-spacing: -.03em; line-height: 1; color: var(--ink); }
+        .kpi dd.big small { margin-left: 4px; font-size: 17px; font-weight: 700; color: var(--ink-3); letter-spacing: 0; }
+        .kpi dd.from { margin-top: 14px; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-3); }
+        .kpi dd.from s { text-decoration-color: var(--ink-3); }
+        .kpi dd.from .delta { margin-left: auto; padding: 3px 9px; border-radius: 999px; background: var(--ok-bg); color: var(--ok); font-weight: 700; font-size: 12.5px; white-space: nowrap; }
+        .impact-note { margin-top: 18px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-3); }
+
+        /* ════════════ 2. 이상 유형 ════════════ */
+        .types { margin-top: 48px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+        @media (min-width: 640px) { .types { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1100px) { .types { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .type {
+            display: flex; flex-direction: column; padding: 26px 24px; border-radius: var(--radius);
+            background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+        }
+        .type .ico {
+            width: 44px; height: 44px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
+            background: var(--alert-bg); color: var(--alert);
+        }
+        .type h3 { margin-top: 20px; font-size: 20px; font-weight: 800; letter-spacing: -.015em; }
+        .type p { margin-top: 8px; font-size: 15px; line-height: 1.65; color: var(--ink-2); }
+        .type .ex { margin-top: auto; padding-top: 18px; }
+        .type .ex span {
+            display: inline-block; padding: 6px 10px; border-radius: 8px; background: var(--bg);
+            font: 600 13px/1.4 var(--mono); color: var(--ink-2);
+        }
+
+        /* ════════════ 3. 처리 흐름 ════════════ */
+        .flow { margin-top: 56px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; counter-reset: step; }
+        @media (min-width: 1000px) { .flow { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+        .step { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 16px; padding-bottom: 28px; }
+        .step:last-child { padding-bottom: 0; }
+        .step::before {   /* 연결선 */
+            content: ""; position: absolute; left: 21px; top: 44px; bottom: 0; width: 2px; background: var(--line);
+        }
+        .step:last-child::before { display: none; }
+        .dot {
+            position: relative; z-index: 1; width: 44px; height: 44px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: var(--surface); border: 2px solid var(--line-2); color: var(--ink-2);
+            font: 700 13px/1 var(--mono);
+        }
+        .step.auto .dot { border-color: var(--brand); color: var(--brand); }
+        .step.judge .dot { background: var(--brand); border-color: var(--brand); color: #fff; box-shadow: 0 0 0 6px var(--brand-bg); }
+        .step h3 { font-size: 16.5px; font-weight: 800; letter-spacing: -.01em; padding-top: 10px; }
+        .step p { margin-top: 6px; font-size: 14.5px; line-height: 1.6; color: var(--ink-3); }
+        .step .new { display: inline-block; margin-left: 6px; vertical-align: 2px; padding: 2px 7px; border-radius: 6px; background: var(--alert); color: #fff; font-size: 11px; font-weight: 800; letter-spacing: .06em; }
+        @media (min-width: 1000px) {
+            .step { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0 12px 0 0; }
+            .step::before { left: 44px; right: 0; top: 21px; bottom: auto; width: auto; height: 2px; }
+            .step.auto::before { background: var(--brand); opacity: .35; }
+            .step h3 { padding-top: 18px; }
+        }
+        .flow-legend { margin-top: 36px; display: flex; flex-wrap: wrap; gap: 10px 24px; font-size: 14px; color: var(--ink-2); }
+        .flow-legend span { display: inline-flex; align-items: center; gap: 8px; }
+        .flow-legend i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line-2); background: var(--surface); }
+        .flow-legend i.auto { border-color: var(--brand); }
+        .flow-legend i.judge { border-color: var(--brand); background: var(--brand); }
+
+        /* ════════════ 4. 기능 바로가기 ════════════ */
+        .mods { margin-top: 48px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+        @media (min-width: 640px) { .mods { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1000px) { .mods { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        .mod {
+            position: relative; display: flex; flex-direction: column; min-height: 210px; padding: 24px;
+            border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+            transition: border-color .2s, box-shadow .25s, transform .25s var(--ease-out);
+        }
+        .mod:hover { border-color: var(--brand-2); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+        .mod.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .mod.primary p { color: rgba(255,255,255,.82); }
+        .mod.primary .ico { background: rgba(255,255,255,.14); color: #fff; }
+        .mod.primary .go { color: #fff; }
+        .mod.primary:hover { border-color: var(--brand); }
+        .mod-top { display: flex; align-items: center; justify-content: space-between; }
+        .mod .ico { width: 44px; height: 44px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: var(--brand-bg); color: var(--brand); }
+        .mod .badge { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.16); }
+        .mod .badge.soon { background: var(--bg); color: var(--ink-3); }
+        .mod h3 { margin-top: 18px; font-size: 19px; font-weight: 800; letter-spacing: -.015em; }
+        .mod p { margin-top: 8px; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); }
+        .mod .go { margin-top: auto; padding-top: 18px; display: inline-flex; align-items: center; gap: 6px; font-size: 14.5px; font-weight: 700; color: var(--brand); }
+        .mod .go svg { transition: transform .2s var(--ease-out); }
+        .mod:hover .go svg { transform: translateX(3px); }
+        .mod.is-soon { cursor: not-allowed; }
+        .mod.is-soon:hover { transform: none; box-shadow: var(--shadow); border-color: var(--line); }
+        .mod.is-soon .go { color: var(--ink-3); }
+
+        /* ════════════ 마무리 ════════════ */
+        .closing { padding: 96px 0; text-align: center; }
+        .closing h2 { font-size: clamp(30px, 4vw, 48px); font-weight: 800; line-height: 1.25; letter-spacing: -.03em; text-wrap: balance; }
+        .closing h2 em { font-style: normal; color: var(--brand); }
+        .closing p { margin: 18px auto 0; max-width: 32em; font-size: 17px; color: var(--ink-2); }
+        .closing .hero-actions { justify-content: center; }
+
+        footer { border-top: 1px solid var(--line); padding: 24px 0 36px; font-size: 13.5px; color: var(--ink-3); }
+        footer .wrap { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; }
+        footer a { margin-left: auto; }
+        footer a:hover { color: var(--ink); }
+
+        .toast {
+            position: fixed; left: 50%; bottom: 28px; z-index: 80; transform: translate(-50%, 12px);
+            padding: 12px 18px; border-radius: 12px; background: var(--ink); color: #fff; font-weight: 600; font-size: 14px;
+            opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; max-width: calc(100vw - 32px);
+        }
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+            .reveal { opacity: 1; transform: none; }
+        }
+    </style>
+</head>
+<body>
+
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+
+<!-- ═══════════ 상단 바 ═══════════ -->
+<header class="nav" id="nav">
+    <div class="wrap nav-in">
+        <a class="brand" href="/cop/main" aria-label="SENTINEL 메인">
+            <span class="brand-mark" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><path d="M12 12 18 6"/></svg>
+            </span>
+            <span><b>SENTINEL</b><small>BOM 이상감지 플랫폼</small></span>
+        </a>
+        <nav class="nav-links" aria-label="주요 메뉴">
+            <a href="#impact">도입 효과</a>
+            <a href="#types">이상 유형</a>
+            <a href="#flow">처리 흐름</a>
+            <a href="#mods">기능</a>
+        </nav>
+        <a class="btn btn-primary btn-sm" href="/cop/radar">
+            관제 화면
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+    </div>
+</header>
+
+<main id="main">
+
+    <!-- ═══════════ 0. 히어로 ═══════════ -->
+    <section class="hero" aria-labelledby="heroTitle">
+        <div class="wrap hero-grid">
+            <div>
+                <span class="kicker"><i aria-hidden="true"></i>BOM 이상감지 플랫폼</span>
+                <h1 id="heroTitle">BOM 오류,<br>사람이 찾기 전에<br><em>먼저 알려드립니다.</em></h1>
+                <p class="hero-lead">전 호기의 BOM 을 같은 사양의 다른 호기와 자동으로 비교합니다. 설계자는 판단이 필요한 BOM 만 검토하면 됩니다.</p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="/cop/radar">
+                        이상감지 관제 보기
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </a>
+                    <a class="btn btn-line" href="#flow">어떻게 동작하나요</a>
+                </div>
+            </div>
+
+            <!-- 오늘의 BOM 상태 (DEMO) -->
+            <article class="status reveal" aria-labelledby="statusTitle">
+                <div class="status-head">
+                    <span class="live" aria-hidden="true"></span>
+                    <h2 id="statusTitle">오늘의 BOM 상태</h2>
+                    <time id="today"></time>
+                </div>
+
+                <dl class="status-nums">
+                    <div><dt>감시 호기</dt><dd class="tnum"><span data-count="1248">0</span><small>호기</small></dd></div>
+                    <div><dt>정상</dt><dd class="tnum is-ok"><span data-count="1242">0</span><small>호기</small></dd></div>
+                    <div><dt>이상 감지</dt><dd class="tnum is-alert"><span data-count="6">0</span><small>건</small></dd></div>
+                </dl>
+
+                <div class="health">
+                    <div class="health-bar pre" id="healthBar" role="img" aria-label="전체 1,248 호기 중 정상 99.5%, 이상 0.5%">
+                        <span class="ok" style="flex:1242"></span>
+                        <span class="bad" style="flex:6"></span>
+                    </div>
+                    <p class="health-cap"><span>정상 비율 <b class="tnum">99.5%</b></span><span>평균 탐지 <b class="tnum">3.2초</b></span></p>
+                </div>
+
+                <div class="alerts">
+                    <p class="alerts-title">조치가 필요한 BOM <span class="demo">DEMO</span></p>
+                    <ol id="alertList"></ol>
+                </div>
+
+                <div class="status-foot">
+                    <a href="/cop/radar">전체 이상 BOM 보기
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </a>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <!-- ═══════════ 1. 도입 효과 ═══════════ -->
+    <section class="sec alt" id="impact" aria-labelledby="impactTitle">
+        <div class="wrap">
+            <div class="sec-head reveal">
+                <p class="sec-no">01 · 도입 효과</p>
+                <h2 class="sec-title" id="impactTitle">며칠 걸리던 BOM 검토를<br>몇 초로 줄였습니다.</h2>
+                <p class="sec-lead">사람이 샘플로 확인하던 방식에서, 시스템이 전 호기를 매번 확인하는 방식으로 바뀝니다.</p>
+            </div>
+
+            <dl class="impact">
+                <div class="kpi reveal">
+                    <dt>BOM 검토 시간</dt>
+                    <dd class="big tnum"><span data-count="3.2" data-dec="1">0</span><small>초</small></dd>
+                    <dd class="from">기존 <s>2~3일</s><span class="delta">자동 판정</span></dd>
+                </div>
+                <div class="kpi reveal">
+                    <dt>검토 범위</dt>
+                    <dd class="big tnum"><span data-count="100">0</span><small>%</small></dd>
+                    <dd class="from">기존 <s>샘플 검토</s><span class="delta">전 호기</span></dd>
+                </div>
+                <div class="kpi reveal">
+                    <dt>자동 탐지 유형</dt>
+                    <dd class="big tnum"><span data-count="4">0</span><small>종</small></dd>
+                    <dd class="from">기존 <s>담당자 경험</s><span class="delta">규칙 기반</span></dd>
+                </div>
+                <div class="kpi reveal">
+                    <dt>자동화 단계</dt>
+                    <dd class="big tnum"><span data-count="6">0</span><small>단계</small></dd>
+                    <dd class="from">기존 <s>수작업</s><span class="delta">원클릭</span></dd>
+                </div>
+            </dl>
+            <p class="impact-note"><span class="demo">DEMO</span>발표용 샘플 수치입니다. 실제 지표는 이상감지 관제 화면에서 연결됩니다.</p>
+        </div>
+    </section>
+
+    <!-- ═══════════ 2. 이상 유형 ═══════════ -->
+    <section class="sec" id="types" aria-labelledby="typesTitle">
+        <div class="wrap">
+            <div class="sec-head reveal">
+                <p class="sec-no">02 · 무엇을 잡아내나</p>
+                <h2 class="sec-title" id="typesTitle">조용히 숨어 있는<br>네 가지 BOM 이상</h2>
+                <p class="sec-lead">계산은 끝났고 오류 메시지도 없는 BOM. 같은 사양의 다른 호기와 비교하면 드러납니다.</p>
+            </div>
+
+            <div class="types">
+                <article class="type reveal">
+                    <span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V14M10 20V11M16 20V3M22 20H2"/></svg></span>
+                    <h3>수량 급증</h3>
+                    <p>같은 사양은 브라켓 4개인데, 이 호기만 48개가 들어갔습니다.</p>
+                    <div class="ex"><span>평균 대비 ×12</span></div>
+                </article>
+                <article class="type reveal">
+                    <span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke-dasharray="3 2.5"/></svg></span>
+                    <h3>자재 누락</h3>
+                    <p>권상기는 있는데, 그 아래 있어야 할 하위 자재가 비어 있습니다.</p>
+                    <div class="ex"><span>하위 자재 0 / 12</span></div>
+                </article>
+                <article class="type reveal">
+                    <span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="8" height="12" rx="2"/><rect x="14" y="6" width="8" height="12" rx="2"/><path d="m11 10 2 4M13 10l-2 4"/></svg></span>
+                    <h3>사양 불일치</h3>
+                    <p>영업사양은 A 타입 권상기인데, BOM 에는 B 타입이 전개됐습니다.</p>
+                    <div class="ex"><span>사양 A ≠ 자재 B</span></div>
+                </article>
+                <article class="type reveal">
+                    <span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg></span>
+                    <h3>중복 수배</h3>
+                    <p>같은 품번이 두 경로로 전개되어, 자재가 두 배로 발주됩니다.</p>
+                    <div class="ex"><span>동일 품번 ×2</span></div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 3. 처리 흐름 ═══════════ -->
+    <section class="sec alt" id="flow" aria-labelledby="flowTitle">
+        <div class="wrap">
+            <div class="sec-head reveal">
+                <p class="sec-no">03 · 처리 흐름</p>
+                <h2 class="sec-title" id="flowTitle">호기번호 하나로<br>판정까지 한 번에</h2>
+                <p class="sec-lead">PLM 에서 사람이 하나씩 하던 6단계를 자동으로 실행하고, 마지막에 이상 여부를 판정합니다.</p>
+            </div>
+            <ol class="flow reveal" id="flowList"></ol>
+            <p class="flow-legend" aria-hidden="true">
+                <span><i></i>입력</span>
+                <span><i class="auto"></i>자동 실행</span>
+                <span><i class="judge"></i>이상 판정 (신규)</span>
+            </p>
+        </div>
+    </section>
+
+    <!-- ═══════════ 4. 기능 바로가기 ═══════════ -->
+    <section class="sec" id="mods" aria-labelledby="modsTitle">
+        <div class="wrap">
+            <div class="sec-head reveal">
+                <p class="sec-no">04 · 기능</p>
+                <h2 class="sec-title" id="modsTitle">필요한 화면으로 바로 이동</h2>
+            </div>
+            <div class="mods" id="modGrid"></div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 마무리 ═══════════ -->
+    <section class="closing sec alt" aria-labelledby="closingTitle">
+        <div class="wrap reveal">
+            <h2 id="closingTitle">검토는 사람이,<br><em>감시는 SENTINEL 이.</em></h2>
+            <p>나머지 수천 개의 BOM 은 시스템이 매일 지킵니다.</p>
+            <div class="hero-actions">
+                <a class="btn btn-primary" href="/cop/bom">
+                    원사이클 자동화 실행
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+                <a class="btn btn-line" href="#main">맨 위로</a>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div class="wrap">
+        <span><b style="color:var(--ink-2);letter-spacing:.16em">SENTINEL</b> · BOM 이상감지 플랫폼</span>
+        <span>수배로직설계팀</span>
+        <a href="/extract/gongsa">기존 분석 시스템으로 →</a>
+    </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script th:inline="none">
+(function () {
+    "use strict";
+
+    var $ = function (id) { return document.getElementById(id); };
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var ARROW = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+
+    /* =========================================================
+       하위 화면. 새 화면을 만들면 href 를 바꾸고 ready:true 로.
+       primary:true 인 카드는 강조 색으로 표시 (하나만)
+       ========================================================= */
+    var MODULES = [
+        { name: "이상감지 관제",       href: "/cop/radar",  ready: true, primary: true,
+          desc: "전 호기 BOM 을 실시간으로 확인하고, 이상 BOM 을 위험도 순으로 보여줍니다.",
+          icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12 19 5"/>' },
+        { name: "BOM 원사이클 자동화", href: "/cop/bom",    ready: true,
+          desc: "WIP 생성부터 속성값 변경, 종속사양 산출, BOM 계산까지 한 번에 실행합니다.",
+          icon: '<path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>' },
+        { name: "호기 BOM 비교",       href: "/cop/diff",   ready: true,
+          desc: "같은 사양의 두 호기 BOM 을 나란히 놓고, 다른 자재만 골라 보여줍니다.",
+          icon: '<rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/>' },
+        { name: "이상 원인 추적",      href: "/cop/trace",  ready: true,
+          desc: "이상 자재가 어떤 영업사양·로직 규칙에서 나왔는지 거꾸로 따라갑니다.",
+          icon: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 6H14a4 4 0 0 1 0 8h-4a4 4 0 0 0 0 8h5.5"/>' },
+        { name: "이상 리포트",         href: "/cop/report", ready: true,
+          desc: "기간별 탐지 건수와 유형, 조치 결과를 한 장으로 정리해 공유합니다.",
+          icon: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>' },
+        { name: "감지 규칙 관리",      href: "/cop/rules",  ready: true,
+          desc: "수량 허용 범위, 필수 하위 자재 같은 판정 기준을 직접 정하고 조정합니다.",
+          icon: '<path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>' }
+    ];
+
+    /* 처리 단계 — BomManageController 의 실제 단계와 같음. kind: input | auto | judge */
+    var STEPS = [
+        { no: "01", kind: "input", name: "호기 확인",      text: "호기번호로 작업 중인 영업사양을 찾습니다." },
+        { no: "02", kind: "auto",  name: "WIP 생성",       text: "확정 사양은 두고 작업용 버전을 엽니다." },
+        { no: "03", kind: "auto",  name: "동일정보 생성",   text: "원본을 복사한 TEST 호기를 만듭니다." },
+        { no: "04", kind: "auto",  name: "속성값 변경",     text: "바꿀 값만 바꾸고 반영을 확인합니다." },
+        { no: "05", kind: "auto",  name: "종속사양 산출",   text: "연결된 사양을 PLM 이 다시 계산합니다." },
+        { no: "06", kind: "auto",  name: "BOM 계산",       text: "구성·자재·사양 전개로 BOM 을 만듭니다." },
+        { no: "07", kind: "judge", name: "이상 판정",       text: "같은 사양 호기와 대조해 이상을 찾습니다.", isNew: true }
+    ];
+
+    /* 히어로 카드의 이상 BOM (DEMO) — level: high | mid */
+    var ALERTS = [
+        { no: "TEST-632560", type: "수량 급증",   detail: "브라켓 48개 (평균 4개)",   level: "high" },
+        { no: "H2-48211",    type: "자재 누락",   detail: "권상기 하위 자재 0건",      level: "high" },
+        { no: "H2-51007",    type: "사양 불일치", detail: "사양 A 타입 ↔ 권상기 B 타입", level: "mid" }
+    ];
+
+    function esc(s) {
+        return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; });
+    }
+
+    /* ── 오늘 날짜 ── */
+    (function () {
+        var d = new Date(), w = "일월화수목금토".charAt(d.getDay());
+        $("today").textContent = d.getFullYear() + "." + pad(d.getMonth() + 1) + "." + pad(d.getDate()) + " (" + w + ")";
+        $("today").setAttribute("datetime", d.toISOString().slice(0, 10));
+    })();
+
+    /* ── 이상 BOM 목록 ── */
+    $("alertList").innerHTML = ALERTS.map(function (a) {
+        return '<li>' +
+            '<span class="no">' + esc(a.no) + '</span>' +
+            '<span class="chip' + (a.level === "mid" ? " mid" : "") + '">' + esc(a.type) + '</span>' +
+            '<span class="detail">' + esc(a.detail) + '</span>' +
+        '</li>';
+    }).join("");
+
+    /* ── 처리 흐름 ── */
+    $("flowList").innerHTML = STEPS.map(function (s) {
+        return '<li class="step ' + s.kind + '">' +
+            '<span class="dot" aria-hidden="true">' + s.no + '</span>' +
+            '<div><h3>' + esc(s.name) + (s.isNew ? '<span class="new">NEW</span>' : '') + '</h3>' +
+            '<p>' + esc(s.text) + '</p></div>' +
+        '</li>';
+    }).join("");
+
+    /* ── 기능 카드 ── */
+    $("modGrid").innerHTML = MODULES.map(function (m) {
+        var cls = "mod reveal" + (m.primary ? " primary" : "") + (m.ready ? "" : " is-soon");
+        return '<a class="' + cls + '" href="' + (m.ready ? m.href : "#mods") + '"' +
+                    (m.ready ? "" : ' data-soon="' + esc(m.name) + '" aria-disabled="true"') + '>' +
+                '<span class="mod-top">' +
+                    '<span class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + m.icon + '</svg></span>' +
+                    (m.primary ? '<span class="badge">핵심</span>' : '') +
+                    (m.ready ? '' : '<span class="badge soon">준비 중</span>') +
+                '</span>' +
+                '<h3>' + esc(m.name) + '</h3>' +
+                '<p>' + esc(m.desc) + '</p>' +
+                '<span class="go">' + (m.ready ? "바로가기 " + ARROW : "준비 중입니다") + '</span>' +
+            '</a>';
+    }).join("");
+
+    document.querySelectorAll(".mod[data-soon]").forEach(function (el) {
+        el.addEventListener("click", function (e) {
+            e.preventDefault();
+            toast(el.dataset.soon + " 화면은 준비 중입니다.");
+        });
+    });
+
+    /* =========================================================
+       숫자 카운트업 / 등장 효과
+       ========================================================= */
+    function fmt(v, dec) { return v.toLocaleString("ko-KR", { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+
+    function countUp(el) {
+        var to = parseFloat(el.dataset.count), dec = parseInt(el.dataset.dec || "0", 10);
+        if (reduceMotion) { el.textContent = fmt(to, dec); return; }
+        var start = performance.now(), dur = 1200;
+        (function step(now) {
+            var p = Math.min(1, (now - start) / dur);
+            el.textContent = fmt(to * (1 - Math.pow(1 - p, 4)), dec);
+            if (p < 1) requestAnimationFrame(step);
+        })(start);
+    }
+
+    function show(el) {
+        if (el.dataset.count) countUp(el);
+        else if (el.id === "healthBar") el.classList.remove("pre");
+        else el.classList.add("in");
+    }
+
+    var targets = document.querySelectorAll("[data-count], .reveal, #healthBar");
+    if ("IntersectionObserver" in window) {
+        var io = new IntersectionObserver(function (es) {
+            es.forEach(function (e) {
+                if (!e.isIntersecting) return;
+                show(e.target);
+                io.unobserve(e.target);
+            });
+        }, { threshold: 0.15 });
+        // 같은 줄 카드는 조금씩 늦게
+        document.querySelectorAll(".reveal").forEach(function (el) {
+            var sib = el.parentElement.querySelectorAll(":scope > .reveal");
+            var idx = Array.prototype.indexOf.call(sib, el);
+            if (idx > 0) el.style.transitionDelay = (idx * 70) + "ms";
+        });
+        targets.forEach(function (el) { io.observe(el); });
+    } else {
+        targets.forEach(show);
+    }
+
+    /* =========================================================
+       공통
+       ========================================================= */
+    var ticking = false;
+    window.addEventListener("scroll", function () {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(function () {
+            $("nav").classList.toggle("scrolled", window.scrollY > 8);
+            ticking = false;
+        });
+    }, { passive: true });
+
+    var toastTimer = null;
+    function toast(msg) {
+        var t = $("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { t.classList.remove("show"); }, 2600);
+    }
+
+    function pad(n) { return n < 10 ? "0" + n : "" + n; }
+})();
+</script>
+</body>
+</html>
