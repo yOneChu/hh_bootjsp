@@ -231,13 +231,47 @@ public class APIController {
         //http://localhost:8070/api/findProductInfo?key=subae&productNo=211704L17
 
         ArrayList<ProductDto> bomList = new ArrayList<ProductDto>();
+        //ArrayList<BomDTO> bomList = new ArrayList<BomDTO>();
 
         StopWatch sw = new StopWatch();
         sw.start();
 
         if ("subae".equals(key)) {
-            //result = InventorCommonUtil.findProductInfo(productNo);
+            //bomList = InventorCommonUtil.findProductInfo(productNo);
             bomList = ProductCommonUtil.findProductInfo(productNo);
+        }
+
+        sw.stop();
+
+        long millis = sw.getTotalTimeMillis();
+
+        double seconds = millis / 1000.0;
+        double minutes = seconds / 60.0;
+
+        System.out.println("⏱ 수행 시간:");
+        System.out.printf("   - %.3f 초%n", seconds);
+        System.out.printf("   - %.3f 분%n", minutes);
+
+        return bomList;
+    }
+
+    @Description("BOM 1레벨 조회 - 개선(컬럼 간소화)")
+    @GetMapping("/findProductInfoV01")
+    @CrossOrigin
+    @ResponseBody
+    public ArrayList<BomDTO> findProductInfoV01(String productNo, String key) throws Exception {
+        //http://localhost:8070/api/findProductInfo?key=subae&productNo=211704L17
+
+        //ArrayList<ProductDto> bomList = new ArrayList<ProductDto>();
+        ArrayList<BomDTO> bomList = new ArrayList<BomDTO>();
+
+        StopWatch sw = new StopWatch();
+        sw.start();
+
+        if ("subae".equals(key)) {
+            //bomList = InventorCommonUtil.findProductInfo(productNo);
+            //bomList = ProductCommonUtil.findProductInfo(productNo);
+            bomList = ProductCommonUtil.findProductInfo_v01(productNo);
         }
 
         sw.stop();

@@ -41,15 +41,15 @@ public class ProductDto {
 
     private String seq;
     private String parentNo;
-    private String partNo;
+    private String partNo; //자재번호
     private String partNoOID;
-    private String partName;
-    private String nation;
-    private String version;
+    private String partName; //자재명
+    private String nation; //국가
+    private String version; //자재버전
     private String glCode;
-    private String spec;
+    private String spec; //자재스펙
     private String part_size;
-    private String blockNo;
+    private String blockNo; //자재 blockNo
     private String blockName;
 
     private String blockopt; //품목구분(1,2,3,M,C)

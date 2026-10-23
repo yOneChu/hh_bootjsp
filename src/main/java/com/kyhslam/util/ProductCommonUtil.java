@@ -204,6 +204,7 @@ public class ProductCommonUtil {
                 String USERNAME = rs.getString("USERNAME"); //자재 생성자 (=채번)
                 String USERID = rs.getString("USERID");
                 String HASCHILD = rs.getString("HASCHILD"); //하위 자재 존재 여부
+                String UOM =  rs.getString("UOM");
 
                 String CDATE = rs.getString("CDATE"); // 자재 등록일(BOM에 구성된 날짜)
                 String MDATE = rs.getString("MDATE"); // 자재 수정일(BOM의 자재 수정일)
@@ -235,7 +236,8 @@ public class ProductCommonUtil {
                 dto.setNation(NATION);
                 dto.setSpec(SPEC);
                 dto.setPart_size(PART_SIZE);
-                dto.setQty(QTY);
+                dto.setQty(QTY); // 수량
+                dto.setUom(UOM); // 단위
                 dto.setCmt(CMT);
                 dto.setUcheck(UCHECK);
                 dto.setUsername(CUSERNAME);
@@ -254,7 +256,181 @@ public class ProductCommonUtil {
         return list;
     }
 
-    //
+
+    //제품 1레벨 BOM
+    //컬럼 간소화
+    public static ArrayList<BomDTO> findProductInfo_v01(String productNo) {
+
+        ArrayList<BomDTO> list = new ArrayList<>();
+
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        try {
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                with ouid as
+              ( select vf$ouid AS VFOID from product$vf, product$id
+                where vf$identity = id$ouid and vf$ouid = id$wip
+                and (
+                      md$number = ?
+                    )
+              )
+             SELECT
+                         PE.ASSOOUID ASSOOUID
+                         , PE.PRODUCTOUID PRODUCTOUID
+                         , PE.PARTOUID PARTOUID
+                         , PE.SEQ
+                         , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) PARENTNO
+                         , ( SELECT F.MD$DESC FROM FUSER$SF F
+                              WHERE F.MD$NUMBER = (SELECT VV.MD$USER
+                                                   FROM PRODUCT$VF VV WHERE VV.VF$OUID = PE.PRODUCTOUID )
+                            ) AS PCREATOR
+                            , ( SELECT F.EMAIL FROM FUSER$SF F
+                              WHERE F.MD$NUMBER = (SELECT VV.MD$USER
+                                                   FROM PRODUCT$VF VV WHERE VV.VF$OUID = PE.PRODUCTOUID )
+                            ) AS PEMAIL
+                         --, (SELECT COUNT(*) FROM PARTANDCAD$AS WHERE AS$END1 = PE.PARTOUID) CADCNT
+                         , NP.MD$NUMBER AS PARTNO
+                         , CODN(NP.NATION) AS NATION -- 자재코드(Ownership)
+                         , NP.compen_part AS COMPEN_PART
+                         , NP.MD$DESC AS PARTNAME
+                         , NP.VF$VERSION AS VERSION
+                         , NVL(NP.G_L_CODE, '') AS GLCODE
+                         , NVL(NP.SPEC, '') AS SPEC
+                         , NVL(NP.PART_SIZE, '') AS PART_SIZE
+                         , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCKNO
+                         , (SELECT NVL(LOSSRATE, '') FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) LOSSRATE
+                         , (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCK_OPT -- 품목구분
+                         , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.UPPERBLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.UPPERBLOCKNO, 12))))) UPPERBLOCKNO
+                         , NVL(COD(NP.UOM), '') AS UOM -- 단위
+                         , PE.QTY
+                         , VP.WORK_QTY -- 공사수량
+                         , PE.CMT
+                         , VP.WORK_CMT
+                         , PE.COLOR
+                         , VP.WORK_COLOR
+                         , NVL(CODN(NP.ORIGIN_DIV), '') AS DIV -- 최초구분 : (외주(ROH) / 내작(HALB_E)
+                         , NVL(PE.MBOM, '') AS MBOM
+                         , NVL(COD(NP.PART_MBOM), '') AS PART_MBOM
+                         , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = NP.MD$USER) USERNAME -- 자재 생성자(채번자)
+                         , NP.MD$USER USERID
+                         , NP.OLD_CODE
+                         , NP.OLD_CODE2
+                         , NP.OLD_CODE3
+                         , COD(NP.SPT) SPT
+                         , COD(NP.PARTMPCHECK) PARTMPCHECK
+                         , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = PE.CUSER) CUSERNAME -- 자재 등록자
+                         , PE.CUSER CUSERID
+                         , 1 LEV
+                         , 'F' ISLEAF
+                         , VP.UCHECK
+                         , VP.MCHECK
+                         , NVL(COD(NP.PART_DIVISION), '') AS PART_DIVISION
+                         --, PE.CDATE
+                         --, VP.MDATE
+                         , TO_CHAR(TO_DATE(PE.CDATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS CDATE -- 자재 등록일
+                         , TO_CHAR(TO_DATE(VP.MDATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS MDATE -- 자재 수정일
+                         , VP.user5
+                         , (SELECT COUNT(1) FROM PARTOFPART$AC WHERE AS$END1=NP.VF$OUID AND ROWNUM=1) AS HASCHILD -- 하위 자재 존재 여부
+                    FROM
+                 PARTOFEBOM PE
+                INNER JOIN NORMALPART$VF NP ON PE.PARTOUID = NP.VF$OUID
+                LEFT OUTER JOIN VARIABLEPART_NEW VP ON VP.PRODUCTOUID = PE.PRODUCTOUID AND VP.ASSOOUID = PE.ASSOOUID
+                WHERE
+                 PE.PRODUCTOUID = (SELECT VFOID FROM ouid)
+                ORDER BY TO_NUMBER(PE.SEQ)
+        """;
+
+
+            stmt = con.prepareStatement(sql.toString());
+            stmt.setString(1, productNo);
+            rs = stmt.executeQuery();
+
+            while(rs.next()) {
+
+                //PRODUCTOUID
+                String PRODUCTOUID = rs.getString("PRODUCTOUID");
+                String PARENTNO = rs.getString("PARENTNO");
+                String PARTOUID = rs.getString("PARTOUID");
+
+                String PCREATOR = rs.getString("PCREATOR"); // 제품 생성자
+                String PEMAIL = rs.getString("PEMAIL");
+
+                String SEQ = rs.getString("SEQ");
+                String PARTNO = rs.getString("PARTNO");
+                String PARTNAME = rs.getString("PARTNAME");
+                String VERSION = rs.getString("VERSION");
+
+                String DIV = rs.getString("DIV") == null ? "" : rs.getString("DIV");
+                String BLOCKNO = rs.getString("BLOCKNO");
+                String BLOCK_OPT = rs.getString("BLOCK_OPT"); //품목구분 (M,C,1,2,3)
+                String GLCODE = rs.getString("GLCODE");
+
+                String NATION = rs.getString("NATION");
+                String SPEC = rs.getString("SPEC");
+                String PART_SIZE = rs.getString("PART_SIZE");
+
+                String QTY = rs.getString("QTY");
+                String CMT = rs.getString("CMT");
+                String WORK_QTY = rs.getString("WORK_QTY");
+                String WORK_CMT = rs.getString("WORK_CMT");
+                String UCHECK = rs.getString("UCHECK");
+                String USERNAME = rs.getString("USERNAME"); //자재 생성자 (=채번)
+                String USERID = rs.getString("USERID");
+                String HASCHILD = rs.getString("HASCHILD"); //하위 자재 존재 여부
+                String UOM =  rs.getString("UOM");
+
+                String CDATE = rs.getString("CDATE"); // 자재 등록일(BOM에 구성된 날짜)
+                String MDATE = rs.getString("MDATE"); // 자재 수정일(BOM의 자재 수정일)
+                String CUSERNAME = rs.getString("CUSERNAME"); // 자재 등록자
+
+
+                BomDTO dto = new BomDTO();
+                dto.setProductOid(PRODUCTOUID);
+                dto.setProductNo(PARENTNO);
+
+                //dto.setProductCreator(PCREATOR); // 제품 등록자
+                //dto.setProductEmail(PEMAIL); // 제품 등록자 이메일
+
+                dto.setSeq(SEQ);
+                dto.setPartNo(PARTNO);
+                dto.setPartNoOID(PARTOUID);
+                dto.setPartName(PARTNAME);
+                dto.setVersion(VERSION);
+                dto.setBlockNo(BLOCKNO);
+                dto.setBlockopt(BLOCK_OPT);
+                dto.setGlCode(GLCODE);
+                dto.setWorkQty(WORK_QTY);
+                dto.setWorkCmt(WORK_CMT);
+                dto.setDiv(DIV); // 최초구분 : (외주(ROH) / 내작(HALB_E)
+
+                dto.setProductCreDate(CDATE);
+                dto.setProductModDate(MDATE);
+
+                dto.setNation(NATION);
+                dto.setSpec(SPEC);
+                dto.setPart_size(PART_SIZE);
+                dto.setQty(QTY); // 수량
+                dto.setUom(UOM); // 단위
+                dto.setCmt(CMT);
+                dto.setUcheck(UCHECK);
+                dto.setUsername(CUSERNAME);
+                dto.setUserId(USERID);
+                dto.setHASCHILD(HASCHILD);
+
+
+                list.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, stmt, rs);
+        }
+        return list;
+    }
 
     /**
      * @apiNote 제품의 전체 레벨 하위 bom 조회
@@ -1128,11 +1304,12 @@ public class ProductCommonUtil {
                 String BLOCKNO = rs.getString("BLOCKNO");
                 String BLOCKNAME = rs.getString("BLOCKNAME");
                 String BLOCK_OPT = rs.getString("BLOCK_OPT");
-                String UOM = rs.getString("PARTNAME");
+                String UOM = rs.getString("UOM");
                 String QTY = rs.getString("QTY");
                 String DIV = rs.getString("DIV");
                 String UCHECK = rs.getString("UCHECK");
                 String WORK_QTY = rs.getString("WORK_QTY");
+
 
                 ProductDto dto = new ProductDto();
                 dto.setLev(LEV);
@@ -1148,6 +1325,8 @@ public class ProductCommonUtil {
                 dto.setQty(QTY);
                 dto.setSpec(SPEC);
                 dto.setWorkQty(WORK_QTY);
+                dto.setUom(UOM);
+
 
 
 

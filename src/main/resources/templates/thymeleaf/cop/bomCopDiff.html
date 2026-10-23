@@ -8,16 +8,14 @@
     <!--
         SENTINEL 4F · 호기 BOM 비교 (CopMainController : GET /cop/diff?a=기준호기&b=비교호기)
 
-        같은 사양의 두 호기 BOM 을 어셈블리 · 위치번호(pos) 기준으로 정렬해 비교한다.
-          일치     : 품번 · 수량 모두 같음
-          수량 변경 : 품번 같고 수량만 다름
-          품번 변경 : 같은 위치에 다른 품번
+        두 호기의 1레벨 BOM 을 자재번호(partNo) 기준으로 짝을 맞춰 수량(qty)을 비교한다. 블록(blockNo)별로 묶어 보여준다.
+          일치     : 자재번호 · 수량 모두 같음
+          수량 변경 : 자재번호 같고 수량만 다름
           누락     : 기준(A)에만 있음
           추가     : 비교(B)에만 있음
 
-        데이터 : 지금은 화면 안의 샘플 (loadBomPair). 실제 연동 시 loadBomPair 만 fetch 로 바꾸면 된다.
-                 반환 형식 : { a: BOM, b: BOM }
-                 BOM = { productNo, site, spec, assemblies: [{ code, name, parts: [{ pos, partNo, name, qty, unit, spec }] }] }
+        데이터 : GET /api/findProductInfo?key=subae&productNo=호기 → ProductDto[] (APIController.findProductInfo)
+                 같은 자재번호가 여러 줄이면 수량을 합산해 비교한다.
     -->
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
@@ -138,7 +136,7 @@
         .score-txt p { margin-top: 6px; font-size: 13px; color: var(--ink-3); line-height: 1.5; }
 
         .counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
-        @media (min-width: 720px) { .counts { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+        @media (min-width: 720px) { .counts { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
         .cnt {
             display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; border-radius: 13px; cursor: pointer; text-align: left;
             border: 1px solid var(--line); background: var(--panel-2); transition: border-color .2s, opacity .2s, background .2s;
@@ -163,16 +161,19 @@
         .dna-wrap { min-width: 0; }
         .dna-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px; color: var(--ink-3); }
         .dna-head b { font: 700 11px/1 var(--mono); letter-spacing: .14em; color: var(--ink-2); }
-        .dna { display: flex; gap: 6px; height: 104px; }
-        .dna-g { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; cursor: pointer; border-radius: 8px; padding: 0 2px; transition: background .2s; }
+        /* 자재가 수백 개여도 화면 폭을 넘지 않도록 열·묶음 모두 최소 폭 0 */
+        .dna { display: flex; gap: 3px; height: 104px; overflow: hidden; }
+        .dna-g { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; cursor: pointer; border-radius: 6px; transition: background .2s; }
         .dna-g:hover, .dna-g.on { background: rgba(255,255,255,.04); }
         .dna-g .gl { height: 18px; font-size: 10.5px; font-weight: 700; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 2px; }
         .dna-g.on .gl { color: var(--ink); }
-        .dna-cols { flex: 1; display: flex; gap: 2px; }
-        .col { flex: 1 1 0; min-width: 2px; display: flex; flex-direction: column; gap: 0; transform-origin: center; }
+        .dna-cols { flex: 1; min-width: 0; display: flex; }
+        .col { flex: 1 1 0; min-width: 0; overflow: hidden; display: flex; flex-direction: column; align-items: flex-start; transform-origin: center; }
         .col i { display: block; border-radius: 2px; }
-        .col .ta, .col .tb { height: 30px; }
-        .col .lk { height: 26px; width: 2px; margin: 0 auto; border-radius: 1px; }
+        .col .ta, .col .tb { height: 30px; width: calc(100% - 2px); }
+        .dna.dense .col i { border-radius: 0; }
+        .dna.dense .col .ta, .dna.dense .col .tb { width: 100%; }
+        .col .lk { height: 26px; width: 2px; max-width: 100%; margin: 0 auto; border-radius: 1px; }
         .col.s-SAME .ta, .col.s-SAME .tb { background: var(--same); }
         .col.s-SAME .lk { background: rgba(127,227,255,.14); }
         .col.s-QTY .ta, .col.s-QTY .tb, .col.s-QTY .lk { background: var(--warn); }
@@ -186,28 +187,62 @@
         .seq .col { animation: grow .55s var(--ease-out) both; }
         @keyframes grow { from { transform: scaleY(0); opacity: 0; } to { transform: none; opacity: 1; } }
 
-        /* ════════════ 3. 어셈블리 + 비교표 ════════════ */
+        /* ════════════ 3. 차이 분석 + 비교표 ════════════ */
         .work { margin: 16px 0 32px; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
-        @media (min-width: 1100px) { .work { grid-template-columns: 290px minmax(0, 1fr); } }
+        @media (min-width: 1100px) { .work { grid-template-columns: 310px minmax(0, 1fr); } }
 
-        .asm { padding: 14px; position: sticky; top: calc(var(--nav-h) + 12px); }
-        @media (max-width: 1099px) { .asm { position: static; } }
-        .asm h2, .tbl-head h2 { font-size: 15px; font-weight: 800; }
-        .asm-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-        @media (max-width: 1099px) { .asm-list { flex-direction: row; flex-wrap: wrap; } }
-        .asm-btn {
-            width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center;
-            padding: 10px 12px; border-radius: 12px; border: 1px solid transparent; background: transparent; cursor: pointer; text-align: left;
+        /* 창보다 길어지면 패널 안에서 스크롤 (sticky 패널 아래가 잘리지 않게) */
+        .ins { padding: 16px; position: sticky; top: calc(var(--nav-h) + 12px); max-height: calc(100vh - var(--nav-h) - 24px); overflow-y: auto; overscroll-behavior: contain; }
+        @media (max-width: 1099px) {
+            .ins { position: static; max-height: none; }
+            .ins-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); column-gap: 28px; }
+        }
+        .ins h2, .tbl-head h2 { font-size: 15px; font-weight: 800; }
+        .ins-empty { margin-top: 10px; font-size: 13px; color: var(--ink-3); line-height: 1.6; }
+        .ins-sec { padding: 14px 0 4px; border-top: 1px solid var(--line); margin-top: 12px; min-width: 0; }
+        .ins-sec h3 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+        .ins-sec h3 small { font: 600 12px var(--mono); color: var(--ink-3); }
+        .ins-none { font-size: 12.5px; color: var(--ink-3); padding: 2px 0 8px; }
+
+        /* 수량 변경 방향 */
+        .dir { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: rgba(255,255,255,.06); }
+        .dir i { display: block; height: 100%; }
+        .dir-lg { display: flex; justify-content: space-between; gap: 10px; margin: 8px 0 6px; font-size: 12.5px; color: var(--ink-2); }
+        .dir-lg span { display: inline-flex; align-items: center; gap: 6px; }
+        .dir-lg i { width: 8px; height: 8px; border-radius: 2px; }
+        .dir-lg b { font-family: var(--mono); color: var(--ink); }
+        .net { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
+        .net-t { flex-basis: 100%; font-size: 12px; color: var(--ink-3); }
+        .net-v { display: inline-flex; align-items: baseline; gap: 4px; padding: 4px 9px; border-radius: 8px; font-size: 12px; color: var(--ink-2); background: rgba(255,255,255,.04); border: 1px solid var(--line); }
+        .net-v b { font: 800 13.5px/1 var(--mono); }
+        .net-v.up b { color: var(--warn); } .net-v.down b { color: var(--scan); }
+        .unit { color: var(--ink-3); font-size: 11.5px; font-family: var(--sans); margin-left: 3px; }
+
+        /* 클릭 가능한 목록 행 (큰 차이 · 블록 · 품목구분 공통) */
+        .ilist { list-style: none; margin: 0 -8px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+        .irow {
+            width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; align-items: center;
+            padding: 8px; border-radius: 10px; border: 1px solid transparent; background: transparent; cursor: pointer; text-align: left;
             transition: background .15s, border-color .15s;
         }
-        .asm-btn:hover { background: rgba(255,255,255,.04); }
-        .asm-btn[aria-pressed="true"] { background: var(--panel-3); border-color: var(--line-2); }
-        .asm-btn .nm { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .asm-btn .dc { font: 700 12px/1 var(--mono); padding: 4px 7px; border-radius: 999px; background: var(--alert-dim); color: var(--alert); }
-        .asm-btn .dc.zero { background: rgba(255,255,255,.05); color: var(--ink-3); }
-        .asm-btn .bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: rgba(255,255,255,.06); overflow: hidden; display: flex; }
-        .asm-btn .bar i { display: block; height: 100%; }
-        @media (max-width: 1099px) { .asm-list li { flex: 1 1 200px; } }
+        .irow:hover { background: rgba(255,255,255,.04); }
+        .irow[aria-pressed="true"] { background: var(--panel-3); border-color: var(--line-2); }
+        .irow .nm { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .irow .nm.pn { font-family: var(--mono); font-size: 12.5px; }
+        .irow .sub { grid-column: 1; font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .irow .v { font: 700 12.5px/1.2 var(--mono); color: var(--ink-2); text-align: right; white-space: nowrap; }
+        .irow .v small { color: var(--ink-3); font-weight: 600; }
+        .irow .v.r2 { grid-row: 1 / span 2; grid-column: 2; }
+        .irow .v em { display: block; margin-top: 3px; font-style: normal; font-size: 12px; color: var(--warn); }
+        .irow .v em.down { color: var(--scan); }
+        .irow .track { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: rgba(255,255,255,.06); overflow: hidden; display: flex; }
+        .irow .track i { display: block; height: 100%; }
+
+        /* 표 위 필터 표시 */
+        .fchip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border-radius: 999px; background: var(--panel-3); border: 1px solid var(--line-2); font-size: 12.5px; font-weight: 700; max-width: 100%; }
+        .fchip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fchip button { flex: none; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(255,255,255,.08); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--ink-2); }
+        .fchip button:hover { background: rgba(255,255,255,.16); color: var(--ink); }
 
         .tbl-card { overflow: hidden; }
         .tbl-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
@@ -227,7 +262,8 @@
         .sw input:checked ~ .k { transform: translateX(16px); }
         .sw input:focus-visible + .t { outline: 2px solid var(--scan); outline-offset: 2px; }
 
-        .tbl-scroll { overflow-x: auto; }
+        /* 표는 창 높이 안에서 스크롤 → 머리글이 항상 보임 */
+        .tbl-scroll { overflow: auto; max-height: calc(100vh - var(--nav-h) - 96px); overscroll-behavior: contain; }
         table { width: 100%; min-width: 980px; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 13.5px; }
         thead th {
             position: sticky; top: 0; z-index: 2; background: var(--panel-2); text-align: left; padding: 10px 10px; font-size: 12px; font-weight: 700; color: var(--ink-3);
@@ -254,7 +290,8 @@
         .chip-st { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--c); }
         .chip-st .sym { width: 20px; height: 20px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font: 800 12px/1 var(--mono); }
         .delta { display: block; font: 700 11.5px/1 var(--mono); margin-top: 3px; color: var(--c); }
-        .why { display: inline-block; margin-top: 5px; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; color: var(--ink-2); border: 1px solid var(--line-2); }
+        /* 상태 칸이 좁아(128px · 줄바꿈 없음) 같은 줄에 두면 잘리므로 항상 다음 줄에 */
+        .why { display: block; width: fit-content; margin: 5px auto 0; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; color: var(--ink-2); border: 1px solid var(--line-2); }
         .why:hover { color: var(--ink); border-color: var(--ink-2); background: rgba(255,255,255,.05); }
 
         tbody.g tr.gh td { padding: 0; border-bottom: 1px solid var(--line); background: var(--panel); }
@@ -272,9 +309,9 @@
         .tbl-empty b { display: block; color: var(--ink); font-size: 16px; margin-bottom: 4px; }
 
         .tip {
-            position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, calc(-100% - 12px));
+            position: fixed; z-index: 60; pointer-events: none; transform: translateY(calc(-100% - 12px));
             padding: 8px 11px; border-radius: 10px; background: rgba(4,6,10,.94); border: 1px solid var(--line-2);
-            font-size: 12.5px; white-space: nowrap; box-shadow: 0 10px 24px rgba(0,0,0,.5);
+            font-size: 12.5px; white-space: nowrap; max-width: calc(100vw - 16px); overflow: hidden; text-overflow: ellipsis; box-shadow: 0 10px 24px rgba(0,0,0,.5);
         }
         .tip b { font-family: var(--mono); margin-right: 6px; }
 
@@ -299,7 +336,6 @@
             <span class="floor">4F</span><b>호기 BOM 비교</b>
         </div>
         <div class="nav-tools">
-            <span class="demo" title="샘플 데이터">DEMO</span>
             <a class="btn btn-sm" href="/cop/radar">관제</a>
             <a class="btn btn-sm" href="/cop/main">메인</a>
         </div>
@@ -312,7 +348,7 @@
     <form class="card pick" id="pickForm" novalidate aria-label="비교할 호기 선택">
         <div class="side-in">
             <label for="inA"><span class="side-tag a" aria-hidden="true">A</span>기준 호기</label>
-            <input id="inA" list="hogiList" autocomplete="off" spellcheck="false" placeholder="예) TEST-632560" aria-describedby="metaA pickErr">
+            <input id="inA" autocomplete="off" spellcheck="false" placeholder="호기번호" aria-describedby="metaA pickErr">
             <span class="side-meta" id="metaA"></span>
         </div>
         <button type="button" class="swap" id="btnSwap" aria-label="기준과 비교 호기 바꾸기" title="A ↔ B 바꾸기">
@@ -320,7 +356,7 @@
         </button>
         <div class="side-in">
             <label for="inB"><span class="side-tag b" aria-hidden="true">B</span>비교 호기</label>
-            <input id="inB" list="hogiList" autocomplete="off" spellcheck="false" placeholder="예) H2-71413" aria-describedby="metaB pickErr">
+            <input id="inB" autocomplete="off" spellcheck="false" placeholder="호기번호" aria-describedby="metaB pickErr">
             <span class="side-meta" id="metaB"></span>
         </div>
         <button type="submit" class="btn btn-solid" id="btnCompare">
@@ -328,8 +364,6 @@
             비교
         </button>
         <p class="pick-err" id="pickErr" role="alert" hidden></p>
-        <div class="peers" id="peers"></div>
-        <datalist id="hogiList"></datalist>
     </form>
 
     <!-- ═══════════ 2. 요약 + 정렬 띠 ═══════════ -->
@@ -345,28 +379,47 @@
         </div>
         <div class="dna-wrap">
             <div class="counts" id="counts" role="group" aria-label="상태 필터"></div>
-            <div class="dna-head"><b>BOM ALIGNMENT</b><span>열 하나 = 위치 하나 · 위 A / 아래 B · 끊기거나 색이 다른 곳이 차이</span></div>
+            <div class="dna-head"><b>BOM ALIGNMENT</b><span>열 하나 = 자재 하나 · 위 A / 아래 B · 끊기거나 색이 다른 곳이 차이</span></div>
             <div class="dna" id="dna" aria-hidden="true"></div>
             <div class="dna-axis" aria-hidden="true"><span id="axisA">A</span><span id="axisB">B</span></div>
             <p class="sr" id="dnaSummary" aria-live="polite"></p>
         </div>
     </section>
 
-    <!-- ═══════════ 3. 어셈블리 + 비교표 ═══════════ -->
+    <!-- ═══════════ 3. 차이 분석 + 비교표 ═══════════ -->
     <div class="work">
-        <nav class="card asm" aria-labelledby="asmTitle">
-            <h2 id="asmTitle">어셈블리</h2>
-            <ul class="asm-list" id="asmList"></ul>
-        </nav>
+        <aside class="card ins" aria-labelledby="insTitle">
+            <h2 id="insTitle">차이 분석</h2>
+            <p class="ins-empty" id="insEmpty">비교하면 어디가 얼마나 다른지 여기에 정리됩니다.</p>
+            <div class="ins-body" id="insBody" hidden>
+                <section class="ins-sec">
+                    <h3>수량 변경 방향 <small id="dirN"></small></h3>
+                    <div id="dirBox"></div>
+                </section>
+                <section class="ins-sec">
+                    <h3>수량 차이가 큰 자재</h3>
+                    <ul class="ilist" id="topParts"></ul>
+                </section>
+                <section class="ins-sec">
+                    <h3>차이가 많은 블록 <small id="blkN"></small></h3>
+                    <ul class="ilist" id="topBlocks"></ul>
+                </section>
+                <section class="ins-sec">
+                    <h3>품목구분별 차이</h3>
+                    <ul class="ilist" id="byOpt"></ul>
+                </section>
+            </div>
+        </aside>
 
         <section class="card tbl-card" aria-labelledby="tblTitle">
             <div class="tbl-head">
                 <h2 id="tblTitle">자재 비교</h2>
                 <span class="sub tnum" id="tblSub"></span>
+                <span class="fchip" id="fchip" hidden><span id="fchipTxt"></span><button type="button" id="btnClearF" aria-label="필터 해제" title="필터 해제"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span>
                 <div class="tools">
                     <label class="search">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-                        <input type="search" id="q" placeholder="품번 · 자재명 검색" aria-label="품번 또는 자재명 검색" autocomplete="off">
+                        <input type="search" id="q" placeholder="자재번호 · 자재명 검색" aria-label="자재번호 또는 자재명 검색" autocomplete="off">
                     </label>
                     <label class="tg">
                         <span class="sw"><input type="checkbox" id="onlyDiff" checked><span class="t"></span><span class="k"></span></span>
@@ -388,9 +441,9 @@
                     <thead>
                         <tr class="grp"><th colspan="4" class="ga" id="thA">A · 기준</th><th class="mid">비교</th><th colspan="3" class="gb" id="thB">B · 비교</th></tr>
                         <tr>
-                            <th scope="col">위치</th><th scope="col">품번</th><th scope="col">자재명</th><th scope="col" class="num">수량</th>
+                            <th scope="col">순번</th><th scope="col">자재번호</th><th scope="col">자재명</th><th scope="col" class="num">수량</th>
                             <th scope="col" class="mid">상태</th>
-                            <th scope="col">품번</th><th scope="col">자재명</th><th scope="col" class="num">수량</th>
+                            <th scope="col">자재번호</th><th scope="col">자재명</th><th scope="col" class="num">수량</th>
                         </tr>
                     </thead>
                 </table>
@@ -412,104 +465,66 @@
     var ST = {
         SAME:    { name: "일치",      sym: "=" },
         QTY:     { name: "수량 변경", sym: "Δ" },
-        CHANGED: { name: "품번 변경", sym: "⇄" },
         REMOVED: { name: "B 누락",    sym: "−" },
         ADDED:   { name: "B 추가",    sym: "+" }
     };
-    var ST_KEYS = ["QTY", "CHANGED", "REMOVED", "ADDED", "SAME"];
+    var ST_KEYS = ["QTY", "REMOVED", "ADDED", "SAME"];
 
     /* =========================================================
-       샘플 데이터 (실제 연동 시 loadBomPair 를 fetch 로 교체)
+       데이터 : 호기의 1레벨 BOM (GET /api/findProductInfo → ProductDto[])
        ========================================================= */
-    var SAMPLE_SPEC = "ELV 15인승 · 105m/min · 12층";
-    var SAMPLE_HOGI = ["TEST-632560", "H2-71413", "H3-15690", "H3-59200", "H1-69092", "H4-20915", "H2-48211", "H1-77820"];
-
-    // 같은 사양 호기의 표준 BOM — 호기마다 조금씩 달라진다
-    var BASE = [
-        { code: "A10", name: "권상기 ASSY", parts: [
-            [10, "P-5001-15", "권상기 본체", 1, "EA", "YJ140"], [20, "P-5010-02", "브레이크 라이닝", 2, "EA"], [30, "P-5022-07", "시브", 1, "EA", "Ø400"],
-            [40, "P-1102-07", "브라켓", 10, "EA"], [50, "P-1450-21", "앵커볼트", 16, "EA", "M16"], [60, "P-5030-11", "방진고무", 4, "EA"], [70, "P-5041-03", "엔코더", 1, "EA"] ] },
-        { code: "A20", name: "카 ASSY", parts: [
-            [10, "P-2740-03", "카 프레임", 1, "EA"], [20, "P-2751-08", "카 바닥판", 1, "EA"], [30, "P-2760-04", "카 천장", 1, "EA"],
-            [40, "P-2772-12", "카 조작반(COP)", 1, "EA"], [50, "P-2780-05", "핸드레일", 2, "EA"], [60, "P-2790-09", "비상조명", 1, "EA"], [70, "P-2795-01", "하중검출장치", 1, "EA"] ] },
-        { code: "A30", name: "카 도어 ASSY", parts: [
-            [10, "P-3318-11", "도어행거", 2, "EA"], [20, "P-3320-04", "도어 패널", 2, "EA"], [30, "P-3330-06", "도어 모터", 1, "EA"],
-            [40, "P-3902-01", "도어 인터록", 1, "EA"], [50, "P-3340-02", "세이프티 슈", 2, "EA"] ] },
-        { code: "A40", name: "승강장 도어 ASSY", parts: [
-            [10, "P-3410-07", "승강장 도어 패널", 24, "EA"], [20, "P-3420-03", "문턱(실)", 12, "EA"], [30, "P-3430-05", "승강장 버튼", 12, "EA"],
-            [40, "P-3440-08", "홀 랜턴", 12, "EA"], [50, "P-3318-12", "승강장 도어행거", 24, "EA"] ] },
-        { code: "A50", name: "가이드레일 ASSY", parts: [
-            [10, "P-2210-04", "가이드레일 T89", 18, "EA"], [20, "P-2220-01", "레일 브라켓", 36, "EA"], [30, "P-2230-06", "레일 클립", 144, "EA"], [40, "P-2240-02", "피쉬플레이트", 16, "EA"] ] },
-        { code: "A60", name: "로프 · 균형추", parts: [
-            [10, "P-4420-02", "와이어로프 Ø10", 480, "M"], [20, "P-2805-12", "균형추 프레임", 1, "EA"], [30, "P-2810-03", "균형추 블록", 32, "EA"], [40, "P-4430-05", "로프 소켓", 12, "EA"] ] },
-        { code: "A70", name: "제어반 ASSY", parts: [
-            [10, "P-6100-01", "제어반", 1, "EA"], [20, "P-6110-07", "인버터", 1, "EA"], [30, "P-6130-09", "제어반 케이블", 3, "EA"],
-            [40, "P-6620-04", "리미트 스위치", 6, "EA"], [50, "P-6140-02", "트래블링 케이블", 60, "M"] ] },
-        { code: "A80", name: "안전장치", parts: [
-            [10, "P-7011-06", "조속기", 1, "EA"], [20, "P-7020-03", "비상정지장치", 2, "EA"], [30, "P-7030-08", "완충기", 2, "EA"], [40, "P-7040-01", "조속기 로프", 70, "M"] ] }
-    ];
-    var EXTRA = [["P-9010-01", "보강 플레이트", 2, "EA"], ["P-9020-04", "케이블 덕트", 8, "M"], ["P-9030-02", "방음 패드", 4, "EA"], ["P-9040-07", "점검 스위치", 1, "EA"]];
-
-    /** 호기번호로 그 호기의 BOM 을 만든다 (같은 번호는 항상 같은 결과) */
-    function sampleBom(productNo) {
-        // 발표 시연용 대표 사례 : 표준 BOM 그대로 + 브라켓만 120EA (관제 화면의 TEST-632560 과 같은 이상)
-        var showcase = productNo === "TEST-632560";
-        var rnd = showcase ? function () { return 0.99; } : rng(hashInt(productNo));
-        var assemblies = BASE.map(function (asm) {
-            var parts = [];
-            asm.parts.forEach(function (p) {
-                var r = rnd();
-                var part = { pos: p[0], partNo: p[1], name: p[2], qty: p[3], unit: p[4], spec: p[5] || "" };
-                if (r < 0.02) return;                                                      // 빠진 자재
-                if (r < 0.06) part.qty = Math.max(1, part.qty + (rnd() < .5 ? -1 : 1) * Math.max(1, Math.round(part.qty * (0.08 + rnd() * 0.2))));
-                else if (r < 0.085) part.partNo = part.partNo.slice(0, -2) + pad(+part.partNo.slice(-2) + 1); // 개정 품번
-                parts.push(part);
-            });
-            if (rnd() < 0.1) {
-                var e = EXTRA[Math.floor(rnd() * EXTRA.length)];
-                parts.push({ pos: 90, partNo: e[0], name: e[1], qty: e[2], unit: e[3], spec: "" });
-            }
-            return { code: asm.code, name: asm.name, parts: parts };
-        });
-        if (showcase) {
-            assemblies[0].parts.forEach(function (p) { if (p.partNo === "P-1102-07") p.qty = 120; });
-        }
-        return { productNo: productNo, site: "샘플현장 " + "ABCDEFGH".charAt(hashInt(productNo) % 8) + "-" + (hashInt(productNo + "s") % 40 + 1), spec: SAMPLE_SPEC, assemblies: assemblies };
+    function loadBom(productNo) {
+        return fetch("/api/findProductInfo?key=subae&productNo=" + encodeURIComponent(productNo))
+            .then(function (res) {
+                if (!res.ok) throw new Error("조회 실패 (" + res.status + ")");
+                return res.json();
+            })
+            .then(function (list) { return { productNo: productNo, parts: list || [] }; });
     }
 
     function loadBomPair(a, b) {
-        return new Promise(function (resolve) {
-            setTimeout(function () { resolve({ a: sampleBom(a), b: sampleBom(b) }); }, reduceMotion ? 0 : 450);
+        return Promise.all([loadBom(a), loadBom(b)]).then(function (res) { return { a: res[0], b: res[1] }; });
+    }
+
+    /** 자재번호별로 묶는다 (같은 자재번호는 수량 합산) */
+    function byPartNo(list) {
+        var map = {}, order = [];
+        list.forEach(function (p) {
+            var no = (p.partNo || "").trim();
+            if (!no) return;
+            if (!map[no]) {
+                map[no] = { partNo: no, name: p.partName || "", spec: p.spec || "", blockNo: (p.blockNo || "").trim(), opt: (p.blockopt || "").trim(), unit: (p.uom || "").trim(), seq: num(p.seq), qty: 0 };
+                order.push(no);
+            }
+            map[no].qty = round(map[no].qty + num(p.qty));
         });
+        return { map: map, order: order };
     }
 
     /* =========================================================
-       비교 (정렬)
+       비교 : 자재번호로 짝을 맞추고 수량을 비교 (블록별로 묶음)
        ========================================================= */
     var rows = [], groups = [];
-    var filter = { st: { QTY: true, CHANGED: true, REMOVED: true, ADDED: true, SAME: true }, asm: null, q: "", onlyDiff: true };
+    var filter = { st: { QTY: true, REMOVED: true, ADDED: true, SAME: true }, asm: null, opt: null, q: "", onlyDiff: true };
     var collapsed = {};
     var pair = null;
 
     function diff(A, B) {
         rows = []; groups = [];
-        var codes = [];
-        A.assemblies.concat(B.assemblies).forEach(function (g) { if (codes.indexOf(g.code) < 0) codes.push(g.code); });
-        codes.forEach(function (code) {
-            var ga = A.assemblies.filter(function (g) { return g.code === code; })[0] || { parts: [] };
-            var gb = B.assemblies.filter(function (g) { return g.code === code; })[0] || { parts: [] };
-            var poses = [];
-            ga.parts.concat(gb.parts).forEach(function (p) { if (poses.indexOf(p.pos) < 0) poses.push(p.pos); });
-            poses.sort(function (x, y) { return x - y; });
-            var grp = { code: code, name: ga.name || gb.name, rows: [] };
-            poses.forEach(function (pos) {
-                var pa = ga.parts.filter(function (p) { return p.pos === pos; })[0];
-                var pb = gb.parts.filter(function (p) { return p.pos === pos; })[0];
-                var st = !pb ? "REMOVED" : !pa ? "ADDED" : pa.partNo !== pb.partNo ? "CHANGED" : pa.qty !== pb.qty ? "QTY" : "SAME";
-                var row = { id: code + "-" + pos, asm: code, asmName: grp.name, pos: pos, a: pa, b: pb, st: st };
-                grp.rows.push(row); rows.push(row);
-            });
-            groups.push(grp);
+        var pa = byPartNo(A.parts), pb = byPartNo(B.parts);
+        var keys = pa.order.concat(pb.order.filter(function (k) { return !pa.map[k]; }));
+        var gmap = {};
+        keys.forEach(function (k, i) {
+            var a = pa.map[k], b = pb.map[k], p = a || b;
+            var code = p.blockNo || "(미지정)";
+            var grp = gmap[code];
+            if (!grp) { grp = gmap[code] = { code: code, name: code, rows: [] }; groups.push(grp); }
+            var st = !b ? "REMOVED" : !a ? "ADDED" : a.qty !== b.qty ? "QTY" : "SAME";
+            grp.rows.push({ id: "r" + i, asm: code, asmName: code, opt: p.opt || "(미지정)", unit: p.unit, pos: p.seq, partNo: k, a: a, b: b, st: st });
+        });
+        groups.forEach(function (g) {
+            g.rows.sort(function (x, y) { return x.pos - y.pos; });
+            rows = rows.concat(g.rows);
         });
     }
 
@@ -522,7 +537,7 @@
         renderScore();
         renderCounts();
         renderDna();
-        renderAsm();
+        renderInsight();
         renderTable();
     }
 
@@ -532,11 +547,13 @@
         $("rate").textContent = rate.toFixed(1);
         animateRing(rate);
         $("ring").setAttribute("aria-label", "일치율 " + rate + "%");
-        $("scoreTitle").innerHTML = diffN
-            ? '<span class="tnum" style="color:var(--alert)">' + diffN + '</span>곳이 다릅니다'
-            : '두 BOM 이 완전히 같습니다';
-        $("scoreSub").textContent = "전체 " + total + "개 위치 · " + groups.length + "개 어셈블리 비교";
-        $("dnaSummary").textContent = "일치율 " + rate + "%. 수량 변경 " + count(rows, "QTY") + ", 품번 변경 " + count(rows, "CHANGED") +
+        $("scoreTitle").innerHTML = !total
+            ? '조회된 BOM 이 없습니다'
+            : diffN
+                ? '<span class="tnum" style="color:var(--alert)">' + diffN + '</span>개 자재가 다릅니다'
+                : '두 BOM 이 완전히 같습니다';
+        $("scoreSub").textContent = "전체 " + total + "개 자재 · " + groups.length + "개 블록 비교 (자재번호 · 수량 기준)";
+        $("dnaSummary").textContent = "일치율 " + rate + "%. 수량 변경 " + count(rows, "QTY") +
             ", B 누락 " + count(rows, "REMOVED") + ", B 추가 " + count(rows, "ADDED") + ".";
     }
 
@@ -571,45 +588,143 @@
     function renderDna() {
         var dna = $("dna");
         dna.classList.remove("seq");
+        // 열이 3px 보다 좁아지면 열 사이 틈을 없애 색만 보이게
+        dna.classList.toggle("dense", rows.length > dna.clientWidth / 3);
         dna.innerHTML = groups.map(function (g) {
-            return '<div class="dna-g' + (filter.asm === g.code ? " on" : "") + '" data-asm="' + g.code + '" style="flex-grow:' + g.rows.length + '">' +
-                '<span class="gl">' + esc(g.name) + '</span><div class="dna-cols">' +
+            // 묶음이 좁으면 이름을 숨긴다 (말줄임표만 남아 지저분해지므로)
+            var label = g.rows.length / rows.length >= 0.05 ? esc(g.name) : "";
+            return '<div class="dna-g' + (filter.asm === g.code ? " on" : "") + '" data-asm="' + esc(g.code) + '" style="flex-grow:' + g.rows.length + '">' +
+                '<span class="gl">' + label + '</span><div class="dna-cols">' +
                 g.rows.map(function (r, i) {
-                    return '<span class="col s-' + r.st + '" data-id="' + r.id + '" style="animation-delay:' + (i * 18) + 'ms"><i class="ta"></i><i class="lk"></i><i class="tb"></i></span>';
+                    return '<span class="col s-' + r.st + '" data-id="' + r.id + '" style="animation-delay:' + Math.min(i * 18, 600) + 'ms"><i class="ta"></i><i class="lk"></i><i class="tb"></i></span>';
                 }).join("") + '</div></div>';
         }).join("");
         if (!reduceMotion) { void dna.offsetWidth; dna.classList.add("seq"); }
     }
 
-    function renderAsm() {
-        $("asmList").innerHTML = [{ code: null, name: "전체 어셈블리", rows: rows }].concat(groups).map(function (g) {
-            var d = g.rows.filter(function (r) { return r.st !== "SAME"; }).length;
-            var bar = ST_KEYS.filter(function (k) { return k !== "SAME"; }).map(function (k) {
-                var n = count(g.rows, k);
-                return n ? '<i class="s-' + k + '" style="width:' + (n / g.rows.length * 100) + '%;background:var(--c)"></i>' : "";
-            }).join("");
-            return '<li><button type="button" class="asm-btn" data-asm="' + (g.code || "") + '" aria-pressed="' + (filter.asm === g.code) + '">' +
-                '<span class="nm">' + esc(g.name) + '</span><span class="dc tnum' + (d ? "" : " zero") + '">' + (d ? d + " 차이" : "일치") + '</span>' +
-                '<span class="bar" aria-hidden="true">' + bar + '</span></button></li>';
-        }).join("");
-        $("asmList").querySelectorAll(".asm-btn").forEach(function (b) {
-            b.addEventListener("click", function () { setAsm(b.dataset.asm || null); });
-        });
+    /* ── 차이 분석 패널 ── */
+    var DIFF_KEYS = ["QTY", "REMOVED", "ADDED"];
+    function isDiff(r) { return r.st !== "SAME"; }
+
+    /** 상태별 색 막대 (scale : 100% 기준이 되는 값) */
+    function stackBar(list, scale) {
+        return '<span class="track" aria-hidden="true">' + DIFF_KEYS.map(function (k) {
+            var n = count(list, k);
+            return n ? '<i class="s-' + k + '" style="width:' + (n / scale * 100) + '%;background:var(--c)"></i>' : "";
+        }).join("") + '</span>';
     }
 
-    function setAsm(code) {
-        filter.asm = code;
-        $("asmList").querySelectorAll(".asm-btn").forEach(function (b) { b.setAttribute("aria-pressed", (b.dataset.asm || null) === code); });
-        $("dna").querySelectorAll(".dna-g").forEach(function (g) { g.classList.toggle("on", g.dataset.asm === code); });
+    function renderInsight() {
+        var has = rows.length > 0;
+        $("insEmpty").hidden = has;
+        $("insBody").hidden = !has;
+        if (!has) { $("insEmpty").textContent = pair ? "조회된 BOM 이 없어 분석할 내용이 없습니다." : "비교하면 어디가 얼마나 다른지 여기에 정리됩니다."; return; }
+
+        // 1. 수량 변경 방향 : 같은 자재인데 B 가 더 많은지 / 적은지
+        var qtyRows = rows.filter(function (r) { return r.st === "QTY"; });
+        var up = qtyRows.filter(function (r) { return r.b.qty > r.a.qty; }).length, down = qtyRows.length - up;
+        $("dirN").textContent = qtyRows.length ? qtyRows.length + "건" : "";
+        $("dirBox").innerHTML = (!qtyRows.length ? '<p class="ins-none">수량이 다른 자재가 없습니다.</p>' :
+            '<div class="dir" role="img" aria-label="증가 ' + up + '건, 감소 ' + down + '건">' +
+                (up ? '<i style="width:' + (up / qtyRows.length * 100) + '%;background:var(--warn)"></i>' : "") +
+                (down ? '<i style="width:' + (down / qtyRows.length * 100) + '%;background:var(--scan)"></i>' : "") + '</div>' +
+            '<div class="dir-lg"><span><i style="background:var(--warn)"></i>B 가 많음 <b class="tnum">' + up + '</b></span>' +
+                '<span><i style="background:var(--scan)"></i>B 가 적음 <b class="tnum">' + down + '</b></span></div>') +
+            netByUnit();
+
+        // 2. 수량 차이가 큰 자재 : 단위가 달라도 비교되도록 변화율 기준
+        var top = qtyRows.map(function (r) { return { r: r, k: Math.abs(r.b.qty - r.a.qty) / Math.max(Math.abs(r.a.qty), 1) }; })
+            .sort(function (x, y) { return y.k - x.k; }).slice(0, 5);
+        $("topParts").innerHTML = !top.length ? '<li class="ins-none">해당 없음</li>' : top.map(function (t) {
+            var r = t.r, d = round(r.b.qty - r.a.qty), more = d > 0;
+            var rel = more ? (r.a.qty ? (r.b.qty / r.a.qty).toFixed(1) + "배" : "") : (r.a.qty ? Math.round(d / r.a.qty * 100) + "%" : "");
+            return '<li><button type="button" class="irow" data-row="' + r.id + '" title="표에서 보기">' +
+                '<span class="nm pn">' + esc(r.partNo) + '</span>' +
+                '<span class="v r2 tnum">' + fmt(r.a.qty) + ' → ' + fmt(r.b.qty) + unitHtml(r.unit) + '<em class="' + (more ? "" : "down") + '">' + (more ? "+" : "") + fmt(d) + (rel ? " (" + rel + ")" : "") + '</em></span>' +
+                '<span class="sub">' + esc(r.a.name) + '</span></button></li>';
+        }).join("");
+
+        // 3. 차이가 많은 블록 TOP 6
+        var blk = groups.map(function (g) { return { g: g, d: g.rows.filter(isDiff).length }; })
+            .filter(function (x) { return x.d; }).sort(function (x, y) { return y.d - x.d; });
+        var maxD = blk.length ? blk[0].d : 1;
+        $("blkN").textContent = blk.length + " / " + groups.length + " 블록";
+        $("topBlocks").innerHTML = !blk.length ? '<li class="ins-none">모든 블록이 같습니다.</li>' : blk.slice(0, 6).map(function (x) {
+            return '<li><button type="button" class="irow" data-asm="' + esc(x.g.code) + '" aria-pressed="' + (filter.asm === x.g.code) + '">' +
+                '<span class="nm">' + esc(x.g.name) + '</span><span class="v tnum">' + x.d + ' <small>/ ' + x.g.rows.length + '</small></span>' +
+                stackBar(x.g.rows.filter(isDiff), maxD) + '</button></li>';
+        }).join("") + (blk.length > 6 ? '<li class="ins-none" style="padding:6px 8px 0">외 ' + (blk.length - 6) + '개 블록 · 위 정렬 띠에서 선택</li>' : "");
+
+        // 4. 품목구분(M · C · 1 · 2 · 3)별 차이 비율
+        var opts = {}, optKeys = [];
+        rows.forEach(function (r) { if (!opts[r.opt]) { opts[r.opt] = []; optKeys.push(r.opt); } opts[r.opt].push(r); });
+        var ORDER = ["M", "C", "1", "2", "3"];
+        optKeys.sort(function (x, y) {
+            var ix = ORDER.indexOf(x), iy = ORDER.indexOf(y);
+            return (ix < 0 ? 99 : ix) - (iy < 0 ? 99 : iy) || (x < y ? -1 : 1);
+        });
+        $("byOpt").innerHTML = optKeys.map(function (k) {
+            var list = opts[k], d = list.filter(isDiff).length;
+            return '<li><button type="button" class="irow" data-opt="' + esc(k) + '" aria-pressed="' + (filter.opt === k) + '">' +
+                '<span class="nm">' + esc(k) + '</span>' +
+                '<span class="v tnum">' + d + ' <small>/ ' + list.length + ' · ' + Math.round(d / list.length * 100) + '%</small></span>' +
+                stackBar(list.filter(isDiff), list.length) + '</button></li>';
+        }).join("");
+    }
+
+    /** 단위별 순증감 (B − A) : 누락 · 추가 자재까지 포함, 단위가 다른 수량은 더하지 않는다 */
+    function netByUnit() {
+        var net = {}, units = [];
+        rows.forEach(function (r) {
+            if (r.st === "SAME") return;
+            var u = r.unit || "단위 없음";
+            if (!(u in net)) { net[u] = 0; units.push(u); }
+            net[u] = round(net[u] + (r.b ? r.b.qty : 0) - (r.a ? r.a.qty : 0));
+        });
+        units = units.filter(function (u) { return net[u]; })
+            .sort(function (x, y) { return Math.abs(net[y]) - Math.abs(net[x]); });
+        if (!units.length) return "";
+        return '<div class="net"><span class="net-t">단위별 순증감 (B − A)</span>' + units.map(function (u) {
+            var v = net[u];
+            return '<span class="net-v ' + (v > 0 ? "up" : "down") + '"><b class="tnum">' + (v > 0 ? "+" : "") + fmt(v) + '</b> ' + esc(u) + '</span>';
+        }).join("") + '</div>';
+    }
+
+    $("insBody").addEventListener("click", function (e) {
+        var b = e.target.closest(".irow");
+        if (!b) return;
+        if (b.dataset.row) { var r = rows.filter(function (x) { return x.id === b.dataset.row; })[0]; if (r) revealRow(r); }
+        else if (b.dataset.asm) setFilter("asm", filter.asm === b.dataset.asm ? null : b.dataset.asm);
+        else if (b.dataset.opt) setFilter("opt", filter.opt === b.dataset.opt ? null : b.dataset.opt);
+    });
+
+    /** 블록 · 품목구분 필터 */
+    function setFilter(key, val) {
+        filter[key] = val;
+        $("insBody").querySelectorAll(".irow[data-asm]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.asm === filter.asm); });
+        $("insBody").querySelectorAll(".irow[data-opt]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.opt === filter.opt); });
+        $("dna").querySelectorAll(".dna-g").forEach(function (g) { g.classList.toggle("on", g.dataset.asm === filter.asm); });
         renderTable();
+    }
+    function setAsm(code) { setFilter("asm", code); }
+
+    $("btnClearF").addEventListener("click", function () { filter.opt = null; setFilter("asm", null); });
+
+    function renderChip() {
+        var t = [];
+        if (filter.asm) t.push("블록 " + filter.asm);
+        if (filter.opt) t.push("품목구분 " + filter.opt);
+        $("fchip").hidden = !t.length;
+        $("fchipTxt").textContent = t.join(" + ");
     }
 
     function visibleRow(r) {
         if (filter.onlyDiff && r.st === "SAME") return false;
         if (!filter.st[r.st]) return false;
         if (filter.asm && r.asm !== filter.asm) return false;
+        if (filter.opt && r.opt !== filter.opt) return false;
         if (filter.q) {
-            var s = [r.a && r.a.partNo, r.a && r.a.name, r.b && r.b.partNo, r.b && r.b.name].join(" ").toLowerCase();
+            var s = [r.partNo, r.a && r.a.name, r.b && r.b.name].join(" ").toLowerCase();
             if (s.indexOf(filter.q) < 0) return false;
         }
         return true;
@@ -630,21 +745,25 @@
                 var n = count(g.rows, k);
                 return n ? '<span class="s-' + k + '" title="' + ST[k].name + '">' + ST[k].sym + n + '</span>' : "";
             }).join("");
-            tb.innerHTML = '<tr class="gh"><td colspan="8"><button type="button" class="gh-btn" aria-expanded="' + open + '" data-asm="' + g.code + '">' +
+            tb.innerHTML = '<tr class="gh"><td colspan="8"><button type="button" class="gh-btn" aria-expanded="' + open + '" data-asm="' + esc(g.code) + '">' +
                 '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>' +
-                esc(g.name) + ' <span class="cd">' + g.code + '</span><span class="sm">' + sums + '</span></button></td></tr>' +
+                esc(g.name) + ' <span class="cd">' + g.rows.length + '종</span><span class="sm">' + sums + '</span></button></td></tr>' +
                 (open ? vis.map(rowHtml).join("") : "");
             tbl.appendChild(tb);
         });
-        $("tblSub").textContent = shown + " / " + rows.length + " 위치 표시";
+        $("tblSub").textContent = shown + " / " + rows.length + " 자재 표시";
+        renderChip();
         var empty = $("tblEmpty");
-        if (!rows.length) {
+        if (!pair) {
             empty.hidden = false;
             empty.innerHTML = "<b>비교할 호기를 선택하세요</b>기준(A)과 비교(B) 호기번호를 넣고 비교를 누르면 차이가 표시됩니다.";
+        } else if (!rows.length) {
+            empty.hidden = false;
+            empty.innerHTML = "<b>조회된 BOM 이 없습니다</b>호기번호를 확인하세요.";
         } else if (!shown) {
             empty.hidden = false;
-            empty.innerHTML = filter.onlyDiff && !filter.q && !filter.asm
-                ? "<b>차이가 없습니다</b>두 호기의 BOM 이 모든 위치에서 같습니다."
+            empty.innerHTML = filter.onlyDiff && !filter.q && !filter.asm && !filter.opt
+                ? "<b>차이가 없습니다</b>두 호기의 BOM 이 자재번호 · 수량 모두 같습니다."
                 : "<b>조건에 맞는 자재가 없습니다</b>필터나 검색어를 바꿔 보세요.";
         } else {
             empty.hidden = true;
@@ -653,25 +772,25 @@
 
     function rowHtml(r) {
         var a = r.a, b = r.b;
-        var pnDiff = r.st === "CHANGED", qtyDiff = r.st === "QTY" || r.st === "CHANGED";
-        var nameDiff = a && b && a.name !== b.name;
         function side(p, cls, other) {
             if (!p) return '<td class="pn empty ' + cls + '"><span></span></td><td class="empty ' + cls + '"><span></span></td><td class="num empty ' + cls + '"><span></span></td>';
             var mark = cls === "a" ? "da" : "db";
-            return '<td class="pn ' + cls + (pnDiff ? " " + mark : "") + '" title="' + esc(p.partNo) + '">' + esc(p.partNo) + '</td>' +
-                '<td class="' + cls + (nameDiff ? " " + mark : "") + '" title="' + esc(p.name + (p.spec ? " · " + p.spec : "")) + '">' + esc(p.name) + (p.spec ? ' <span style="color:var(--ink-3)">' + esc(p.spec) + '</span>' : "") + '</td>' +
-                '<td class="num tnum ' + cls + (qtyDiff && other && p.qty !== other.qty ? " " + mark : "") + '">' + p.qty.toLocaleString("ko-KR") + ' <span style="color:var(--ink-3);font-size:11.5px">' + p.unit + '</span></td>';
+            return '<td class="pn ' + cls + '" title="' + esc(p.partNo) + '">' + esc(p.partNo) + '</td>' +
+                '<td class="' + cls + '" title="' + esc(p.name + (p.spec ? " · " + p.spec : "")) + '">' + esc(p.name) + (p.spec ? ' <span style="color:var(--ink-3)">' + esc(p.spec) + '</span>' : "") + '</td>' +
+                '<td class="num tnum ' + cls + (other && p.qty !== other.qty ? " " + mark : "") + '">' + fmt(p.qty) + unitHtml(p.unit) + '</td>';
         }
         var delta = "";
         if (r.st === "QTY") {
-            var d = b.qty - a.qty;
-            delta = '<span class="delta tnum">' + (d > 0 ? "+" : "") + d.toLocaleString("ko-KR") + " " + b.unit + (a.qty ? " (" + (b.qty / a.qty).toFixed(1) + "배)" : "") + '</span>';
+            var d = round(b.qty - a.qty);
+            delta = '<span class="delta tnum">' + (d > 0 ? "+" : "") + fmt(d) + (r.unit ? " " + esc(r.unit) : "") + (a.qty ? " (" + (b.qty / a.qty).toFixed(1) + "배)" : "") + '</span>';
         }
-        // 다른 행은 비교 호기(B) 기준으로 원인 추적(3F)으로 연결
+        // 다른 행은 영업사양 원인 추정(3F)으로 연결 : 블록 PID(EL_P + 블록번호)를 두 호기로 실행해 영업사양 비교
         var p = b || a, why = r.st === "SAME" || !pair ? "" :
-            '<a class="why" href="/cop/trace?no=' + encodeURIComponent(pair.b.productNo) + '&part=' + encodeURIComponent(p.partNo) + '&name=' + encodeURIComponent(p.name) + '" title="원인 추적">원인 →</a>';
+            '<a class="why" href="/cop/trace/sales?a=' + encodeURIComponent(pair.a.productNo) + '&no=' + encodeURIComponent(pair.b.productNo) +
+            '&block=' + encodeURIComponent(p.blockNo || "") + '&part=' + encodeURIComponent(p.partNo) + '&name=' + encodeURIComponent(p.name) +
+            '&qa=' + (a ? a.qty : "") + '&qb=' + (b ? b.qty : "") + '&unit=' + encodeURIComponent(r.unit || "") + '" title="블록 PID 로 영업사양 차이 추정">원인 →</a>';
         return '<tr class="r s-' + r.st + '" id="row-' + r.id + '" data-id="' + r.id + '">' +
-            '<td class="pos tnum">' + r.pos + '</td>' + side(a, "a", b) +
+            '<td class="pos tnum">' + (r.pos || "") + '</td>' + side(a, "a", b) +
             '<td class="mid s-' + r.st + '"><span class="chip-st"><span class="sym" aria-hidden="true">' + ST[r.st].sym + '</span>' + ST[r.st].name + '</span>' + delta + why + '</td>' +
             side(b, "b", a) + '</tr>';
     }
@@ -693,42 +812,50 @@
         var col = e.target.closest(".col"), grp = e.target.closest(".dna-g");
         if (col) {
             var r = rows.filter(function (x) { return x.id === col.dataset.id; })[0];
-            if (!r) return;
-            if (!visibleRow(r)) { filter.onlyDiff = r.st !== "SAME" && filter.onlyDiff; $("onlyDiff").checked = filter.onlyDiff; filter.st[r.st] = true; filter.q = ""; $("q").value = ""; renderCounts(); }
-            if (filter.asm && filter.asm !== r.asm) setAsm(null);
-            collapsed[r.asm] = false;
-            renderTable();
-            var tr = $("row-" + r.id);
-            if (tr) {
-                tr.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
-                tr.classList.add("hl");
-                setTimeout(function () { tr.classList.remove("hl"); }, 1600);
-            }
+            if (r) revealRow(r);
         } else if (grp) {
             setAsm(filter.asm === grp.dataset.asm ? null : grp.dataset.asm);
         }
     });
+
+    /** 필터를 풀어서라도 표에서 그 자재 행을 보여준다 */
+    function revealRow(r) {
+        if (filter.opt && filter.opt !== r.opt) filter.opt = null;
+        if (filter.asm && filter.asm !== r.asm) filter.asm = null;
+        if (!visibleRow(r)) { filter.onlyDiff = r.st !== "SAME" && filter.onlyDiff; $("onlyDiff").checked = filter.onlyDiff; filter.st[r.st] = true; filter.q = ""; $("q").value = ""; renderCounts(); }
+        collapsed[r.asm] = false;
+        setFilter("asm", filter.asm);
+        var tr = $("row-" + r.id);
+        if (tr) {
+            tr.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+            tr.classList.add("hl");
+            setTimeout(function () { tr.classList.remove("hl"); }, 1600);
+        }
+    }
     $("dna").addEventListener("mousemove", function (e) {
         var col = e.target.closest(".col"), tip = $("tip");
         if (!col) { tip.hidden = true; return; }
         var r = rows.filter(function (x) { return x.id === col.dataset.id; })[0];
         var p = r.a || r.b;
-        tip.innerHTML = '<b>' + esc(r.asm + "-" + r.pos) + '</b>' + esc(p.name) + ' · <span style="color:var(--c)" class="s-' + r.st + '">' + ST[r.st].name + '</span>';
-        var rc = col.getBoundingClientRect();
-        tip.style.left = (rc.left + rc.width / 2) + "px"; tip.style.top = rc.top + "px";
+        tip.innerHTML = '<b>' + esc(r.partNo) + '</b>' + esc(p.name) + ' · <span style="color:var(--c)" class="s-' + r.st + '">' + ST[r.st].name + '</span>';
         tip.hidden = false;
+        // 화면 가장자리에서도 잘리지 않게 좌우 위치를 창 안으로 맞춘다
+        var rc = col.getBoundingClientRect(), w = tip.offsetWidth;
+        var left = Math.max(8, Math.min(window.innerWidth - w - 8, rc.left + rc.width / 2 - w / 2));
+        tip.style.left = left + "px"; tip.style.top = rc.top + "px";
     });
     $("dna").addEventListener("mouseleave", function () { $("tip").hidden = true; });
+    window.addEventListener("resize", function () { $("dna").classList.toggle("dense", rows.length > $("dna").clientWidth / 3); });
 
     /* 도구 */
     $("q").addEventListener("input", function () { filter.q = this.value.trim().toLowerCase(); renderTable(); });
     $("onlyDiff").addEventListener("change", function () { filter.onlyDiff = this.checked; renderTable(); });
     $("btnCsv").addEventListener("click", function () {
         if (!rows.length) return;
-        var head = ["어셈블리", "위치", "상태", "A 품번", "A 자재명", "A 수량", "B 품번", "B 자재명", "B 수량", "단위"];
+        var head = ["블록", "품목구분", "순번", "상태", "자재번호", "자재명", "규격", "A 수량 (" + pair.a.productNo + ")", "B 수량 (" + pair.b.productNo + ")", "증감", "단위"];
         var lines = [head].concat(rows.filter(visibleRow).map(function (r) {
-            var a = r.a || {}, b = r.b || {};
-            return [r.asmName, r.pos, ST[r.st].name, a.partNo || "", a.name || "", a.qty == null ? "" : a.qty, b.partNo || "", b.name || "", b.qty == null ? "" : b.qty, (a.unit || b.unit || "")];
+            var a = r.a || {}, b = r.b || {}, p = r.a || r.b;
+            return [r.asmName, r.opt, r.pos || "", ST[r.st].name, r.partNo, p.name, p.spec, a.qty == null ? "" : a.qty, b.qty == null ? "" : b.qty, round((b.qty || 0) - (a.qty || 0)), r.unit];
         })).map(function (l) { return l.map(function (v) { v = String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(","); });
         var blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
         var link = document.createElement("a");
@@ -741,23 +868,8 @@
     /* =========================================================
        비교 대상 선택
        ========================================================= */
-    $("hogiList").innerHTML = SAMPLE_HOGI.map(function (h) { return '<option value="' + h + '">'; }).join("");
-
-    function renderPeers() {
-        var a = $("inA").value.trim();
-        var list = SAMPLE_HOGI.filter(function (h) { return h !== a; }).slice(0, 5);
-        $("peers").innerHTML = '<span>같은 사양 추천</span>' + list.map(function (h) {
-            return '<button type="button" data-h="' + h + '" aria-label="' + h + ' 를 비교 호기로">' + h + '</button>';
-        }).join("") + '<span style="margin-left:auto" class="demo">SAMPLE · ' + SAMPLE_SPEC + '</span>';
-        $("peers").querySelectorAll("button").forEach(function (b) {
-            b.addEventListener("click", function () { $("inB").value = b.dataset.h; compare(); });
-        });
-    }
-    $("inA").addEventListener("change", renderPeers);
-
     $("btnSwap").addEventListener("click", function () {
         var t = $("inA").value; $("inA").value = $("inB").value; $("inB").value = t;
-        renderPeers();
         if ($("inA").value && $("inB").value) compare();
     });
 
@@ -768,44 +880,49 @@
         $("inA").value = a; $("inB").value = b;
         var err = !a ? ["inA", "기준 호기(A)를 입력하세요."] : !b ? ["inB", "비교 호기(B)를 입력하세요."] : a === b ? ["inB", "서로 다른 두 호기를 고르세요."] : null;
         $("inA").removeAttribute("aria-invalid"); $("inB").removeAttribute("aria-invalid");
-        $("pickErr").hidden = !err;
-        if (err) { $("pickErr").textContent = err[1]; $(err[0]).setAttribute("aria-invalid", "true"); $(err[0]).focus(); return; }
+        showErr(err && err[1]);
+        if (err) { $(err[0]).setAttribute("aria-invalid", "true"); $(err[0]).focus(); return; }
 
         document.body.classList.add("loading");
         $("btnCompare").disabled = true;
         loadBomPair(a, b).then(function (res) {
             pair = res;
-            $("metaA").textContent = res.a.site + " · " + res.a.spec;
-            $("metaB").textContent = res.b.site + " · " + res.b.spec;
+            $("metaA").textContent = metaText(res.a);
+            $("metaB").textContent = metaText(res.b);
+            var miss = [res.a, res.b].filter(function (x) { return !x.parts.length; }).map(function (x) { return x.productNo; });
+            if (miss.length) showErr(miss.join(", ") + " 호기의 BOM 이 조회되지 않았습니다.");
             $("thA").textContent = "A · " + a; $("thB").textContent = "B · " + b;
             $("axisA").textContent = "A · " + a; $("axisB").textContent = "B · " + b;
-            filter.asm = null; collapsed = {};
+            filter.asm = null; filter.opt = null; collapsed = {};
             diff(res.a, res.b);
             renderAll();
             history.replaceState(null, "", location.pathname + "?a=" + encodeURIComponent(a) + "&b=" + encodeURIComponent(b));
+        }).catch(function (e) {
+            showErr("BOM 조회 중 오류가 발생했습니다. " + (e && e.message ? e.message : ""));
         }).then(function () {
             document.body.classList.remove("loading");
             $("btnCompare").disabled = false;
         });
     }
 
+    function metaText(bom) {
+        if (!bom.parts.length) return "조회된 자재 없음";
+        var first = bom.parts[0];
+        return "1레벨 자재 " + bom.parts.length + "건" + (first.productCreator ? " · 등록 " + first.productCreator : "");
+    }
+
+    function showErr(msg) {
+        $("pickErr").hidden = !msg;
+        $("pickErr").textContent = msg || "";
+    }
+
     /* =========================================================
        유틸
        ========================================================= */
-    function hashInt(s) {
-        var h = 2166136261; s = String(s);
-        for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-        return h >>> 0;
-    }
-    function rng(seed) {   // mulberry32
-        return function () {
-            seed |= 0; seed = seed + 0x6D2B79F5 | 0;
-            var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
-            t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-            return ((t ^ t >>> 14) >>> 0) / 4294967296;
-        };
-    }
-    function pad(n) { return n < 10 ? "0" + n : "" + n; }
+    function num(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+    function round(n) { return Math.round(n * 1000) / 1000; }
+    function fmt(n) { return Number(n).toLocaleString("ko-KR", { maximumFractionDigits: 3 }); }
+    function unitHtml(u) { return u ? '<span class="unit">' + esc(u) + '</span>' : ""; }
     function esc(s) {
         return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
             return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -814,16 +931,12 @@
 
     /* =========================================================
        시작 : ?a=&b= 가 있으면 바로 비교
-       관제 화면에서는 의심 호기를 ?b= 로 넘긴다 → 같은 사양의 정상 호기를 기준(A)으로 자동 선택
        ========================================================= */
     var qs = new URLSearchParams(location.search);
-    var qb = (qs.get("b") || (qs.get("a") ? "" : "TEST-632560")).toUpperCase();
-    var qa = (qs.get("a") || SAMPLE_HOGI.filter(function (h) { return h !== qb && h !== "TEST-632560"; })[0]).toUpperCase();
-    $("inA").value = qa;
-    renderPeers();
-    $("inB").value = qb || SAMPLE_HOGI.filter(function (h) { return h !== qa; })[0];
+    $("inA").value = (qs.get("a") || "").toUpperCase();
+    $("inB").value = (qs.get("b") || "").toUpperCase();
     renderTable();
-    compare();
+    if ($("inA").value && $("inB").value) compare();
 })();
 </script>
 </body>
