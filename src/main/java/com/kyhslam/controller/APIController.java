@@ -260,7 +260,7 @@ public class APIController {
     @CrossOrigin
     @ResponseBody
     public ArrayList<BomDTO> findProductInfoV01(String productNo, String key) throws Exception {
-        //http://localhost:8070/api/findProductInfo?key=subae&productNo=211704L17
+        //http://localhost:8070/api/findProductInfoV01?key=subae&productNo=211704L17
 
         //ArrayList<ProductDto> bomList = new ArrayList<ProductDto>();
         ArrayList<BomDTO> bomList = new ArrayList<BomDTO>();
