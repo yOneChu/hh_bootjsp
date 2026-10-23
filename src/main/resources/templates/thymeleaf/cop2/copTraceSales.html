@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>이상 원인 추적 · SENTINEL</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        SENTINEL 3F · 이상 원인 추적 (CopMainController : GET /cop/trace)
+
+        이상 자재에서 출발해 BOM 전개 → 수배 로직 → 영업사양 → 변경 이력 순으로 거꾸로 따라가며
+        원인이 되는 단계(root)를 짚어준다.
+
+        주소
+          /cop/trace                          : 발표 대표 사례 (TEST-632560 브라켓 120EA)
+          /cop/trace?id=A1012                 : 관제 화면의 이상 ID (관제 데이터 /cop/radar/anomalies 에서 찾음)
+          /cop/trace?no=호기번호&part=품번      : BOM 비교 화면에서 넘어올 때
+
+          /cop/trace/sales?a=기준호기&no=비교호기&block=블록번호&part=품번&name=자재명&qa=A수량&qb=B수량&unit=단위
+              : BOM 비교 화면 "원인 →" (실제 데이터)
+                블록번호로 PID 'EL_P' + 블록번호 를 두 호기에서 각각 최신 버전으로 실행 (/simulateup/simulatePid, PID 시뮬레이터와 같은 API)
+                → PID 조건에 쓰인 영업사양 값을 비교해, 다른 값을 원인으로 추정한다. (loadSalesTrace)
+
+        데이터 : 위 영업사양 원인 추정 외에는 샘플 (loadTrace).
+                 반환 형식은 아래 SHOWCASE 객체 참고 (steps[].viz 종류 : bars / path / formula / dist / timeline / pair / match)
+    -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <style>
+        /* ════════════ 토큰 (SENTINEL 공통) ════════════ */
+        :root {
+            --void:    #04060A;
+            --panel:   #0C1018;
+            --panel-2: #111723;
+            --panel-3: #161D2B;
+            --line:    rgba(255,255,255,.08);
+            --line-2:  rgba(255,255,255,.15);
+
+            --ink:   #F4F6FA;
+            --ink-2: #AEB6C4;
+            --ink-3: #7C8596;
+
+            --scan:   #7FE3FF;  --scan-dim:  rgba(127,227,255,.13);
+            --alert:  #FF5A36;  --alert-dim: rgba(255,90,54,.15);
+            --warn:   #FFB020;  --warn-dim:  rgba(255,176,32,.14);
+            --ok:     #5EF0A6;  --ok-dim:    rgba(94,240,166,.13);
+            --chg:    #B79CFF;
+
+            --mono: "D2Coding", Consolas, "SF Mono", Menlo, monospace;
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+            --ease-out: cubic-bezier(.16,1,.3,1);
+            --nav-h: 64px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; background: var(--void); }
+        body { margin: 0; min-height: 100vh; font-family: var(--sans); color: var(--ink); background: var(--void); word-break: keep-all; overflow-wrap: anywhere; }
+        h1, h2, h3, h4, p { margin: 0; }
+        a { color: inherit; text-decoration: none; }
+        button { font: inherit; color: inherit; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 2px solid var(--scan); outline-offset: 2px; border-radius: 6px; }
+        .mono { font-family: var(--mono); }
+        .tnum { font-variant-numeric: tabular-nums; }
+        .wrap { width: 100%; max-width: 1560px; margin: 0 auto; padding: 0 16px; }
+        @media (min-width: 900px) { .wrap { padding: 0 28px; } }
+        .demo { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line-2); font: 700 10px/1.4 var(--mono); letter-spacing: .12em; color: var(--ink-3); }
+
+        /* ════════════ 상단 바 ════════════ */
+        .nav { position: sticky; top: 0; z-index: 40; background: rgba(4,6,10,.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+        .nav-in { height: var(--nav-h); display: flex; align-items: center; gap: 16px; }
+        .brand { display: flex; align-items: center; gap: 12px; flex: none; }
+        .brand-mark { position: relative; width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--scan); }
+        .brand-mark::after { content: ""; position: absolute; left: 50%; top: 50%; width: 50%; height: 1.5px; background: var(--scan); transform-origin: 0 50%; animation: spin 3s linear infinite; }
+        .brand b { font: 800 14px/1 var(--sans); letter-spacing: .3em; }
+        .crumb { display: none; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-2); }
+        .crumb .floor { font: 700 13px/1 var(--mono); color: var(--alert); text-shadow: 0 0 10px rgba(255,90,54,.55); padding: 5px 8px; border-radius: 6px; background: #000; border: 1px solid var(--line-2); }
+        .crumb b { color: var(--ink); font-weight: 750; }
+        @media (min-width: 720px) { .crumb { display: flex; } }
+        .nav-tools { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; cursor: pointer;
+            font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap;
+            transition: background .2s, border-color .2s, transform .2s var(--ease-out), opacity .2s;
+        }
+        .btn:hover:not(:disabled) { background: rgba(255,255,255,.06); border-color: var(--ink-3); }
+        .btn:active:not(:disabled) { transform: scale(.97); }
+        .btn-sm { min-height: 34px; padding: 0 12px; font-size: 13px; }
+        .btn-alert { background: var(--alert); border-color: var(--alert); color: #120200; }
+        .btn-alert:hover:not(:disabled) { background: #FF7356; border-color: #FF7356; }
+
+        .card { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; min-width: 0; }
+
+        /* ════════════ 판정 (상단) ════════════ */
+        .verdict {
+            position: relative; overflow: hidden; margin-top: 18px; padding: 26px 24px;
+            display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr);
+            background:
+                radial-gradient(700px 260px at 100% 0%, rgba(255,90,54,.16), transparent 60%),
+                linear-gradient(180deg, var(--panel-2), var(--panel));
+            border-color: rgba(255,90,54,.28);
+        }
+        @media (min-width: 1100px) { .verdict { grid-template-columns: minmax(0, 1fr) auto; align-items: end; padding: 30px 32px; } }
+        .v-kicker { display: inline-flex; align-items: center; gap: 10px; font: 700 12px/1 var(--mono); letter-spacing: .2em; color: var(--alert); }
+        .v-kicker i { width: 8px; height: 8px; border-radius: 50%; background: var(--alert); box-shadow: 0 0 12px var(--alert); }
+        .verdict h1 { margin-top: 14px; font-size: clamp(24px, 2.6vw, 36px); font-weight: 850; letter-spacing: -.025em; line-height: 1.25; max-width: 980px; }
+        .verdict h1 em { font-style: normal; color: var(--alert); font-family: var(--mono); }
+        .v-sub { margin-top: 12px; max-width: 860px; font-size: 15.5px; line-height: 1.7; color: var(--ink-2); }
+        .v-tags { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 9px; background: rgba(255,255,255,.05); border: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
+        .tag b { color: var(--ink); font-family: var(--mono); font-weight: 700; }
+        .tag.hot { background: var(--alert-dim); border-color: rgba(255,90,54,.35); color: #FFC5B8; }
+        .tag.hot b { color: var(--alert); }
+        .v-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+        .v-actions .btn { min-height: 46px; border-radius: 13px; }
+
+        /* ════════════ 본문 ════════════ */
+        .body { margin: 16px 0 32px; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+        @media (min-width: 1200px) { .body { grid-template-columns: minmax(0, 1fr) 380px; } }
+        .card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 18px 20px 0; }
+        .card-head h2 { font-size: 16px; font-weight: 800; }
+        .card-head .sub { font-size: 12.5px; color: var(--ink-3); }
+
+        /* 역추적 경로 */
+        .chain { list-style: none; margin: 0; padding: 18px 20px 22px; }
+        .step { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 14px; }
+        .rail { position: relative; display: flex; flex-direction: column; align-items: center; }
+        .dot {
+            position: relative; z-index: 1; width: 44px; height: 44px; border-radius: 50%; flex: none;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--panel-2); border: 1.5px solid var(--line-2); color: var(--ink-2);
+            transition: border-color .4s, color .4s, background .4s, box-shadow .4s;
+        }
+        .wire { position: relative; flex: 1; width: 2px; margin: 6px 0; background: rgba(255,255,255,.08); border-radius: 1px; overflow: hidden; min-height: 24px; }
+        .wire i { position: absolute; inset: 0; background: linear-gradient(180deg, var(--scan), rgba(127,227,255,.4)); transform: scaleY(0); transform-origin: top; transition: transform .5s var(--ease-out); }
+        .step:last-child .wire { display: none; }
+        .up { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 18px; height: 18px; border-radius: 50%; background: var(--panel); display: none; }
+
+        .box {
+            margin-bottom: 18px; padding: 16px 18px; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--line);
+            opacity: .25; transform: translateY(6px); transition: opacity .5s var(--ease-out), transform .5s var(--ease-out), border-color .4s, box-shadow .4s;
+        }
+        .step:last-child .box { margin-bottom: 0; }
+        .box-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+        .box-kicker { font: 700 11px/1 var(--mono); letter-spacing: .16em; color: var(--ink-3); text-transform: uppercase; }
+        .box h3 { width: 100%; margin-top: 4px; font-size: 17px; font-weight: 800; letter-spacing: -.01em; line-height: 1.4; }
+        .root-badge { display: none; align-items: center; gap: 6px; margin-left: auto; padding: 4px 9px; border-radius: 7px; background: var(--alert); color: #120200; font-size: 12px; font-weight: 800; }
+        .q { margin-top: 2px; font-size: 13px; color: var(--ink-3); }
+        .kv { margin: 12px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; border-radius: 12px; overflow: hidden; background: var(--line); border: 1px solid var(--line); }
+        .kv div { background: var(--panel); padding: 9px 12px; min-width: 0; }
+        .kv dt { font-size: 11.5px; color: var(--ink-3); }
+        .kv dd { margin: 4px 0 0; font: 600 13.5px/1.35 var(--mono); }
+        .kv dd.hot { color: var(--alert); }
+        .viz { margin-top: 12px; }
+        .note { margin-top: 12px; display: flex; gap: 8px; font-size: 13.5px; line-height: 1.55; color: #FFCFC3; padding: 10px 12px; border-radius: 10px; background: var(--alert-dim); }
+        .note svg { flex: none; margin-top: 2px; color: var(--alert); }
+
+        /* 진행 상태 */
+        .step.on .box { opacity: 1; transform: none; }
+        .step.on .dot { border-color: var(--scan); color: var(--scan); }
+        .step.on .wire i { transform: scaleY(1); }
+        .step.is-root.on .dot { background: var(--alert); border-color: var(--alert); color: #120200; box-shadow: 0 0 0 6px rgba(255,90,54,.18), 0 0 24px rgba(255,90,54,.6); animation: rootpulse 2s ease-in-out infinite; }
+        .step.is-root.on .box { border-color: rgba(255,90,54,.55); box-shadow: 0 0 0 1px rgba(255,90,54,.25), 0 18px 40px -20px rgba(255,90,54,.55); background: linear-gradient(180deg, rgba(255,90,54,.06), var(--panel-2) 60%); }
+        .step.is-root .root-badge { display: inline-flex; }
+        .step.after-root .box { border-style: dashed; }
+        @keyframes rootpulse { 50% { box-shadow: 0 0 0 10px rgba(255,90,54,.08), 0 0 30px rgba(255,90,54,.7); } }
+
+        /* 시각화 */
+        .bars { display: flex; flex-direction: column; gap: 8px; }
+        .bar { display: grid; grid-template-columns: 110px minmax(0, 1fr) 80px; gap: 10px; align-items: center; font-size: 13px; }
+        .bar .lb { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bar .tr { height: 12px; border-radius: 6px; background: rgba(255,255,255,.05); overflow: hidden; }
+        .bar .tr i { display: block; height: 100%; border-radius: 6px; background: var(--scan); opacity: .7; transform-origin: left; transform: scaleX(0); transition: transform .8s var(--ease-out) .15s; }
+        .bar.hot .tr i { background: var(--alert); opacity: 1; }
+        .bar .vl { text-align: right; font: 700 13px/1 var(--mono); }
+        .bar.hot .vl { color: var(--alert); }
+        .step.on .bar .tr i { transform: scaleX(var(--w)); }
+
+        .path { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+        .path span { padding: 6px 10px; border-radius: 8px; background: var(--panel-3); border: 1px solid var(--line); font: 600 12.5px/1.2 var(--mono); }
+        .path span:last-child { border-color: rgba(255,90,54,.45); color: #FFC5B8; background: var(--alert-dim); }
+        .path svg { color: var(--ink-3); }
+
+        .formula { border-radius: 12px; background: #06090F; border: 1px solid var(--line); overflow: hidden; }
+        .formula code { display: block; padding: 12px 14px; font: 600 14.5px/1.5 var(--mono); color: var(--ink); border-bottom: 1px solid var(--line); }
+        .formula code .k { color: var(--scan); }
+        .formula code .o { color: var(--ink-3); }
+        .evals { display: grid; grid-template-columns: minmax(0, 1fr); }
+        .ev { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; font-size: 13px; }
+        .ev + .ev { border-top: 1px solid rgba(255,255,255,.05); }
+        .ev .lb { color: var(--ink-3); }
+        .ev .ex { font-family: var(--mono); color: var(--ink-2); }
+        .ev .rs { font: 800 15px/1 var(--mono); }
+        .ev.hot { background: rgba(255,90,54,.06); }
+        .ev.hot .ex, .ev.hot .rs { color: var(--alert); }
+
+        .dist svg { display: block; width: 100%; height: auto; overflow: visible; }
+        .dist-cap { margin-top: 4px; font-size: 12px; color: var(--ink-3); }
+
+        .tl { list-style: none; margin: 0; padding: 0; position: relative; }
+        .tl::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 1.5px; background: var(--line-2); }
+        .tl li { position: relative; display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; padding: 6px 0 6px 24px; font-size: 13.5px; }
+        .tl li::before { content: ""; position: absolute; left: 1px; top: 11px; width: 12px; height: 12px; border-radius: 50%; background: var(--panel-2); border: 2px solid var(--ink-3); }
+        .tl li.hot::before { background: var(--alert); border-color: var(--alert); box-shadow: 0 0 10px var(--alert); }
+        .tl time { font: 600 12.5px/1.5 var(--mono); color: var(--ink-3); }
+        .tl b { font-weight: 700; }
+        .tl li.hot b { color: var(--alert); }
+        .tl small { display: block; color: var(--ink-3); font-size: 12.5px; margin-top: 2px; }
+
+        .pair { display: grid; grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr); align-items: stretch; }
+        .pair > div { padding: 12px; border-radius: 12px; background: var(--panel-3); border: 1px solid var(--line); min-width: 0; }
+        .pair > div.hot { border-color: rgba(255,90,54,.45); background: var(--alert-dim); }
+        .pair small { display: block; font-size: 11.5px; color: var(--ink-3); }
+        .pair b { display: block; margin-top: 6px; font: 700 14px/1.4 var(--mono); }
+        .pair > div.hot b { color: #FFC5B8; }
+        .pair .neq { display: flex; align-items: center; justify-content: center; color: var(--alert); font: 800 20px/1 var(--mono); }
+
+        .match { display: flex; flex-direction: column; gap: 6px; }
+        .match div { display: grid; grid-template-columns: 22px 120px minmax(0, 1fr); gap: 10px; align-items: center; padding: 9px 12px; border-radius: 10px; background: var(--panel-3); border: 1px solid var(--line); font-size: 13px; }
+        .match div.hot { border-color: rgba(255,90,54,.4); background: var(--alert-dim); }
+        .match b { font-family: var(--mono); font-size: 12.5px; }
+        .match code { font-family: var(--mono); color: var(--ink-2); font-size: 12.5px; }
+        .match .ck { color: var(--ok); } .match div.hot .ck { color: var(--alert); }
+
+        /* ════════════ 오른쪽 ════════════ */
+        .side { display: flex; flex-direction: column; gap: 16px; }
+        @media (min-width: 1200px) { .side { position: sticky; top: calc(var(--nav-h) + 16px); } }
+        .side .card { padding: 18px; }
+        .side h2 { font-size: 15px; font-weight: 800; }
+        .side .sub { margin-top: 4px; font-size: 12.5px; color: var(--ink-3); }
+        .mini-flow { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+        .mf { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; font-size: 13.5px; cursor: pointer; border: 1px solid transparent; background: transparent; text-align: left; width: 100%; }
+        .mf:hover { background: rgba(255,255,255,.04); }
+        .mf .n { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 700 12px/1 var(--mono); background: var(--panel-3); color: var(--ink-2); }
+        .mf.root { border-color: rgba(255,90,54,.4); background: var(--alert-dim); }
+        .mf.root .n { background: var(--alert); color: #120200; }
+        .mf .st { font-size: 11.5px; font-weight: 700; color: var(--ink-3); }
+        .mf.root .st { color: var(--alert); }
+
+        .impact { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+        .impact li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 9px 11px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; line-height: 1.45; }
+        .impact li.hot { border-color: rgba(255,90,54,.35); }
+        .impact svg { margin-top: 1px; }
+        .impact li.hot svg { color: var(--alert); } .impact li.ok svg { color: var(--ok); }
+        .impact small { display: block; color: var(--ink-3); font-size: 12px; margin-top: 2px; }
+
+        .todo { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+        .todo label { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 11px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); cursor: pointer; font-size: 13.5px; line-height: 1.5; margin: 0; }
+        .todo input { appearance: none; -webkit-appearance: none; width: 20px; height: 20px; margin: 1px 0 0; border-radius: 6px; border: 1.5px solid var(--ink-3); display: grid; place-content: center; cursor: pointer; }
+        .todo input::after { content: ""; width: 10px; height: 6px; border-left: 2px solid #001018; border-bottom: 2px solid #001018; transform: rotate(-45deg) scale(0); margin-top: -2px; transition: transform .15s; }
+        .todo input:checked { background: var(--ok); border-color: var(--ok); }
+        .todo input:checked::after { transform: rotate(-45deg) scale(1); }
+        .todo input:focus-visible { outline: 2px solid var(--scan); outline-offset: 2px; }
+        .todo label:has(input:checked) span { color: var(--ink-3); text-decoration: line-through; }
+        .todo-prog { margin-top: 10px; font-size: 12.5px; color: var(--ink-3); }
+
+        /* 표 (영업사양 · 결과값 · 판정 비교) */
+        .vtbl-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--line); }
+        .vtbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .vtbl th { text-align: left; padding: 9px 12px; font-size: 11.5px; font-weight: 700; color: var(--ink-3); background: var(--panel); border-bottom: 1px solid var(--line); white-space: nowrap; }
+        .vtbl td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,.05); font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); vertical-align: top; }
+        .vtbl tr:last-child td { border-bottom: none; }
+        .vtbl tr.hot td { background: rgba(255,90,54,.06); color: var(--ink); }
+        .vtbl td.b { color: #FFC5B8; font-weight: 700; }
+        .vtbl td.nm { font-family: var(--sans); color: var(--ink-3); }
+        .vtbl td.wrap { white-space: normal; min-width: 200px; }
+        /* 열 너비를 지정한 표 (widths) : 긴 값이 다른 열을 밀어내지 않도록 고정 배치 */
+        .vtbl.fixed { table-layout: fixed; }
+        .vtbl.fixed td, .vtbl.fixed th { overflow-wrap: anywhere; }
+        .vtbl.fixed th { white-space: normal; }
+        .vtbl.fixed td.wrap { min-width: 0; }
+        .vtbl .stc { display: inline-block; padding: 2px 7px; border-radius: 6px; font-size: 11.5px; font-weight: 700; background: rgba(255,255,255,.06); color: var(--ink-3); }
+        .vtbl .stc.T { background: var(--ok-dim); color: var(--ok); }
+        .vtbl .stc.F { background: var(--alert-dim); color: var(--alert); }
+        .vtbl-cap { margin-top: 6px; font-size: 12px; color: var(--ink-3); }
+
+        .loading-box { padding: 60px 20px; text-align: center; color: var(--ink-3); }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════ 상단 바 ═══════════ -->
+<header class="nav">
+    <div class="wrap nav-in">
+        <a class="brand" href="/cop/main" aria-label="SENTINEL 메인으로">
+            <span class="brand-mark" aria-hidden="true"></span><b>SENTINEL</b>
+        </a>
+        <div class="crumb" aria-label="현재 위치">
+            <span aria-hidden="true" style="color:var(--line-2)">/</span>
+            <span class="floor">3F</span><b>이상 원인 추적</b>
+        </div>
+        <div class="nav-tools">
+            <span class="demo" id="demoBadge" title="샘플 데이터">DEMO</span>
+            <a class="btn btn-sm" href="/cop/radar">관제</a>
+            <a class="btn btn-sm" id="navDiff" href="/cop/diff">비교</a>
+            <a class="btn btn-sm" href="/cop/main">메인</a>
+        </div>
+    </div>
+</header>
+
+<main class="wrap" id="main">
+
+    <!-- ═══════════ 판정 ═══════════ -->
+    <section class="card verdict" aria-labelledby="vTitle" aria-live="polite">
+        <div>
+            <span class="v-kicker"><i aria-hidden="true"></i>ROOT CAUSE · 원인 판정</span>
+            <h1 id="vTitle">원인을 추적하는 중입니다…</h1>
+            <p class="v-sub" id="vSub"></p>
+            <div class="v-tags" id="vTags"></div>
+        </div>
+        <div class="v-actions">
+            <button type="button" class="btn" id="btnReplay">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+                추적 다시 보기
+            </button>
+            <a class="btn" id="btnDiff" href="/cop/diff">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg>
+                BOM 비교
+            </a>
+            <a class="btn btn-alert" id="btnFix" href="/cop/bom">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+                <span id="btnFixText">원인 수정 · 재계산</span>
+            </a>
+        </div>
+    </section>
+
+    <div class="body">
+        <!-- ═══════════ 역추적 경로 ═══════════ -->
+        <section class="card" aria-labelledby="chainTitle">
+            <div class="card-head">
+                <h2 id="chainTitle">역추적 경로</h2>
+                <span class="sub">증상(이상 자재)에서 출발해 원인까지 한 단계씩 거슬러 올라갑니다</span>
+            </div>
+            <ol class="chain" id="chain"><li class="loading-box">추적 데이터를 불러오는 중…</li></ol>
+        </section>
+
+        <!-- ═══════════ 오른쪽 ═══════════ -->
+        <aside class="side">
+            <section class="card" aria-labelledby="flowTitle">
+                <h2 id="flowTitle">추적 요약</h2>
+                <p class="sub">단계를 누르면 해당 위치로 이동합니다</p>
+                <div class="mini-flow" id="miniFlow"></div>
+            </section>
+            <section class="card" aria-labelledby="impTitle">
+                <h2 id="impTitle">영향 범위</h2>
+                <p class="sub" id="impSub"></p>
+                <ul class="impact" id="impact"></ul>
+            </section>
+            <section class="card" aria-labelledby="todoTitle">
+                <h2 id="todoTitle">권장 조치</h2>
+                <p class="sub">처리한 항목을 체크하세요 (이 화면에서만 표시)</p>
+                <ul class="todo" id="todo"></ul>
+                <p class="todo-prog tnum" id="todoProg"></p>
+                <a class="btn btn-sm" id="ruleLink" href="/cop/rules" style="margin-top:12px;width:100%" hidden>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/></svg>
+                    <span id="ruleLinkText">감지 규칙 관리</span>
+                </a>
+            </section>
+        </aside>
+    </div>
+</main>
+
+<script th:inline="none">
+(function () {
+    "use strict";
+
+    var $ = function (id) { return document.getElementById(id); };
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    var TYPE_NAME = { QTY: "수량 급증", MISSING: "자재 누락", SPEC: "사양 불일치", DUP: "중복 수배" };
+    var ICONS = {
+        part:  '<path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/>',
+        bom:   '<rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v5M5 17v-3h14v3"/>',
+        logic: '<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>',
+        spec:  '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+        hist:  '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+        check: '<path d="M20 6 9 17l-5-5"/>',
+        x:     '<path d="M18 6 6 18M6 6l12 12"/>',
+        arrow: '<path d="m9 6 6 6-6 6"/>'
+    };
+    function svg(name, size, sw) {
+        return '<svg width="' + (size || 16) + '" height="' + (size || 16) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (sw || 2) +
+               '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[name] + '</svg>';
+    }
+
+    /* =========================================================
+       샘플 : 발표 대표 사례 (관제 · 비교 화면과 같은 숫자)
+       브라켓 수량 규칙 = 정지층수(EL_STOP) − 2  →  12 − 2 = 10EA 가 정상인데 EL_STOP 이 122 로 입력되어 120EA
+       ========================================================= */
+    var SHOWCASE = {
+        productNo: "TEST-632560", site: "샘플현장 E-38", partNo: "P-1102-07", partName: "브라켓", type: "QTY", severity: 99,
+        verdict: '정지층수(EL_STOP)가 <em>12</em> 가 아니라 <em>122</em> 로 입력되었습니다',
+        verdictSub: "브라켓 수량 규칙(EL_STOP − 2)이 이 값을 그대로 받아 120EA 를 수배했습니다. 같은 사양 호기는 모두 정지층수 12 입니다. 숫자 2 가 한 번 더 입력된 것으로 보입니다.",
+        fixLabel: "EL_STOP 수정 · 재계산",
+        steps: [
+            { kind: "part", kicker: "이상 자재", title: "브라켓이 같은 사양보다 12배 많이 수배됐습니다", q: "무엇이 이상한가?",
+              kv: [["품번", "P-1102-07"], ["자재", "브라켓"], ["이 호기 수량", "120 EA", true], ["동일 사양 평균", "10 EA"]],
+              viz: { type: "bars", items: [{ label: "이 호기", value: 120, unit: "EA", hot: true }, { label: "동일 사양 평균", value: 10, unit: "EA" }, { label: "동일 사양 최대", value: 10, unit: "EA" }] } },
+            { kind: "bom", kicker: "BOM 전개", title: "권상기 ASSY 위치 40 에서 로직 계산값으로 전개됐습니다", q: "BOM 어디에서 나왔나?",
+              kv: [["어셈블리", "A10 권상기 ASSY"], ["위치", "40"], ["수량 출처", "로직 계산값"], ["전개 일시", "10-17 14:05"]],
+              viz: { type: "path", items: ["TEST-632560", "권상기 ASSY", "위치 40", "브라켓 P-1102-07"] } },
+            { kind: "logic", kicker: "수배 로직", title: "브라켓 수량 규칙은 정지층수에서 2를 뺍니다", q: "어떤 규칙이 계산했나?",
+              kv: [["규칙", "PID-BRK-0412"], ["버전", "v3 · 2026-03-02"], ["참조 사양", "EL_STOP"], ["규칙 이상 여부", "정상 (다른 호기는 맞게 계산)"]],
+              viz: { type: "formula", code: '<span class="k">브라켓 수량</span> <span class="o">=</span> <span class="k">EL_STOP</span> <span class="o">−</span> 2',
+                     evals: [{ label: "이 호기", expr: "122 − 2", result: "120 EA", hot: true }, { label: "동일 사양", expr: "12 − 2", result: "10 EA" }] } },
+            { kind: "spec", kicker: "영업사양", title: "정지층수 값 122 가 허용 범위를 벗어났습니다", q: "규칙에 들어간 값은?", root: true,
+              kv: [["특성", "EL_STOP 정지층수"], ["이 호기", "122", true], ["동일 사양 34호기", "모두 12"], ["허용 범위", "2 ~ 40"]],
+              viz: { type: "dist", unit: "층", value: 122, peers: [12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12], range: [2, 40] },
+              note: "허용 범위(2~40)를 벗어난 값입니다. 12 를 입력하려다 2 가 한 번 더 입력된 것으로 보입니다." },
+            { kind: "hist", kicker: "변경 이력", title: "오늘 14:02 속성값 변경에서 바뀌었습니다", q: "언제, 어떻게 바뀌었나?",
+              viz: { type: "timeline", events: [
+                  { t: "10-03 09:12", title: "영업사양 등록", sub: "EL_STOP = 12" },
+                  { t: "10-17 14:02", title: "속성값 변경 · EL_STOP 12 → 122", sub: "원사이클 자동화 (속성값 변경 단계)", hot: true },
+                  { t: "10-17 14:05", title: "BOM 계산", sub: "브라켓 120EA 전개" },
+                  { t: "10-17 14:06", title: "SENTINEL 탐지", sub: "수량 급증 · 위험 99" } ] } }
+        ],
+        impact: [
+            { hot: true, title: "PID-BRK-0412 브라켓 수량", sub: "EL_STOP 을 쓰는 유일한 규칙 → 이번 이상" },
+            { ok: true, title: "승강장 도어 · 버튼 · 홀 랜턴 수량", sub: "운행층수(EL_FLOOR) 기준 → 영향 없음" },
+            { ok: true, title: "같은 사양 다른 호기 34대", sub: "EL_STOP 정상(12) → 영향 없음" }
+        ],
+        impactSub: "EL_STOP 값을 참조하는 규칙과 호기",
+        todo: [
+            "원사이클 3F 속성값 변경에서 EL_STOP 을 12 로 수정",
+            "종속사양 산출 · BOM 계산 재실행 후 브라켓 10EA 확인",
+            "브라켓 120EA 가 이미 발주됐는지 구매 담당 확인",
+            "EL_STOP 입력값에 범위 검사(2~40) 추가 검토"
+        ],
+        // 1F 감지 규칙 관리에 이 사례로 제안된 규칙이 있음
+        ruleLink: { href: "/cop/rules?id=R-06", label: "감지 규칙에서 EL_STOP 범위 검사 적용하기" }
+    };
+
+    /* =========================================================
+       샘플 : 관제 화면의 다른 이상 → 유형별 추적 템플릿
+       ========================================================= */
+    function fromAnomaly(a) {
+        var rnd = rng(hashInt(a.id || a.productNo));
+        var base = { productNo: a.productNo, site: a.site, partNo: a.partNo, partName: a.partName, type: a.type, severity: a.severity, impactSub: "같은 원인을 공유하는 대상" };
+        var e = a.evidence || {};
+        var path = [a.productNo, pick(rnd, ["권상기 ASSY", "카 ASSY", "카 도어 ASSY", "제어반 ASSY", "가이드레일 ASSY"]), "위치 " + (10 + Math.floor(rnd() * 7) * 10), a.partName + " " + a.partNo];
+
+        if (a.type === "QTY") {
+            var spec = pick(rnd, [["EL_STOP", "정지층수"], ["EL_TRAVEL", "승강행정"], ["EL_CAP", "적재하중 코드"], ["EL_DOORW", "출입구 폭 코드"]]);
+            var exp = e.expected || 4, act = e.actual || exp * 3;
+            return assign(base, {
+                verdict: spec[1] + '(' + spec[0] + ') 값이 <em>' + exp + '</em> 가 아니라 <em>' + act + '</em> 입니다',
+                verdictSub: a.partName + " 수량 규칙이 " + spec[0] + " 를 그대로 참조해 " + act + "EA 를 수배했습니다. 같은 사양 호기는 " + exp + " 입니다.",
+                fixLabel: spec[0] + " 수정 · 재계산",
+                steps: [
+                    { kind: "part", kicker: "이상 자재", title: a.message, q: "무엇이 이상한가?",
+                      kv: [["품번", a.partNo], ["자재", a.partName], ["이 호기", act + " EA", true], ["동일 사양 평균", exp + " EA"]],
+                      viz: { type: "bars", items: [{ label: "이 호기", value: act, unit: "EA", hot: true }, { label: "동일 사양 평균", value: exp, unit: "EA" }] } },
+                    { kind: "bom", kicker: "BOM 전개", title: path[1] + " " + path[2] + " 에서 로직 계산값으로 전개됐습니다", q: "BOM 어디에서 나왔나?",
+                      kv: [["어셈블리", path[1]], ["수량 출처", "로직 계산값"]], viz: { type: "path", items: path } },
+                    { kind: "logic", kicker: "수배 로직", title: a.partName + " 수량은 " + spec[1] + " 값을 그대로 씁니다", q: "어떤 규칙이 계산했나?",
+                      kv: [["규칙", "PID-" + a.partNo.slice(2, 6) + "-01"], ["참조 사양", spec[0]], ["규칙 이상 여부", "정상"]],
+                      viz: { type: "formula", code: '<span class="k">' + esc(a.partName) + ' 수량</span> <span class="o">=</span> <span class="k">' + spec[0] + '</span>',
+                             evals: [{ label: "이 호기", expr: spec[0] + " = " + act, result: act + " EA", hot: true }, { label: "동일 사양", expr: spec[0] + " = " + exp, result: exp + " EA" }] } },
+                    { kind: "spec", kicker: "영업사양", title: spec[1] + " 값 " + act + " 이 같은 사양과 다릅니다", q: "규칙에 들어간 값은?", root: true,
+                      kv: [["특성", spec[0] + " " + spec[1]], ["이 호기", String(act), true], ["동일 사양 " + (a.peers || 20) + "호기", "평균 " + exp]],
+                      viz: { type: "dist", unit: "", value: act, peers: e.values || [exp, exp, exp], range: null },
+                      note: "같은 사양 호기들과 동떨어진 값입니다. 영업사양 입력값을 확인하세요." },
+                    histStep(rnd, spec[0] + " " + exp + " → " + act, a)
+                ],
+                impact: [{ hot: true, title: a.partName + " 수량 규칙", sub: spec[0] + " 참조 → 이번 이상" }, { ok: true, title: "같은 사양 다른 호기", sub: spec[0] + " 정상 → 영향 없음" }],
+                todo: [spec[0] + " 값을 " + exp + " 로 수정", "BOM 재계산 후 " + a.partName + " " + exp + "EA 확인", "이미 발주된 수량이 있는지 확인"]
+            });
+        }
+        if (a.type === "MISSING") {
+            var exp2 = e.expected || 8;
+            return assign(base, {
+                verdict: '종속사양 산출이 끝나지 않아 <em>EL_ETM</em> 이 비어 있습니다',
+                verdictSub: a.partName + " 의 하위 자재는 권상기 타입(EL_ETM)이 있을 때만 전개됩니다. 이 호기는 종속사양 산출이 중간에 끊겨 값이 비었고, 하위 자재 " + exp2 + "건이 통째로 빠졌습니다.",
+                fixLabel: "원사이클 재실행",
+                steps: [
+                    { kind: "part", kicker: "이상 자재", title: a.message, q: "무엇이 이상한가?",
+                      kv: [["품번", a.partNo], ["자재", a.partName], ["하위 자재", "0 건", true], ["동일 사양 평균", exp2 + " 건"]],
+                      viz: { type: "bars", items: [{ label: "이 호기", value: 0, unit: "건", hot: true }, { label: "동일 사양 평균", value: exp2, unit: "건" }] } },
+                    { kind: "bom", kicker: "BOM 전개", title: a.partName + " 아래로 전개가 멈췄습니다", q: "BOM 어디에서 끊겼나?",
+                      kv: [["어셈블리", path[1]], ["하위 전개", "없음", true]], viz: { type: "path", items: path.concat(["(하위 없음)"]) } },
+                    { kind: "logic", kicker: "수배 로직", title: "하위 자재는 EL_ETM 값이 있을 때만 전개됩니다", q: "어떤 규칙이 막았나?",
+                      kv: [["규칙", "PID-" + a.partNo.slice(2, 6) + "-SUB"], ["전개 조건", "EL_ETM 값 있음"]],
+                      viz: { type: "formula", code: '<span class="k">하위 전개</span> <span class="o">⇐</span> <span class="k">EL_ETM</span> <span class="o">≠</span> 빈 값',
+                             evals: [{ label: "이 호기", expr: "EL_ETM = (빈 값)", result: "전개 안 함", hot: true }, { label: "동일 사양", expr: "EL_ETM = YJ140", result: "전개" }] } },
+                    { kind: "spec", kicker: "영업사양", title: "권상기 타입(EL_ETM)이 비어 있습니다", q: "규칙에 들어간 값은?", root: true,
+                      kv: [["특성", "EL_ETM 권상기 타입"], ["이 호기", "(빈 값)", true], ["동일 사양", "YJ140"]],
+                      viz: { type: "pair", left: { label: "동일 사양 호기", value: "EL_ETM = YJ140" }, right: { label: "이 호기", value: "EL_ETM = (빈 값)" } },
+                      note: "EL_ETM 은 종속사양 산출에서 채워지는 값입니다. 산출이 끝까지 돌지 않은 것으로 보입니다." },
+                    { kind: "hist", kicker: "변경 이력", title: "종속사양 산출이 응답 없이 끝났습니다", q: "언제, 어떻게 비었나?",
+                      viz: { type: "timeline", events: [
+                          { t: ts(rnd, 0), title: "속성값 변경", sub: "원사이클 자동화" },
+                          { t: ts(rnd, 1), title: "종속사양 산출 · 응답 없음", sub: "PLM 세션 만료 (재시도 3회 실패)", hot: true },
+                          { t: ts(rnd, 2), title: "BOM 계산", sub: a.partName + " 하위 0건 전개" },
+                          { t: ts(rnd, 3), title: "SENTINEL 탐지", sub: "자재 누락 · 위험 " + a.severity } ] } }
+                ],
+                impact: [{ hot: true, title: "EL_ETM 을 쓰는 규칙 전체", sub: "권상기 하위 전개 규칙들 → 함께 누락 가능" }, { ok: true, title: "같은 사양 다른 호기", sub: "EL_ETM 정상 → 영향 없음" }],
+                todo: ["원사이클에서 종속사양 산출부터 다시 실행", "EL_ETM 값이 채워졌는지 확인", "BOM 재계산 후 하위 자재 " + exp2 + "건 확인"]
+            });
+        }
+        if (a.type === "SPEC") {
+            return assign(base, {
+                verdict: '오래된 매핑 규칙 <em>v3</em> 이 적용되어 다른 타입 자재가 전개됐습니다',
+                verdictSub: "영업사양 값은 정상입니다. 9월 30일 배포된 매핑 규칙 v4 대신 이전 규칙 v3 이 이 호기 계산에 쓰였습니다.",
+                fixLabel: "규칙 확인 후 재계산",
+                steps: [
+                    { kind: "part", kicker: "이상 자재", title: a.message, q: "무엇이 이상한가?",
+                      kv: [["품번", a.partNo], ["자재", a.partName]],
+                      viz: { type: "pair", left: { label: e.leftLabel || "영업사양", value: e.leftValue || "" }, right: { label: e.rightLabel || "전개된 자재", value: e.rightValue || "" } } },
+                    { kind: "bom", kicker: "BOM 전개", title: path[1] + " 에서 매핑 규칙으로 자재가 정해졌습니다", q: "BOM 어디에서 나왔나?",
+                      kv: [["어셈블리", path[1]], ["자재 결정", "사양 → 자재 매핑"]], viz: { type: "path", items: path } },
+                    { kind: "logic", kicker: "수배 로직", title: "이전 버전 매핑 규칙(v3)이 적용됐습니다", q: "어떤 규칙이 골랐나?", root: true,
+                      kv: [["적용된 규칙", "MAP-" + a.partNo.slice(2, 6) + " v3", true], ["최신 규칙", "v4 · 09-30 배포"]],
+                      viz: { type: "formula", code: '<span class="k">' + esc(e.leftLabel || "사양") + '</span> <span class="o">→</span> <span class="k">' + esc(a.partName) + ' 타입</span>',
+                             evals: [{ label: "적용 v3", expr: esc(e.leftValue || "") + " → 이전 매핑", result: esc(e.rightValue || ""), hot: true }, { label: "최신 v4", expr: esc(e.leftValue || "") + " → 새 매핑", result: "정상 타입" }] },
+                      note: "v4 로 갱신되지 않은 규칙 캐시가 사용된 것으로 보입니다." },
+                    { kind: "spec", kicker: "영업사양", title: "영업사양 값 자체는 정상입니다", q: "규칙에 들어간 값은?",
+                      kv: [["특성", e.leftLabel || "-"], ["이 호기", e.leftValue || "-"], ["판정", "정상"]] },
+                    { kind: "hist", kicker: "변경 이력", title: "규칙 배포 이후에도 이전 규칙으로 계산됐습니다", q: "언제 어긋났나?",
+                      viz: { type: "timeline", events: [
+                          { t: "09-30 18:00", title: "매핑 규칙 v4 배포", sub: "MAP-" + a.partNo.slice(2, 6) },
+                          { t: ts(rnd, 1), title: "BOM 계산 · v3 사용", sub: "규칙 캐시 미갱신", hot: true },
+                          { t: ts(rnd, 2), title: "SENTINEL 탐지", sub: "사양 불일치 · 위험 " + a.severity } ] } }
+                ],
+                impact: [{ hot: true, title: "09-30 이후 v3 로 계산된 호기", sub: "같은 원인일 가능성 → 함께 점검" }, { ok: true, title: "영업사양 값", sub: "정상 → 수정 불필요" }],
+                todo: ["매핑 규칙 캐시가 v4 로 갱신됐는지 확인", "이 호기 BOM 재계산", "09-30 이후 계산된 같은 사양 호기 점검"]
+            });
+        }
+        // DUP
+        return assign(base, {
+            verdict: '두 수배 규칙의 조건이 겹쳐 <em>' + esc(a.partName) + '</em> 가 두 번 전개됐습니다',
+            verdictSub: "카 도어 경로와 승강장 도어 경로의 수배 조건이 모두 이 호기의 도어 방식을 포함해, 같은 품번이 양쪽에서 전개됐습니다.",
+            fixLabel: "규칙 확인 후 재계산",
+            steps: [
+                { kind: "part", kicker: "이상 자재", title: a.message, q: "무엇이 이상한가?",
+                  kv: [["품번", a.partNo], ["자재", a.partName], ["전개 횟수", "2 회", true], ["동일 사양", "1 회"]],
+                  viz: { type: "bars", items: [{ label: "이 호기", value: 2, unit: "회", hot: true }, { label: "동일 사양", value: 1, unit: "회" }] } },
+                { kind: "bom", kicker: "BOM 전개", title: "두 경로에서 같은 품번이 나옵니다", q: "BOM 어디에서 나왔나?",
+                  viz: { type: "pair", left: { label: "경로 1", value: e.leftValue || "카 > 도어 > " + a.partName }, right: { label: "경로 2", value: e.rightValue || "승강장 > 도어 > " + a.partName } } },
+                { kind: "logic", kicker: "수배 로직", title: "두 규칙의 조건이 동시에 참이 됐습니다", q: "어떤 규칙이 전개했나?", root: true,
+                  kv: [["겹친 조건", "EL_DOOR = CO", true]],
+                  viz: { type: "match", rules: [
+                      { code: "PID-" + a.partNo.slice(2, 6) + "-C", cond: "카 도어 경로 : EL_DOOR = CO", hot: false },
+                      { code: "PID-" + a.partNo.slice(2, 6) + "-H", cond: "승강장 경로 : EL_DOOR IN (CO, 2S)", hot: true } ] },
+                  note: "승강장 경로 규칙의 조건이 넓게 잡혀 카 도어 경로와 겹칩니다." },
+                { kind: "spec", kicker: "영업사양", title: "도어 방식 값은 정상입니다", q: "규칙에 들어간 값은?",
+                  kv: [["특성", "EL_DOOR 도어 방식"], ["이 호기", "CO"], ["판정", "정상"]] },
+                { kind: "hist", kicker: "변경 이력", title: "승강장 경로 규칙이 최근 수정됐습니다", q: "언제 겹치기 시작했나?",
+                  viz: { type: "timeline", events: [
+                      { t: "10-02 10:30", title: "승강장 경로 규칙 수정", sub: "조건에 CO 추가", hot: true },
+                      { t: ts(rnd, 1), title: "BOM 계산", sub: a.partName + " 2회 전개" },
+                      { t: ts(rnd, 2), title: "SENTINEL 탐지", sub: "중복 수배 · 위험 " + a.severity } ] } }
+            ],
+            impact: [{ hot: true, title: "10-02 이후 EL_DOOR = CO 호기", sub: "같은 중복이 생겼을 가능성" }, { ok: true, title: "EL_DOOR = 2S 호기", sub: "카 도어 경로 조건 불일치 → 영향 없음" }],
+            todo: ["승강장 경로 규칙 조건(EL_DOOR IN …) 검토", "이 호기 BOM 재계산 후 1회 전개 확인", "10-02 이후 CO 호기 중복 수배 점검"]
+        });
+    }
+
+    function histStep(rnd, change, a) {
+        return { kind: "hist", kicker: "변경 이력", title: "속성값 변경에서 값이 바뀌었습니다", q: "언제, 어떻게 바뀌었나?",
+            viz: { type: "timeline", events: [
+                { t: ts(rnd, -1), title: "영업사양 등록", sub: "정상 값" },
+                { t: ts(rnd, 0), title: "속성값 변경 · " + change, sub: "원사이클 자동화 (속성값 변경 단계)", hot: true },
+                { t: ts(rnd, 1), title: "BOM 계산", sub: a.partName + " 전개" },
+                { t: ts(rnd, 2), title: "SENTINEL 탐지", sub: TYPE_NAME[a.type] + " · 위험 " + a.severity } ] } };
+    }
+
+    /** 추적 데이터 (실제 연동 시 이 함수만 교체) */
+    function loadTrace(params) {
+        // BOM 비교 화면 "원인 →" : 기준 호기(a)가 함께 오면 실제 PID 실행으로 영업사양 차이를 추정
+        if (params.a && params.no) return loadSalesTrace(params);
+        var isShowcase = (!params.id && !params.no) || (params.no === SHOWCASE.productNo && (!params.part || params.part === SHOWCASE.partNo));
+        if (isShowcase) return Promise.resolve(SHOWCASE);
+        return fetch("/cop/radar/anomalies", { credentials: "same-origin" })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                var list = res.anomalies || [];
+                var a = list.filter(function (x) { return params.id && x.id === params.id; })[0]
+                     || list.filter(function (x) { return x.productNo === params.no && (!params.part || x.partNo === params.part); })[0];
+                if (a) return a.productNo === SHOWCASE.productNo && a.partNo === SHOWCASE.partNo ? SHOWCASE : fromAnomaly(a);
+                return synthetic(params);
+            })
+            .catch(function () { return synthetic(params); });
+    }
+
+    /** 관제 데이터에 없는 호기/자재 (BOM 비교에서 넘어온 경우) → 수량 급증 형태의 샘플 */
+    function synthetic(params) {
+        if (!params.no) return SHOWCASE;
+        var r = rng(hashInt(params.no + params.part));
+        var exp = 2 + Math.floor(r() * 10), act = exp + 1 + Math.floor(r() * exp * 2);
+        return fromAnomaly({ id: params.no + params.part, productNo: params.no, site: "샘플현장", partNo: params.part || "P-0000-00", partName: params.name || "자재",
+            type: "QTY", severity: 60, peers: 18, message: (params.name || "자재") + " 수량 " + act + "EA — 동일 사양 평균 " + exp + "EA",
+            evidence: { kind: "dist", expected: exp, actual: act, values: [exp, exp, exp + 1, exp - 1 > 0 ? exp - 1 : exp, exp] } });
+    }
+
+    /* =========================================================
+       영업사양 원인 추정 (실제 데이터)
+       블록번호 → PID 'EL_P' + 블록번호 를 A · B 두 호기에서 각각 최신 버전으로 실행하고
+       PID 조건에 쓰인 영업사양 값을 비교한다. 판정(TRUE/FALSE)이 달라진 라인에 쓰인 사양을 우선 원인 후보로 본다.
+       ========================================================= */
+    var SIM_API = "/simulateup/simulatePid";
+    var SIM_PAGE = "/simulateup/pidSimulatorUp";
+    var CODE_API = "/api/getElvCodeList?key=subae";
+    var STATE_NAME = { TRUE: "TRUE", FALSE: "FALSE", UNREAD: "미실행" };
+
+    /** PID 시뮬레이터 실행 (버전 미지정 = 최신) */
+    function runPid(project, pid) {
+        return fetch(SIM_API + "?project=" + encodeURIComponent(project) + "&pid=" + encodeURIComponent(pid), { headers: { Accept: "application/json" } })
+            .then(function (res) {
+                return res.json().catch(function () { return null; }).then(function (json) {
+                    if (!res.ok || !json || json.error) throw new Error((json && json.error) || "HTTP " + res.status);
+                    return json;
+                });
+            });
+    }
+
+    /** 특성코드 → 사양명 (실패해도 코드만으로 표시) */
+    function loadSpecNames() {
+        return fetch(CODE_API).then(function (r) { return r.ok ? r.json() : []; }).then(function (list) {
+            var m = {};
+            (list || []).forEach(function (c) {
+                var k = String(c.code || "").trim().toUpperCase();
+                if (k && c.codeName && !m[k]) m[k] = String(c.codeName).trim();
+            });
+            return m;
+        }).catch(function () { return {}; });
+    }
+
+    function loadSalesTrace(p) {
+        var pid = p.block ? "EL_P" + p.block : "";
+        $("vTitle").textContent = pid ? "두 호기에서 PID " + pid + " 를 실행하는 중입니다…" : "원인을 추적하는 중입니다…";
+        $("chain").innerHTML = '<li class="loading-box">' + (pid
+            ? esc(p.a) + " · " + esc(p.no) + " 호기로 " + esc(pid) + " 최신 버전을 실행하고 있습니다. PLM DB 조회라 시간이 걸릴 수 있습니다…"
+            : "추적 데이터를 불러오는 중…") + '</li>';
+        if (!pid) return Promise.resolve(salesErrorTrace(p, "", "블록번호가 없어 PID 를 찾을 수 없습니다. BOM 에 블록번호가 등록된 자재만 추적할 수 있습니다."));
+        return Promise.all([runPid(p.a, pid), runPid(p.no, pid), loadSpecNames()])
+            .then(function (r) { return salesTrace(p, pid, r[0], r[1], r[2]); })
+            .catch(function (e) { return salesErrorTrace(p, pid, e && e.message ? e.message : String(e)); });
+    }
+
+    /** 이상 자재 단계 (A · B 실제 수량) */
+    function salesPartStep(p) {
+        var qa = p.qa === "" ? null : Number(p.qa), qb = p.qb === "" ? null : Number(p.qb), u = p.unit || "";
+        var name = p.name || p.part;
+        var title = qa == null ? josa(name, "이", "가") + " 비교 호기(B)에만 있습니다"
+            : qb == null ? josa(name, "이", "가") + " 비교 호기(B)에 없습니다"
+            : name + " 수량이 A " + fmtN(qa) + " → B " + fmtN(qb) + (u ? " " + u : "") + " 로 다릅니다";
+        return { kind: "part", kicker: "이상 자재", title: title, q: "무엇이 다른가?",
+            kv: [["자재번호", p.part], ["자재명", p.name || "-"], ["A " + p.a, qa == null ? "없음" : fmtN(qa) + " " + u], ["B " + p.no, qb == null ? "없음" : fmtN(qb) + " " + u, true]],
+            viz: { type: "bars", items: [{ label: "A " + p.a, value: qa || 0, unit: u }, { label: "B " + p.no, value: qb || 0, unit: u, hot: true }] } };
+    }
+
+    function salesBase(p, pid) {
+        return {
+            real: true, productNo: p.no, partNo: p.part, partName: p.name || p.part,
+            typeLabel: "영업사양 비교 · 추정", tags: [["기준 호기", p.a], ["블록", p.block || "-"]],
+            diffHref: "/cop/diff?a=" + encodeURIComponent(p.a) + "&b=" + encodeURIComponent(p.no),
+            fixLabel: "영업사양 수정 · 재계산",
+            ruleLink: pid ? { href: SIM_PAGE + "?project=" + encodeURIComponent(p.no) + "&pid=" + encodeURIComponent(pid), label: "PID 시뮬레이터에서 " + pid + " 열기 (B 호기)" } : null
+        };
+    }
+
+    function salesErrorTrace(p, pid, msg) {
+        return assign(salesBase(p, pid), {
+            verdict: pid ? 'PID <em>' + esc(pid) + '</em> 를 실행하지 못했습니다' : '블록번호가 없어 원인을 추적할 수 없습니다',
+            verdictSub: msg,
+            steps: [salesPartStep(p),
+                { kind: "bom", kicker: "BOM 블록", title: pid ? "블록 " + p.block + " 의 PID " + pid + " 실행에 실패했습니다" : "블록번호가 비어 있습니다", q: "어느 PID 가 계산하나?", root: true,
+                  kv: [["블록번호", p.block || "(없음)", !p.block], ["PID", pid || "-"]], note: msg }],
+            impactSub: "", impact: [],
+            todo: pid ? ["PID 시뮬레이터에서 " + pid + " 가 있는지, 두 호기로 실행되는지 확인", "블록번호와 PID 이름 규칙(EL_P + 블록번호)이 맞는지 확인"]
+                      : ["BOM 에서 " + p.part + " 의 블록번호 확인"]
+        });
+    }
+
+    function salesTrace(p, pid, A, B, names) {
+        var name = p.name || p.part;
+
+        // PID 조건에 쓰인 특성코드 (처음 나온 순서)
+        var codes = [];
+        [A, B].forEach(function (res) {
+            (res.lines || []).forEach(function (l) {
+                (l.conditions || []).forEach(function (c) {
+                    var k = String(c.spec || "").trim().toUpperCase();
+                    if (k && codes.indexOf(k) < 0) codes.push(k);
+                });
+            });
+        });
+        var specs = codes.map(function (k) { return { code: k, name: names[k] || "", a: specValue(A, k), b: specValue(B, k), lines: 0 }; });
+        var byCode = {};
+        specs.forEach(function (s) { byCode[s.code] = s; });
+
+        // 판정이 달라진 라인 (같은 PID · 같은 최신 버전이라 라인 순서가 같다)
+        var la = A.lines || [], lb = B.lines || [], lineDiffs = [];
+        for (var i = 0; i < Math.max(la.length, lb.length); i++) {
+            var x = la[i], y = lb[i];
+            var sa = x ? x.state : "", sb = y ? y.state : "";
+            if (sa === sb) continue;
+            var l = x || y, used = [];
+            (l.conditions || []).forEach(function (c) {
+                var k = String(c.spec || "").trim().toUpperCase();
+                if (k && used.indexOf(k) < 0) { used.push(k); if (byCode[k]) byCode[k].lines++; }
+            });
+            lineDiffs.push({ no: l.no, addr: l.addr || "", a: sa, b: sb, conds: (l.conditions || []).filter(function (c) { return String(c.spec || "").trim(); }) });
+        }
+
+        var diffSpecs = specs.filter(function (s) { return s.a !== s.b; })
+            .sort(function (x, y) { return y.lines - x.lines || codes.indexOf(x.code) - codes.indexOf(y.code); });
+        var top = diffSpecs[0];
+
+        // 최종 결과값 차이 (OUTPUT 선언용 내부 키 제외)
+        var ra = A.resultMap || {}, rb = B.resultMap || {}, keys = [];
+        Object.keys(ra).concat(Object.keys(rb)).forEach(function (k) { if (keys.indexOf(k) < 0 && k.indexOf("OUTPUT") !== 0) keys.push(k); });
+        var resDiffs = keys.filter(function (k) { return str(ra[k]) !== str(rb[k]); });
+        // 이 자재번호가 값에 들어 있는 결과값을 앞으로 (자재 누락 · 추가는 PID 가 자재번호를 결과로 고르는 경우가 많다)
+        var hasPart = function (k) { return p.part && ((str(ra[k]) || "").indexOf(p.part) >= 0 || (str(rb[k]) || "").indexOf(p.part) >= 0); };
+        resDiffs.sort(function (x, y) { return (hasPart(y) ? 1 : 0) - (hasPart(x) ? 1 : 0); });
+        var partKeys = resDiffs.filter(hasPart).length;
+
+        var verText = A.runVersion != null ? "최신 v" + A.runVersion + (B.runVersion !== A.runVersion ? " / B v" + B.runVersion : "") : "최신";
+        var steps = [salesPartStep(p)];
+
+        steps.push({ kind: "bom", kicker: "BOM 블록 · PID", title: "블록 " + p.block + " 은 PID " + pid + " 로 계산됩니다", q: "어느 PID 가 계산하나?",
+            kv: [["블록번호", p.block], ["PID", pid], ["PID 명", A.pidName || B.pidName || "-"], ["실행 버전", verText]],
+            viz: { type: "path", items: [p.no, "블록 " + p.block, pid, name + " " + p.part] } });
+
+        steps.push({ kind: "logic", kicker: "PID 결과값", title: resDiffs.length ? "PID 최종 결과값 " + resDiffs.length + "개가 두 호기에서 다릅니다" : "PID 최종 결과값은 두 호기가 같습니다", q: "PID 가 계산한 값은?",
+            kv: [["결과값", keys.length + "개"], ["다른 값", resDiffs.length + "개", resDiffs.length > 0]].concat(partKeys ? [[p.part + " 포함", partKeys + "개", true]] : []),
+            viz: resDiffs.length ? { type: "table", cols: ["KEY", "A " + p.a, "B " + p.no], widths: ["30%", "35%", "35%"],
+                rows: resDiffs.slice(0, 12).map(function (k) { return { hot: hasPart(k), cells: [k, { t: str(ra[k]) || "(없음)", cls: "wrap" }, { t: str(rb[k]) || "(없음)", cls: "b wrap" }] }; }),
+                cap: resDiffs.length > 12 ? "외 " + (resDiffs.length - 12) + "개" : "" } : null });
+
+        if (A.javaMethod || B.javaMethod) {
+            steps.push({ kind: "logic", kicker: "PID 판정", title: "JAVA 방식 PID 라 라인 판정은 비교할 수 없습니다", q: "어떤 조건이 갈렸나?",
+                kv: [["방식", "JAVA"]], note: "라인 정보가 없어 결과값과 영업사양만 비교합니다." });
+        } else {
+            steps.push({ kind: "logic", kicker: "PID 판정", title: lineDiffs.length ? la.length + "개 라인 중 " + lineDiffs.length + "개 라인의 판정이 다릅니다" : la.length + "개 라인의 판정이 두 호기 모두 같습니다", q: "어떤 조건이 갈렸나?",
+                kv: [["전체 라인", la.length + "개"], ["판정 다른 라인", lineDiffs.length + "개", lineDiffs.length > 0]],
+                viz: lineDiffs.length ? { type: "table", cols: ["라인", "ADDR", "조건", "A " + p.a, "B " + p.no], widths: ["9%", "15%", "46%", "15%", "15%"],
+                    rows: lineDiffs.slice(0, 10).map(function (d) {
+                        return { cells: [String(d.no), d.addr || "-",
+                            { t: d.conds.map(function (c) { return String(c.spec).trim() + " = " + (c.con == null ? "" : c.con); }).join("  ·  ") || "(조건 없음)", cls: "wrap" },
+                            { st: d.a }, { st: d.b }] };
+                    }), cap: lineDiffs.length > 10 ? "외 " + (lineDiffs.length - 10) + "개 라인" : "" } : null });
+        }
+
+        var specStep = { kind: "spec", kicker: "영업사양", q: "PID 에 들어간 값은?",
+            title: diffSpecs.length ? "PID 조건에 쓰인 영업사양 " + specs.length + "개 중 " + diffSpecs.length + "개가 다릅니다" : "PID 조건에 쓰인 영업사양 " + specs.length + "개가 모두 같습니다" };
+        if (top) {
+            specStep.root = true;
+            specStep.kv = [["원인 후보", top.code + (top.name ? " " + top.name : "")], ["A " + p.a, valText(top.a)], ["B " + p.no, valText(top.b), true], ["판정 다른 라인에 쓰임", top.lines + "개"]];
+            specStep.viz = { type: "table", cols: ["특성코드", "사양명", "A " + p.a, "B " + p.no, "판정 다른 라인"],
+                rows: diffSpecs.map(function (s) { return { hot: s === top, cells: [s.code, { t: s.name || "-", cls: "nm" }, valText(s.a), { t: valText(s.b), cls: "b" }, s.lines ? s.lines + "개" : "-"] }; }),
+                cap: "값이 같은 영업사양 " + (specs.length - diffSpecs.length) + "개는 원인에서 제외했습니다" };
+            specStep.note = top.lines
+                ? "판정이 달라진 라인에 가장 많이 쓰인 값이라 원인으로 추정했습니다. PID 시뮬레이터에서 실제로 어떤 라인이 갈렸는지 확인하세요."
+                : "값은 다르지만 판정이 달라진 라인에는 쓰이지 않았습니다. 하위 PID(CALL)에서 쓰였을 수 있습니다.";
+        }
+        steps.push(specStep);
+
+        // 원인 단계 : 영업사양 차이 > 결과값 차이 > PID 단계
+        if (!top) {
+            var rootStep = resDiffs.length ? steps[2] : steps[1];
+            rootStep.root = true;
+            rootStep.note = resDiffs.length
+                ? "PID 조건에 쓰인 영업사양은 같지만 결과값이 다릅니다. 하위 PID(CALL) 버전이나 하위 PID 의 영업사양을 확인하세요."
+                : "이 블록의 PID 로는 수량 차이가 설명되지 않습니다. BOM 수동 수정이나 다른 블록 PID 를 확인하세요.";
+        }
+
+        var t = assign(salesBase(p, pid), { steps: steps });
+        if (top) {
+            t.verdict = (top.name ? esc(top.name) + "(" : "") + '<em>' + esc(top.code) + '</em>' + (top.name ? ")" : "") +
+                ' 값이 A <em>' + esc(valText(top.a)) + '</em>, B <em>' + esc(valText(top.b)) + '</em> 로 다릅니다';
+            var what = p.qa === "" ? josa(name, "이", "가") + " B 에 추가된" : p.qb === "" ? josa(name, "이", "가") + " B 에서 빠진" : name + " 수량 차이의";
+            t.verdictSub = "블록 " + p.block + " 의 PID " + pid + " 를 두 호기 최신 버전으로 실행해 비교했습니다. 조건에 쓰인 영업사양 " + specs.length + "개 중 " +
+                diffSpecs.length + "개가 다르고, 이 값이 " + what + " 원인으로 추정됩니다.";
+            t.impactSub = "PID " + pid + " 조건에 쓰인 영업사양";
+            t.impact = diffSpecs.slice(0, 3).map(function (s) {
+                return { hot: true, title: s.code + (s.name ? " " + s.name : ""), sub: "A " + valText(s.a) + " · B " + valText(s.b) + (s.lines ? " · 판정 다른 라인 " + s.lines + "개" : "") };
+            }).concat(diffSpecs.length > 3 ? [{ hot: true, title: "그 외 다른 영업사양 " + (diffSpecs.length - 3) + "개", sub: "영업사양 단계 표 참고" }] : [])
+              .concat([{ ok: true, title: "값이 같은 영업사양 " + (specs.length - diffSpecs.length) + "개", sub: "원인에서 제외" }]);
+            t.todo = ["B 호기(" + p.no + ") 의 " + top.code + " 값(" + valText(top.b) + ")이 맞는지 영업사양 확인",
+                      "PID 시뮬레이터에서 " + pid + " 를 두 호기로 실행해 판정 다른 라인 확인",
+                      "값 수정 후 BOM 재계산해 " + name + (p.qa === "" || p.qb === "" ? " 전개 여부" : " 수량") + " 재확인"];
+        } else {
+            t.verdict = 'PID <em>' + esc(pid) + '</em> 에 쓰인 영업사양은 두 호기가 같습니다';
+            t.verdictSub = resDiffs.length
+                ? "조건에 쓰인 영업사양 " + specs.length + "개는 같지만 결과값 " + resDiffs.length + "개가 다릅니다. 하위 PID(CALL) 쪽을 확인하세요."
+                : "블록 " + p.block + " 의 PID 결과도 같아, 이 PID 로는 " + name + (p.qa === "" ? " 추가가" : p.qb === "" ? " 누락이" : " 차이가") + " 설명되지 않습니다.";
+            t.impactSub = "PID " + pid + " 조건에 쓰인 영업사양";
+            t.impact = [{ ok: true, title: "영업사양 " + specs.length + "개", sub: "두 호기 값이 같음" }];
+            t.todo = resDiffs.length
+                ? ["PID 시뮬레이터에서 하위 PID(CALL) 버전 · 결과 비교", "하위 PID 에 쓰인 영업사양 확인"]
+                : ["BOM 이력에서 " + p.part + " 수동 수정 여부 확인", "다른 블록 PID 에서 이 자재를 계산하는지 확인"];
+        }
+        return t;
+    }
+
+    /** 최종 영업사양(elvEnt) 값, 없으면 PID 조건의 영업사양 값. 둘 다 없으면 null */
+    function specValue(res, code) {
+        if (!res._ent) {
+            res._ent = {};
+            var e = res.elvEnt || {};
+            Object.keys(e).forEach(function (k) { res._ent[k.toUpperCase()] = e[k]; });
+        }
+        if (code in res._ent) return str(res._ent[code]);
+        var v = null;
+        (res.lines || []).some(function (l) {
+            return (l.conditions || []).some(function (c) {
+                if (String(c.spec || "").trim().toUpperCase() !== code || c.specValue == null) return false;
+                v = str(c.specValue); return true;
+            });
+        });
+        return v;
+    }
+    function str(v) { return v == null ? null : typeof v === "object" ? JSON.stringify(v) : String(v); }
+    function valText(v) { return v == null ? "(없음)" : v === "" ? "(빈 값)" : v; }
+    /** 받침에 맞는 조사 (한글로 끝나지 않으면 "이(가)") */
+    function josa(word, withFinal, noFinal) {
+        var c = String(word).charCodeAt(String(word).length - 1);
+        if (c < 0xAC00 || c > 0xD7A3) return word + " " + withFinal + "(" + noFinal + ")";
+        return word + ((c - 0xAC00) % 28 ? withFinal : noFinal);
+    }
+    function fmtN(n) { return Number(n).toLocaleString("ko-KR", { maximumFractionDigits: 3 }); }
+
+    /* =========================================================
+       그리기
+       ========================================================= */
+    var trace = null, playTimer = [];
+
+    function render(t) {
+        trace = t;
+        var rootIdx = t.steps.findIndex(function (s) { return s.root; });
+
+        $("vTitle").innerHTML = t.verdict;
+        $("vSub").textContent = t.verdictSub;
+        $("vTags").innerHTML =
+            '<span class="tag">호기 <b>' + esc(t.productNo) + '</b></span>' +
+            '<span class="tag">자재 <b>' + esc(t.partName) + ' ' + esc(t.partNo) + '</b></span>' +
+            (t.tags || []).map(function (g) { return '<span class="tag">' + esc(g[0]) + ' <b>' + esc(g[1]) + '</b></span>'; }).join("") +
+            (t.typeLabel ? '<span class="tag hot">' + esc(t.typeLabel) + '</span>'
+                         : '<span class="tag hot">' + TYPE_NAME[t.type] + ' · 위험 <b>' + t.severity + '</b></span>') +
+            '<span class="tag">원인 위치 <b>' + (rootIdx + 1) + '단계 · ' + esc(t.steps[rootIdx].kicker) + '</b></span>';
+        $("btnFix").href = "/cop/bom?productNo=" + encodeURIComponent(t.productNo);
+        $("btnFixText").textContent = t.fixLabel || "원인 수정 · 재계산";
+        $("btnDiff").href = $("navDiff").href = t.diffHref || "/cop/diff?b=" + encodeURIComponent(t.productNo);
+        $("demoBadge").hidden = !!t.real;
+        document.title = t.productNo + " 원인 추적 · SENTINEL";
+
+        $("chain").innerHTML = t.steps.map(function (s, i) {
+            return '<li class="step' + (s.root ? " is-root" : "") + (i > rootIdx ? " after-root" : "") + '" id="step-' + i + '">' +
+                '<div class="rail" aria-hidden="true"><span class="dot">' + svg(s.root ? "alert" : s.kind, 20, 2) + '</span><span class="wire"><i></i></span></div>' +
+                '<div class="box">' +
+                    '<div class="box-head"><span class="box-kicker">STEP ' + (i + 1) + ' · ' + esc(s.kicker) + '</span>' +
+                        '<span class="root-badge">' + svg("alert", 13, 2.4) + '원인</span>' +
+                        '<h3>' + esc(s.title) + '</h3><p class="q">' + esc(s.q) + '</p></div>' +
+                    (s.kv ? '<dl class="kv">' + s.kv.map(function (k) { return '<div><dt>' + esc(k[0]) + '</dt><dd' + (k[2] ? ' class="hot"' : '') + '>' + esc(k[1]) + '</dd></div>'; }).join("") + '</dl>' : '') +
+                    (s.viz ? '<div class="viz">' + viz(s.viz) + '</div>' : '') +
+                    (s.note ? '<p class="note">' + svg("alert", 15, 2.2) + '<span>' + esc(s.note) + '</span></p>' : '') +
+                '</div></li>';
+        }).join("");
+
+        $("miniFlow").innerHTML = t.steps.map(function (s, i) {
+            return '<button type="button" class="mf' + (s.root ? " root" : "") + '" data-i="' + i + '"><span class="n">' + (i + 1) + '</span>' +
+                '<span>' + esc(s.kicker) + '</span><span class="st">' + (s.root ? "원인" : i < rootIdx ? "증상 경로" : "근거") + '</span></button>';
+        }).join("");
+        $("miniFlow").querySelectorAll(".mf").forEach(function (b) {
+            b.addEventListener("click", function () {
+                var el = $("step-" + b.dataset.i);
+                el.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+                el.classList.add("on");
+            });
+        });
+
+        $("impSub").textContent = t.impactSub || "";
+        $("impact").innerHTML = (t.impact || []).map(function (m) {
+            return '<li class="' + (m.hot ? "hot" : "ok") + '">' + svg(m.hot ? "alert" : "check", 16, 2.2) + '<span><b>' + esc(m.title) + '</b><small>' + esc(m.sub) + '</small></span></li>';
+        }).join("");
+
+        $("todo").innerHTML = (t.todo || []).map(function (txt, i) {
+            return '<li><label><input type="checkbox" data-i="' + i + '"><span>' + esc(txt) + '</span></label></li>';
+        }).join("");
+        $("todo").querySelectorAll("input").forEach(function (c) { c.addEventListener("change", updateTodo); });
+        updateTodo();
+        $("ruleLink").hidden = !t.ruleLink;
+        if (t.ruleLink) { $("ruleLink").href = t.ruleLink.href; $("ruleLinkText").textContent = t.ruleLink.label; }
+
+        play();
+    }
+
+    function updateTodo() {
+        var all = $("todo").querySelectorAll("input"), done = $("todo").querySelectorAll("input:checked").length;
+        $("todoProg").textContent = done + " / " + all.length + " 완료";
+    }
+
+    /** 추적 재생 : 증상부터 원인까지 한 단계씩 켠다 */
+    function play() {
+        playTimer.forEach(clearTimeout); playTimer = [];
+        var steps = $("chain").querySelectorAll(".step");
+        steps.forEach(function (s) { s.classList.remove("on"); });
+        if (reduceMotion) { steps.forEach(function (s) { s.classList.add("on"); }); return; }
+        steps.forEach(function (s, i) {
+            playTimer.push(setTimeout(function () { s.classList.add("on"); }, 250 + i * 520));
+        });
+    }
+    $("btnReplay").addEventListener("click", function () {
+        window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+        play();
+    });
+
+    /* 시각화 */
+    function viz(v) {
+        if (v.type === "bars") {
+            var max = Math.max.apply(null, v.items.map(function (x) { return x.value; }).concat([1]));
+            return '<div class="bars">' + v.items.map(function (x) {
+                return '<div class="bar' + (x.hot ? " hot" : "") + '"><span class="lb">' + esc(x.label) + '</span>' +
+                    '<span class="tr"><i style="--w:' + Math.max(0.01, x.value / max).toFixed(3) + '"></i></span>' +
+                    '<span class="vl tnum">' + x.value.toLocaleString("ko-KR") + ' ' + esc(x.unit) + '</span></div>';
+            }).join("") + '</div>';
+        }
+        if (v.type === "path") {
+            return '<div class="path">' + v.items.map(function (x, i) { return (i ? svg("arrow", 14, 2.2) : "") + '<span>' + esc(x) + '</span>'; }).join("") + '</div>';
+        }
+        if (v.type === "formula") {
+            return '<div class="formula"><code>' + v.code + '</code><div class="evals">' + v.evals.map(function (x) {
+                return '<div class="ev' + (x.hot ? " hot" : "") + '"><span class="lb">' + esc(x.label) + '</span><span class="ex">' + x.expr + '</span><span class="rs tnum">= ' + x.result + '</span></div>';
+            }).join("") + '</div></div>';
+        }
+        if (v.type === "dist") return distSvg(v);
+        if (v.type === "timeline") {
+            return '<ol class="tl">' + v.events.map(function (x) {
+                return '<li' + (x.hot ? ' class="hot"' : '') + '><time>' + esc(x.t) + '</time><span><b>' + esc(x.title) + '</b><small>' + esc(x.sub) + '</small></span></li>';
+            }).join("") + '</ol>';
+        }
+        if (v.type === "pair") {
+            return '<div class="pair"><div><small>' + esc(v.left.label) + '</small><b>' + esc(v.left.value) + '</b></div><span class="neq" aria-label="다름">≠</span>' +
+                '<div class="hot"><small>' + esc(v.right.label) + '</small><b>' + esc(v.right.value) + '</b></div></div>';
+        }
+        if (v.type === "match") {
+            return '<div class="match">' + v.rules.map(function (x) {
+                return '<div class="' + (x.hot ? "hot" : "") + '"><span class="ck">' + svg("check", 16, 2.6) + '</span><b>' + esc(x.code) + '</b><code>' + esc(x.cond) + '  → 참</code></div>';
+            }).join("") + '</div>';
+        }
+        if (v.type === "table") {
+            // 칸 : 문자열 | { t: 글자, cls: 클래스 } | { st: TRUE/FALSE/UNREAD }
+            var cell = function (c) {
+                if (c && typeof c === "object" && "st" in c) {
+                    var k = c.st === "TRUE" ? "T" : c.st === "FALSE" ? "F" : "";
+                    return '<td><span class="stc ' + k + '">' + esc(STATE_NAME[c.st] || c.st || "-") + '</span></td>';
+                }
+                return c && typeof c === "object" ? '<td class="' + esc(c.cls || "") + '">' + esc(c.t) + '</td>' : '<td>' + esc(c) + '</td>';
+            };
+            return '<div class="vtbl-wrap"><table class="vtbl' + (v.widths ? ' fixed' : '') + '">' +
+                (v.widths ? '<colgroup>' + v.widths.map(function (w) { return '<col style="width:' + esc(w) + '">'; }).join("") + '</colgroup>' : '') +
+                '<thead><tr>' + v.cols.map(function (c) { return '<th>' + esc(c) + '</th>'; }).join("") + '</tr></thead><tbody>' +
+                v.rows.map(function (r) { return '<tr' + (r.hot ? ' class="hot"' : '') + '>' + r.cells.map(cell).join("") + '</tr>'; }).join("") +
+                '</tbody></table></div>' + (v.cap ? '<p class="vtbl-cap">' + esc(v.cap) + '</p>' : '');
+        }
+        return "";
+    }
+
+    /** 값 분포 : 허용 범위 띠 + 동일 사양 점 + 이 호기 */
+    function distSvg(v) {
+        var W = 820, H = 96, padL = 14, padR = 14, y = 52;   // 화면 폭과 비슷하게 잡아 글자가 과하게 커지지 않도록
+        var vals = v.peers.concat([v.value]).concat(v.range || []);
+        var max = Math.max.apply(null, vals) * 1.06, min = Math.min(0, Math.min.apply(null, vals));
+        var x = function (n) { return padL + (n - min) / (max - min) * (W - padL - padR); };
+        var band = v.range ? '<rect x="' + x(v.range[0]).toFixed(1) + '" y="' + (y - 18) + '" width="' + (x(v.range[1]) - x(v.range[0])).toFixed(1) + '" height="36" rx="6" fill="rgba(94,240,166,.08)" stroke="rgba(94,240,166,.35)" stroke-dasharray="3 4"/>' +
+            '<text x="' + x(v.range[0]).toFixed(1) + '" y="' + (y - 24) + '" fill="#5EF0A6" font-size="11" font-family="Consolas, monospace">허용 ' + v.range[0] + '~' + v.range[1] + '</text>' : "";
+        var dots = v.peers.map(function (n, i) {
+            return '<circle cx="' + x(n).toFixed(1) + '" cy="' + (y - 8 + (i % 4) * 5) + '" r="3.6" fill="#7FE3FF" fill-opacity=".6"/>';
+        }).join("");
+        var vx = x(v.value), anchor = vx > W * 0.75 ? "end" : "middle";
+        return '<div class="dist"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="동일 사양 값 ' + v.peers[0] + ', 이 호기 ' + v.value + '">' + band +
+            '<line x1="' + padL + '" y1="' + (y + 20) + '" x2="' + (W - padR) + '" y2="' + (y + 20) + '" stroke="rgba(255,255,255,.15)"/>' + dots +
+            '<circle cx="' + vx.toFixed(1) + '" cy="' + y + '" r="13" fill="rgba(255,90,54,.18)"/><circle cx="' + vx.toFixed(1) + '" cy="' + y + '" r="6.5" fill="#FF5A36"/>' +
+            '<text x="' + vx.toFixed(1) + '" y="' + (y + 38) + '" text-anchor="' + anchor + '" fill="#FF8A6E" font-size="13" font-weight="700" font-family="Consolas, monospace">이 호기 ' + v.value + (v.unit || "") + '</text>' +
+            '<text x="' + x(v.peers[0]).toFixed(1) + '" y="' + (y + 38) + '" text-anchor="middle" fill="#AEB6C4" font-size="12" font-family="Consolas, monospace">동일 사양 ' + v.peers[0] + (v.unit || "") + '</text>' +
+            '</svg><p class="dist-cap">파란 점 = 동일 사양 호기' + (v.range ? ' · 초록 띠 = 허용 범위' : '') + '</p></div>';
+    }
+
+    /* =========================================================
+       유틸
+       ========================================================= */
+    function assign(a, b) { for (var k in b) a[k] = b[k]; return a; }
+    function pick(rnd, arr) { return arr[Math.floor(rnd() * arr.length)]; }
+    function ts(rnd, k) { var h = 9 + Math.floor(rnd() * 3) + Math.max(0, k); return "10-17 " + (h < 10 ? "0" + h : h) + ":" + (10 + Math.floor(rnd() * 49)); }
+    function hashInt(s) { var h = 2166136261; s = String(s); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+    function rng(seed) {
+        return function () {
+            seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+            var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+            t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        };
+    }
+    function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+    }
+
+    /* 시작 */
+    var qs = new URLSearchParams(location.search);
+    loadTrace({ id: qs.get("id"), no: (qs.get("no") || "").toUpperCase(), part: qs.get("part") || "", name: qs.get("name") || "",
+                a: (qs.get("a") || "").toUpperCase(), block: (qs.get("block") || "").trim().toUpperCase(),
+                qa: qs.get("qa") || "", qb: qs.get("qb") || "", unit: qs.get("unit") || "" }).then(render);
+})();
+</script>
+</body>
+</html>

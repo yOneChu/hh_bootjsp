@@ -20,6 +20,7 @@ import java.util.Map;
  *   GET /cop/radar/anomalies    : 관제 화면 데이터 (BomAnomalyService, 지금은 데모)
  *   GET /cop/diff               : 4F 호기 BOM 비교 화면 (?a=기준호기&b=비교호기)
  *   GET /cop/trace              : 3F 이상 원인 추적 화면 (?id=이상ID | ?no=호기번호&part=품번)
+ *   GET /cop/trace/sales        : 3F 영업사양 원인 추정 (BOM 비교 "원인 →", ?a=기준호기&no=비교호기&block=블록번호&part=품번)
  *   GET /cop/report             : 2F 이상 리포트 화면 (?period=week|month|quarter)
  *   GET /cop/rules              : 1F 감지 규칙 관리 화면 (?id=규칙ID)
  *
@@ -62,7 +63,15 @@ public class CopMainController {
     /** 3F 이상 원인 추적 (지금은 화면 안의 샘플 추적 데이터 사용) */
     @GetMapping("/cop/trace")
     public String trace() {
-        return "thymeleaf/cop/bomCopTrace";
+        return "thymeleaf/cop/bomCopTrace"; // 기존
+        //return "thymeleaf/cop2/copTrace";
+    }
+
+    /** 3F 영업사양 원인 추정 (BOM 비교 "원인 →" : 블록 PID 를 두 호기로 실행해 영업사양 비교) */
+    @GetMapping("/cop/trace/sales")
+    public String traceSales() {
+        //http://localhost:8070/cop/trace/sales?a=기준호기&no=비교호기&block=블록번호&part=품번
+        return "thymeleaf/cop2/copTraceSales";
     }
 
     /** 2F 이상 리포트 (지금은 화면 안의 샘플 집계 사용) */
