@@ -321,13 +321,13 @@ function buildTableRows(data, dynKeys) {
             <td>${d.blockopt        ?? ''}</td>
             <td>${d.glCode          ?? ''}</td>
             <td>${d.version         ?? ''}</td>
+            
             <td>${d.ecbg            ?? ''}</td>
             <td>${d.ecwbg           ?? ''}</td>
             <td>${d.ecww            ?? ''}</td>
             <td>${d.el_BWALLT       ?? ''}</td>
             <td>${d.el_ETHRU        ?? ''}</td>
-            <td>${d.el_COB          ?? ''}</td>
-            <td>${d.ucheck          ?? ''}</td>`;
+            <td>${d.el_COB          ?? ''}</td>`;
 
         /* 동적 Key 값 (백엔드가 Key명 그대로 result Map에 담아준다) */
         for (const key of dynKeys) {
