@@ -11,6 +11,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -312,9 +313,7 @@ public class BlockSimulateService {
                 .filter(o -> !BigDecimal.ZERO.equals(BlockUtil.parseBigDecimal(o.getValue()[1])))
                 .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
-        Map<String, Map<String, String>> topLevelPartMap4simulate = new HashMap<String, Map<String, String>>();
-        for (String partOuid : topLevelBomMap4Simulate.keySet())
-            topLevelPartMap4simulate.put(partOuid, loader.getPartInfo(partOuid));
+        Map<String, Map<String, String>> topLevelPartMap4simulate = loader.getPartInfos(topLevelBomMap4Simulate.keySet());
         t = lap(productNo, "파트정보 조회 (" + topLevelBomMap4Simulate.size() + "건)", t);
 
         Map<String, List<Map<String, String>>> variablePartMap4Simulate = subaeManager.getVariablePartMap4Simulate();
@@ -347,16 +346,18 @@ public class BlockSimulateService {
             simulateResultList.add(simulateBomVO);
         }
 
+        // 매칭 대상 블록 (List.contains 대신)
+        Set<String> blockSet = new HashSet<String>(blockList);
+
         // 1. 같은 파트번호끼리 현재 BOM 값 매칭
+        //    아직 매칭 안 된 시뮬레이션 결과를 파트번호별로 목록 순서대로 모아 두고 앞에서부터 꺼낸다 (stream().filter().findFirst() 와 같은 결과)
+        Map<String, Deque<SimulateBomVO>> unmatchedByPartNo = groupUnmatched(simulateResultList, SimulateBomVO::getSimulatePartNo);
         for (Map<String, Object> o : topLevelBomList) {
-            if (Boolean.TRUE.equals(o.get("skip")) || !blockList.contains(o.get("blockNo_org")))
+            if (Boolean.TRUE.equals(o.get("skip")) || !blockSet.contains(o.get("blockNo_org")))
                 continue;
             String partNo = (String) o.get("partNo");
 
-            SimulateBomVO simulateBomVO = simulateResultList.stream()
-                    .filter(b -> b.getBomPartOuid() == null && partNo.equals(b.getSimulatePartNo()))
-                    .findFirst()
-                    .orElse(null);
+            SimulateBomVO simulateBomVO = pollUnmatched(unmatchedByPartNo, partNo);
 
             if (simulateBomVO != null) {
                 acceptBomData(simulateBomVO, o);
@@ -365,15 +366,14 @@ public class BlockSimulateService {
         }
 
         // 2. 같은 블록끼리 매칭, 없으면 현재 BOM 만 있는 항목(DELETE) 추가
+        //    1 에서 매칭된 항목은 제외하고 블록별로 모은다. 여기서 추가하는 DELETE 항목은 현재 BOM 값이 있으므로 매칭 대상이 아니다.
+        Map<String, Deque<SimulateBomVO>> unmatchedByBlockNo = groupUnmatched(simulateResultList, SimulateBomVO::getBlockNo);
         for (Map<String, Object> o : topLevelBomList) {
-            if (Boolean.TRUE.equals(o.get("skip")) || !blockList.contains(o.get("blockNo_org")))
+            if (Boolean.TRUE.equals(o.get("skip")) || !blockSet.contains(o.get("blockNo_org")))
                 continue;
             String blockNo = (String) o.get("blockNo_org");
 
-            SimulateBomVO simulateBomVO = simulateResultList.stream()
-                    .filter(b -> b.getBomPartOuid() == null && blockNo.equals(b.getBlockNo()))
-                    .findFirst()
-                    .orElse(null);
+            SimulateBomVO simulateBomVO = pollUnmatched(unmatchedByBlockNo, blockNo);
 
             if (simulateBomVO != null) {
                 acceptBomData(simulateBomVO, o);
@@ -389,6 +389,23 @@ public class BlockSimulateService {
         lap(productNo, "결과 생성/BOM 매칭", t);
 
         return simulateResultList;
+    }
+
+    /** 현재 BOM 값이 아직 없는 시뮬레이션 결과를 key 별로 목록 순서대로 모은다 (key 가 null 이면 제외 : equals 로 매칭될 수 없음) */
+    private static Map<String, Deque<SimulateBomVO>> groupUnmatched(List<SimulateBomVO> list, Function<SimulateBomVO, String> key) {
+        Map<String, Deque<SimulateBomVO>> map = new HashMap<String, Deque<SimulateBomVO>>();
+        for (SimulateBomVO vo : list) {
+            String k = key.apply(vo);
+            if (vo.getBomPartOuid() == null && k != null)
+                map.computeIfAbsent(k, x -> new ArrayDeque<SimulateBomVO>()).add(vo);
+        }
+        return map;
+    }
+
+    /** key 의 첫 번째 미매칭 결과를 꺼낸다 (없으면 null) */
+    private static SimulateBomVO pollUnmatched(Map<String, Deque<SimulateBomVO>> map, String key) {
+        Deque<SimulateBomVO> queue = map.get(key);
+        return queue == null ? null : queue.pollFirst();
     }
 
     /** 구간 소요시간 로그 후 현재 시각 반환 */

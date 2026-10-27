@@ -841,9 +841,9 @@ public class ProductCommonUtil {
                 String PARENTNO = rs.getString("PARENTNO");
                 String PARTOUID = rs.getString("PARTOUID");
                 String SEQ = rs.getString("SEQ");
-                String PARTNO = rs.getString("PARTNO");
-                String PARTNAME = rs.getString("PARTNAME");
-                String VERSION = rs.getString("VERSION");
+                String PARTNO = rs.getString("PARTNO"); // 자재번호
+                String PARTNAME = rs.getString("PARTNAME"); //자재명
+                String VERSION = rs.getString("VERSION"); //버전
 
                 String BLOCKNO = rs.getString("BLOCKNO");
                 String BLOCK_OPT = rs.getString("BLOCK_OPT"); //내작외작
@@ -864,6 +864,7 @@ public class ProductCommonUtil {
                 result.setPartName(PARTNAME);
                 result.setSpec(SPEC);
                 result.setBlockNo(BLOCKNO);
+                result.setGlCode(GLCODE);
                 result.setQty(QTY);
                 result.setNation(NATION);
                 result.setUCheck(UCHECK);

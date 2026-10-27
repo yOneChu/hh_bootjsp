@@ -2,6 +2,7 @@ package com.kyhslam.util.simulate;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * 호기 1건 시뮬레이션 동안 공유하는 실행 환경 (DB, PID 캐시, 영업사양 로더)
@@ -92,6 +93,9 @@ public class BlockContext {
 	public boolean isPidPattern(String value) throws Exception {
 		if (value == null)
 			return false;
-		return value.matches("^[A-Z]{1,2}[0-9]{2,4}[_A-Z0-9]{0,8}") || activePidRepository.hasPid(db, value);
+		return PID_PATTERN.matcher(value).matches() || activePidRepository.hasPid(db, value);
 	}
+
+	/** isPidPattern 의 PID 형식 (호출마다 정규식을 컴파일하지 않도록 미리 만든다) */
+	private static final Pattern PID_PATTERN = Pattern.compile("^[A-Z]{1,2}[0-9]{2,4}[_A-Z0-9]{0,8}");
 }

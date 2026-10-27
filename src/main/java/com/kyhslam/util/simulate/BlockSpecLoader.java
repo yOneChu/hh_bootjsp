@@ -64,6 +64,35 @@ public class BlockSpecLoader {
 		long real = Long.parseLong(partOuid.substring(partOuid.indexOf('@') + 1), 16);
 		Map<String, String> row = db.queryForFirst(
 				" SELECT MD$NUMBER, BLOCKNO_NUMBER, G_L_CODE, SPEC, PART_SIZE FROM NORMALPART$VF WHERE VF$OUID = ? ", real);
+		return toPartInfo(partOuid, row);
+	}
+
+	/** getPartInfo 를 여러 건 한 번에 (IN 조회). partOuid → 결과 (getPartInfo 와 같은 값) */
+	public Map<String, Map<String, String>> getPartInfos(Collection<String> partOuids) throws SQLException {
+		Map<String, Long> todo = new LinkedHashMap<String, Long>();
+		for (String partOuid : partOuids)
+			todo.put(partOuid, Long.parseLong(partOuid.substring(partOuid.indexOf('@') + 1), 16));
+		List<Long> reals = new ArrayList<Long>(new LinkedHashSet<Long>(todo.values()));
+
+		Map<Long, Map<String, String>> rows = new HashMap<Long, Map<String, String>>();
+		for (int start = 0; start < reals.size(); start += IN_CHUNK) {
+			List<Long> chunk = reals.subList(start, Math.min(start + IN_CHUNK, reals.size()));
+			StringBuilder sql = new StringBuilder(" SELECT VF$OUID, MD$NUMBER, BLOCKNO_NUMBER, G_L_CODE, SPEC, PART_SIZE FROM NORMALPART$VF WHERE VF$OUID IN (");
+			for (int i = 0; i < chunk.size(); i++)
+				sql.append(i == 0 ? "?" : ",?");
+			sql.append(")");
+
+			for (Map<String, String> r : db.queryForList(sql.toString(), chunk.toArray()))
+				rows.putIfAbsent(Long.valueOf(r.get("VF$OUID")), r);
+		}
+
+		Map<String, Map<String, String>> result = new HashMap<String, Map<String, String>>();
+		for (Map.Entry<String, Long> e : todo.entrySet())
+			result.put(e.getKey(), toPartInfo(e.getKey(), rows.get(e.getValue())));
+		return result;
+	}
+
+	private static Map<String, String> toPartInfo(String partOuid, Map<String, String> row) {
 		Map<String, String> result = new HashMap<String, String>();
 		if (row != null) {
 			result.put("md$number", row.get("MD$NUMBER"));

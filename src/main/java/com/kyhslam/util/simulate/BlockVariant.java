@@ -17,6 +17,9 @@ import java.util.regex.Pattern;
  */
 public class BlockVariant
 {
+	/** 결과값이 숫자인지 (calcResultValues 호출마다 컴파일하지 않도록 미리 만든다) */
+	private static final Pattern NUMBER_PATTERN = Pattern.compile("^[0-9 ]*$");
+
 	private final BlockContext ctx;
 	private HashMap elvEnt = null;
 	private List<Map> floorMasterList = null;
@@ -178,7 +181,7 @@ public class BlockVariant
 	/** 결과값 KEY, VAL 계산 */
 	private PidVariantMap calcResultValues(String DOUID, ArrayList keyList, ArrayList valList, PidVariantMap localMap, HashMap localElvEnt, Map partInfo, int depth, Map<String, String> elvData)
 	{
-		Pattern p = Pattern.compile("^[0-9 ]*$");
+		Pattern p = NUMBER_PATTERN;
 		Matcher m = null;
 		for(int j = 0; j < keyList.size(); j++)
 		{

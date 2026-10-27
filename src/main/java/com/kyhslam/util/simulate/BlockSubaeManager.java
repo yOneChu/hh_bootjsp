@@ -32,6 +32,8 @@ public class BlockSubaeManager {
 	/** partOuid → 하위 BOM (같은 파트가 여러 블럭/층에서 pick 되어도 한 번만 조회, 인스턴스 = 요청 1건의 호기 1건) */
 	private final Map<String, List<Map<String, String>>> partOfPartCache = new HashMap<>();
 	private int partOfPartHit = 0;
+	/** 품번(G/L CODE) + 블럭 ouid → pickPart 조회 행 (없으면 null 저장), 인스턴스 = 요청 1건의 호기 1건 */
+	private final Map<String, Map<String, String>> pickPartCache = new HashMap<>();
 
 	/** 요청한 블럭번호 목록 */
 	private List<String> requestBlockList = Collections.emptyList();
@@ -95,7 +97,7 @@ public class BlockSubaeManager {
 		} finally {
 			ctx.useBlockPid(false);
 		}
-		lap("블럭 PICK/PID 계산 합계 (하위BOM 조회 " + partOfPartCache.size() + "건, 재사용 " + partOfPartHit + "건)", t);
+		lap("블럭 PICK/PID 계산 합계 (PICK 조회 " + pickPartCache.size() + "건, 하위BOM 조회 " + partOfPartCache.size() + "건, 재사용 " + partOfPartHit + "건)", t);
 
 		return tempVariableMap;
 	}
@@ -301,11 +303,18 @@ public class BlockSubaeManager {
 				+ " FROM NORMALPART$VF A, NORMALPART$ID B WHERE A.VF$OUID=B.ID$LAST "
 				+ " AND MD$NUMBER =? AND BLOCKNO = ? ";
 
-		List<Map<String, String>> pickedList = ctx.getDb().queryForList(sql, glCode, blockOuid);
-		if (pickedList.isEmpty())
+		// 같은 블럭/품번은 층마다, PICK 마다 다시 조회하지 않는다 (호출한 쪽이 PICK 을 넣으므로 매번 사본을 반환)
+		String key = glCode + "\u0000" + blockOuid;
+		Map<String, String> row = pickPartCache.get(key);
+		if (row == null && !pickPartCache.containsKey(key)) {
+			List<Map<String, String>> pickedList = ctx.getDb().queryForList(sql, glCode, blockOuid);
+			row = pickedList.isEmpty() ? null : pickedList.get(0);
+			pickPartCache.put(key, row);
+		}
+		if (row == null)
 			return null;
 
-		Map map = new HashMap(pickedList.get(0));
+		Map map = new HashMap(row);
 		String version = (String) map.get("VER");
 		String part_status = BlockUtil.NVL(map.get("PART_STATUS"), "");
 		if (version.equals("wip"))

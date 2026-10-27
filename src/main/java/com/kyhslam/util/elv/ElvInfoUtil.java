@@ -20,6 +20,7 @@ public class ElvInfoUtil {
 
         String query = """
                 SELECT 
+                    V.MD$DESC AS SUJU, -- 수주명
                     V.EL_ARFQ AS EL_ARFQ,
                     V.EL_EHTH AS EL_EHTH, --	승강로 전장; TOTAL HEIGHT
                     COD(V.EL_EMRLHSCP) AS EL_EMRLHSCP, --◎ MRL ; 승강로 CP
