@@ -310,9 +310,8 @@ function buildTableRows(data, dynKeys) {
             <td>${d.aspd            ?? ''}</td>
             <td>${d.aspscd          ?? ''}</td>
             <td>${d.acapa           ?? ''}</td>
-            <td>${d.ecbg            ?? ''}</td>
-            <td>${d.ecwbg           ?? ''}</td>
-            <td>${d.ecww            ?? ''}</td>
+            
+            <td>${d.ucheck          ?? ''}</td>
             <td>${d.partNo          ?? ''}</td>
             <td>${d.partName        ?? ''}</td>
             <td>${d.qty             ?? ''}</td>
@@ -322,6 +321,9 @@ function buildTableRows(data, dynKeys) {
             <td>${d.blockopt        ?? ''}</td>
             <td>${d.glCode          ?? ''}</td>
             <td>${d.version         ?? ''}</td>
+            <td>${d.ecbg            ?? ''}</td>
+            <td>${d.ecwbg           ?? ''}</td>
+            <td>${d.ecww            ?? ''}</td>
             <td>${d.el_BWALLT       ?? ''}</td>
             <td>${d.el_ETHRU        ?? ''}</td>
             <td>${d.el_COB          ?? ''}</td>
