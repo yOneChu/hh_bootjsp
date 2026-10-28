@@ -864,7 +864,6 @@ public class ProductCommonUtil {
                 result.setPartName(PARTNAME);
                 result.setSpec(SPEC);
                 result.setBlockNo(BLOCKNO);
-                result.setGlCode(GLCODE);
                 result.setQty(QTY);
                 result.setNation(NATION);
                 result.setUCheck(UCHECK);

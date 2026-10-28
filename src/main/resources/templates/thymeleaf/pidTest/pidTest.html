@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>PID Tester</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "맑은 고딕", "Malgun Gothic", sans-serif; font-size: 12px; color: #222; background: #fff; }
+        .layout { display: flex; min-height: 100vh; }
+
+        /* 테스트 조건 (PIDTester_left.jsp) */
+        .side { width: 260px; flex-shrink: 0; padding: 10px 8px; border-right: 1px solid #ccc; background: #fafafa; }
+        #pgmTitle { border: 2px solid #333366; font-size: 16px; text-align: center; font-weight: bold; background-color: #ccccff; padding: 10px; margin-bottom: 12px; }
+        .group { margin: 0 0 10px; font-weight: bold; }
+        .group .label::before { content: "■ "; color: #333366; }
+        .group input[type=text], .group input[type=number], .group textarea, .group select { width: 100%; margin-top: 3px; font-size: 12px; }
+        .version select { width: 58%; }
+        .version input[type=number] { width: 40%; }
+        .check { display: block; font-weight: normal; margin-top: 4px; }
+        .hint { font-weight: normal; color: #666; }
+        .inline { display: flex; gap: 6px; }
+        .inline > div { flex: 1; }
+        #testBtn { width: 100%; height: 34px; font-size: 16px; cursor: pointer; }
+
+        /* 테스트 결과 (PIDTester_right.jsp) */
+        .main { flex: 1; min-width: 0; padding: 10px 14px; overflow-x: auto; }
+        .message { font-size: 16px; font-weight: bold; margin-top: 20px; color: #b00020; }
+        .guide { color: #555; line-height: 1.8; margin-top: 20px; }
+        .summary { margin: 6px 0 10px; font-size: 13px; }
+        .summary .ok { color: #1a7f37; font-weight: bold; }
+        .summary .ng { color: #b00020; font-weight: bold; }
+        .summary .fail { color: #9a6700; font-weight: bold; }
+        .toolbar { margin: 8px 0; }
+        .toolbar label { margin-right: 10px; }
+
+        table.grid { border: #e0e0e0 1px solid; border-collapse: collapse; margin-bottom: 12px; }
+        table.grid td, table.grid th { padding: 6px 8px; border: #e0e0e0 1px solid; vertical-align: top; }
+        table.grid th { background-color: #D3DFE6; text-align: center; font-weight: bold; white-space: nowrap; }
+        table.grid tr.even { background-color: #EEEEEE; }
+        .result { white-space: pre-line; min-width: 160px; }
+        .nowrap { white-space: nowrap; }
+        .num { text-align: right; }
+        tr.mismatch td.match { color: #fff; background: #d1242f; font-weight: bold; text-align: center; }
+        tr.matched td.match { color: #1a7f37; font-weight: bold; text-align: center; }
+        tr.failed td { color: #9a6700; }
+        .errors { color: #b00020; white-space: pre-line; }
+
+        #mismatchArea { width: 300px; height: 80px; font-size: 12px; display: block; margin-bottom: 8px; }
+        #loading { display: none; text-align: center; margin-top: 80px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="layout">
+
+    <!-- 테스트 조건 : name = pidTestMain.execute() 의 HashMap KEY -->
+    <form class="side" id="frm" name="frm" th:action="@{/pidTest/run}" method="post" onsubmit="runPidTest(); return false;">
+        <div id="pgmTitle">PID Tester</div>
+
+        <div class="group">
+            <span class="label">PID</span>
+            <input type="text" id="PID" name="PID" placeholder="EL1234_Q_01" th:value="${PID}"
+                   oninput="this.value = this.value.toUpperCase();">
+        </div>
+
+        <div class="group version">
+            <span class="label">기준 버전</span><br>
+            <select id="srcVersionType" onchange="changeVersion('srcVersion');">
+                <option value="lastest">최신</option>
+                <option value="test">TEST</option>
+                <option value="num">버전번호</option>
+            </select>
+            <input type="number" id="srcVersionNo" min="0">
+        </div>
+
+        <div class="group version">
+            <span class="label">대상 버전</span><br>
+            <select id="targetVersionType" onchange="changeVersion('targetVersion');">
+                <option value="test">TEST</option>
+                <option value="lastest">최신</option>
+                <option value="num">버전번호</option>
+            </select>
+            <input type="number" id="targetVersionNo" min="0">
+        </div>
+
+        <div class="group">
+            <span class="label">현장번호</span> (<span id="productCount">0</span>건)
+            <span class="hint"><br>줄바꿈/콤마 구분. 비우면 적합한 현장 자동 조회</span>
+            <textarea id="productList" name="productList" rows="8" oninput="countProducts();" th:text="${productList}"></textarea>
+            <label class="check"><input type="checkbox" id="getMore" name="getMore"> 자동 조회 범위 최근 3년 (기본 1년)</label>
+        </div>
+
+        <div class="group">
+            <span class="label">추가 SPEC</span>
+            <span class="hint"><br>결과에 추가로 보여줄 영업사양 코드 (줄바꿈 구분)</span>
+            <textarea id="specList" name="specList" rows="4" th:text="${specList}"></textarea>
+        </div>
+
+        <div class="group inline">
+            <div>
+                <span class="label">최대 현장 수</span>
+                <input type="number" id="maxCount" name="maxCount" min="0" value="0" th:value="${maxCount} ?: 0">
+                <span class="hint">0 = 제한 없음</span>
+            </div>
+            <div>
+                <span class="label">제한시간(초)</span>
+                <input type="number" id="timeoutSec" name="timeoutSec" min="1" value="30" th:value="${timeoutSec} ?: 30">
+                <span class="hint">현장 1건당</span>
+            </div>
+        </div>
+
+        <div class="group">
+            <span class="label">옵션</span>
+            <label class="check"><input type="checkbox" id="stopOnTimeout" name="stopOnTimeout" checked> 타임아웃 시 전체 종료</label>
+            <label class="check"><input type="checkbox" id="saveErrorLog" name="saveErrorLog"> 오류를 VARIANT_ERRORLOG 에 기록</label>
+            <label class="check"><input type="checkbox" id="codeFieldDisplay" name="codeFieldDisplay"> 코드 특성 코드값 함께 표시</label>
+        </div>
+
+        <button type="submit" id="testBtn">테스트</button>
+    </form>
+
+    <div class="main">
+        <div id="loading">
+            <h3>PID 테스트 중입니다...</h3>
+            <div>현장 수에 따라 수 분이 소요될 수 있습니다.</div>
+        </div>
+
+        <div id="resultArea">
+            <div id="guide" class="guide">
+                좌측에 테스트 조건을 입력한 후 [테스트] 버튼을 눌러주세요.<br>
+                - 같은 PID 의 기준 버전과 대상 버전을 여러 현장(호기)에 실행해서 결과가 같은지 비교합니다.<br>
+                - 현장번호를 비우면 테스트하기 적합한 현장을 자동 조회합니다.<br>
+                - 공사정보 로드 / PID 실행은 PID 시뮬레이터와 같은 로직을 사용합니다. (METHOD=JAVA PID 포함)
+            </div>
+
+            <div id="message" class="message hidden"></div>
+
+            <div id="resultBody" class="hidden">
+                <!-- PID 버전 정보 -->
+                <table class="grid">
+                    <thead>
+                    <tr><th>구분</th><th>PID</th><th>버전</th><th>METHOD</th><th>이름</th><th>등록일</th><th>등록자</th><th>비고</th></tr>
+                    </thead>
+                    <tbody id="headerBody"></tbody>
+                </table>
+
+                <div id="summary" class="summary"></div>
+
+                <div class="toolbar">
+                    <label><input type="checkbox" id="onlyMismatch" onclick="filterRows();"> False만 보기</label>
+                    <label><input type="checkbox" id="onlyFailed" onclick="filterRows();"> 실행실패만 보기</label>
+                    <input type="button" id="copyBtn" value="False 현장번호 복사" onclick="copyMismatch();">
+                    <input type="button" value="excel" onclick="downloadExcel('dataTable', 'PIDTest');">
+                </div>
+                <textarea id="mismatchArea" class="hidden" readonly></textarea>
+
+                <table id="dataTable" class="grid">
+                    <thead id="dataHead"></thead>
+                    <tbody id="dataBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    /*
+     * API 응답(result) 형식 - PidTestResult 를 JSON 으로 변환한 값 (getter 기준)
+     * {
+     *   success, message, pid, srcTitle, targetTitle, elapsedMs,
+     *   srcHeader / targetHeader : { pid, version, method, name, regDate, userId, remarks },
+     *   totalCount, matchCount, mismatchCount, mismatchProducts : [],
+     *   specs : [],
+     *   rows : [ { no, productNo, status, srcResult, targetResult, match, elapsedMs, message, specValues : {}, errors : [] } ]
+     * }
+     */
+    var API_URL = /*[[@{/pidTest/run}]]*/ "/pidTest/run";
+    var currentResult = null;
+</script>
+<script th:inline="none">
+    window.onload = function () {
+        changeVersion("srcVersion");
+        changeVersion("targetVersion");
+        countProducts();
+    };
+
+    /* ========== API ========== */
+
+    /**
+     * PID 테스트 API 호출 (PIDTestController.run -> PIDTestService.run)
+     * 입력값 오류(400) / 서버 오류(500) 도 { success:false, message } 로 내려오므로 상태코드와 무관하게 JSON 을 읽는다.
+     * @param param getTestParam() 결과
+     * @return Promise<result>
+     */
+    function callPidTestApi(param) {
+        return fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(param)
+        }).then(function (res) {
+            return res.json().catch(function () {
+                throw new Error("HTTP " + res.status + " " + res.statusText);
+            });
+        });
+    }
+
+    /* ========== 실행 ========== */
+
+    function runPidTest() {
+        var param = getTestParam();
+        if (!validateParam(param)) return;
+
+        setLoading(true);
+        Promise.resolve(callPidTestApi(param))
+            .then(function (result) {
+                if (!result) {
+                    showMessage("API 가 아직 연결되지 않았습니다.");
+                } else if (!result.success) {
+                    showMessage(result.message);
+                } else {
+                    renderResult(result);
+                }
+            })
+            .catch(function (e) {
+                showMessage("테스트 중 오류가 발생하였습니다. : " + (e && e.message ? e.message : e));
+            })
+            .then(function () {
+                setLoading(false);
+            });
+    }
+
+    /** 화면 입력값 -> paramMap (KEY 는 pidTestMain 주석 참고) */
+    function getTestParam() {
+        return {
+            PID: val("PID").trim(),
+            srcVersion: getVersion("srcVersion"),
+            targetVersion: getVersion("targetVersion"),
+            productList: val("productList"),
+            specList: val("specList"),
+            getMore: yn("getMore"),
+            maxCount: val("maxCount") || "0",
+            timeoutSec: val("timeoutSec") || "30",
+            stopOnTimeout: yn("stopOnTimeout"),
+            saveErrorLog: yn("saveErrorLog"),
+            codeFieldDisplay: yn("codeFieldDisplay")
+        };
+    }
+
+    function validateParam(param) {
+        if (param.PID.length == 0) {
+            alert('PID 를 입력해주세요.');
+            return false;
+        }
+        if (param.srcVersion === "" || param.targetVersion === "") {
+            alert('버전번호를 입력해주세요.');
+            return false;
+        }
+        if (param.srcVersion === param.targetVersion && !confirm('기준 버전과 대상 버전이 같습니다. 계속하시겠습니까?')) {
+            return false;
+        }
+        if (isNaN(parseInt(param.timeoutSec)) || parseInt(param.timeoutSec) <= 0) {
+            alert('제한시간은 1 이상의 숫자만 입력하여 주십시요.');
+            return false;
+        }
+        if (isNaN(parseInt(param.maxCount)) || parseInt(param.maxCount) < 0) {
+            alert('최대 현장 수는 0 이상의 숫자만 입력하여 주십시요.');
+            return false;
+        }
+        return true;
+    }
+
+    /* ========== 결과 표시 (PIDTester_right.jsp) ========== */
+
+    function renderResult(result) {
+        currentResult = result;
+        hide("guide");
+        hide("message");
+        show("resultBody");
+
+        renderHeader(result);
+        renderSummary(result);
+        renderTable(result);
+
+        var mismatch = result.mismatchProducts || [];
+        var area = document.getElementById("mismatchArea");
+        area.value = mismatch.join("\n");
+        area.className = mismatch.length > 0 ? "" : "hidden";
+        document.getElementById("copyBtn").disabled = mismatch.length == 0;
+        document.getElementById("onlyMismatch").checked = false;
+        document.getElementById("onlyFailed").checked = false;
+    }
+
+    /** 기준/대상 PID 버전 정보 */
+    function renderHeader(result) {
+        var html = "";
+        var headers = [["기준", result.srcHeader], ["대상", result.targetHeader]];
+        for (var i = 0; i < headers.length; i++) {
+            var h = headers[i][1];
+            if (!h) continue;
+            html += "<tr>"
+                + td(headers[i][0], "nowrap") + td(h.pid, "nowrap") + td(h.version == -1 ? "TEST" : h.version, "nowrap")
+                + td(h.method, "nowrap") + td(h.name) + td(formatDate(h.regDate), "nowrap") + td(h.userId, "nowrap") + td(h.remarks)
+                + "</tr>";
+        }
+        document.getElementById("headerBody").innerHTML = html;
+    }
+
+    function renderSummary(result) {
+        var failedCount = result.totalCount - result.matchCount - result.mismatchCount;
+        var html = "<b>- 총 " + result.totalCount + "건</b> / "
+            + "<span class='ok'>일치 " + result.matchCount + "건</span> / "
+            + "<span class='ng'>불일치 " + result.mismatchCount + "건</span> / "
+            + "<span class='fail'>실행실패 " + failedCount + "건</span> "
+            + "(" + (result.elapsedMs / 1000).toFixed(1) + "초)";
+        if (result.message) {
+            html += "<div class='message' style='font-size:13px;'>" + escapeHtml(result.message) + "</div>";
+        }
+        document.getElementById("summary").innerHTML = html;
+    }
+
+    /** 현장별 비교 결과 (컬럼 순서 = PidTestCsvWriter) */
+    function renderTable(result) {
+        var specs = result.specs || [];
+        var rows = result.rows || [];
+
+        var head = "<tr>" + th("No") + th("현장번호") + th("상태") + th(result.srcTitle) + th(result.targetTitle)
+            + th("일치여부") + th("실행 시간(ms)");
+        for (var s = 0; s < specs.length; s++) head += th(specs[s]);
+        head += th("메시지") + "</tr>";
+        document.getElementById("dataHead").innerHTML = head;
+
+        var body = "";
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            var ok = row.status === "OK";
+            var cls = (i % 2 == 1 ? "even " : "") + (!ok ? "failed" : (row.match ? "matched" : "mismatch"));
+            var specValues = row.specValues || {};
+
+            body += "<tr class='" + cls + "' data-status='" + escapeHtml(row.status) + "' data-match='" + row.match + "'>"
+                + td(row.no, "nowrap") + td(row.productNo, "nowrap") + td(row.status, "nowrap")
+                + td(row.srcResult, "result") + td(row.targetResult, "result")
+                + td(!ok ? "-" : (row.match ? "True" : "False"), "match")
+                + td(row.elapsedMs, "nowrap num");
+            for (var s2 = 0; s2 < specs.length; s2++) body += td(specValues[specs[s2]], "nowrap");
+            body += "<td>" + escapeHtml(row.message)
+                + ((row.errors || []).length > 0 ? "<div class='errors'>" + escapeHtml(row.errors.join("\n")) + "</div>" : "")
+                + "</td></tr>";
+        }
+        document.getElementById("dataBody").innerHTML = body;
+    }
+
+    function showMessage(message) {
+        hide("guide");
+        hide("resultBody");
+        var el = document.getElementById("message");
+        el.textContent = message || "";
+        show("message");
+    }
+
+    function setLoading(loading) {
+        document.getElementById("loading").style.display = loading ? "block" : "none";
+        document.getElementById("resultArea").style.display = loading ? "none" : "block";
+        document.getElementById("testBtn").disabled = loading;
+    }
+
+    /* ========== 결과 도구 ========== */
+
+    /** 원본: 'False만 보기' */
+    function filterRows() {
+        var onlyMismatch = document.getElementById("onlyMismatch").checked;
+        var onlyFailed = document.getElementById("onlyFailed").checked;
+        var rows = document.querySelectorAll("#dataBody tr");
+        for (var i = 0; i < rows.length; i++) {
+            var ok = rows[i].getAttribute("data-status") === "OK";
+            var match = rows[i].getAttribute("data-match") === "true";
+            var visible = (!onlyMismatch && !onlyFailed) || (onlyMismatch && ok && !match) || (onlyFailed && !ok);
+            rows[i].style.display = visible ? "" : "none";
+        }
+    }
+
+    /** 원본: 'False호기만 복사' */
+    function copyMismatch() {
+        var area = document.getElementById("mismatchArea");
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(area.value).then(function () { alert('복사되었습니다.'); });
+        } else {
+            area.select();
+            document.execCommand("copy");
+            alert('복사되었습니다.');
+        }
+    }
+
+    function downloadExcel(targetId, saveFileName) {
+        var today = new Date();
+        saveFileName = saveFileName + "_" + (currentResult ? currentResult.pid : val("PID")) + "_" + today.getFullYear()
+            + pad(today.getMonth() + 1) + pad(today.getDate()) + "_" + pad(today.getHours()) + pad(today.getMinutes()) + pad(today.getSeconds());
+
+        // table to excel file
+        var table = document.getElementById(targetId);
+        var html = '<html><head><meta charset="UTF-8"></head><body><table border="1">' + table.innerHTML + '</table></body></html>';
+        var blob = new Blob([html], {type: 'application/vnd.ms-excel;charset=utf-8'});
+        var link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = saveFileName + '.xls';
+        link.click();
+    }
+
+    /* ========== 입력 ========== */
+
+    /** 버전번호 선택 시에만 번호 입력 가능 */
+    function changeVersion(name) {
+        var no = document.getElementById(name + "No");
+        no.disabled = val(name + "Type") !== "num";
+        if (no.disabled) no.value = "";
+    }
+
+    /** 선택값 : lastest / test / 버전번호 */
+    function getVersion(name) {
+        var type = val(name + "Type");
+        return type === "num" ? val(name + "No").trim() : type;
+    }
+
+    /** 현장번호 건수 (PidTestParam.splitLines 와 동일하게 줄바꿈/콤마/공백 구분, 중복 제외) */
+    function countProducts() {
+        var list = val("productList").split(/[\r\n,\s]+/);
+        var uniq = {};
+        var cnt = 0;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].length > 0 && !uniq[list[i]]) {
+                uniq[list[i]] = true;
+                cnt++;
+            }
+        }
+        document.getElementById("productCount").innerText = cnt;
+    }
+
+    /* ========== 공통 ========== */
+
+    function val(id) {
+        return document.getElementById(id).value;
+    }
+
+    function yn(id) {
+        return document.getElementById(id).checked ? "Y" : "N";
+    }
+
+    function show(id) {
+        document.getElementById(id).classList.remove("hidden");
+    }
+
+    function hide(id) {
+        document.getElementById(id).classList.add("hidden");
+    }
+
+    function th(text) {
+        return "<th>" + escapeHtml(text) + "</th>";
+    }
+
+    function td(text, cls) {
+        return "<td" + (cls ? " class='" + cls + "'" : "") + ">" + escapeHtml(text) + "</td>";
+    }
+
+    function pad(n) {
+        return ("0" + n).slice(-2);
+    }
+
+    /** 등록일 : timestamp(ms) 또는 문자열 -> yyyy-MM-dd HH:mm */
+    function formatDate(value) {
+        if (value == null || value === "") return "";
+        var d = new Date(value);
+        if (isNaN(d.getTime())) return String(value);
+        return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+    }
+
+    function escapeHtml(value) {
+        if (value == null) return "";
+        return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+</script>
+</body>
+</html>
