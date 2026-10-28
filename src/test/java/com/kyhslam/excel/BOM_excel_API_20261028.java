@@ -11,26 +11,28 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.util.StopWatch;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 
 public class BOM_excel_API_20261028 {
 
     public static void main(String[] args) {
 
-
         StopWatch sw = new StopWatch();
         sw.start();
 
-
-
-
-        String fileName = "d:\\excel\\BBB_서동기.xlsx";
+        String fileName = "c:\\excel\\BBB_서동기.xlsx";
         // 원본 보호를 위해 결과는 별도 파일로 저장
         String outFileName = fileName.replace(".xlsx", "_result.xlsx");
 
+        FileInputStream fis = null;
+        FileOutputStream fos = null;
         Workbook workbook = null;
 
-        try (FileInputStream fis = new FileInputStream(fileName)) {
+        try {
+
             // 1. 엑셀 파일 읽기
+            fis = new FileInputStream(fileName);
+
             workbook = new XSSFWorkbook(fis);
             Sheet sheet = workbook.getSheetAt(0);
 
@@ -38,7 +40,7 @@ public class BOM_excel_API_20261028 {
 
             int rowCnt = sheet.getPhysicalNumberOfRows();
 
-            for (int i = 1; i < 20; i++) {
+            for (int i = 70; i < 75; i++) {
                 Row row = sheet.getRow(i);
 
                 Cell cell0 = row.getCell(0); //호기번호
@@ -51,9 +53,20 @@ public class BOM_excel_API_20261028 {
 
                 String deadWtCmt = getResultValue(result, "DEAD_WT_CMT");
                 String newBalanceWtCmt = getResultValue(result, "NEW_BALANCE_WT_CMT");
-                System.out.println("[" + hogi + " / " + pidName + "] DEAD_WT_CMT=" + deadWtCmt + ", NEW_BALANCE_WT_CMT=" + newBalanceWtCmt);
+                String ncBalanceWtCmt = getResultValue(result, "XC_BALANCE_WT_CMT");
+
+
+                row.createCell(2).setCellValue(deadWtCmt);
+                row.createCell(3).setCellValue(newBalanceWtCmt);
+                row.createCell(4).setCellValue(ncBalanceWtCmt);
+
+                System.out.println((i) +  " [" + hogi + " / " + pidName + "] DEAD_WT_CMT=" + deadWtCmt + ", NEW_BALANCE_WT_CMT=" + newBalanceWtCmt);
 
             }
+
+            fis.close();
+            fos = new FileOutputStream(fileName);
+            workbook.write(fos);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -92,10 +105,10 @@ public class BOM_excel_API_20261028 {
         try (SimDb db = SimDb.open()) {
             // version null : 최신 버전
             PIDSimulResult result = PIDSimul.run(db, hogi.trim(), pidName.trim(), null, (Integer) null, null, false);
-            result.print(System.out, false);
+            //result.print(System.out, false);
             return result;
         } catch (Exception e) {
-            System.out.println("[ERROR] simulatePid hogi:" + hogi + ", pid:" + pidName + " : " + e.getMessage());
+            //System.out.println("[ERROR] simulatePid hogi:" + hogi + ", pid:" + pidName + " : " + e.getMessage());
             e.printStackTrace();
             return null;
         }
