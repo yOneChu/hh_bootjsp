@@ -40,8 +40,6 @@ public class BOM_excel_API_20261028 {
             workbook = new XSSFWorkbook(fis);
             Sheet sheet = workbook.getSheetAt(0);
 
-
-
             int rowCnt = sheet.getPhysicalNumberOfRows();
 
             for (int i = 70; i < 75; i++) {

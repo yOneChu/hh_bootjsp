@@ -52,19 +52,21 @@ public class SimPidRepository {
 	/**
 	 * PID 의 버전 목록 (TEST 버전 먼저, 그 다음 최신순)
 	 * @return 항목 {version, latest(최신 버전 여부), regDate(등록일시 yyyy-MM-dd HH:mm, 같은 버전이 여럿이면 가장 늦은 것),
-	 *         isFloorSpec(층별 PID 여부 Y/N)}
+	 *         isFloorSpec(층별 PID 여부 Y/N), remarks(VARIANT_H.REMARKS, 같은 버전이 여럿이면 가장 늦은 것)}
 	 */
 	public List<Map<String, Object>> getVersions(SimDb db, String pid) throws SQLException {
 		List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
 		for (Map<String, String> row : db.queryForList(
 				" SELECT A.VERSION, MAX(CASE WHEN B.LAST_HOUID IS NULL THEN 'N' ELSE 'Y' END) LATEST, "
-				+ "        TO_CHAR(MAX(A.REG_DATE), 'YYYY-MM-DD HH24:MI') REG_DATE, MAX(A.ISFLOORSPEC) ISFLOORSPEC "
+				+ "        TO_CHAR(MAX(A.REG_DATE), 'YYYY-MM-DD HH24:MI') REG_DATE, MAX(A.ISFLOORSPEC) ISFLOORSPEC, "
+				+ "        MAX(A.REMARKS) KEEP (DENSE_RANK LAST ORDER BY A.REG_DATE NULLS FIRST) REMARKS "
 				+ " FROM VARIANT_H A LEFT JOIN VARIANT_ID B ON B.LAST_HOUID = A.HOUID "
 				+ " WHERE A.PID = ? GROUP BY A.VERSION ", pid)) {
 			Map<String, Object> m = new LinkedHashMap<String, Object>();
 			m.put("version", SimUtil.parseInt(row.get("VERSION")));
 			m.put("latest", "Y".equals(row.get("LATEST")));
 			m.put("regDate", row.get("REG_DATE"));
+			m.put("remarks", SimUtil.NVL(row.get("REMARKS"), "").trim());
 			m.put("isFloorSpec", "Y".equals(row.get("ISFLOORSPEC")) ? "Y" : "N");
 			list.add(m);
 		}
