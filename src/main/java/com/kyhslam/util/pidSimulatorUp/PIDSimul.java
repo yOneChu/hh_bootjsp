@@ -159,7 +159,7 @@ public class PIDSimul {
 	}
 
 	/** CALL 로 실행된 하위 PID 와 각 PID 의 선택 가능한 버전 목록 */
-	private static void toSubPids(SimContext ctx, PIDSimulResult result) throws Exception {
+	static void toSubPids(SimContext ctx, PIDSimulResult result) throws Exception {
 		for (SimContext.SubPidRun run : ctx.getSubPidRuns()) {
 			PIDSimulResult.SubPid sub = new PIDSimulResult.SubPid();
 			sub.pid = run.pid;
@@ -213,7 +213,7 @@ public class PIDSimul {
 	}
 
 	/** PidService.initVariantWithOuid (SubaeManager.getElvInfoAndFloorInfoWithELP) */
-	private static SimVariant initVariantWithOuid(SimContext ctx, String iOuid, String floor, PIDSimulResult result) throws Exception {
+	static SimVariant initVariantWithOuid(SimContext ctx, String iOuid, String floor, PIDSimulResult result) throws Exception {
 		SimSpecLoader loader = ctx.getSpecLoader();
 
 		SimSpecLoader.SpecObject elvMaster = loader.load(iOuid);
@@ -278,7 +278,7 @@ public class PIDSimul {
 	}
 
 	/** PIDSimulator_right.jsp 의 화면 구성 */
-	private static void toResult(SimContext ctx, SimVariant variant, SimVariantMap logicMap, PIDSimulResult result) throws Exception {
+	static void toResult(SimContext ctx, SimVariant variant, SimVariantMap logicMap, PIDSimulResult result) throws Exception {
 		SimVariantMap debugData = (SimVariantMap) logicMap.get("debugData");
 
 		// JAVA로 실행한 결과는 데이터구조가 다르니 별도로 출력하고 끝낸다

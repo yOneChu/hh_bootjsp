@@ -56,6 +56,16 @@ public class PIDSimulatorUpController {
         return "thymeleaf/pid/pidSimulatorCompare";
     }
 
+    /**
+     * @apiNote 블럭 수량 계산 팝업 : 주소 파라미터(project, pid, version, floor, beforePid)로 calcBlockQty 를 호출해 표로 보여준다
+     * @return
+     */
+    @GetMapping("/pidSimulatorUpCalPopUp")
+    public String pidSimulatorUpCalPopUpView() {
+        //http://localhost:8070/simulateup/pidSimulatorUpCalPopUp?project=206663L01&pid=B181B
+        return "thymeleaf/pid/pidSimulatorUpCalPopUp";
+    }
+
     @Description("PID 시뮬레이션 (PIDSimulator 화면의 [실행] : 행별 조건/결과, 최종 결과값, 최종 영업사양)")
     @GetMapping("/simulatePid")
     @ResponseBody
@@ -82,6 +92,79 @@ public class PIDSimulatorUpController {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("simulatePid error project:{}, pid:{}", project, pid, e);
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    @Description("블럭 수량 계산 (EL_P+블럭 결과변수마다 PICK 을 넣어 블럭 PID 실행)")
+    @GetMapping("/calcBlockQty")
+    @ResponseBody
+    @CrossOrigin
+    public ResponseEntity<Object> calcBlockQty(@RequestParam String project,
+                                               @RequestParam String pid,
+                                               @RequestParam(required = false) String floor,
+                                               @RequestParam(required = false) Integer version,
+                                               @RequestParam(required = false) String beforePid,
+                                               @RequestParam(required = false) String asOfDate) {
+        //http://localhost:8070/simulateup/calcBlockQty?project=206663L01&pid=B181B
+        //http://localhost:8070/simulateup/calcBlockQty?project=206663L01&pid=B181B&asOfDate=2026-10-01
+        log.info("calcBlockQty project:{}, pid:{}, floor:{}, version:{}, beforePid:{}, asOfDate:{}",
+                project, pid, floor, version, beforePid, asOfDate);
+        try {
+            return ResponseEntity.ok(pidSimulatorUpService.calcBlockQty(project, pid, floor, version, splitParam(beforePid),
+                    asOfDate));
+        } catch (Exception e) {
+            log.error("calcBlockQty error project:{}, pid:{}", project, pid, e);
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    @Description("블럭번호 PID 의 PICK 후보 (자재수배 PID 결과변수 elpPid / elpPid_번호)")
+    @GetMapping("/pickKeys")
+    @ResponseBody
+    @CrossOrigin
+    public ResponseEntity<Object> pickKeys(@RequestParam String project,
+                                           @RequestParam String pid,
+                                           @RequestParam(required = false) String floor,
+                                           @RequestParam(required = false) String beforePid) {
+        //http://localhost:8070/simulateup/pickKeys?project=206663L01&pid=B181B
+        try {
+            return ResponseEntity.ok(pidSimulatorUpService.getPickKeys(project, pid, floor, splitParam(beforePid)));
+        } catch (Exception e) {
+            log.error("pickKeys error project:{}, pid:{}", project, pid, e);
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    @Description("블럭번호 PID 를 PICK 지정으로 시뮬레이션 (응답은 simulatePid 와 동일)")
+    @GetMapping("/simulatePidPick")
+    @ResponseBody
+    @CrossOrigin
+    public ResponseEntity<Object> simulatePidPick(@RequestParam String project,
+                                                  @RequestParam String pid,
+                                                  @RequestParam String pick,
+                                                  @RequestParam(required = false) String floor,
+                                                  @RequestParam(required = false) Integer version,
+                                                  @RequestParam(required = false) String beforePid,
+                                                  @RequestParam(required = false) String subVersions) {
+        //http://localhost:8070/simulateup/simulatePidPick?project=206663L01&pid=B181B&pick=EL_PB181B_1
+        log.info("simulatePidPick project:{}, pid:{}, pick:{}, floor:{}, version:{}, beforePid:{}, subVersions:{}",
+                project, pid, pick, floor, version, beforePid, subVersions);
+        try {
+            PIDSimulResult result = pidSimulatorUpService.simulateWithPick(project, pid, floor, version, splitParam(beforePid),
+                    parseSubVersions(subVersions), pick);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("simulatePidPick error project:{}, pid:{}, pick:{}", project, pid, pick, e);
 
             Map<String, Object> error = new HashMap<>();
             error.put("error", e.getMessage());

@@ -558,6 +558,15 @@
         header .sub-quick button.on { background: #e2e8f0; border-color: #e2e8f0; color: #0f172a; font-weight: 700; }
         .sub-actions { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
         .sub-actions button { padding: 5px 12px; font-size: 12px; }
+        /* 자재수배 PICK */
+        .pick-title { display: inline-flex; align-items: center; gap: 5px; color: var(--head-muted); font-size: 12px; font-weight: 600; padding-left: 4px; }
+        #pickHint { color: #94a3b8; font-size: 12px; }
+        #pickHint b { color: #c4b5fd; }
+        #pickList .sub-item { cursor: pointer; padding: 2px 8px; }
+        #pickList .sub-item input { margin: 0 2px 0 0; accent-color: #a78bfa; }
+        #pickList .sub-item .pick-val { color: #94a3b8; font-size: 11px; font-family: var(--mono); }
+        #pickList .sub-item.no-part .sub-pid { color: #64748b; }
+        #pickList.busy { opacity: .5; pointer-events: none; }
         #subHint { color: #94a3b8; font-size: 12px; }
         #subHint .changed { color: #fbbf24; font-weight: bold; }
         #subHint .date-pick { color: #e2e8f0; }
@@ -710,6 +719,7 @@
         <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
         <symbol id="i-compare" viewBox="0 0 24 24"><path d="M8 3v14M4 13l4 4 4-4M16 21V7M12 11l4-4 4 4"/></symbol>
         <symbol id="i-tree" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2a2 2 0 012-2h8a2 2 0 012 2v2"/></symbol>
+        <symbol id="i-sum" viewBox="0 0 24 24"><path d="M18 5H6l6 7-6 7h12"/></symbol>
     </defs>
 </svg>
 
@@ -751,6 +761,8 @@
                 <svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span>특성코드 사전</span></button>
             <button type="button" id="btnMindMap" title="실행한 PID 가 CALL 로 호출한 하위 PID 의 호출 관계도를 새 창으로 봅니다">
                 <svg class="ico" aria-hidden="true"><use href="#i-tree"/></svg><span>호출 관계도(Mind-Map)</span></button>
+            <button type="button" id="btnBlockQty" title="EL_P+블럭번호 결과변수(EL_PB181B_1, _2 …) 마다 PICK 을 넣어 블럭번호 PID 를 따로 실행하고 결과를 표로 봅니다">
+                <svg class="ico" aria-hidden="true"><use href="#i-sum"/></svg><span>수량 계산</span></button>
             <div class="head-spacer"></div>
             <div id="sourceInfo" aria-live="polite"></div>
         </div>
@@ -805,6 +817,22 @@
                 <button type="button" id="btnSubAfter" data-dir="after"
                         title="입력한 PID 버전의 등록일 이후(같은 시각 포함) 중 가장 가까운 버전을 하위 PID 마다 고릅니다. 고른 뒤 '하위 버전 적용 실행' 을 누르세요">
                     기준일 이후<svg class="ico" aria-hidden="true"><use href="#i-right"/></svg></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 자재수배 PICK : 블럭번호 PID 로 실행했을 때 자재수배 PID 결과변수 중 하나를 PICK 으로 넣어 다시 실행 -->
+    <div class="sub-row" id="pickRow" hidden>
+        <div class="sub-head">
+            <span class="pick-title" title="블럭번호 PID 의 자재수배 PID (EL_P / SH_P) 결과변수입니다. 하나를 고르면 PICK = 고른 키 를 추가해 실행합니다">
+                <svg class="ico sm" aria-hidden="true"><use href="#i-key"/></svg>자재수배 PICK</span>
+            <span id="pickHint" aria-live="polite"></span>
+        </div>
+        <div class="sub-body">
+            <div class="sub-list" id="pickList" role="radiogroup" aria-label="PICK 선택"></div>
+            <div class="sub-actions">
+                <button type="button" id="btnPickClear" title="PICK 없이 다시 실행합니다">
+                    <svg class="ico" aria-hidden="true"><use href="#i-refresh"/></svg>PICK 해제</button>
             </div>
         </div>
     </div>
@@ -2011,6 +2039,169 @@
         area.focus({ preventScroll: true });
     }
 
+    // ---------- 수량 계산 팝업 ----------
+    // 계산/표시는 팝업(pidSimulatorUpCalPopUp)이 담당. 여기서는 지금 조회 조건을 주소 파라미터로 넘겨 연다
+    const BLOCK_QTY_POPUP_URL = '/simulateup/pidSimulatorUpCalPopUp';
+    let blockQtyPopup = null;
+
+    function runBlockQty() {
+        if (!getParam('project') || !getParam('pid')) {
+            alert('공사번호와 PID(블럭번호)는 필수입니다.');
+            return;
+        }
+        const qs = new URLSearchParams();
+        ['project', 'pid', 'version', 'floor', 'beforePid'].forEach((n) => {
+            const v = getParam(n);
+            if (v) qs.set(n, v);
+        });
+        blockQtyPopup = window.open(`${BLOCK_QTY_POPUP_URL}?${qs}`, 'pidSimulUpBlockQty', 'width=1200,height=800,resizable=yes,scrollbars=yes');
+        if (!blockQtyPopup) alert('팝업이 차단되었습니다. 브라우저에서 이 사이트의 팝업을 허용해 주세요.');
+        else blockQtyPopup.focus();
+    }
+
+    // ---------- 자재수배 PICK 실행 ----------
+    // 블럭번호 PID (B181B / SH_B181B) 로 실행하면 자재수배 PID (EL_PB181B / SH_PB181B) 결과변수 목록을 보여주고,
+    // 하나를 고르면 PICK = 고른 키 를 추가해 다시 실행한다 (수량 계산과 같은 흐름, 별도 API). 기존 실행 로직은 그대로
+    const PICK_KEYS_API = '/simulateup/pickKeys';
+    const PICK_RUN_API = '/simulateup/simulatePidPick';
+    const pickState = {
+        sig: '',        // 목록을 불러온 조건 (project/pid/floor/beforePid)
+        list: [],       // [{key, value}]
+        elpPid: '',
+        applied: '',    // 지금 결과에 적용된 PICK ('' : PICK 없이 실행)
+        req: 0,         // 늦게 온 목록 응답 무시용
+        running: false, // PICK 실행 중 (그 결과로 목록을 다시 불러오지 않음)
+    };
+    // 자재수배 PID 형태(EL_P / SH_P) 는 블럭번호 PID 가 아님
+    const isBlockPid = (pid) => !!pid && !/^(EL_P|SH_P)/i.test(pid);
+    const pickParams = () => {
+        const qs = new URLSearchParams();
+        ['project', 'pid', 'floor', 'beforePid'].forEach((n) => {
+            const v = getParam(n);
+            if (v) qs.set(n, v);
+        });
+        return qs;
+    };
+
+    function hidePickRow() {
+        pickState.sig = '';
+        pickState.list = [];
+        pickState.applied = '';
+        $('pickRow').hidden = true;
+    }
+
+    function renderPickRow() {
+        const list = pickState.list;
+        $('pickRow').hidden = !list.length;
+        if (!list.length) return;
+        $('pickList').innerHTML = list.map((p) => {
+            const on = p.key === pickState.applied;
+            const noPart = !nvl(p.value).trim();
+            return `<label class="sub-item${on ? ' applied' : ''}${noPart ? ' no-part' : ''}" title="PICK = ${esc(p.key)} 로 실행${noPart ? ' (자재번호 없음)' : ''}">`
+                + `<input type="radio" name="pick" value="${esc(p.key)}"${on ? ' checked' : ''}>`
+                + `<span class="sub-pid">${esc(p.key)}</span>`
+                + `<span class="pick-val">${noPart ? '(빈 값)' : esc(p.value)}</span></label>`;
+        }).join('');
+        $('pickHint').innerHTML = pickState.applied
+            ? `PICK = <b>${esc(pickState.applied)}</b> 적용 결과`
+            : `${esc(pickState.elpPid)} 결과변수 ${list.length}개 · 하나를 고르면 PICK 을 넣어 실행합니다`;
+        $('btnPickClear').disabled = !pickState.applied;
+    }
+
+    // 실행 결과가 바뀌면 PICK 목록을 맞춘다 (PICK 실행 결과면 목록 유지, 일반 실행이면 다시 불러옴)
+    async function syncPickRow(result) {
+        if (pickState.running) { renderPickRow(); return; }
+        pickState.applied = '';
+        const pid = (result && result.pid) || getParam('pid');
+        if (!isBlockPid(pid) || !getParam('project')) { hidePickRow(); return; }
+
+        const qs = pickParams();
+        qs.set('pid', pid);
+        const sig = qs.toString();
+        if (sig === pickState.sig) { renderPickRow(); return; }
+
+        const req = ++pickState.req;
+        try {
+            const res = await fetch(`${PICK_KEYS_API}?${qs}`, { headers: { Accept: 'application/json' } });
+            const json = await res.json();
+            if (req !== pickState.req) return;
+            if (!res.ok || !json || json.error) throw new Error((json && json.error) || `HTTP ${res.status}`);
+            pickState.sig = sig;
+            pickState.list = json.picks || [];
+            pickState.elpPid = json.elpPid || '';
+            renderPickRow();
+        } catch (e) {
+            if (req !== pickState.req) return;
+            console.warn('PICK 목록 로딩 실패:', e);
+            hidePickRow();
+        }
+    }
+
+    // run() 과 같은 화면 처리로 PICK 을 넣어 실행 (API 만 다름)
+    async function runWithPick(pick) {
+        if (!getParam('project') || !getParam('pid')) {
+            alert('공사번호와 PID는 필수입니다.');
+            return;
+        }
+        const query = buildQuery();
+        const qs = new URLSearchParams(query);
+        qs.set('pick', pick);
+        const startedAt = performance.now();
+        const btn = $('btnRun');
+        btn.disabled = true;
+        btn.innerHTML = BUSY_HTML('실행 중');
+        $('runProgress').hidden = false;
+        $('btnSubRun').disabled = true;
+        $('btnSubReset').disabled = true;
+        $('pickList').classList.add('busy');
+        area.innerHTML = `<div class="loading-card" role="status"><span class="spinner" aria-hidden="true"></span>PICK = ${esc(pick)} 로 PID 를 실행하고 있습니다…</div>`;
+        if (isDrawerOpen()) closeDrawer();
+
+        pickState.running = true;
+        try {
+            const res = await fetch(`${PICK_RUN_API}?${qs}`, { method: 'GET', headers: { Accept: 'application/json' } });
+            let json = null;
+            try { json = await res.json(); } catch (e) { /* 본문이 JSON 이 아님 */ }
+            if (!res.ok || !json || json.error) {
+                throw new Error((json && json.error) || `HTTP ${res.status} ${res.statusText}`);
+            }
+            state.query = { project: getParam('project'), pid: getParam('pid'), version: getParam('version'), params: Object.fromEntries(query) };
+            pickState.applied = pick;
+            loadResult(json);
+            renderSourceInfo(((performance.now() - startedAt) / 1000).toFixed(1));
+        } catch (e) {
+            console.error(e);
+            pickState.applied = '';
+            $('toolbar').hidden = true;
+            $('warnBar').hidden = true;
+            $('sourceInfo').textContent = '';
+            area.innerHTML = '<div class="error-card" role="alert"><h3><svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg>PICK 실행에 실패했습니다</h3>'
+                + `<p>${esc(e.message)}</p>`
+                + '<p style="color:var(--muted)">PICK 을 다시 고르거나 PICK 해제로 실행하세요.</p></div>';
+            renderPickRow();
+        } finally {
+            pickState.running = false;
+            btn.disabled = false;
+            btn.innerHTML = BTN_RUN_HTML;
+            $('runProgress').hidden = true;
+            $('btnSubRun').disabled = false;
+            $('pickList').classList.remove('busy');
+            updateSubHint();
+        }
+    }
+
+    // 기존 loadResult 는 그대로 두고, 결과를 적재한 뒤 PICK 목록만 맞춘다
+    const loadResultBase = loadResult;
+    loadResult = function (result) {
+        loadResultBase(result);
+        syncPickRow(result);
+    };
+
+    $('pickList').addEventListener('change', (e) => {
+        if (e.target.name === 'pick' && e.target.checked) runWithPick(e.target.value);
+    });
+    $('btnPickClear').addEventListener('click', () => run());
+
     // ---------- API 호출 ----------
     async function run() {
         if (!getParam('project') || !getParam('pid')) {
@@ -2071,6 +2262,7 @@
     $('btnAdv').addEventListener('click', () => setAdvOpen($('advPanel').hidden));
     $('btnCodeDict').addEventListener('click', openCodePopup);
     $('btnMindMap').addEventListener('click', openMindMapPopup);
+    $('btnBlockQty').addEventListener('click', runBlockQty);
 
     // PID 를 바꾸면 버전 선택을 '최신'으로 되돌리고, 입력이 멈추면 그 PID 의 버전 목록을 불러온다
     let pidTimer;

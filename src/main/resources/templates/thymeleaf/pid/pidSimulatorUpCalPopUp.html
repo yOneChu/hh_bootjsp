@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>수량 계산</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+    <style>
+        :root { --bg: #fff; --fg: #1f2937; --muted: #6b7280; --line: #e5e7eb; --head: #f3f4f6; --diff: #fef3c7; --err: #b91c1c; }
+        @media (prefers-color-scheme: dark) {
+            :root { --bg: #111827; --fg: #e5e7eb; --muted: #9ca3af; --line: #374151; --head: #1f2937; --diff: #422006; --err: #f87171; }
+        }
+        body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 13px/1.5 'Pretendard Variable', system-ui, sans-serif; }
+        h1 { font-size: 18px; margin: 0 0 4px; }
+        h1 small { font-size: 13px; font-weight: 400; color: var(--muted); }
+        .info { color: var(--muted); margin-bottom: 10px; }
+        .msg { padding: 12px 0; }
+        .msg.err { color: var(--err); }
+        .msg.warn { color: var(--err); padding: 2px 0; }
+        .tools { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
+        .tools input[type=search] { padding: 5px 8px; width: 240px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+        .tools button { padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--head); color: var(--fg); cursor: pointer; }
+        .wrap { overflow: auto; max-height: calc(100vh - 130px); border: 1px solid var(--line); border-radius: 6px; }
+        table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+        th, td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 5px 10px; text-align: left; vertical-align: top; white-space: nowrap; }
+        thead th { position: sticky; top: 0; background: var(--head); z-index: 1; }
+        th.k { position: sticky; left: 0; background: var(--head); }
+        thead th.k { z-index: 2; }
+        .sub { font-weight: 400; color: var(--muted); font-size: 12px; }
+        td.none { color: var(--muted); }
+        tr.diff td { background: var(--diff); }
+        tr.error td { color: var(--err); white-space: normal; }
+        .tools input[type=date] { padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); color-scheme: light dark; }
+        details.vers { margin-bottom: 8px; }
+        details.vers summary { cursor: pointer; color: var(--muted); }
+        details.vers table { margin-top: 6px; }
+        details.vers thead th { position: static; }
+    </style>
+</head>
+<body>
+<div id="app"><div class="msg">수량 계산 중…</div></div>
+
+<script>
+    // 블럭 수량 계산 팝업 (pidSimulatorUp 의 [수량 계산])
+    // EL_P+블럭 실행 결과변수(EL_PB181B_n) 마다 PICK 을 넣어 블럭 PID 를 따로 실행한 결과를 표로 보여준다.
+    // PID 가 SH 로 시작하면 선박 : SH_P+블럭 결과변수(SH_PB181B_n) 마다 수량블럭 SH_+블럭 실행 (서버에서 구분)
+    // 실행 조건은 주소창 파라미터 (project, pid, version, floor, beforePid)
+    const BLOCK_QTY_API = '/simulateup/calcBlockQty';
+
+    const $ = (id) => document.getElementById(id);
+    function esc(v) {
+        if (v === null || v === undefined) return '';
+        return String(v)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+    const nvl = (v) => (v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v)));
+    const br = (v) => esc(v).replace(/\n/g, '<br>');
+
+    // 기준일 (yyyy-MM-dd). 값이 있으면 모든 PID(하위 포함)를 기준일 이전 가장 가까운 버전으로 실행
+    let asOfDate = new URLSearchParams(location.search).get('asOfDate') || '';
+
+    async function load() {
+        const qs = new URLSearchParams(location.search);
+        if (!qs.get('project') || !qs.get('pid')) {
+            $('app').innerHTML = '<div class="msg err">공사번호와 PID(블럭번호)는 필수입니다.</div>';
+            return;
+        }
+        if (asOfDate) qs.set('asOfDate', asOfDate);
+        else qs.delete('asOfDate');
+        // 새로고침해도 같은 기준일로 계산
+        history.replaceState(null, '', `${location.pathname}?${qs}`);
+        document.title = `${qs.get('pid')} 수량 계산`;
+        $('app').innerHTML = `<div class="msg">${esc(qs.get('pid'))} 수량 계산 중…${asOfDate ? ` (기준일 ${esc(asOfDate)})` : ''}</div>`;
+        try {
+            const res = await fetch(`${BLOCK_QTY_API}?${qs}`, { headers: { Accept: 'application/json' } });
+            let json = null;
+            try { json = await res.json(); } catch (e) { /* 본문이 JSON 이 아님 */ }
+            if (!res.ok || !json || json.error) throw new Error((json && json.error) || `HTTP ${res.status} ${res.statusText}`);
+            $('app').innerHTML = render(json);
+            bindFilter();
+        } catch (e) {
+            console.error(e);
+            $('app').innerHTML = `<div class="msg err">수량 계산 실패 : ${esc(e.message)}</div>`;
+        }
+    }
+
+    // 첫 행에 보일 KEY
+    const FIRST_KEY = 'QTY';
+    // PICK 값(자재번호)이 없는 실행은 열 전체를 공백으로 표시
+    const noPart = (run) => !nvl(run.pickValue).trim();
+
+    // 결과표 : 열 = PICK(EL_PB181B_n / SH_PB181B_n), 행 = 블럭 PID 결과 KEY (QTY 먼저). OUTPUTxxxx(내부 선언용) 키는 제외
+    function render(r) {
+        const runs = r.runs || [];
+        const keys = [];
+        runs.forEach((run) => Object.keys(run.resultMap || {}).forEach((k) => {
+            if (!k.startsWith('OUTPUT') && !keys.includes(k)) keys.push(k);
+        }));
+        const qtyIdx = keys.findIndex((k) => k.toUpperCase() === FIRST_KEY);
+        keys.unshift(qtyIdx >= 0 ? keys.splice(qtyIdx, 1)[0] : FIRST_KEY);
+        const ver = r.testVersion ? 'TEST' : `v${nvl(r.runVersion)}`;
+        const typeLabel = r.type === 'SHIP' ? '선박' : '엘리베이터';
+        let html = `<h1>${esc(r.blockPid)} 수량 계산 <small>${typeLabel} · ${esc(r.blockPidName)} · ${esc(ver)}`
+            + `${r.asOfDate ? ` · 기준일 ${esc(r.asOfDate)} 버전` : ' · 최신 버전'}</small></h1>`
+            + `<div class="info">공사 ${esc(r.projectNo)}${r.floor ? ` · 층 ${esc(r.floor)}` : ''}`
+            + ` · ${esc(r.elpPid)} 결과변수 ${runs.length}건 · 각 실행에 PICK = 결과변수명 추가`
+            + (r.beforePids ? ` · 전처리 ${esc(String(r.beforePids).replace(/\n/g, ', '))}` : '') + '</div>';
+        (r.warnings || []).forEach((w) => { html += `<div class="msg warn">${esc(w)}</div>`; });
+        html += asOfVersionsHtml(r);
+
+        html += '<div class="tools"><input type="search" id="q" placeholder="KEY / 값 검색">'
+            + '<label><input type="checkbox" id="diffOnly" checked> 값이 다른 행만</label>'
+            + `<label title="비우면 최신 버전으로 계산">기준일 <input type="date" id="asOfDate" value="${esc(asOfDate)}"></label>`
+            + '<button type="button" id="btnReload" title="기준일을 고르면 모든 PID(하위 포함)를 기준일 이전 가장 가까운 버전(당일이면 그 날 마지막 버전)으로 계산합니다">다시 계산</button></div>';
+        if (!runs.length) return html;
+        html += '<div class="wrap"><table><thead><tr><th class="k">KEY</th>'
+            + runs.map((run) => `<th>${esc(run.pick)}<div class="sub">PICK 값 : ${esc(run.pickValue)}</div></th>`).join('')
+            + '</tr></thead><tbody>';
+        if (runs.some((run) => run.error && !noPart(run))) {
+            html += '<tr class="error"><th class="k">오류</th>'
+                + runs.map((run) => `<td>${noPart(run) ? '' : esc(run.error)}</td>`).join('') + '</tr>';
+        }
+        keys.forEach((k) => {
+            // undefined : 자재번호 없는 열(공백), null : 결과에 KEY 없음
+            const vals = runs.map((run) => (noPart(run) ? undefined
+                : (run.resultMap && k in run.resultMap ? nvl(run.resultMap[k]) : null)));
+            const compared = vals.filter((v) => v !== undefined);
+            const diff = new Set(compared.map((v) => (v === null ? '\u0000' : v))).size > 1;
+            // QTY 행은 '값이 다른 행만' 일 때도 항상 표시
+            const cls = [diff ? 'diff' : '', k === keys[0] ? 'pin' : ''].filter(Boolean).join(' ');
+            html += `<tr${cls ? ` class="${cls}"` : ''}><th class="k">${esc(k)}</th>`
+                + vals.map((v) => (v === undefined ? '<td></td>' : v === null ? '<td class="none">-</td>'
+                    : v === '' ? '<td class="none">(빈 값)</td>' : `<td>${br(v)}</td>`)).join('')
+                + '</tr>';
+        });
+        return html + '</tbody></table></div>';
+    }
+
+    // 기준일 실행 시 PID 별 실행 버전 (접어서 표시)
+    function asOfVersionsHtml(r) {
+        const entries = Object.entries(r.asOfVersions || {});
+        if (!r.asOfDate || !entries.length) return '';
+        return `<details class="vers"><summary>기준일 ${esc(r.asOfDate)} 실행 버전 (PID ${entries.length}개)</summary>`
+            + '<table><thead><tr><th>PID</th><th>버전</th><th>등록일시</th></tr></thead><tbody>'
+            + entries.map(([pid, v]) => (v.version === null || v.version === undefined
+                ? `<tr><td>${esc(pid)}</td><td class="none" colspan="2">기준일 이전 버전 없음</td></tr>`
+                : `<tr><td>${esc(pid)}</td><td>v${esc(v.version)}</td><td>${esc(v.regDate)}</td></tr>`)).join('')
+            + '</tbody></table></details>';
+    }
+
+    function bindFilter() {
+        $('btnReload').addEventListener('click', () => {
+            asOfDate = $('asOfDate').value || '';
+            load();
+        });
+        const q = $('q'), diffOnly = $('diffOnly');
+        if (!q) return;
+        const apply = () => {
+            const kw = q.value.trim().toLowerCase();
+            document.querySelectorAll('tbody tr').forEach((tr) => {
+                tr.hidden = (diffOnly.checked && !['diff', 'error', 'pin'].some((c) => tr.classList.contains(c)))
+                    || (kw && !tr.textContent.toLowerCase().includes(kw));
+            });
+        };
+        q.addEventListener('input', apply);
+        diffOnly.addEventListener('change', apply);
+        // '값이 다른 행만' 기본 체크 상태로 처음 표시
+        apply();
+    }
+
+    load();
+</script>
+</body>
+</html>

@@ -15,6 +15,10 @@ import java.io.FileOutputStream;
 
 public class BOM_excel_API_20261028 {
 
+    /**
+     * PID시뮬 돌려서 특정값 추출
+     * @param args
+     */
     public static void main(String[] args) {
 
         StopWatch sw = new StopWatch();
