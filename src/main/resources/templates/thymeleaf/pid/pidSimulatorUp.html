@@ -467,6 +467,14 @@
         #versionInfo { color: #94a3b8; font-size: 12px; white-space: nowrap; }
         #versionInfo.warn { color: #fca5a5; }
         header input:disabled { opacity: .45; cursor: not-allowed; }
+        /* 기준일 달력 : 작은 아이콘만이 아니라 칸 어디를 눌러도 달력이 열린다 (JS showPicker). 아이콘은 크게 + hover 표시 */
+        #baseDate { width: 138px; padding-right: 2px; }
+        #baseDate:hover:not(:disabled) { border-color: #60a5fa; }
+        #baseDate::-webkit-calendar-picker-indicator {
+            width: 18px; height: 18px; padding: 3px; margin-left: 2px;
+            border-radius: 4px; opacity: .85; cursor: pointer;
+        }
+        #baseDate:hover::-webkit-calendar-picker-indicator { opacity: 1; background-color: rgba(96,165,250,.25); }
         #floorInfo.on { color: #86efac; }
 
         /* 하위 PID(CALL) 버전 선택 : 실행 후 호출된 하위 PID 를 상단에 표시 */
@@ -1013,24 +1021,26 @@
     }
 
     // ---------- PID 버전 목록 ----------
-    // 버전 표시 : v3 (최신) · 2026-10-01 10:20 · 비고  (regDate : VARIANT_H.REG_DATE, remarks : VARIANT_H.REMARKS)
+    // 버전 표시 : v3 (최신) · 2026-10-01 10:20 · 비고 · 작성자 홍길동
+    // (regDate : VARIANT_H.REG_DATE, remarks : VARIANT_H.REMARKS, userName : FUSER$SF.MD$DESC)
     // 비고가 길면 선택 목록이 넓어지므로 잘라서 표시 (전체는 option title)
     const REMARKS_MAX = 30;
     const remarksText = (remarks) => {
         const s = nvl(remarks).replace(/\s+/g, ' ').trim();
         return s.length > REMARKS_MAX ? `${s.slice(0, REMARKS_MAX)}…` : s;
     };
-    const versionLabel = (v, latest, regDate, remarks) => (v === TEST_VERSION ? 'TEST' : `v${v}`) + (latest ? ' (최신)' : '')
-        + (regDate ? ` · ${regDate}` : '') + (remarksText(remarks) ? ` · ${remarksText(remarks)}` : '');
-    // '최신' 항목 표시 : 최신 (v5 · 2026-10-01 10:20 · 비고)
+    const userText = (userName) => (nvl(userName).trim() ? ` · 작성자 ${nvl(userName).trim()}` : '');
+    const versionLabel = (v, latest, regDate, remarks, userName) => (v === TEST_VERSION ? 'TEST' : `v${v}`) + (latest ? ' (최신)' : '')
+        + (regDate ? ` · ${regDate}` : '') + (remarksText(remarks) ? ` · ${remarksText(remarks)}` : '') + userText(userName);
+    // '최신' 항목 표시 : 최신 (v5 · 2026-10-01 10:20 · 비고 · 작성자 홍길동)
     function latestLabel(list) {
         const latest = (list || []).find((v) => v.latest);
         if (!latest) return '최신';
         return `최신 (v${latest.version}${latest.regDate ? ` · ${latest.regDate}` : ''}`
-            + `${remarksText(latest.remarks) ? ` · ${remarksText(latest.remarks)}` : ''})`;
+            + `${remarksText(latest.remarks) ? ` · ${remarksText(latest.remarks)}` : ''}${userText(latest.userName)})`;
     }
-    // 버전 option 의 title (비고 전체)
-    const versionTitle = (v) => (v && nvl(v.remarks)) || '';
+    // 버전 option 의 title (비고 전체 + 작성자)
+    const versionTitle = (v) => (v ? (nvl(v.remarks) + userText(v.userName)).replace(/^ · /, '') : '');
     let versionsPid = '';     // 버전 목록을 불러온 PID
     let versionsList = [];    // versionsPid 의 버전 목록 (하위 PID 기준일 선택용)
     let versionsReq = 0;      // 늦게 온 응답 무시용
@@ -1073,7 +1083,7 @@
             latestOpt.title = versionTitle(list.find((v) => v.latest));
             sel.add(latestOpt);
             list.forEach((v) => {
-                const opt = new Option(versionLabel(String(v.version), v.latest, v.regDate, v.remarks), String(v.version));
+                const opt = new Option(versionLabel(String(v.version), v.latest, v.regDate, v.remarks, v.userName), String(v.version));
                 opt.title = versionTitle(v);
                 sel.add(opt);
             });
@@ -1148,7 +1158,7 @@
             let opts = `<option value="" title="${esc(versionTitle((s.versions || []).find((v) => v.latest)))}">${esc(latestLabel(s.versions))}</option>`;
             (s.versions || []).forEach((v) => {
                 const val = String(v.version);
-                opts += `<option value="${esc(val)}" title="${esc(versionTitle(v))}">${esc(versionLabel(val, v.latest, v.regDate, v.remarks))}</option>`;
+                opts += `<option value="${esc(val)}" title="${esc(versionTitle(v))}">${esc(versionLabel(val, v.latest, v.regDate, v.remarks, v.userName))}</option>`;
             });
             // 지정했지만 목록에 없는 버전 (없는 버전 지정 → 오류) 도 선택 상태로 보여준다
             if (applied && !(s.versions || []).some((v) => v.version === s.requestedVersion)) {
@@ -1169,7 +1179,7 @@
                 .concat((s.versions || []).filter((v) => String(v.version) !== TEST_VERSION && !v.latest).slice(0, SUB_QUICK_PREV));
             const quick = `<button type="button" data-quick="" title="${esc(latestLabel(s.versions))}">최신</button>`
                 + quickVers.map((v) => `<button type="button" data-quick="${esc(String(v.version))}"`
-                    + ` title="${esc(versionLabel(String(v.version), v.latest, v.regDate, v.remarks))}">${esc(subVerText(v.version))}</button>`).join('');
+                    + ` title="${esc(versionLabel(String(v.version), v.latest, v.regDate, v.remarks, v.userName))}">${esc(subVerText(v.version))}</button>`).join('');
             const hasTest = (s.versions || []).some((v) => String(v.version) === TEST_VERSION);
             return `<div class="${cls}" title="${esc(title)}" data-applied="${applied ? esc(String(s.requestedVersion)) : ''}"`
                 + ` data-order="${i}" data-test="${hasTest ? 'Y' : ''}">`
@@ -2406,6 +2416,16 @@
     $('btnSubAfter').addEventListener('click', () => pickSubByDate('after'));
 
     // 달력 기준일 : 상위 PID 는 선택일(같은 날은 마지막 시각) 이전 중 가장 가까운 버전, 하위 PID 는 같은 기준으로 '기준일 이전'
+    // 아이콘을 정확히 누르지 않아도 칸 아무 곳이나 클릭 / Enter·Space 로 달력을 연다 (showPicker 미지원 브라우저는 기본 동작)
+    const openBaseDatePicker = (e) => {
+        const el = e.currentTarget;
+        if (el.disabled || typeof el.showPicker !== 'function') return;
+        try { el.showPicker(); } catch (err) { /* 이미 열려 있거나 사용자 동작이 아닌 경우 무시 */ }
+    };
+    $('baseDate').addEventListener('click', openBaseDatePicker);
+    $('baseDate').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openBaseDatePicker(e); }
+    });
     $('baseDate').addEventListener('change', async (e) => {
         const day = e.target.value;
         if (!day) return;
