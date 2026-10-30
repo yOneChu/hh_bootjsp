@@ -107,15 +107,19 @@ public class PIDSimulatorUpController {
                                                @RequestParam String pid,
                                                @RequestParam(required = false) String floor,
                                                @RequestParam(required = false) Integer version,
+                                               @RequestParam(required = false) Integer elpVersion,
                                                @RequestParam(required = false) String beforePid,
-                                               @RequestParam(required = false) String asOfDate) {
+                                               @RequestParam(required = false) String asOfDate,
+                                               @RequestParam(defaultValue = "false") boolean pickCmt) {
         //http://localhost:8070/simulateup/calcBlockQty?project=206663L01&pid=B181B
         //http://localhost:8070/simulateup/calcBlockQty?project=206663L01&pid=B181B&asOfDate=2026-10-01
-        log.info("calcBlockQty project:{}, pid:{}, floor:{}, version:{}, beforePid:{}, asOfDate:{}",
-                project, pid, floor, version, beforePid, asOfDate);
+        //http://localhost:8070/simulateup/calcBlockQty?project=206663L01&pid=B181B&version=-1&elpVersion=3
+        //http://localhost:8070/simulateup/calcBlockQty?project=206663L01&pid=B181B&pickCmt=true
+        log.info("calcBlockQty project:{}, pid:{}, floor:{}, version:{}, elpVersion:{}, beforePid:{}, asOfDate:{}, pickCmt:{}",
+                project, pid, floor, version, elpVersion, beforePid, asOfDate, pickCmt);
         try {
-            return ResponseEntity.ok(pidSimulatorUpService.calcBlockQty(project, pid, floor, version, splitParam(beforePid),
-                    asOfDate));
+            return ResponseEntity.ok(pidSimulatorUpService.calcBlockQty(project, pid, floor, version, elpVersion,
+                    splitParam(beforePid), asOfDate, pickCmt));
         } catch (Exception e) {
             log.error("calcBlockQty error project:{}, pid:{}", project, pid, e);
 

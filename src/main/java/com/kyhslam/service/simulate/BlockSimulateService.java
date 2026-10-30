@@ -195,6 +195,40 @@ public class BlockSimulateService {
         return result;
     }
 
+    /**
+     * 호기의 현재 BOM (1레벨 오더대상) 중 블럭 1개의 자재 (블럭 수량 시뮬레이션 화면의 현자재)
+     * simulateBlock 의 현재 BOM 조회와 같은 규칙 (BlockEBomReader.getTopLevelOrderBom, BLOCKNO$SF 번호로 블럭 구분)
+     * @return {productNo, blockNo, wip(호기 BOM 이 있는지), list : [{partNo, qty, cmt, glCode, spec, partSize, uCheck}]} (BOM 순서)
+     */
+    public Map<String, Object> getCurrentBlockBom(String productNo, String blockNo) throws Exception {
+        List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
+        String productOuid;
+        try (BlockDb db = BlockDb.openPooled()) {
+            productOuid = new BlockSpecLoader(db).findWipProductOuid(productNo);
+            if (productOuid != null) {
+                for (Map<String, Object> o : new BlockEBomReader(db).getTopLevelOrderBom(productOuid)) {
+                    if (!blockNo.equals(o.get("blockNo_org")))
+                        continue;
+                    Map<String, Object> m = new LinkedHashMap<String, Object>();
+                    m.put("partNo", o.get("partNo"));
+                    m.put("qty", o.get("qty"));
+                    m.put("cmt", o.get("cmt"));
+                    m.put("glCode", o.get("glCode"));
+                    m.put("spec", o.get("spec"));
+                    m.put("partSize", o.get("part_size"));
+                    m.put("uCheck", "1".equals(o.get("uCheck")));	// BOM 에서 직접 고친 항목
+                    list.add(m);
+                }
+            }
+        }
+        Map<String, Object> result = new HashMap<String, Object>();
+        result.put("productNo", productNo);
+        result.put("blockNo", blockNo);
+        result.put("wip", productOuid != null);
+        result.put("list", list);
+        return result;
+    }
+
     private List<Map<String, Object>> findPidVersions(BlockDb db, List<String> pids) throws Exception {
         String sql = " SELECT A.VERSION, MAX(CASE WHEN B.LAST_HOUID IS NULL THEN 'N' ELSE 'Y' END) LATEST "
                 + " FROM VARIANT_H A LEFT JOIN VARIANT_ID B ON B.LAST_HOUID = A.HOUID "

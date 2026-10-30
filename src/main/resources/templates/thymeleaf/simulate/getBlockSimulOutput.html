@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>BLOCK 시뮬레이터</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+
+    <script>
+        // 페이지 렌더 전 다크모드/사이드바 상태 적용 (깜빡임 방지) — 기본값: 다크
+        if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+    </script>
+
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/resources/dist/googleFont.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <script>
+        tailwind.config = {
+            // Bootstrap(adminlte) 기반 사이드바 마크업을 쓰므로 preflight 는 끈다
+            corePlugins: { preflight: false },
+            important: true,
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: {
+                            blue:  '#0071E3',
+                            blueD: '#0A84FF',
+                            ink:   '#1D1D1F',
+                            gray1: '#8E8E93',
+                            gray5: '#E5E5EA',
+                            gray6: '#F5F5F7',
+                            card:  '#FFFFFF',
+                            darkBg:   '#000000',
+                            darkCard: '#1C1C1E',
+                            darkLine: '#38383A',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard Variable', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Helvetica Neue', 'Arial', 'sans-serif']
+                    },
+                    boxShadow: {
+                        btn: '0 2px 10px rgba(0,113,227,.35)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* ════════════ 토큰 : 도면 용지 + 흑연 잉크 ════════════ */
+        :root {
+            --paper:     #F4F5F3;
+            --sheet:     #FFFFFF;
+            --ink:       #1D1F22;
+            --ink-2:     #565B61;
+            --ink-3:     #8A9096;
+            --rule:      #D9DCD8;
+            --rule-soft: #ECEEEB;
+            --wash:      #F8F9F7;
+            --focus:     #0071E3;
+
+            --c-add:     #17804A;
+            --c-delete:  #C42B25;
+            --c-warn:    #A86200;
+            --c-update:  #1F5FBF;
+            --t-delete:  rgba(196,43,37,.07);
+            --t-add:     rgba(23,128,74,.08);
+            --t-update:  rgba(31,95,191,.08);
+            --t-cur:     rgba(127,127,127,.045);
+        }
+        html.dark {
+            --paper:     #000000;
+            --sheet:     #1C1C1E;
+            --ink:       #F2F2F0;
+            --ink-2:     #B0B4B8;
+            --ink-3:     #7D8287;
+            --rule:      #3A3A3C;
+            --rule-soft: #2A2A2C;
+            --wash:      #232325;
+            --focus:     #0A84FF;
+
+            --c-add:     #3DD07F;
+            --c-delete:  #FF6B61;
+            --c-warn:    #F0A33A;
+            --c-update:  #64A8FF;
+            --t-delete:  rgba(255,107,97,.12);
+            --t-add:     rgba(61,208,127,.12);
+            --t-update:  rgba(100,168,255,.12);
+            --t-cur:     rgba(255,255,255,.025);
+        }
+
+        html { -webkit-font-smoothing: antialiased; }
+        body {
+            font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--paper);
+            color: var(--ink);
+            word-break: keep-all;          /* 한글은 어절 단위로 줄바꿈 */
+            overflow-wrap: anywhere;
+        }
+        h1, h2, h3, h4, h5 { margin: 0; }
+        main p, header p, footer p { margin: 0; }
+        main label { margin-bottom: 0; }
+        .tnum { font-variant-numeric: tabular-nums; }
+
+        :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+        /* ── 상단 바 (다른 화면과 공통) ── */
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 9px; border: none; cursor: pointer;
+            background: transparent; color: var(--ink); transition: background .15s;
+        }
+        .icon-btn:hover { background: rgba(127,127,127,.12); }
+        .ios-switch { position: relative; width: 46px; height: 27px; cursor: pointer; margin: 0; }
+        .ios-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ios-switch .track { position: absolute; inset: 0; border-radius: 999px; background: #D2D2D7; transition: background .2s; }
+        .dark .ios-switch .track { background: #38383A; }
+        .ios-switch input:checked + .track { background: #34C759; }
+        .ios-switch input:focus-visible + .track { outline: 2px solid var(--focus); outline-offset: 2px; }
+        .ios-switch .knob {
+            position: absolute; top: 2.5px; left: 2.5px; width: 22px; height: 22px;
+            border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: transform .2s;
+        }
+        .ios-switch input:checked ~ .knob { transform: translateX(19px); }
+
+        /* ════════════ 표제란 (검색 + 집계) ════════════ */
+        .tblock {
+            background: var(--sheet);
+            border: 1.5px solid var(--ink);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .dark .tblock { border-color: #4A4A4E; }
+
+        .tb-row { display: grid; }
+        .tb-row + .tb-row { border-top: 1.5px solid var(--ink); }
+        .dark .tb-row + .tb-row { border-top-color: #4A4A4E; }
+        .tb-cell { padding: 11px 14px 12px; min-width: 0; }
+        .tb-input  { grid-template-columns: minmax(240px, 1.15fr) minmax(200px, 1fr) minmax(240px, 1.2fr) auto; }
+        .tb-input > .tb-cell + .tb-cell { border-left: 1px solid var(--rule); }
+
+        .tb-title h2 { font-size: 18px; font-weight: 750; letter-spacing: -.02em; line-height: 1.25; }
+        .tb-title p  { font-size: 12px; color: var(--ink-2); margin-top: 4px; line-height: 1.55; max-width: 36ch; }
+
+        /* adminlte 의 label{font-weight:700} 보다 우선 */
+        .tblock .tb-label { display: block; font-size: 11.5px; font-weight: 600 !important; color: var(--ink-2); margin-bottom: 6px; }
+        .tb-label-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+        .tb-label-row .tb-label { margin-bottom: 0; }
+        .tb-hint { font-size: 11px; color: var(--ink-3); margin-top: 5px; min-height: 1em; }
+
+        .field {
+            width: 100%; height: 36px; padding: 0 10px; box-sizing: border-box;
+            font-family: inherit; font-size: 13.5px; font-weight: 600; letter-spacing: .01em;
+            font-variant-numeric: tabular-nums; text-transform: uppercase;
+            color: var(--ink); background: var(--wash);
+            border: 1px solid var(--rule); border-radius: 7px; outline: none;
+            transition: border-color .15s, background .15s;
+        }
+        .field::placeholder { color: var(--ink-3); font-weight: 400; text-transform: none; }
+        .field:focus { border-color: var(--focus); background: var(--sheet); }
+        .field:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0,113,227,.18); }
+        .dark input[type="search"]::-webkit-search-cancel-button { filter: invert(1) opacity(.55); }
+
+        .seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 7px; overflow: hidden; }
+        .seg button {
+            height: 24px; padding: 0 9px; border: none; cursor: pointer; font-family: inherit;
+            font-size: 11.5px; font-weight: 600; color: var(--ink-3); background: transparent;
+        }
+        .seg button + button { border-left: 1px solid var(--rule); }
+
+        .tb-action { display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 11px 14px; }
+        .tb-action .tb-label-row { margin-bottom: 0; }
+        .tb-action .tb-hint { margin-top: 0; max-width: 240px; }
+        #pidTestSeg button[aria-pressed="true"] { background: #C2410C; color: #fff; }
+        /* 블럭 1개 : PID 버전 선택 */
+        .pid-ver { display: flex; gap: 6px; }
+        .pid-ver label { display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; color: var(--ink-3); }
+        .pid-ver select {
+            height: 24px; min-width: 92px; padding: 0 4px; box-sizing: border-box; cursor: pointer;
+            font-family: inherit; font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+            color: var(--ink); background: var(--wash); border: 1px solid var(--rule); border-radius: 7px; outline: none;
+        }
+        .pid-ver select:focus-visible { border-color: var(--focus); box-shadow: 0 0 0 3px rgba(0,113,227,.18); }
+        .pid-ver select:disabled { cursor: default; color: var(--ink-3); }
+        .pid-ver select.picked { background: #C2410C; border-color: #C2410C; color: #fff; }
+        .btn-run {
+            display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px;
+            border: none; border-radius: 8px; cursor: pointer; font-family: inherit;
+            font-size: 13.5px; font-weight: 700; white-space: nowrap;
+            background: var(--ink); color: var(--sheet);
+            transition: transform .08s, opacity .15s;
+        }
+        .btn-run:hover { opacity: .88; }
+        .btn-run:active { transform: scale(.98); }
+        .btn-run:disabled { opacity: .5; cursor: progress; }
+
+        /* 집계 행 */
+        .tb-result { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+        .stat-sub { font-size: 11px; font-weight: 500; color: var(--ink-3); margin-left: 4px; }
+        .tb-result > * + * { border-left: 1px solid var(--rule); }
+        .stat-static { padding: 9px 14px 10px; }
+        .stat-label { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--ink-2); }
+        .stat-value { display: block; font-size: 20px; font-weight: 750; letter-spacing: -.02em; line-height: 1.2; margin-top: 4px; font-variant-numeric: tabular-nums; }
+        .stat-value.zero { color: var(--ink-3); font-weight: 500; }
+        .stat-value.bad { color: var(--c-delete); }
+
+        /* ════════════ 결과 시트 ════════════ */
+        .sheet {
+            background: var(--sheet);
+            border: 1px solid var(--rule);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .sheet-head {
+            display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px;
+            padding: 10px 14px; border-bottom: 1px solid var(--rule);
+        }
+        .sheet-head h3 { font-size: 14.5px; font-weight: 700; }
+        .sheet-count { font-size: 12px; color: var(--ink-3); }
+        .tools { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .field.sm { height: 30px; width: 220px; font-size: 12px; font-weight: 500; text-transform: none; }
+        .tool {
+            display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px;
+            border: 1px solid var(--rule); border-radius: 7px; background: var(--sheet); cursor: pointer;
+            font-family: inherit; font-size: 12px; font-weight: 600; color: var(--ink);
+        }
+        .tool:hover { background: var(--wash); }
+        .tool:disabled { opacity: .45; cursor: default; }
+        .tool[aria-pressed="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+
+        .legend {
+            display: flex; flex-wrap: wrap; gap: 4px 18px; padding: 7px 14px;
+            font-size: 11.5px; color: var(--ink-2); background: var(--wash); border-bottom: 1px solid var(--rule);
+        }
+
+        .progress { height: 2px; }
+        .progress > div { height: 100%; width: 0; background: var(--ink); transition: width .2s; }
+
+        .tbl-scroll { overflow-x: auto; }
+        /* 마우스로 끌어서 좌우 이동 */
+        .tbl-scroll.can-drag { cursor: grab; }
+        .tbl-scroll.can-drag button, .tbl-scroll.can-drag tr.group-row { cursor: pointer; }
+        .tbl-scroll.dragging, .tbl-scroll.dragging * { cursor: grabbing !important; user-select: none; }
+        .tbl-scroll::-webkit-scrollbar { height: 10px; }
+        .tbl-scroll::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 8px; }
+
+        #simTable { width: 100%; border-collapse: collapse; font-size: 12px; }
+        #simTable thead th {
+            padding: 7px 9px; text-align: left; white-space: nowrap;
+            font-size: 11px; font-weight: 600; color: var(--ink-2);
+            border-bottom: 1px solid var(--ink);
+        }
+        .dark #simTable thead th { border-bottom-color: #4A4A4E; }
+        #simTable td {
+            padding: 6px 9px; vertical-align: top; white-space: nowrap; line-height: 1.45;
+            border-bottom: 1px solid var(--rule-soft); color: var(--ink);
+        }
+        #simTable .num { text-align: right; font-variant-numeric: tabular-nums; }
+        #simTable .code { font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: .01em; }
+        #simTable .sub { color: var(--ink-2); }
+        #simTable .none { color: var(--ink-3); opacity: .6; }
+        #simTable td.qty { font-weight: 700; font-size: 13px; }
+        /* 주석 : 원래 줄바꿈(\n) 만 지키고 자동 줄바꿈 없이 가로로 넓게 */
+        #simTable td.cmt { white-space: pre; min-width: 240px; }
+        #simTable td.err { white-space: normal; color: var(--c-delete); background: var(--t-delete); min-width: 240px; }
+
+        #simTable tr.item-row:hover td:not(.chg) { background: var(--wash); }
+        #simTable tr.item-row.no-part td { color: var(--ink-3); }
+
+        /* ── 현자재 / 실행 후 ── */
+        #simTable thead tr.band th { padding-bottom: 4px; }
+        #simTable thead tr.band th.pair-h { text-align: center; color: var(--ink); font-weight: 700; border-bottom: 1px solid var(--rule); }
+        #simTable thead tr.band th.pair-h small { font-size: 10.5px; font-weight: 500; color: var(--ink-3); margin-left: 4px; }
+        #simTable thead tr.side th { padding-top: 4px; font-size: 10.5px; color: var(--ink-3); }
+        #simTable .pair { border-left: 1px solid var(--rule); }
+        #simTable td.cur { background: var(--t-cur); color: var(--ink-2); }
+        #simTable td.cur.code { color: var(--ink); }
+        #simTable td.chg { font-weight: 700; }
+        #simTable td.cur.chg { background: var(--t-delete); }
+        #simTable td.aft.chg { background: var(--t-update); }
+        #simTable tr.ct-ADD td.aft.chg { background: var(--t-add); color: var(--c-add); }
+        #simTable td.cmt.chg { font-weight: 400; background: transparent; box-shadow: inset 3px 0 0 var(--c-update); }
+        #simTable td.cur.cmt.chg { box-shadow: inset 3px 0 0 var(--c-delete); background: var(--t-cur); }
+        #simTable tr.ct-ADD td.aft.cmt.chg { box-shadow: inset 3px 0 0 var(--c-add); color: var(--ink); }
+        #simTable tr.ct-SAME td { color: var(--ink-2); }
+        .same-val { color: var(--ink-3); }
+
+        /* 구분 표시 */
+        .ct { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+        .ct i { font-style: normal; display: inline-flex; align-items: center; justify-content: center;
+                width: 16px; height: 16px; border-radius: 4px; font-size: 11px; color: #fff; background: var(--ink-3); }
+        .ct-SAME .ct, .ct.ct-SAME { color: var(--ink-3); }
+        .ct-UPDATE .ct, .ct.ct-UPDATE { color: var(--c-update); }  .ct-UPDATE .ct i, .ct.ct-UPDATE i { background: var(--c-update); }
+        .ct-ADD .ct, .ct.ct-ADD { color: var(--c-add); }           .ct-ADD .ct i, .ct.ct-ADD i { background: var(--c-add); }
+        .ct-ZERO .ct, .ct-NOPART .ct, .ct-UNKNOWN .ct { color: var(--ink-3); font-weight: 600; }
+        #simTable tr.item-row.ct-UPDATE td:first-child { box-shadow: inset 3px 0 0 var(--c-update); }
+        #simTable tr.item-row.ct-ADD td:first-child { box-shadow: inset 3px 0 0 var(--c-add); }
+        .what { display: block; font-size: 10.5px; font-weight: 500; color: var(--ink-3); margin-top: 2px; padding-left: 22px; }
+        .delta { font-weight: 800; font-variant-numeric: tabular-nums; }
+        .delta.up { color: var(--c-add); }
+        .delta.down { color: var(--c-delete); }
+        .hand {
+            display: inline-flex; align-items: center; height: 16px; padding: 0 5px; margin-left: 4px;
+            border-radius: 4px; font-size: 10px; font-weight: 700; color: var(--c-delete); background: var(--t-delete);
+        }
+        .legend .ct i { width: 14px; height: 14px; font-size: 10px; }
+        #simTable tr.warn-row td { padding: 4px 9px 4px 30px; font-size: 11.5px; color: var(--c-warn); white-space: normal; }
+
+        /* 블럭 그룹 행 */
+        #simTable tr.group-row td {
+            padding: 10px 9px 5px; cursor: pointer; user-select: none;
+            border-bottom: 1px solid var(--rule); background: var(--sheet);
+        }
+        #simTable tr.group-row:hover td { background: var(--wash); }
+        .grp { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+        .grp-chev { width: 12px; color: var(--ink-3); font-size: 10px; transition: transform .15s; align-self: center; }
+        tr.group-row.collapsed .grp-chev { transform: rotate(-90deg); }
+        .grp-no { font-size: 14.5px; font-weight: 800; letter-spacing: -.01em; }
+        .grp-hogi { font-size: 12px; font-weight: 600; color: var(--ink-3); }
+        .grp-sum { display: inline-flex; gap: 10px; font-size: 11.5px; color: var(--ink-2); }
+        .grp-sum b { font-weight: 700; color: var(--ink); }
+        .grp-sum .ver-test { color: #C2410C; font-weight: 700; }
+        .grp-sum .ct { font-size: 11.5px; }
+        .grp-sum .sep { color: var(--rule); }
+        .grp-total { font-size: 11.5px; color: var(--ink-3); margin-left: auto; }
+
+        /* 빈 상태 / 계산 중 */
+        .state { padding: 64px 20px; text-align: center; white-space: normal !important; }
+        .state-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+        .state-text  { font-size: 13px; color: var(--ink-2); margin-top: 6px; line-height: 1.6; }
+        .state.error .state-title { color: var(--c-delete); }
+        .calc-dots { display: inline-flex; gap: 5px; margin-bottom: 16px; }
+        .calc-dots i { width: 7px; height: 7px; border-radius: 2px; background: var(--ink); animation: blink 1.1s infinite both; }
+        .calc-dots i:nth-child(2) { animation-delay: .15s; }
+        .calc-dots i:nth-child(3) { animation-delay: .3s; }
+        @keyframes blink { 0%, 80%, 100% { opacity: .15; } 40% { opacity: 1; } }
+        /* 블럭별 계산 중 행 */
+        #simTable tr.pending-row td { padding: 10px 9px; color: var(--ink-3); font-size: 12px; }
+
+        /* 결과 공개 : 집계 행 한 번만 */
+        @keyframes reveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+        .tb-result.show { animation: reveal .35s ease-out both; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+        }
+
+        /* ── 반응형 ── */
+        @media (max-width: 1199px) {
+            .tb-input { grid-template-columns: 1fr 1fr; }
+            .tb-input > .tb-cell + .tb-cell { border-left: none; }
+            .tb-input > .tb-cell:nth-child(even) { border-left: 1px solid var(--rule); }
+            .tb-input > .tb-cell:nth-child(n+3) { border-top: 1px solid var(--rule); }
+            .tb-result { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .tb-result > * { border-left: none !important; border-top: 1px solid var(--rule); }
+            .tb-result > *:nth-child(-n+3) { border-top: none; }
+            .tb-result > *:not(:nth-child(3n+1)) { border-left: 1px solid var(--rule) !important; }
+        }
+        @media (max-width: 639px) {
+            .tb-input { grid-template-columns: 1fr; }
+            .tb-input > .tb-cell { border-left: none !important; }
+            .tb-input > .tb-cell + .tb-cell { border-top: 1px solid var(--rule); }
+            .tb-action .btn-run { width: 100%; justify-content: center; }
+            .tb-result { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .tb-result > * { border-left: none !important; border-top: 1px solid var(--rule) !important; }
+            .tb-result > *:nth-child(-n+2) { border-top: none !important; }
+            .tb-result > *:nth-child(even) { border-left: 1px solid var(--rule) !important; }
+            .tools { margin-left: 0; width: 100%; }
+            .field.sm { width: 100%; }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+
+<!-- ═══════════ Left Sidebar (fragments/newSideBar.html) ═══════════ -->
+<div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+
+<div id="appContent">
+
+<!-- ═══════════ Top Bar ═══════════ -->
+<header class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-black/60 border-b border-black/5 dark:border-white/10">
+    <div class="w-full px-5 xl:px-8 h-[58px] flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <button type="button" id="sbToggle" class="icon-btn -ml-2" title="사이드바 열기/닫기" aria-label="사이드바 열기/닫기">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
+            <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-[16px] font-bold tracking-tight leading-none">BLOCK 시뮬레이터</h1>
+                <p class="text-[11px] text-apple-gray1 leading-none mt-[3px]">Logic Design Intelligence Platform</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <label for="darkModeToggle" class="text-[12.5px] font-medium text-apple-gray1 cursor-pointer" id="themeLabel">다크모드</label>
+            <label class="ios-switch">
+                <input type="checkbox" id="darkModeToggle" aria-label="다크모드">
+                <span class="track"></span><span class="knob"></span>
+            </label>
+        </div>
+    </div>
+</header>
+
+<main class="w-full px-4 sm:px-5 xl:px-8 py-7 space-y-5">
+
+    <!-- ═══════════ 표제란 : 입력 + 집계 ═══════════ -->
+    <section class="tblock" aria-label="수량 계산 조건과 결과 집계">
+        <div class="tb-row tb-input">
+            <div class="tb-cell tb-title">
+                <h2>블록 수량 시뮬레이션</h2>
+                <p>호기의 현재 BOM 자재(현자재)와, 자재수배 PID(EL_PB181B / SH_PB181B) 의 자재 PICK 마다 블럭번호 PID 를 실행한 결과를 나란히 비교합니다.</p>
+            </div>
+
+            <div class="tb-cell">
+                <label class="tb-label" for="hogi">호기번호</label>
+                <input type="search" id="hogi" class="field" placeholder="N26143L01" autocomplete="off" spellcheck="false" autofocus>
+                <p class="tb-hint" id="hogiHint">여러 호기는 쉼표로 구분합니다</p>
+            </div>
+
+            <div class="tb-cell">
+                <label class="tb-label" for="blockNo" id="blockLabel">수량 블럭번호</label>
+                <input type="search" id="blockNo" class="field" placeholder="B181B, SH_B181B" autocomplete="off" spellcheck="false">
+                <p class="tb-hint" id="blockHint">여러 블럭은 쉼표로 구분합니다. SH_ 로 시작하면 선박 블럭입니다</p>
+            </div>
+
+            <div class="tb-cell tb-action">
+                <div class="tb-label-row">
+                    <span class="tb-label" id="pidTestLabel">PID 테스트 버전</span>
+                    <!-- 블럭 1개를 입력하면 토글 대신 버전 선택 -->
+                    <div class="pid-ver" id="pidVerField" style="display:none;">
+                        <label title="입력한 블럭번호 PID (예: B181B) 버전">블럭 <select id="pidVerBlock" aria-label="블럭 PID 버전" disabled></select></label>
+                        <label title="입력한 블럭의 자재수배 PID (예: EL_PB181B / SH_PB181B) 버전" id="pidVerElpLabel">EL_P <select id="pidVerElp" aria-label="자재수배 PID 버전" disabled></select></label>
+                    </div>
+                    <div class="seg" id="pidTestSeg" role="group" aria-labelledby="pidTestLabel">
+                        <button type="button" data-test="block" aria-pressed="false" title="입력한 블럭번호 PID (예: B181B) 를 테스트 버전(-1)으로 계산합니다">블럭</button>
+                        <button type="button" data-test="elp" aria-pressed="false" title="입력한 블럭의 자재수배 PID (예: EL_PB181B / SH_PB181B) 를 테스트 버전(-1)으로 계산합니다">EL_P블럭</button>
+                    </div>
+                </div>
+                <button type="button" id="btnSearch" class="btn-run" onclick="runCalc()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8V4z"/></svg>
+                    수량 계산 실행
+                </button>
+                <p class="tb-hint" id="pidTestHint">PID 는 최신 버전으로 계산합니다</p>
+            </div>
+        </div>
+
+        <!-- 집계 (실행 후 표시) -->
+        <div class="tb-row tb-result" id="summaryPanel" style="display:none;">
+            <div class="stat-static">
+                <span class="stat-label">블럭</span>
+                <span class="stat-value" id="kpiBlocks">-</span>
+            </div>
+            <div class="stat-static">
+                <span class="stat-label">현자재</span>
+                <span class="stat-value"><span id="kpiCur">-</span><span class="stat-sub">수량 <span id="kpiCurQty">-</span></span></span>
+            </div>
+            <div class="stat-static">
+                <span class="stat-label">실행 후 자재 PICK</span>
+                <span class="stat-value"><span id="kpiPicks">-</span><span class="stat-sub">수량 <span id="kpiQty">-</span></span></span>
+            </div>
+            <div class="stat-static">
+                <span class="stat-label">변경 (수정 · 추가)</span>
+                <span class="stat-value" id="kpiChanged">-</span>
+            </div>
+            <div class="stat-static">
+                <span class="stat-label">오류</span>
+                <span class="stat-value" id="kpiErrors">-</span>
+            </div>
+            <div class="stat-static">
+                <span class="stat-label" id="kpiScopeSub">계산 시간</span>
+                <span class="stat-value"><span id="kpiElapsed">-</span><span class="text-[14px] font-semibold ml-0.5" style="color:var(--ink-3);">초</span></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 수량 계산 결과 ═══════════ -->
+    <section class="sheet">
+        <div class="sheet-head">
+            <h3>현자재 / 실행 후 자재</h3>
+            <span class="sheet-count tnum" id="resultBadge"></span>
+
+            <div class="tools">
+                <input type="search" id="filterText" class="field sm" placeholder="블럭, PICK, 자재번호, 주석으로 찾기" autocomplete="off" disabled aria-label="결과에서 찾기">
+                <button type="button" class="tool" id="btnChangedOnly" aria-pressed="false" disabled title="현자재와 다른 항목(수정, 추가)만 보입니다">변경만 보기</button>
+                <button type="button" class="tool" id="btnPartOnly" aria-pressed="true" disabled title="PICK 값(자재번호)이 없는 PICK 은 숨깁니다">자재번호 있는 PICK 만</button>
+                <button type="button" class="tool" id="btnToggleAll" onclick="toggleAllGroups()" disabled>
+                    <i class="fas fa-compress-alt" aria-hidden="true"></i> <span>모두 접기</span>
+                </button>
+                <button type="button" class="tool" id="btnCsv" onclick="downloadCsv()" disabled>
+                    <i class="fas fa-file-download" aria-hidden="true"></i> CSV 받기
+                </button>
+            </div>
+        </div>
+
+        <div class="legend">
+            <span><b style="color:var(--ink);">현자재</b> 호기의 현재 BOM, <b style="color:var(--ink);">실행 후</b> PICK(EL_PB181B_1, _2 …) 마다 블럭번호 PID 를 실행한 QTY 와 주석 PID(CMT) 결과. 자재번호로 짝을 맞춥니다</span>
+            <span class="ct ct-UPDATE"><i>Δ</i>수정</span>
+            <span class="ct ct-ADD"><i>+</i>추가</span>            <span><span class="hand" style="margin-left:0;">수기</span> BOM 에서 직접 고친 항목</span>
+        </div>
+        <div class="progress"><div id="renderProgress"></div></div>
+
+        <div class="tbl-scroll">
+            <table id="simTable">
+                <thead>
+                <tr class="band">
+                    <th rowspan="2" class="num" style="width:44px;">#</th>
+                    <th rowspan="2">구분</th>
+                    <th colspan="3" class="pair pair-h">현자재<small>현재 BOM</small></th>
+                    <th colspan="5" class="pair pair-h">실행 후<small>시뮬레이션 결과</small></th>
+                </tr>
+                <tr class="side">
+                    <th class="pair">자재번호</th><th class="num">수량</th><th>주석</th>
+                    <th class="pair">자재 PICK</th><th>자재번호</th><th class="num">수량 (QTY)</th><th class="num">증감</th><th>주석 (CMT)</th>
+                </tr>
+                </thead>
+                <tbody id="simBody">
+                <tr><td colspan="10" class="state">
+                    <p class="state-title">호기번호와 수량 블럭번호를 넣고 실행하세요</p>
+                    <p class="state-text">블럭별로 현재 BOM 자재(현자재)와 PICK 마다 계산한 실행 후 자재가 나란히 표시됩니다.</p>
+                </td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <footer class="pt-3 pb-8 text-center">
+        <p class="text-[12px]" style="color:var(--ink-3);">Copyright © 2026 <b>수배로직설계팀 김영환 M</b>. All rights reserved. Version 1.0.0</p>
+    </footer>
+</main>
+
+</div><!-- /#appContent -->
+
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+<script th:inline="none">
+    // 블럭 수량 계산 API (pidSimulatorUpCalPopUp 과 같은 API) : 호기 x 블럭 마다 한 번씩 호출
+    const BLOCK_QTY_API = '/simulateup/calcBlockQty';
+    // PID 버전 목록 (항목 {version, latest}, TEST(-1) 먼저 그 다음 최신순)
+    const VERSIONS_API = '/simulateup/pidVersions';
+    // 호기의 현재 BOM 중 블럭 1개의 자재 (현자재) : {wip, list : [{partNo, qty, cmt, glCode, spec, partSize, uCheck}]}
+    const CUR_BOM_API = '/simulate/currentBlockBom';
+    const COLS = 10;
+    const CT_LABEL = { SAME: '동일', UPDATE: '수정', ADD: '추가', ZERO: '수량 0', NOPART: '자재번호 없음', UNKNOWN: '비교 못 함' };
+    const CT_MARK  = { SAME: '=', UPDATE: 'Δ', ADD: '+', ZERO: '·', NOPART: '·', UNKNOWN: '?' };
+    const CT_CHANGED = ['UPDATE', 'ADD'];
+
+    let groups = [];           // 마지막 조회 결과 [{key, productNo, blockNo, result, error, bom, bomError}] (호기, 블럭 순)
+    let runToken = 0;          // 재조회 시 진행 중인 계산/출력을 중단하기 위한 토큰
+    let pidTest = { block: false, elp: false };     // 블럭이 여러 개일 때 : 블럭번호 PID / 자재수배 PID 를 테스트 버전(-1)으로
+    let lastPidVer = { block: null, elp: null };    // 마지막 조회에 쓴 PID 버전 (null : 최신, -1 : 테스트) (집계, CSV 파일명)
+    let verBlockNo = null;     // 버전 목록을 불러온 블럭 (블럭 1개 입력일 때만)
+    let verTimer = null;
+    let partOnly = true;       // 자재번호(PICK 값) 없는 PICK 숨김
+    let changedOnly = false;   // 현자재와 다른 항목(수정, 추가)만
+    let elapsedTimer = null;
+
+    /* ── PID 테스트 버전 (블럭 여러 개) ── */
+    $('#pidTestSeg').on('click', 'button', function () {
+        const key = $(this).data('test');
+        pidTest[key] = !pidTest[key];
+        $(this).attr('aria-pressed', String(pidTest[key]));
+        updatePidTestHint();
+    });
+    $('#blockNo').on('input', function () {
+        updatePidTestHint();
+        clearTimeout(verTimer);
+        verTimer = setTimeout(syncPidVerField, 300);
+    });
+
+    /* ── 블럭 1개 : 토글 대신 PID 버전 선택 ── */
+    function singleBlock() {
+        const blocks = splitList($('#blockNo').val());
+        return blocks.length === 1 ? blocks[0] : null;
+    }
+    function isVerMode() { return $('#pidVerField').is(':visible'); }
+
+    /**
+     * 블럭번호 → 자재수배 PID (서버 PIDBlockQtySimul / PIDShipBlockQtySimul 과 같은 규칙)
+     * ex) B181B → EL_PB181B, SH_B181B → SH_PB181B
+     */
+    function elpPidOf(blockNo) {
+        if (blockNo.indexOf('SH_') === 0)
+            return 'SH_P' + (blockNo.indexOf('SH_P') === 0 ? blockNo.substring(4) : blockNo.substring(3));
+        return blockNo.indexOf('EL_P') === 0 ? blockNo : 'EL_P' + blockNo;
+    }
+    function elpPrefix(blockNo) { return blockNo && blockNo.indexOf('SH_') === 0 ? 'SH_P' : 'EL_P'; }
+    function syncPidVerField() {
+        const blockNo = singleBlock();
+        $('#pidTestSeg').toggle(!blockNo);
+        $('#pidVerField').toggle(!!blockNo);
+        $('#pidTestLabel').text(blockNo ? 'PID 버전' : 'PID 테스트 버전');
+        if (!blockNo) { verBlockNo = null; updatePidTestHint(); return; }
+        if (verBlockNo === blockNo) { updatePidTestHint(); return; }
+
+        verBlockNo = blockNo;
+        const elpPid = elpPidOf(blockNo);
+        // 라벨 텍스트 노드만 바꾼다 (select 는 그대로)
+        $('#pidVerElpLabel').contents().first()[0].nodeValue = elpPrefix(blockNo) + ' ';
+        $('#pidVerElpLabel').attr('title', '자재수배 PID ' + elpPid + ' 버전');
+        $('#pidVerBlock, #pidVerElp').html('<option value="">불러오는 중</option>').prop('disabled', true).removeClass('picked');
+        updatePidTestHint();
+        loadPidVer($('#pidVerBlock'), blockNo, pidTest.block);
+        loadPidVer($('#pidVerElp'), elpPid, pidTest.elp);
+
+        function loadPidVer($sel, pid, preferTest) {
+            $.getJSON(VERSIONS_API, { pid: pid }).done(function (list) {
+                if (verBlockNo !== blockNo) return;       // 그 사이 입력이 바뀜
+                fillPidVer($sel, list, preferTest);
+                updatePidTestHint();
+            }).fail(function () {
+                if (verBlockNo !== blockNo) return;
+                verBlockNo = null;                         // 다음 입력 때 다시 시도
+                $sel.html('<option value="">최신</option>').prop('disabled', true).removeClass('picked');
+                $('#pidTestHint').text(pid + ' 버전 목록을 불러오지 못했습니다. 최신 버전으로 계산합니다');
+            });
+        }
+    }
+    /** list : [{version, latest}] (테스트 -1 먼저, 버전 내림차순). 토글에서 테스트를 골랐으면 -1 을 미리 고른다 */
+    function fillPidVer($sel, list, preferTest) {
+        list = Array.isArray(list) ? list : [];
+        const latest = list.filter(function (v) { return v.latest; })[0];
+        const html = ['<option value="">최신' + (latest ? ' (v' + latest.version + ')' : '') + '</option>'];
+        list.forEach(function (v) {
+            if (v.latest) return;                      // '최신' 과 같은 버전
+            html.push('<option value="' + v.version + '">' + esc(verText(v.version)) + '</option>');
+        });
+        $sel.html(html.join('')).prop('disabled', list.length === 0);
+        $sel.val(preferTest && list.some(function (v) { return v.version === -1 && !v.latest; }) ? '-1' : '');
+        $sel.toggleClass('picked', $sel.val() !== '');
+    }
+    function verText(v) { return v === -1 ? '테스트 (-1)' : 'v' + v; }
+    $('#pidVerBlock, #pidVerElp').on('change', function () {
+        $(this).toggleClass('picked', $(this).val() !== '');
+        updatePidTestHint();
+    });
+
+    /** 지금 고른 PID 버전 { block, elp } (null : 최신, -1 : 테스트, 그 외 : 지정 버전) */
+    function pidSelection() {
+        if (isVerMode()) {
+            const b = $('#pidVerBlock').val(), e = $('#pidVerElp').val();
+            return { block: b ? Number(b) : null, elp: e ? Number(e) : null };
+        }
+        return { block: pidTest.block ? -1 : null, elp: pidTest.elp ? -1 : null };
+    }
+
+    function updatePidTestHint() {
+        const sel = pidSelection();
+        if (sel.block == null && sel.elp == null) { $('#pidTestHint').text('PID 는 최신 버전으로 계산합니다'); return; }
+        const blocks = splitList($('#blockNo').val());
+        const first = blocks.length ? blocks[0] : '블럭번호';
+        const names = [];
+        if (sel.block != null) names.push(first + ' ' + verText(sel.block));
+        if (sel.elp != null) names.push((blocks.length ? elpPidOf(first) : 'EL_P' + first) + ' ' + verText(sel.elp));
+        const more = blocks.length > 1 ? ' 외 ' + (blocks.length - 1) + '개 블럭' : '';
+        $('#pidTestHint').text('PID 버전 : ' + names.join(', ') + more);
+    }
+    /** 최신이 아닌 PID 버전 표시 (없으면 빈 문자열) ex) " (PID 버전 : 블럭 v10, EL_P블럭 테스트 (-1))" */
+    function pidVerLabel(t, pre, post) {
+        const on = [];
+        if (t.block != null) on.push('블럭 ' + verText(t.block));
+        if (t.elp != null) on.push('EL_P블럭 ' + verText(t.elp));
+        return on.length ? pre + 'PID 버전 : ' + on.join(', ') + post : '';
+    }
+
+    $('#hogi, #blockNo').on('keydown', function (e) { if (e.key === 'Enter') runCalc(); });
+
+    function splitList(v) {
+        return (v || '').split(/[,\s]+/).map(function (s) { return s.trim().toUpperCase(); }).filter(Boolean);
+    }
+
+    function esc(v) {
+        return String(v == null ? '' : v)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function nvl(v) { return v == null ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v)); }
+    function fmtQty(v) {
+        if (v == null || v === '') return '';
+        const n = Number(v);
+        return isNaN(n) ? String(v) : n.toLocaleString(undefined, { maximumFractionDigits: 4 });
+    }
+    function has(v) { return !(v == null || v === ''); }
+    function cell(v, cls) {
+        return has(v) ? (cls ? '<span class="' + cls + '">' + esc(v) + '</span>' : esc(v)) : '<span class="none">—</span>';
+    }
+
+    function setBody(html) { $('#simBody').html(html); }
+    function stateRow(title, text, cls) {
+        return '<tr><td colspan="' + COLS + '" class="state ' + (cls || '') + '">' + title
+            + (text ? '<p class="state-text">' + text + '</p>' : '') + '</td></tr>';
+    }
+    function setToolsEnabled(on) { $('#filterText, #btnChangedOnly, #btnPartOnly, #btnToggleAll, #btnCsv').prop('disabled', !on); }
+
+    /* ── 결과 값 꺼내기 : resultMap 키는 대소문자 구분 없이 ── */
+    function resultVal(run, name) {
+        const map = run.resultMap || {};
+        const key = Object.keys(map).filter(function (k) { return k.toUpperCase() === name; })[0];
+        return key === undefined ? null : nvl(map[key]);
+    }
+    /**
+     * 화면/CSV 에 쓰는 PICK 행 [{pick, partNo, qty, cmt, cmtPids, error}]
+     * 주석 : PICK 마다 BLOCKNO$SF 주석 PID(CMTn) 를 실행한 결과. BLOCKNO$SF 에 PICK 이 없으면 블럭 PID 결과의 CMT
+     */
+    function pickRows(g) {
+        const runs = (g.result && g.result.runs) || [];
+        return runs.map(function (run) {
+            const fromPick = run.cmtPids != null;
+            return {
+                pick: run.pick,
+                partNo: nvl(run.pickValue).trim(),
+                qty: resultVal(run, 'QTY'),
+                cmt: fromPick ? nvl(run.cmt) : resultVal(run, 'CMT'),
+                cmtPids: fromPick ? run.cmtPids : '',
+                error: run.error || ''
+            };
+        });
+    }
+
+    /**
+     * 수량 블럭번호 → 현재 BOM 의 블럭번호 (BLOCKNO$SF 번호, 서버 calcBlockQty 와 같은 규칙)
+     * ex) EL_PB181B → B181B, SH_PB181B → SH_B181B
+     */
+    function bomBlockOf(blockNo) {
+        if (blockNo.indexOf('SH_P') === 0) return 'SH_' + blockNo.substring(4);
+        return blockNo.indexOf('EL_P') === 0 && blockNo.length > 4 ? blockNo.substring(4) : blockNo;
+    }
+    function sameQty(a, b) {
+        const x = Number(a), y = Number(b);
+        return has(a) && has(b) && !isNaN(x) && !isNaN(y) ? x === y : nvl(a).trim() === nvl(b).trim();
+    }
+    function normCmt(v) { return nvl(v).replace(/\r\n?/g, '\n').trim(); }
+
+    /**
+     * 현자재 / 실행 후 비교 행 [{pick, partNo, qty, cmt, cmtPids, error, cur, ct, qtyChg, cmtChg}]
+     * 실행 후 PICK 과 현자재를 자재번호로 하나씩 짝짓고 (같은 자재번호가 여럿이면 순서대로), 남은 현자재는 현재 BOM 에 있는 자재이므로 수정(curOnly)으로 붙인다.
+     */
+    function compareRows(g) {
+        if (g._cmp) return g._cmp;
+        const cur = g.bom || [];
+        const used = cur.map(function () { return false; });
+        const out = pickRows(g).map(function (p) {
+            let c = null;
+            if (p.partNo) {
+                const k = cur.findIndex(function (b, i) { return !used[i] && nvl(b.partNo).trim() === p.partNo; });
+                if (k >= 0) { used[k] = true; c = cur[k]; }
+            }
+            const r = Object.assign({ cur: c, qtyChg: false, cmtChg: false }, p);
+            if (!p.partNo) r.ct = 'NOPART';
+            else if (g.bomError) r.ct = 'UNKNOWN';
+            else if (!c) r.ct = has(p.qty) && Number(p.qty) === 0 ? 'ZERO' : 'ADD';
+            else {
+                r.qtyChg = !sameQty(c.qty, p.qty);
+                r.cmtChg = normCmt(c.cmt) !== normCmt(p.cmt);
+                r.ct = r.qtyChg || r.cmtChg ? 'UPDATE' : 'SAME';
+            }
+            return r;
+        });
+        cur.forEach(function (c, i) {
+            if (!used[i]) out.push({ pick: '', partNo: '', qty: null, cmt: '', cmtPids: '', error: '', cur: c, ct: 'UPDATE', curOnly: true, qtyChg: true, cmtChg: has(c.cmt) });
+        });
+        return (g._cmp = out);
+    }
+    function countByType(rows) {
+        const cnt = { SAME: 0, UPDATE: 0, ADD: 0 };
+        rows.forEach(function (r) { if (r.ct in cnt) cnt[r.ct]++; });
+        return cnt;
+    }
+
+    /* ── 수량 계산 실행 : 호기 x 블럭 마다 순서대로 호출하고 끝나는 대로 표에 붙인다 ── */
+    function runCalc() {
+        const hogiList = splitList($('#hogi').val());
+        const blockList = splitList($('#blockNo').val());
+
+        if (!hogiList.length) { $('#hogi').focus(); return; }
+        if (!blockList.length) { $('#blockNo').focus(); return; }
+
+        const token = ++runToken;
+        const started = performance.now();
+        const usedVer = pidSelection();
+        const jobs = [];
+        hogiList.forEach(function (h) { blockList.forEach(function (b) { jobs.push({ productNo: h, blockNo: b }); }); });
+
+        groups = [];
+        lastPidVer = usedVer;
+        setToolsEnabled(false);
+        $('#filterText').val('');
+        $('#resultBadge').text('');
+        $('#renderProgress').css('width', '0');
+        $('#btnSearch').prop('disabled', true);
+        $('#summaryPanel').hide();
+
+        setBody(stateRow(
+            '<div class="calc-dots" aria-hidden="true"><i></i><i></i><i></i></div>'
+            + '<p class="state-title">' + esc(hogiList.join(', ')) + ' 의 블럭 ' + blockList.length + '개 현자재를 읽고 수량을 계산하고 있습니다'
+            + esc(pidVerLabel(usedVer, ' (', ')')) + '</p>',
+            '<span class="tnum" id="elapsedLive">0.0초</span> 지났습니다 · <span class="tnum" id="jobLive">0 / ' + jobs.length + '</span>'));
+        clearInterval(elapsedTimer);
+        elapsedTimer = setInterval(function () {
+            $('#elapsedLive').text(((performance.now() - started) / 1000).toFixed(1) + '초');
+        }, 100);
+
+        let i = 0;
+        (function next() {
+            if (token !== runToken) return;
+            if (i >= jobs.length) {
+                clearInterval(elapsedTimer);
+                $('#btnSearch').prop('disabled', false);
+                $('#renderProgress').css('width', '100%');
+                setTimeout(function () { $('#renderProgress').css('width', '0'); }, 500);
+                renderSummary(hogiList, (performance.now() - started) / 1000);
+                setToolsEnabled(true);
+                if (!groups.length) setBody(stateRow('<p class="state-title">계산할 블럭이 없습니다</p>'));
+                return;
+            }
+            const job = jobs[i++];
+            $('#jobLive').text(i + ' / ' + jobs.length + ' · ' + job.productNo + ' ' + job.blockNo);
+            // pickCmt : PICK 마다 BLOCKNO$SF 주석 PID(CMTn) 를 실행한 주석을 받는다
+            const data = { project: job.productNo, pid: job.blockNo, pickCmt: true };
+            if (usedVer.block != null) data.version = usedVer.block;
+            if (usedVer.elp != null) data.elpVersion = usedVer.elp;
+            const errMsg = function (xhr) { return (xhr.responseJSON && xhr.responseJSON.error) || xhr.statusText || '서버 응답이 없습니다'; };
+
+            // 실행 후 (수량 계산) 와 현자재 (현재 BOM) 를 같이 부르고 둘 다 끝나면 표에 붙인다
+            let pending = 2;
+            $.ajax({ url: BLOCK_QTY_API, type: 'GET', data: data, dataType: 'json' }).done(function (res) {
+                job.result = res;
+            }).fail(function (xhr) {
+                job.error = errMsg(xhr);
+            }).always(done);
+            $.ajax({ url: CUR_BOM_API, type: 'GET', data: { hogi: job.productNo, blockNo: bomBlockOf(job.blockNo) }, dataType: 'json' }).done(function (res) {
+                job.bom = (res && res.list) || [];
+                if (res && res.wip === false) job.bomError = job.productNo + ' 의 현재 BOM 이 없습니다';
+            }).fail(function (xhr) {
+                job.bom = [];
+                job.bomError = '현자재를 불러오지 못했습니다 : ' + errMsg(xhr);
+            }).always(done);
+
+            function done() {
+                if (--pending > 0) return;
+                if (token !== runToken) return;
+                job.key = job.productNo + '|' + job.blockNo;
+                if (!groups.length) $('#simBody').empty();
+                groups.push(job);
+                appendGroup(job, hogiList.length > 1);
+                $('#renderProgress').css('width', (i / jobs.length * 100) + '%');
+                next();
+            }
+        })();
+    }
+
+    function renderSummary(hogiList, elapsed) {
+        let picks = 0, errors = 0, qtySum = 0, cur = 0, curQty = 0, changed = 0;
+        const addQty = function (v, sum) { const n = Number(v); return has(v) && !isNaN(n) ? sum + n : sum; };
+        groups.forEach(function (g) {
+            (g.bom || []).forEach(function (c) { cur++; curQty = addQty(c.qty, curQty); });
+            if (g.bomError) errors++;
+            if (g.error) { errors++; return; }
+            pickRows(g).forEach(function (p) {
+                if (!p.partNo) return;
+                picks++;
+                if (p.error) errors++;
+                qtySum = addQty(p.qty, qtySum);
+            });
+            const cnt = countByType(compareRows(g));
+            changed += cnt.UPDATE + cnt.ADD;
+        });
+        $('#kpiBlocks').text(groups.length.toLocaleString());
+        $('#kpiCur').text(cur.toLocaleString());
+        $('#kpiCurQty').text(fmtQty(curQty));
+        $('#kpiPicks').text(picks.toLocaleString());
+        $('#kpiQty').text(fmtQty(qtySum));
+        $('#kpiChanged').text(changed.toLocaleString()).toggleClass('zero', changed === 0);
+        $('#kpiErrors').text(errors.toLocaleString()).toggleClass('zero', errors === 0).toggleClass('bad', errors > 0);
+        $('#kpiElapsed').text(elapsed.toFixed(1));
+        $('#kpiScopeSub').text((hogiList.length > 1 ? '호기 ' + hogiList.length + '개 계산 시간' : '계산 시간')
+            + pidVerLabel(lastPidVer, ' · ', ''));
+
+        $('#summaryPanel').removeClass('show').show();
+        void document.getElementById('summaryPanel').offsetWidth;
+        $('#summaryPanel').addClass('show');
+    }
+
+    /* ── 호기+블럭 그룹 ── */
+    function groupRowHtml(g, multiHogi) {
+        const r = g.result || {};
+        const rows = pickRows(g);
+        const parts = rows.filter(function (p) { return p.partNo; }).length;
+        const sum = [];
+        if (g.error) {
+            sum.push('<span style="color:var(--c-delete);">계산 실패</span>');
+        } else {
+            if (r.blockPidName) sum.push('<span>' + esc(r.blockPidName) + '</span>');
+            sum.push(r.testVersion ? '<span class="ver-test">TEST</span>' : '<span>v' + esc(nvl(r.runVersion)) + '</span>');
+            if (r.elpPid) sum.push('<span>' + esc(r.elpPid) + ' ' + elpVerHtml(r) + ' 결과변수 <b>' + rows.length + '</b>건</span>');
+            sum.push('<span>' + (r.type === 'SHIP' ? '선박' : '엘리베이터') + '</span>');
+            if (!g.bomError) {
+                const cnt = countByType(compareRows(g));
+                const changed = CT_CHANGED.filter(function (ct) { return cnt[ct] > 0; });
+                sum.push('<span class="sep">|</span>');
+                sum.push(changed.length
+                    ? changed.map(function (ct) { return '<span class="ct ct-' + ct + '"><i>' + CT_MARK[ct] + '</i>' + CT_LABEL[ct] + ' ' + cnt[ct] + '</span>'; }).join('')
+                    : '<span class="ct ct-SAME">현자재와 같음</span>');
+            }
+        }
+        const curCnt = (g.bom || []).length;
+        return '<tr class="group-row" data-key="' + esc(g.key) + '" tabindex="0" aria-expanded="true">'
+            + '<td colspan="' + COLS + '"><div class="grp">'
+            + '<i class="fas fa-chevron-down grp-chev" aria-hidden="true"></i>'
+            + '<span class="grp-no">' + esc(r.blockPid || g.blockNo) + '</span>'
+            + (multiHogi ? '<span class="grp-hogi">' + esc(g.productNo) + '</span>' : '')
+            + '<span class="grp-sum">' + sum.join('') + '</span>'
+            + '<span class="grp-total tnum">현자재 ' + curCnt + '개' + (g.error ? '' : ' · 실행 후 자재 PICK ' + parts + '개') + '</span>'
+            + '</div></td></tr>';
+    }
+
+    /** 자재수배 PID 실행 버전 (버전을 지정하지 않았으면 최신) */
+    function elpVerText(r) { return r.elpTestVersion ? 'TEST' : (r.elpRunVersion == null ? '최신' : 'v' + r.elpRunVersion); }
+    function elpVerHtml(r) {
+        return r.elpTestVersion ? '<span class="ver-test">TEST</span>' : esc(elpVerText(r));
+    }
+
+    /** 값 하나 (바뀌지 않은 실행 후 값은 흐리게) */
+    function val(v, muted) {
+        if (!has(v)) return '<span class="none">—</span>';
+        return '<span class="v' + (muted ? ' same-val' : '') + '">' + esc(v) + '</span>';
+    }
+    function qtyDelta(r) {
+        if (r.ct !== 'UPDATE' && r.ct !== 'ADD') return '';
+        const b = r.cur ? Number(r.cur.qty) : 0;
+        const a = r.curOnly ? 0 : Number(r.qty);
+        if (isNaN(a) || isNaN(b) || a === b) return '';
+        const d = a - b;
+        return '<span class="delta ' + (d > 0 ? 'up' : 'down') + '">' + (d > 0 ? '+' : '−') + fmtQty(Math.abs(d)) + '</span>';
+    }
+    function whatText(r) {
+        if (r.ct === 'ADD') return '현자재에 없음';
+        if (r.curOnly) return '실행 후 없음';
+        if (r.ct !== 'UPDATE') return '';
+        return [r.qtyChg ? '수량' : '', r.cmtChg ? '주석' : ''].filter(Boolean).join(', ');
+    }
+
+    // 현자재 | 실행 후. 주석(CMT) 은 PICK 마다 그 PICK 의 주석 PID 실행 결과 (마우스를 올리면 주석 PID 표시)
+    function itemRowHtml(g, r, idx) {
+        const c = r.cur, ct = r.ct;
+        const isAdd = ct === 'ADD', isDel = !!r.curOnly, diff = isAdd || ct === 'UPDATE';
+        const ctLabel = CT_LABEL[ct];
+        const search = [g.productNo, g.blockNo, r.pick, r.partNo, r.qty, r.cmt, r.cmtPids, r.error,
+            c && c.partNo, c && c.qty, c && c.cmt, ctLabel].join(' ').toLowerCase();
+        const curChg = function (changed) { return changed && !isAdd && diff ? ' chg' : ''; };
+        const aftChg = function (changed) { return changed && !isDel && diff ? ' chg' : ''; };
+        const what = whatText(r);
+
+        // 현자재
+        const curCells = c
+            ? '<td class="code cur pair' + curChg(isDel) + '"><span class="v">' + esc(c.partNo) + '</span>'
+                + (c.uCheck ? '<span class="hand" title="BOM 에서 직접 고친 항목">수기</span>' : '') + '</td>'
+              + '<td class="num cur qty' + curChg(r.qtyChg) + '">' + val(fmtQty(c.qty)) + '</td>'
+              + '<td class="cur cmt' + curChg(r.cmtChg) + '">' + val(c.cmt) + '</td>'
+            : '<td class="cur pair"><span class="none">' + (g.bomError ? '—' : '현자재 없음') + '</span></td><td class="cur"></td><td class="cur"></td>';
+
+        // 실행 후
+        let aftCells;
+        if (isDel) {
+            aftCells = '<td class="pair"><span class="none">—</span></td><td><span class="none">실행 후 없음</span></td><td></td>'
+                + '<td class="num">' + qtyDelta(r) + '</td><td></td>';
+        } else {
+            const cmtCell = r.error
+                ? '<td class="err">' + esc(r.error) + '</td>'
+                : '<td class="aft cmt' + aftChg(r.cmtChg || (isAdd && has(r.cmt))) + '"' + (r.cmtPids ? ' title="주석 PID : ' + esc(r.cmtPids) + '"' : '') + '>'
+                    + val(r.cmt, diff && !r.cmtChg && !isAdd) + '</td>';
+            aftCells = '<td class="code sub pair">' + esc(r.pick) + '</td>'
+                + '<td class="code aft' + aftChg(isAdd) + '">' + (r.partNo ? esc(r.partNo) : '<span class="none">' + (ct === 'UNKNOWN' ? '—' : '자재번호 없음') + '</span>') + '</td>'
+                + '<td class="num qty aft' + aftChg(r.qtyChg || isAdd) + '">' + (r.partNo ? val(fmtQty(r.qty), diff && !r.qtyChg && !isAdd) : '') + '</td>'
+                + '<td class="num">' + qtyDelta(r) + '</td>'
+                + (r.partNo ? cmtCell : '<td></td>');
+        }
+
+        return '<tr class="item-row ct-' + ct + (r.partNo || c ? '' : ' no-part') + '" data-key="' + esc(g.key) + '"'
+            + ' data-ct="' + ct + '" data-part="' + (r.partNo || c ? '1' : '') + '" data-search="' + esc(search) + '">'
+            + '<td class="num sub">' + idx + '</td>'
+            + '<td><span class="ct"><i aria-hidden="true">' + CT_MARK[ct] + '</i>' + CT_LABEL[ct] + '</span>'
+            + (what ? '<span class="what">' + what + '</span>' : '') + '</td>'
+            + curCells + aftCells
+            + '</tr>';
+    }
+
+    function appendGroup(g, multiHogi) {
+        let html = groupRowHtml(g, multiHogi);
+        const warn = function (w) { return '<tr class="warn-row" data-key="' + esc(g.key) + '"><td colspan="' + COLS + '">' + esc(w) + '</td></tr>'; };
+        if (g.bomError) html += warn(g.bomError);
+        if (g.error) {
+            html += '<tr class="item-row" data-key="' + esc(g.key) + '" data-ct="ERROR" data-part="1" data-search="' + esc((g.blockNo + ' ' + g.error).toLowerCase()) + '">'
+                + '<td></td><td colspan="' + (COLS - 1) + '" class="err">' + esc(g.error) + '</td></tr>';
+            // 실행 후 계산이 실패해도 현자재는 보여준다
+            (g.bom || []).forEach(function (c, i) {
+                html += itemRowHtml(g, { pick: '', partNo: '', qty: null, cmt: '', cmtPids: '', error: '', cur: c, ct: 'UNKNOWN' }, i + 1);
+            });
+        } else {
+            ((g.result && g.result.warnings) || []).forEach(function (w) { html += warn(w); });
+            const rows = compareRows(g);
+            if (!pickRows(g).length) html += warn('자재수배 PID 결과변수(PICK)가 없습니다');
+            rows.forEach(function (r, i) { html += itemRowHtml(g, r, i + 1); });
+        }
+        $('#simBody').append(html);
+        applyVisibility();
+    }
+
+    /* ── 그룹 접기/펼치기 ── */
+    function toggleGroup(tr) {
+        const collapsed = $(tr).toggleClass('collapsed').hasClass('collapsed');
+        tr.setAttribute('aria-expanded', String(!collapsed));
+        applyVisibility();
+        syncToggleAllLabel();
+    }
+    $('#simBody').on('click', 'tr.group-row', function () { toggleGroup(this); });
+    $('#simBody').on('keydown', 'tr.group-row', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGroup(this); }
+    });
+
+    function toggleAllGroups() {
+        const $groups = $('#simBody tr.group-row');
+        const collapse = $groups.filter(':not(.collapsed)').length > 0;
+        $groups.toggleClass('collapsed', collapse).attr('aria-expanded', String(!collapse));
+        applyVisibility();
+        syncToggleAllLabel();
+    }
+
+    function syncToggleAllLabel() {
+        const anyOpen = $('#simBody tr.group-row:not(.collapsed)').length > 0;
+        $('#btnToggleAll span').text(anyOpen ? '모두 접기' : '모두 펼치기');
+        $('#btnToggleAll i').attr('class', anyOpen ? 'fas fa-compress-alt' : 'fas fa-expand-alt');
+    }
+
+    /* ── 텍스트 필터 / 변경만 보기 / 자재번호 있는 PICK 만 + 접힘 상태 반영 ── */
+    $('#filterText').on('input', applyVisibility);
+    $('#btnChangedOnly').on('click', function () {
+        changedOnly = !changedOnly;
+        $(this).attr('aria-pressed', String(changedOnly));
+        applyVisibility();
+    });
+    $('#btnPartOnly').on('click', function () {
+        partOnly = !partOnly;
+        $(this).attr('aria-pressed', String(partOnly));
+        applyVisibility();
+    });
+
+    function applyVisibility() {
+        const q = ($('#filterText').val() || '').trim().toLowerCase();
+        const collapsed = {};
+        $('#simBody tr.group-row').each(function () {
+            collapsed[this.dataset.key] = $(this).hasClass('collapsed');
+        });
+
+        let shown = 0, total = 0;
+        const matchCnt = {};
+        $('#simBody tr.item-row').each(function () {
+            const k = this.dataset.key;
+            total++;
+            const ct = this.dataset.ct;
+            const match = (!q || this.dataset.search.indexOf(q) !== -1) && (!partOnly || this.dataset.part)
+                && (!changedOnly || ct === 'ERROR' || CT_CHANGED.indexOf(ct) !== -1);
+            if (match) { matchCnt[k] = (matchCnt[k] || 0) + 1; shown++; }
+            this.style.display = match && !collapsed[k] ? '' : 'none';
+        });
+        $('#simBody tr.warn-row').each(function () {
+            this.style.display = !q && !collapsed[this.dataset.key] ? '' : 'none';
+        });
+        $('#simBody tr.group-row').each(function () {
+            this.style.display = (!q || matchCnt[this.dataset.key]) ? '' : 'none';
+        });
+
+        let badge = '블럭 ' + groups.length + '개, 자재 ' + total.toLocaleString() + '건';
+        if (total && shown < total) badge += ' 중 ' + shown.toLocaleString() + '건 표시';
+        $('#resultBadge').text(groups.length ? badge : '');
+    }
+
+    /* ── 결과 표 마우스 끌기로 좌우 이동 ── */
+    (function enableDragScroll(el) {
+        const THRESHOLD = 5;   // 이만큼 움직여야 끌기로 본다 (그 전엔 클릭)
+        let down = false, moved = false, justDragged = false, startX = 0, startLeft = 0;
+
+        function scrollable() { return el.scrollWidth > el.clientWidth + 1; }
+        function refresh() { el.classList.toggle('can-drag', scrollable()); }
+
+        el.addEventListener('mousedown', function (e) {
+            if (e.button !== 0 || !scrollable()) return;
+            if (e.target.closest('button, a, input, select, textarea')) return;
+            down = true; moved = false;
+            startX = e.clientX; startLeft = el.scrollLeft;
+            e.preventDefault();   // 끌 때 글자 선택이 시작되지 않도록
+        });
+        window.addEventListener('mousemove', function (e) {
+            if (!down) return;
+            const dx = e.clientX - startX;
+            if (!moved) {
+                if (Math.abs(dx) < THRESHOLD) return;
+                moved = true;
+                el.classList.add('dragging');
+            }
+            el.scrollLeft = startLeft - dx;
+        });
+        window.addEventListener('mouseup', function () {
+            if (!down) return;
+            down = false;
+            if (moved) {
+                el.classList.remove('dragging');
+                justDragged = true;
+                setTimeout(function () { justDragged = false; }, 0);
+            }
+        });
+        // 끌기 직후의 클릭(블럭 접기 등)은 무시
+        el.addEventListener('click', function (e) {
+            if (justDragged) { e.stopPropagation(); e.preventDefault(); }
+        }, true);
+        // 표 너비는 결과/필터/사이드바 접기로 바뀌므로 마우스가 들어올 때마다 다시 확인
+        el.addEventListener('mouseenter', refresh);
+        window.addEventListener('resize', refresh);
+    })(document.querySelector('.tbl-scroll'));
+
+    /* ── CSV 다운로드 (현재 필터와 무관하게 전체) ── */
+    /** CSV 파일명용 버전 표시 ex) _TESTBLK, _ELPv10 (최신이면 빈 문자열) */
+    function verSuffix(name, v) { return v == null ? '' : v === -1 ? '_TEST' + name : '_' + name + 'v' + v; }
+
+    function downloadCsv() {
+        if (!groups.length) return;
+        const q = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
+        const header = ['호기', '블럭', '버전', '자재수배 PID', '자재수배 버전', '구분',
+            '현자재 자재번호', '현자재 수량', '현자재 주석', '수기',
+            '자재 PICK', '자재번호', 'QTY', '증감', 'CMT', '주석 PID', '오류'];
+        const lines = [header.map(q).join(',')];
+        const curCols = function (c) { return c ? [c.partNo, c.qty, c.cmt, c.uCheck ? 'Y' : ''] : ['', '', '', '']; };
+        groups.forEach(function (g) {
+            const r = g.result || {};
+            if (g.error) {
+                lines.push([g.productNo, g.blockNo, '', '', '', '', '', '', '', '', '', '', '', '', '', '', g.error].map(q).join(','));
+                (g.bom || []).forEach(function (c) {
+                    lines.push([g.productNo, g.blockNo, '', '', '', CT_LABEL.UNKNOWN].concat(curCols(c), ['', '', '', '', '', '', '']).map(q).join(','));
+                });
+                return;
+            }
+            const ver = r.testVersion ? 'TEST' : 'v' + nvl(r.runVersion);
+            compareRows(g).forEach(function (p) {
+                const delta = $('<div>').html(qtyDelta(p)).text().replace('−', '-');
+                const ctLabel = CT_LABEL[p.ct];
+                lines.push([g.productNo, r.blockPid || g.blockNo, ver, r.elpPid, elpVerText(r), ctLabel]
+                    .concat(curCols(p.cur), [p.pick, p.partNo, p.qty, delta, p.cmt, p.cmtPids, p.error || g.bomError || '']).map(q).join(','));
+            });
+        });
+        const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const hogis = Array.from(new Set(groups.map(function (g) { return g.productNo; })));
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'BLOCK_QTY_' + (hogis.length === 1 ? hogis[0] : hogis.length + '호기')
+            + verSuffix('BLK', lastPidVer.block) + verSuffix('ELP', lastPidVer.elp) + '.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    /* ── 다크모드 (localStorage 키 'theme' 공유) ── */
+    (function initTheme() {
+        const dark = localStorage.getItem('theme') !== 'light';
+        document.documentElement.classList.toggle('dark', dark);
+        document.getElementById('darkModeToggle').checked = dark;
+        document.getElementById('themeLabel').textContent = dark ? '🌙 다크모드' : '☀️ 라이트모드';
+        if (dark) localStorage.setItem('theme', 'dark');
+    })();
+    document.getElementById('darkModeToggle').addEventListener('change', function () {
+        document.documentElement.classList.toggle('dark', this.checked);
+        localStorage.setItem('theme', this.checked ? 'dark' : 'light');
+        document.getElementById('themeLabel').textContent = this.checked ? '🌙 다크모드' : '☀️ 라이트모드';
+    });
+
+    /* ── 사이드바 현재 메뉴 활성화 ── */
+    document.querySelectorAll('#sidebar .sb-link').forEach(function (a) { a.classList.remove('active'); });
+    document.querySelector('#sidebar a[href="/simulate/getBlockSimulView"]')?.classList.add('active');
+</script>
+
+</body>
+</html>

@@ -38,6 +38,16 @@ public class PIDShipBlockQtySimul {
 	 */
 	public static Result run(SimDb db, String project, String pid, String floor, Integer version, String beforePids,
 			String asOfDate, boolean saveErrorLog) throws Exception {
+		return run(db, project, pid, floor, version, null, beforePids, asOfDate, false, saveErrorLog);
+	}
+
+	/**
+	 * SH_P 버전 지정 실행
+	 * @param elpVersion  자재수배 PID (SH_P) 버전 (null : 최신, -1 : TEST). 기준일(asOfDate)이 있으면 무시
+	 * @param withPickCmt true 면 PICK 마다 BLOCKNO$SF 의 주석 PID(CMTn) 를 실행해 PickRun.cmt 에 넣는다
+	 */
+	public static Result run(SimDb db, String project, String pid, String floor, Integer version, Integer elpVersion,
+			String beforePids, String asOfDate, boolean withPickCmt, boolean saveErrorLog) throws Exception {
 		if (SimUtil.isNullString(project))
 			throw new HdelBusinessException("공사번호(project) 가 없습니다.");
 		if (SimUtil.isNullString(pid))
@@ -69,6 +79,7 @@ public class PIDShipBlockQtySimul {
 		SimPidRepositoryAsOf asOfRepo = SimUtil.isNullString(asOfDate) ? null : new SimPidRepositoryAsOf(asOfDate);
 		if (asOfRepo != null) {
 			version = null;
+			elpVersion = null;
 			result.asOfDate = asOfRepo.getAsOfDate();
 		}
 		SimContext ctx = new SimContext(db, asOfRepo != null ? asOfRepo : new SimPidRepository(), saveErrorLog);
@@ -89,6 +100,7 @@ public class PIDShipBlockQtySimul {
 				throw new HdelBusinessException(blockPid + " 의 " + (result.testVersion ? "TEST 버전" : version + " 버전") + "이 없습니다.");
 			result.runVersion = runInfo.getVersion();
 		}
+		PIDBlockQtySimul.checkElpVersion(ctx, result, elpVersion);
 
 		String floorArg = ("Y".equals(blockInfo.getIsfloorspec()) && floor != null && !floor.trim().isEmpty()) ? floor.trim() : null;
 		SimVariant variant = PIDBlockQtySimul.initVariant(ctx, iOuid, floorArg, result);
@@ -107,12 +119,7 @@ public class PIDShipBlockQtySimul {
 		}
 
 		// 1. SH_P 실행 → 결과를 영업사양에 반영 (수량블럭 PID 가 SH_P 결과변수를 참조)
-		SimVariantMap elpMap;
-		try {
-			elpMap = variant.calcVariantPID(result.elpPid, null);
-		} catch (PidNotFoundException e) {
-			throw new HdelBusinessException(result.elpPid + " PID 가 없습니다.");
-		}
+		SimVariantMap elpMap = PIDBlockQtySimul.runElp(variant, result, elpVersion);
 		variant.appendToElvEnt(elpMap);
 		for (Object k : elpMap.keySet())
 			result.elpResultMap.put(String.valueOf(k), elpMap.get(k));
@@ -142,6 +149,8 @@ public class PIDShipBlockQtySimul {
 			}
 			result.runs.add(run);
 		}
+		if (withPickCmt)
+			PIDBlockQtySimul.fillPickCmt(db, ctx, variant, result);
 
 		// 기준일 실행 : 실제로 실행한 PID 별 버전 (기준일 이전 버전이 없던 PID 는 경고)
 		if (asOfRepo != null) {

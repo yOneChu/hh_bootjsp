@@ -45,6 +45,17 @@ public class SimulController {
         return "thymeleaf/simulate/getBlockSimul";
     }
 
+    /**
+     * @apiNote Block 수량 시뮬 조회 화면 (자재수배 PICK 별 자재번호 / QTY / CMT)
+     * @return
+     */
+    @GetMapping("/getBlockSimulOutputView")
+    @CrossOrigin
+    public String getBlockSimulOutputView() {
+        //http://localhost:8070/simulate/getBlockSimulOutputView
+        return "thymeleaf/simulate/getBlockSimulOutput";
+    }
+
 
     @Description("호기의 PICK 정보 추출 (pickMap : 품번 → PICK, separateInfo : 품번-PICK → 수량)")
     @GetMapping("/getPick")
@@ -99,6 +110,23 @@ public class SimulController {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("simulateBlock error hogi:{}", hogi, e);
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    @Description("호기의 현재 BOM 중 블럭 1개의 자재 (블럭 수량 시뮬레이션 화면의 현자재)")
+    @GetMapping("/currentBlockBom")
+    @ResponseBody
+    @CrossOrigin
+    public ResponseEntity<Map<String, Object>> currentBlockBom(@RequestParam String hogi, @RequestParam String blockNo) {
+        //http://localhost:8070/simulate/currentBlockBom?hogi=N26143L01&blockNo=B181B
+        try {
+            return ResponseEntity.ok(blockSimulateService.getCurrentBlockBom(hogi.trim().toUpperCase(), blockNo.trim().toUpperCase()));
+        } catch (Exception e) {
+            log.error("currentBlockBom error hogi:{}, blockNo:{}", hogi, blockNo, e);
 
             Map<String, Object> error = new HashMap<>();
             error.put("error", e.getMessage());

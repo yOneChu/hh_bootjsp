@@ -31,6 +31,10 @@ public class PIDBlockQtySimul {
 		/** 블럭 PID 최종 결과값 (debugData / elvEnt 제외) */
 		public Map<String, Object> resultMap = new LinkedHashMap<String, Object>();
 		public String error;
+		/** BLOCKNO$SF 의 이 PICK 에 해당하는 주석 PID (CMTn, ; 구분). withPickCmt 실행일 때만 값이 있다 */
+		public String cmtPids;
+		/** cmtPids 를 PICK 마다 실행한 주석 (블럭 BOM 계산 BlockVariableAction.get1LevelVariable 과 같은 방식) */
+		public String cmt;
 	}
 
 	/** 수량 계산 결과 */
@@ -47,6 +51,9 @@ public class PIDBlockQtySimul {
 		public boolean testVersion;
 		/** EL_P PID ex) EL_PB181B */
 		public String elpPid;
+		/** EL_P 실행 버전. 버전을 지정해 실행했을 때만 값이 있다 (null : 최신) */
+		public Integer elpRunVersion;
+		public boolean elpTestVersion;
 		public String floor;
 		public String beforePids;
 		/** EL_P 실행 결과 전체 */
@@ -78,6 +85,16 @@ public class PIDBlockQtySimul {
 	 */
 	public static Result run(SimDb db, String project, String pid, String floor, Integer version, String beforePids,
 			String asOfDate, boolean saveErrorLog) throws Exception {
+		return run(db, project, pid, floor, version, null, beforePids, asOfDate, false, saveErrorLog);
+	}
+
+	/**
+	 * EL_P 버전 지정 실행
+	 * @param elpVersion  EL_P PID 버전 (null : 최신, -1 : TEST). 기준일(asOfDate)이 있으면 무시
+	 * @param withPickCmt true 면 PICK 마다 BLOCKNO$SF 의 주석 PID(CMTn) 를 실행해 PickRun.cmt 에 넣는다
+	 */
+	public static Result run(SimDb db, String project, String pid, String floor, Integer version, Integer elpVersion,
+			String beforePids, String asOfDate, boolean withPickCmt, boolean saveErrorLog) throws Exception {
 		if (SimUtil.isNullString(project))
 			throw new HdelBusinessException("공사번호(project) 가 없습니다.");
 		if (SimUtil.isNullString(pid))
@@ -104,6 +121,7 @@ public class PIDBlockQtySimul {
 		SimPidRepositoryAsOf asOfRepo = SimUtil.isNullString(asOfDate) ? null : new SimPidRepositoryAsOf(asOfDate);
 		if (asOfRepo != null) {
 			version = null;
+			elpVersion = null;
 			result.asOfDate = asOfRepo.getAsOfDate();
 		}
 		SimContext ctx = new SimContext(db, asOfRepo != null ? asOfRepo : new SimPidRepository(), saveErrorLog);
@@ -124,6 +142,7 @@ public class PIDBlockQtySimul {
 				throw new HdelBusinessException(blockPid + " 의 " + (result.testVersion ? "TEST 버전" : version + " 버전") + "이 없습니다.");
 			result.runVersion = runInfo.getVersion();
 		}
+		checkElpVersion(ctx, result, elpVersion);
 
 		String floorArg = ("Y".equals(blockInfo.getIsfloorspec()) && floor != null && !floor.trim().isEmpty()) ? floor.trim() : null;
 		SimVariant variant = initVariant(ctx, iOuid, floorArg, result);
@@ -142,12 +161,7 @@ public class PIDBlockQtySimul {
 		}
 
 		// 1. EL_P 실행 → 결과를 영업사양에 반영 (블럭 PID 가 EL_P 결과변수를 참조)
-		SimVariantMap elpMap;
-		try {
-			elpMap = variant.calcVariantPID(result.elpPid, null);
-		} catch (PidNotFoundException e) {
-			throw new HdelBusinessException(result.elpPid + " PID 가 없습니다.");
-		}
+		SimVariantMap elpMap = runElp(variant, result, elpVersion);
 		variant.appendToElvEnt(elpMap);
 		for (Object k : elpMap.keySet())
 			result.elpResultMap.put(String.valueOf(k), elpMap.get(k));
@@ -177,6 +191,8 @@ public class PIDBlockQtySimul {
 			}
 			result.runs.add(run);
 		}
+		if (withPickCmt)
+			fillPickCmt(db, ctx, variant, result);
 
 		// 기준일 실행 : 실제로 실행한 PID 별 버전 (기준일 이전 버전이 없던 PID 는 경고)
 		if (asOfRepo != null) {
@@ -187,6 +203,97 @@ public class PIDBlockQtySimul {
 			}
 		}
 		return result;
+	}
+
+	/** 자재수배 PID (EL_P / SH_P) 지정 버전이 있는지 확인하고 실행 버전을 기록 (elpVersion null : 최신, 확인 안 함) */
+	static void checkElpVersion(SimContext ctx, Result result, Integer elpVersion) throws Exception {
+		if (elpVersion == null)
+			return;
+		result.elpTestVersion = elpVersion == SimConsts.TEST_VERSION;
+		PidInfo elpInfo = ctx.getPidRepository().getPid(ctx.getDb(), result.elpPid, elpVersion);
+		if (elpInfo == null)
+			throw new HdelBusinessException(result.elpPid + " 의 " + (result.elpTestVersion ? "TEST 버전" : elpVersion + " 버전") + "이 없습니다.");
+		result.elpRunVersion = elpInfo.getVersion();
+	}
+
+	/**
+	 * 자재수배 PID (EL_P / SH_P) 실행. elpVersion 이 null 이면 기존과 같이 최신 버전으로 실행
+	 */
+	static SimVariantMap runElp(SimVariant variant, Result result, Integer elpVersion) throws Exception {
+		SimVariantMap elpMap;
+		try {
+			if (elpVersion == null)
+				return variant.calcVariantPID(result.elpPid, null);
+			elpMap = variant.calcVariantPID(result.elpPid, elpVersion, null, true);
+		} catch (PidNotFoundException e) {
+			throw new HdelBusinessException(result.elpPid + " PID 가 없습니다.");
+		}
+		// 버전 지정 실행은 항상 디버그라 debugData / elvEnt 가 붙는다 → 영업사양에 넣지 않도록 뺀다
+		elpMap.remove("debugData");
+		elpMap.remove("elvEnt");
+		return elpMap;
+	}
+
+	/** BLOCKNO$SF 의 PICK / QTY / CMT 컬럼 수 (BlockConsts.MAX_PICK_COUNT) */
+	static final int MAX_PICK_COUNT = 33;
+	/** BlockContext.isPidPattern 의 PID 형식 */
+	private static final Pattern PID_PATTERN = Pattern.compile("^[A-Z]{1,2}[0-9]{2,4}[_A-Z0-9]{0,8}");
+
+	/**
+	 * PICK 마다 주석 계산 : BLOCKNO$SF (MD$NUMBER = 블럭 PID) 의 PICKn 이 PICK 과 같은 칸의 CMTn 을 실행한다.
+	 * BLOCKNO$SF 에 블럭이나 PICK 이 없으면 cmtPids / cmt 를 비워 둔다 (화면은 블럭 PID 결과의 CMT 를 쓴다)
+	 */
+	static void fillPickCmt(SimDb db, SimContext ctx, SimVariant variant, Result result) throws Exception {
+		Map<String, String> row = db.queryForFirst("SELECT A.* FROM BLOCKNO$SF A WHERE MD$NUMBER = ?", result.blockPid);
+		if (row == null) {
+			result.warnings.add("BLOCKNO$SF 에 " + result.blockPid + " 블럭이 없어 주석은 블럭 PID 결과(CMT)로 표시합니다.");
+			return;
+		}
+		Map<String, String> cmtByPick = new HashMap<String, String>();
+		for (int i = 1; i <= MAX_PICK_COUNT; i++) {
+			String pick = SimUtil.NVL(row.get("PICK" + i), "").trim();
+			if (!pick.isEmpty() && !cmtByPick.containsKey(pick))
+				cmtByPick.put(pick, SimUtil.NVL(row.get("CMT" + i), ""));
+		}
+		for (PickRun run : result.runs) {
+			if (!cmtByPick.containsKey(run.pick))
+				continue;
+			run.cmtPids = cmtByPick.get(run.pick);
+			run.cmt = calcPickCmt(ctx, variant, run.pick, run.cmtPids);
+		}
+	}
+
+	/** BlockVariableAction.get1LevelVariable 의 주석 계산 : ; 로 나눈 주석 PID 마다 CMT 결과를 줄바꿈으로 잇는다 (PID 가 아니면 글자 그대로) */
+	static String calcPickCmt(SimContext ctx, SimVariant variant, String pick, String cmtPids) throws Exception {
+		StringBuilder cmt = new StringBuilder();
+		for (String cmtPid : cmtPids.split(";")) {
+			cmtPid = cmtPid.trim();
+			if (cmtPid.isEmpty())
+				continue;
+			String line;
+			if (PID_PATTERN.matcher(cmtPid).matches() || ctx.getPidRepository().hasPid(ctx.getDb(), cmtPid)) {
+				try {
+					Map partInfo = new HashMap();
+					partInfo.put(PICK, pick);
+					Object v = variant.calcVariantPID(cmtPid, partInfo).get("CMT");
+					line = v == null ? "" : String.valueOf(v);
+				} catch (PidNotFoundException e) {
+					line = "PID_NOT_FOUND";
+				} catch (Exception e) {
+					line = "ERROR";
+				}
+			} else {
+				line = cmtPid;
+			}
+			if (line.trim().equals("null"))
+				line = "";
+			if (!line.isEmpty() && !line.endsWith("\n"))
+				line += "\n";
+			cmt.append(line);
+		}
+		if (cmt.length() > 0 && cmt.charAt(cmt.length() - 1) == '\n')
+			cmt.setLength(cmt.length() - 1);
+		return cmt.toString();
 	}
 
 	/**

@@ -93,6 +93,16 @@ public class PIDSimulatorUpService {
      */
     public PIDBlockQtySimul.Result calcBlockQty(String project, String pid, String floor, Integer version,
                                                 List<String> beforePids, String asOfDate) throws Exception {
+        return calcBlockQty(project, pid, floor, version, null, beforePids, asOfDate, false);
+    }
+
+    /**
+     * 블럭 수량 계산 (자재수배 PID 버전 지정)
+     * @param elpVersion  자재수배 PID (EL_P / SH_P) 버전 (null : 최신, -1 : TEST). asOfDate 가 있으면 무시
+     * @param withPickCmt true 면 PICK 마다 BLOCKNO$SF 의 주석 PID(CMTn) 실행 결과를 PickRun.cmt 에 넣는다
+     */
+    public PIDBlockQtySimul.Result calcBlockQty(String project, String pid, String floor, Integer version, Integer elpVersion,
+                                                List<String> beforePids, String asOfDate, boolean withPickCmt) throws Exception {
         String before = (beforePids == null || beforePids.isEmpty()) ? null : String.join("\n", beforePids);
 
         long start = System.currentTimeMillis();
@@ -100,8 +110,8 @@ public class PIDSimulatorUpService {
         try (SimDb db = SimDb.open()) {
             // SH 로 시작하면 선박 (SH_P → SH_ 수량블럭), 그 외는 엘리베이터 (EL_P → 블럭)
             result = PIDShipBlockQtySimul.isShipPid(pid)
-                    ? PIDShipBlockQtySimul.run(db, project, pid, floor, version, before, asOfDate, saveErrorLog)
-                    : PIDBlockQtySimul.run(db, project, pid, floor, version, before, asOfDate, saveErrorLog);
+                    ? PIDShipBlockQtySimul.run(db, project, pid, floor, version, elpVersion, before, asOfDate, withPickCmt, saveErrorLog)
+                    : PIDBlockQtySimul.run(db, project, pid, floor, version, elpVersion, before, asOfDate, withPickCmt, saveErrorLog);
         }
         log.info("[PIDBlockQty] {} {} / {} v{}{} 완료 : {}ms, PICK {}건", result.type, project, result.blockPid, result.runVersion,
                 result.asOfDate == null ? "" : " 기준일=" + result.asOfDate,
