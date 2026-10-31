@@ -19,6 +19,7 @@ import java.util.Map;
  *   GET /cop/radar              : 6F 이상감지 관제 화면
  *   GET /cop/radar/anomalies    : 관제 화면 데이터 (BomAnomalyService, 지금은 데모)
  *   GET /cop/diff               : 4F 호기 BOM 비교 화면 (?a=기준호기&b=비교호기)
+ *   GET /cop/dashboard          : COP 배치 변경 대시보드 (이전호기 ↔ 시뮬호기)
  *   GET /cop/trace              : 3F 이상 원인 추적 화면 (?id=이상ID | ?no=호기번호&part=품번)
  *   GET /cop/trace/sales        : 3F 영업사양 원인 추정 (BOM 비교 "원인 →", ?a=기준호기&no=비교호기&block=블록번호&part=품번)
  *   GET /cop/report             : 2F 이상 리포트 화면 (?period=week|month|quarter)
@@ -58,6 +59,12 @@ public class CopMainController {
     @GetMapping("/cop/diff")
     public String diff() {
         return "thymeleaf/cop/bomCopDiff";
+    }
+
+    /** COP 배치 변경 대시보드 (이전호기 ↔ 시뮬호기, 지금은 화면 안의 샘플 데이터 사용) */
+    @GetMapping("/cop/dashboard")
+    public String dashboard() {
+        return "thymeleaf/cop/copDashboard";
     }
 
     /** 3F 이상 원인 추적 (지금은 화면 안의 샘플 추적 데이터 사용) */

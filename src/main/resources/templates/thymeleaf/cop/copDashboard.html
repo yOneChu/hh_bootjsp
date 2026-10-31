@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>COP 배치 변경 대시보드 · SENTINEL</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        SENTINEL · COP 배치 변경 대시보드 (임원 보고용)
+
+        CopService.runBatch() 결과를 한눈에 본다.
+          배치 : findHogi 로 조회한 각 호기(이전호기)에 대해
+                 WIP 생성 → 동일정보 생성 → 속성값 변경(EL_ZFDA~D = 배치일) → 종속사양 산출 → BOM 계산
+                 성공하면 새 호기(시뮬호기)를 PLM_SIMUL_HOGI (HOGI, BEFOREHOGI, BRAND, SPEED, ACAPA) 에 저장
+          비교 : 이전호기 BOM ↔ 시뮬호기 BOM 을 자재번호 기준으로 맞춰
+                 추가(시뮬에만) / 삭제(이전에만) / 수량변경 / 일치 로 나눈다.
+
+        화면 구성
+          0. 상단 바   : 배치일 선택
+          1. 요약      : 핵심 메시지 + BOM 일치율
+          2. KPI       : 대상 호기 · 자재 종류 수 · 수량 총합 · 변경 건수 (이전 → 시뮬)
+          3. 차트      : 호기별 변경 / 변경 유형 비율 / 블록별 변경 Top / 최근 14일 추이
+          4. 인사이트  : 수치에서 자동으로 뽑은 문장
+          5. 호기 목록 : 정렬 · 필터 · 검색, 행 클릭 시 변경 자재 상세(드로어)
+
+        지금은 서버 로직 없이 화면 안의 샘플 데이터(makeBatch)를 쓴다. 모든 수치는 DEMO.
+        나중에 makeBatch(date) 를 API 호출로 바꾸면 된다.
+    -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <style>
+        /* ════════════ 토큰 (cop2 임원 보고용과 같음) ════════════ */
+        :root {
+            --bg:       #F6F7F9;
+            --surface:  #FFFFFF;
+            --surface-2:#F9FAFB;
+            --line:     #E4E7EC;
+            --line-2:   #D0D5DD;
+
+            --ink:      #0B1220;
+            --ink-2:    #3F4A5C;
+            --ink-3:    #667085;
+
+            --brand:    #1E40AF;
+            --brand-2:  #2F5BEA;
+            --brand-bg: #EEF2FF;
+            --alert:    #D92D20;
+            --alert-bg: #FEF3F2;
+            --ok:       #067647;
+            --ok-bg:    #ECFDF3;
+            --warn:     #B54708;
+            --warn-bg:  #FFFAEB;
+
+            /* 변경 유형 (차트 · 배지 공통) */
+            --t-add:    #2F5BEA;
+            --t-del:    #D92D20;
+            --t-qty:    #F79009;
+            --t-same:   #D0D5DD;
+
+            --radius:   16px;
+            --shadow:   0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+            --shadow-lg: 0 24px 48px -12px rgba(16,24,40,.22);
+
+            --mono: "D2Coding", Consolas, "SF Mono", Menlo, monospace;
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+            --ease-out: cubic-bezier(.16,1,.3,1);
+            --nav-h: 64px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; background: var(--bg); }
+        body {
+            margin: 0; min-height: 100vh; overflow-x: hidden;
+            font-family: var(--sans); font-size: 15px; line-height: 1.55; color: var(--ink); background: var(--bg);
+            word-break: keep-all; overflow-wrap: anywhere;
+        }
+        h1, h2, h3, p, ol, ul, dl, dd { margin: 0; }
+        ol, ul { padding: 0; list-style: none; }
+        a { color: inherit; text-decoration: none; }
+        button, input, select { font: inherit; color: inherit; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 3px solid var(--brand-2); outline-offset: 2px; border-radius: 8px; }
+        .tnum { font-variant-numeric: tabular-nums; }
+        .mono { font-family: var(--mono); }
+        .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        .wrap { width: 100%; max-width: 1440px; margin: 0 auto; padding: 0 16px; }
+        @media (min-width: 900px) { .wrap { padding: 0 32px; } }
+        .demo { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; background: var(--warn-bg); color: var(--warn); font: 700 11px/1.5 var(--mono); letter-spacing: .1em; }
+
+        /* ════════════ 상단 바 ════════════ */
+        .nav { position: sticky; top: 0; z-index: 40; background: rgba(255,255,255,.86); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+        .nav-in { height: var(--nav-h); display: flex; align-items: center; gap: 14px; }
+        .brand { display: flex; align-items: center; gap: 10px; flex: none; }
+        .brand-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--brand); display: grid; place-items: center; color: #fff; }
+        .brand b { font: 800 14px/1 var(--sans); letter-spacing: .24em; }
+        .crumb { display: none; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-3); }
+        .crumb b { color: var(--ink); font-weight: 700; }
+        @media (min-width: 760px) { .crumb { display: flex; } }
+        .nav-tools { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+        .date-in { display: flex; align-items: center; gap: 8px; }
+        .date-in label { font-size: 13px; color: var(--ink-3); font-weight: 600; }
+        .date-in input { min-height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); font: 600 14px var(--mono); }
+        .date-in input:focus { outline: none; border-color: var(--brand-2); box-shadow: 0 0 0 3px var(--brand-bg); }
+        @media (max-width: 560px) { .date-in label { display: none; } }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            min-height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer;
+            font-size: 14px; font-weight: 600; color: var(--ink-2); white-space: nowrap;
+            transition: background .15s, border-color .15s, color .15s, transform .15s var(--ease-out);
+        }
+        .btn:hover { background: var(--surface-2); color: var(--ink); border-color: var(--ink-3); }
+        .btn:active { transform: scale(.97); }
+        .btn-solid { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .btn-solid:hover { background: var(--brand-2); border-color: var(--brand-2); color: #fff; }
+        @media (max-width: 560px) { .btn-hide-sm { display: none; } }
+
+        .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; }
+        .card-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px 0; }
+        .card-hd h2 { font-size: 16px; font-weight: 750; letter-spacing: -.01em; }
+        .card-hd p { margin-top: 2px; font-size: 13px; color: var(--ink-3); }
+        .card-bd { padding: 12px 20px 18px; }
+
+        main { padding: 24px 0 64px; display: flex; flex-direction: column; gap: 20px; }
+
+        /* ════════════ 1. 요약 ════════════ */
+        .hero {
+            position: relative; overflow: hidden; padding: 28px; display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr);
+            background: linear-gradient(135deg, #0F1E4A 0%, #1E40AF 62%, #2F5BEA 100%); border: 0; color: #fff;
+        }
+        .hero::after { content: ""; position: absolute; right: -120px; top: -120px; width: 380px; height: 380px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,255,255,.14), transparent); pointer-events: none; }
+        @media (min-width: 1000px) { .hero { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 32px 36px; } }
+        .hero-eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,.75); font-weight: 600; }
+        .hero-eyebrow .pill { padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.14); color: #fff; font-family: var(--mono); }
+        .hero h1 { margin-top: 12px; font-size: clamp(22px, 2.6vw, 30px); line-height: 1.35; font-weight: 800; letter-spacing: -.02em; text-wrap: balance; }
+        .hero h1 em { font-style: normal; color: #FFD58A; }
+        .hero-sub { margin-top: 10px; font-size: 14.5px; color: rgba(255,255,255,.8); max-width: 70ch; }
+        .hero-flow { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; color: rgba(255,255,255,.8); }
+        .hero-flow span { padding: 4px 10px; border-radius: 8px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); }
+        .hero-flow i { font-style: normal; opacity: .5; }
+
+        .hero-ring { position: relative; display: flex; align-items: center; gap: 20px; z-index: 1; }
+        .ring {
+            flex: none; position: relative; width: 140px; height: 140px; border-radius: 50%;
+            background: conic-gradient(#FFD58A calc(var(--p, 0) * 1%), rgba(255,255,255,.16) 0);
+        }
+        .ring::before { content: ""; position: absolute; inset: 12px; border-radius: 50%; background: #17338F; }
+        .ring div { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .ring b { font: 800 32px/1 var(--sans); letter-spacing: -.02em; }
+        .ring small { margin-top: 6px; font-size: 12px; color: rgba(255,255,255,.75); font-weight: 600; }
+        .ring-legend { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+        .ring-legend div { display: flex; justify-content: space-between; gap: 18px; color: rgba(255,255,255,.8); }
+        .ring-legend b { color: #fff; font-family: var(--mono); }
+
+        /* ════════════ 2. KPI ════════════ */
+        .kpis { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 640px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1200px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .kpi { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+        .kpi-hd { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 650; color: var(--ink-2); }
+        .kpi-ic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: var(--brand-bg); color: var(--brand); flex: none; }
+        .kpi-val { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+        .kpi-val b { font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+        .kpi-val small { font-size: 14px; color: var(--ink-3); font-weight: 600; }
+        .delta { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+        .delta.up   { background: var(--brand-bg); color: var(--brand); }
+        .delta.down { background: var(--alert-bg); color: var(--alert); }
+        .delta.zero { background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--line); }
+        .kpi-cmp { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px 10px; font-size: 12.5px; color: var(--ink-3); }
+        .kpi-cmp .bar { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+        .kpi-cmp .bar span { display: block; height: 100%; border-radius: 99px; transition: width .8s var(--ease-out); }
+        .kpi-cmp .v { font-family: var(--mono); color: var(--ink-2); font-weight: 600; text-align: right; }
+        .stack { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--surface-2); gap: 2px; }
+        .stack span { display: block; height: 100%; transition: width .8s var(--ease-out); }
+        .stack-lg { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--ink-3); }
+        .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: 1px; }
+
+        /* ════════════ 3. 차트 ════════════ */
+        .charts { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 1100px) {
+            .charts { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+        }
+        .chart { height: 320px; }
+        .chart-sm { height: 300px; }
+        .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); flex: none; }
+        .seg button { min-height: 30px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-3); }
+        .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+        /* ════════════ 4. 인사이트 ════════════ */
+        .insights { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 900px) { .insights { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        .ins { display: flex; gap: 12px; padding: 14px 16px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+        .ins-ic { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; flex: none; }
+        .ins-ic.info  { background: var(--brand-bg); color: var(--brand); }
+        .ins-ic.warn  { background: var(--warn-bg);  color: var(--warn); }
+        .ins-ic.alert { background: var(--alert-bg); color: var(--alert); }
+        .ins-ic.ok    { background: var(--ok-bg);    color: var(--ok); }
+        .ins h3 { font-size: 14px; font-weight: 700; }
+        .ins p { margin-top: 2px; font-size: 13px; color: var(--ink-2); }
+        .ins b { color: var(--ink); }
+
+        /* ════════════ 5. 호기 목록 ════════════ */
+        .tbl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .chip { min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+        .chip .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+        .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+        .chip[aria-pressed="true"] .n { color: rgba(255,255,255,.7); }
+        .search { margin-left: auto; position: relative; min-width: 220px; flex: 1 1 220px; max-width: 320px; }
+        .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
+        .search input { width: 100%; min-height: 36px; padding: 0 12px 0 34px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); font-size: 14px; }
+        .search input:focus { outline: none; border-color: var(--brand-2); box-shadow: 0 0 0 3px var(--brand-bg); }
+
+        .tbl-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 1080px; }
+        thead th { position: sticky; top: 0; background: var(--surface-2); text-align: left; font-size: 12.5px; font-weight: 650; color: var(--ink-3); padding: 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+        thead th button { width: 100%; min-height: 40px; padding: 0 14px; border: 0; background: transparent; cursor: pointer; font: inherit; color: inherit; text-align: inherit; display: inline-flex; align-items: center; gap: 4px; }
+        thead th.r button { justify-content: flex-end; }
+        thead th button:hover { color: var(--ink); }
+        thead th[aria-sort="ascending"] button::after  { content: "▲"; font-size: 9px; color: var(--brand); }
+        thead th[aria-sort="descending"] button::after { content: "▼"; font-size: 9px; color: var(--brand); }
+        thead th span.th { display: inline-flex; min-height: 40px; align-items: center; padding: 0 14px; }
+        tbody td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+        tbody tr { cursor: pointer; transition: background .12s; }
+        tbody tr:hover { background: #F5F8FF; }
+        tbody tr:focus-visible { outline: 2px solid var(--brand-2); outline-offset: -2px; }
+        td.r, th.r { text-align: right; }
+        .hogi { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-weight: 600; }
+        .hogi .arrow { color: var(--ink-3); }
+        .hogi .to { color: var(--brand); }
+        .spec { font-size: 12.5px; color: var(--ink-3); }
+        .status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+        .status.ok   { background: var(--ok-bg); color: var(--ok); }
+        .status.fail { background: var(--alert-bg); color: var(--alert); }
+        .status.chg  { background: var(--warn-bg); color: var(--warn); }
+        .cmp { font-family: var(--mono); font-size: 13px; }
+        .cmp .from { color: var(--ink-3); }
+        .cmp .d { margin-left: 6px; font-size: 12px; font-weight: 700; }
+        .cmp .d.up { color: var(--brand); }
+        .cmp .d.down { color: var(--alert); }
+        .mini { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+        .mini .stack { width: 90px; height: 6px; }
+        .rate { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+        .rate .bar { width: 64px; height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+        .rate .bar span { display: block; height: 100%; background: var(--brand-2); border-radius: 99px; }
+        .rate b { font-family: var(--mono); font-weight: 600; min-width: 48px; text-align: right; }
+        .empty { padding: 48px 20px; text-align: center; color: var(--ink-3); font-size: 14px; }
+        .tbl-foot { display: flex; justify-content: space-between; gap: 10px; padding: 12px 20px; font-size: 12.5px; color: var(--ink-3); }
+
+        /* ════════════ 드로어 (호기 상세) ════════════ */
+        .scrim { position: fixed; inset: 0; z-index: 90; background: rgba(11,18,32,.42); opacity: 0; transition: opacity .2s; }
+        .scrim.on { opacity: 1; }
+        .drawer {
+            position: fixed; top: 0; right: 0; bottom: 0; z-index: 100; width: min(640px, 100%);
+            background: var(--surface); box-shadow: var(--shadow-lg); display: flex; flex-direction: column;
+            transform: translateX(100%); transition: transform .28s var(--ease-out);
+        }
+        .drawer.on { transform: none; }
+        .dr-hd { padding: 20px 22px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; gap: 12px; }
+        .dr-hd h2 { font-size: 18px; font-weight: 800; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .dr-hd p { margin-top: 4px; font-size: 13px; color: var(--ink-3); }
+        .dr-x { margin-left: auto; width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--ink-2); flex: none; }
+        .dr-x:hover { background: var(--surface-2); }
+        .dr-bd { padding: 18px 22px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 18px; }
+        .dr-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        @media (min-width: 520px) { .dr-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .dr-stat { padding: 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+        .dr-stat small { display: block; font-size: 12px; color: var(--ink-3); font-weight: 600; }
+        .dr-stat b { display: block; margin-top: 4px; font-size: 20px; font-weight: 800; font-family: var(--mono); }
+        .dr-sec h3 { font-size: 14px; font-weight: 750; margin-bottom: 10px; }
+        .chart-dr { height: 220px; }
+        .chg-list { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+        .chg { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 13px; }
+        .chg:last-child { border-bottom: 0; }
+        .tag { display: inline-flex; justify-content: center; padding: 2px 0; border-radius: 6px; font-size: 11.5px; font-weight: 700; }
+        .tag.add { background: var(--brand-bg); color: var(--t-add); }
+        .tag.del { background: var(--alert-bg); color: var(--t-del); }
+        .tag.qty { background: var(--warn-bg); color: var(--warn); }
+        .chg .pn { font-family: var(--mono); font-weight: 600; }
+        .chg .nm { font-size: 12.5px; color: var(--ink-3); }
+        .chg .q { font-family: var(--mono); text-align: right; white-space: nowrap; }
+        .chg .q s { color: var(--ink-3); }
+        .dr-ft { padding: 14px 22px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; }
+        .fail-box { padding: 14px 16px; border-radius: 12px; background: var(--alert-bg); color: var(--alert); font-size: 13.5px; }
+        .fail-box b { display: block; margin-bottom: 4px; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="nav">
+    <div class="wrap nav-in">
+        <a class="brand" href="/cop2/main" aria-label="SENTINEL 메인으로">
+            <span class="brand-mark" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 12l5-3"/></svg>
+            </span><b>SENTINEL</b>
+        </a>
+        <div class="crumb" aria-label="현재 위치">
+            <span aria-hidden="true">/</span><b>COP 배치 변경 대시보드</b><span class="demo">DEMO</span>
+        </div>
+        <div class="nav-tools">
+            <div class="date-in">
+                <label for="inDate">배치일</label>
+                <input type="date" id="inDate">
+            </div>
+            <a class="btn btn-hide-sm" href="/cop/diff">BOM 비교</a>
+            <button type="button" class="btn btn-solid" id="btnPrint">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
+                <span class="btn-hide-sm">보고서 인쇄</span><span class="sr">보고서 인쇄</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<main class="wrap" id="main">
+
+    <!-- ═══════════ 1. 요약 ═══════════ -->
+    <section class="card hero" aria-labelledby="heroTitle">
+        <div style="position:relative;z-index:1">
+            <div class="hero-eyebrow">
+                <span class="pill" id="heroDate">-</span>
+                <span>COP 배치 · 동일정보 시뮬레이션 결과</span>
+            </div>
+            <h1 id="heroTitle">-</h1>
+            <p class="hero-sub" id="heroSub">-</p>
+            <div class="hero-flow" aria-label="배치 처리 단계">
+                <span>WIP 생성</span><i aria-hidden="true">›</i>
+                <span>동일정보 생성</span><i aria-hidden="true">›</i>
+                <span>최초설계일 변경 (EL_ZFDA~D)</span><i aria-hidden="true">›</i>
+                <span>종속사양 산출</span><i aria-hidden="true">›</i>
+                <span>BOM 계산</span><i aria-hidden="true">›</i>
+                <span>이전 ↔ 시뮬 비교</span>
+            </div>
+        </div>
+        <div class="hero-ring">
+            <div class="ring" id="ring" role="img" aria-label="BOM 일치율">
+                <div><b class="tnum" id="ringVal">-</b><small>BOM 일치율</small></div>
+            </div>
+            <div class="ring-legend">
+                <div><span>성공 호기</span><b id="lgOk">-</b></div>
+                <div><span>변경 발생</span><b id="lgChg">-</b></div>
+                <div><span>배치 실패</span><b id="lgFail">-</b></div>
+                <div><span>평균 수행</span><b id="lgTime">-</b></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 2. KPI ═══════════ -->
+    <section class="kpis" aria-label="핵심 지표">
+        <article class="card kpi">
+            <div class="kpi-hd"><span class="kpi-ic" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 3v18M3 12h18"/></svg>
+            </span>배치 대상 호기</div>
+            <div class="kpi-val"><b class="tnum" id="kTotal">-</b><small>대</small><span class="delta zero" id="kTotalD">-</span></div>
+            <div class="stack" id="kTotalBar" aria-hidden="true"></div>
+            <div class="stack-lg" id="kTotalLg"></div>
+        </article>
+
+        <article class="card kpi">
+            <div class="kpi-hd"><span class="kpi-ic" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
+            </span>자재 종류 수 (전체 합)</div>
+            <div class="kpi-val"><b class="tnum" id="kPart">-</b><small>종</small><span class="delta" id="kPartD">-</span></div>
+            <div class="kpi-cmp" id="kPartCmp"></div>
+        </article>
+
+        <article class="card kpi">
+            <div class="kpi-hd"><span class="kpi-ic" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+            </span>자재 수량 총합</div>
+            <div class="kpi-val"><b class="tnum" id="kQty">-</b><small>EA</small><span class="delta" id="kQtyD">-</span></div>
+            <div class="kpi-cmp" id="kQtyCmp"></div>
+        </article>
+
+        <article class="card kpi">
+            <div class="kpi-hd"><span class="kpi-ic" aria-hidden="true" style="background:var(--warn-bg);color:var(--warn)">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            </span>변경 자재 건수</div>
+            <div class="kpi-val"><b class="tnum" id="kChg">-</b><small>건</small><span class="delta" id="kChgD">-</span></div>
+            <div class="stack" id="kChgBar" aria-hidden="true"></div>
+            <div class="stack-lg" id="kChgLg"></div>
+        </article>
+    </section>
+
+    <!-- ═══════════ 3. 차트 ═══════════ -->
+    <section class="charts" aria-label="변경 현황 차트">
+        <article class="card">
+            <div class="card-hd">
+                <div><h2>호기별 변경 현황</h2><p id="chHogiDesc">변경 건수가 많은 호기 순</p></div>
+                <div class="seg" role="group" aria-label="호기별 차트 보기">
+                    <button type="button" data-view="chg" aria-pressed="true">변경 유형</button>
+                    <button type="button" data-view="qty" aria-pressed="false">수량 비교</button>
+                </div>
+            </div>
+            <div class="card-bd"><div class="chart" id="chHogi" role="img" aria-label="호기별 변경 차트"></div></div>
+        </article>
+
+        <article class="card">
+            <div class="card-hd"><div><h2>변경 유형 비율</h2><p>전체 비교 자재 기준</p></div></div>
+            <div class="card-bd"><div class="chart" id="chMix" role="img" aria-label="변경 유형 비율 차트"></div></div>
+        </article>
+
+        <article class="card">
+            <div class="card-hd"><div><h2>최근 14일 배치 추이</h2><p>변경 건수 · 변경 발생 호기 비율</p></div></div>
+            <div class="card-bd"><div class="chart-sm" id="chTrend" role="img" aria-label="최근 14일 추이 차트"></div></div>
+        </article>
+
+        <article class="card">
+            <div class="card-hd"><div><h2>블록별 변경 Top 8</h2><p>변경이 몰린 BOM 블록</p></div></div>
+            <div class="card-bd"><div class="chart-sm" id="chBlock" role="img" aria-label="블록별 변경 차트"></div></div>
+        </article>
+    </section>
+
+    <!-- ═══════════ 4. 인사이트 ═══════════ -->
+    <section class="card" aria-labelledby="insTitle">
+        <div class="card-hd"><div><h2 id="insTitle">주요 인사이트</h2><p>오늘 배치 수치에서 자동으로 추출</p></div></div>
+        <div class="card-bd"><ul class="insights" id="insights"></ul></div>
+    </section>
+
+    <!-- ═══════════ 5. 호기 목록 ═══════════ -->
+    <section class="card" aria-labelledby="tblTitle">
+        <div class="card-hd"><div><h2 id="tblTitle">호기별 비교 결과</h2><p>행을 누르면 변경 자재 상세를 볼 수 있습니다</p></div></div>
+        <div class="tbl-tools" style="margin-top:12px;border-top:1px solid var(--line)">
+            <div class="chips" role="group" aria-label="결과 필터" id="chips">
+                <button type="button" class="chip" data-f="all" aria-pressed="true">전체 <span class="n" id="nAll">0</span></button>
+                <button type="button" class="chip" data-f="chg" aria-pressed="false">변경 있음 <span class="n" id="nChg">0</span></button>
+                <button type="button" class="chip" data-f="same" aria-pressed="false">완전 일치 <span class="n" id="nSame">0</span></button>
+                <button type="button" class="chip" data-f="fail" aria-pressed="false">배치 실패 <span class="n" id="nFail">0</span></button>
+            </div>
+            <div class="search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <label for="inSearch" class="sr">호기번호 검색</label>
+                <input id="inSearch" type="search" placeholder="호기번호 · 브랜드 검색" autocomplete="off">
+            </div>
+        </div>
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                <tr id="thead">
+                    <th scope="col" data-k="before"><button type="button">이전호기 → 시뮬호기</button></th>
+                    <th scope="col"><span class="th">사양</span></th>
+                    <th scope="col" data-k="status"><button type="button">결과</button></th>
+                    <th scope="col" class="r" data-k="partsAfter"><button type="button">자재 종류 (이전 → 시뮬)</button></th>
+                    <th scope="col" class="r" data-k="qtyAfter"><button type="button">수량 총합 (이전 → 시뮬)</button></th>
+                    <th scope="col" class="r" data-k="chg" aria-sort="descending"><button type="button">변경 건수</button></th>
+                    <th scope="col" class="r" data-k="match"><button type="button">일치율</button></th>
+                    <th scope="col" class="r" data-k="ms"><button type="button">수행시간</button></th>
+                </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+            <div class="empty" id="tblEmpty" hidden>조건에 맞는 호기가 없습니다. 필터나 검색어를 바꿔 보세요.</div>
+        </div>
+        <div class="tbl-foot"><span id="tblCount">-</span><span>DEMO 데이터 · PLM_SIMUL_HOGI 기준</span></div>
+    </section>
+</main>
+
+<!-- ═══════════ 드로어 ═══════════ -->
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drTitle" hidden>
+    <div class="dr-hd">
+        <div>
+            <h2 id="drTitle">-</h2>
+            <p id="drSub">-</p>
+        </div>
+        <button type="button" class="dr-x" id="drClose" aria-label="상세 닫기">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+    </div>
+    <div class="dr-bd" id="drBody"></div>
+    <div class="dr-ft">
+        <button type="button" class="btn" id="drClose2">닫기</button>
+        <a class="btn btn-solid" id="drDiff" href="/cop/diff">BOM 비교 화면에서 보기</a>
+    </div>
+</aside>
+
+<script src="/resources/dist/js/highcharts.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    /* ════════════ 상수 ════════════ */
+    const TYPES = {
+        add: { label: '추가',     color: '#2F5BEA' },
+        del: { label: '삭제',     color: '#D92D20' },
+        qty: { label: '수량변경', color: '#F79009' }
+    };
+    const BLOCKS = {
+        'CAR':  '카 프레임',  'DOOR': '도어 장치', 'CTRL': '제어반',     'TM':   '권상기',
+        'RAIL': '가이드레일', 'CWT':  '균형추',    'HALL': '승강장 장치', 'ROPE': '로프',
+        'SAFE': '안전장치',   'PIT':  '피트 장치', 'SIG':  '신호 장치',   'DECO': '카 의장'
+    };
+    const BLOCK_KEYS = Object.keys(BLOCKS);
+    const BLOCK_WEIGHT = { CAR: 9, DOOR: 7, CTRL: 10, TM: 3, RAIL: 4, CWT: 2, HALL: 6, ROPE: 3, SAFE: 4, PIT: 2, SIG: 6, DECO: 8 };
+    const PART_NAMES = {
+        CAR: ['카 상부 프레임', '카 바닥판', '방진 고무', '카 측판 브라켓'],
+        DOOR: ['도어 행거', '도어 슈', '도어 모터', '인터록 스위치'],
+        CTRL: ['메인 보드', 'INV 유닛', '릴레이', '배선 하네스', '퓨즈 블록'],
+        TM: ['권상기 본체', '브레이크 라이닝', '엔코더'],
+        RAIL: ['T형 레일', '레일 브라켓', '피시 플레이트'],
+        CWT: ['균형추 블록', '균형추 프레임'],
+        HALL: ['승강장 버튼', '홀 랜턴', '실 앵글'],
+        ROPE: ['메인 로프', '로프 소켓', '보상 체인'],
+        SAFE: ['비상 정지 장치', '조속기', '완충기'],
+        PIT: ['피트 사다리', '피트 스위치'],
+        SIG: ['인디케이터', 'COP 패널', '음성 안내 모듈'],
+        DECO: ['천장 조명', '핸드레일', '거울', '카 벽판 마감']
+    };
+    const SPECS = [
+        { brand: '표준형',   speed: 60,  acapa: 15 },
+        { brand: '표준형',   speed: 90,  acapa: 17 },
+        { brand: '프리미엄', speed: 105, acapa: 20 },
+        { brand: '프리미엄', speed: 150, acapa: 24 },
+        { brand: '고속형',   speed: 240, acapa: 24 },
+        { brand: '화물용',   speed: 60,  acapa: 30 }
+    ];
+
+    const $ = id => document.getElementById(id);
+    const fmt = n => Number(n).toLocaleString('ko-KR');
+    const pct = (n, d = 1) => (Number.isFinite(n) ? n : 0).toFixed(d);
+    const signed = n => (n > 0 ? '+' : '') + fmt(n);
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const ymd = d => d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    const isoDate = d => ymd(d).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+
+    /* 날짜를 씨앗으로 쓰는 난수 (같은 날짜면 같은 샘플) */
+    function rng(seed) {
+        let s = seed % 2147483647; if (s <= 0) s += 2147483646;
+        return () => (s = s * 16807 % 2147483647) / 2147483647;
+    }
+    const pickW = (r, weights) => {
+        const keys = Object.keys(weights);
+        const sum = keys.reduce((a, k) => a + weights[k], 0);
+        let x = r() * sum;
+        for (const k of keys) { x -= weights[k]; if (x <= 0) return k; }
+        return keys[keys.length - 1];
+    };
+
+    /* ════════════ 샘플 데이터 (나중에 API 로 교체) ════════════ */
+    function makeBatch(date) {
+        const r = rng(Number(ymd(date)));
+        const ri = (a, b) => a + Math.floor(r() * (b - a + 1));
+        const pick = arr => arr.at(ri(0, arr.length - 1));
+        const n = ri(12, 18);
+        const yy = String(date.getFullYear()).slice(2);
+        const rows = [];
+
+        for (let i = 0; i < n; i++) {
+            const spec = pick(SPECS);
+            const before = 'H' + (Number(yy) - ri(1, 3)) + String.fromCharCode(65 + ri(0, 11)) + String(ri(1000, 9999));
+            const after  = 'S' + yy + ymd(date).slice(4) + String(i + 1).padStart(2, '0');
+            const partsBefore = ri(360, 640);
+            const qtyBefore = Math.round(partsBefore * (5 + r() * 4));
+            const ms = ri(42000, 168000);
+
+            const fail = r() < .08;
+            if (fail) {
+                rows.push({
+                    before, after: '-', spec, status: 'fail', partsBefore, partsAfter: null, qtyBefore, qtyAfter: null,
+                    chg: 0, add: 0, del: 0, qtyc: 0, match: null, ms,
+                    msg: ['종속사양 산출 실패 : 필수 특성값(EL_DRTY) 누락', 'BOM 계산 시간 초과 (180s)', 'WIP 생성 실패 : 영업사양 잠금 상태'].at(ri(0, 2)),
+                    items: []
+                });
+                continue;
+            }
+
+            const same = r() < .3;
+            const add = same ? 0 : ri(0, 9), del = same ? 0 : ri(0, 6), qtyc = same ? 0 : ri(1, 14);
+            const items = [];
+            const push = (type, cnt) => {
+                for (let k = 0; k < cnt; k++) {
+                    const blk = pickW(r, BLOCK_WEIGHT);
+                    const names = PART_NAMES[blk];
+                    const bq = type === 'add' ? 0 : ri(1, 24);
+                    let aq = type === 'del' ? 0 : ri(1, 24);
+                    if (type === 'qty' && aq === bq) aq = bq + ri(1, 4);
+                    items.push({
+                        type, block: blk,
+                        partNo: blk.slice(0, 2) + '-' + String(ri(100000, 999999)),
+                        name: pick(names),
+                        bq, aq
+                    });
+                }
+            };
+            push('add', add); push('del', del); push('qty', qtyc);
+            const dq = items.reduce((a, it) => a + it.aq - it.bq, 0);
+            const chg = add + del + qtyc;
+            const partsAfter = partsBefore + add - del;
+            const union = partsBefore + add;
+            rows.push({
+                before, after, spec, status: chg ? 'chg' : 'ok', partsBefore, partsAfter, qtyBefore, qtyAfter: qtyBefore + dq,
+                chg, add, del, qtyc, match: (union - chg) / union * 100, ms, msg: 'BOM 계산 완료', items
+            });
+        }
+
+        /* 최근 14일 추이 */
+        const trend = [];
+        for (let d = 13; d >= 0; d--) {
+            const day = new Date(date); day.setDate(day.getDate() - d);
+            const tr = rng(Number(ymd(day)) * 7);
+            const total = 12 + Math.floor(tr() * 7);
+            const changed = Math.round(total * (.45 + tr() * .35));
+            trend.push({ day, total, changed, chg: changed * (6 + Math.floor(tr() * 10)) });
+        }
+        /* 오늘 값은 실제 집계로 맞춘다 */
+        const today = trend[trend.length - 1];
+        today.total = rows.length;
+        today.changed = rows.filter(x => x.status === 'chg').length;
+        today.chg = rows.reduce((a, x) => a + x.chg, 0);
+
+        return { date, rows, trend };
+    }
+
+    /* ════════════ 집계 ════════════ */
+    function summarize(b) {
+        const ok = b.rows.filter(x => x.status !== 'fail');
+        const sum = (arr, k) => arr.reduce((a, x) => a + (x[k] || 0), 0);
+        const s = {
+            total: b.rows.length,
+            ok: ok.length,
+            fail: b.rows.length - ok.length,
+            changed: ok.filter(x => x.chg > 0).length,
+            same: ok.filter(x => x.chg === 0).length,
+            partsBefore: sum(ok, 'partsBefore'), partsAfter: sum(ok, 'partsAfter'),
+            qtyBefore: sum(ok, 'qtyBefore'),     qtyAfter: sum(ok, 'qtyAfter'),
+            add: sum(ok, 'add'), del: sum(ok, 'del'), qtyc: sum(ok, 'qtyc'),
+            avgMs: sum(b.rows, 'ms') / (b.rows.length || 1)
+        };
+        s.chg = s.add + s.del + s.qtyc;
+        const union = s.partsBefore + s.add;
+        s.match = union ? (union - s.chg) / union * 100 : 100;
+        s.blocks = {};
+        ok.forEach(x => x.items.forEach(it => {
+            const o = s.blocks[it.block] || (s.blocks[it.block] = { add: 0, del: 0, qty: 0, n: 0 });
+            o[it.type]++; o.n++;
+        }));
+        return s;
+    }
+
+    /* ════════════ 렌더 ════════════ */
+    let batch, sum, prevSum;
+    const state = { filter: 'all', q: '', sortK: 'chg', sortDir: -1, hogiView: 'chg' };
+
+    function deltaBadge(el, cur, prev, unit) {
+        const d = cur - prev;
+        const p = prev ? d / prev * 100 : 0;
+        el.className = 'delta ' + (d > 0 ? 'up' : d < 0 ? 'down' : 'zero');
+        el.textContent = d === 0 ? '변동 없음' : (d > 0 ? '▲ ' : '▼ ') + fmt(Math.abs(d)) + (unit || '') + ' (' + (p > 0 ? '+' : '') + pct(p, 2) + '%)';
+    }
+
+    function cmpBars(el, before, after) {
+        const max = Math.max(before, after) || 1;
+        el.innerHTML =
+            '<span>이전</span><div class="bar"><span style="width:' + (before / max * 100) + '%;background:#98A2B3"></span></div><span class="v">' + fmt(before) + '</span>' +
+            '<span>시뮬</span><div class="bar"><span style="width:' + (after / max * 100) + '%;background:var(--brand-2)"></span></div><span class="v">' + fmt(after) + '</span>';
+    }
+
+    function stackBar(barEl, lgEl, parts) {
+        const tot = parts.reduce((a, p) => a + p.v, 0) || 1;
+        barEl.innerHTML = parts.map(p => '<span style="width:' + (p.v / tot * 100) + '%;background:' + p.c + '"></span>').join('');
+        lgEl.innerHTML = parts.map(p => '<span><i class="dot" style="background:' + p.c + '"></i>' + p.l + ' <b class="tnum">' + fmt(p.v) + '</b></span>').join('');
+    }
+
+    function renderHero() {
+        const d = batch.date;
+        $('heroDate').textContent = isoDate(d) + ' 배치';
+        const rate = sum.ok ? sum.changed / sum.ok * 100 : 0;
+        $('heroTitle').innerHTML = '배치 대상 <em>' + sum.total + '대</em> 중 <em>' + sum.changed + '대</em>에서 BOM 변경이 감지되었습니다';
+        $('heroSub').textContent =
+            '이전호기와 동일정보로 생성한 시뮬호기 ' + sum.ok + '대를 비교한 결과, 자재 ' + fmt(sum.chg) + '건이 달라졌습니다 ' +
+            '(추가 ' + sum.add + ' · 삭제 ' + sum.del + ' · 수량변경 ' + sum.qtyc + '). 변경 발생률은 ' + pct(rate) + '% 입니다.';
+        $('ring').style.setProperty('--p', sum.match.toFixed(1));
+        $('ring').setAttribute('aria-label', 'BOM 일치율 ' + pct(sum.match) + '%');
+        $('ringVal').textContent = pct(sum.match) + '%';
+        $('lgOk').textContent = sum.ok + '대';
+        $('lgChg').textContent = sum.changed + '대';
+        $('lgFail').textContent = sum.fail + '대';
+        $('lgTime').textContent = (sum.avgMs / 1000).toFixed(0) + '초';
+    }
+
+    function renderKpis() {
+        $('kTotal').textContent = sum.total;
+        const tp = batch.trend[batch.trend.length - 2];
+        const dt = sum.total - tp.total;
+        const kd = $('kTotalD');
+        kd.className = 'delta ' + (dt > 0 ? 'up' : dt < 0 ? 'down' : 'zero');
+        kd.textContent = '전일 대비 ' + (dt === 0 ? '동일' : signed(dt) + '대');
+        stackBar($('kTotalBar'), $('kTotalLg'), [
+            { l: '변경', v: sum.changed, c: 'var(--t-qty)' },
+            { l: '일치', v: sum.same,    c: '#12B76A' },
+            { l: '실패', v: sum.fail,    c: 'var(--t-del)' }
+        ]);
+
+        $('kPart').textContent = fmt(sum.partsAfter);
+        deltaBadge($('kPartD'), sum.partsAfter, sum.partsBefore, '종');
+        cmpBars($('kPartCmp'), sum.partsBefore, sum.partsAfter);
+
+        $('kQty').textContent = fmt(sum.qtyAfter);
+        deltaBadge($('kQtyD'), sum.qtyAfter, sum.qtyBefore, '');
+        cmpBars($('kQtyCmp'), sum.qtyBefore, sum.qtyAfter);
+
+        $('kChg').textContent = fmt(sum.chg);
+        const kc = $('kChgD');
+        if (prevSum) {
+            const d = sum.chg - prevSum.chg;
+            kc.className = 'delta ' + (d > 0 ? 'down' : d < 0 ? 'up' : 'zero');
+            kc.textContent = '전일 대비 ' + (d === 0 ? '동일' : signed(d) + '건');
+        }
+        stackBar($('kChgBar'), $('kChgLg'), [
+            { l: '추가',     v: sum.add,  c: TYPES.add.color },
+            { l: '삭제',     v: sum.del,  c: TYPES.del.color },
+            { l: '수량변경', v: sum.qtyc, c: TYPES.qty.color }
+        ]);
+    }
+
+    /* ─── 차트 ─── */
+    const charts = {};
+    function chart(id, opt) {
+        if (charts[id]) charts[id].destroy();
+        charts[id] = Highcharts.chart(id, opt);
+        return charts[id];
+    }
+
+    function renderHogiChart() {
+        const ok = batch.rows.filter(x => x.status !== 'fail');
+        if (state.hogiView === 'chg') {
+            const rows = ok.slice().sort((a, b) => b.chg - a.chg);
+            $('chHogiDesc').textContent = '변경 건수가 많은 호기 순 (시뮬호기 기준)';
+            chart('chHogi', {
+                chart: { type: 'column' },
+                xAxis: { categories: rows.map(x => x.after), labels: { rotation: -40, style: { fontSize: '11px' } } },
+                yAxis: { title: { text: '변경 건수 (건)' }, allowDecimals: false, stackLabels: { enabled: true, style: { fontWeight: '700', color: '#3F4A5C', textOutline: 'none' } } },
+                tooltip: { shared: true, headerFormat: '<b>{point.key}</b><br/>', pointFormat: '<span style="color:{series.color}">●</span> {series.name}: <b>{point.y}건</b><br/>' },
+                plotOptions: { column: { stacking: 'normal', borderWidth: 0, borderRadius: 3, pointPadding: .08, groupPadding: .1 },
+                    series: { cursor: 'pointer', point: { events: { click: function () { openDrawer(rows[this.index]); } } } } },
+                series: ['add', 'del', 'qty'].map(t => ({
+                    name: TYPES[t].label, color: TYPES[t].color,
+                    data: rows.map(x => t === 'qty' ? x.qtyc : x[t])
+                }))
+            });
+        } else {
+            const rows = ok.slice().sort((a, b) => Math.abs(b.qtyAfter - b.qtyBefore) - Math.abs(a.qtyAfter - a.qtyBefore));
+            $('chHogiDesc').textContent = '이전호기 vs 시뮬호기 자재 수량 총합 (증감 큰 순)';
+            chart('chHogi', {
+                chart: { type: 'column' },
+                xAxis: { categories: rows.map(x => x.after), labels: { rotation: -40, style: { fontSize: '11px' } } },
+                yAxis: [
+                    { title: { text: '수량 총합 (EA)' } },
+                    { title: { text: '증감 (EA)' }, opposite: true, plotLines: [{ value: 0, width: 1, color: '#98A2B3' }] }
+                ],
+                tooltip: { shared: true, headerFormat: '<b>{point.key}</b><br/>', valueSuffix: ' EA' },
+                plotOptions: { column: { borderWidth: 0, borderRadius: 3, pointPadding: .05, groupPadding: .14 },
+                    series: { cursor: 'pointer', point: { events: { click: function () { openDrawer(rows[this.index]); } } } } },
+                series: [
+                    { name: '이전호기', color: '#C7CEDB', data: rows.map(x => x.qtyBefore) },
+                    { name: '시뮬호기', color: '#2F5BEA', data: rows.map(x => x.qtyAfter) },
+                    { name: '증감', type: 'spline', yAxis: 1, color: '#F79009', lineWidth: 2.5, marker: { radius: 4, lineWidth: 2, lineColor: '#fff' },
+                      data: rows.map(x => x.qtyAfter - x.qtyBefore) }
+                ]
+            });
+        }
+    }
+
+    function renderCharts() {
+        renderHogiChart();
+
+        const sameCnt = sum.partsBefore + sum.add - sum.chg;
+        chart('chMix', {
+            chart: { type: 'pie' },
+            title: {
+                text: '<span style="font-size:26px;font-weight:800;color:#0B1220">' + fmt(sum.chg) + '</span><br/><span style="font-size:12px;color:#667085">변경 건수</span>',
+                useHTML: true, verticalAlign: 'middle', floating: true, y: -22
+            },
+            tooltip: { pointFormat: '<b>{point.y:,.0f}건</b> ({point.percentage:.2f}%)' },
+            plotOptions: { pie: { innerSize: '68%', borderWidth: 2, borderColor: '#fff', dataLabels: { enabled: false }, showInLegend: true } },
+            legend: { labelFormatter: function () { return this.name + '  <b>' + Highcharts.numberFormat(this.y, 0) + '</b>'; } },
+            series: [{
+                name: '자재',
+                data: [
+                    { name: '추가',     y: sum.add,  color: TYPES.add.color },
+                    { name: '삭제',     y: sum.del,  color: TYPES.del.color },
+                    { name: '수량변경', y: sum.qtyc, color: TYPES.qty.color },
+                    { name: '일치',     y: sameCnt,  color: '#E4E7EC', visible: false }
+                ]
+            }]
+        });
+
+        const t = batch.trend;
+        chart('chTrend', {
+            xAxis: { categories: t.map(x => (x.day.getMonth() + 1) + '/' + x.day.getDate()) },
+            yAxis: [
+                { title: { text: '변경 건수 (건)' }, allowDecimals: false },
+                { title: { text: '변경 발생률 (%)' }, opposite: true, max: 100, min: 0, labels: { format: '{value}%' } }
+            ],
+            tooltip: { shared: true },
+            plotOptions: { column: { borderWidth: 0, borderRadius: 3 } },
+            series: [
+                { type: 'column', name: '변경 건수', color: '#C7D7FE', valueSuffix: '건',
+                  data: t.map((x, i) => ({ y: x.chg, color: i === t.length - 1 ? '#2F5BEA' : '#C7D7FE' })), tooltip: { valueSuffix: '건' } },
+                { type: 'spline', name: '변경 발생률', yAxis: 1, color: '#F79009', lineWidth: 2.5, marker: { radius: 3.5, lineWidth: 2, lineColor: '#fff' },
+                  data: t.map(x => Math.round(x.changed / x.total * 1000) / 10), tooltip: { valueSuffix: '%' } }
+            ]
+        });
+
+        const blk = Object.keys(sum.blocks).map(k => Object.assign({ k }, sum.blocks[k])).sort((a, b) => b.n - a.n).slice(0, 8);
+        chart('chBlock', {
+            chart: { type: 'bar' },
+            xAxis: { categories: blk.map(x => BLOCKS[x.k] + ' (' + x.k + ')') },
+            yAxis: { title: { text: null }, allowDecimals: false, stackLabels: { enabled: true, style: { fontWeight: '700', color: '#3F4A5C', textOutline: 'none' } } },
+            tooltip: { shared: true, pointFormat: '<span style="color:{series.color}">●</span> {series.name}: <b>{point.y}건</b><br/>' },
+            plotOptions: { bar: { stacking: 'normal', borderWidth: 0, borderRadius: 2, pointPadding: .1, groupPadding: .08 } },
+            series: ['add', 'del', 'qty'].map(tp => ({ name: TYPES[tp].label, color: TYPES[tp].color, data: blk.map(x => x[tp]) }))
+        });
+    }
+
+    /* ─── 인사이트 ─── */
+    const ICON = {
+        info:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+        warn:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M14 7h7v7"/></svg>',
+        alert: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>',
+        ok:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>'
+    };
+
+    function renderInsights() {
+        const ok = batch.rows.filter(x => x.status !== 'fail');
+        const out = [];
+
+        const top = ok.slice().sort((a, b) => b.chg - a.chg)[0];
+        if (top && top.chg) {
+            out.push({ k: 'warn', h: '변경 최다 호기 · ' + top.after,
+                p: '이전호기 <b class="mono">' + esc(top.before) + '</b> 대비 <b>' + top.chg + '건</b> 변경 (전체 변경의 ' + pct(top.chg / sum.chg * 100) + '%). 우선 검토를 권장합니다.' });
+        }
+
+        const blk = Object.keys(sum.blocks).sort((a, b) => sum.blocks[b].n - sum.blocks[a].n);
+        if (blk.length) {
+            const b0 = blk[0], share = sum.blocks[b0].n / sum.chg * 100;
+            out.push({ k: 'info', h: '변경 집중 블록 · ' + BLOCKS[b0],
+                p: '<b>' + BLOCKS[b0] + ' (' + b0 + ')</b> 블록에 변경 <b>' + sum.blocks[b0].n + '건</b>(' + pct(share) + '%)이 몰렸습니다. 최근 설계 기준 변경 여부를 확인하세요.' });
+        }
+
+        const dq = sum.qtyAfter - sum.qtyBefore;
+        out.push({ k: dq >= 0 ? 'info' : 'alert', h: '자재 수량 총합 ' + (dq >= 0 ? '증가' : '감소'),
+            p: '시뮬호기 수량 총합이 이전 대비 <b>' + signed(dq) + ' EA</b> (' + (dq >= 0 ? '+' : '') + pct(dq / sum.qtyBefore * 100, 2) + '%) 변했습니다. 자재 종류는 <b>' + signed(sum.partsAfter - sum.partsBefore) + '종</b>.' });
+
+        const brands = {};
+        ok.forEach(x => { const o = brands[x.spec.brand] || (brands[x.spec.brand] = { n: 0, chg: 0 }); o.n++; o.chg += x.chg; });
+        const bk = Object.keys(brands).map(name => ({ name, avg: brands[name].chg / brands[name].n })).sort((a, b) => b.avg - a.avg);
+        if (bk.length > 1) {
+            const hi = bk.at(0), lo = bk.at(-1);
+            out.push({ k: 'info', h: '브랜드별 변경 강도',
+                p: '<b>' + hi.name + '</b> 호기당 평균 <b>' + pct(hi.avg) + '건</b>으로 가장 높고, <b>' + lo.name + '</b> ' + pct(lo.avg) + '건으로 가장 낮습니다.' });
+        }
+
+        if (sum.same) {
+            out.push({ k: 'ok', h: '완전 일치 ' + sum.same + '대',
+                p: '시뮬호기 ' + sum.ok + '대 중 <b>' + pct(sum.same / sum.ok * 100) + '%</b>는 BOM 이 이전호기와 완전히 같습니다. 최초설계일 변경의 영향이 없는 사양입니다.' });
+        }
+        if (sum.fail) {
+            const f = batch.rows.filter(x => x.status === 'fail');
+            out.push({ k: 'alert', h: '배치 실패 ' + sum.fail + '대',
+                p: f.map(x => '<b class="mono">' + esc(x.before) + '</b> ' + esc(x.msg)).join('<br/>') });
+        }
+
+        $('insights').innerHTML = out.map(x =>
+            '<li class="ins"><span class="ins-ic ' + x.k + '" aria-hidden="true">' + ICON[x.k] + '</span><div><h3>' + esc(x.h) + '</h3><p>' + x.p + '</p></div></li>'
+        ).join('');
+    }
+
+    /* ─── 표 ─── */
+    const STATUS = { ok: ['ok', '완전 일치'], chg: ['chg', '변경 있음'], fail: ['fail', '배치 실패'] };
+
+    function cmpCell(a, b) {
+        if (b == null) return '<span class="cmp from">' + fmt(a) + ' → -</span>';
+        const d = b - a;
+        return '<span class="cmp"><span class="from">' + fmt(a) + '</span> → <b>' + fmt(b) + '</b>' +
+            (d ? '<span class="d ' + (d > 0 ? 'up' : 'down') + '">' + signed(d) + '</span>' : '') + '</span>';
+    }
+
+    function renderTable() {
+        const rows = batch.rows;
+        $('nAll').textContent = rows.length;
+        $('nChg').textContent = sum.changed;
+        $('nSame').textContent = sum.same;
+        $('nFail').textContent = sum.fail;
+
+        const q = state.q.trim().toLowerCase();
+        const list = rows
+            .filter(x => state.filter === 'all' || (state.filter === 'chg' ? x.status === 'chg' : state.filter === 'same' ? x.status === 'ok' : x.status === 'fail'))
+            .filter(x => !q || (x.before + ' ' + x.after + ' ' + x.spec.brand).toLowerCase().includes(q))
+            .sort((a, b) => {
+                const k = state.sortK;
+                let va = a[k], vb = b[k];
+                if (va == null) va = -Infinity;
+                if (vb == null) vb = -Infinity;
+                return (va > vb ? 1 : va < vb ? -1 : 0) * state.sortDir;
+            });
+
+        $('tbody').innerHTML = list.map(x => {
+            const st = STATUS[x.status];
+            const tot = x.chg || 1;
+            return '<tr tabindex="0" data-i="' + rows.indexOf(x) + '">' +
+                '<td><span class="hogi"><span>' + esc(x.before) + '</span><span class="arrow" aria-hidden="true">→</span><span class="to">' + esc(x.after) + '</span></span></td>' +
+                '<td><span class="spec">' + esc(x.spec.brand) + ' · ' + x.spec.speed + 'm/min · ' + x.spec.acapa + '인승</span></td>' +
+                '<td><span class="status ' + st[0] + '">' + st[1] + '</span></td>' +
+                '<td class="r">' + cmpCell(x.partsBefore, x.partsAfter) + '</td>' +
+                '<td class="r">' + cmpCell(x.qtyBefore, x.qtyAfter) + '</td>' +
+                '<td class="r"><div class="mini">' +
+                    (x.chg ? '<div class="stack" aria-hidden="true"><span style="width:' + (x.add / tot * 100) + '%;background:' + TYPES.add.color + '"></span><span style="width:' + (x.del / tot * 100) + '%;background:' + TYPES.del.color + '"></span><span style="width:' + (x.qtyc / tot * 100) + '%;background:' + TYPES.qty.color + '"></span></div>' : '') +
+                    '<b class="mono" title="추가 ' + x.add + ' · 삭제 ' + x.del + ' · 수량변경 ' + x.qtyc + '">' + (x.status === 'fail' ? '-' : x.chg) + '</b></div></td>' +
+                '<td class="r">' + (x.match == null ? '<span class="spec">-</span>' : '<div class="rate"><div class="bar"><span style="width:' + x.match + '%"></span></div><b>' + pct(x.match) + '%</b></div>') + '</td>' +
+                '<td class="r mono">' + (x.ms / 1000).toFixed(1) + 's</td>' +
+                '</tr>';
+        }).join('');
+
+        $('tblEmpty').hidden = list.length > 0;
+        $('tblCount').textContent = '총 ' + rows.length + '대 중 ' + list.length + '대 표시';
+
+        document.querySelectorAll('#thead th').forEach(th => {
+            if (!th.dataset.k) return;
+            if (th.dataset.k === state.sortK) th.setAttribute('aria-sort', state.sortDir > 0 ? 'ascending' : 'descending');
+            else th.removeAttribute('aria-sort');
+        });
+    }
+
+    /* ─── 드로어 ─── */
+    let lastFocus = null;
+    function openDrawer(x) {
+        if (!x) return;
+        lastFocus = document.activeElement;
+        const st = STATUS[x.status];
+        $('drTitle').innerHTML = '<span class="mono">' + esc(x.before) + '</span><span style="color:var(--ink-3)">→</span><span class="mono" style="color:var(--brand)">' + esc(x.after) + '</span><span class="status ' + st[0] + '">' + st[1] + '</span>';
+        $('drSub').textContent = x.spec.brand + ' · ' + x.spec.speed + 'm/min · ' + x.spec.acapa + '인승 · 수행 ' + (x.ms / 1000).toFixed(1) + '초';
+        $('drDiff').href = '/cop/diff?a=' + encodeURIComponent(x.before) + (x.after !== '-' ? '&b=' + encodeURIComponent(x.after) : '');
+
+        let html = '';
+        if (x.status === 'fail') {
+            html = '<div class="fail-box"><b>배치가 완료되지 않았습니다</b>' + esc(x.msg) + '</div>';
+        } else {
+            html += '<div class="dr-stats">' +
+                '<div class="dr-stat"><small>변경 건수</small><b>' + x.chg + '</b></div>' +
+                '<div class="dr-stat"><small>일치율</small><b>' + pct(x.match) + '%</b></div>' +
+                '<div class="dr-stat"><small>자재 종류</small><b>' + signed(x.partsAfter - x.partsBefore) + '</b></div>' +
+                '<div class="dr-stat"><small>수량 총합</small><b>' + signed(x.qtyAfter - x.qtyBefore) + '</b></div>' +
+                '</div>';
+            if (x.chg) {
+                html += '<div class="dr-sec"><h3>블록별 변경</h3><div class="chart-dr" id="chDrawer" role="img" aria-label="블록별 변경 차트"></div></div>';
+                const order = { del: 0, add: 1, qty: 2 };
+                const items = x.items.slice().sort((a, b) => order[a.type] - order[b.type] || a.block.localeCompare(b.block));
+                html += '<div class="dr-sec"><h3>변경 자재 ' + items.length + '건</h3><div class="chg-list">' + items.map(it =>
+                    '<div class="chg"><span class="tag ' + it.type + '">' + TYPES[it.type].label + '</span>' +
+                    '<div><div class="pn">' + esc(it.partNo) + '</div><div class="nm">' + esc(BLOCKS[it.block]) + ' · ' + esc(it.name) + '</div></div>' +
+                    '<div class="q">' + (it.type === 'add' ? '<b>' + it.aq + '</b>' : it.type === 'del' ? '<s>' + it.bq + '</s> → 0' : '<s>' + it.bq + '</s> → <b>' + it.aq + '</b>') + '</div></div>'
+                ).join('') + '</div></div>';
+            } else {
+                html += '<div class="fail-box" style="background:var(--ok-bg);color:var(--ok)"><b>BOM 완전 일치</b>이전호기와 시뮬호기의 자재 · 수량이 모두 같습니다.</div>';
+            }
+        }
+        $('drBody').innerHTML = html;
+
+        const dr = $('drawer'), sc = $('scrim');
+        dr.hidden = false; sc.hidden = false;
+        requestAnimationFrame(() => { dr.classList.add('on'); sc.classList.add('on'); });
+        $('drClose').focus();
+
+        if (x.chg) {
+            const bl = {};
+            x.items.forEach(it => { const o = bl[it.block] || (bl[it.block] = { add: 0, del: 0, qty: 0 }); o[it.type]++; });
+            const ks = Object.keys(bl).sort((a, b) => (bl[b].add + bl[b].del + bl[b].qty) - (bl[a].add + bl[a].del + bl[a].qty));
+            chart('chDrawer', {
+                chart: { type: 'bar' },
+                xAxis: { categories: ks.map(k => BLOCKS[k]) },
+                yAxis: { title: { text: null }, allowDecimals: false },
+                legend: { enabled: false },
+                tooltip: { shared: true, pointFormat: '<span style="color:{series.color}">●</span> {series.name}: <b>{point.y}건</b><br/>' },
+                plotOptions: { bar: { stacking: 'normal', borderWidth: 0, borderRadius: 2 } },
+                series: ['add', 'del', 'qty'].map(tp => ({ name: TYPES[tp].label, color: TYPES[tp].color, data: ks.map(k => bl[k][tp]) }))
+            });
+        }
+    }
+
+    function closeDrawer() {
+        const dr = $('drawer'), sc = $('scrim');
+        if (dr.hidden) return;
+        dr.classList.remove('on'); sc.classList.remove('on');
+        setTimeout(() => { dr.hidden = true; sc.hidden = true; if (charts.chDrawer) { charts.chDrawer.destroy(); delete charts.chDrawer; } }, 220);
+        if (lastFocus) lastFocus.focus();
+    }
+
+    /* ════════════ 이벤트 ════════════ */
+    function load(date) {
+        batch = makeBatch(date);
+        sum = summarize(batch);
+        const prev = new Date(date); prev.setDate(prev.getDate() - 1);
+        prevSum = summarize(makeBatch(prev));
+        renderHero(); renderKpis(); renderCharts(); renderInsights(); renderTable();
+    }
+
+    $('inDate').addEventListener('change', e => { if (e.target.value) load(new Date(e.target.value + 'T00:00:00')); });
+    $('btnPrint').addEventListener('click', () => window.print());
+
+    document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+        state.hogiView = b.dataset.view;
+        document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+        renderHogiChart();
+    }));
+
+    $('chips').addEventListener('click', e => {
+        const b = e.target.closest('.chip'); if (!b) return;
+        state.filter = b.dataset.f;
+        document.querySelectorAll('#chips .chip').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+        renderTable();
+    });
+
+    let qt;
+    $('inSearch').addEventListener('input', e => { clearTimeout(qt); qt = setTimeout(() => { state.q = e.target.value; renderTable(); }, 150); });
+
+    $('thead').addEventListener('click', e => {
+        const th = e.target.closest('th'); if (!th || !th.dataset.k) return;
+        if (state.sortK === th.dataset.k) state.sortDir *= -1;
+        else { state.sortK = th.dataset.k; state.sortDir = -1; }
+        renderTable();
+    });
+
+    const rowOpen = tr => { if (tr) openDrawer(batch.rows.at(Number(tr.dataset.i))); };
+    $('tbody').addEventListener('click', e => rowOpen(e.target.closest('tr')));
+    $('tbody').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); rowOpen(e.target.closest('tr')); } });
+
+    $('drClose').addEventListener('click', closeDrawer);
+    $('drClose2').addEventListener('click', closeDrawer);
+    $('scrim').addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+    /* ════════════ Highcharts 공통 ════════════ */
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    Highcharts.setOptions({
+        lang: { thousandsSep: ',', numericSymbols: null },
+        chart: { backgroundColor: 'transparent', style: { fontFamily: getComputedStyle(document.body).fontFamily }, spacing: [8, 4, 4, 4], animation: !reduce },
+        title: { text: null },
+        credits: { enabled: false },
+        exporting: { enabled: false },
+        legend: { itemStyle: { fontWeight: '600', color: '#3F4A5C', fontSize: '12px' }, itemHoverStyle: { color: '#0B1220' }, symbolRadius: 3 },
+        xAxis: { lineColor: '#E4E7EC', tickColor: '#E4E7EC', labels: { style: { color: '#667085' } } },
+        yAxis: { gridLineColor: '#F2F4F7', labels: { style: { color: '#667085' } }, title: { style: { color: '#667085', fontWeight: '600' } } },
+        tooltip: { backgroundColor: '#FFFFFF', borderColor: '#E4E7EC', borderRadius: 10, shadow: { color: 'rgba(16,24,40,.12)', width: 8, offsetY: 4 }, style: { fontSize: '12.5px', color: '#0B1220' } },
+        plotOptions: { series: { animation: reduce ? false : { duration: 700 } } }
+    });
+
+    /* 첫 화면 : 오늘 */
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    $('inDate').value = isoDate(today);
+    $('inDate').max = isoDate(today);
+    load(today);
+})();
+</script>
+</body>
+</html>
