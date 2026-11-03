@@ -21,6 +21,8 @@ public class CopUtil {
         // CONVERT(..., 112) 는 yyyyMMdd 형식이므로 같은 형식으로 비교
         String todayValue = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
 
+        todayValue = "20261030";
+
         Connection con = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;

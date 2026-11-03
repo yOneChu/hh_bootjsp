@@ -747,12 +747,12 @@
             <div class="step-group" role="group" aria-label="실행 조건">
                 <div class="inline-field">
                     <label for="project">공사번호 <span class="req" aria-hidden="true">*</span></label>
-                    <input id="project" name="project" value="206663L01" required aria-required="true" spellcheck="false"
+                    <input id="project" name="project" value="" required aria-required="true" spellcheck="false"
                            title="공사번호(md$number) 또는 공사정보 ouid (ex. elv_info$vf@a810066d)">
                 </div>
                 <div class="inline-field">
                     <label for="pid">PID <span class="req" aria-hidden="true">*</span></label>
-                    <input id="pid" name="pid" value="D375A" required aria-required="true" spellcheck="false">
+                    <input id="pid" name="pid" value="" required aria-required="true" spellcheck="false">
                 </div>
                 <div class="inline-field" title="실행할 PID 버전 (PID 를 입력하면 버전 목록을 불러옵니다)">
                     <label for="version">버전</label>
@@ -2291,6 +2291,22 @@
     $('btnCodeDict').addEventListener('click', openCodePopup);
     $('btnMindMap').addEventListener('click', openMindMapPopup);
     $('btnBlockQty').addEventListener('click', runBlockQty);
+
+    // 공사번호 / PID 의 영문 소문자는 입력하는 대로 대문자로 바꾼다 (커서 위치 유지, 한글 조합 중에는 건드리지 않음)
+    // 공사번호 칸의 공사정보 ouid (ex. elv_info$vf@a810066d) 는 소문자 그대로 둔다
+    function upperOnInput(id, skip) {
+        $(id).addEventListener('input', (e) => {
+            const el = e.target;
+            if (e.isComposing || (skip && skip(el.value))) return;
+            const upper = el.value.toUpperCase();
+            if (upper === el.value) return;
+            const s = el.selectionStart, end = el.selectionEnd;
+            el.value = upper;
+            el.setSelectionRange(s, end);
+        });
+    }
+    upperOnInput('project', (v) => /[$@]/.test(v));
+    upperOnInput('pid');
 
     // PID 를 바꾸면 버전 선택을 '최신'으로 되돌리고, 입력이 멈추면 그 PID 의 버전 목록을 불러온다
     let pidTimer;
