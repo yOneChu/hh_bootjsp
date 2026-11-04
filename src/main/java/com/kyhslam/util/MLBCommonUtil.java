@@ -1480,6 +1480,137 @@ public class MLBCommonUtil {
 
 
 
+    @Description("수량PID 입력 문자열(콤마 구분)을 목록으로 변환 - 공백제거/대문자/중복제거")
+    public static ArrayList<String> parseQtyPIDList(String qtyPIDs) {
+        ArrayList<String> result = new ArrayList<>();
+        if (qtyPIDs == null) return result;
+
+        for (String token : qtyPIDs.split(",")) {
+            String pid = token.trim().toUpperCase();
+            if (!pid.isEmpty() && !result.contains(pid)) {
+                result.add(pid);
+            }
+        }
+        return result;
+    }
+
+
+    @Description("부품하위에 수량PID 조회 (여러 PID OR 조건)")
+    public static void findDownLevelQtyPIDMulti(String year, String yearCond, String blockNo, ArrayList<String> qtyPIDList, ArrayList<PartInfoDTO> dataDTOList) {
+
+        if (qtyPIDList == null || qtyPIDList.isEmpty()) return;
+        if (year == null || !year.matches("\\d{4}")) return;
+
+        // 년도 조건 : BEFORE → 해당년도 이전(미포함), 그 외 → 해당년도 이후(포함)
+        String dateOp = "BEFORE".equalsIgnoreCase(yearCond) ? "<" : ">=";
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        try {
+
+            con = PLMDBPool.getConnection();
+
+            String sql = """
+                  with ouid as
+            (select A.vf$ouid
+             from NORMALPART$vf A,
+                  NORMALPART$id B
+             where A.vf$identity = B.id$ouid
+               and A.vf$ouid = B.id$wip
+               AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
+                   AND A.PART_STATUS = '2466425004'
+                   AND A.ORIGIN_DIV = '2248978165' -- 내작
+                   AND A.BLOCKNO_NUMBER = ?
+                   AND A.MD$CDATE >= ?
+             )
+                SELECT
+                       (SELECT C.MD$NUMBER FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTNO
+                       , (SELECT C.MD$DESC FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTNAME
+                       , (SELECT C.SPEC FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTSPEC
+                       , (SELECT C.BLOCKNO_NUMBER FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTBLOCK
+                       , (SELECT C.PART_SIZE FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTSIZE
+                       ,  NP.MD$NUMBER AS PARTNO
+                       , BOM.QTY AS QTY
+                       , BOM.CMT AS CMT --공사주석
+                       , BLOCKNO_NUMBER AS BLOCKNO
+                       , NP.MD$DESC AS PARTNAME
+                       , NP.VF$VERSION AS VERSION
+                       , NP.PART_SIZE AS PART_SIZE
+                       , NP.SPEC AS SPEC
+                FROM
+                       PARTOFPART$AC BOM
+                       INNER JOIN NORMALPART$VF NP ON 	BOM.AS$END2 = NP.VF$OUID
+               """;
+
+            // PID 개수만큼 (QTY LIKE ? OR CMT LIKE ?) 를 OR 로 연결 - 바인딩 변수 사용
+            StringBuilder where = new StringBuilder("WHERE ( ");
+            for (int i = 0; i < qtyPIDList.size(); i++) {
+                if (i > 0) where.append(" OR ");
+                where.append("BOM.QTY LIKE ? OR BOM.CMT LIKE ?");
+            }
+            where.append(" ) ");
+            sql += where.toString();
+
+            sql += """
+                    START WITH AS$END1 IN (SELECT * FROM OUID)  -- 부품OID(VF$OUID)
+                    CONNECT BY
+                       PRIOR AS$END2 = AS$END1
+                    ORDER SIBLINGS BY CAST(BOM.MD$SEQUENCE AS NUMBER DEFAULT 0 ON CONVERSION ERROR)
+                """;
+
+            sql = sql.replace("A.MD$CDATE >= ?", "A.MD$CDATE " + dateOp + " ?");
+            // BlockNo : '=' 대신 LIKE (입력값으로 시작) 조건
+            sql = sql.replace("A.BLOCKNO_NUMBER = ?", "A.BLOCKNO_NUMBER LIKE ?");
+
+            pstmt = con.prepareStatement(sql);
+            int idx = 1;
+            pstmt.setString(idx++, blockNo + "%");
+            pstmt.setString(idx++, year);
+            for (String pid : qtyPIDList) {
+                pstmt.setString(idx++, pid + "%"); // QTY
+                pstmt.setString(idx++, pid + "%"); // CMT
+            }
+
+            rs = pstmt.executeQuery();
+
+            // 상위품번-자재번호 조합 중복 제거용 (먼저 조회된 행만 유지)
+            HashSet<String> dupKeySet = new HashSet<>();
+
+            while(rs.next()) {
+                String dupKey = rs.getString("PARENTNO") + "|" + rs.getString("PARTNO");
+                if (!dupKeySet.add(dupKey)) continue; // 이미 추가된 조합이면 skip
+
+                PartInfoDTO curDto =  new PartInfoDTO();
+                curDto.setPartNo(rs.getString("PARTNO"));
+                curDto.setPartName(rs.getString("PARTNAME"));
+                curDto.setBlockNo(rs.getString("BLOCKNO"));
+                curDto.setSpec(rs.getString("SPEC"));
+                curDto.setPartSize(rs.getString("PART_SIZE"));
+                curDto.setQty(rs.getString("QTY") == null ? "" : rs.getString("QTY"));
+                curDto.setCmt(rs.getString("CMT") == null ? "" : rs.getString("CMT")); // 공사주석
+                curDto.setVersion(rs.getString("VERSION"));
+
+                curDto.setParentPartNo(rs.getString("PARENTNO"));
+                curDto.setParentPartName(rs.getString("PARENTNAME"));
+                curDto.setParentSpec(rs.getString("PARENTSPEC"));
+                curDto.setParentSize(rs.getString("PARENTSIZE"));
+                curDto.setParentBlockNo(rs.getString("PARENTBLOCK"));
+
+                dataDTOList.add(curDto);
+            } //end while
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+    }
+
+
+
     //품번으로 하위 BOM 조회
     public static ArrayList<PartInfoDTO> findAssyDownBOM(String partNo) {
 

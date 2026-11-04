@@ -237,3 +237,174 @@ function excelData() {
         hideLoading();
     }
 }
+
+
+// =====================================================================
+// 수량 PID 여러개(콤마 구분) OR 조회 기능
+// =====================================================================
+
+// Enter 키 입력 시 다중 PID 조회 실행
+function keyCodeCheckMulti(event) {
+    var e = event || window.event;
+    if (e && (e.key === 'Enter' || e.keyCode === 13)) {
+        filterDataMulti();
+    }
+}
+
+// 화면 입력값 수집 + 필수값 검증 (다중 PID 용). 검증 실패 시 null 반환
+function getQtyPidMultiParams() {
+    var dateFilterEl = document.querySelector('#dateFilter');
+    var searchBlockNoEl = document.querySelector('#searchBlockNo');
+    var searchPIDEl = document.querySelector('#searchPID');
+
+    // dateFilter 값 형식 : "2024_AFTER" (2024년 이후) / "2024_BEFORE" (2024년 이전)
+    var dateVal = (dateFilterEl && dateFilterEl.value) ? dateFilterEl.value : '';
+    var year = dateVal.split('_')[0] || '';
+    var yearCond = dateVal.split('_')[1] || 'AFTER';
+    var blockNo = (searchBlockNoEl && searchBlockNoEl.value) ? searchBlockNoEl.value.trim() : '';
+
+    // 콤마로 분리 → 공백제거 → 대문자 → 빈값/중복 제거
+    var pidList = [];
+    var raw = (searchPIDEl && searchPIDEl.value) ? searchPIDEl.value : '';
+    raw.split(',').forEach(function (p) {
+        var v = p.trim().toUpperCase();
+        if (v && pidList.indexOf(v) === -1) pidList.push(v);
+    });
+
+    if (!year) {
+        alert('날짜를 입력하세요.');
+        if (dateFilterEl) dateFilterEl.focus();
+        return null;
+    }
+    if (!blockNo) {
+        alert('BlockNo.를 입력하세요.');
+        if (searchBlockNoEl) searchBlockNoEl.focus();
+        return null;
+    }
+    if (pidList.length === 0) {
+        alert('수량 PID를 입력하세요.');
+        if (searchPIDEl) searchPIDEl.focus();
+        return null;
+    }
+
+    // 정리된 값으로 입력창 갱신 (사용자가 실제 조회 조건 확인 가능)
+    if (searchPIDEl) searchPIDEl.value = pidList.join(', ');
+
+    return {
+        year: year,
+        yearCond: yearCond,
+        blockNo: blockNo,
+        qtyPid: pidList.join(',')
+    };
+}
+
+// 검색 버튼 클릭 시 호출 - /mlb/searchPartQtyPidMulti
+function filterDataMulti() {
+    try {
+        var params = getQtyPidMultiParams();
+        if (!params) return;
+
+        // 기존 테이블 초기화
+        try { $('#infoTable').DataTable().destroy(); } catch (e) {}
+        $("#contentTable").empty();
+
+        showLoading();
+
+        $.ajax({
+            url: '/mlb/searchPartQtyPidMulti',
+            method: 'POST',
+            data: params,
+            success: function (data) {
+                var rows = "";
+                if (data && data.length > 0) {
+                    for (var i = 0; i < data.length; i++) {
+                        var item = data[i] || {};
+                        rows += `
+                            <tr>
+                                <td>${item.parentPartNo || ''}</td>
+                                <td>${item.parentPartName || ''}</td>
+                                <td>${item.parentBlockNo || ''}</td>
+
+                                <td>${item.partNo || ''}</td>
+                                <td style="text-align: left">${item.partName || ''}</td>
+                                <td>${item.blockNo || ''}</td>
+                                <td style="text-align: left">${item.spec || ''}</td>
+                                <td>${item.qty || ''}</td>
+                                <td style="text-align: left">${item.cmt || ''}</td>
+                            </tr>
+                        `;
+                    }
+
+                    $("#contentTable").append(rows);
+
+                    $("#infoTable").DataTable({
+                        responsive: true,
+                        lengthChange: true,
+                        pageLength: 25,
+                        autoWidth: false,
+                        processing: true,
+                        destroy: true,
+                        buttons: ["excel", "copy"]
+                    }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
+                } else {
+                    alert('검색결과가 없습니다.');
+                }
+
+                hideLoading();
+            },
+            error: function (xhr, status, err) {
+                console.error('searchPartQtyPidMulti error', status, err);
+                alert('조회 요청 중 오류가 발생했습니다. 다시 시도해주세요.');
+                hideLoading();
+            }
+        });
+
+    } catch (e) {
+        console.error('filterDataMulti exception', e);
+        hideLoading();
+    }
+}
+
+// EXCEL Download 버튼 클릭 시 호출 - /excel/searchQtyPidMulti
+// (화면의 조회 결과는 지우지 않음)
+function excelDataMulti() {
+    try {
+        var params = getQtyPidMultiParams();
+        if (!params) return;
+
+        showLoading();
+
+        $.ajax({
+            url: '/excel/searchQtyPidMulti',
+            type: 'POST',
+            data: params,
+            xhrFields: {
+                responseType: 'blob'
+            },
+            success: function (data, status, xhr) {
+                const disposition = xhr.getResponseHeader('Content-Disposition');
+                let filename = 'excel.xlsx';
+                if (disposition && disposition.indexOf('filename=') !== -1) {
+                    filename = disposition.split('filename=')[1].replace(/"/g, '');
+                }
+
+                const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = filename;
+                link.click();
+                window.URL.revokeObjectURL(link.href);
+
+                hideLoading();
+            },
+            error: function () {
+                hideLoading();
+                alert('오류 발생하였습니다. 김영환M 문의하세요.😅');
+            }
+        });
+
+    } catch (e) {
+        console.error('excelDataMulti exception', e);
+        hideLoading();
+    }
+}

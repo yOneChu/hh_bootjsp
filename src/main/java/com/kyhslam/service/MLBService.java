@@ -30,6 +30,20 @@ public class MLBService {
     }
 
 
+    // 2.해당 년도의 내작 부품 조회 - 수량PID 여러개(콤마 구분) OR 조회
+    // yearCond : AFTER(해당년도 이후, 포함) / BEFORE(해당년도 이전)
+    public ArrayList<PartInfoDTO> findPIDasQTYMulti(String year, String yearCond, String blockNo, String qtyPIDs) {
+
+        ArrayList<PartInfoDTO> dataDTOList = new ArrayList<>();
+
+        ArrayList<String> qtyPIDList = MLBCommonUtil.parseQtyPIDList(qtyPIDs);
+
+        MLBCommonUtil.findDownLevelQtyPIDMulti(year, yearCond, blockNo, qtyPIDList, dataDTOList);
+
+        return dataDTOList;
+    }
+
+
 
 
 

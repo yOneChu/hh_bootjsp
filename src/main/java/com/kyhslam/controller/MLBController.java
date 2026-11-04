@@ -45,6 +45,15 @@ public class MLBController {
     }
 
 
+    @Description("수량 PID 조회 로직 - 여러 PID(콤마 구분) OR 조회")
+    @PostMapping("/searchPartQtyPidMulti")
+    @ResponseBody
+    public ArrayList<PartInfoDTO> searchPartQtyPidMulti(String year, String yearCond, String blockNo, String qtyPid) {
+        if (blockNo == null || qtyPid == null) return new ArrayList<>();
+        return mlbService.findPIDasQTYMulti(year, yearCond, blockNo.toUpperCase().trim(), qtyPid);
+    }
+
+
     @Description("품번으로 속성정보 조회")
     @CrossOrigin
     @GetMapping("/findPartOneWithPartNo")
