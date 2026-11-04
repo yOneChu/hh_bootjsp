@@ -37,6 +37,17 @@ public class PIDSimulatorUpController {
     }
 
     /**
+     * @apiNote PID 시뮬레이터 화면 - '수량 계산' 버튼을 뺀 화면 (나머지 기능/API 는 pidSimulatorUp 과 동일)
+     * @return
+     */
+    @GetMapping("/pidSimulatorUpMinus")
+    @CrossOrigin
+    public String pidSimulatorUpMinusView() {
+        //http://localhost:8070/simulateup/pidSimulatorUpMinus
+        return "thymeleaf/pid/pidSimulatorUpMinus";
+    }
+
+    /**
      * @apiNote PID 호출 관계도 (마인드맵) 팝업 : 시뮬레이터 화면(opener)의 실행 결과를 읽어 그린다
      * @return
      */

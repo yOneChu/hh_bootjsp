@@ -12,7 +12,6 @@ import java.util.*;
  * 선박 블럭 수량 계산 (PID 시뮬레이터 화면의 [수량 계산] - PID 가 SH 로 시작할 때)
  *   1. SH_P + 블럭 (ex. SH_PB181B) 을 실행해 결과변수 SH_PB181B_1, SH_PB181B_2 ... 를 구한다.
  *   2. 결과변수마다 partInfo 에 PICK = SH_PB181B_n 을 넣고 수량블럭 PID (ex. SH_B181B) 를 따로 실행한다.
- *
  * 엘리베이터(PIDBlockQtySimul) 와 흐름은 같고 PID 이름 규칙만 다르다. 엘리베이터 로직에 영향이 없도록 별도 클래스로 둔다.
  */
 public class PIDShipBlockQtySimul {
