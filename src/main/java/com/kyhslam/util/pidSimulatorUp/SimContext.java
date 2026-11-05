@@ -162,6 +162,70 @@ public class SimContext {
 
 	public Collection<SubPidCall> getDeclaredCalls() { return declaredCalls.values(); }
 
+	// ---------------------------------------------------------------- 영업사양 사용 기록 (영업사양 영향도 화면용)
+	// 실행 결과에는 영향이 없다 : 기록만 하고, 시뮬레이터 화면 실행(PIDSimul)에서만 켠다
+
+	/** PID 로직 1개가 영업사양 코드 1개를 쓰는 방식 */
+	public static class SpecUse {
+		public String code;
+		/** SPEC(조건) 칸에 쓴 라인 수 */
+		public int cond;
+		/** CON / VAL / 계산식 안에서 {코드} 로 읽은 라인 수 */
+		public int ref;
+		/** KEY 로 값을 만든(덮어쓴) 라인 수 */
+		public int write;
+		/** 이번 실행에서 실제로 비교 / 읽기 / 쓰기한 횟수 (0 이면 로직에만 있고 이번엔 안 쓰임) */
+		public int runCount;
+	}
+
+	/** PID 1개의 영업사양 사용 기록 (로직에 적힌 순서) */
+	public static class PidSpecUse {
+		public String pid;
+		/** JAVA 방식 PID : 로직이 없어 사용 사양을 알 수 없다 */
+		public boolean javaMethod;
+		public final Map<String, SpecUse> specs = new LinkedHashMap<String, SpecUse>();
+	}
+
+	private boolean specUsageTracking = false;
+	/** 대상 PID 실행 직전의 영업사양 (원본 + 전처리 PID 결과) */
+	private Map<String, Object> baseSpec = new HashMap<String, Object>();
+	private final Map<String, PidSpecUse> specUsages = new LinkedHashMap<String, PidSpecUse>();
+
+	/** 영업사양 사용 기록 시작 (base : 대상 PID 실행 직전의 영업사양) */
+	@SuppressWarnings("unchecked")
+	public void startSpecUsageTracking(Map base) {
+		specUsageTracking = true;
+		baseSpec = base == null ? new HashMap<String, Object>() : new HashMap<String, Object>(base);
+	}
+
+	public boolean isSpecUsageTracking() { return specUsageTracking; }
+
+	/** PID 로직 기록을 시작한다. 기록 중이 아니거나 이미 기록한 PID 면 null */
+	public PidSpecUse beginSpecUsage(String pid) {
+		if (!specUsageTracking || pid == null || specUsages.containsKey(pid))
+			return null;
+		PidSpecUse use = new PidSpecUse();
+		use.pid = pid;
+		specUsages.put(pid, use);
+		return use;
+	}
+
+	/** 이번 실행에서 실제로 쓴 사양 (로직에 기록된 코드만 센다) */
+	public void markSpecRun(String pid, String code) {
+		if (!specUsageTracking || pid == null || code == null)
+			return;
+		PidSpecUse use = specUsages.get(pid);
+		if (use == null)
+			return;
+		SpecUse s = use.specs.get(code);
+		if (s != null)
+			s.runCount++;
+	}
+
+	public Collection<PidSpecUse> getSpecUsages() { return specUsages.values(); }
+
+	public Map<String, Object> getBaseSpec() { return baseSpec; }
+
 	/** StringUtil.isPidPattern */
 	public boolean isPidPattern(String value) throws Exception {
 		if (value == null)

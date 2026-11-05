@@ -58,6 +58,26 @@ public class PIDSimulatorUpController {
     }
 
     /**
+     * @apiNote 영업사양 영향도 팝업 : 시뮬레이터 화면(opener)의 실행 결과로 PID 별 영업사양 사용(직접 / CALL 하위)을 보여준다
+     * @return
+     */
+    @GetMapping("/pidSimulatorEffectMap")
+    public String pidSimulatorEffectMapView() {
+        //http://localhost:8070/simulateup/pidSimulatorEffectMap
+        return "thymeleaf/pid/pidSimulatorEffectMap";
+    }
+
+    /**
+     * @apiNote 영업사양 흐름도 팝업 : PID → 영업사양(상→하), 영업사양 → PID → 상위 PID(하→상) 를 그래프로 보여준다
+     * @return
+     */
+    @GetMapping("/pidSimulatorSalesMap")
+    public String pidSimulatorSalesMapView() {
+        //http://localhost:8070/simulateup/pidSimulatorSalesMap
+        return "thymeleaf/pid/pidSimulatorSalesMap";
+    }
+
+    /**
      * @apiNote 최신 버전 비교 팝업 : 시뮬레이터 화면(opener)의 버전 지정 실행 결과와 전체 최신 버전 실행 결과의 최종 OUTPUT 비교
      * @return
      */

@@ -196,6 +196,35 @@ public class PIDSimul {
 			call.count = c.count;
 			result.subPidDeclaredCalls.add(call);
 		}
+		toSpecUsages(ctx, result);
+	}
+
+	/** PID 별 영업사양 사용 기록 (영업사양 영향도 화면용). 실패해도 실행 결과는 그대로 돌려준다 */
+	static void toSpecUsages(SimContext ctx, PIDSimulResult result) {
+		try {
+			Map<String, Object> base = ctx.getBaseSpec();
+			for (SimContext.PidSpecUse u : ctx.getSpecUsages()) {
+				PIDSimulResult.PidSpecUsage pu = new PIDSimulResult.PidSpecUsage();
+				pu.pid = u.pid;
+				pu.javaMethod = u.javaMethod;
+				for (SimContext.SpecUse s : u.specs.values()) {
+					PIDSimulResult.SpecUse r = new PIDSimulResult.SpecUse();
+					r.code = s.code;
+					r.cond = s.cond;
+					r.ref = s.ref;
+					r.write = s.write;
+					r.runCount = s.runCount;
+					r.inBase = base.containsKey(s.code);
+					Object v = base.get(s.code);
+					r.baseValue = v == null ? null : String.valueOf(v);
+					pu.specs.add(r);
+				}
+				result.specUsages.add(pu);
+			}
+		} catch (Exception e) {
+			result.specUsages.clear();
+			System.err.println("[PID-SIMUL] 영업사양 사용 기록 실패 : " + e.getMessage());
+		}
 	}
 
 	/**
@@ -269,6 +298,8 @@ public class PIDSimul {
 
 		// 여기부터 대상 PID 실행 : CALL 하위 PID 버전 지정 적용 + 실행 기록
 		ctx.startSubPidTracking(subVersions);
+		// 영업사양 영향도 화면용 기록 (실행 결과에는 영향 없음)
+		ctx.startSpecUsageTracking(variant.getElvEnt());
 
 		// 지정 버전(TEST 포함)이면 그 버전, 없으면 최신 버전. CALL 하는 하위 PID 는 원본과 같이 항상 최신 버전
 		if (version != null)

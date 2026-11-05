@@ -79,6 +79,30 @@ public class PIDSimulResult {
 		public List<Map<String, Object>> versions = new ArrayList<Map<String, Object>>();
 	}
 
+	/** PID 로직이 영업사양 코드 1개를 쓰는 방식 (영업사양 영향도 화면용) */
+	public static class SpecUse {
+		public String code;
+		/** SPEC(조건) 칸에 쓴 라인 수 */
+		public int cond;
+		/** CON / VAL / 계산식 안에서 {코드} 로 읽은 라인 수 */
+		public int ref;
+		/** KEY 로 값을 만든(덮어쓴) 라인 수 */
+		public int write;
+		/** 이번 실행에서 실제로 쓴 횟수 (0 : 로직에만 있음) */
+		public int runCount;
+		/** 대상 PID 실행 직전 영업사양(원본 + 전처리 PID)에 있는 코드인지 */
+		public boolean inBase;
+		/** 대상 PID 실행 직전 영업사양 값 */
+		public String baseValue;
+	}
+
+	/** PID 1개의 영업사양 사용 기록 */
+	public static class PidSpecUsage {
+		public String pid;
+		public boolean javaMethod;
+		public List<SpecUse> specs = new ArrayList<SpecUse>();
+	}
+
 	// ---------------------------------------------------------------- 입력/대상 정보
 	public String projectNo;
 	public String iOuid;
@@ -117,6 +141,8 @@ public class PIDSimulResult {
 	public List<SubPidCall> subPidCalls = new ArrayList<SubPidCall>();
 	/** 실행한 PID 로직에 적힌 CALL 대상 (조건과 무관, count : CALL 라인 수). 호출 관계도의 '실행 안 된 호출' 표시용 */
 	public List<SubPidCall> subPidDeclaredCalls = new ArrayList<SubPidCall>();
+	/** 대상 PID 와 CALL 하위 PID 가 각자 로직에서 쓰는 영업사양 (실행된 PID 만, 처음 실행된 순서). 영업사양 영향도 화면용 */
+	public List<PidSpecUsage> specUsages = new ArrayList<PidSpecUsage>();
 
 	/** 콘솔 출력 */
 	public void print(PrintStream out, boolean showUnread) {

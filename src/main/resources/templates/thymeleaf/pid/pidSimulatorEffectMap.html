@@ -1,0 +1,1228 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>영업사양 영향도</title>
+    <script>
+        // 화면을 그리기 전에 테마를 정한다 (깜빡임 방지) : 저장한 값 > 다크
+        (function () {
+            var t = null;
+            try { t = localStorage.getItem('pidSimulUp.effectMap.theme'); } catch (e) { /* 무시 */ }
+            if (t !== 'light' && t !== 'dark') t = 'dark';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+    <style>
+        /* ===== 디자인 토큰 =====
+           색의 의미 (두 테마 공통) :
+           청록 = 직접 사용 / 회청 = CALL 하위 PID 에서 사용 / 호박 = 값을 만듦 / 장미 = 값 출처 없음 / 하늘 = 선택 */
+        :root, :root[data-theme="dark"] {
+            color-scheme: dark;
+            --bg: #070c17;
+            --panel: #0c1424;
+            --surface: #111b2f;
+            --surface-2: #17233a;
+            --surface-3: #1f2e4b;
+            --line: rgba(148, 163, 184, .13);
+            --line-strong: rgba(148, 163, 184, .26);
+            --line-hover: rgba(148, 163, 184, .45);
+            --grid: rgba(148, 163, 184, .07);
+            --ink: #eef3fb;
+            --ink-2: #c6d1e1;
+            --muted: #8d9bb3;
+            --faint: #5d6b84;
+            --strong: #ffffff;
+            --accent: #38bdf8;
+            --accent-soft: rgba(56, 189, 248, .12);
+            --accent-ring: rgba(56, 189, 248, .25);
+            --own: #2dd4bf;
+            --own-soft: rgba(45, 212, 191, .13);
+            --calc: #93c5fd;
+            --calc-soft: rgba(147, 197, 253, .12);
+            --via: #94a3b8;
+            --via-soft: rgba(148, 163, 184, .12);
+            --make: #fbbf24;
+            --make-soft: rgba(251, 191, 36, .13);
+            --none: #fb7185;
+            --none-soft: rgba(251, 113, 133, .13);
+            --err: #f87171;
+            --head-bg: #0b1428;
+            --input-bg: #070d1a;
+            --placeholder: #66758f;
+            --tip-bg: rgba(8, 14, 27, .96);
+            --shadow: 0 12px 32px rgba(0, 0, 0, .45);
+            --scroll: #24334f;
+        }
+        :root[data-theme="light"] {
+            color-scheme: light;
+            --bg: #f1f4f9;
+            --panel: #ffffff;
+            --surface: #f8fafc;
+            --surface-2: #ffffff;
+            --surface-3: #eef2f8;
+            --line: rgba(15, 23, 42, .09);
+            --line-strong: rgba(15, 23, 42, .17);
+            --line-hover: rgba(15, 23, 42, .32);
+            --grid: rgba(15, 23, 42, .06);
+            --ink: #0f172a;
+            --ink-2: #334155;
+            --muted: #5b6b82;
+            --faint: #94a3b8;
+            --strong: #0f172a;
+            --accent: #0284c7;
+            --accent-soft: #e0f2fe;
+            --accent-ring: rgba(2, 132, 199, .22);
+            --own: #0f8a7e;
+            --own-soft: #d5f5f0;
+            --calc: #2563eb;
+            --calc-soft: #dbeafe;
+            --via: #64748b;
+            --via-soft: #eef2f6;
+            --make: #b45309;
+            --make-soft: #fef3c7;
+            --none: #e11d48;
+            --none-soft: #ffe4e6;
+            --err: #dc2626;
+            --head-bg: #ffffff;
+            --input-bg: #ffffff;
+            --placeholder: #8a98ad;
+            --tip-bg: rgba(255, 255, 255, .98);
+            --shadow: 0 12px 32px rgba(15, 23, 42, .14);
+            --scroll: #cbd5e1;
+        }
+        :root {
+            --mono: Consolas, "D2Coding", "Cascadia Mono", "Courier New", monospace;
+            --sans: "Pretendard", "Pretendard Variable", "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+            --radius: 8px;
+            --nav-w: 320px;
+            /* 전체 표 칸 크기 (JS 의 GEO 와 같은 값) */
+            --cw: 22px;
+            --rh: 28px;
+            --head-h: 128px;
+            --rowhead-w: 290px;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0; font-family: var(--sans); font-size: 13.5px; line-height: 1.55;
+            color: var(--ink); background: var(--bg);
+            display: flex; flex-direction: column; overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        .ico { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+        .ico.sm { width: 14px; height: 14px; vertical-align: -2px; }
+        ::-webkit-scrollbar { width: 11px; height: 11px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 10px; border: 2px solid var(--panel); }
+        ::-webkit-scrollbar-corner { background: transparent; }
+
+        button {
+            font: inherit; display: inline-flex; align-items: center; gap: 6px;
+            min-height: 32px; padding: 5px 11px;
+            border: 1px solid var(--line-strong); border-radius: var(--radius);
+            background: var(--surface-2); color: var(--ink-2); cursor: pointer; white-space: nowrap;
+        }
+        button:hover:not(:disabled) { background: var(--surface-3); color: var(--ink); border-color: var(--line-hover); }
+        button:disabled { opacity: .4; cursor: not-allowed; }
+        button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--strong); }
+        .code { font-family: var(--mono); font-weight: 700; letter-spacing: .01em; }
+
+        /* ===== 헤더 ===== */
+        header { flex: none; position: relative; z-index: 3; background: var(--head-bg); border-bottom: 1px solid var(--line-strong); }
+        .top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 12px 20px 4px; }
+        .brand h1 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -.01em; white-space: nowrap; color: var(--strong); }
+        .target { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 4px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+        .target:empty { display: none; }
+        .target b { color: var(--strong); font-family: var(--mono); font-size: 14.5px; }
+        .target .name { color: var(--ink-2); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .target .sep { width: 1px; height: 14px; background: var(--line-strong); }
+        .spacer { flex: 1; }
+        .search { position: relative; display: flex; align-items: center; }
+        .search input { width: 270px; min-height: 34px; padding: 5px 14px 5px 34px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--input-bg); color: var(--ink); font: inherit; }
+        .search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+        .search input::placeholder { color: var(--placeholder); }
+        .search .ico { position: absolute; left: 12px; color: var(--muted); pointer-events: none; }
+        #btnTheme .i-sun, :root[data-theme="light"] #btnTheme .i-moon { display: inline-block; }
+        #btnTheme .i-moon, :root[data-theme="light"] #btnTheme .i-sun { display: none; }
+
+        /* 탭 : 질문 하나 = 화면 하나 */
+        .tabs { display: flex; gap: 4px; padding: 0 16px; overflow-x: auto; }
+        .tab {
+            min-height: 44px; padding: 8px 14px 10px; border: 0; border-radius: 0; background: transparent;
+            color: var(--muted); font-weight: 600; box-shadow: inset 0 -3px 0 transparent;
+            flex-direction: column; align-items: flex-start; gap: 0;
+        }
+        .tab:hover:not(:disabled) { background: transparent; border: 0; color: var(--ink); }
+        .tab[aria-selected="true"] { color: var(--strong); box-shadow: inset 0 -3px 0 var(--accent); }
+        .tab small { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+        .tab .n { display: inline-block; min-width: 20px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--none-soft); color: var(--none); font-size: 11.5px; text-align: center; }
+        .tab .n:empty { display: none; }
+
+        /* ===== 본문 공통 ===== */
+        main { flex: 1; min-height: 0; display: flex; position: relative; }
+        .view { flex: 1; min-width: 0; min-height: 0; display: flex; }
+        .view[hidden] { display: none; }
+        nav.side { flex: none; width: var(--nav-w); display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-right: 1px solid var(--line); }
+        nav.side .side-head { flex: none; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+        nav.side .side-head h2 { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--ink); }
+        nav.side .side-head p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+        nav.side .side-tools { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+        nav.side .side-tools button { min-height: 28px; padding: 2px 9px; font-size: 12px; }
+        nav.side .side-body { flex: 1; overflow: auto; padding: 6px 8px 20px; }
+        .content { flex: 1; min-width: 0; overflow: auto; padding: 24px 32px 48px; }
+        .content-inner { max-width: 1080px; }
+
+        /* 호출 트리 목록 (PID 기준) */
+        .tn { display: flex; align-items: center; gap: 2px; border-radius: 8px; }
+        .tn:hover { background: var(--surface-3); }
+        .tn.sel { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+        .tn .tog { width: 20px; min-height: 20px; height: 20px; padding: 0; justify-content: center; border: 0; background: transparent; color: var(--muted); flex: none; }
+        .tn .tog:hover:not(:disabled) { color: var(--strong); background: transparent; border: 0; }
+        .tn .tog svg { transition: transform .15s; }
+        .tn .tog[aria-expanded="false"] svg { transform: rotate(-90deg); }
+        .tn .gap { width: 20px; flex: none; }
+        .tn .go { flex: 1; min-width: 0; min-height: 34px; padding: 3px 6px; border: 0; background: transparent; justify-content: flex-start; gap: 8px; text-align: left; }
+        .tn .go:hover:not(:disabled) { background: transparent; border: 0; }
+        .tn .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+        .tn .txt .code { color: var(--ink); font-size: 13px; }
+        .tn.root .txt .code { color: var(--accent); }
+        .tn.err .txt .code { color: var(--err); }
+        .tn .txt span { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tn .cnt { flex: none; display: flex; gap: 4px; }
+        .tn .dim { opacity: .45; }
+        mark { background: var(--accent-ring); color: inherit; border-radius: 3px; padding: 0 1px; }
+
+        /* 숫자 배지 : 직접 / 하위 */
+        .pill { display: inline-flex; align-items: center; gap: 4px; min-width: 28px; justify-content: center; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 18px; }
+        .pill.own { background: var(--own-soft); color: var(--own); }
+        .pill.via { background: var(--via-soft); color: var(--via); }
+        .pill.make { background: var(--make-soft); color: var(--make); }
+        .pill.none { background: var(--none-soft); color: var(--none); }
+        .pill.zero { background: transparent; color: var(--faint); }
+
+        /* 쓰는 방식 배지 (기호 대신 글자) */
+        .role { display: inline-flex; align-items: center; padding: 0 8px; border-radius: 5px; font-size: 11.5px; font-weight: 700; line-height: 20px; white-space: nowrap; }
+        .role.cond { background: var(--own-soft); color: var(--own); }
+        .role.ref { background: var(--calc-soft); color: var(--calc); }
+        .role.write { background: var(--make-soft); color: var(--make); }
+        .role.idle { background: transparent; border: 1px dashed var(--line-hover); color: var(--muted); line-height: 18px; }
+        .role.also { background: transparent; border: 1px solid var(--own); color: var(--own); line-height: 18px; }
+        .roles { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+
+        /* 출처 배지 */
+        .src { display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; line-height: 20px; border: 1px solid var(--line-strong); color: var(--ink-2); white-space: nowrap; }
+        .src.made { border-color: transparent; background: var(--make-soft); color: var(--make); }
+        .src.none { border-color: transparent; background: var(--none-soft); color: var(--none); }
+
+        /* 제목 블록 */
+        .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin-bottom: 8px; font-size: 12.5px; color: var(--muted); }
+        .crumbs button { min-height: 24px; padding: 1px 6px; border: 0; background: transparent; font-family: var(--mono); font-weight: 700; color: var(--accent); }
+        .crumbs button:hover:not(:disabled) { background: var(--accent-soft); border: 0; }
+        .title { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+        .title h2 { margin: 0; font-family: var(--mono); font-size: 28px; line-height: 1.15; color: var(--strong); }
+        .title .nm { font-size: 16px; color: var(--ink-2); }
+        .title .meta { display: inline-flex; gap: 6px; }
+        .summary { margin: 14px 0 0; font-size: 15.5px; color: var(--ink-2); max-width: 70ch; }
+        .summary b { font-variant-numeric: tabular-nums; }
+        .summary .own { color: var(--own); }
+        .summary .via { color: var(--via); }
+        .summary .make { color: var(--make); }
+        .summary .none { color: var(--none); }
+        .note { margin: 10px 0 0; padding: 10px 14px; border-radius: 10px; font-size: 13px; max-width: 80ch; }
+        .note.none { background: var(--none-soft); color: var(--ink); border-left: 3px solid var(--none); }
+        .note.make { background: var(--make-soft); color: var(--ink); border-left: 3px solid var(--make); }
+        .note.plain { background: var(--surface); color: var(--ink-2); border-left: 3px solid var(--line-hover); }
+
+        /* 섹션 */
+        section.block { margin-top: 30px; }
+        section.block > h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--strong); display: flex; align-items: center; gap: 10px; }
+        section.block > h3 .bar { width: 4px; height: 16px; border-radius: 2px; flex: none; }
+        section.block > p.why { margin: 4px 0 12px 14px; color: var(--muted); font-size: 12.5px; }
+
+        /* 표 */
+        table.t { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+        table.t th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); padding: 8px 14px; background: var(--surface); border-bottom: 1px solid var(--line); white-space: nowrap; }
+        table.t td { padding: 7px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+        table.t tr:last-child td { border-bottom: 0; }
+        table.t tbody tr { cursor: pointer; }
+        table.t tbody tr:hover td { background: var(--surface-3); }
+        table.t tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+        table.t td.c-code { width: 1%; white-space: nowrap; }
+        table.t td.c-code .code.made { color: var(--make); }
+        table.t td.c-code .code.none { color: var(--none); }
+        table.t td.c-name { color: var(--ink-2); }
+        table.t td.c-val { font-family: var(--mono); color: var(--ink-2); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        table.t td.c-num { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; width: 1%; }
+        table.t tr.idle td { opacity: .55; }
+        .empty-row { padding: 16px; color: var(--muted); background: var(--panel); border: 1px dashed var(--line-strong); border-radius: 12px; }
+        .pids { display: flex; flex-wrap: wrap; gap: 5px; }
+        .pid-chip { min-height: 24px; padding: 1px 8px; font-family: var(--mono); font-weight: 700; font-size: 12px; border-radius: 6px; }
+        .pid-chip.make { border-color: var(--make); color: var(--make); }
+        .more { color: var(--muted); font-size: 12px; align-self: center; }
+
+        /* CALL 가지 카드 */
+        .branches { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr)); gap: 14px; }
+        .branch { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+        .branch-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--line); }
+        .branch-head .go { min-height: 26px; padding: 1px 8px; font-family: var(--mono); font-weight: 700; color: var(--accent); }
+        .branch-head .nm { flex: 1; min-width: 0; color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .branch table.t { border: 0; border-radius: 0; }
+        .branch .fold { border: 0; border-top: 1px solid var(--line); border-radius: 0; justify-content: center; color: var(--accent); background: transparent; }
+
+        /* 영업사양 기준 : 사양 목록 */
+        .filters { display: flex; gap: 4px; flex-wrap: wrap; }
+        .filters button { min-height: 26px; padding: 1px 9px; font-size: 12px; border-radius: 999px; }
+        .si { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 5px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; justify-content: flex-start; }
+        .si:hover:not(:disabled) { background: var(--surface-3); border: 0; }
+        .si.sel { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+        .si .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+        .si .txt .code { color: var(--ink); font-size: 13px; }
+        .si .txt .code.made { color: var(--make); }
+        .si .txt .code.none { color: var(--none); }
+        .si .txt span { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .si .meter { flex: none; width: 46px; height: 5px; border-radius: 3px; background: var(--grid); overflow: hidden; }
+        .si .meter i { display: block; height: 100%; background: var(--own); border-radius: 3px; }
+
+        /* 값 변화 */
+        .values { display: flex; align-items: stretch; gap: 0; margin-top: 16px; max-width: 640px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); }
+        .values > div { flex: 1; padding: 10px 16px; min-width: 0; }
+        .values > div + div { border-left: 1px solid var(--line); }
+        .values span { display: block; font-size: 12px; color: var(--muted); }
+        .values b { display: block; font-family: var(--mono); font-size: 16px; color: var(--strong); overflow-wrap: anywhere; }
+        .values b.changed { color: var(--make); }
+
+        /* 사용 위치 트리 (영업사양 기준) */
+        .usetree { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 6px; }
+        .ut { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 2px 10px; border-radius: 8px; cursor: pointer; }
+        .ut:hover { background: var(--surface-3); }
+        .ut .lines { flex: none; align-self: stretch; display: flex; }
+        .ut .lines i { width: 18px; border-left: 1px solid var(--line-strong); margin-left: 6px; }
+        .ut .lines i:first-child { margin-left: 0; }
+        .ut .dot { flex: none; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--line-hover); background: var(--panel); }
+        .ut.user .dot { border-color: var(--own); background: var(--own); box-shadow: 0 0 0 4px var(--own-soft); }
+        .ut.user.writer .dot { border-color: var(--make); background: var(--make); box-shadow: 0 0 0 4px var(--make-soft); }
+        .ut.affect .dot { border-color: var(--via); }
+        .ut .code { color: var(--ink); }
+        .ut.other .code, .ut.other .nm { color: var(--faint); }
+        .ut .nm { color: var(--muted); font-size: 12.5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ut .tail { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; flex: none; }
+        .ut .say { font-size: 12px; color: var(--muted); }
+        .tree-legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 0 0 10px 14px; font-size: 12.5px; color: var(--muted); }
+        .tree-legend span { display: inline-flex; align-items: center; gap: 7px; }
+        .tree-legend .dot { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--line-hover); }
+        .tree-legend .dot.u { border-color: var(--own); background: var(--own); }
+        .tree-legend .dot.w { border-color: var(--make); background: var(--make); }
+        .tree-legend .dot.a { border-color: var(--via); }
+
+        /* 점검할 점 */
+        .checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 16px; margin-top: 20px; }
+        .check { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+        .check-head { display: flex; gap: 12px; padding: 14px 16px 10px; }
+        .check-head .big { flex: none; font-size: 26px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; min-width: 34px; }
+        .check-head h3 { margin: 0; font-size: 14.5px; color: var(--strong); }
+        .check-head p { margin: 3px 0 0; font-size: 12.5px; color: var(--muted); }
+        .check.none .big { color: var(--none); }
+        .check.make .big { color: var(--make); }
+        .check.own .big { color: var(--own); }
+        .check.plain .big { color: var(--muted); }
+        .check table.t { border: 0; border-radius: 0; border-top: 1px solid var(--line); }
+        .check .ok { padding: 12px 16px 16px; color: var(--muted); font-size: 12.5px; border-top: 1px solid var(--line); }
+        .check .bar { width: 90px; height: 6px; border-radius: 3px; background: var(--grid); overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 8px; }
+        .check .bar i { display: block; height: 100%; background: var(--own); }
+
+        /* ===== 전체 표 (고급) ===== */
+        .matrix { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--panel); }
+        .mx-key { flex: none; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 8px 20px; border-bottom: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+        .mx-key span { display: inline-flex; align-items: center; gap: 7px; }
+        .mx-key .c { position: relative; }
+        .mx-key .hint { margin-left: auto; }
+        .scroller { flex: 1; min-height: 0; overflow: auto; position: relative; }
+        .sheet { display: grid; grid-template-columns: var(--rowhead-w) max-content; grid-template-rows: var(--head-h) max-content; min-width: 100%; }
+        .corner { position: sticky; top: 0; left: 0; z-index: 4; background: var(--panel); border-right: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); display: flex; align-items: flex-end; justify-content: space-between; padding: 10px 12px; font-size: 12px; color: var(--muted); }
+        .colhead { position: sticky; top: 0; z-index: 3; background: var(--panel); border-bottom: 1px solid var(--line-strong); }
+        .rowhead { position: sticky; left: 0; z-index: 2; background: var(--panel); border-right: 1px solid var(--line-strong); }
+        .body { position: relative; cursor: pointer; background-image: linear-gradient(to right, var(--grid) 1px, transparent 1px), linear-gradient(to bottom, var(--grid) 1px, transparent 1px); background-size: var(--cw) var(--rh); }
+        .ch { position: absolute; top: 0; width: var(--cw); height: var(--head-h); padding: 0 0 7px; min-height: 0; border: 0; border-radius: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 5px; color: var(--ink-2); }
+        .ch:hover:not(:disabled), .ch.hot { background: var(--accent-soft); color: var(--strong); border: 0; }
+        .ch .t { writing-mode: vertical-rl; transform: rotate(180deg); font-family: var(--mono); font-size: 11.5px; max-height: calc(var(--head-h) - 20px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ch .u { font-size: 10px; font-weight: 700; color: var(--muted); }
+        .ch::after { content: ''; position: absolute; left: 4px; right: 4px; bottom: 0; height: 3px; border-radius: 2px 2px 0 0; background: var(--line-strong); }
+        .ch.s-made::after { background: var(--make); }
+        .ch.s-none::after { background: var(--none); }
+        .ch.s-none .t { color: var(--none); }
+        .rh { position: absolute; left: 0; right: 0; height: var(--rh); display: flex; align-items: center; gap: 6px; padding-right: 10px; border-bottom: 1px solid var(--grid); }
+        .rh.hot { background: var(--accent-soft); }
+        .rh .rb { flex: 1; min-width: 0; min-height: 24px; padding: 1px 6px; border: 0; background: transparent; justify-content: flex-start; gap: 8px; }
+        .rh .rb:hover:not(:disabled) { background: transparent; border: 0; }
+        .rh .rb .code { color: var(--ink); }
+        .rh .rb span:not(.code) { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+        .c { position: absolute; width: var(--cw); height: var(--rh); display: grid; place-items: center; pointer-events: none; }
+        .c i { display: block; width: 12px; height: 12px; border-radius: 3px; }
+        .c.own i { background: var(--own); }
+        .c.own.wr i { background: var(--make); }
+        .c.via i { width: 10px; height: 10px; background: transparent; border: 2px solid var(--via); opacity: .7; border-radius: 50%; }
+        .c.idle { opacity: .35; }
+        .bx, .by { position: absolute; pointer-events: none; background: var(--accent-soft); }
+        .bx { left: 0; right: 0; height: var(--rh); }
+        .by { top: 0; bottom: 0; width: var(--cw); }
+        .bx[hidden], .by[hidden] { display: none; }
+        .tip { position: fixed; z-index: 10; max-width: 340px; pointer-events: none; padding: 9px 12px; border-radius: 10px; background: var(--tip-bg); border: 1px solid var(--line-strong); box-shadow: var(--shadow); font-size: 12.5px; color: var(--ink-2); }
+        .tip[hidden] { display: none; }
+        .tip b { font-family: var(--mono); color: var(--strong); }
+        .tip p { margin: 4px 0 0; }
+        .tip .k { color: var(--muted); }
+
+        .notice { flex: none; padding: 9px 20px; background: var(--make-soft); border-bottom: 1px solid var(--line); color: var(--ink); font-size: 13px; }
+        .notice[hidden] { display: none; }
+        .empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; text-align: center; color: var(--muted); background: var(--bg); z-index: 5; }
+        .empty[hidden] { display: none; }
+        .empty h2 { margin: 0; font-size: 18px; color: var(--ink); }
+        .empty p { margin: 0; max-width: 48ch; }
+
+        @media (max-width: 1000px) {
+            :root { --nav-w: 260px; }
+            .content { padding: 18px 18px 40px; }
+            .search input { width: 200px; }
+        }
+        @media (max-width: 720px) {
+            .view { flex-direction: column; }
+            nav.side { width: auto; height: 38%; border-right: 0; border-bottom: 1px solid var(--line); }
+            .title h2 { font-size: 22px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            * { transition: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+        <symbol id="i-caret" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
+        <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
+        <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
+    </defs>
+</svg>
+
+<header>
+    <div class="top">
+        <div class="brand"><h1>영업사양 영향도</h1></div>
+        <div class="target" id="target"></div>
+        <span class="spacer"></span>
+        <label class="search" title="PID / 사양 코드 / 한글명으로 찾기 (/ : 바로 입력, Enter : 첫 결과 열기)">
+            <svg class="ico sm" aria-hidden="true"><use href="#i-search"/></svg>
+            <input type="search" id="q" placeholder="PID, 사양 코드, 한글명 찾기" spellcheck="false" aria-label="PID, 사양 코드, 한글명 찾기">
+        </label>
+        <button type="button" id="btnRunOnly" aria-pressed="false" title="로직에 적혀 있어도 이번 실행에서 한 번도 쓰지 않은 사양은 뺍니다">
+            <svg class="ico sm" aria-hidden="true"><use href="#i-play"/></svg>이번 실행에서 쓴 것만</button>
+        <button type="button" id="btnFlow" title="지금 보고 있는 PID 나 영업사양을 흐름도로 봅니다 (영업사양 기준 탭이면 하→상, 그 밖에는 상→하)">
+            <svg class="ico sm" aria-hidden="true" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M7.5 12h4l5-5.5M11.5 12l5 5.5"/></svg>흐름도로 보기</button>
+        <button type="button" id="btnCsv" title="PID 별 사양 사용 내역을 엑셀에서 열 수 있는 CSV 로 저장"><svg class="ico sm" aria-hidden="true"><use href="#i-file"/></svg>CSV 저장</button>
+        <button type="button" id="btnReload" title="시뮬레이터의 최신 실행 결과를 다시 읽기"><svg class="ico sm" aria-hidden="true"><use href="#i-refresh"/></svg>다시 읽기</button>
+        <button type="button" id="btnTheme" title="다크 / 라이트 화면 전환">
+            <svg class="ico sm i-sun" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ico sm i-moon" aria-hidden="true"><use href="#i-moon"/></svg><span id="themeLabel">라이트</span></button>
+    </div>
+    <div class="tabs" role="tablist" aria-label="보기">
+        <button type="button" class="tab" role="tab" data-tab="pid" aria-selected="true">PID 기준<small>이 PID 는 어떤 사양을 쓰나</small></button>
+        <button type="button" class="tab" role="tab" data-tab="spec" aria-selected="false">영업사양 기준<small>이 사양은 어느 PID 에서 쓰나</small></button>
+        <button type="button" class="tab" role="tab" data-tab="check" aria-selected="false"><span>점검할 점<span class="n" id="checkN"></span></span><small>값 출처 없음, 덮어쓰기 등</small></button>
+        <button type="button" class="tab" role="tab" data-tab="matrix" aria-selected="false">전체 표<small>PID × 사양 한눈에</small></button>
+    </div>
+</header>
+
+<div class="notice" id="notice" hidden></div>
+<main>
+    <!-- PID 기준 -->
+    <div class="view" id="v-pid">
+        <nav class="side" aria-label="호출 트리">
+            <div class="side-head">
+                <h2>호출 트리</h2>
+                <p>PID 를 고르면 오른쪽에 쓰는 사양을 보여줍니다</p>
+                <div class="side-tools">
+                    <span class="pill own">직접</span><span class="pill via">하위</span>
+                    <span class="spacer"></span>
+                    <button type="button" id="btnExpand">모두 펼치기</button>
+                    <button type="button" id="btnCollapse">모두 접기</button>
+                </div>
+            </div>
+            <div class="side-body" id="pidNav"></div>
+        </nav>
+        <div class="content"><div class="content-inner" id="pidView"></div></div>
+    </div>
+
+    <!-- 영업사양 기준 -->
+    <div class="view" id="v-spec" hidden>
+        <nav class="side" aria-label="영업사양 목록">
+            <div class="side-head">
+                <h2>영업사양 <span id="specCount" style="color:var(--muted);font-weight:500"></span></h2>
+                <p>쓰는 PID 가 많은 순입니다</p>
+                <div class="side-tools filters" id="specFilters"></div>
+            </div>
+            <div class="side-body" id="specNav"></div>
+        </nav>
+        <div class="content"><div class="content-inner" id="specView"></div></div>
+    </div>
+
+    <!-- 점검할 점 -->
+    <div class="view" id="v-check" hidden>
+        <div class="content"><div class="content-inner" id="checkView" style="max-width:1400px"></div></div>
+    </div>
+
+    <!-- 전체 표 -->
+    <div class="view" id="v-matrix" hidden>
+        <div class="matrix">
+            <div class="mx-key">
+                <span><span class="c own"><i></i></span>직접 사용</span>
+                <span><span class="c own wr"><i></i></span>직접 값을 만듦</span>
+                <span><span class="c via"><i></i></span>CALL 하위 PID 에서 사용</span>
+                <span><span class="c own idle"><i></i></span>흐리게 : 이번 실행에선 안 씀</span>
+                <span class="hint">칸을 누르면 그 사양을, PID 를 누르면 그 PID 를 자세히 봅니다</span>
+            </div>
+            <div class="scroller" id="scroller">
+                <div class="sheet">
+                    <div class="corner"><span>PID</span><span>사양 (쓰는 PID 수)</span></div>
+                    <div class="colhead" id="colhead"></div>
+                    <div class="rowhead" id="rowhead"></div>
+                    <div class="body" id="body"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="empty" id="empty" hidden>
+        <h2 id="emptyTitle">실행 결과가 없습니다</h2>
+        <p id="emptyText">시뮬레이터에서 PID 를 실행하면 PID 별 영업사양 사용을 보여줍니다.</p>
+        <button type="button" id="btnEmptyReload"><svg class="ico sm" aria-hidden="true"><use href="#i-refresh"/></svg>다시 읽기</button>
+    </div>
+</main>
+<div class="tip" id="tip" hidden role="status"></div>
+
+<script>
+    const TEST_VERSION = -1;
+    const GEO = { cw: 22, rh: 28 };                      // CSS 의 --cw / --rh 와 같은 값
+    const CODE_API = '/api/getCodeList?key=subae';       // 특성코드 한글명 (실패해도 화면은 동작)
+    const SYSTEM_KEYS = new Set(['LINE_NO']);            // 엔진이 실행 중에 넣는 값
+    const STORE = { theme: 'pidSimulUp.effectMap.theme', runOnly: 'pidSimulUp.effectMap.runOnly', tab: 'pidSimulUp.effectMap.tab' };
+    const SRC_LABEL = { base: '영업사양', made: 'PID 가 만든 값', none: '값 출처 없음' };
+    const BRANCH_ROWS = 8;                               // CALL 가지 카드에 처음 보여줄 사양 수
+
+    const $ = (id) => document.getElementById(id);
+    const store = {
+        get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+        set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 무시 */ } },
+    };
+    const esc = (v) => (v === null || v === undefined ? '' : String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'));
+    const has = (v) => v !== null && v !== undefined && v !== '';
+    const verText = (v) => (!has(v) ? '' : Number(v) === TEST_VERSION ? 'TEST' : `v${v}`);
+    const valText = (v) => (v === undefined ? '없음' : v === null || v === '' ? '(빈 값)' : String(v));
+
+    const state = {
+        data: null, rootPid: null,
+        info: new Map(), kids: new Map(), parents: new Map(), usage: new Map(),
+        tree: [], treeBy: new Map(), reach: new Map(), specs: new Map(), names: new Map(),
+        hasUsage: false,
+        runOnly: store.get(STORE.runOnly) === 'Y',
+        tab: ['pid', 'spec', 'check', 'matrix'].includes(store.get(STORE.tab)) ? store.get(STORE.tab) : 'pid',
+        q: '',
+        specSrc: 'all',
+        collapsed: new Set(),
+        openBranches: new Set(),
+        showAllTree: false,
+        selPid: null, selCode: null,
+        mx: { rows: [], cols: [], hot: { r: -1, c: -1 } },
+    };
+
+    // ---------- 데이터 ----------
+    function readFromOpener() {
+        try {
+            const op = window.opener;
+            if (op && !op.closed) {
+                if (typeof op.getPidSpecUsageMap === 'function') return { ok: true, data: op.getPidSpecUsageMap() };
+                if (typeof op.getPidCallMap === 'function') return { ok: true, data: op.getPidCallMap() };
+            }
+        } catch (e) { /* 다른 출처이거나 닫힘 */ }
+        return { ok: false, data: null };
+    }
+
+    function prepare(data) {
+        const info = new Map(), kids = new Map(), parents = new Map(), usage = new Map();
+        const root = data.root;
+        info.set(root.pid, { pid: root.pid, name: root.name, runVersion: root.testVersion ? TEST_VERSION : root.runVersion, isRoot: true });
+        (data.subPids || []).forEach((s) => { if (!info.has(s.pid)) info.set(s.pid, Object.assign({}, s)); });
+
+        const link = (from, to) => {
+            if (from === to) return;
+            if (!kids.has(from)) kids.set(from, []);
+            if (!parents.has(to)) parents.set(to, []);
+            if (!kids.get(from).includes(to)) kids.get(from).push(to);
+            if (!parents.get(to).includes(from)) parents.get(to).push(from);
+        };
+        if (Array.isArray(data.subPidCalls) && data.subPidCalls.length) data.subPidCalls.forEach((c) => link(c.from, c.to));
+        else (data.subPids || []).forEach((s) => link(root.pid, s.pid));
+
+        (data.specUsages || []).forEach((u) => {
+            const specs = new Map();
+            (u.specs || []).forEach((s) => specs.set(s.code, s));
+            usage.set(u.pid, { javaMethod: !!u.javaMethod, specs });
+            if (!info.has(u.pid)) info.set(u.pid, { pid: u.pid });
+        });
+        if (root.javaMethod && !usage.has(root.pid)) usage.set(root.pid, { javaMethod: true, specs: new Map() });
+
+        // 호출 트리 : 같은 PID 는 처음 나온 위치에만
+        const tree = [], treeBy = new Map();
+        const visit = (pid, depth, parent) => {
+            if (treeBy.has(pid)) return;
+            const node = { pid, depth, parent, kids: [] };
+            treeBy.set(pid, node);
+            tree.push(node);
+            if (parent) treeBy.get(parent).kids.push(pid);
+            (kids.get(pid) || []).forEach((k) => visit(k, depth + 1, pid));
+        };
+        visit(root.pid, 0, null);
+        [...info.keys()].forEach((pid) => visit(pid, 1, root.pid));
+
+        const reach = new Map();
+        info.forEach((_, pid) => {
+            const seen = new Set(), stack = [...(kids.get(pid) || [])];
+            while (stack.length) {
+                const p = stack.pop();
+                if (p === pid || seen.has(p)) continue;
+                seen.add(p);
+                (kids.get(p) || []).forEach((k) => stack.push(k));
+            }
+            reach.set(pid, seen);
+        });
+
+        const elv = data.elvEnt || {};
+        const specs = new Map();
+        let order = 0;
+        tree.forEach((node) => {
+            const u = usage.get(node.pid);
+            if (!u) return;
+            u.specs.forEach((s, code) => {
+                let sp = specs.get(code);
+                if (!sp) { sp = { code, users: [], readers: [], writers: [], inBase: false, baseValue: undefined, order: order++, run: 0 }; specs.set(code, sp); }
+                sp.users.push(node.pid);
+                if (s.cond || s.ref) sp.readers.push(node.pid);
+                if (s.write) sp.writers.push(node.pid);
+                if (s.inBase) { sp.inBase = true; sp.baseValue = s.baseValue; }
+                sp.run += s.runCount || 0;
+            });
+        });
+        specs.forEach((sp) => {
+            sp.system = SYSTEM_KEYS.has(sp.code);
+            sp.src = sp.inBase || sp.system ? 'base' : sp.writers.length ? 'made' : 'none';
+            sp.over = sp.inBase && sp.writers.length > 0;
+            sp.finalValue = Object.prototype.hasOwnProperty.call(elv, sp.code) ? elv[sp.code] : undefined;
+        });
+
+        Object.assign(state, { info, kids, parents, usage, tree, treeBy, reach, specs, rootPid: root.pid, hasUsage: Array.isArray(data.specUsages) });
+    }
+
+    function ancestors(pid) {
+        const seen = new Set(), stack = [...(state.parents.get(pid) || [])];
+        while (stack.length) {
+            const p = stack.pop();
+            if (p === pid || seen.has(p)) continue;
+            seen.add(p);
+            (state.parents.get(p) || []).forEach((x) => stack.push(x));
+        }
+        return seen;
+    }
+    const ok = (use) => !!use && (!state.runOnly || use.runCount > 0);
+    const useOf = (pid, code) => { const u = state.usage.get(pid); const s = u ? u.specs.get(code) : undefined; return ok(s) ? s : undefined; };
+    const ownSpecs = (pid) => { const u = state.usage.get(pid); return u ? [...u.specs.values()].filter(ok) : []; };
+    const specName = (code) => state.names.get(code) || '';
+    const pidName = (pid) => (state.info.get(pid) || {}).name || '';
+    const treeOrder = (pid) => state.tree.indexOf(state.treeBy.get(pid));
+    const usersOf = (sp) => sp.users.filter((p) => useOf(p, sp.code));
+
+    // 하위 PID 에서 쓰는 사양 (code → [PID])
+    function viaSpecs(pid, pool) {
+        const via = new Map();
+        (pool || state.reach.get(pid)).forEach((d) => {
+            ownSpecs(d).forEach((s) => {
+                if (!via.has(s.code)) via.set(s.code, []);
+                via.get(s.code).push(d);
+            });
+        });
+        return via;
+    }
+    function pidCounts(pid) {
+        const own = new Set(ownSpecs(pid).map((s) => s.code));
+        let via = 0;
+        viaSpecs(pid).forEach((_, code) => { if (!own.has(code)) via++; });
+        return { own: own.size, via };
+    }
+
+    // ---------- 공통 조각 ----------
+    function roleTags(s, opts) {
+        let h = '';
+        if (s.cond) h += `<span class="role cond" title="SPEC 조건 칸에서 ${s.cond}줄">조건 비교</span>`;
+        if (s.ref) h += `<span class="role ref" title="CON / VAL / 계산식 안의 {코드} 로 ${s.ref}줄">값 계산</span>`;
+        if (s.write) h += `<span class="role write" title="KEY 로 ${s.write}줄">값 생성</span>`;
+        if (!(s.runCount > 0) && !(opts && opts.noIdle)) h += '<span class="role idle" title="로직에 적혀 있지만 이번 실행에서는 조건 불충족이나 GOTO 로 쓰지 않음">이번엔 안 씀</span>';
+        return `<span class="roles">${h}</span>`;
+    }
+    const lineCount = (s) => (s.cond || 0) + (s.ref || 0) + (s.write || 0);
+    const srcTag = (sp) => `<span class="src ${sp.src}">${SRC_LABEL[sp.src]}${sp.over ? ' (PID 가 덮어씀)' : ''}</span>`;
+    function hl(text, q) {
+        const t = esc(text);
+        if (!q) return t;
+        const i = String(text).toLowerCase().indexOf(q);
+        return i < 0 ? t : esc(String(text).slice(0, i)) + '<mark>' + esc(String(text).slice(i, i + q.length)) + '</mark>' + esc(String(text).slice(i + q.length));
+    }
+    function pidChips(pids, max, cls) {
+        const shown = pids.slice(0, max).map((p) => `<button type="button" class="pid-chip ${cls || ''}" data-pid="${esc(p)}" title="${esc(pidName(p))}">${esc(p)}</button>`).join('');
+        return `<div class="pids">${shown}${pids.length > max ? `<span class="more">외 ${pids.length - max}개</span>` : ''}</div>`;
+    }
+    function crumbs(pid) {
+        const chain = [];
+        for (let n = state.treeBy.get(pid); n; n = n.parent ? state.treeBy.get(n.parent) : null) chain.unshift(n.pid);
+        if (chain.length < 2) return '';
+        return `<div class="crumbs" aria-label="호출 경로">${chain.slice(0, -1).map((c) => `<button type="button" data-pid="${esc(c)}">${esc(c)}</button><span>›</span>`).join('')}<span class="code" style="padding:0 6px;color:var(--ink-2)">${esc(pid)}</span></div>`;
+    }
+    const specCodeCell = (sp) => `<td class="c-code"><span class="code ${sp.src !== 'base' ? sp.src : ''}">${esc(sp.code)}</span></td>`;
+
+    // ---------- PID 기준 ----------
+    function renderPidNav() {
+        const q = state.q.toLowerCase();
+        let keep = null;
+        if (q) {
+            keep = new Set();
+            state.tree.forEach((n) => {
+                if (n.pid.toLowerCase().includes(q) || pidName(n.pid).toLowerCase().includes(q)) {
+                    for (let x = n; x; x = x.parent ? state.treeBy.get(x.parent) : null) keep.add(x.pid);
+                }
+            });
+        }
+        let h = '';
+        const walk = (pid) => {
+            const n = state.treeBy.get(pid);
+            if (keep && !keep.has(pid)) return;
+            const inf = state.info.get(pid) || {}, c = pidCounts(pid);
+            const closed = !keep && state.collapsed.has(pid);
+            const cls = ['tn'];
+            if (inf.isRoot) cls.push('root');
+            if (inf.error) cls.push('err');
+            if (pid === state.selPid) cls.push('sel');
+            const tog = n.kids.length
+                ? `<button type="button" class="tog" data-tog="${esc(pid)}" aria-expanded="${!closed}" aria-label="${esc(pid)} 하위 ${closed ? '펼치기' : '접기'}"><svg class="ico sm" aria-hidden="true"><use href="#i-caret"/></svg></button>`
+                : '<span class="gap"></span>';
+            h += `<div class="${cls.join(' ')}" style="padding-left:${n.depth * 14}px">${tog}`
+                + `<button type="button" class="go" data-pid="${esc(pid)}"><span class="txt"><span class="code">${hl(pid, q)}</span><span>${hl(inf.name || '', q)}</span></span>`
+                + `<span class="cnt"><span class="pill ${c.own ? 'own' : 'zero'}" title="직접 쓰는 사양">${c.own}</span><span class="pill ${c.via ? 'via' : 'zero'}" title="CALL 하위 PID 에서만 쓰는 사양">${c.via}</span></span></button></div>`;
+            if (!closed) n.kids.forEach(walk);
+        };
+        if (state.treeBy.has(state.rootPid)) walk(state.rootPid);
+        $('pidNav').innerHTML = h || '<p style="padding:12px;color:var(--muted)">찾는 PID 가 없습니다.</p>';
+    }
+
+    function specRows(list, opts) {
+        // list : [{sp, s(사용), pids(하위), also}]
+        return list.map((x) => {
+            const sp = x.sp;
+            return `<tr tabindex="0" data-code="${esc(sp.code)}" class="${x.s && !(x.s.runCount > 0) ? 'idle' : ''}">${specCodeCell(sp)}`
+                + `<td class="c-name">${esc(specName(sp.code)) || '<span style="color:var(--faint)">-</span>'}</td>`
+                + (opts.roles ? `<td>${roleTags(x.s)}</td>` : '')
+                + (opts.pids ? `<td>${x.also ? '<span class="role also" title="선택한 PID 도 직접 씁니다" style="margin-right:6px">직접도 씀</span>' : ''}${x.pids.length === 1 ? `<span class="code" style="font-size:12px;color:var(--ink-2)">${esc(x.pids[0])}</span>` : `<span style="font-size:12px;color:var(--ink-2)"><span class="code">${esc(x.pids[0])}</span> 외 ${x.pids.length - 1}</span>`}</td>` : '')
+                + `<td class="c-val" title="${esc(valText(sp.finalValue))}">${esc(valText(sp.finalValue))}</td></tr>`;
+        }).join('');
+    }
+
+    function renderPidView() {
+        const pid = state.selPid;
+        if (!pid || !state.info.has(pid)) { $('pidView').innerHTML = ''; return; }
+        const inf = state.info.get(pid), u = state.usage.get(pid), node = state.treeBy.get(pid);
+        const own = ownSpecs(pid).slice().sort((a, b) => (state.specs.get(a.code).order - state.specs.get(b.code).order));
+        const ownSet = new Set(own.map((s) => s.code));
+        const viaAll = viaSpecs(pid);
+        const viaOnly = [...viaAll.keys()].filter((c) => !ownSet.has(c));
+        const directKids = state.kids.get(pid) || [];
+
+        let h = crumbs(pid)
+            + `<div class="title"><h2>${esc(pid)}</h2><span class="nm">${esc(inf.name || '')}</span>`
+            + `<span class="meta">${verText(inf.runVersion) ? `<span class="src">${verText(inf.runVersion)}</span>` : ''}${inf.isRoot ? '<span class="src">대상 PID</span>' : ''}</span></div>`
+            + `<p class="summary">이 PID 로직이 영업사양 <b class="own">${own.length}개</b>를 직접 쓰고, `
+            + (directKids.length ? `CALL 하는 하위 PID <b>${state.reach.get(pid).size}개</b>가 <b class="via">${viaOnly.length}개</b>를 더 씁니다.` : '호출하는 하위 PID 는 없습니다.')
+            + '</p>';
+        if (inf.error) h += `<p class="note none">실행 실패 : ${esc(inf.error)}</p>`;
+        if (u && u.javaMethod) h += '<p class="note plain">JAVA 방식 PID 라 로직이 없어 쓰는 영업사양을 알 수 없습니다.</p>';
+        else if (!u && !inf.error) h += '<p class="note plain">이 PID 의 로직 기록이 없습니다.</p>';
+
+        // 1. 직접
+        h += '<section class="block"><h3><span class="bar" style="background:var(--own)"></span>이 PID 가 직접 쓰는 영업사양</h3>'
+            + '<p class="why">PID 로직의 SPEC(조건) 칸, 계산식, KEY 에 적힌 사양입니다.</p>';
+        h += own.length
+            ? `<table class="t"><thead><tr><th>사양</th><th>한글명</th><th>쓰는 방식</th><th>최종 값</th></tr></thead><tbody>${specRows(own.map((s) => ({ sp: state.specs.get(s.code), s })), { roles: true })}</tbody></table>`
+            : '<div class="empty-row">직접 쓰는 영업사양이 없습니다.</div>';
+        h += '</section>';
+
+        // 2. CALL 하위 (가지별)
+        if (directKids.length) {
+            h += '<section class="block"><h3><span class="bar" style="background:var(--via)"></span>CALL 하위 PID 에서 쓰는 영업사양</h3>'
+                + '<p class="why">이 PID 가 CALL 하는 PID 별로 묶었습니다. 각 묶음은 그 PID 와 그 아래 하위 PID 전부입니다.</p><div class="branches">';
+            directKids.forEach((k) => {
+                const pool = new Set([k, ...state.reach.get(k)]);
+                const map = viaSpecs(null, pool);
+                const list = [...map.entries()].map(([code, pids]) => ({ sp: state.specs.get(code), pids: pids.sort((a, b) => treeOrder(a) - treeOrder(b)), also: ownSet.has(code) }))
+                    .sort((a, b) => (a.also - b.also) || (b.pids.length - a.pids.length) || a.sp.code.localeCompare(b.sp.code));
+                const open = state.openBranches.has(pid + '>' + k);
+                const shown = open ? list : list.slice(0, BRANCH_ROWS);
+                const newCnt = list.filter((x) => !x.also).length;
+                h += `<div class="branch"><div class="branch-head"><button type="button" class="go" data-pid="${esc(k)}" title="${esc(k)} 로 이동">${esc(k)}</button>`
+                    + `<span class="nm">${esc(pidName(k))}${pool.size > 1 ? `, 하위 포함 PID ${pool.size}개` : ''}</span>`
+                    + `<span class="pill ${newCnt ? 'via' : 'zero'}" title="이 PID 는 안 쓰고 이 묶음에서만 쓰는 사양">${newCnt}</span></div>`
+                    + (list.length
+                        ? `<table class="t"><thead><tr><th>사양</th><th>한글명</th><th>쓰는 PID</th><th>최종 값</th></tr></thead><tbody>${specRows(shown, { pids: true })}</tbody></table>`
+                          + (list.length > BRANCH_ROWS ? `<button type="button" class="fold" data-branch="${esc(pid + '>' + k)}">${open ? '접기' : `${list.length - BRANCH_ROWS}개 더 보기`}</button>` : '')
+                        : '<div style="padding:12px 14px;color:var(--muted)">쓰는 영업사양이 없습니다.</div>')
+                    + '</div>';
+            });
+            h += '</div></section>';
+        }
+
+        // 3. 주고받는 값
+        const desc = [...state.reach.get(pid)];
+        const passDown = own.filter((s) => s.write && desc.some((d) => { const x = useOf(d, s.code); return x && (x.cond || x.ref); })).map((s) => s.code);
+        const fromKids = own.filter((s) => (s.cond || s.ref) && desc.some((d) => { const x = useOf(d, s.code); return x && x.write; })).map((s) => s.code);
+        if (passDown.length || fromKids.length) {
+            h += '<section class="block"><h3><span class="bar" style="background:var(--make)"></span>하위 PID 와 주고받는 값</h3>'
+                + '<p class="why">한쪽이 KEY 로 만든 값을 다른 쪽이 읽습니다. 만드는 쪽을 바꾸면 읽는 쪽 결과도 바뀝니다.</p>'
+                + '<table class="t"><thead><tr><th>사양</th><th>한글명</th><th>방향</th><th>상대 PID</th></tr></thead><tbody>';
+            passDown.forEach((c) => {
+                const to = desc.filter((d) => { const x = useOf(d, c); return x && (x.cond || x.ref); });
+                h += `<tr tabindex="0" data-code="${esc(c)}">${specCodeCell(state.specs.get(c))}<td class="c-name">${esc(specName(c))}</td><td><span class="role write">이 PID 가 만들어 넘김</span></td><td><span class="code" style="font-size:12px">${esc(to.slice(0, 3).join(', '))}</span>${to.length > 3 ? ` 외 ${to.length - 3}` : ''}</td></tr>`;
+            });
+            fromKids.forEach((c) => {
+                const from = desc.filter((d) => { const x = useOf(d, c); return x && x.write; });
+                h += `<tr tabindex="0" data-code="${esc(c)}">${specCodeCell(state.specs.get(c))}<td class="c-name">${esc(specName(c))}</td><td><span class="role ref">하위가 만든 값을 읽음</span></td><td><span class="code" style="font-size:12px">${esc(from.slice(0, 3).join(', '))}</span>${from.length > 3 ? ` 외 ${from.length - 3}` : ''}</td></tr>`;
+            });
+            h += '</tbody></table></section>';
+        }
+        $('pidView').innerHTML = h;
+    }
+
+    // ---------- 영업사양 기준 ----------
+    function specList() {
+        const q = state.q.toLowerCase();
+        let list = [...state.specs.values()].filter((sp) => usersOf(sp).length);
+        if (state.specSrc !== 'all') list = list.filter((sp) => sp.src === state.specSrc);
+        if (q) list = list.filter((sp) => sp.code.toLowerCase().includes(q) || specName(sp.code).toLowerCase().includes(q));
+        return list.sort((a, b) => usersOf(b).length - usersOf(a).length || a.code.localeCompare(b.code));
+    }
+    function renderSpecNav() {
+        const all = [...state.specs.values()].filter((sp) => usersOf(sp).length);
+        const n = (src) => all.filter((sp) => sp.src === src).length;
+        const f = (key, label, cnt) => `<button type="button" data-specsrc="${key}" aria-pressed="${state.specSrc === key}">${label} ${cnt}</button>`;
+        $('specFilters').innerHTML = f('all', '전체', all.length) + f('base', '영업사양', n('base')) + (n('made') ? f('made', 'PID 가 만든 값', n('made')) : '') + (n('none') ? f('none', '값 출처 없음', n('none')) : '');
+        const list = specList(), q = state.q.toLowerCase();
+        const max = list.reduce((m, sp) => Math.max(m, usersOf(sp).length), 1);
+        $('specCount').textContent = `${list.length}개`;
+        $('specNav').innerHTML = list.length
+            ? list.map((sp) => {
+                const n = usersOf(sp).length;
+                return `<button type="button" class="si ${sp.code === state.selCode ? 'sel' : ''}" data-code="${esc(sp.code)}">`
+                    + `<span class="txt"><span class="code ${sp.src !== 'base' ? sp.src : ''}">${hl(sp.code, q)}</span><span>${hl(specName(sp.code), q) || '&nbsp;'}</span></span>`
+                    + `<span class="meter" aria-hidden="true"><i style="width:${Math.round(n / max * 100)}%"></i></span><span class="pill own" title="쓰는 PID 수">${n}</span></button>`;
+            }).join('')
+            : '<p style="padding:12px;color:var(--muted)">조건에 맞는 사양이 없습니다.</p>';
+    }
+
+    function renderSpecView() {
+        const sp = state.specs.get(state.selCode);
+        if (!sp) { $('specView').innerHTML = '<p class="summary">왼쪽에서 영업사양을 고르세요.</p>'; return; }
+        const users = usersOf(sp).sort((a, b) => treeOrder(a) - treeOrder(b));
+        const userSet = new Set(users);
+        const affected = new Set();
+        users.forEach((p) => ancestors(p).forEach((a) => { if (!userSet.has(a)) affected.add(a); }));
+        const writers = users.filter((p) => useOf(p, sp.code).write);
+        const changed = sp.inBase && sp.finalValue !== undefined && String(sp.finalValue) !== String(sp.baseValue ?? '');
+
+        let h = `<div class="title"><h2>${esc(sp.code)}</h2><span class="nm">${esc(specName(sp.code))}</span><span class="meta">${srcTag(sp)}</span></div>`
+            + `<p class="summary">PID <b class="own">${users.length}개</b>가 직접 쓰고`
+            + (writers.length ? `, 그중 <b class="make">${writers.length}개</b>는 값을 만듭니다` : '')
+            + (affected.size ? `. 이 사양을 쓰는 PID 를 CALL 하는 상위 PID <b class="via">${affected.size}개</b>도 결과가 달라질 수 있습니다.` : '.')
+            + '</p>'
+            + '<div class="values">'
+            + `<div><span>실행 전 값 (영업사양)</span><b>${sp.inBase ? esc(valText(sp.baseValue)) : '<span style="color:var(--muted);font-family:var(--sans);font-size:14px">영업사양에 없음</span>'}</b></div>`
+            + `<div><span>최종 값${changed ? ' (바뀜)' : ''}</span><b class="${changed ? 'changed' : ''}">${esc(valText(sp.finalValue))}</b></div>`
+            + `<div><span>이번 실행에서 쓴 횟수</span><b>${sp.run}회</b></div></div>`;
+        if (sp.src === 'none') h += '<p class="note none">영업사양에도 없고 이번에 실행한 PID 도 이 값을 만들지 않습니다. 이 사양으로 하는 비교는 항상 빈 값과 비교합니다. 코드 오타이거나, 실행되지 않은 PID 가 만드는 값일 수 있습니다.</p>';
+        else if (sp.over) h += '<p class="note make">원본 영업사양 값을 PID 가 KEY 로 덮어씁니다. 덮어쓴 뒤에 실행되는 PID 는 바뀐 값을 읽습니다.</p>';
+        else if (sp.src === 'made') h += '<p class="note make">영업사양이 아니라 PID 가 실행 중에 만든 값입니다. 만드는 PID 보다 먼저 실행되는 PID 는 빈 값을 읽습니다.</p>';
+
+        // 사용 위치 트리 : 쓰는 PID 와 그 경로만 (전체 보기 가능)
+        const keep = new Set([state.rootPid]);
+        users.forEach((p) => { for (let x = state.treeBy.get(p); x; x = x.parent ? state.treeBy.get(x.parent) : null) keep.add(x.pid); });
+        let t = '';
+        const walk = (pid, guides) => {
+            if (!state.showAllTree && !keep.has(pid)) return;
+            const n = state.treeBy.get(pid), s = useOf(pid, sp.code);
+            const cls = ['ut', s ? 'user' : affected.has(pid) ? 'affect' : 'other'];
+            if (s && s.write) cls.push('writer');
+            t += `<div class="${cls.join(' ')}" data-pid="${esc(pid)}" tabindex="0"><span class="lines" aria-hidden="true">${'<i></i>'.repeat(guides)}</span><span class="dot" aria-hidden="true"></span>`
+                + `<span class="code">${esc(pid)}</span><span class="nm">${esc(pidName(pid))}</span><span class="tail">`
+                + (s ? roleTags(s) : affected.has(pid) ? '<span class="say">하위에서 사용</span>' : '')
+                + '</span></div>';
+            n.kids.forEach((k) => walk(k, guides + 1));
+        };
+        if (state.treeBy.has(state.rootPid)) walk(state.rootPid, 0);
+        const hidden = state.tree.length - keep.size;
+        h += '<section class="block"><h3><span class="bar" style="background:var(--own)"></span>어느 PID 에서 쓰나요</h3>'
+            + `<p class="why">호출 트리에서 이 사양을 쓰는 PID 와 그 PID 까지 가는 경로입니다.${hidden > 0 && !state.showAllTree ? ` 관계없는 PID ${hidden}개는 숨겼습니다.` : ''}</p>`
+            + '<div class="tree-legend"><span><i class="dot u"></i>직접 사용</span><span><i class="dot w"></i>값을 만듦</span><span><i class="dot a"></i>하위 PID 가 사용 (영향받음)</span>'
+            + `<span style="margin-left:auto"><button type="button" id="btnAllTree" aria-pressed="${state.showAllTree}" style="min-height:26px;padding:1px 10px;font-size:12px">전체 트리 보기</button></span></div>`
+            + `<div class="usetree">${t}</div></section>`;
+
+        // 쓰는 PID 표
+        h += '<section class="block"><h3><span class="bar" style="background:var(--own)"></span>쓰는 PID 상세</h3><p class="why">줄 수는 PID 로직에서 이 사양이 적힌 줄입니다.</p>'
+            + '<table class="t"><thead><tr><th>PID</th><th>이름</th><th>쓰는 방식</th><th style="text-align:right">로직 줄</th><th style="text-align:right">이번 실행</th></tr></thead><tbody>'
+            + users.map((p) => { const s = useOf(p, sp.code); return `<tr tabindex="0" data-pid="${esc(p)}" class="${s.runCount > 0 ? '' : 'idle'}"><td class="c-code"><span class="code">${esc(p)}</span></td><td class="c-name">${esc(pidName(p))}</td><td>${roleTags(s)}</td><td class="c-num">${lineCount(s)}줄</td><td class="c-num">${s.runCount || 0}회</td></tr>`; }).join('')
+            + '</tbody></table></section>';
+        $('specView').innerHTML = h;
+    }
+
+    // ---------- 점검할 점 ----------
+    function checks() {
+        const all = [...state.specs.values()].filter((sp) => usersOf(sp).length);
+        return {
+            none: all.filter((s) => s.src === 'none'),
+            over: all.filter((s) => s.over),
+            multi: all.filter((s) => s.writers.length > 1),
+            flow: all.filter((s) => s.writers.length && s.readers.some((r) => !s.writers.includes(r))),
+            top: all.slice().sort((a, b) => usersOf(b).length - usersOf(a).length).slice(0, 10),
+            idle: all.filter((s) => s.run === 0),
+            java: [...state.usage.entries()].filter(([, u]) => u.javaMethod).map(([p]) => p),
+        };
+    }
+    function renderCheckView() {
+        if (!state.hasUsage) { $('checkView').innerHTML = '<p class="summary">서버를 재기동한 뒤 시뮬레이터에서 다시 실행하면 점검 결과가 나옵니다.</p>'; return; }
+        const c = checks();
+        const pidsCell = (pids) => `<span class="code" style="font-size:12px;color:var(--ink-2)">${esc(pids.slice(0, 3).join(', '))}</span>${pids.length > 3 ? ` <span style="color:var(--muted)">외 ${pids.length - 3}</span>` : ''}`;
+        const card = (tone, items, title, why, head, row, max) => {
+            max = max || 8;
+            const body = items.length
+                ? `<table class="t"><thead><tr>${head.map((x) => `<th>${x}</th>`).join('')}</tr></thead><tbody>${items.slice(0, max).map(row).join('')}</tbody></table>`
+                  + (items.length > max ? `<div class="ok">외 ${items.length - max}개는 CSV 저장으로 볼 수 있습니다.</div>` : '')
+                : '<div class="ok">해당하는 사양이 없습니다.</div>';
+            return `<div class="check ${items.length ? tone : 'plain'}"><div class="check-head"><span class="big">${items.length}</span><div><h3>${title}</h3><p>${why}</p></div></div>${body}</div>`;
+        };
+        const r = (sp, extra) => `<tr tabindex="0" data-code="${esc(sp.code)}">${specCodeCell(sp)}<td class="c-name">${esc(specName(sp.code))}</td><td>${extra}</td></tr>`;
+        const maxU = c.top.length ? usersOf(c.top[0]).length : 1;
+        const total = c.none.length + c.over.length + c.multi.length;
+        $('checkN').textContent = total || '';
+        $('checkView').innerHTML =
+            `<p class="summary" style="margin-top:0">실행한 PID <b>${state.tree.length}개</b>가 영업사양 <b>${state.specs.size}개</b>를 씁니다. 아래는 결과가 예상과 다를 수 있는 곳입니다. 줄을 누르면 그 사양을 자세히 봅니다.</p>`
+            + '<div class="checks">'
+            + card('none', c.none, '값 출처가 없는 사양', '영업사양에도 없고 실행한 PID 도 만들지 않아 항상 빈 값으로 비교됩니다. 코드 오타를 의심해 볼 만합니다.',
+                ['사양', '한글명', '쓰는 PID'], (sp) => r(sp, pidsCell(usersOf(sp))))
+            + card('make', c.over, 'PID 가 덮어쓰는 영업사양', '원본 영업사양 값을 KEY 로 바꿉니다. 바꾼 뒤에 실행되는 PID 는 다른 값을 읽습니다.',
+                ['사양', '한글명', '덮어쓰는 PID'], (sp) => r(sp, pidsCell(sp.writers)))
+            + card('make', c.multi, '여러 PID 가 만드는 값', '같은 KEY 를 여러 PID 가 만듭니다. 실행 순서에 따라 최종 값이 달라집니다.',
+                ['사양', '한글명', '만드는 PID'], (sp) => r(sp, pidsCell(sp.writers)))
+            + card('make', c.flow, 'PID 사이에 전달되는 값', '한 PID 가 만들고 다른 PID 가 읽습니다. 만드는 PID 를 고치면 읽는 PID 에도 영향이 갑니다.',
+                ['사양', '한글명', '만듦 → 읽음'], (sp) => r(sp, `<span class="code" style="font-size:12px"><span style="color:var(--make)">${esc(sp.writers[0])}</span> → ${esc(sp.readers.filter((x) => !sp.writers.includes(x)).slice(0, 2).join(', '))}</span>`))
+            + card('own', c.top, '영향 범위가 넓은 사양', '쓰는 PID 가 많을수록 값이 바뀌었을 때 영향받는 곳이 많습니다.',
+                ['사양', '한글명', '쓰는 PID 수'], (sp) => r(sp, `<span class="bar"><i style="width:${Math.round(usersOf(sp).length / maxU * 100)}%"></i></span><b>${usersOf(sp).length}</b>`), 10)
+            + card('plain', c.idle, '로직에만 있는 사양', '로직에 적혀 있지만 이번 실행에서는 조건 불충족이나 GOTO 로 한 번도 쓰이지 않았습니다.',
+                ['사양', '한글명', '적혀 있는 PID'], (sp) => r(sp, pidsCell(sp.users)), 6)
+            + (c.java.length ? `<div class="check plain"><div class="check-head"><span class="big">${c.java.length}</span><div><h3>사양을 알 수 없는 PID</h3><p>JAVA 방식 PID 는 로직이 없어 쓰는 영업사양을 기록하지 못합니다.</p></div></div><div class="ok">${pidChips(c.java, 30)}</div></div>` : '')
+            + '</div>'
+            + '<p class="note plain" style="margin-top:20px">전처리 PID 는 포함하지 않습니다. 이번에 실행되지 않은 CALL 대상 PID 는 로직을 읽지 않아 빠져 있습니다.</p>';
+    }
+
+    // ---------- 전체 표 ----------
+    function renderMatrix() {
+        const q = state.q.toLowerCase();
+        let cols = [...state.specs.values()].filter((sp) => usersOf(sp).length);
+        if (q && cols.some((sp) => sp.code.toLowerCase().includes(q) || specName(sp.code).toLowerCase().includes(q))) cols = cols.filter((sp) => sp.code.toLowerCase().includes(q) || specName(sp.code).toLowerCase().includes(q));
+        cols.sort((a, b) => usersOf(b).length - usersOf(a).length || a.order - b.order);
+        const rows = state.tree;
+        state.mx = { rows, cols, hot: { r: -1, c: -1 } };
+        let ch = '';
+        cols.forEach((sp, i) => { ch += `<button type="button" class="ch s-${sp.src}" style="left:${i * GEO.cw}px" data-code="${esc(sp.code)}" aria-label="${esc(sp.code)}"><span class="t">${esc(sp.code)}</span><span class="u">${usersOf(sp).length}</span></button>`; });
+        let rh = '', cells = '';
+        rows.forEach((n, r) => {
+            rh += `<div class="rh" style="top:${r * GEO.rh}px;padding-left:${8 + n.depth * 12}px"><button type="button" class="rb" data-pid="${esc(n.pid)}"><span class="code">${esc(n.pid)}</span><span>${esc(pidName(n.pid))}</span></button></div>`;
+            const desc = state.reach.get(n.pid);
+            cols.forEach((sp, c) => {
+                const s = useOf(n.pid, sp.code);
+                const pos = `left:${c * GEO.cw}px;top:${r * GEO.rh}px`;
+                if (s) cells += `<span class="c own${s.write ? ' wr' : ''}${s.runCount > 0 ? '' : ' idle'}" style="${pos}"><i></i></span>`;
+                else if ([...desc].some((d) => useOf(d, sp.code))) cells += `<span class="c via" style="${pos}"><i></i></span>`;
+            });
+        });
+        const W = Math.max(cols.length, 1) * GEO.cw, H = rows.length * GEO.rh;
+        $('colhead').style.width = W + 'px'; $('colhead').innerHTML = ch;
+        $('rowhead').style.height = H + 'px'; $('rowhead').innerHTML = rh;
+        $('body').style.width = W + 'px'; $('body').style.height = H + 'px';
+        $('body').innerHTML = '<div class="by" id="hy" hidden></div><div class="bx" id="hx" hidden></div>' + cells;
+    }
+    function mxHit(e) {
+        const rect = $('body').getBoundingClientRect();
+        const c = Math.floor((e.clientX - rect.left) / GEO.cw), r = Math.floor((e.clientY - rect.top) / GEO.rh);
+        return { r: r >= 0 && r < state.mx.rows.length ? r : -1, c: c >= 0 && c < state.mx.cols.length ? c : -1 };
+    }
+    function mxHot(r, c) {
+        const hx = $('hx'), hy = $('hy');
+        if (!hx) return;
+        hx.hidden = r < 0; hy.hidden = c < 0;
+        if (r >= 0) hx.style.top = r * GEO.rh + 'px';
+        if (c >= 0) hy.style.left = c * GEO.cw + 'px';
+    }
+    function showTip(e, html) {
+        const tip = $('tip');
+        tip.innerHTML = html; tip.hidden = false;
+        const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+        let x = e.clientX + pad, y = e.clientY + pad;
+        if (x + w > innerWidth - 8) x = e.clientX - w - pad;
+        if (y + h > innerHeight - 8) y = e.clientY - h - pad;
+        tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+    }
+    const hideTip = () => { $('tip').hidden = true; };
+    $('body').addEventListener('mousemove', (e) => {
+        const { r, c } = mxHit(e);
+        mxHot(r, c);
+        if (r < 0 || c < 0) { hideTip(); return; }
+        const pid = state.mx.rows[r].pid, sp = state.mx.cols[c], s = useOf(pid, sp.code);
+        let h = `<b>${esc(pid)}</b> <span class="k">${esc(pidName(pid))}</span><p><b>${esc(sp.code)}</b> <span class="k">${esc(specName(sp.code))}</span></p>`;
+        if (s) h += `<p>직접 사용 ${roleTags(s)}</p>`;
+        else {
+            const via = [...state.reach.get(pid)].filter((d) => useOf(d, sp.code));
+            h += via.length ? `<p>CALL 하위 PID 에서 사용 : ${esc(via.slice(0, 4).join(', '))}${via.length > 4 ? ` 외 ${via.length - 4}` : ''}</p>` : '<p class="k">쓰지 않음</p>';
+        }
+        showTip(e, h);
+    });
+    $('body').addEventListener('mouseleave', () => { mxHot(-1, -1); hideTip(); });
+    $('body').addEventListener('click', (e) => {
+        const { r, c } = mxHit(e);
+        if (r >= 0 && c >= 0) openSpec(state.mx.cols[c].code);
+    });
+
+    // ---------- 화면 전환 ----------
+    function setTab(tab) {
+        state.tab = tab;
+        store.set(STORE.tab, tab);
+        document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+        ['pid', 'spec', 'check', 'matrix'].forEach((t) => { $('v-' + t).hidden = t !== tab; });
+        renderTab();
+    }
+    function renderTab() {
+        if (!state.data) return;
+        if (state.tab === 'pid') { renderPidNav(); renderPidView(); }
+        else if (state.tab === 'spec') { renderSpecNav(); renderSpecView(); }
+        else if (state.tab === 'check') renderCheckView();
+        else renderMatrix();
+    }
+    function openPid(pid) {
+        state.selPid = pid;
+        for (let n = state.treeBy.get(pid); n && n.parent; n = state.treeBy.get(n.parent)) state.collapsed.delete(n.parent);
+        if (state.tab !== 'pid') setTab('pid'); else renderTab();
+        document.querySelector('#v-pid .content').scrollTop = 0;
+        const el = document.querySelector(`#pidNav .tn.sel`);
+        if (el) el.scrollIntoView({ block: 'nearest' });
+    }
+    function openSpec(code) {
+        state.selCode = code;
+        const sp = state.specs.get(code);
+        if (sp && state.specSrc !== 'all' && sp.src !== state.specSrc) state.specSrc = 'all';
+        if (state.tab !== 'spec') setTab('spec'); else renderTab();
+        document.querySelector('#v-spec .content').scrollTop = 0;
+        const el = document.querySelector('#specNav .si.sel');
+        if (el) el.scrollIntoView({ block: 'nearest' });
+    }
+
+    // ---------- 이벤트 (위임) ----------
+    document.addEventListener('click', (e) => {
+        const tab = e.target.closest('.tab');
+        if (tab) { setTab(tab.dataset.tab); return; }
+        const b = e.target.closest('button, tr[data-code], tr[data-pid], .ut');
+        if (!b) return;
+        if (b.dataset.tog) {
+            const pid = b.dataset.tog;
+            if (state.collapsed.has(pid)) state.collapsed.delete(pid); else state.collapsed.add(pid);
+            renderPidNav();
+        } else if (b.dataset.branch) {
+            const k = b.dataset.branch;
+            if (state.openBranches.has(k)) state.openBranches.delete(k); else state.openBranches.add(k);
+            renderPidView();
+        } else if (b.dataset.specsrc) {
+            state.specSrc = b.dataset.specsrc;
+            renderSpecNav();
+        } else if (b.id === 'btnAllTree') {
+            state.showAllTree = !state.showAllTree;
+            renderSpecView();
+        } else if (b.dataset.code && state.specs.has(b.dataset.code)) {
+            openSpec(b.dataset.code);
+        } else if (b.dataset.pid && state.info.has(b.dataset.pid)) {
+            openPid(b.dataset.pid);
+        }
+    });
+    // 표 줄 / 트리 줄 : Enter 로 열기
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target.matches('tr[tabindex], .ut')) { e.preventDefault(); e.target.click(); }
+    });
+
+    $('btnRunOnly').addEventListener('click', () => {
+        state.runOnly = !state.runOnly;
+        store.set(STORE.runOnly, state.runOnly ? 'Y' : 'N');
+        $('btnRunOnly').setAttribute('aria-pressed', String(state.runOnly));
+        renderTab();
+    });
+    $('btnExpand').addEventListener('click', () => { state.collapsed.clear(); renderPidNav(); });
+    $('btnCollapse').addEventListener('click', () => {
+        state.collapsed = new Set(state.tree.filter((n) => n.depth >= 1 && n.kids.length).map((n) => n.pid));
+        renderPidNav();
+    });
+    let qTimer = null;
+    $('q').addEventListener('input', (e) => {
+        clearTimeout(qTimer);
+        qTimer = setTimeout(() => {
+            state.q = e.target.value.trim();
+            // 검색어는 PID 기준 / 영업사양 기준에서 왼쪽 목록을 거른다. 다른 탭이면 맞는 쪽으로 옮긴다
+            if (state.tab === 'check' && state.q) {
+                const q = state.q.toLowerCase();
+                setTab([...state.specs.keys()].some((c) => c.toLowerCase().includes(q) || specName(c).toLowerCase().includes(q)) ? 'spec' : 'pid');
+            } else renderTab();
+        }, 120);
+    });
+    $('q').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const q = e.target.value.trim().toLowerCase();
+            if (!q) return;
+            const node = state.tree.find((n) => n.pid.toLowerCase() === q);
+            const sp = state.specs.get(e.target.value.trim()) || specList()[0];
+            if (node) openPid(node.pid);
+            else if (state.tab === 'pid') { const n = state.tree.find((x) => x.pid.toLowerCase().includes(q) || pidName(x.pid).toLowerCase().includes(q)); if (n) openPid(n.pid); else if (sp) openSpec(sp.code); }
+            else if (sp) openSpec(sp.code);
+        } else if (e.key === 'Escape') {
+            e.target.value = ''; state.q = ''; renderTab();
+        }
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && !e.target.matches('input, textarea')) { e.preventDefault(); $('q').focus(); $('q').select(); }
+    });
+
+    // ---------- CSV ----------
+    $('btnCsv').addEventListener('click', () => {
+        if (!state.data) return;
+        const cell = (v) => { const s = v === undefined || v === null ? '' : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+        // (Thymeleaf 인라인 표현식으로 읽히지 않게 대괄호를 붙여 쓰지 않는다)
+        const header = ['PID', 'PID명', '깊이', '사양코드', '사양명', '구분', '사용하는 하위 PID', '조건 비교 줄', '값 계산 줄', '값 생성 줄', '이번 실행 사용', '출처', '실행 전 값', '최종 값'];
+        const out = [header];
+        const cols = [...state.specs.values()];
+        state.tree.forEach((n) => {
+            cols.forEach((sp) => {
+                const s = useOf(n.pid, sp.code);
+                const via = s ? [] : [...state.reach.get(n.pid)].filter((d) => useOf(d, sp.code));
+                if (!s && !via.length) return;
+                out.push([n.pid, pidName(n.pid), n.depth + 1, sp.code, specName(sp.code), s ? '직접' : 'CALL 하위', via.join(' '),
+                    s ? s.cond || '' : '', s ? s.ref || '' : '', s ? s.write || '' : '', s ? (s.runCount || 0) : '', SRC_LABEL[sp.src],
+                    sp.inBase ? sp.baseValue : '', sp.finalValue]);
+            });
+        });
+        const blob = new Blob(['﻿' + out.map((r) => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `영업사양영향도_${state.data.root.pid}_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+
+    // ---------- 테마 ----------
+    function syncThemeLabel() {
+        $('themeLabel').textContent = document.documentElement.getAttribute('data-theme') === 'light' ? '다크' : '라이트';
+    }
+    $('btnTheme').addEventListener('click', () => {
+        const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        store.set(STORE.theme, next);
+        syncThemeLabel();
+    });
+
+    // ---------- 특성코드 한글명 ----------
+    async function loadNames() {
+        try {
+            const res = await fetch(CODE_API, { headers: { Accept: 'application/json' } });
+            if (!res.ok) return;
+            const rows = await res.json();
+            (Array.isArray(rows) ? rows : []).forEach((r) => {
+                const code = r && r.code ? String(r.code).trim() : '';
+                if (code && r.codeName && !state.names.has(code)) state.names.set(code, String(r.codeName).trim());
+            });
+            renderTab();
+        } catch (e) { /* 한글명 없이 진행 */ }
+    }
+
+    // ---------- 시작 ----------
+    function renderTarget() {
+        const d = state.data;
+        $('target').innerHTML = !d ? '' : `<span>${esc(d.projectNo || d.project || '')}</span><span class="sep"></span>`
+            + `<b>${esc(d.root.pid)}</b><span class="name">${esc(d.root.name || '')}</span>`
+            + `<span>${verText(d.root.testVersion ? TEST_VERSION : d.root.runVersion)}</span>`;
+    }
+    function load() {
+        const got = readFromOpener();
+        state.data = got.ok ? got.data : null;
+        renderTarget();
+        if (!state.data) {
+            $('empty').hidden = false;
+            $('emptyTitle').textContent = got.ok ? '실행 결과가 없습니다' : '시뮬레이터 화면을 찾을 수 없습니다';
+            $('emptyText').textContent = got.ok
+                ? '시뮬레이터에서 PID 를 실행하면 PID 별 영업사양 사용을 보여줍니다.'
+                : '이 창은 PID 시뮬레이터의 [영업사양 영향도] 버튼으로 열어야 합니다.';
+            $('notice').hidden = true;
+            return;
+        }
+        $('empty').hidden = true;
+        prepare(state.data);
+        state.selPid = state.rootPid;
+        const first = [...state.specs.values()].sort((a, b) => b.users.length - a.users.length)[0];
+        state.selCode = first ? first.code : null;
+        state.openBranches.clear();
+        // 하위가 많으면 깊이 3 부터 접어 둔다
+        state.collapsed = new Set(state.tree.length > 60 ? state.tree.filter((n) => n.depth >= 2 && n.kids.length).map((n) => n.pid) : []);
+        $('notice').hidden = state.hasUsage;
+        $('notice').textContent = '서버가 PID 별 영업사양을 아직 기록하지 않습니다. 서버를 재기동한 뒤 시뮬레이터에서 다시 실행해 주세요. 지금은 호출 트리만 보입니다.';
+        const c = checks();
+        $('checkN').textContent = (c.none.length + c.over.length + c.multi.length) || '';
+        setTab(state.tab);
+    }
+    window.syncFromOpener = function () {   // 시뮬레이터에서 재실행하면 호출
+        load();
+        try { if (flowPopup && !flowPopup.closed && typeof flowPopup.syncFromOpener === 'function') flowPopup.syncFromOpener(); } catch (e) { /* 무시 */ }
+    };
+
+    // ---------- 영업사양 흐름도 (이 창이 opener 가 되어 같은 데이터를 넘긴다) ----------
+    const SALESMAP_URL = '/simulateup/pidSimulatorSalesMap';
+    let flowPopup = null;
+    window.getPidSpecUsageMap = () => state.data;
+    $('btnFlow').addEventListener('click', () => {
+        const up = state.tab === 'spec' && state.selCode;
+        const mode = up ? 'up' : 'down', key = up ? state.selCode : (state.selPid || state.rootPid || '');
+        if (flowPopup && !flowPopup.closed && typeof flowPopup.focusOn === 'function') {
+            flowPopup.focus();
+            flowPopup.focusOn(mode, key);
+            return;
+        }
+        flowPopup = window.open(`${SALESMAP_URL}#mode=${mode}&key=${encodeURIComponent(key)}`, 'pidSimulUpSalesMapFromEffect', 'width=1500,height=920,resizable=yes,scrollbars=yes');
+        if (!flowPopup) alert('팝업이 차단되었습니다. 브라우저에서 이 사이트의 팝업을 허용해 주세요.');
+    });
+
+    $('btnReload').addEventListener('click', load);
+    $('btnEmptyReload').addEventListener('click', load);
+    $('btnRunOnly').setAttribute('aria-pressed', String(state.runOnly));
+    syncThemeLabel();
+    load();
+    loadNames();
+</script>
+</body>
+</html>

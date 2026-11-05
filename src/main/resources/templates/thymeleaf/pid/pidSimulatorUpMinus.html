@@ -774,6 +774,10 @@
                 <svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span>특성코드 사전</span></button>
             <button type="button" id="btnMindMap" title="실행한 PID 가 CALL 로 호출한 하위 PID 의 호출 관계도를 새 창으로 봅니다">
                 <svg class="ico" aria-hidden="true"><use href="#i-tree"/></svg><span>호출 관계도(Mind-Map)</span></button>
+            <button type="button" id="btnEffectMap" title="PID 마다 직접 쓰는 영업사양과 CALL 하위 PID 에서 쓰는 영업사양을 표로 봅니다">
+                <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg><span>영업사양 영향도</span></button>
+            <button type="button" id="btnSalesMap" title="PID 가 쓰는 영업사양(상→하)과 영업사양이 영향을 주는 PID(하→상)를 흐름도로 봅니다">
+                <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M7.5 12h4l5-5.5M11.5 12l5 5.5"/></svg><span>영업사양 흐름도</span></button>
             <div class="head-spacer"></div>
             <div id="sourceInfo" aria-live="polite"></div>
         </div>
@@ -953,6 +957,8 @@
     const CODE_POPUP_URL = '/pid/pidSimulCodePopup';
     // 하위 PID 호출 관계도 (마인드맵) 팝업
     const MINDMAP_POPUP_URL = '/simulateup/pidSimulatorMindMap';
+    const EFFECTMAP_POPUP_URL = '/simulateup/pidSimulatorEffectMap';
+    const SALESMAP_POPUP_URL = '/simulateup/pidSimulatorSalesMap';
     // 버전 지정 실행 ↔ 전체 최신 실행의 최종 OUTPUT 비교 팝업
     const COMPARE_POPUP_URL = '/simulateup/pidSimulatorCompare';
     // 라인 상세 조건의 사양명(CODE -> CODENAME)
@@ -966,6 +972,8 @@
     const area = $('resultArea');
     let codePopup = null;
     let mindMapPopup = null;
+    let effectMapPopup = null;
+    let salesMapPopup = null;
     let comparePopup = null;
     // 특성코드(대문자) -> 사양명(CODENAME). 라인 상세의 조건 표시용
     const specNames = new Map();
@@ -1873,6 +1881,8 @@
         focusResult();
         syncCodePopup();
         syncMindMapPopup();
+        syncEffectMapPopup();
+        syncSalesMapPopup();
         syncComparePopup();
     }
 
@@ -1913,6 +1923,53 @@
     function syncMindMapPopup() {
         try {
             if (mindMapPopup && !mindMapPopup.closed && typeof mindMapPopup.syncFromOpener === 'function') mindMapPopup.syncFromOpener();
+        } catch (e) { /* 팝업 로딩 중이면 팝업이 스스로 읽어감 */ }
+    }
+
+    // ---------- 영업사양 영향도 팝업 ----------
+    // 팝업(pidSimulatorEffectMap)이 호출: 호출 관계 + PID 별 영업사양 사용 기록 + 최종 영업사양 (실행 전이면 null)
+    window.getPidSpecUsageMap = function () {
+        const base = window.getPidCallMap();
+        if (!base) return null;
+        const r = state.result;
+        return Object.assign(base, {
+            // 서버를 재기동하기 전이면 null (팝업이 안내)
+            specUsages: Array.isArray(r.specUsages) ? r.specUsages : null,
+            elvEnt: r.elvEnt || {},
+        });
+    };
+
+    function openEffectMapPopup() {
+        if (effectMapPopup && !effectMapPopup.closed) {
+            effectMapPopup.focus();
+            syncEffectMapPopup();
+            return;
+        }
+        effectMapPopup = window.open(EFFECTMAP_POPUP_URL, 'pidSimulUpEffectMap', 'width=1500,height=920,resizable=yes,scrollbars=yes');
+        if (!effectMapPopup) alert('팝업이 차단되었습니다. 브라우저에서 이 사이트의 팝업을 허용해 주세요.');
+    }
+
+    // 재실행하면 열려 있는 영향도 창도 새 결과로 갱신
+    function syncEffectMapPopup() {
+        try {
+            if (effectMapPopup && !effectMapPopup.closed && typeof effectMapPopup.syncFromOpener === 'function') effectMapPopup.syncFromOpener();
+        } catch (e) { /* 팝업 로딩 중이면 팝업이 스스로 읽어감 */ }
+    }
+
+    // ---------- 영업사양 흐름도 팝업 (데이터는 getPidSpecUsageMap 을 같이 씀) ----------
+    function openSalesMapPopup() {
+        if (salesMapPopup && !salesMapPopup.closed) {
+            salesMapPopup.focus();
+            syncSalesMapPopup();
+            return;
+        }
+        salesMapPopup = window.open(SALESMAP_POPUP_URL, 'pidSimulUpSalesMap', 'width=1500,height=920,resizable=yes,scrollbars=yes');
+        if (!salesMapPopup) alert('팝업이 차단되었습니다. 브라우저에서 이 사이트의 팝업을 허용해 주세요.');
+    }
+
+    function syncSalesMapPopup() {
+        try {
+            if (salesMapPopup && !salesMapPopup.closed && typeof salesMapPopup.syncFromOpener === 'function') salesMapPopup.syncFromOpener();
         } catch (e) { /* 팝업 로딩 중이면 팝업이 스스로 읽어감 */ }
     }
 
@@ -2291,6 +2348,8 @@
     $('btnAdv').addEventListener('click', () => setAdvOpen($('advPanel').hidden));
     $('btnCodeDict').addEventListener('click', openCodePopup);
     $('btnMindMap').addEventListener('click', openMindMapPopup);
+    $('btnEffectMap').addEventListener('click', openEffectMapPopup);
+    $('btnSalesMap').addEventListener('click', openSalesMapPopup);
     $('btnBlockQty')?.addEventListener('click', runBlockQty); // 수량 계산 버튼은 이 화면에서 제외
 
     // 공사번호 / PID 의 영문 소문자는 입력하는 대로 대문자로 바꾼다 (커서 위치 유지, 한글 조합 중에는 건드리지 않음)

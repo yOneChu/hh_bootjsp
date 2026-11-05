@@ -34,6 +34,12 @@ public class SimVariant
 		this.floorMasterList = floorMasterList;
 	}
 
+	/** 대상 PID 실행 직전 영업사양 (영업사양 영향도 기록용, 읽기만) */
+	HashMap getElvEnt()
+	{
+		return elvEnt;
+	}
+
 	/** PID로직을 실행. 최신버전만. */
 	public SimVariantMap calcVariantPID(String PID, Map partInfo) throws Exception
 	{
@@ -87,6 +93,9 @@ public class SimVariant
 			elvData = ctx.getCodeNames(elvOuid);
 
 		if(pid.getMethod().equals(SimConsts.METHOD_JAVA)) {
+			SimContext.PidSpecUse javaUse = ctx.beginSpecUsage(pid.getPid());
+			if (javaUse != null)
+				javaUse.javaMethod = true;
 			resultMap = new SimPIDJavaMethod(ctx).executeJAVA(localElvEnt, floorMasterList, pid.getPid(), partInfo);
 		}else if(pid.getMethod().equals(SimConsts.METHOD_DB)) {
 
@@ -97,6 +106,7 @@ public class SimVariant
 			ArrayList data = (ArrayList) pidLogicMap.get("data");
 
 			recordDeclaredCalls(pid.getPid(), data);
+			recordSpecUsage(pid.getPid(), data);
 
 			String prev_GOTO = "";
 
@@ -155,6 +165,7 @@ public class SimVariant
 						}
 						else
 							specVal = SimUtil.NVL(localElvEnt.get(specName),"");
+						ctx.markSpecRun(runningPid, specCode(specNameOrg));
 
 						// CON 데이터 보정 & 조건비교
 						conVal = (String) conList.get(j);
@@ -278,6 +289,7 @@ public class SimVariant
 
 				localElvEnt.put(key,val);
 				localMap.put(key,val);
+				ctx.markSpecRun(runningPid, specCode(key));
 			}
 		}
 
@@ -297,6 +309,7 @@ public class SimVariant
 				int nEnd = value.indexOf("}");
 				String specKey = value.substring(nStart + 1,nEnd);
 				String specValue = "";
+				ctx.markSpecRun(runningPid, specCode(specKey));
 
 				if (value.contains("_CODE_NAME") && value.length() > 10 && elvData != null)		// _CODE_NAME 이 있을 경우 해당 코드의 특성값 내역을 출력
 					specValue = converCodeName(specKey, localElvEnt, elvData);
@@ -375,6 +388,106 @@ public class SimVariant
 				if (val.matches("^[A-Za-z0-9_]+$"))
 					ctx.recordDeclaredCall(PID, val);
 			}
+		}
+	}
+
+	// ---------------------------------------------------------------- 영업사양 사용 기록 (영업사양 영향도 화면용, 실행에는 영향 없음)
+
+	/** 부품 정보 (영업사양이 아님) */
+	private static final String PART_INFO_KEYS = ",PARTNO,REALPART,G_L_CODE,B_NO,PICK,PARAM1,PARAM2,PARAM3,";
+	private static final Pattern SPEC_REF = Pattern.compile("\\{([^{}]+)\\}");
+
+	/** 영업사양 코드로 정리 (XXX_CODE_NAME → XXX). 코드가 아니면 null */
+	static String specCode(String raw)
+	{
+		if (raw == null)
+			return null;
+		String code = raw.trim();
+		if (code.endsWith("_CODE_NAME") && code.length() > 10)
+			code = code.substring(0, code.length() - 10);
+		if (code.isEmpty() || PART_INFO_KEYS.contains("," + code + ","))
+			return null;
+		return code;
+	}
+
+	private static SimContext.SpecUse specUse(SimContext.PidSpecUse use, String code)
+	{
+		SimContext.SpecUse s = use.specs.get(code);
+		if (s == null) {
+			s = new SimContext.SpecUse();
+			s.code = code;
+			use.specs.put(code, s);
+		}
+		return s;
+	}
+
+	/** 값 안의 {코드} 참조를 기록 (같은 라인에서는 한 번만) */
+	private static void recordRefs(SimContext.PidSpecUse use, Object value, java.util.Set<String> lineRefs)
+	{
+		if (value == null)
+			return;
+		Matcher m = SPEC_REF.matcher(String.valueOf(value));
+		while (m.find()) {
+			String code = specCode(m.group(1));
+			if (code != null && lineRefs.add(code))
+				specUse(use, code).ref++;
+		}
+	}
+
+	/** PID 로직에 적힌 영업사양 사용 (조건과 무관하게 전부, 주석(#) 라인 제외). PID 마다 처음 실행 때 한 번만 */
+	private void recordSpecUsage(String PID, ArrayList data)
+	{
+		try {
+			SimContext.PidSpecUse use = ctx.beginSpecUsage(PID);
+			if (use == null || data == null)
+				return;
+			for (Object o : data) {
+				SimVariantMap row = (SimVariantMap) o;
+				if ("#".equals(SimUtil.NVL(row.get("ADDR"), "").trim()))
+					continue;
+				ArrayList specList = (ArrayList) row.get("specList");
+				ArrayList conList = (ArrayList) row.get("conList");
+				ArrayList keyList = (ArrayList) row.get("keyList");
+				ArrayList valList = (ArrayList) row.get("valList");
+				java.util.Set<String> lineCond = new java.util.HashSet<String>();
+				java.util.Set<String> lineRefs = new java.util.HashSet<String>();
+				java.util.Set<String> lineWrite = new java.util.HashSet<String>();
+
+				if (specList != null) {
+					for (int j = 0; j < specList.size(); j++) {
+						Object spec = specList.get(j);
+						if (spec == null)
+							continue;
+						String s = String.valueOf(spec);
+						if (s.contains("[$") && s.contains("$]"))
+							recordRefs(use, s, lineRefs);
+						else {
+							String code = specCode(s);
+							if (code != null && lineCond.add(code))
+								specUse(use, code).cond++;
+						}
+						if (conList != null && j < conList.size())
+							recordRefs(use, conList.get(j), lineRefs);
+					}
+				}
+				if (keyList != null) {
+					for (int j = 0; j < keyList.size(); j++) {
+						Object k = keyList.get(j);
+						if (k == null)
+							continue;
+						String key = String.valueOf(k).trim();
+						if (valList != null && j < valList.size())
+							recordRefs(use, valList.get(j), lineRefs);
+						if ("CALL".equals(key) || "OUTPUT".equals(key))
+							continue;
+						String code = specCode(key);
+						if (code != null && lineWrite.add(code))
+							specUse(use, code).write++;
+					}
+				}
+			}
+		} catch (Exception e) {
+			System.err.println("[PID-SIMUL] 영업사양 사용 기록 실패 " + PID + " : " + e.getMessage());
 		}
 	}
 

@@ -1,0 +1,1285 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>영업사양 흐름도</title>
+    <script>
+        // 화면을 그리기 전에 테마를 정한다 (영업사양 영향도 화면과 같은 값을 쓴다)
+        (function () {
+            var t = null;
+            try { t = localStorage.getItem('pidSimulUp.effectMap.theme'); } catch (e) { /* 무시 */ }
+            if (t !== 'light' && t !== 'dark') t = 'dark';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+    <style>
+        /* ===== 디자인 토큰 (영업사양 영향도와 같은 의미 색) =====
+           청록 = 조건 비교 / 파랑 = 값 계산 / 호박 = 값 생성·값 전달 / 장미 = 값 출처 없음 / 회청 = CALL / 하늘 = 선택 */
+        :root, :root[data-theme="dark"] {
+            color-scheme: dark;
+            --bg: #070c17;
+            --canvas: #091020;
+            --panel: #0c1424;
+            --surface: #111b2f;
+            --surface-2: #17233a;
+            --surface-3: #1f2e4b;
+            --node: #111b2f;
+            --node-2: #15213a;
+            --line: rgba(148, 163, 184, .13);
+            --line-strong: rgba(148, 163, 184, .28);
+            --line-hover: rgba(148, 163, 184, .5);
+            --dot: rgba(148, 163, 184, .12);
+            --ink: #eef3fb;
+            --ink-2: #c6d1e1;
+            --muted: #8d9bb3;
+            --faint: #5d6b84;
+            --strong: #ffffff;
+            --accent: #38bdf8;
+            --accent-soft: rgba(56, 189, 248, .14);
+            --accent-ring: rgba(56, 189, 248, .25);
+            --own: #2dd4bf;
+            --own-soft: rgba(45, 212, 191, .14);
+            --calc: #93c5fd;
+            --calc-soft: rgba(147, 197, 253, .13);
+            --via: #8494ad;
+            --via-soft: rgba(148, 163, 184, .13);
+            --make: #fbbf24;
+            --make-soft: rgba(251, 191, 36, .14);
+            --none: #fb7185;
+            --none-soft: rgba(251, 113, 133, .14);
+            --err: #f87171;
+            --head-bg: #0b1428;
+            --input-bg: #070d1a;
+            --placeholder: #66758f;
+            --overlay: rgba(12, 20, 36, .92);
+            --shadow: 0 12px 32px rgba(0, 0, 0, .45);
+            --node-shadow: rgba(0, 0, 0, .35);
+            --scroll: #24334f;
+        }
+        :root[data-theme="light"] {
+            color-scheme: light;
+            --bg: #f1f4f9;
+            --canvas: #f5f7fb;
+            --panel: #ffffff;
+            --surface: #f8fafc;
+            --surface-2: #ffffff;
+            --surface-3: #eef2f8;
+            --node: #ffffff;
+            --node-2: #f8fafc;
+            --line: rgba(15, 23, 42, .09);
+            --line-strong: rgba(15, 23, 42, .18);
+            --line-hover: rgba(15, 23, 42, .38);
+            --dot: rgba(15, 23, 42, .1);
+            --ink: #0f172a;
+            --ink-2: #334155;
+            --muted: #5b6b82;
+            --faint: #94a3b8;
+            --strong: #0f172a;
+            --accent: #0284c7;
+            --accent-soft: #e0f2fe;
+            --accent-ring: rgba(2, 132, 199, .22);
+            --own: #0f8a7e;
+            --own-soft: #d5f5f0;
+            --calc: #2563eb;
+            --calc-soft: #dbeafe;
+            --via: #64748b;
+            --via-soft: #eef2f6;
+            --make: #b45309;
+            --make-soft: #fef3c7;
+            --none: #e11d48;
+            --none-soft: #ffe4e6;
+            --err: #dc2626;
+            --head-bg: #ffffff;
+            --input-bg: #ffffff;
+            --placeholder: #8a98ad;
+            --overlay: rgba(255, 255, 255, .95);
+            --shadow: 0 12px 32px rgba(15, 23, 42, .13);
+            --node-shadow: rgba(15, 23, 42, .08);
+            --scroll: #cbd5e1;
+        }
+        :root {
+            --mono: Consolas, "D2Coding", "Cascadia Mono", "Courier New", monospace;
+            --sans: "Pretendard", "Pretendard Variable", "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+            --radius: 8px;
+            --side-w: 290px;
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body { margin: 0; font-family: var(--sans); font-size: 13.5px; line-height: 1.5; color: var(--ink); background: var(--bg); display: flex; flex-direction: column; overflow: hidden; -webkit-font-smoothing: antialiased; }
+        .ico { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; }
+        .ico.sm { width: 14px; height: 14px; vertical-align: -2px; }
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 10px; border: 2px solid var(--panel); }
+        button { font: inherit; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 5px 11px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface-2); color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+        button:hover:not(:disabled) { background: var(--surface-3); color: var(--ink); border-color: var(--line-hover); }
+        button:disabled { opacity: .4; cursor: not-allowed; }
+        button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--strong); }
+        .code { font-family: var(--mono); font-weight: 700; }
+        .seg { display: inline-flex; }
+        .seg button { border-radius: 0; margin-left: -1px; }
+        .seg button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
+        .seg button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+        .seg button[aria-pressed="true"] { position: relative; z-index: 1; }
+        .sep { width: 1px; height: 22px; background: var(--line-strong); margin: 0 2px; }
+        .spacer { flex: 1; }
+
+        /* ===== 헤더 ===== */
+        header { flex: none; z-index: 3; background: var(--head-bg); border-bottom: 1px solid var(--line-strong); }
+        .top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 12px 20px 8px; }
+        .top h1 { margin: 0; font-size: 18px; font-weight: 800; color: var(--strong); white-space: nowrap; }
+        .target { display: flex; align-items: center; gap: 10px; padding: 4px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+        .target:empty { display: none; }
+        .target b { color: var(--strong); font-family: var(--mono); }
+        .target .name { color: var(--ink-2); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .target .bar { width: 1px; height: 14px; background: var(--line-strong); }
+        #btnTheme .i-sun, :root[data-theme="light"] #btnTheme .i-moon { display: inline-block; }
+        #btnTheme .i-moon, :root[data-theme="light"] #btnTheme .i-sun { display: none; }
+
+        /* 방향 선택 : 두 개의 큰 단추 (무엇을 보는지 문장으로) */
+        .modes { display: flex; gap: 8px; padding: 0 20px 12px; flex-wrap: wrap; align-items: stretch; }
+        .mode { flex-direction: column; align-items: flex-start; gap: 1px; min-height: 52px; padding: 7px 16px 8px; border-radius: 10px; text-align: left; }
+        .mode b { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); }
+        .mode b .arrow { font-family: var(--mono); font-size: 13px; padding: 0 6px; border-radius: 5px; background: var(--surface-3); color: var(--ink-2); }
+        .mode small { font-size: 12px; color: var(--muted); }
+        .mode[aria-pressed="true"] b .arrow { background: var(--accent); color: #fff; }
+        .tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; align-self: center; }
+
+        /* ===== 본문 ===== */
+        main { flex: 1; min-height: 0; display: flex; position: relative; }
+        nav.side { flex: none; width: var(--side-w); display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-right: 1px solid var(--line); }
+        .side-head { flex: none; padding: 14px 14px 10px; border-bottom: 1px solid var(--line); }
+        .side-head h2 { margin: 0; font-size: 13.5px; color: var(--ink); }
+        .side-head p { margin: 2px 0 10px; font-size: 12px; color: var(--muted); }
+        .search { position: relative; display: flex; }
+        .search input { width: 100%; min-height: 34px; padding: 5px 12px 5px 32px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--input-bg); color: var(--ink); font: inherit; }
+        .search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+        .search input::placeholder { color: var(--placeholder); }
+        .search .ico { position: absolute; left: 11px; top: 10px; color: var(--muted); pointer-events: none; }
+        .side-body { flex: 1; overflow: auto; padding: 6px 8px 20px; }
+        .item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 42px; padding: 4px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; justify-content: flex-start; }
+        .item:hover:not(:disabled) { background: var(--surface-3); border: 0; }
+        .item.sel { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+        .item .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+        .item .txt .code { color: var(--ink); font-size: 13px; }
+        .item .txt .code.made { color: var(--make); }
+        .item .txt .code.none { color: var(--none); }
+        .item .txt span:last-child { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pill { flex: none; display: inline-flex; justify-content: center; min-width: 26px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; line-height: 19px; font-variant-numeric: tabular-nums; }
+        .pill.own { background: var(--own-soft); color: var(--own); }
+        .pill.zero { color: var(--faint); }
+        mark { background: var(--accent-ring); color: inherit; border-radius: 3px; }
+
+        .stage { position: relative; flex: 1; min-width: 0; overflow: hidden; background: var(--canvas); }
+        #map { display: block; width: 100%; height: 100%; cursor: grab; user-select: none; touch-action: none; }
+        #map.panning { cursor: grabbing; }
+
+        /* 캔버스 위 문장 (지금 무엇을 보고 있는지) */
+        .story { position: absolute; top: 14px; left: 16px; right: 16px; z-index: 1; pointer-events: none; display: flex; }
+        .story > div { pointer-events: auto; max-width: min(760px, 100%); padding: 10px 16px; border-radius: 12px; background: var(--overlay); border: 1px solid var(--line-strong); box-shadow: var(--shadow); backdrop-filter: blur(10px); font-size: 14px; color: var(--ink-2); }
+        .story b { color: var(--strong); }
+        .story .code { color: var(--strong); }
+        .story .own { color: var(--own); }
+        .story .make { color: var(--make); }
+        .story .via { color: var(--via); }
+        .story .none { color: var(--none); }
+        .story small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+
+        /* 범례 (왼쪽 아래) */
+        .legend { position: absolute; left: 16px; bottom: 16px; z-index: 1; max-width: calc(100% - 330px); border-radius: 12px; background: var(--overlay); border: 1px solid var(--line-strong); box-shadow: var(--shadow); font-size: 12px; color: var(--ink-2); }
+        .legend summary { padding: 7px 14px; cursor: pointer; font-weight: 700; color: var(--ink); user-select: none; }
+        .legend[open] summary { border-bottom: 1px solid var(--line); }
+        .legend .grid { display: grid; grid-template-columns: auto auto; gap: 6px 22px; padding: 10px 14px; }
+        .legend span { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .legend svg { flex: none; overflow: visible; }
+        .legend .hint { grid-column: 1 / -1; color: var(--muted); border-top: 1px solid var(--line); padding-top: 6px; margin-top: 2px; }
+
+        /* 확대 / 축소 (오른쪽 아래) */
+        .zoom { position: absolute; right: 16px; bottom: 16px; z-index: 1; display: flex; gap: 6px; }
+        .zoom button { background: var(--overlay); box-shadow: var(--shadow); }
+        .zoom .val { min-width: 58px; justify-content: center; font-variant-numeric: tabular-nums; font-weight: 700; }
+
+        /* 상세 카드 (오른쪽 위) */
+        .card { position: absolute; top: 14px; right: 16px; z-index: 2; width: 330px; max-height: calc(100% - 90px); overflow: auto; padding: 16px 18px; border-radius: 14px; background: var(--overlay); border: 1px solid var(--line-strong); box-shadow: var(--shadow); backdrop-filter: blur(12px); }
+        .card[hidden] { display: none; }
+        .card .x { position: absolute; top: 10px; right: 10px; min-height: 28px; padding: 3px 7px; border: 0; background: transparent; color: var(--muted); }
+        .card h3 { margin: 0; padding-right: 28px; font-family: var(--mono); font-size: 20px; color: var(--strong); word-break: break-all; }
+        .card .nm { margin: 2px 0 0; color: var(--ink-2); }
+        .card .say { margin: 10px 0 0; color: var(--ink-2); font-size: 13px; }
+        .card .say b { color: var(--strong); }
+        .card dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 12px 0 0; font-size: 12.5px; }
+        .card dt { color: var(--muted); }
+        .card dd { margin: 0; font-family: var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+        .card dd.changed { color: var(--make); }
+        .card .acts { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+        .card .acts button { justify-content: flex-start; }
+        .card .acts button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+        .card .acts button.primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--accent); color: #fff; }
+        .tag { display: inline-flex; padding: 0 8px; border-radius: 5px; font-size: 11.5px; font-weight: 700; line-height: 20px; margin: 8px 4px 0 0; }
+        .tag.cond { background: var(--own-soft); color: var(--own); }
+        .tag.ref { background: var(--calc-soft); color: var(--calc); }
+        .tag.write { background: var(--make-soft); color: var(--make); }
+        .tag.base { border: 1px solid var(--line-strong); color: var(--ink-2); line-height: 18px; }
+        .tag.made { background: var(--make-soft); color: var(--make); }
+        .tag.none { background: var(--none-soft); color: var(--none); }
+        .tag.idle { border: 1px dashed var(--line-hover); color: var(--muted); line-height: 18px; }
+
+        .notice { flex: none; padding: 9px 20px; background: var(--make-soft); border-bottom: 1px solid var(--line); color: var(--ink); font-size: 13px; }
+        .notice[hidden] { display: none; }
+        .empty { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; text-align: center; color: var(--muted); background: var(--bg); }
+        .empty[hidden] { display: none; }
+        .empty h2 { margin: 0; font-size: 18px; color: var(--ink); }
+        .empty p { margin: 0; max-width: 48ch; }
+
+        /* ===== SVG 노드 / 선 ===== */
+        .bgdot { fill: var(--dot); }
+        .node { cursor: pointer; outline: none; }
+        .node .box { fill: var(--node); stroke: var(--line-strong); stroke-width: 1.2; }
+        .node .shadow { fill: var(--node-shadow); }
+        .node:hover .box { stroke: var(--line-hover); }
+        .node:focus-visible .box { stroke: var(--accent); stroke-width: 2.5; }
+        .node .t1 { font: 700 13.5px Consolas, "D2Coding", monospace; fill: var(--ink); }
+        .node .t2 { font: 12px "Pretendard", "Malgun Gothic", sans-serif; fill: var(--muted); }
+        .node .t3 { font: 700 11.5px "Pretendard", "Malgun Gothic", sans-serif; }
+        .node .accent { fill: var(--line-hover); }
+        .n-pid.root .box { fill: var(--node-2); stroke: var(--accent); stroke-width: 2; }
+        .n-pid.root .accent { fill: var(--accent); }
+        .n-pid.root .t1 { fill: var(--accent); }
+        .n-pid.err .t1 { fill: var(--err); }
+        .n-pid.err .accent { fill: var(--err); }
+        .n-pid.user .accent { fill: var(--own); }
+        .n-pid.user.writer .accent { fill: var(--make); }
+        .n-pid.caller .accent { fill: var(--via); }
+        /* 사양 노드 : 왼쪽 띠 = 쓰는 방식 */
+        .n-spec .box { fill: var(--node); }
+        .n-spec.r-cond .accent { fill: var(--own); }
+        .n-spec.r-ref .accent { fill: var(--calc); }
+        .n-spec.r-write .accent { fill: var(--make); }
+        .n-spec.r-cond .t3 { fill: var(--own); }
+        .n-spec.r-ref .t3 { fill: var(--calc); }
+        .n-spec.r-write .t3 { fill: var(--make); }
+        .n-spec.s-none .t1 { fill: var(--none); }
+        .n-spec.s-made .t1 { fill: var(--make); }
+        .n-spec.idle { opacity: .5; }
+        .n-spec.idle .box { stroke-dasharray: 4 3; }
+        .n-spec.top .box { fill: var(--node-2); stroke: var(--accent); stroke-width: 2; }
+        .n-spec.top .t1 { font-size: 16px; fill: var(--strong); }
+        .n-spec.top .accent { fill: var(--accent); }
+        .n-more .box, .n-ref .box { fill: transparent; stroke-dasharray: 4 3; }
+        .n-more .t2, .n-ref .t2 { fill: var(--accent); font-weight: 600; }
+        .node.sel .box { stroke: var(--accent); stroke-width: 2.8; }
+        .node.same .box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 5 3; }
+        /* 노드 안 작은 단추 (사양 펼치기 / 하위 접기) */
+        .tg rect { fill: var(--surface-3); stroke: var(--line-strong); }
+        .tg text { font: 700 11px "Pretendard", "Malgun Gothic", sans-serif; fill: var(--ink-2); }
+        .tg:hover rect { stroke: var(--accent); }
+        .tg.on rect { fill: var(--own-soft); stroke: var(--own); }
+        .tg.on text { fill: var(--own); }
+        .tg.kids.on rect { fill: var(--via-soft); stroke: var(--via); }
+        .tg.kids.on text { fill: var(--ink-2); }
+        .rtag rect { stroke: none; }
+        .rtag text { font: 700 11px "Pretendard", "Malgun Gothic", sans-serif; }
+        .rtag.cond rect { fill: var(--own-soft); } .rtag.cond text { fill: var(--own); }
+        .rtag.ref rect { fill: var(--calc-soft); } .rtag.ref text { fill: var(--calc); }
+        .rtag.write rect { fill: var(--make-soft); } .rtag.write text { fill: var(--make); }
+
+        /* 사양 묶음 : PID 하나가 직접 쓰는 사양을 칸 격자로 */
+        .n-group { cursor: default; }
+        .n-group .box { fill: var(--surface); stroke: var(--own); stroke-opacity: .45; stroke-dasharray: 5 4; }
+        .n-group .shadow { display: none; }
+        .n-group:hover .box { stroke: var(--own); }
+        .gh { font: 600 11.5px "Pretendard", "Malgun Gothic", sans-serif; fill: var(--own); }
+        .cell { cursor: pointer; outline: none; }
+        .cell .cbox { fill: var(--node); stroke: var(--line-strong); }
+        .cell:hover .cbox { stroke: var(--line-hover); }
+        .cell:focus-visible .cbox { stroke: var(--accent); stroke-width: 2; }
+        .cell .cbar { fill: var(--line-hover); }
+        .cell.r-cond .cbar { fill: var(--own); }
+        .cell.r-ref .cbar { fill: var(--calc); }
+        .cell.r-write .cbar { fill: var(--make); }
+        .cell .ct1 { font: 700 12.5px Consolas, "D2Coding", monospace; fill: var(--ink); }
+        .cell.s-none .ct1 { fill: var(--none); }
+        .cell.s-made .ct1 { fill: var(--make); }
+        .cell .ct3 { font: 700 11px "Pretendard", "Malgun Gothic", sans-serif; fill: var(--muted); }
+        .cell.r-cond .ct3 { fill: var(--own); }
+        .cell.r-ref .ct3 { fill: var(--calc); }
+        .cell.r-write .ct3 { fill: var(--make); }
+        .cell .ct2 { font: 11px "Pretendard", "Malgun Gothic", sans-serif; fill: var(--muted); }
+        .cell.idle { opacity: .45; }
+        .cell.idle .cbox { stroke-dasharray: 4 3; }
+        .cell.more .cbox { fill: transparent; stroke-dasharray: 4 3; }
+        .cell.more .ct2 { fill: var(--accent); font-weight: 700; font-size: 12px; }
+        .cell.sel .cbox { stroke: var(--accent); stroke-width: 2.6; }
+        .cell.same .cbox { stroke: var(--accent); stroke-width: 1.8; stroke-dasharray: 5 3; }
+
+        .e { fill: none; stroke-width: 1.8; stroke-linecap: round; }
+        .e-own { stroke: var(--own); opacity: .55; stroke-dasharray: 2 4; }
+        .e-call { stroke: var(--line-hover); }
+        .e-cond { stroke: var(--own); opacity: .75; }
+        .e-ref { stroke: var(--calc); opacity: .75; }
+        .e-write { stroke: var(--make); opacity: .85; }
+        .e-up { stroke: var(--via); }
+        .e-more { stroke: var(--line-strong); stroke-dasharray: 3 4; }
+        .e-flow { stroke: var(--make); stroke-width: 1.6; stroke-dasharray: 7 5; opacity: .8; }
+        .e.hot { stroke-width: 3.2; opacity: 1; }
+        .e.dim, .node.dim, .el.dim { opacity: .2; }
+        .el rect { fill: var(--canvas); }
+        .el text { font: 700 11px "Pretendard", "Malgun Gothic", sans-serif; }
+        .el.cond text { fill: var(--own); } .el.ref text { fill: var(--calc); } .el.write text { fill: var(--make); } .el.flow text { fill: var(--make); }
+        .mk-call { fill: var(--line-hover); } .mk-write { fill: var(--make); } .mk-up { fill: var(--via); } .mk-cond { fill: var(--own); } .mk-ref { fill: var(--calc); }
+
+        /* 한 번만 : 다시 그릴 때 깊이 순서로 나타남 */
+        @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+        .reveal { animation: appear .35s ease-out var(--d, 0ms) both; }
+        @media (prefers-reduced-motion: reduce) {
+            * { transition: none !important; }
+            .reveal { animation: none !important; }
+        }
+        @media (max-width: 900px) {
+            :root { --side-w: 220px; }
+            .legend { display: none; }
+            .card { width: calc(100% - 32px); }
+        }
+        @media (max-width: 640px) {
+            main { flex-direction: column; }
+            nav.side { width: auto; height: 34%; border-right: 0; border-bottom: 1px solid var(--line); }
+        }
+    </style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+        <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+        <symbol id="i-right" viewBox="0 0 24 24"><path d="M4 12h16M14 6l6 6-6 6"/></symbol>
+        <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v16M6 14l6 6 6-6"/></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
+        <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
+    </defs>
+</svg>
+
+<header>
+    <div class="top">
+        <h1>영업사양 흐름도</h1>
+        <div class="target" id="target"></div>
+        <span class="spacer"></span>
+        <button type="button" id="btnReload" title="시뮬레이터의 최신 실행 결과를 다시 읽기"><svg class="ico sm" aria-hidden="true"><use href="#i-refresh"/></svg>다시 읽기</button>
+        <button type="button" id="btnTheme" title="다크 / 라이트 화면 전환"><svg class="ico sm i-sun" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ico sm i-moon" aria-hidden="true"><use href="#i-moon"/></svg><span id="themeLabel">라이트</span></button>
+    </div>
+    <div class="modes">
+        <button type="button" class="mode" data-mode="down" aria-pressed="true">
+            <b><span class="arrow">상→하</span>PID 가 쓰는 영업사양</b>
+            <small>PID 에서 시작해 CALL 하위 PID 와 각자 쓰는 사양으로 내려갑니다</small></button>
+        <button type="button" class="mode" data-mode="up" aria-pressed="false">
+            <b><span class="arrow">하→상</span>영업사양의 영향 범위</b>
+            <small>사양에서 시작해 쓰는 PID, 그 PID 를 부르는 상위 PID 로 올라갑니다</small></button>
+        <div class="tools">
+            <div class="seg" role="group" aria-label="그리는 방향">
+                <button type="button" data-dir="h" aria-pressed="true" title="왼쪽에서 오른쪽으로"><svg class="ico sm" aria-hidden="true"><use href="#i-right"/></svg>가로</button>
+                <button type="button" data-dir="v" aria-pressed="false" title="위에서 아래로"><svg class="ico sm" aria-hidden="true"><use href="#i-down"/></svg>세로</button>
+            </div>
+            <span class="sep" aria-hidden="true"></span>
+            <button type="button" id="btnAllSpecs" title="모든 PID 의 사양을 펼치거나 접습니다 (상→하)">모든 PID 사양 펼치기</button>
+            <button type="button" id="btnFlow" aria-pressed="true" title="한 PID 가 만든 값(KEY)을 다른 PID 가 읽으면 점선으로 잇습니다 (상→하)">값 전달 선</button>
+            <button type="button" id="btnRunOnly" aria-pressed="false" title="이번 실행에서 실제로 쓴 사양만 그립니다"><svg class="ico sm" aria-hidden="true"><use href="#i-play"/></svg>이번 실행에서 쓴 것만</button>
+        </div>
+    </div>
+</header>
+
+<div class="notice" id="notice" hidden></div>
+<main>
+    <nav class="side" aria-label="시작점 고르기">
+        <div class="side-head">
+            <h2 id="sideTitle">시작할 PID</h2>
+            <p id="sideHint">고른 PID 에서부터 아래로 그립니다</p>
+            <label class="search"><svg class="ico sm" aria-hidden="true"><use href="#i-search"/></svg>
+                <input type="search" id="q" placeholder="찾기" spellcheck="false" aria-label="목록에서 찾기"></label>
+        </div>
+        <div class="side-body" id="side"></div>
+    </nav>
+    <div class="stage" id="stage">
+        <svg id="map" role="img" aria-label="영업사양 흐름도">
+            <defs>
+                <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle class="bgdot" cx="12" cy="12" r="1"/></pattern>
+                <marker id="m-call" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-call" d="M0 0L10 5L0 10z"/></marker>
+                <marker id="m-write" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-write" d="M0 0L10 5L0 10z"/></marker>
+                <marker id="m-up" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-up" d="M0 0L10 5L0 10z"/></marker>
+                <marker id="m-cond" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-cond" d="M0 0L10 5L0 10z"/></marker>
+                <marker id="m-ref" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-ref" d="M0 0L10 5L0 10z"/></marker>
+            </defs>
+            <rect x="-50000" y="-50000" width="100000" height="100000" fill="url(#dots)" id="bg"/>
+            <g id="vp"><g id="lEdges"></g><g id="lLabels"></g><g id="lNodes"></g></g>
+        </svg>
+        <div class="story" id="story"></div>
+        <details class="legend" id="legendBox" open><summary>보는 법</summary><div class="grid" id="legend"></div></details>
+        <div class="zoom">
+            <button type="button" id="zOut" aria-label="축소"><svg class="ico sm" aria-hidden="true"><use href="#i-minus"/></svg></button>
+            <button type="button" id="zVal" class="val" title="100% 로 보기">100%</button>
+            <button type="button" id="zIn" aria-label="확대"><svg class="ico sm" aria-hidden="true"><use href="#i-plus"/></svg></button>
+            <button type="button" id="zFit" title="전체가 한 화면에 들어오게"><svg class="ico sm" aria-hidden="true"><use href="#i-fit"/></svg>화면 맞춤</button>
+        </div>
+        <div class="card" id="card" hidden></div>
+        <div class="empty" id="empty" hidden>
+            <h2 id="emptyTitle">실행 결과가 없습니다</h2>
+            <p id="emptyText">시뮬레이터에서 PID 를 실행하면 흐름도를 그립니다.</p>
+            <button type="button" id="btnEmptyReload"><svg class="ico sm" aria-hidden="true"><use href="#i-refresh"/></svg>다시 읽기</button>
+        </div>
+    </div>
+</main>
+
+<script>
+    const TEST_VERSION = -1;
+    const CODE_API = '/api/getCodeList?key=subae';
+    const SYSTEM_KEYS = new Set(['LINE_NO']);
+    const STORE = { theme: 'pidSimulUp.effectMap.theme', runOnly: 'pidSimulUp.effectMap.runOnly', dir: 'pidSimulUp.salesMap.dir', flow: 'pidSimulUp.salesMap.flow' };
+    const SRC_LABEL = { base: '영업사양', made: 'PID 가 만든 값', none: '값 출처 없음' };
+    const ROLE_LABEL = { cond: '조건 비교', ref: '값 계산', write: '값 생성' };
+    const SPEC_LIMIT = 24;      // PID 하나에 처음 그리는 사양 수 (나머지는 '더 보기' 칸)
+    // 노드 크기 (SVG 좌표). group = PID 하나가 직접 쓰는 사양 묶음 (칸 격자, 크기는 칸 수로 계산)
+    const SZ = { pid: { w: 240, h: 60 }, top: { w: 240, h: 62 }, ref: { w: 170, h: 34 }, group: { w: 0, h: 0 } };
+    const CELL = { w: 182, h: 42, gap: 6, pad: 10, head: 26 };
+    const GAP = { h: { level: 86, sib: 12 }, v: { level: 70, sib: 16 } };
+    const FONT = { mono: '700 13.5px Consolas, "D2Coding", monospace', monoTop: '700 16px Consolas, "D2Coding", monospace', sans: '12px "Pretendard", "Malgun Gothic", sans-serif', tag: '700 11.5px "Pretendard", "Malgun Gothic", sans-serif', small: '700 11px "Pretendard", "Malgun Gothic", sans-serif', cell: '700 12.5px Consolas, "D2Coding", monospace', cellName: '11px "Pretendard", "Malgun Gothic", sans-serif' };
+    const NS = 'http://www.w3.org/2000/svg';
+
+    const $ = (id) => document.getElementById(id);
+    const store = {
+        get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+        set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 무시 */ } },
+    };
+    const esc = (v) => (v === null || v === undefined ? '' : String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'));
+    const has = (v) => v !== null && v !== undefined && v !== '';
+    const verText = (v) => (!has(v) ? '' : Number(v) === TEST_VERSION ? 'TEST' : `v${v}`);
+    const valText = (v) => (v === undefined ? '없음' : v === null || v === '' ? '(빈 값)' : String(v));
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const state = {
+        data: null, rootPid: null,
+        info: new Map(), kids: new Map(), parents: new Map(), usage: new Map(),
+        tree: [], treeBy: new Map(), reach: new Map(), specs: new Map(), names: new Map(), hasUsage: false,
+        mode: 'down', startPid: null, startCode: null,
+        dir: store.get(STORE.dir) === 'v' ? 'v' : 'h',
+        runOnly: store.get(STORE.runOnly) === 'Y',
+        flow: store.get(STORE.flow) !== 'N',
+        openSpecs: new Set(), moreSpecs: new Set(), closedKids: new Set(),
+        q: '',
+        graph: null, selRef: null,
+        view: { k: 1, x: 0, y: 0 },
+        animate: true,
+    };
+
+    // ---------- 데이터 (영업사양 영향도와 같은 정리) ----------
+    function readFromOpener() {
+        try {
+            const op = window.opener;
+            if (op && !op.closed) {
+                if (typeof op.getPidSpecUsageMap === 'function') return { ok: true, data: op.getPidSpecUsageMap() };
+                if (typeof op.getPidCallMap === 'function') return { ok: true, data: op.getPidCallMap() };
+            }
+        } catch (e) { /* 다른 출처이거나 닫힘 */ }
+        return { ok: false, data: null };
+    }
+
+    function prepare(data) {
+        const info = new Map(), kids = new Map(), parents = new Map(), usage = new Map();
+        const root = data.root;
+        info.set(root.pid, { pid: root.pid, name: root.name, runVersion: root.testVersion ? TEST_VERSION : root.runVersion, isRoot: true });
+        (data.subPids || []).forEach((s) => { if (!info.has(s.pid)) info.set(s.pid, Object.assign({}, s)); });
+        const link = (from, to) => {
+            if (from === to) return;
+            if (!kids.has(from)) kids.set(from, []);
+            if (!parents.has(to)) parents.set(to, []);
+            if (!kids.get(from).includes(to)) kids.get(from).push(to);
+            if (!parents.get(to).includes(from)) parents.get(to).push(from);
+        };
+        if (Array.isArray(data.subPidCalls) && data.subPidCalls.length) data.subPidCalls.forEach((c) => link(c.from, c.to));
+        else (data.subPids || []).forEach((s) => link(root.pid, s.pid));
+        (data.specUsages || []).forEach((u) => {
+            const specs = new Map();
+            (u.specs || []).forEach((s) => specs.set(s.code, s));
+            usage.set(u.pid, { javaMethod: !!u.javaMethod, specs });
+            if (!info.has(u.pid)) info.set(u.pid, { pid: u.pid });
+        });
+        const tree = [], treeBy = new Map();
+        const visit = (pid, depth, parent) => {
+            if (treeBy.has(pid)) return;
+            const node = { pid, depth, parent, kids: [] };
+            treeBy.set(pid, node); tree.push(node);
+            if (parent) treeBy.get(parent).kids.push(pid);
+            (kids.get(pid) || []).forEach((k) => visit(k, depth + 1, pid));
+        };
+        visit(root.pid, 0, null);
+        [...info.keys()].forEach((pid) => { if (!treeBy.has(pid)) { link(root.pid, pid); visit(pid, 1, root.pid); } });
+        const reach = new Map();
+        info.forEach((_, pid) => {
+            const seen = new Set(), stack = [...(kids.get(pid) || [])];
+            while (stack.length) { const p = stack.pop(); if (p === pid || seen.has(p)) continue; seen.add(p); (kids.get(p) || []).forEach((k) => stack.push(k)); }
+            reach.set(pid, seen);
+        });
+        const elv = data.elvEnt || {};
+        const specs = new Map();
+        tree.forEach((node) => {
+            const u = usage.get(node.pid);
+            if (!u) return;
+            u.specs.forEach((s, code) => {
+                let sp = specs.get(code);
+                if (!sp) { sp = { code, users: [], readers: [], writers: [], inBase: false, baseValue: undefined, run: 0 }; specs.set(code, sp); }
+                sp.users.push(node.pid);
+                if (s.cond || s.ref) sp.readers.push(node.pid);
+                if (s.write) sp.writers.push(node.pid);
+                if (s.inBase) { sp.inBase = true; sp.baseValue = s.baseValue; }
+                sp.run += s.runCount || 0;
+            });
+        });
+        specs.forEach((sp) => {
+            sp.system = SYSTEM_KEYS.has(sp.code);
+            sp.src = sp.inBase || sp.system ? 'base' : sp.writers.length ? 'made' : 'none';
+            sp.over = sp.inBase && sp.writers.length > 0;
+            sp.finalValue = Object.prototype.hasOwnProperty.call(elv, sp.code) ? elv[sp.code] : undefined;
+        });
+        Object.assign(state, { info, kids, parents, usage, tree, treeBy, reach, specs, rootPid: root.pid, hasUsage: Array.isArray(data.specUsages) });
+    }
+    const ok = (s) => !!s && (!state.runOnly || s.runCount > 0);
+    const useOf = (pid, code) => { const u = state.usage.get(pid); const s = u ? u.specs.get(code) : undefined; return ok(s) ? s : undefined; };
+    const ownSpecs = (pid) => { const u = state.usage.get(pid); return u ? [...u.specs.values()].filter(ok) : []; };
+    const usersOf = (sp) => sp.users.filter((p) => useOf(p, sp.code));
+    const specName = (c) => state.names.get(c) || '';
+    const pidName = (p) => (state.info.get(p) || {}).name || '';
+    const treeOrder = (p) => state.tree.indexOf(state.treeBy.get(p));
+    const mainRole = (s) => (s.write ? 'write' : s.cond ? 'cond' : 'ref');
+    const roles = (s) => ['cond', 'ref', 'write'].filter((r) => s[r] > 0);
+    function ancestors(pid) {
+        const seen = new Set(), stack = [...(state.parents.get(pid) || [])];
+        while (stack.length) { const p = stack.pop(); if (p === pid || seen.has(p)) continue; seen.add(p); (state.parents.get(p) || []).forEach((x) => stack.push(x)); }
+        return seen;
+    }
+
+    // ---------- 글자 폭 ----------
+    const mctx = document.createElement('canvas').getContext('2d');
+    function fit(text, font, maxW) {
+        text = text || '';
+        mctx.font = font;
+        if (mctx.measureText(text).width <= maxW) return text;
+        let lo = 0, hi = text.length;
+        while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (mctx.measureText(text.slice(0, mid) + '…').width <= maxW) lo = mid; else hi = mid - 1; }
+        return text.slice(0, lo) + '…';
+    }
+    const tw = (text, font) => { mctx.font = font; return mctx.measureText(text).width; };
+
+    // ---------- 그래프 만들기 ----------
+    // 노드 : {id, type: pid|spec|top|more|ref, key, w, h, kids, parent, depth, edge: {cls, label, marker}}
+    function newGraph() {
+        let seq = 0;
+        const g = { nodes: [], byId: new Map(), pidNode: new Map(), flows: [], root: null };
+        g.mk = (type, key, parent, extra) => {
+            const n = Object.assign({ id: 'n' + (seq++), type, key, kids: [], parent: parent || null, depth: parent ? parent.depth + 1 : 0 }, SZ[type], extra || {});
+            if (parent) parent.kids.push(n); else g.root = n;
+            g.nodes.push(n); g.byId.set(n.id, n);
+            return n;
+        };
+        return g;
+    }
+
+    // 상→하 : PID → (자기 사양 잎) + CALL 하위 PID
+    function buildDown(start) {
+        const g = newGraph();
+        const addPid = (pid, parent) => {
+            if (g.pidNode.has(pid)) { g.mk('ref', pid, parent, { edge: { cls: 'call', marker: 'call' } }); return; }
+            const own = ownSpecs(pid);
+            const n = g.mk('pid', pid, parent, { own: own.length, nKids: (state.kids.get(pid) || []).length, edge: parent ? { cls: 'call', marker: 'call' } : null });
+            g.pidNode.set(pid, n);
+            if (state.openSpecs.has(pid) && own.length) {
+                // 값 생성 → 조건 비교 → 값 계산 순서로 칸에 담는다
+                const order = { write: 0, cond: 1, ref: 2 };
+                const sorted = own.slice().sort((a, b) => order[mainRole(a)] - order[mainRole(b)] || a.code.localeCompare(b.code));
+                const shown = state.moreSpecs.has(pid) ? sorted : sorted.slice(0, SPEC_LIMIT);
+                const items = shown.map((s) => ({ code: s.code, use: s }));
+                if (sorted.length > shown.length) items.push({ more: true, count: sorted.length - shown.length });
+                g.mk('group', pid, n, Object.assign({ items, ownerPid: pid, total: sorted.length, edge: { cls: 'own' } }, groupSize(items.length)));
+            }
+            if (!state.closedKids.has(pid)) (state.kids.get(pid) || []).forEach((k) => addPid(k, n));
+        };
+        addPid(start, null);
+        return g;
+    }
+
+    // 사양 묶음 크기 : 칸 수에 따라 열 수를 정한다 (가로 그리기는 세로로 길게, 세로 그리기는 가로로 넓게)
+    function groupSize(count) {
+        const cols = state.dir === 'h' ? (count <= 5 ? 1 : count <= 14 ? 2 : 3) : Math.min(4, Math.max(1, Math.ceil(count / 3)));
+        const rows = Math.ceil(count / cols);
+        return {
+            cols,
+            w: CELL.pad * 2 + cols * CELL.w + (cols - 1) * CELL.gap,
+            h: CELL.head + CELL.pad + rows * CELL.h + (rows - 1) * CELL.gap,
+        };
+    }
+
+    // 값 전달 : 그려진 '값 생성' 칸 → 그 값을 읽는 PID (그려진 경우). 칸 위치가 필요해서 배치 뒤에 계산
+    function buildFlows(g) {
+        g.flows = [];
+        if (state.mode !== 'down' || !state.flow) return;
+        g.nodes.filter((n) => n.type === 'group').forEach((grp) => {
+            grp.items.filter((it) => !it.more && it.use.write).forEach((it) => {
+                state.specs.get(it.code).readers.forEach((r) => {
+                    if (r === grp.ownerPid || !useOf(r, it.code)) return;
+                    const target = g.pidNode.get(r);
+                    if (target) g.flows.push({ from: it, to: target, code: it.code, owner: grp.ownerPid });
+                });
+            });
+        });
+    }
+    // 칸의 SVG 좌표 (묶음 안 위치)
+    function placeCells(grp) {
+        grp.items.forEach((it, i) => {
+            const col = i % grp.cols, row = Math.floor(i / grp.cols);
+            it.rx = CELL.pad + col * (CELL.w + CELL.gap);
+            it.ry = CELL.head + row * (CELL.h + CELL.gap);
+            it.x = grp.x + it.rx; it.y = grp.y + it.ry; it.w = CELL.w; it.h = CELL.h;
+        });
+    }
+
+    // 하→상 : 사양 → 쓰는 PID → 그 PID 를 CALL 하는 상위 PID … 대상 PID
+    function buildUp(code) {
+        const g = newGraph();
+        const sp = state.specs.get(code);
+        const root = g.mk('top', code, null, { sp });
+        const users = usersOf(sp).sort((a, b) => treeOrder(a) - treeOrder(b));
+        const queue = [];
+        users.forEach((p) => {
+            const s = useOf(p, code), r = mainRole(s);
+            const n = g.mk('pid', p, root, { use: s, user: true, edge: { cls: r, marker: r, label: roles(s).map((x) => ROLE_LABEL[x]).join(', ') } });
+            g.pidNode.set(p, n);
+            queue.push(n);
+        });
+        // 가까운 상위부터 (BFS). 이미 그린 PID 는 작은 참조 노드로
+        while (queue.length) {
+            const n = queue.shift();
+            (state.parents.get(n.key) || []).slice().sort((a, b) => treeOrder(a) - treeOrder(b)).forEach((c) => {
+                if (g.pidNode.has(c)) { g.mk('ref', c, n, { edge: { cls: 'up', marker: 'up' } }); return; }
+                const m = g.mk('pid', c, n, { caller: true, edge: { cls: 'up', marker: 'up' } });
+                g.pidNode.set(c, m);
+                queue.push(m);
+            });
+        }
+        return g;
+    }
+
+    // ---------- 배치 (깔끔한 나무 : 부모는 자식 묶음의 가운데) ----------
+    function layout(g) {
+        const H = state.dir === 'h', G = GAP[state.dir];
+        const main = (n) => (H ? n.w : n.h), cross = (n) => (H ? n.h : n.w);
+        const lv = [];
+        g.nodes.forEach((n) => { lv[n.depth] = Math.max(lv[n.depth] || 0, main(n)); });
+        const base = [0];
+        for (let d = 1; d < lv.length; d++) base[d] = base[d - 1] + lv[d - 1] + G.level;
+        const measure = (n) => {
+            n.kids.forEach(measure);
+            const sum = n.kids.reduce((s, k) => s + k.ext, 0) + Math.max(0, n.kids.length - 1) * G.sib;
+            n.ext = Math.max(cross(n), sum);
+            n.kidsExt = sum;
+        };
+        const place = (n, start) => {
+            const c = start + n.ext / 2;
+            if (H) { n.x = base[n.depth]; n.y = c - n.h / 2; } else { n.y = base[n.depth]; n.x = c - n.w / 2; }
+            let s = start + (n.ext - n.kidsExt) / 2;
+            n.kids.forEach((k) => { place(k, s); s += k.ext + G.sib; });
+        };
+        measure(g.root);
+        place(g.root, 0);
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        g.nodes.forEach((n) => { x0 = Math.min(x0, n.x); y0 = Math.min(y0, n.y); x1 = Math.max(x1, n.x + n.w); y1 = Math.max(y1, n.y + n.h); });
+        g.bounds = { x0, y0, x1, y1 };
+    }
+
+    // ---------- 그리기 ----------
+    function el(tag, attrs, parent) {
+        const e = document.createElementNS(NS, tag);
+        for (const k in attrs) if (attrs[k] !== undefined && attrs[k] !== null) e.setAttribute(k, attrs[k]);
+        if (parent) parent.appendChild(e);
+        return e;
+    }
+    function edgePath(a, b) {
+        if (state.dir === 'h') {
+            const x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2, mx = (x1 + x2) / 2;
+            return { d: `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2 - 2},${y2}`, lx: mx, ly: (y1 + y2) / 2 };
+        }
+        const x1 = a.x + a.w / 2, y1 = a.y + a.h, x2 = b.x + b.w / 2, y2 = b.y, my = (y1 + y2) / 2;
+        return { d: `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2 - 2}`, lx: (x1 + x2) / 2, ly: my };
+    }
+    // 값 전달 선 : 잎 → 읽는 PID (어디에 있든 바깥으로 돌아가는 곡선)
+    function flowPath(a, b) {
+        const ax = a.x + a.w / 2, ay = a.y + a.h / 2, bx = b.x + b.w / 2, by = b.y + b.h / 2;
+        if (state.dir === 'h') {
+            const sx = a.x + a.w, ex = b.x + b.w, out = Math.max(sx, ex) + 60;
+            return `M${sx},${ay} C${out},${ay} ${out},${by} ${ex + 2},${by}`;
+        }
+        const sy = a.y + a.h, ey = b.y + b.h, out = Math.max(sy, ey) + 50;
+        return `M${ax},${sy} C${ax},${out} ${bx},${out} ${bx},${ey + 2}`;
+    }
+
+    function pill(parent, x, y, text, cls, data) {
+        const w = Math.ceil(tw(text, FONT.small)) + 14;
+        const g = el('g', Object.assign({ class: cls, transform: `translate(${x - w},${y})` }, data || {}), parent);
+        el('rect', { width: w, height: 20, rx: 10 }, g);
+        const t = el('text', { x: w / 2, y: 14, 'text-anchor': 'middle' }, g);
+        t.textContent = text;
+        return w;
+    }
+
+    function drawNode(n, layer) {
+        const cls = ['node', 'n-' + n.type];
+        const g = el('g', { class: cls.join(' '), transform: `translate(${n.x},${n.y})`, 'data-id': n.id, tabindex: 0, role: 'button' }, layer);
+        n.el = g;
+        el('rect', { class: 'shadow', x: 0, y: 3, width: n.w, height: n.h, rx: 10 }, g);
+        el('rect', { class: 'box', width: n.w, height: n.h, rx: 10 }, g);
+        const pad = 16;
+        if (n.type === 'pid') {
+            const inf = state.info.get(n.key) || {};
+            if (inf.isRoot) cls.push('root');
+            if (inf.error) cls.push('err');
+            if (n.user) { cls.push('user'); if (n.use.write) cls.push('writer'); }
+            if (n.caller) cls.push('caller');
+            el('rect', { class: 'accent', x: 0, y: 8, width: 4, height: n.h - 16, rx: 2 }, g);
+            const t1 = el('text', { class: 't1', x: pad, y: 25 }, g);
+            t1.textContent = n.key;
+            // 오른쪽 위 : 상→하 = 사양 / 하위 단추, 하→상 = 쓰는 방식
+            let right = n.w - 10, used = 0;
+            if (state.mode === 'down') {
+                if (n.nKids) right -= pill(g, right, 9, `하위 ${n.nKids}`, `tg kids ${state.closedKids.has(n.key) ? '' : 'on'}`, { 'data-tg': 'kids', 'data-pid': n.key }) + 6;
+                if (n.own) right -= pill(g, right, 9, `사양 ${n.own}`, `tg ${state.openSpecs.has(n.key) ? 'on' : ''}`, { 'data-tg': 'specs', 'data-pid': n.key }) + 6;
+            } else if (n.user) {
+                roles(n.use).slice().reverse().forEach((r) => { right -= pill(g, right, 9, ROLE_LABEL[r], `rtag ${r}`) + 4; });
+            }
+            used = tw(n.key, FONT.mono);
+            if (used > right - pad - 6) t1.textContent = fit(n.key, FONT.mono, right - pad - 6);
+            const t2 = el('text', { class: 't2', x: pad, y: 45 }, g);
+            t2.textContent = fit(inf.name || (n.caller ? 'CALL 로 영향받음' : ''), FONT.sans, n.w - pad - 12);
+            const title = el('title', {}, g);
+            title.textContent = `${n.key} ${inf.name || ''}${inf.error ? '\n실행 실패 : ' + inf.error : ''}`;
+        } else if (n.type === 'top') {
+            const sp = state.specs.get(n.key);
+            cls.push('n-spec', 'top', 's-' + sp.src);
+            el('rect', { class: 'accent', x: 0, y: 7, width: 4, height: n.h - 14, rx: 2 }, g);
+            const t1 = el('text', { class: 't1', x: pad, y: 27 }, g);
+            t1.textContent = fit(n.key, FONT.monoTop, n.w - pad - 12);
+            const t2 = el('text', { class: 't2', x: pad, y: 47 }, g);
+            t2.textContent = fit(`${specName(n.key) || SRC_LABEL[sp.src]}`, FONT.sans, n.w - pad - 12);
+            const title = el('title', {}, g);
+            title.textContent = `${n.key} ${specName(n.key)}\n${SRC_LABEL[sp.src]}, 최종 값 ${valText(sp.finalValue)}`;
+        } else if (n.type === 'group') {
+            // 묶음 머리 : 몇 개 중 몇 개를 그렸는지
+            const head = el('text', { class: 'gh', x: CELL.pad + 2, y: 17 }, g);
+            head.textContent = `${n.ownerPid} 가 직접 쓰는 사양 ${n.total}개`;
+            placeCells(n);
+            n.items.forEach((it) => {
+                if (it.more) {
+                    const c = el('g', { class: 'cell more', transform: `translate(${it.rx},${it.ry})`, 'data-more': n.ownerPid, tabindex: 0, role: 'button' }, g);
+                    el('rect', { class: 'cbox', width: CELL.w, height: CELL.h, rx: 7 }, c);
+                    const t = el('text', { class: 'ct2', x: CELL.w / 2, y: 26, 'text-anchor': 'middle' }, c);
+                    t.textContent = `${it.count}개 더 보기`;
+                    return;
+                }
+                const sp = state.specs.get(it.code), r = mainRole(it.use);
+                const c = el('g', { class: `cell r-${r} s-${sp.src}${it.use.runCount > 0 ? '' : ' idle'}`, transform: `translate(${it.rx},${it.ry})`, 'data-code': it.code, 'data-owner': n.ownerPid, tabindex: 0, role: 'button' }, g);
+                it.el = c;
+                el('rect', { class: 'cbox', width: CELL.w, height: CELL.h, rx: 7 }, c);
+                el('rect', { class: 'cbar', x: 0, y: 6, width: 3.5, height: CELL.h - 12, rx: 1.5 }, c);
+                const t1 = el('text', { class: 'ct1', x: 12, y: 17 }, c);
+                t1.textContent = fit(it.code, FONT.cell, CELL.w - 20);
+                const label = roles(it.use).map((x) => ROLE_LABEL[x]).join(', ');
+                const t3 = el('text', { class: 'ct3', x: 12, y: 33 }, c);
+                t3.textContent = label;
+                const lw = tw(label, FONT.small);
+                const nm = specName(it.code) || (sp.src !== 'base' ? SRC_LABEL[sp.src] : '');
+                if (nm && CELL.w - 12 - lw - 14 > 20) { const t2 = el('text', { class: 'ct2', x: 12 + lw + 6, y: 33 }, c); t2.textContent = fit(nm, FONT.cellName, CELL.w - 12 - lw - 14); }
+                const title = el('title', {}, c);
+                title.textContent = `${it.code} ${specName(it.code)}\n${label}${it.use.runCount > 0 ? '' : ' (이번 실행에선 안 씀)'}\n${SRC_LABEL[sp.src]}, 최종 값 ${valText(sp.finalValue)}`;
+            });
+        } else if (n.type === 'more') {
+            const t = el('text', { class: 't2', x: n.w / 2, y: 21, 'text-anchor': 'middle' }, g);
+            t.textContent = `사양 ${n.count}개 더 보기`;
+        } else if (n.type === 'ref') {
+            const t = el('text', { class: 't2', x: 12, y: 22 }, g);
+            t.textContent = fit(`${n.key} (위에 있음)`, FONT.sans, n.w - 20);
+            const title = el('title', {}, g);
+            title.textContent = `${n.key} 는 이미 다른 위치에 그렸습니다. 누르면 그 위치로 갑니다.`;
+        }
+        g.setAttribute('class', cls.join(' '));
+        if (state.animate && !reduceMotion) { g.classList.add('reveal'); g.style.setProperty('--d', Math.min(n.depth * 90, 700) + 'ms'); }
+        g.setAttribute('aria-label', `${n.key}`);
+    }
+
+    function render(opts) {
+        if (!state.data) return;
+        const g = state.mode === 'down' ? buildDown(state.startPid) : buildUp(state.startCode);
+        layout(g);
+        g.nodes.filter((n) => n.type === 'group').forEach(placeCells);
+        buildFlows(g);
+        state.graph = g;
+        const E = $('lEdges'), L = $('lLabels'), N = $('lNodes');
+        E.textContent = ''; L.textContent = ''; N.textContent = '';
+        g.nodes.forEach((n) => {
+            if (!n.parent) return;
+            const p = edgePath(n.parent, n);
+            const path = el('path', { class: `e e-${n.edge.cls}`, d: p.d, 'marker-end': n.edge.marker ? `url(#m-${n.edge.marker})` : null, 'data-to': n.id }, E);
+            n.edgeEl = path;
+            if (state.animate && !reduceMotion) { path.classList.add('reveal'); path.style.setProperty('--d', Math.min(n.depth * 90 - 40, 660) + 'ms'); }
+            if (n.edge.label && state.mode === 'up' && n.depth === 1) {
+                const w = tw(n.edge.label, FONT.small) + 10;
+                const lg = el('g', { class: `el ${n.edge.cls}`, transform: `translate(${p.lx - w / 2},${p.ly - 9})`, 'data-to': n.id }, L);
+                el('rect', { width: w, height: 18, rx: 4 }, lg);
+                const t = el('text', { x: w / 2, y: 13, 'text-anchor': 'middle' }, lg);
+                t.textContent = n.edge.label;
+                n.labelEl = lg;
+            }
+        });
+        g.flows.forEach((f) => {
+            f.el = el('path', { class: 'e e-flow', d: flowPath(f.from, f.to), 'marker-end': 'url(#m-write)' }, E);
+            const t = el('title', {}, f.el);
+            t.textContent = `${f.code} : ${f.owner} 가 만든 값을 ${f.to.key} 가 읽습니다`;
+        });
+        g.nodes.forEach((n) => drawNode(n, N));
+        state.animate = false;
+        applySel();
+        renderStory(); renderLegend(); renderSide();
+        if (opts && opts.fit) fitView(); else if (opts && opts.keepNode) keepNode(opts.keepNode);
+    }
+
+    // 선택은 노드 종류 + 키로 기억한다 (다시 그리면 노드 id 가 바뀜)
+    // 사양 칸은 {type:'spec', key, use, ownerPid, group} 으로 돌려준다
+    function selNode() {
+        const r = state.selRef;
+        if (!r || !state.graph) return null;
+        if (r.type === 'spec') {
+            const grp = state.graph.nodes.find((n) => n.type === 'group' && n.ownerPid === r.owner);
+            const it = grp && grp.items.find((x) => !x.more && x.code === r.key);
+            return it ? { type: 'spec', key: r.key, use: it.use, ownerPid: r.owner, group: grp, cell: it } : null;
+        }
+        return state.graph.nodes.find((n) => n.type === r.type && n.key === r.key) || null;
+    }
+    function setSel(n) {
+        state.selRef = n ? { type: n.type, key: n.key, owner: n.ownerPid || null } : null;
+        applySel();
+    }
+    // 선택 : 선택한 노드 + 뿌리까지 경로를 강조, 같은 사양 잎은 점선 테두리
+    function applySel() {
+        const g = state.graph;
+        if (!g) return;
+        const sel = selNode();
+        const chain = new Set();
+        const anchor = sel ? (sel.group || sel) : null;
+        if (anchor) { for (let n = anchor; n; n = n.parent) chain.add(n.id); if (!sel.group) anchor.kids.forEach((k) => chain.add(k.id)); }
+        const selCode = sel && (sel.type === 'spec' || sel.type === 'top') ? sel.key : null;
+        g.nodes.forEach((n) => {
+            n.el.classList.toggle('sel', !!sel && n === sel);
+            n.el.classList.toggle('same', !!sel && n !== sel && sel.type === 'pid' && n.type === 'ref' && n.key === sel.key);
+            if (n.edgeEl) n.edgeEl.classList.toggle('hot', chain.has(n.id) && (!!n.parent && chain.has(n.parent.id)));
+            if (n.type === 'group') n.items.forEach((it) => {
+                if (!it.el) return;
+                it.el.classList.toggle('sel', !!sel && sel.cell === it);
+                it.el.classList.toggle('same', !!selCode && sel.cell !== it && it.code === selCode);
+            });
+        });
+        g.flows.forEach((f) => f.el.classList.toggle('hot', !!sel && ((sel.cell && f.from === sel.cell) || f.to === sel)));
+        renderCard(sel);
+    }
+
+    // ---------- 문장 / 범례 / 카드 ----------
+    function renderStory() {
+        let h = '';
+        if (!state.hasUsage) {
+            h = '서버가 PID 별 영업사양을 아직 기록하지 않아 호출 관계만 그립니다.<small>서버를 재기동한 뒤 시뮬레이터에서 다시 실행해 주세요.</small>';
+        } else if (state.mode === 'down') {
+            const pid = state.startPid, own = ownSpecs(pid).length, desc = state.reach.get(pid);
+            const all = new Set(); [pid, ...desc].forEach((p) => ownSpecs(p).forEach((s) => all.add(s.code)));
+            h = `<span class="code">${esc(pid)}</span> 는 영업사양 <b class="own">${own}개</b>를 직접 쓰고, CALL 하위 PID <b>${desc.size}개</b>까지 합치면 <b>${all.size}개</b>를 씁니다.`
+                + (state.graph.flows.length ? ` PID 사이에 전달되는 값 <b class="make">${new Set(state.graph.flows.map((f) => f.code)).size}개</b>가 점선으로 보입니다.` : '')
+                + '<small>PID 의 [사양 n] 단추로 그 PID 가 직접 쓰는 사양 묶음을 펼칩니다. 사양 칸을 두 번 누르면 그 사양의 영향 범위(하→상)로 바뀝니다.</small>';
+        } else {
+            const sp = state.specs.get(state.startCode), users = usersOf(sp);
+            const callers = state.graph.nodes.filter((n) => n.type === 'pid' && n.caller).length;
+            const reachRoot = state.graph.pidNode.has(state.rootPid);
+            h = `<span class="code">${esc(sp.code)}</span>${specName(sp.code) ? ` ${esc(specName(sp.code))}` : ''} 이(가) 바뀌면 직접 쓰는 PID <b class="own">${users.length}개</b>가 영향을 받고, CALL 을 따라 상위 PID <b class="via">${callers}개</b>까지 이어집니다.`
+                + (reachRoot ? ` 결국 대상 PID <span class="code">${esc(state.rootPid)}</span> 결과에 영향을 줍니다.` : '')
+                + (sp.src === 'none' ? ' <b class="none">이 사양은 값 출처가 없어 항상 빈 값입니다.</b>' : sp.over ? ' <b class="make">PID 가 원본 값을 덮어씁니다.</b>' : '')
+                + '<small>PID 를 두 번 누르면 그 PID 가 쓰는 사양(상→하)으로 바뀝니다.</small>';
+        }
+        $('story').innerHTML = `<div>${h}</div>`;
+    }
+
+    function swatchLine(cls, marker, dashed) {
+        return `<svg width="34" height="10" aria-hidden="true"><path class="e e-${cls}" d="M2,5 L30,5" ${marker ? `marker-end="url(#m-${marker})"` : ''}/></svg>`;
+    }
+    function swatchNode(color, dashed) {
+        return `<svg width="20" height="14" aria-hidden="true"><rect x="1" y="1" width="18" height="12" rx="3" style="fill:var(--node);stroke:var(--line-strong);${dashed ? 'stroke-dasharray:3 2;' : ''}"/><rect x="1" y="3" width="3" height="8" rx="1" style="fill:${color}"/></svg>`;
+    }
+    function renderLegend() {
+        let h;
+        if (state.mode === 'down') {
+            h = `<span>${swatchLine('call', 'call')}CALL (상위 → 하위)</span>`
+                + `<span>${swatchNode('var(--own)')}조건 비교에 쓰는 사양 (묶음 안 칸)</span>`
+                + `<span>${swatchLine('flow', 'write')}값 전달 (만든 사양 → 읽는 PID)</span>`
+                + `<span>${swatchNode('var(--calc)')}값 계산에 쓰는 사양</span>`
+                + `<span>${swatchNode('var(--make)')}값을 만드는(KEY) 사양</span>`
+                + `<span>${swatchNode('var(--line-hover)', true)}흐리게 : 이번 실행에선 안 씀</span>`
+                + '<span class="hint">누르기 : 상세, 두 번 누르기 : 기준 바꾸기, 휠 : 확대/축소, 빈 곳 끌기 : 이동</span>';
+        } else {
+            h = `<span>${swatchLine('cond', 'cond')}사양 → 직접 쓰는 PID</span>`
+                + `<span>${swatchNode('var(--own)')}직접 쓰는 PID</span>`
+                + `<span>${swatchLine('up', 'up')}PID → 그 PID 를 CALL 하는 상위</span>`
+                + `<span>${swatchNode('var(--make)')}값을 만드는 PID</span>`
+                + `<span></span><span>${swatchNode('var(--via)')}CALL 로 영향받는 상위 PID</span>`
+                + '<span class="hint">화살표 = 영향이 퍼지는 방향. 두 번 누르기 : 기준 바꾸기</span>';
+        }
+        $('legend').innerHTML = h;
+    }
+
+    function renderCard(n) {
+        const card = $('card');
+        if (!n || n.type === 'more' || n.type === 'group') { card.hidden = true; return; }
+        let h = '<button type="button" class="x" data-act="close" aria-label="닫기"><svg class="ico sm" aria-hidden="true"><use href="#i-x"/></svg></button>';
+        if (n.type === 'pid' || n.type === 'ref') {
+            const pid = n.key, inf = state.info.get(pid) || {}, own = ownSpecs(pid), desc = state.reach.get(pid);
+            const callers = state.parents.get(pid) || [];
+            h += `<h3>${esc(pid)}</h3><p class="nm">${esc(inf.name || '')} ${verText(inf.runVersion) ? `<span style="color:var(--muted)">${verText(inf.runVersion)}</span>` : ''}</p>`;
+            if (state.mode === 'up' && n.use) h += roles(n.use).map((r) => `<span class="tag ${r}">${ROLE_LABEL[r]}</span>`).join('') + (n.use.runCount > 0 ? '' : '<span class="tag idle">이번엔 안 씀</span>');
+            h += `<p class="say">직접 쓰는 사양 <b>${own.length}개</b>, CALL 하위 PID <b>${desc.size}개</b>, 이 PID 를 부르는 상위 PID <b>${callers.length}개</b>.</p>`;
+            if (inf.error) h += `<p class="say" style="color:var(--err)">실행 실패 : ${esc(inf.error)}</p>`;
+            if (n.type === 'ref') h += '<p class="say">같은 PID 를 다른 위치에서 이미 그렸습니다.</p>';
+            h += '<div class="acts">'
+                + `<button type="button" class="primary" data-act="down" data-key="${esc(pid)}">이 PID 가 쓰는 사양 보기 (상→하)</button>`
+                + (n.type === 'ref' ? `<button type="button" data-act="goto" data-key="${esc(pid)}">그린 위치로 가기</button>` : '')
+                + (state.mode === 'down' && n.type === 'pid' && own.length ? `<button type="button" data-act="toggleSpecs" data-key="${esc(pid)}">${state.openSpecs.has(pid) ? '사양 접기' : `사양 ${own.length}개 펼치기`}</button>` : '')
+                + '</div>';
+        } else {
+            const sp = state.specs.get(n.key), users = usersOf(sp);
+            const changed = sp.inBase && sp.finalValue !== undefined && String(sp.finalValue) !== String(sp.baseValue ?? '');
+            h += `<h3>${esc(sp.code)}</h3><p class="nm">${esc(specName(sp.code))}</p><span class="tag ${sp.src}">${SRC_LABEL[sp.src]}</span>${sp.over ? '<span class="tag made">PID 가 덮어씀</span>' : ''}`;
+            if (n.use) h += roles(n.use).map((r) => `<span class="tag ${r}">${ROLE_LABEL[r]}</span>`).join('') + (n.use.runCount > 0 ? '' : '<span class="tag idle">이번엔 안 씀</span>');
+            h += '<dl>'
+                + `<dt>실행 전 값</dt><dd>${sp.inBase ? esc(valText(sp.baseValue)) : '영업사양에 없음'}</dd>`
+                + `<dt>최종 값</dt><dd class="${changed ? 'changed' : ''}">${esc(valText(sp.finalValue))}</dd>`
+                + `<dt>쓰는 PID</dt><dd>${users.length}개</dd>`
+                + (sp.writers.length ? `<dt>만드는 PID</dt><dd>${esc(sp.writers.join(', '))}</dd>` : '')
+                + '</dl>';
+            if (sp.src === 'none') h += '<p class="say" style="color:var(--none)">영업사양에도 없고 실행한 PID 도 만들지 않아 항상 빈 값으로 비교됩니다.</p>';
+            h += '<div class="acts">'
+                + (n.type === 'top' ? '' : `<button type="button" class="primary" data-act="up" data-key="${esc(sp.code)}">이 사양의 영향 범위 보기 (하→상)</button>`)
+                + (n.ownerPid ? `<button type="button" data-act="down" data-key="${esc(n.ownerPid)}">${esc(n.ownerPid)} 에서 다시 그리기</button>` : '')
+                + '</div>';
+        }
+        card.innerHTML = h;
+        card.hidden = false;
+    }
+
+    // ---------- 왼쪽 목록 ----------
+    function hl(text, q) {
+        const t = String(text || '');
+        if (!q) return esc(t);
+        const i = t.toLowerCase().indexOf(q);
+        return i < 0 ? esc(t) : esc(t.slice(0, i)) + '<mark>' + esc(t.slice(i, i + q.length)) + '</mark>' + esc(t.slice(i + q.length));
+    }
+    function renderSide() {
+        const q = state.q.toLowerCase();
+        let h = '';
+        if (state.mode === 'down') {
+            $('sideTitle').textContent = '시작할 PID';
+            $('sideHint').textContent = '고른 PID 에서부터 아래로 그립니다';
+            state.tree.forEach((n) => {
+                if (q && !n.pid.toLowerCase().includes(q) && !pidName(n.pid).toLowerCase().includes(q)) return;
+                const c = ownSpecs(n.pid).length;
+                h += `<button type="button" class="item ${n.pid === state.startPid ? 'sel' : ''}" data-start-pid="${esc(n.pid)}" style="padding-left:${10 + (q ? 0 : n.depth * 12)}px">`
+                    + `<span class="txt"><span class="code">${hl(n.pid, q)}</span><span>${hl(pidName(n.pid), q)}</span></span><span class="pill ${c ? 'own' : 'zero'}" title="직접 쓰는 사양">${c}</span></button>`;
+            });
+        } else {
+            $('sideTitle').textContent = '시작할 영업사양';
+            $('sideHint').textContent = '쓰는 PID 가 많은 순입니다';
+            [...state.specs.values()].filter((sp) => usersOf(sp).length)
+                .sort((a, b) => usersOf(b).length - usersOf(a).length || a.code.localeCompare(b.code))
+                .forEach((sp) => {
+                    if (q && !sp.code.toLowerCase().includes(q) && !specName(sp.code).toLowerCase().includes(q)) return;
+                    h += `<button type="button" class="item ${sp.code === state.startCode ? 'sel' : ''}" data-start-code="${esc(sp.code)}">`
+                        + `<span class="txt"><span class="code ${sp.src !== 'base' ? sp.src : ''}">${hl(sp.code, q)}</span><span>${hl(specName(sp.code), q) || (sp.src !== 'base' ? SRC_LABEL[sp.src] : '&nbsp;')}</span></span><span class="pill own" title="쓰는 PID 수">${usersOf(sp).length}</span></button>`;
+                });
+        }
+        $('side').innerHTML = h || '<p style="padding:12px;color:var(--muted)">없습니다.</p>';
+    }
+
+    // ---------- 화면 이동 / 확대 ----------
+    function applyView() {
+        const v = state.view;
+        $('vp').setAttribute('transform', `translate(${v.x},${v.y}) scale(${v.k})`);
+        $('zVal').textContent = Math.round(v.k * 100) + '%';
+    }
+    function fitView() {
+        const b = state.graph && state.graph.bounds;
+        if (!b) return;
+        const r = $('map').getBoundingClientRect();
+        const padTop = 96, pad = 40;
+        const w = b.x1 - b.x0, h = b.y1 - b.y0;
+        let k = Math.min((r.width - pad * 2) / w, (r.height - padTop - pad) / h, 1.1);
+        k = Math.max(k, 0.5);
+        state.view.k = k;
+        // 다 안 들어오면 뿌리가 보이게 왼쪽(위) 에 붙인다
+        state.view.x = w * k < r.width - pad * 2 ? (r.width - w * k) / 2 - b.x0 * k : pad - b.x0 * k;
+        state.view.y = h * k < r.height - padTop - pad ? padTop + (r.height - padTop - pad - h * k) / 2 - b.y0 * k : padTop - b.y0 * k;
+        if (state.dir === 'h' && h * k >= r.height - padTop - pad) {
+            const root = state.graph.root;
+            state.view.y = r.height / 2 - (root.y + root.h / 2) * k;
+        }
+        if (state.dir === 'v' && w * k >= r.width - pad * 2) {
+            const root = state.graph.root;
+            state.view.x = r.width / 2 - (root.x + root.w / 2) * k;
+        }
+        applyView();
+    }
+    // 펼치기 / 접기 후에도 누른 노드가 화면의 같은 자리에 있게
+    let lastScreen = null;
+    function rememberNode(key) {
+        const n = state.graph && [...state.graph.nodes].find((x) => x.type === 'pid' && x.key === key);
+        if (n) lastScreen = { key, sx: n.x * state.view.k + state.view.x, sy: n.y * state.view.k + state.view.y };
+    }
+    function keepNode(key) {
+        const n = state.graph.pidNode.get(key);
+        if (!n || !lastScreen || lastScreen.key !== key) return;
+        state.view.x = lastScreen.sx - n.x * state.view.k;
+        state.view.y = lastScreen.sy - n.y * state.view.k;
+        applyView();
+    }
+    function centerOn(n) {
+        const r = $('map').getBoundingClientRect();
+        state.view.x = r.width / 2 - (n.x + n.w / 2) * state.view.k;
+        state.view.y = r.height / 2 - (n.y + n.h / 2) * state.view.k;
+        applyView();
+    }
+    function zoomAt(factor, cx, cy) {
+        const v = state.view, k = Math.min(2.5, Math.max(0.15, v.k * factor));
+        v.x = cx - (cx - v.x) * (k / v.k);
+        v.y = cy - (cy - v.y) * (k / v.k);
+        v.k = k;
+        applyView();
+    }
+    const svg = $('map');
+    svg.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const r = svg.getBoundingClientRect();
+        zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top);
+    }, { passive: false });
+    let drag = null;
+    svg.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.node')) return;
+        drag = { x: e.clientX, y: e.clientY, vx: state.view.x, vy: state.view.y, moved: false };
+        svg.setPointerCapture(e.pointerId);
+        svg.classList.add('panning');
+    });
+    svg.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+        if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+        state.view.x = drag.vx + dx; state.view.y = drag.vy + dy;
+        applyView();
+    });
+    const endDrag = () => { if (drag && !drag.moved) { setSel(null); } drag = null; svg.classList.remove('panning'); };
+    svg.addEventListener('pointerup', endDrag);
+    svg.addEventListener('pointercancel', () => { drag = null; svg.classList.remove('panning'); });
+    $('zIn').addEventListener('click', () => { const r = svg.getBoundingClientRect(); zoomAt(1.2, r.width / 2, r.height / 2); });
+    $('zOut').addEventListener('click', () => { const r = svg.getBoundingClientRect(); zoomAt(1 / 1.2, r.width / 2, r.height / 2); });
+    $('zVal').addEventListener('click', () => { const r = svg.getBoundingClientRect(); zoomAt(1 / state.view.k, r.width / 2, r.height / 2); });
+    $('zFit').addEventListener('click', fitView);
+
+    // ---------- 동작 ----------
+    function toggleSpecs(pid) {
+        rememberNode(pid);
+        if (state.openSpecs.has(pid)) state.openSpecs.delete(pid); else state.openSpecs.add(pid);
+        render({ keepNode: pid });
+    }
+    function startDown(pid) {
+        state.mode = 'down'; state.startPid = pid; state.selRef = null;
+        state.openSpecs = new Set([pid]); state.moreSpecs.clear(); state.closedKids.clear();
+        // 하위가 많으면 깊이 3 부터 접어 둔다
+        const big = state.reach.get(pid).size > 40;
+        if (big) [...state.reach.get(pid)].forEach((p) => { const n = state.treeBy.get(p); if (n && n.depth - state.treeBy.get(pid).depth >= 2 && (state.kids.get(p) || []).length) state.closedKids.add(p); });
+        state.animate = true; syncModeButtons(); render({ fit: true });
+    }
+    function startUp(code) {
+        if (!state.specs.has(code)) return;
+        state.mode = 'up'; state.startCode = code; state.selRef = null;
+        state.animate = true; syncModeButtons(); render({ fit: true });
+    }
+    function syncModeButtons() {
+        document.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)));
+        $('btnAllSpecs').disabled = state.mode !== 'down';
+        $('btnFlow').disabled = state.mode !== 'down';
+        const all = state.mode === 'down' && [state.startPid, ...state.reach.get(state.startPid)].every((p) => !ownSpecs(p).length || state.openSpecs.has(p));
+        $('btnAllSpecs').textContent = all ? '모든 PID 사양 접기' : '모든 PID 사양 펼치기';
+    }
+
+    $('lNodes').addEventListener('click', (e) => {
+        const tg = e.target.closest('.tg');
+        if (tg) {
+            const pid = tg.dataset.pid;
+            if (tg.dataset.tg === 'specs') toggleSpecs(pid);
+            else { rememberNode(pid); if (state.closedKids.has(pid)) state.closedKids.delete(pid); else state.closedKids.add(pid); render({ keepNode: pid }); }
+            syncModeButtons();
+            return;
+        }
+        const cell = e.target.closest('.cell');
+        if (cell) {
+            if (cell.dataset.more) { rememberNode(cell.dataset.more); state.moreSpecs.add(cell.dataset.more); render({ keepNode: cell.dataset.more }); return; }
+            state.selRef = { type: 'spec', key: cell.dataset.code, owner: cell.dataset.owner };
+            applySel();
+            return;
+        }
+        const g = e.target.closest('.node');
+        if (!g) return;
+        const n = state.graph.byId.get(g.dataset.id);
+        if (n.type === 'group') return;
+        setSel(n);
+    });
+    $('lNodes').addEventListener('dblclick', (e) => {
+        const cell = e.target.closest('.cell');
+        if (cell && cell.dataset.code) { startUp(cell.dataset.code); return; }
+        const g = e.target.closest('.node');
+        if (!g || e.target.closest('.tg')) return;
+        const n = state.graph.byId.get(g.dataset.id);
+        if (n.type === 'group') return;
+        else if (n.type === 'pid' || n.type === 'ref') startDown(n.key);
+        else if (n.type === 'top' && n.key) { const w = state.specs.get(n.key).writers[0]; if (w) startDown(w); }
+    });
+    $('lNodes').addEventListener('keydown', (e) => {
+        const g = e.target.closest('.cell') || e.target.closest('.node');
+        if (!g || (e.key !== 'Enter' && e.key !== ' ')) return;
+        e.preventDefault();
+        g.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    document.addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        if (b.dataset.mode) {
+            if (b.dataset.mode === state.mode) return;
+            if (b.dataset.mode === 'down') startDown(state.startPid || state.rootPid);
+            else startUp(state.startCode || firstSpec());
+        } else if (b.dataset.dir) {
+            state.dir = b.dataset.dir; store.set(STORE.dir, state.dir);
+            document.querySelectorAll('[data-dir]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.dir === state.dir)));
+            render({ fit: true });
+        } else if (b.dataset.startPid) startDown(b.dataset.startPid);
+        else if (b.dataset.startCode) startUp(b.dataset.startCode);
+        else if (b.dataset.act === 'close') { setSel(null); }
+        else if (b.dataset.act === 'down') startDown(b.dataset.key);
+        else if (b.dataset.act === 'up') startUp(b.dataset.key);
+        else if (b.dataset.act === 'toggleSpecs') { toggleSpecs(b.dataset.key); syncModeButtons(); }
+        else if (b.dataset.act === 'goto') {
+            const n = state.graph.pidNode.get(b.dataset.key);
+            if (n) { setSel(n); centerOn(n); }
+        }
+    });
+    $('btnAllSpecs').addEventListener('click', () => {
+        const pids = [state.startPid, ...state.reach.get(state.startPid)].filter((p) => ownSpecs(p).length);
+        const all = pids.every((p) => state.openSpecs.has(p));
+        state.openSpecs = all ? new Set() : new Set(pids);
+        syncModeButtons(); render({ fit: true });
+    });
+    $('btnFlow').addEventListener('click', () => {
+        state.flow = !state.flow; store.set(STORE.flow, state.flow ? 'Y' : 'N');
+        $('btnFlow').setAttribute('aria-pressed', String(state.flow));
+        render();
+    });
+    $('btnRunOnly').addEventListener('click', () => {
+        state.runOnly = !state.runOnly; store.set(STORE.runOnly, state.runOnly ? 'Y' : 'N');
+        $('btnRunOnly').setAttribute('aria-pressed', String(state.runOnly));
+        if (state.mode === 'up' && !usersOf(state.specs.get(state.startCode)).length) { state.startCode = firstSpec(); }
+        render({ fit: true });
+    });
+    let qTimer = null;
+    $('q').addEventListener('input', (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = e.target.value.trim(); renderSide(); }, 100); });
+    $('q').addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        const first = $('side').querySelector('.item');
+        if (first) first.click();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.target.matches('input')) return;
+        if (e.key === '/') { e.preventDefault(); $('q').focus(); }
+        else if (e.key === 'Escape') { setSel(null); }
+        else if (e.key === '0') fitView();
+        else if (e.key === '+' || e.key === '=') $('zIn').click();
+        else if (e.key === '-') $('zOut').click();
+    });
+    window.addEventListener('resize', () => { if (state.graph) fitView(); });
+
+    // ---------- 테마 ----------
+    function syncThemeLabel() { $('themeLabel').textContent = document.documentElement.getAttribute('data-theme') === 'light' ? '다크' : '라이트'; }
+    $('btnTheme').addEventListener('click', () => {
+        const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        store.set(STORE.theme, next);
+        syncThemeLabel();
+    });
+
+    async function loadNames() {
+        try {
+            const res = await fetch(CODE_API, { headers: { Accept: 'application/json' } });
+            if (!res.ok) return;
+            const rows = await res.json();
+            (Array.isArray(rows) ? rows : []).forEach((r) => {
+                const code = r && r.code ? String(r.code).trim() : '';
+                if (code && r.codeName && !state.names.has(code)) state.names.set(code, String(r.codeName).trim());
+            });
+            if (state.data) render();
+        } catch (e) { /* 한글명 없이 진행 */ }
+    }
+
+    // ---------- 시작 ----------
+    function firstSpec() {
+        const list = [...state.specs.values()].filter((sp) => usersOf(sp).length).sort((a, b) => usersOf(b).length - usersOf(a).length);
+        return list.length ? list[0].code : null;
+    }
+    function renderTarget() {
+        const d = state.data;
+        $('target').innerHTML = !d ? '' : `<span>${esc(d.projectNo || d.project || '')}</span><span class="bar"></span><b>${esc(d.root.pid)}</b><span class="name">${esc(d.root.name || '')}</span><span>${verText(d.root.testVersion ? TEST_VERSION : d.root.runVersion)}</span>`;
+    }
+    function readHash() {
+        const p = new URLSearchParams(location.hash.slice(1));
+        return { mode: p.get('mode'), key: p.get('key') };
+    }
+    function load(want) {
+        const got = readFromOpener();
+        state.data = got.ok ? got.data : null;
+        renderTarget();
+        if (!state.data) {
+            $('empty').hidden = false;
+            $('emptyTitle').textContent = got.ok ? '실행 결과가 없습니다' : '시뮬레이터 화면을 찾을 수 없습니다';
+            $('emptyText').textContent = got.ok ? '시뮬레이터에서 PID 를 실행하면 흐름도를 그립니다.' : '이 창은 PID 시뮬레이터나 영업사양 영향도의 [흐름도] 버튼으로 열어야 합니다.';
+            return;
+        }
+        $('empty').hidden = true;
+        prepare(state.data);
+        $('notice').hidden = true;
+        const w = want || readHash();
+        if (w.mode === 'up' && state.specs.has(w.key)) startUp(w.key);
+        else startDown(w.mode === 'down' && state.info.has(w.key) ? w.key : (state.info.has(state.startPid) ? state.startPid : state.rootPid));
+        if (!state.startCode || !state.specs.has(state.startCode)) state.startCode = firstSpec();
+    }
+    window.syncFromOpener = () => load({ mode: state.mode, key: state.mode === 'up' ? state.startCode : state.startPid });
+    // 영업사양 영향도 화면에서 '흐름도로 보기' 를 다시 누르면 호출
+    window.focusOn = (mode, key) => { if (!state.data) { load({ mode, key }); return; } if (mode === 'up') startUp(key); else if (state.info.has(key)) startDown(key); };
+
+    $('btnReload').addEventListener('click', () => window.syncFromOpener());
+    $('btnEmptyReload').addEventListener('click', () => load());
+    document.querySelectorAll('[data-dir]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.dir === state.dir)));
+    $('btnFlow').setAttribute('aria-pressed', String(state.flow));
+    $('btnRunOnly').setAttribute('aria-pressed', String(state.runOnly));
+    syncThemeLabel();
+    load();
+    loadNames();
+</script>
+</body>
+</html>
