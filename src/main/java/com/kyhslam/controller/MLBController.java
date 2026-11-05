@@ -54,6 +54,20 @@ public class MLBController {
     }
 
 
+    /**
+     * [수량 PID 상세 검색 화면(searchLogicQtyPID.html) 전용] 수량 PID 조회 - 여러 PID(콤마 구분) OR 조회 + 시작 부품 상위 링크 포함
+     * searchPartQtyPidMulti 결과에 더해, BlockNo 로 찾은 시작 부품이 상위 조립품에 걸린 링크(상위→시작 부품)의 QTY/CMT 도 검사해 포함한다.
+     * (searchPartQtyPidMulti 는 searchPartQtyPid.html 화면에서도 쓰이므로 그대로 두고 별도로 만든 경로)
+     */
+    @Description("[수량 PID 상세 검색] 수량 PID 조회 - 여러 PID OR 조회 + 시작 부품 상위 링크 포함")
+    @PostMapping("/searchLogicQtyPidMulti")
+    @ResponseBody
+    public ArrayList<PartInfoDTO> searchLogicQtyPidMulti(String year, String yearCond, String blockNo, String qtyPid) {
+        if (blockNo == null || qtyPid == null) return new ArrayList<>();
+        return mlbService.findPIDasQTYMultiWithStartParent(year, yearCond, blockNo.toUpperCase().trim(), qtyPid);
+    }
+
+
     @Description("품번으로 속성정보 조회")
     @CrossOrigin
     @GetMapping("/findPartOneWithPartNo")

@@ -1611,6 +1611,190 @@ public class MLBCommonUtil {
 
 
 
+    /**
+     * [수량 PID 상세 검색 화면(searchLogicQtyPID.html) 전용] 부품하위 수량PID 조회 + 시작 부품의 상위 링크 포함 (여러 PID OR 조건)
+     *
+     * 기존 findDownLevelQtyPIDMulti 는 BlockNo 로 찾은 시작 부품(P)의 하위 BOM(P→자식)만 검사하므로,
+     * 시작 부품 자신이 상위 조립품(G)에 걸린 링크(G→P)의 QTY/CMT 는 검사되지 않는다.
+     * 이 함수는 아래 두 단계를 차례로 조회해 한 목록으로 합친다.
+     *   1) 시작 부품의 상위 링크(G→P) 중 QTY/CMT 가 수량 PID 로 시작하는 행  → 상위품번=G, 자재번호=P
+     *   2) 기존과 동일한 하위 BOM 전개(P→…→최하위) 중 QTY/CMT 가 수량 PID 로 시작하는 행
+     * 상위품번-자재번호 조합 중복은 두 단계를 통틀어 먼저 조회된 행만 유지한다.
+     * (기존 findDownLevelQtyPIDMulti 는 searchPartQtyPid.html 화면에서도 쓰이므로 수정하지 않고 별도로 만든 함수)
+     *
+     * @param year        기준년도(4자리)
+     * @param yearCond    AFTER(기준년도 포함 이후) / BEFORE(기준년도 이전)
+     * @param blockNo     BlockNo (입력값으로 시작하는 LIKE 조건)
+     * @param qtyPIDList  수량 PID 목록 (OR 조건, 각 PID 로 시작하는 LIKE 조건)
+     * @param dataDTOList 결과를 담을 목록
+     */
+    @Description("[수량 PID 상세 검색] 부품하위 수량PID 조회 + 시작 부품 상위 링크 포함 (여러 PID OR 조건)")
+    public static void findDownLevelQtyPIDMultiWithStartParent(String year, String yearCond, String blockNo, ArrayList<String> qtyPIDList, ArrayList<PartInfoDTO> dataDTOList) {
+
+        if (qtyPIDList == null || qtyPIDList.isEmpty()) return;
+        if (year == null || !year.matches("\\d{4}")) return;
+
+        // 년도 조건 : BEFORE → 해당년도 이전(미포함), 그 외 → 해당년도 이후(포함)
+        String dateOp = "BEFORE".equalsIgnoreCase(yearCond) ? "<" : ">=";
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        // 상위품번-자재번호 조합 중복 제거용 (1·2단계 통틀어 먼저 조회된 행만 유지)
+        HashSet<String> dupKeySet = new HashSet<>();
+
+        try {
+
+            con = PLMDBPool.getConnection();
+
+            // ── 1단계 : 시작 부품(P)이 하위로 걸린 상위 링크(G→P) ──
+            String parentSql = qtyStartPartCte(dateOp)
+                    + qtyPidSelectFrom()
+                    + "WHERE BOM.AS$END2 IN (SELECT * FROM OUID) "   // 하위(END2)가 시작 부품인 링크
+                    + "AND " + qtyPidCondition(qtyPIDList.size())
+                    + "ORDER BY NP.MD$NUMBER, PARENTNO ";
+
+            pstmt = con.prepareStatement(parentSql);
+            bindQtyPidParams(pstmt, blockNo, year, qtyPIDList);
+            rs = pstmt.executeQuery();
+            while (rs.next()) addQtyPidRow(rs, dupKeySet, dataDTOList);
+            rs.close();
+            pstmt.close();
+
+            // ── 2단계 : 시작 부품(P)부터 하위 BOM 전개 (기존 findDownLevelQtyPIDMulti 와 동일한 조회) ──
+            String downSql = qtyStartPartCte(dateOp)
+                    + qtyPidSelectFrom()
+                    + "WHERE " + qtyPidCondition(qtyPIDList.size())
+                    + """
+                    START WITH AS$END1 IN (SELECT * FROM OUID)  -- 부품OID(VF$OUID)
+                    CONNECT BY
+                       PRIOR AS$END2 = AS$END1
+                    ORDER SIBLINGS BY CAST(BOM.MD$SEQUENCE AS NUMBER DEFAULT 0 ON CONVERSION ERROR)
+                    """;
+
+            pstmt = con.prepareStatement(downSql);
+            bindQtyPidParams(pstmt, blockNo, year, qtyPIDList);
+            rs = pstmt.executeQuery();
+            while (rs.next()) addQtyPidRow(rs, dupKeySet, dataDTOList);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+    }
+
+
+    /**
+     * [findDownLevelQtyPIDMultiWithStartParent 보조] 시작 부품 선정 WITH 절
+     * 년도 조건 · BlockNo(LIKE, 입력값으로 시작) 로 찾은 내작 · 최신(WIP) 부품의 VF$OUID 목록 (OUID)
+     * 바인딩 순서 : 1) BlockNo%  2) 기준년도
+     */
+    private static String qtyStartPartCte(String dateOp) {
+        return """
+                  with ouid as
+            (select A.vf$ouid
+             from NORMALPART$vf A,
+                  NORMALPART$id B
+             where A.vf$identity = B.id$ouid
+               and A.vf$ouid = B.id$wip
+               AND SUBSTR(A.BLOCKNO_NUMBER, 2,1) IN ('1','2','3')
+                   AND A.PART_STATUS = '2466425004'
+                   AND A.ORIGIN_DIV = '2248978165' -- 내작
+                   AND A.BLOCKNO_NUMBER LIKE ?
+                   AND A.MD$CDATE DATE_OP ?
+             )
+               """.replace("DATE_OP", dateOp);
+    }
+
+
+    /**
+     * [findDownLevelQtyPIDMultiWithStartParent 보조] 수량 PID 조회 공통 SELECT/FROM 절
+     * BOM 링크 한 행 = 상위(END1) 정보 + 하위(END2) 자재 정보 + 링크의 QTY/CMT
+     */
+    private static String qtyPidSelectFrom() {
+        return """
+                SELECT
+                       (SELECT C.MD$NUMBER FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTNO
+                       , (SELECT C.MD$DESC FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTNAME
+                       , (SELECT C.SPEC FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTSPEC
+                       , (SELECT C.BLOCKNO_NUMBER FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTBLOCK
+                       , (SELECT C.PART_SIZE FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTSIZE
+                       ,  NP.MD$NUMBER AS PARTNO
+                       , BOM.QTY AS QTY
+                       , BOM.CMT AS CMT --공사주석
+                       , BLOCKNO_NUMBER AS BLOCKNO
+                       , NP.MD$DESC AS PARTNAME
+                       , NP.VF$VERSION AS VERSION
+                       , NP.PART_SIZE AS PART_SIZE
+                       , NP.SPEC AS SPEC
+                FROM
+                       PARTOFPART$AC BOM
+                       INNER JOIN NORMALPART$VF NP ON 	BOM.AS$END2 = NP.VF$OUID
+               """;
+    }
+
+
+    /**
+     * [findDownLevelQtyPIDMultiWithStartParent 보조] 수량 PID OR 조건절
+     * PID 개수만큼 (BOM.QTY LIKE ? OR BOM.CMT LIKE ?) 를 OR 로 연결 - 바인딩 변수 사용
+     */
+    private static String qtyPidCondition(int pidCount) {
+        StringBuilder where = new StringBuilder("( ");
+        for (int i = 0; i < pidCount; i++) {
+            if (i > 0) where.append(" OR ");
+            where.append("BOM.QTY LIKE ? OR BOM.CMT LIKE ?");
+        }
+        where.append(" ) ");
+        return where.toString();
+    }
+
+
+    /**
+     * [findDownLevelQtyPIDMultiWithStartParent 보조] 바인딩 변수 설정
+     * 순서 : BlockNo% → 기준년도 → (PID% QTY, PID% CMT) × PID 개수
+     */
+    private static void bindQtyPidParams(PreparedStatement pstmt, String blockNo, String year, ArrayList<String> qtyPIDList) throws java.sql.SQLException {
+        int idx = 1;
+        pstmt.setString(idx++, blockNo + "%");
+        pstmt.setString(idx++, year);
+        for (String pid : qtyPIDList) {
+            pstmt.setString(idx++, pid + "%"); // QTY
+            pstmt.setString(idx++, pid + "%"); // CMT
+        }
+    }
+
+
+    /**
+     * [findDownLevelQtyPIDMultiWithStartParent 보조] 조회 행 1건을 PartInfoDTO 로 변환해 목록에 추가
+     * 상위품번-자재번호 조합이 이미 추가되어 있으면 건너뛴다
+     */
+    private static void addQtyPidRow(ResultSet rs, HashSet<String> dupKeySet, ArrayList<PartInfoDTO> dataDTOList) throws java.sql.SQLException {
+        String dupKey = rs.getString("PARENTNO") + "|" + rs.getString("PARTNO");
+        if (!dupKeySet.add(dupKey)) return; // 이미 추가된 조합이면 skip
+
+        PartInfoDTO curDto =  new PartInfoDTO();
+        curDto.setPartNo(rs.getString("PARTNO"));
+        curDto.setPartName(rs.getString("PARTNAME"));
+        curDto.setBlockNo(rs.getString("BLOCKNO"));
+        curDto.setSpec(rs.getString("SPEC"));
+        curDto.setPartSize(rs.getString("PART_SIZE"));
+        curDto.setQty(rs.getString("QTY") == null ? "" : rs.getString("QTY"));
+        curDto.setCmt(rs.getString("CMT") == null ? "" : rs.getString("CMT")); // 공사주석
+        curDto.setVersion(rs.getString("VERSION"));
+
+        curDto.setParentPartNo(rs.getString("PARENTNO"));
+        curDto.setParentPartName(rs.getString("PARENTNAME"));
+        curDto.setParentSpec(rs.getString("PARENTSPEC"));
+        curDto.setParentSize(rs.getString("PARENTSIZE"));
+        curDto.setParentBlockNo(rs.getString("PARENTBLOCK"));
+
+        dataDTOList.add(curDto);
+    }
+
+
+
     //품번으로 하위 BOM 조회
     public static ArrayList<PartInfoDTO> findAssyDownBOM(String partNo) {
 

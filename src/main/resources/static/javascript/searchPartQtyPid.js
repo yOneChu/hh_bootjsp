@@ -408,3 +408,127 @@ function excelDataMulti() {
         hideLoading();
     }
 }
+
+
+// [수량 PID 상세 검색 화면(searchLogicQtyPID.html) 전용] 입력창에서 Enter 키 → filterDataLogicQty 검색
+function keyCodeCheckLogicQty(event) {
+    var e = event || window.event;
+    if (e && (e.key === 'Enter' || e.keyCode === 13)) {
+        filterDataLogicQty();
+    }
+}
+
+// [수량 PID 상세 검색 화면(searchLogicQtyPID.html) 전용] 검색 버튼 클릭 시 호출 - /mlb/searchLogicQtyPidMulti
+// filterDataMulti 와 같지만, BlockNo 로 찾은 시작 부품이 상위 조립품에 걸린 링크(상위→시작 부품)의 수량 PID 도 포함해 조회한다.
+// (filterDataMulti 는 searchPartQtyPid.html 화면에서도 쓰이므로 그대로 두고 별도로 만든 함수)
+function filterDataLogicQty() {
+    try {
+        var params = getQtyPidMultiParams();
+        if (!params) return;
+
+        // 기존 테이블 초기화
+        try { $('#infoTable').DataTable().destroy(); } catch (e) {}
+        $("#contentTable").empty();
+
+        showLoading();
+
+        $.ajax({
+            url: '/mlb/searchLogicQtyPidMulti',
+            method: 'POST',
+            data: params,
+            success: function (data) {
+                var rows = "";
+                if (data && data.length > 0) {
+                    for (var i = 0; i < data.length; i++) {
+                        var item = data[i] || {};
+                        rows += `
+                            <tr>
+                                <td>${item.parentPartNo || ''}</td>
+                                <td>${item.parentPartName || ''}</td>
+                                <td>${item.parentBlockNo || ''}</td>
+
+                                <td>${item.partNo || ''}</td>
+                                <td style="text-align: left">${item.partName || ''}</td>
+                                <td>${item.blockNo || ''}</td>
+                                <td style="text-align: left">${item.spec || ''}</td>
+                                <td>${item.qty || ''}</td>
+                                <td style="text-align: left">${item.cmt || ''}</td>
+                            </tr>
+                        `;
+                    }
+
+                    $("#contentTable").append(rows);
+
+                    $("#infoTable").DataTable({
+                        responsive: true,
+                        lengthChange: true,
+                        pageLength: 25,
+                        autoWidth: false,
+                        processing: true,
+                        destroy: true,
+                        buttons: ["excel", "copy"]
+                    }).buttons().container().appendTo('#infoTable_wrapper .col-md-6:eq(0)');
+                } else {
+                    alert('검색결과가 없습니다.');
+                }
+
+                hideLoading();
+            },
+            error: function (xhr, status, err) {
+                console.error('searchLogicQtyPidMulti error', status, err);
+                alert('조회 요청 중 오류가 발생했습니다. 다시 시도해주세요.');
+                hideLoading();
+            }
+        });
+
+    } catch (e) {
+        console.error('filterDataLogicQty exception', e);
+        hideLoading();
+    }
+}
+
+// [수량 PID 상세 검색 화면(searchLogicQtyPID.html) 전용] EXCEL Download 버튼 클릭 시 호출 - /excel/searchLogicQtyPidMulti
+// excelDataMulti 와 같지만, 시작 부품의 상위 링크(상위→시작 부품) 수량 PID 도 포함한 결과를 내려받는다.
+// (excelDataMulti 는 searchPartQtyPid.html 화면에서도 쓰이므로 그대로 두고 별도로 만든 함수)
+// (화면의 조회 결과는 지우지 않음)
+function excelDataLogicQty() {
+    try {
+        var params = getQtyPidMultiParams();
+        if (!params) return;
+
+        showLoading();
+
+        $.ajax({
+            url: '/excel/searchLogicQtyPidMulti',
+            type: 'POST',
+            data: params,
+            xhrFields: {
+                responseType: 'blob'
+            },
+            success: function (data, status, xhr) {
+                const disposition = xhr.getResponseHeader('Content-Disposition');
+                let filename = 'excel.xlsx';
+                if (disposition && disposition.indexOf('filename=') !== -1) {
+                    filename = disposition.split('filename=')[1].replace(/"/g, '');
+                }
+
+                const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = filename;
+                link.click();
+                window.URL.revokeObjectURL(link.href);
+
+                hideLoading();
+            },
+            error: function () {
+                hideLoading();
+                alert('오류 발생하였습니다. 김영환M 문의하세요.😅');
+            }
+        });
+
+    } catch (e) {
+        console.error('excelDataLogicQty exception', e);
+        hideLoading();
+    }
+}

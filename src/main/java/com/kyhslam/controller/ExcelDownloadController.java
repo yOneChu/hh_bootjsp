@@ -810,6 +810,101 @@ public class ExcelDownloadController {
     }
 
 
+    /**
+     * [수량 PID 상세 검색 화면(searchLogicQtyPID.html) 전용] 수량 PID 엑셀 다운로드 - 여러 PID(콤마 구분) OR 조회 + 시작 부품 상위 링크 포함
+     * 화면 조회(/mlb/searchLogicQtyPidMulti)와 같은 조건 · 같은 결과를 엑셀로 내려받는다.
+     * (searchQtyPidMulti 는 searchPartQtyPid.html 화면에서도 쓰이므로 그대로 두고 별도로 만든 경로)
+     */
+    @Description("[수량 PID 상세 검색] 수량 PID 엑셀 다운로드 - 여러 PID OR 조회 + 시작 부품 상위 링크 포함")
+    @PostMapping("/searchLogicQtyPidMulti")
+    public void searchLogicQtyPidMulti(HttpServletResponse response,
+                                       String year, String yearCond, String blockNo, String qtyPid) throws IOException {
+
+        if(year != null)    year = year.toUpperCase().trim();
+        if(blockNo != null) blockNo = blockNo.toUpperCase().trim();
+
+        ArrayList<String> qtyPIDList = MLBCommonUtil.parseQtyPIDList(qtyPid);
+
+        // 파일명 : 앞 3개 PID 까지 '_'로 연결, 그 이상이면 '_etc' 표시
+        StringBuilder pidName = new StringBuilder();
+        for (int i = 0; i < qtyPIDList.size() && i < 3; i++) {
+            if (i > 0) pidName.append("_");
+            pidName.append(qtyPIDList.get(i));
+        }
+        if (qtyPIDList.size() > 3) pidName.append("_etc");
+
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String fileName = pidName + "_" + timestamp + ".xlsx";
+
+        // 데이터 가져오기 (시작 부품 상위 링크 포함)
+        ArrayList<PartInfoDTO> dataList = new ArrayList<>();
+        MLBCommonUtil.findDownLevelQtyPIDMultiWithStartParent(year, yearCond, blockNo, qtyPIDList, dataList);
+
+        writeQtyPidExcel(response, fileName, dataList);
+    }
+
+
+    /**
+     * [searchLogicQtyPidMulti 보조] 수량 PID 조회 결과를 엑셀(xlsx, 스트리밍)로 응답에 쓴다
+     * 컬럼 : P_자재번호, P_자재명, P_BlockNo, P_SPEC, P_SIZE, 자재번호, 자재명, BlockNo, SPEC, QTY, CMT, SIZE
+     */
+    private void writeQtyPidExcel(HttpServletResponse response, String fileName, ArrayList<PartInfoDTO> dataList) throws IOException {
+
+        // HTTP 응답 헤더 설정
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+
+        // SXSSF 워크북 생성 (스트리밍)
+        SXSSFWorkbook workbook = new SXSSFWorkbook(100);
+        Sheet sheet = workbook.createSheet("Sheet1");
+
+        CellStyle headerStyle = ExcelUtil.getHeaderStyle(workbook);
+
+        // 헤더 작성
+        Row header = sheet.createRow(0);
+        String[] titles = { "P_자재번호", "P_자재명", "P_BlockNo", "P_SPEC", "P_SIZE",
+                "자재번호", "자재명", "BlockNo", "SPEC", "QTY", "CMT", "SIZE"
+        };
+        for (int i = 0; i < titles.length; i++) {
+            Cell cell = header.createCell(i);
+            cell.setCellValue(titles[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        sheet.setAutoFilter(new CellRangeAddress(0, 0, 0, titles.length - 1));
+
+        CellStyle bodyStyle = ExcelUtil.getBodyStyle(workbook);
+
+        for (int i = 0; i < dataList.size(); i++) {
+            PartInfoDTO dto = dataList.get(i);
+
+            Row row = sheet.createRow(i + 1);
+            row.createCell(0).setCellValue(dto.getParentPartNo());
+            row.createCell(1).setCellValue(dto.getParentPartName());
+            row.createCell(2).setCellValue(dto.getParentBlockNo());
+            row.createCell(3).setCellValue(dto.getParentSpec());
+            row.createCell(4).setCellValue(dto.getParentSize());
+
+            row.createCell(5).setCellValue(dto.getPartNo());
+            row.createCell(6).setCellValue(dto.getPartName());
+            row.createCell(7).setCellValue(dto.getBlockNo());
+            row.createCell(8).setCellValue(dto.getSpec());
+            row.createCell(9).setCellValue(dto.getQty());
+            row.createCell(10).setCellValue(dto.getCmt());
+            row.createCell(11).setCellValue(dto.getPartSize());
+
+            for (int m = 0; m < 12; m++) {
+                row.getCell(m).setCellStyle(bodyStyle);
+            }
+        }
+
+        workbook.write(response.getOutputStream());
+
+        workbook.dispose(); // 임시파일 삭제
+        workbook.close();
+    }
+
+
     //전산작업요청
     @Description("전산작업요청 엑셀 다운로드")
     @PostMapping("/searchDesignReqExcel")
