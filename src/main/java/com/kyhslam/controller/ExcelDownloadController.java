@@ -846,7 +846,7 @@ public class ExcelDownloadController {
 
     /**
      * [searchLogicQtyPidMulti 보조] 수량 PID 조회 결과를 엑셀(xlsx, 스트리밍)로 응답에 쓴다
-     * 컬럼 : P_자재번호, P_자재명, P_BlockNo, P_SPEC, P_SIZE, 자재번호, 자재명, BlockNo, SPEC, QTY, CMT, SIZE
+     * 컬럼 : 최상위품번, P_자재번호, P_자재명, P_BlockNo, P_SPEC, P_SIZE, 자재번호, 자재명, BlockNo, SPEC, QTY, CMT, SIZE
      */
     private void writeQtyPidExcel(HttpServletResponse response, String fileName, ArrayList<PartInfoDTO> dataList) throws IOException {
 
@@ -862,7 +862,7 @@ public class ExcelDownloadController {
 
         // 헤더 작성
         Row header = sheet.createRow(0);
-        String[] titles = { "P_자재번호", "P_자재명", "P_BlockNo", "P_SPEC", "P_SIZE",
+        String[] titles = { "최상위품번", "P_자재번호", "P_자재명", "P_BlockNo", "P_SPEC", "P_SIZE",
                 "자재번호", "자재명", "BlockNo", "SPEC", "QTY", "CMT", "SIZE"
         };
         for (int i = 0; i < titles.length; i++) {
@@ -879,21 +879,23 @@ public class ExcelDownloadController {
             PartInfoDTO dto = dataList.get(i);
 
             Row row = sheet.createRow(i + 1);
-            row.createCell(0).setCellValue(dto.getParentPartNo());
-            row.createCell(1).setCellValue(dto.getParentPartName());
-            row.createCell(2).setCellValue(dto.getParentBlockNo());
-            row.createCell(3).setCellValue(dto.getParentSpec());
-            row.createCell(4).setCellValue(dto.getParentSize());
+            row.createCell(0).setCellValue(dto.getTopPartNo());
 
-            row.createCell(5).setCellValue(dto.getPartNo());
-            row.createCell(6).setCellValue(dto.getPartName());
-            row.createCell(7).setCellValue(dto.getBlockNo());
-            row.createCell(8).setCellValue(dto.getSpec());
-            row.createCell(9).setCellValue(dto.getQty());
-            row.createCell(10).setCellValue(dto.getCmt());
-            row.createCell(11).setCellValue(dto.getPartSize());
+            row.createCell(1).setCellValue(dto.getParentPartNo());
+            row.createCell(2).setCellValue(dto.getParentPartName());
+            row.createCell(3).setCellValue(dto.getParentBlockNo());
+            row.createCell(4).setCellValue(dto.getParentSpec());
+            row.createCell(5).setCellValue(dto.getParentSize());
 
-            for (int m = 0; m < 12; m++) {
+            row.createCell(6).setCellValue(dto.getPartNo());
+            row.createCell(7).setCellValue(dto.getPartName());
+            row.createCell(8).setCellValue(dto.getBlockNo());
+            row.createCell(9).setCellValue(dto.getSpec());
+            row.createCell(10).setCellValue(dto.getQty());
+            row.createCell(11).setCellValue(dto.getCmt());
+            row.createCell(12).setCellValue(dto.getPartSize());
+
+            for (int m = 0; m < titles.length; m++) {
                 row.getCell(m).setCellStyle(bodyStyle);
             }
         }

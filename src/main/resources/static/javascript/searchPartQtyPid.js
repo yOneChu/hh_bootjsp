@@ -443,6 +443,7 @@ function filterDataLogicQty() {
                         var item = data[i] || {};
                         rows += `
                             <tr>
+                                <td>${item.topPartNo || ''}</td>
                                 <td>${item.parentPartNo || ''}</td>
                                 <td>${item.parentPartName || ''}</td>
                                 <td>${item.parentBlockNo || ''}</td>

@@ -1,5 +1,6 @@
 package com.kyhslam.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -8,6 +9,10 @@ import lombok.Setter;
 public class PartInfoDTO {
 
     private String level;
+
+    // [수량 PID 상세 검색] 이 행이 나온 시작 부품(BlockNo 로 찾은 부품)의 품번. 다른 조회의 JSON 응답에는 나오지 않도록 값이 있을 때만 내려준다
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String topPartNo;
 
     private String parentLevel;
     private String parentOid;

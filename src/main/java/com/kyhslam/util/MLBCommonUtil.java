@@ -1619,7 +1619,9 @@ public class MLBCommonUtil {
      * 이 함수는 아래 두 단계를 차례로 조회해 한 목록으로 합친다.
      *   1) 시작 부품의 상위 링크(G→P) 중 QTY/CMT 가 수량 PID 로 시작하는 행  → 상위품번=G, 자재번호=P
      *   2) 기존과 동일한 하위 BOM 전개(P→…→최하위) 중 QTY/CMT 가 수량 PID 로 시작하는 행
-     * 상위품번-자재번호 조합 중복은 두 단계를 통틀어 먼저 조회된 행만 유지한다.
+     * 각 행에는 그 행이 나온 시작 부품의 품번을 최상위품번(topPartNo)으로 담는다.
+     *   1단계 행 → 시작 부품 P 자신 / 2단계 행 → 전개를 시작한 부품(CONNECT_BY_ROOT)
+     * 최상위품번-상위품번-자재번호 조합 중복은 두 단계를 통틀어 먼저 조회된 행만 유지한다.
      * (기존 findDownLevelQtyPIDMulti 는 searchPartQtyPid.html 화면에서도 쓰이므로 수정하지 않고 별도로 만든 함수)
      *
      * @param year        기준년도(4자리)
@@ -1641,7 +1643,7 @@ public class MLBCommonUtil {
         PreparedStatement pstmt = null;
         ResultSet rs 			= null;
 
-        // 상위품번-자재번호 조합 중복 제거용 (1·2단계 통틀어 먼저 조회된 행만 유지)
+        // 최상위품번-상위품번-자재번호 조합 중복 제거용 (1·2단계 통틀어 먼저 조회된 행만 유지)
         HashSet<String> dupKeySet = new HashSet<>();
 
         try {
@@ -1650,7 +1652,7 @@ public class MLBCommonUtil {
 
             // ── 1단계 : 시작 부품(P)이 하위로 걸린 상위 링크(G→P) ──
             String parentSql = qtyStartPartCte(dateOp)
-                    + qtyPidSelectFrom()
+                    + qtyPidSelectFrom("NP.MD$NUMBER", "")   // 하위 자재 자신이 시작 부품
                     + "WHERE BOM.AS$END2 IN (SELECT * FROM OUID) "   // 하위(END2)가 시작 부품인 링크
                     + "AND " + qtyPidCondition(qtyPIDList.size())
                     + "ORDER BY NP.MD$NUMBER, PARENTNO ";
@@ -1664,7 +1666,8 @@ public class MLBCommonUtil {
 
             // ── 2단계 : 시작 부품(P)부터 하위 BOM 전개 (기존 findDownLevelQtyPIDMulti 와 동일한 조회) ──
             String downSql = qtyStartPartCte(dateOp)
-                    + qtyPidSelectFrom()
+                    + qtyPidSelectFrom("CONNECT_BY_ROOT TOP_P.MD$NUMBER",   // 전개를 시작한 부품의 품번
+                            "INNER JOIN NORMALPART$VF TOP_P ON BOM.AS$END1 = TOP_P.VF$OUID")
                     + "WHERE " + qtyPidCondition(qtyPIDList.size())
                     + """
                     START WITH AS$END1 IN (SELECT * FROM OUID)  -- 부품OID(VF$OUID)
@@ -1711,12 +1714,16 @@ public class MLBCommonUtil {
 
     /**
      * [findDownLevelQtyPIDMultiWithStartParent 보조] 수량 PID 조회 공통 SELECT/FROM 절
-     * BOM 링크 한 행 = 상위(END1) 정보 + 하위(END2) 자재 정보 + 링크의 QTY/CMT
+     * BOM 링크 한 행 = 최상위품번 + 상위(END1) 정보 + 하위(END2) 자재 정보 + 링크의 QTY/CMT
+     *
+     * @param topNoExpr 최상위품번(TOPNO)을 구하는 SQL 식
+     * @param topJoin   topNoExpr 에 필요한 추가 JOIN 절 (없으면 빈 문자열)
      */
-    private static String qtyPidSelectFrom() {
+    private static String qtyPidSelectFrom(String topNoExpr, String topJoin) {
         return """
                 SELECT
-                       (SELECT C.MD$NUMBER FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTNO
+                       TOP_NO_EXPR AS TOPNO
+                       , (SELECT C.MD$NUMBER FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTNO
                        , (SELECT C.MD$DESC FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTNAME
                        , (SELECT C.SPEC FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTSPEC
                        , (SELECT C.BLOCKNO_NUMBER FROM NORMALPART$vf C WHERE C.VF$OUID = AS$END1) AS PARENTBLOCK
@@ -1724,7 +1731,7 @@ public class MLBCommonUtil {
                        ,  NP.MD$NUMBER AS PARTNO
                        , BOM.QTY AS QTY
                        , BOM.CMT AS CMT --공사주석
-                       , BLOCKNO_NUMBER AS BLOCKNO
+                       , NP.BLOCKNO_NUMBER AS BLOCKNO
                        , NP.MD$DESC AS PARTNAME
                        , NP.VF$VERSION AS VERSION
                        , NP.PART_SIZE AS PART_SIZE
@@ -1732,7 +1739,8 @@ public class MLBCommonUtil {
                 FROM
                        PARTOFPART$AC BOM
                        INNER JOIN NORMALPART$VF NP ON 	BOM.AS$END2 = NP.VF$OUID
-               """;
+                       TOP_JOIN
+               """.replace("TOP_NO_EXPR", topNoExpr).replace("TOP_JOIN", topJoin);
     }
 
 
@@ -1768,13 +1776,14 @@ public class MLBCommonUtil {
 
     /**
      * [findDownLevelQtyPIDMultiWithStartParent 보조] 조회 행 1건을 PartInfoDTO 로 변환해 목록에 추가
-     * 상위품번-자재번호 조합이 이미 추가되어 있으면 건너뛴다
+     * 최상위품번-상위품번-자재번호 조합이 이미 추가되어 있으면 건너뛴다
      */
     private static void addQtyPidRow(ResultSet rs, HashSet<String> dupKeySet, ArrayList<PartInfoDTO> dataDTOList) throws java.sql.SQLException {
-        String dupKey = rs.getString("PARENTNO") + "|" + rs.getString("PARTNO");
+        String dupKey = rs.getString("TOPNO") + "|" + rs.getString("PARENTNO") + "|" + rs.getString("PARTNO");
         if (!dupKeySet.add(dupKey)) return; // 이미 추가된 조합이면 skip
 
         PartInfoDTO curDto =  new PartInfoDTO();
+        curDto.setTopPartNo(rs.getString("TOPNO"));
         curDto.setPartNo(rs.getString("PARTNO"));
         curDto.setPartName(rs.getString("PARTNAME"));
         curDto.setBlockNo(rs.getString("BLOCKNO"));
