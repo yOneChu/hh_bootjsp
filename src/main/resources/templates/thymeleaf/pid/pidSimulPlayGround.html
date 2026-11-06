@@ -6,8 +6,8 @@
     <title>PID 플레이그라운드</title>
 
     <script>
-        // 페이지 렌더 전 사이드바 상태 적용 (깜빡임 방지)
-        if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+        // 이 화면은 항상 사이드바를 접은 상태로 시작 (진입 시 하단 '사이드바 미리보기'가 잠깐 열었다 닫음)
+        document.documentElement.classList.add('sb-collapsed');
     </script>
 
     <!-- 사이드바(fragments/newSideBar.html) 마크업용 Tailwind : 이 화면 스타일과 섞이지 않도록 #sidebar 안에만 적용 -->
@@ -122,6 +122,10 @@
         /* ===== 사이드바 (fragments/newSideBar.html) : 본문은 #appContent 가 body 대신 세로 배치 ===== */
         #appContent { flex: 1; min-height: 0; display: flex; flex-direction: column; }
         #sidebar { font-family: 'Pretendard Variable', var(--sans); color: #1D1D1F; }
+        /* 진입 시 미리보기 : 본문을 밀지 않고 위에 겹쳐서 표시 */
+        @media (min-width: 768px) {
+            html.sb-collapsed.sb-peek #sidebar { transform: translateX(0); box-shadow: 8px 0 32px rgba(15,23,42,.18); }
+        }
         header #sbToggle { width: 30px; min-height: 30px; padding: 0; margin-left: -6px; background: transparent; border-color: transparent; }
         header #sbToggle:hover { background: #334155; }
 
@@ -1947,6 +1951,32 @@
     /* ── 사이드바 현재 메뉴 활성화 ── */
     document.querySelectorAll('#sidebar .sb-link').forEach(function (a) { a.classList.remove('active'); });
     document.querySelector('#sidebar a[href="/simulplay/pidSimulPlayGround"]')?.classList.add('active');
+
+    /* ── 사이드바 미리보기 : 진입 시 메뉴를 잠깐 보여주고 닫음 (데스크톱 전용) ── */
+    (function () {
+        if (window.innerWidth < 768) return;
+        const PEEK_START_MS = 150;   // 첫 렌더 후 열기까지 대기
+        const PEEK_HOLD_MS = 1500;   // 열린 뒤 닫기까지 (슬라이드 0.28초 포함)
+        const html = document.documentElement;
+        const sidebar = document.getElementById('sidebar');
+        let closeTimer;
+        function closePeek() { clearTimeout(closeTimer); html.classList.remove('sb-peek'); }
+
+        // 메뉴를 고르는 중에는 닫지 않음
+        sidebar.addEventListener('mouseenter', function () { clearTimeout(closeTimer); });
+        sidebar.addEventListener('mouseleave', function () { closeTimer = setTimeout(closePeek, 300); });
+        // 미리보기 중 토글 버튼은 '닫기'로 동작 (사이드바 기본 토글로 넘기지 않음)
+        document.addEventListener('click', function (e) {
+            if (!html.classList.contains('sb-peek') || !e.target.closest('#sbToggle')) return;
+            e.stopPropagation();
+            closePeek();
+        }, true);
+
+        setTimeout(function () {
+            html.classList.add('sb-peek');
+            closeTimer = setTimeout(closePeek, PEEK_HOLD_MS);
+        }, PEEK_START_MS);
+    })();
 </script>
 </body>
 </html>

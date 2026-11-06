@@ -42,7 +42,6 @@ public class PLMDBConnection {
         return con;
     }
 
-
     public static void disconnect(Connection con, PreparedStatement pstmt, ResultSet rs) {
 
         try {
