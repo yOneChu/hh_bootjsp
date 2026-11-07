@@ -27,8 +27,10 @@ import java.util.regex.Pattern;
  * 이후 단계 호출은 모두 그 세션으로 수행한다. (비밀번호는 저장하지 않는다)
  *
  *   GET  /cop/bom                 : 화면
+ *   GET  /cop/bom/oneCycle?hogi=  : 호기별 원사이클 실행 팝업 (관리대상 호기 화면에서 연다)
  *   POST /cop/bom/login           : { userid, pwd }                -> PLM 로그인
- *   POST /cop/bom/logout          :                                -> PLM 세션 폐기
+ *   POST /cop/bom/autoLogin       :                                -> 설정(plm.user-id / plm.password) 계정으로 PLM 로그인
+ *   POST /cop/bom/logout         :                                -> PLM 세션 폐기
  *   GET  /cop/bom/me              :                                -> 로그인 상태
  *   POST /cop/bom/resolve         : { productNo }                  -> 호기번호 -> 영업사양 ouid
  *   POST /cop/bom/wip             : { ouid }                       -> WIP 생성
@@ -36,7 +38,7 @@ import java.util.regex.Pattern;
  *   POST /cop/bom/attr            : { ouid, attrs: {코드: 값} }    -> 속성값 변경 + 변경 후 값
  *   POST /cop/bom/attrValues      : { ouid, codes: [코드] }        -> 현재 속성값 조회
  *   POST /cop/bom/jongsoksung     : { ouid }                       -> 종속사양 산출
- *   POST /cop/bom/bom             : { ouid, c, m, f }              -> BOM 계산
+ *   POST /cop/bom/bom             : { ouid, c, m, f, 1, 2, 3 }     -> BOM 계산 + 호기 BOM 저장(PLM_SIMUL_HOGIBOM) + 배치 날짜 갱신(PLM_SIMUL_HOGI)
  *
  * 응답 공통 : { success, message, elapsedMillis, ... }
  * PLM 로그인이 안 되어 있으면 401 + { success:false, needLogin:true }
@@ -63,6 +65,11 @@ public class BomManageController {
         return "thymeleaf/cop/bomManage";
     }
 
+    @GetMapping("/oneCycle")
+    public String oneCycle() {
+        return "thymeleaf/cop/bomOneCycle";
+    }
+
     @PostMapping("/login")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> req, HttpSession httpSession) {
@@ -75,12 +82,27 @@ public class BomManageController {
 
         long start = System.currentTimeMillis();
         OneCycleFunc.PlmSession plmSession = oneCycleFunc.login(userid, pwd);
+        return loginResult(plmSession, userid, "PLM 로그인에 실패했습니다. 사번/비밀번호를 확인하세요.", start, httpSession);
+    }
+
+    /** 원사이클 팝업용 : 화면에서 비밀번호를 받지 않고 서버 설정의 계정으로 로그인한다. */
+    @PostMapping("/autoLogin")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> autoLogin(HttpSession httpSession) {
+        long start = System.currentTimeMillis();
+        OneCycleFunc.PlmSession plmSession = oneCycleFunc.login();
+        return loginResult(plmSession, oneCycleFunc.getPlmUserId(),
+                "PLM 자동 로그인에 실패했습니다. 서버의 plm.user-id / plm.password 설정을 확인하세요.", start, httpSession);
+    }
+
+    private ResponseEntity<Map<String, Object>> loginResult(OneCycleFunc.PlmSession plmSession, String userid,
+                                                            String failMessage, long start, HttpSession httpSession) {
         long elapsed = System.currentTimeMillis() - start;
 
         if (plmSession == null) {
             httpSession.removeAttribute(SESSION_KEY);
             httpSession.removeAttribute(USER_KEY);
-            return ResponseEntity.ok(body(false, "PLM 로그인에 실패했습니다. 사번/비밀번호를 확인하세요.", elapsed));
+            return ResponseEntity.ok(body(false, failMessage, elapsed));
         }
 
         httpSession.setAttribute(SESSION_KEY, plmSession);
@@ -196,7 +218,9 @@ public class BomManageController {
             Map<String, String> current = oneCycleFunc.getAttrValues(session, ouid, attrs.keySet());
             boolean verified = true;
             for (Map.Entry<String, Object> e : attrs.entrySet()) {
-                if (!String.valueOf(e.getValue()).equals(current.get(e.getKey()))) verified = false;
+                // 빈 값(공백)으로 보낸 항목은 PLM 이 null 로 돌려줄 수 있으므로 null 을 "" 로 보고 비교한다.
+                String now = current.get(e.getKey());
+                if (!String.valueOf(e.getValue()).equals(now == null ? "" : now)) verified = false;
             }
 
             res.put("success", true);
@@ -244,17 +268,28 @@ public class BomManageController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> bom(@RequestBody Map<String, Object> req, HttpSession httpSession) {
 
-        String bc = flag(req.get("c")) ? OneCycleFunc.BOM_C : null;
-        String bm = flag(req.get("m")) ? OneCycleFunc.BOM_M : null;
-        String bf = flag(req.get("f")) ? OneCycleFunc.BOM_F : null;
-        if (bc == null && bm == null && bf == null) {
+        List<String> parts = new ArrayList<>();
+        for (String part : List.of(OneCycleFunc.BOM_C, OneCycleFunc.BOM_M, OneCycleFunc.BOM_F,
+                OneCycleFunc.BOM_1, OneCycleFunc.BOM_2, OneCycleFunc.BOM_3)) {
+            if (flag(req.get(part))) {
+                parts.add(part);
+            }
+        }
+        if (parts.isEmpty()) {
             return ResponseEntity.badRequest().body(body(false, "전개 옵션을 하나 이상 선택하세요.", 0));
         }
 
         return run(req, httpSession, (session, ouid, res) -> {
-            String message = oneCycleFunc.bomCalStart(session, ouid, bc, bm, bf);
+            String message = oneCycleFunc.bomCalStart(session, ouid, parts.toArray(String[]::new));
             res.put("success", message != null);
             res.put("message", message != null ? message : "BOM 계산 응답을 확인하지 못했습니다.");
+
+            // 호기 BOM 저장 + 배치 날짜 갱신 (결과는 BOM 계산 성공 여부에 영향을 주지 않는다)
+            if (message != null) {
+                String productNo = OneCycleFunc.findProductNo(ouid);
+                res.put("bomSaveMessage", oneCycleFunc.saveHogiBom(productNo));
+                oneCycleFunc.updateHogiBatchDate(productNo);
+            }
         });
     }
 

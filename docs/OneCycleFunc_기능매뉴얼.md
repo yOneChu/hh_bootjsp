@@ -11,7 +11,7 @@ PLM(DynaPLM) 화면에서 사람이 하나씩 누르던 작업을 HTTP 요청으
 | WIP 생성 | `makeWip()` |
 | 속성값 변경 | `changeAttr()` / `changeDesigner()` |
 | 종속사양 산출 | `executeJongsoksung()` |
-| BOM 계산 (구성/자재/사양 전개) | `bomCalStart()` |
+| BOM 계산 (구성/자재/사양 전개, 전기 파트 1/2/3) | `bomCalStart()` |
 | 동일정보 만들기 (TEST 호기 생성) | `makeEqualInfo()` |
 
 위 작업을 순서대로 한 번에 묶어 실행하는 **사이클 함수**도 제공합니다.
@@ -106,13 +106,14 @@ OneCycleResult runOneCycle(String productNo, Map<String, ?> attrs, String userid
 **처리 순서**
 
 ```
-호기번호 → ouid 조회 → 로그인 → WIP 생성 → [속성값 변경] → 종속사양 산출 → BOM 계산
+호기번호 → ouid 조회 → 로그인 → WIP 생성 → [속성값 변경] → 종속사양 산출 → BOM 계산 → 호기 BOM 저장
 ```
 
 - `attrs` 를 넘기지 않거나 비어 있으면 **속성값 변경 단계는 건너뜁니다.**
 - WIP 생성이 실패해도(이미 WIP 인 경우 등) 다음 단계를 계속 진행합니다.
 - 속성값 변경 실패 / 종속사양 산출 응답 없음이면 그 자리에서 중단합니다.
 - BOM 계산까지 응답을 받으면 `success = true`.
+- BOM 계산 응답을 받으면 호기의 1레벨 BOM 을 `PLM_SIMUL_HOGIBOM` 에 저장합니다. 저장 결과는 `bomSaveMessage` 에만 담기며 `success` / `message` 에는 영향을 주지 않습니다. 같은 호기를 다시 돌리면 그 호기의 기존 BOM 을 지우고 다시 저장합니다. 저장에 실패하거나 조회된 BOM 이 없으면 기존 BOM 은 그대로 유지됩니다.
 
 ### 3.2 동일정보 원사이클 — `runEqualInfoCycle`
 
@@ -127,7 +128,7 @@ OneCycleResult runEqualInfoCycle(String sourceNo, Map<String, ?> attrs, String u
 
 ```
 원본 호기번호 → ouid 조회 → 로그인 → 원본 WIP 생성 → 동일정보 생성(신규 호기)
-            → [신규 호기 속성값 변경] → 신규 호기 종속사양 산출 → 신규 호기 BOM 계산
+            → [신규 호기 속성값 변경] → 신규 호기 종속사양 산출 → 신규 호기 BOM 계산 → 신규 호기 BOM 저장
 ```
 
 - 결과의 `productNo` / `objectOuid` 는 **새로 만들어진 호기**, `sourceProductNo` 는 **원본 호기**입니다.
@@ -232,21 +233,22 @@ String executeJongsoksung(PlmSession session, String vfOuid)
 ### 4.6 BOM 계산 — `bomCalStart`
 
 ```java
-String bomCalStart(PlmSession session, String vfOuid)                                  // c, m, f 모두
-String bomCalStart(PlmSession session, String vfOuid, String bc, String bm, String bf) // 원하는 전개만
+String bomCalStart(PlmSession session, String vfOuid)                  // c, m, f, 1, 2, 3 모두
+String bomCalStart(PlmSession session, String vfOuid, String... parts) // 원하는 항목만
 ```
 
 | 항목 | 내용 |
 |---|---|
 | 요청 | `POST /SubaeManager.do` (`cmd=bomCalStart`) |
-| 전개 옵션 | `BOM_C`(`c`) 구성전개 / `BOM_M`(`m`) 자재전개 / `BOM_F`(`f`) 사양전개. 안 쓰는 항목은 `null` |
-| 반환 | 응답 json 의 `message`. 끝내 실패하면 `null` |
-| 재시도 | 최대 3회 (3초 간격) |
+| 전개 옵션 | `BOM_C`(`c`) 구성전개 / `BOM_M`(`m`) 자재전개 / `BOM_F`(`f`) 사양전개 / `BOM_1`, `BOM_2`, `BOM_3`(`1`, `2`, `3`) 전기 파트. `null` 은 건너뜀 |
+| 반환 | HTTP 200 이면 `BOM 계산 완료` (응답 본문은 확인하지 않음). 그 외(시간 초과, 연결 오류, 200 이 아닌 응답 등)에는 `null` |
+| 재시도 | 없음 (계산이 겹치지 않도록 1회만 요청) |
+| 응답 대기 | 10분 |
 | 비고 | `vfOuid` 는 `ac45dd18` 처럼 ouid 만 넘겨도 되고, 내부에서 소문자 `elv_info$vf@...` 형태로 맞춤 |
 
 ```java
 // 자재전개만 수행
-oneCycleFunc.bomCalStart(session, vfOuid, null, OneCycleFunc.BOM_M, null);
+oneCycleFunc.bomCalStart(session, vfOuid, OneCycleFunc.BOM_M);
 ```
 
 ### 4.7 동일정보 생성 — `makeEqualInfo`
@@ -311,6 +313,7 @@ String registObject(PlmSession session, Map<String, String> data)
 | `attrCurrent` | 속성값 변경 후 다시 읽은 값 |
 | `jongsoksungMessage` | 종속사양 산출 결과 |
 | `bomMessage` | BOM 계산 결과 |
+| `bomSaveMessage` | 호기 BOM 저장(`PLM_SIMUL_HOGIBOM`) 결과 (BOM 계산 응답을 받지 못하면 null) |
 
 ### EqualInfoResult — `runEqualInfo`
 
@@ -409,16 +412,17 @@ oneCycleFunc.bomCalStart(session, vfOuid);
 
 | 함수 | 재시도 |
 |---|---|
-| `changeAttr`, `executeJongsoksung`, `bomCalStart`, `getObjectInfo` | 최대 3회, 3초 간격 |
+| `changeAttr`, `executeJongsoksung`, `getObjectInfo` | 최대 3회, 3초 간격 |
 | 동일정보 생성 후 신규 호기번호 조회 | 최대 3회, 3초 간격 (채번이 늦게 보일 수 있음) |
-| `makeWip`, `registObject`, `login` | 재시도 없음 |
+| `makeWip`, `registObject`, `login`, `bomCalStart` | 재시도 없음 |
 
 ### 타임아웃
 
 | 항목 | 값 |
 |---|---|
 | 연결 타임아웃 | 10초 |
-| 응답 대기 타임아웃 | 120초 (BOM 계산이 오래 걸림) |
+| 응답 대기 타임아웃 | 120초 |
+| BOM 계산 응답 대기 타임아웃 | 10분 (BOM 계산이 오래 걸림) |
 
 ### 자주 보는 메시지
 
@@ -432,7 +436,7 @@ oneCycleFunc.bomCalStart(session, vfOuid);
 
 ### 로그
 
-각 단계는 콘솔에 `[WIP 생성]`, `[속성정보 변경 1회차]`, `[종속사양 산출 1회차]`, `[BOM 계산 1회차]` 처럼 단계명과 결과를 출력하고, 실패 시 `###` 로 시작하는 줄을 출력합니다.
+각 단계는 콘솔에 `[WIP 생성]`, `[속성정보 변경 1회차]`, `[종속사양 산출 1회차]`, `[BOM 계산]` 처럼 단계명과 결과를 출력하고, 실패 시 `###` 로 시작하는 줄을 출력합니다.
 
 ---
 
@@ -449,7 +453,7 @@ oneCycleFunc.bomCalStart(session, vfOuid);
 | 단계 | `changeAttr(session, vfOuid, attrs)` | **속성값 변경** |
 | 단계 | `changeDesigner(session, vfOuid, designer)` | 담당 설계자 변경 |
 | 단계 | `executeJongsoksung(session, vfOuid)` | **종속사양 산출** |
-| 단계 | `bomCalStart(session, vfOuid[, bc, bm, bf])` | **BOM 계산** |
+| 단계 | `bomCalStart(session, vfOuid[, parts...])` | **BOM 계산** |
 | 단계 | `makeEqualInfo(session, vfOuid)` | **동일정보 생성** → 신규 ouid |
 | 단계 | `registObject(session, data)` | 공사정보 신규 등록 |
 | 조회 | `toObjectOuid(productNo)` | 호기번호 → WIP ouid (static) |

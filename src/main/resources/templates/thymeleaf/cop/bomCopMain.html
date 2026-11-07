@@ -392,6 +392,7 @@
             <a href="#types">이상 유형</a>
             <a href="#shaft">처리 흐름</a>
             <a href="#doors">기능</a>
+            <a href="/cop/hogi">호기 관리</a>
         </nav>
         <a class="nav-cta" href="/cop/bom">
             원사이클 실행
@@ -630,7 +631,10 @@
           icon: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>' },
         { floor: "1F", name: "감지 규칙 관리",      sub: "RULES",        href: "/cop/rules",   ready: true,
           desc: "수량 허용 범위, 필수 하위 자재 같은 판정 기준을 직접 정하고 조정합니다.",
-          icon: '<path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>' }
+          icon: '<path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>' },
+        { floor: "B1", name: "관리대상 호기",       sub: "UNITS",        href: "/cop/hogi",    ready: true,
+          desc: "BOM 이상감지를 수행할 호기를 조회하고, 등록 · 수정 · 삭제합니다.",
+          icon: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 3v18M8 8h0M16 8h0"/>' }
     ];
 
     /* 승강로 층 (아래 → 위) — BomManageController 의 실제 단계와 같음 */
@@ -652,7 +656,7 @@
           text: "바뀐 값에 따라 종속된 사양을 PLM 이 다시 계산합니다. 사람이 하나하나 고치던 부분입니다." },
         { no: "5F", name: "BOM 계산",      api: "POST /cop/bom/bom",
           title: "BOM 이 새로 만들어집니다.",
-          text: "구성 · 자재 · 사양 전개로 최종 BOM 을 계산합니다. 여기까지가 지금 자동으로 실행되는 부분입니다." },
+          text: "구성 · 자재 · 사양 전개와 전기 파트로 최종 BOM 을 계산합니다. 여기까지가 지금 자동으로 실행되는 부분입니다." },
         { no: "6F", name: "이상감지",      api: "SENTINEL · 판정", top: true,
           title: "그리고, 이상을 판정합니다.",
           text: "계산된 BOM 을 같은 사양의 다른 호기들과 대조해 수량 급증 · 자재 누락 · 사양 불일치 · 중복 수배를 찾아냅니다." }

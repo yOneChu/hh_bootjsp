@@ -331,7 +331,7 @@
         }
         .bm-node[data-status="fail"] .bm-node-msg { color: var(--danger); }
         /* BOM 단계 안의 전개 옵션 */
-        .bm-node-opts { margin-top: 10px; display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+        .bm-node-opts { margin-top: 10px; display: grid; grid-template-columns: repeat(3, auto); gap: 4px; justify-content: center; }
         .bm-node-opts .bm-opt span { flex-direction: row; gap: 4px; padding: 5px 9px; border-radius: 8px; }
         .bm-node-opts .bm-opt b { font-size: 12px; font-weight: 700; }
         .bm-node-opts .bm-opt small { font-size: 11px; }
@@ -728,7 +728,7 @@
                     </span>
                     <div>
                         <h3 id="attrTitle">변경할 속성값</h3>
-                        <p>특성코드와 값을 입력합니다. 비워두면 속성값 변경은 건너뜁니다.</p>
+                        <p>특성코드와 값을 입력합니다. 값을 비우면 공백으로 변경되고, 특성코드가 없으면 속성값 변경은 건너뜁니다.</p>
                     </div>
                 </div>
                 <div class="bm-card-body">
@@ -865,7 +865,15 @@
         { key: "equal", name: "동일정보 만들기", desc: "사양을 그대로 복사해 TEST 호기를 생성합니다",    url: "/equal",       on: false },
         { key: "attr",  name: "속성값 변경",     desc: "입력한 특성값을 한 번에 변경합니다",            url: "/attr",        on: true  },
         { key: "jong",  name: "종속사양 산출",   desc: "변경된 사양으로 종속사양을 다시 계산합니다",    url: "/jongsoksung", on: true  },
-        { key: "bom",   name: "BOM 계산",        desc: "구성·자재·사양 전개로 BOM 을 계산합니다",       url: "/bom",         on: true  }
+        { key: "bom",   name: "BOM 계산",        desc: "구성·자재·사양 전개와 전기 파트로 BOM 을 계산합니다", url: "/bom",   on: true  }
+    ];
+    var BOM_OPTS = [
+        { id: "optC", key: "c", name: "구성" },
+        { id: "optM", key: "m", name: "자재" },
+        { id: "optF", key: "f", name: "사양" },
+        { id: "opt1", key: "1", name: "전기" },
+        { id: "opt2", key: "2", name: "전기" },
+        { id: "opt3", key: "3", name: "전기" }
     ];
     var STATUS_TEXT = { idle: "대기", running: "실행 중", done: "완료", warn: "주의", fail: "실패", skip: "건너뜀", cancel: "중단" };
 
@@ -905,9 +913,9 @@
                     (s.key === "attr" ? '<span class="bm-node-count" id="attrCount"></span>' : '') +
                     (s.key === "bom" ?
                         '<div class="bm-node-opts" role="group" aria-label="BOM 전개 옵션">' +
-                            '<label class="bm-opt"><input type="checkbox" id="optC" checked><span><b>구성</b><small>c</small></span></label>' +
-                            '<label class="bm-opt"><input type="checkbox" id="optM" checked><span><b>자재</b><small>m</small></span></label>' +
-                            '<label class="bm-opt"><input type="checkbox" id="optF" checked><span><b>사양</b><small>f</small></span></label>' +
+                            BOM_OPTS.map(function (o) {
+                                return '<label class="bm-opt"><input type="checkbox" id="' + o.id + '" checked><span><b>' + o.name + '</b><small>' + o.key + '</small></span></label>';
+                            }).join("") +
                         '</div>' : '') +
                     '<div class="bm-node-foot">' +
                         '<span class="bm-pill" data-s="idle">' + STATUS_TEXT.idle + '</span>' +
@@ -931,7 +939,7 @@
             });
             node.querySelector(".bm-node-run").addEventListener("click", function () { runSingle(s); });
         });
-        ["optC", "optM", "optF"].forEach(function (id) { $(id).addEventListener("change", saveForm); });
+        BOM_OPTS.forEach(function (o) { $(o.id).addEventListener("change", saveForm); });
     }
 
     /** 저장된 단계 선택을 레일에 반영 */
@@ -1153,7 +1161,7 @@
         row.className = "bm-attr";
         row.innerHTML =
             '<input class="bm-input code" list="codeList" placeholder="특성코드" aria-label="특성코드" spellcheck="false">' +
-            '<input class="bm-input val" placeholder="값" aria-label="값">' +
+            '<input class="bm-input val" placeholder="값 (비우면 공백)" aria-label="값">' +
             '<button type="button" class="bm-attr-del" aria-label="이 속성 삭제">' + svg("x", 15, 2.2) + '</button>' +
             '<div class="bm-attr-meta"><span class="nm"></span><span class="cur"></span><span class="vf"></span></div>';
         row.querySelector(".code").value = code || "";
@@ -1181,7 +1189,7 @@
         attrRows().forEach(function (row) {
             var code = row.querySelector(".code").value.trim();
             if (!code) return;
-            attrs[code] = row.querySelector(".val").value.trim();
+            attrs[code] = row.querySelector(".val").value.trim();   // 값이 없으면 공백("")으로 넘긴다
             n++;
         });
         return n ? attrs : null;
@@ -1260,7 +1268,7 @@
     function payloadFor(step) {
         var body = { ouid: state.target.ouid };
         if (step.key === "attr") body.attrs = readAttrs();
-        if (step.key === "bom") { body.c = $("optC").checked; body.m = $("optM").checked; body.f = $("optF").checked; }
+        if (step.key === "bom") BOM_OPTS.forEach(function (o) { body[o.key] = $(o.id).checked; });
         return body;
     }
 
@@ -1272,7 +1280,7 @@
             addLog("info", step.name, "변경할 속성이 없어 건너뜀");
             return Promise.resolve("skip");
         }
-        if (step.key === "bom" && !$("optC").checked && !$("optM").checked && !$("optF").checked) {
+        if (step.key === "bom" && !BOM_OPTS.some(function (o) { return $(o.id).checked; })) {
             setStep(step.key, "fail", "전개 옵션을 하나 이상 선택하세요.", null);
             addLog("fail", step.name, "전개 옵션을 하나 이상 선택하세요.");
             return Promise.resolve("fail");
@@ -1308,6 +1316,9 @@
             setStep(step.key, status, msg, elapsed);
             var sub = step.key === "equal" && r.success ? target.no + " → " + (r.newProductNo || r.newOuid) : target.no;
             addLog(status === "done" ? "ok" : status, step.name, msg, sub + " · " + fmtSec(elapsed));
+            if (step.key === "bom" && r.bomSaveMessage) {
+                addLog(/^BOM 저장 완료/.test(r.bomSaveMessage) ? "ok" : "warn", "BOM 저장", r.bomSaveMessage, sub);
+            }
             return status;
         });
     }
@@ -1570,7 +1581,7 @@
                 userid: $("userid").value.trim() || state.user || "",
                 productNo: $("productNo").value.trim(),
                 attrs: attrRows().map(function (r) { return [r.querySelector(".code").value, r.querySelector(".val").value]; }),
-                opts: [$("optC").checked, $("optM").checked, $("optF").checked],
+                opts: BOM_OPTS.map(function (o) { return $(o.id).checked; }),
                 steps: STEPS.map(function (s) { return s.on; })
             }));
         } catch (e) { /* 저장 불가 환경 무시 */ }
@@ -1583,7 +1594,7 @@
         if (f.userid) $("userid").value = f.userid;
         if (f.productNo) $("productNo").value = f.productNo;
         (f.attrs || []).forEach(function (a) { addAttr(a[0], a[1]); });
-        if (f.opts) { $("optC").checked = !!f.opts[0]; $("optM").checked = !!f.opts[1]; $("optF").checked = !!f.opts[2]; }
+        if (f.opts) BOM_OPTS.forEach(function (o, i) { if (typeof f.opts[i] === "boolean") $(o.id).checked = f.opts[i]; });
         if (f.steps) STEPS.forEach(function (s, i) { if (typeof f.steps[i] === "boolean") s.on = f.steps[i]; });
     }
 

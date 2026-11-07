@@ -57,6 +57,63 @@ public class CopService {
         return results;
     }
 
+    /** 관리대상 호기 전체 조회 */
+    public List<HashMap<String, String>> findManagedHogi() throws Exception {
+        return CopUtil.findManagedHogi();
+    }
+
+    /**
+     * 관리대상 호기 저장
+     * mode = create : 등록 (이미 있는 호기면 거절), update : 수정 (없는 호기면 거절)
+     * 입력이 잘못되면 IllegalArgumentException (메시지는 화면에 그대로 보여준다)
+     */
+    public void saveManagedHogi(Map<String, String> req) throws Exception {
+
+        Map<String, String> hogi = new HashMap<>();
+        hogi.put("HOGI", clean(req.get("HOGI"), "호기", 50).toUpperCase());
+        hogi.put("BEFOREHOGI", clean(req.get("BEFOREHOGI"), "이전호기", 50).toUpperCase());
+        hogi.put("BRAND", clean(req.get("BRAND"), "브랜드", 100));
+        hogi.put("ACAPA", clean(req.get("ACAPA"), "용량", 100));
+        hogi.put("SPEED", clean(req.get("SPEED"), "속도", 100));
+        hogi.put("BATCHDATE", clean(req.get("BATCHDATE"), "배치 날짜", 50));
+
+        String no = hogi.get("HOGI");
+        if (no.isEmpty()) {
+            throw new IllegalArgumentException("호기를 입력해 주세요.");
+        }
+        if (no.equals(hogi.get("BEFOREHOGI"))) {
+            throw new IllegalArgumentException("이전호기는 호기와 달라야 합니다.");
+        }
+
+        if ("create".equals(req.get("mode"))) {
+            if (!CopUtil.insertManagedHogi(hogi)) {
+                throw new IllegalArgumentException(no + " 호기는 이미 등록되어 있습니다.");
+            }
+        } else if ("update".equals(req.get("mode"))) {
+            if (!CopUtil.updateManagedHogi(hogi)) {
+                throw new IllegalArgumentException(no + " 호기를 찾을 수 없습니다. 목록을 새로고침해 주세요.");
+            }
+        } else {
+            throw new IllegalArgumentException("저장 방식이 올바르지 않습니다.");
+        }
+    }
+
+    /** 관리대상 호기 삭제. 삭제된 건수를 돌려준다 */
+    public int deleteManagedHogi(List<String> hogis) throws Exception {
+        if (hogis == null || hogis.isEmpty()) {
+            throw new IllegalArgumentException("삭제할 호기를 선택해 주세요.");
+        }
+        return CopUtil.deleteManagedHogi(hogis);
+    }
+
+    private String clean(String value, String label, int maxLength) {
+        String text = value == null ? "" : value.trim();
+        if (text.length() > maxLength) {
+            throw new IllegalArgumentException(label + "는 " + maxLength + "자 이내로 입력해 주세요.");
+        }
+        return text;
+    }
+
     /** 최초설계일(EL_ZFDA ~ EL_ZFDD) 을 모두 오늘(yyyyMMdd) 로 */
     private Map<String, String> designDateAttrs() {
 

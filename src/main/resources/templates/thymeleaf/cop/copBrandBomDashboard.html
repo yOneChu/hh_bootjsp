@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>브랜드별 BOM 일일 변동 · SENTINEL</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        SENTINEL · 브랜드별 BOM 일일 변동 대시보드 (CopMainController : GET /cop/dashboard/brand)
+
+        전일 BOM 과 금일 BOM 을 호기 단위로 맞춰 보고, 그 결과를 브랜드별로 집계한다.
+          수량 변경 : 같은 품번인데 수량이 달라짐
+          다른 자재 수배 : 교체(같은 블록에서 품번이 바뀜) / 신규(금일에만 있음) / 제외(전일에만 있음)
+
+        화면 구성
+          위 (임원)   : 결론 문장 · 먼저 볼 항목 · 핵심 지표 · 브랜드별 차트 · 브랜드 비교표
+          아래 (실무) : 브랜드 x 블록 분포 · 최근 14회 추이 · 변경 내역 / 자재별 집계
+
+        지금은 서버 로직 없이 화면 안의 샘플 데이터(makeDay)를 쓴다. 모든 수치는 DEMO.
+        연동할 때는 makeDay(date) 가 같은 모양의 값을 돌려주도록 API 호출로 바꾸면 된다.
+          items    : brand, hogi, block, type(qty|swap|add|del), prevNo, prevName, nextNo, nextName, prevQty, nextQty, uom
+          active   : 비교한 호기 (hogi, brand, lines, qty)
+          excluded : BOM 이 없어 비교하지 못한 호기
+    -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <style>
+        :root {
+            --bg: #F4F5F7;
+            --surface: #FFFFFF;
+            --surface-2: #F8F9FB;
+            --line: #E4E7EC;
+            --line-2: #D0D5DD;
+            --ink: #0B1220;
+            --ink-2: #3F4A5C;
+            --ink-3: #5D6778;
+            --brand: #1E40AF;
+            --brand-2: #2F5BEA;
+            --brand-bg: #EEF2FF;
+
+            /* 변경 유형 (차트 · 배지 공통). 대비가 낮은 색은 범례 · 라벨 · 표로 보완한다 */
+            --t-qty: #2A78D6;
+            --t-swap: #EB6834;
+            --t-add: #1BAF7A;
+            --t-del: #EDA100;
+
+            /* 수량 증감 */
+            --inc: #2A78D6;
+            --dec: #E34948;
+            --inc-ink: #184F95;
+            --dec-ink: #B42318;
+
+            /* 분포표 단계 */
+            --heat-1: #DCEAFB;
+            --heat-2: #B7D3F6;
+            --heat-3: #6DA7EC;
+            --heat-4: #256ABF;
+            --heat-5: #104281;
+
+            --warn-bg: #FFFAEB;
+            --warn: #B54708;
+            --radius: 14px;
+            --shadow: 0 1px 2px rgba(16,24,40,.05);
+            --mono: "D2Coding", Consolas, "SF Mono", Menlo, monospace;
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+            --nav-h: 64px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; background: var(--bg); }
+        body {
+            margin: 0; min-height: 100vh; overflow-x: hidden;
+            font-family: var(--sans); font-size: 15px; line-height: 1.55; color: var(--ink); background: var(--bg);
+            word-break: keep-all; overflow-wrap: anywhere;
+        }
+        h1, h2, h3, p, ul { margin: 0; }
+        ul { padding: 0; list-style: none; }
+        a { color: inherit; text-decoration: none; }
+        button, input, select { font: inherit; color: inherit; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 3px solid var(--brand-2); outline-offset: 2px; border-radius: 6px; }
+        .tnum { font-variant-numeric: tabular-nums; }
+        .mono { font-family: var(--mono); }
+        .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        .wrap { width: 100%; max-width: 1440px; margin: 0 auto; padding: 0 16px; }
+        @media (min-width: 900px) { .wrap { padding: 0 32px; } }
+        .skip { position: absolute; left: 12px; top: -48px; z-index: 60; padding: 8px 14px; border-radius: 8px; background: var(--ink); color: #fff; }
+        .skip:focus { top: 12px; }
+        .demo { display: inline-flex; padding: 2px 8px; border-radius: 6px; background: var(--warn-bg); color: var(--warn); font: 700 11px/1.5 var(--mono); letter-spacing: .1em; }
+
+        /* ───── 상단 바 ───── */
+        .nav { position: sticky; top: 0; z-index: 40; background: var(--surface); border-bottom: 1px solid var(--line); }
+        .nav-in { min-height: var(--nav-h); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding-top: 10px; padding-bottom: 10px; }
+        .logo { display: flex; align-items: center; gap: 10px; flex: none; }
+        .logo-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--brand); display: grid; place-items: center; color: #fff; }
+        .logo b { font: 800 14px/1 var(--sans); letter-spacing: .24em; }
+        .crumb { display: none; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-3); }
+        .crumb b { color: var(--ink); font-weight: 700; }
+        @media (min-width: 900px) { .crumb { display: flex; } }
+        .nav-tools { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+        .field { display: flex; align-items: center; gap: 6px; }
+        .field label { font-size: 13px; color: var(--ink-3); font-weight: 600; white-space: nowrap; }
+        .ctl { min-height: 38px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--surface); font-size: 14px; font-weight: 600; }
+        .ctl:focus { outline: none; border-color: var(--brand-2); box-shadow: 0 0 0 3px var(--brand-bg); }
+        .link-btn { display: inline-flex; align-items: center; min-height: 38px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line-2); font-size: 14px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+        .link-btn:hover { background: var(--surface-2); color: var(--ink); }
+        @media (max-width: 640px) { .link-btn { display: none; } }
+
+        main.wrap { padding-top: 20px; padding-bottom: 56px; display: flex; flex-direction: column; gap: 16px; }
+        section, article { scroll-margin-top: 92px; }
+        .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; }
+        .card-hd { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 16px; padding: 18px 20px 0; }
+        .card-hd h2 { font-size: 16px; font-weight: 750; letter-spacing: -.01em; }
+        .card-hd p { margin-top: 2px; font-size: 13.5px; color: var(--ink-3); }
+        .card-bd { padding: 10px 20px 16px; }
+        .grid-2 { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 1100px) { .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        .grid-heat { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 1240px) { .grid-heat { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+        .chart { height: 320px; }
+        .none { display: flex; align-items: center; justify-content: center; min-height: 180px; color: var(--ink-3); font-size: 14px; text-align: center; padding: 16px; }
+
+        /* ───── 결론 ───── */
+        .hero { border-top: 3px solid var(--brand); }
+        .hero-top { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); padding: 22px 20px; }
+        @media (min-width: 1100px) { .hero-top { grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 36px; padding: 26px 28px; } }
+        .period { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-2); font-weight: 650; }
+        .period i { font-style: normal; color: var(--ink-3); }
+        .hero h1 { margin-top: 10px; font-size: clamp(22px, 2.4vw, 30px); line-height: 1.38; font-weight: 600; letter-spacing: -.02em; color: var(--ink-2); text-wrap: balance; }
+        .hero h1 b { font-weight: 800; color: var(--ink); }
+        .hero-sub { margin-top: 10px; font-size: 15px; color: var(--ink-2); max-width: 74ch; }
+
+        .watch h2 { font-size: 13.5px; font-weight: 700; color: var(--ink-3); margin-bottom: 8px; }
+        .watch li + li { border-top: 1px solid var(--line); }
+        .watch-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; width: 100%; padding: 9px 8px; border: 0; background: transparent; text-align: left; border-radius: 8px; }
+        button.watch-row { cursor: pointer; }
+        button.watch-row:hover { background: var(--surface-2); }
+        .watch-row b { font-size: 14px; font-weight: 700; }
+        .watch-row small { grid-column: 1; font-size: 13px; color: var(--ink-3); }
+        .watch-row svg { grid-column: 2; grid-row: 1 / span 2; align-self: center; color: var(--ink-3); }
+
+        .kpis { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--line); }
+        @media (min-width: 620px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1100px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .kpi { display: flex; flex-direction: column; gap: 4px; padding: 16px 20px; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; min-width: 0; }
+        @media (min-width: 1100px) { .kpi { padding: 18px 28px; border-bottom: 0; border-right: 1px solid var(--line); } .kpi:last-child { border-right: 0; } }
+        button.kpi { cursor: pointer; transition: background .15s; }
+        button.kpi:hover { background: var(--surface-2); }
+        .kpi-l { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 650; color: var(--ink-2); }
+        .kpi-l svg { margin-left: auto; color: var(--ink-3); }
+        .kpi-v { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+        .kpi-v b { font-size: 34px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
+        .kpi-v small { font-size: 14px; font-weight: 600; color: var(--ink-3); }
+        .kpi-d { font-size: 13px; font-weight: 650; color: var(--ink-2); }
+        .kpi-s { font-size: 13px; color: var(--ink-3); }
+        .dot { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 3px; }
+
+        /* ───── 표 공통 ───── */
+        .tbl-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        thead th { background: var(--surface-2); text-align: left; font-size: 13px; font-weight: 650; color: var(--ink-3); padding: 0; border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); white-space: nowrap; }
+        thead th button { width: 100%; min-height: 40px; padding: 0 12px; border: 0; background: transparent; cursor: pointer; font: inherit; color: inherit; display: inline-flex; align-items: center; gap: 4px; }
+        thead th.r button { justify-content: flex-end; }
+        thead th button:hover { color: var(--ink); }
+        thead th[aria-sort="ascending"] button::after { content: "▲"; font-size: 9px; color: var(--brand); }
+        thead th[aria-sort="descending"] button::after { content: "▼"; font-size: 9px; color: var(--brand); }
+        thead th .th { display: inline-flex; min-height: 40px; align-items: center; padding: 0 12px; }
+        thead th.r .th { justify-content: flex-end; width: 100%; }
+        tbody td, tfoot td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+        tfoot td { background: var(--surface-2); font-weight: 700; border-bottom: 0; }
+        td.r, th.r { text-align: right; }
+
+        /* 브랜드 비교표 */
+        .led { min-width: 1020px; }
+        .led tbody tr { cursor: pointer; transition: background .12s; }
+        .led tbody tr:hover { background: #F5F8FF; }
+        .led tbody tr.on { background: var(--brand-bg); box-shadow: inset 3px 0 0 var(--brand); }
+        .brand-btn { padding: 4px 0; border: 0; background: transparent; cursor: pointer; font: 700 14px var(--mono); }
+        .sub { display: block; font-size: 12.5px; font-weight: 400; color: var(--ink-3); }
+        .diverge { display: inline-flex; align-items: center; gap: 10px; justify-content: flex-end; }
+        .diverge b { min-width: 64px; text-align: right; font-weight: 700; }
+        .up { color: var(--inc-ink); }
+        .down { color: var(--dec-ink); }
+        .dv { position: relative; width: 112px; height: 10px; }
+        .dv::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--line-2); }
+        .dv span { position: absolute; top: 0; height: 100%; }
+        .dv .inc { left: calc(50% + 1px); background: var(--inc); border-radius: 0 3px 3px 0; }
+        .dv .dec { right: calc(50% + 1px); background: var(--dec); border-radius: 3px 0 0 3px; }
+        .spark { display: block; }
+
+        /* 분포표 */
+        .heat { min-width: 760px; table-layout: fixed; }
+        .heat th, .heat td { border: 0; }
+        .heat thead th { background: transparent; border: 0; white-space: normal; text-align: center; vertical-align: bottom; padding: 0 2px 6px; font-size: 12px; line-height: 1.3; }
+        .heat thead th:first-child { width: 96px; text-align: left; }
+        .heat thead th:last-child { width: 52px; }
+        .heat tbody th { text-align: left; font: 700 13px var(--mono); padding: 2px 8px 2px 0; }
+        .heat tbody th.dim, .heat tr.dim th { color: var(--ink-3); font-weight: 400; }
+        .heat td { padding: 2px; }
+        .heat-c { width: 100%; height: 36px; border: 0; border-radius: 5px; font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; background: var(--surface-2); color: var(--ink); }
+        .heat-c:hover { box-shadow: inset 0 0 0 2px var(--ink); }
+        .heat-c.zero { color: var(--ink-3); font-weight: 400; cursor: default; }
+        .heat-c.zero:hover { box-shadow: none; }
+        .heat-c.h1 { background: var(--heat-1); }
+        .heat-c.h2 { background: var(--heat-2); }
+        .heat-c.h3 { background: var(--heat-3); }
+        .heat-c.h4 { background: var(--heat-4); color: #fff; }
+        .heat-c.h5 { background: var(--heat-5); color: #fff; }
+        .heat-c.sel { box-shadow: inset 0 0 0 2px var(--ink), inset 0 0 0 3px #fff; }
+        .heat tr.dim .heat-c { opacity: .35; }
+        .heat-sum { text-align: center; font-weight: 700; font-size: 13.5px; }
+        .scale { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 10px; font-size: 12.5px; color: var(--ink-3); }
+        .scale span { display: inline-flex; align-items: center; gap: 5px; }
+        .scale i { width: 14px; height: 14px; border-radius: 3px; }
+
+        /* 상세 */
+        .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 20px; }
+        .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); flex: none; }
+        .seg button { min-height: 32px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--ink-3); }
+        .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(16,24,40,.14); }
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .chip { min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+        .chip:hover { border-color: var(--ink-3); }
+        .chip .n { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
+        .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+        .chip[aria-pressed="true"] .n { color: rgba(255,255,255,.78); }
+        .search { position: relative; margin-left: auto; flex: 1 1 220px; max-width: 320px; }
+        .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
+        .search input { width: 100%; min-height: 38px; padding: 0 12px 0 34px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--surface); font-size: 14px; }
+        .search input:focus { outline: none; border-color: var(--brand-2); box-shadow: 0 0 0 3px var(--brand-bg); }
+        .scope { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 20px 12px; font-size: 13px; color: var(--ink-3); }
+        .scope button { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line-2); background: var(--brand-bg); color: var(--brand); font-size: 13px; font-weight: 650; cursor: pointer; }
+        .det { min-width: 1120px; }
+        .det td.pn { line-height: 1.35; white-space: normal; min-width: 170px; }
+        .det .pn-no { font-family: var(--mono); font-weight: 600; font-size: 13.5px; white-space: nowrap; }
+        .det .pn-nm { display: block; font-size: 12.5px; color: var(--ink-3); }
+        .det .nil { color: var(--ink-3); }
+        .tag { display: inline-flex; justify-content: center; min-width: 64px; padding: 2px 8px; border-radius: 6px; font-size: 12.5px; font-weight: 700; }
+        .tag.qty { background: #E5F0FC; color: #184F95; }
+        .tag.swap { background: #FDEDE5; color: #9A3412; }
+        .tag.add { background: #E2F6EE; color: #0B6B4A; }
+        .tag.del { background: #FDF3D8; color: #7A5200; }
+        .empty { padding: 44px 20px; text-align: center; color: var(--ink-3); font-size: 14px; }
+        .foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 20px; font-size: 13px; color: var(--ink-3); }
+        .pager { display: flex; align-items: center; gap: 8px; }
+        .pager button { min-height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+        .pager button:disabled { opacity: .45; cursor: default; }
+        .note { font-size: 12.5px; color: var(--ink-3); padding: 0 20px 14px; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+        }
+    </style>
+</head>
+<body>
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+
+<header class="nav">
+    <div class="wrap nav-in">
+        <a class="logo" href="/cop2/main" aria-label="SENTINEL 메인으로">
+            <span class="logo-mark" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 12l5-3"/></svg>
+            </span><b>SENTINEL</b>
+        </a>
+        <div class="crumb"><span aria-hidden="true">/</span><b>브랜드별 BOM 일일 변동</b><span class="demo">DEMO</span></div>
+        <div class="nav-tools">
+            <div class="field">
+                <label for="inDate">기준일</label>
+                <input class="ctl mono" type="date" id="inDate">
+            </div>
+            <div class="field">
+                <label for="inBrand">브랜드</label>
+                <select class="ctl" id="inBrand"></select>
+            </div>
+            <a class="link-btn" href="/cop/dashboard">배치 변경 대시보드</a>
+        </div>
+    </div>
+</header>
+
+<main class="wrap" id="main">
+
+    <!-- ═══════ 결론 ═══════ -->
+    <section class="card hero" aria-labelledby="heroTitle">
+        <div class="hero-top">
+            <div>
+                <div class="period"><span id="periodText">-</span><span class="demo">샘플 데이터</span></div>
+                <h1 id="heroTitle">-</h1>
+                <p class="hero-sub" id="heroSub">-</p>
+            </div>
+            <div class="watch">
+                <h2>먼저 볼 항목</h2>
+                <ul id="watchList"></ul>
+            </div>
+        </div>
+        <div class="kpis" id="kpis"></div>
+    </section>
+
+    <!-- ═══════ 브랜드별 차트 ═══════ -->
+    <div class="grid-2">
+        <article class="card">
+            <div class="card-hd"><div><h2>브랜드별 변경 건수</h2><p id="mixDesc">-</p></div></div>
+            <div class="card-bd">
+                <div class="chart" id="chMix" role="img"></div>
+                <div class="none" id="chMixNone" hidden>전일과 달라진 자재가 없습니다.</div>
+            </div>
+        </article>
+        <article class="card">
+            <div class="card-hd"><div><h2>브랜드별 자재 수량 증감</h2><p id="netDesc">-</p></div></div>
+            <div class="card-bd">
+                <div class="chart" id="chNet" role="img"></div>
+                <div class="none" id="chNetNone" hidden>전일과 수량이 달라진 브랜드가 없습니다.</div>
+            </div>
+        </article>
+    </div>
+
+    <!-- ═══════ 브랜드 비교표 ═══════ -->
+    <section class="card" aria-labelledby="ledTitle">
+        <div class="card-hd" style="padding-bottom:12px"><div><h2 id="ledTitle">브랜드 비교표</h2><p>행을 누르면 화면 전체가 해당 브랜드 기준으로 바뀝니다</p></div></div>
+        <div class="tbl-wrap">
+            <table class="led">
+                <thead><tr id="ledHead">
+                    <th scope="col" data-k="code"><button type="button">브랜드</button></th>
+                    <th scope="col" class="r" data-k="changed"><button type="button">변동 호기</button></th>
+                    <th scope="col" class="r" data-k="qtyNow"><button type="button">자재 수량 (전일 → 금일)</button></th>
+                    <th scope="col" class="r" data-k="net"><button type="button">수량 순증감</button></th>
+                    <th scope="col" class="r" data-k="qty"><button type="button">수량 변경</button></th>
+                    <th scope="col" class="r" data-k="mat"><button type="button">다른 자재 수배</button></th>
+                    <th scope="col" class="r" data-k="match"><button type="button">BOM 일치율</button></th>
+                    <th scope="col"><span class="th">최근 14회 변경 건수</span></th>
+                </tr></thead>
+                <tbody id="ledBody"></tbody>
+                <tfoot id="ledFoot"></tfoot>
+            </table>
+        </div>
+    </section>
+
+    <!-- ═══════ 분포 · 추이 ═══════ -->
+    <div class="grid-heat">
+        <article class="card">
+            <div class="card-hd"><div><h2>어느 브랜드의 어느 블록에서 달라졌나</h2><p id="heatDesc">-</p></div></div>
+            <div class="card-bd">
+                <div class="tbl-wrap"><table class="heat" id="heat"></table></div>
+                <div class="scale" aria-hidden="true">
+                    <span>변경 건수</span>
+                    <span><i style="background:var(--surface-2);border:1px solid var(--line)"></i>0</span>
+                    <span><i style="background:var(--heat-1)"></i>1–2</span>
+                    <span><i style="background:var(--heat-2)"></i>3–5</span>
+                    <span><i style="background:var(--heat-3)"></i>6–10</span>
+                    <span><i style="background:var(--heat-4)"></i>11–20</span>
+                    <span><i style="background:var(--heat-5)"></i>21+</span>
+                </div>
+            </div>
+        </article>
+        <article class="card">
+            <div class="card-hd"><div><h2>최근 14회 변경 추이</h2><p id="trendDesc">-</p></div></div>
+            <div class="card-bd"><div class="chart" id="chTrend" role="img" style="height:360px"></div></div>
+        </article>
+    </div>
+
+    <!-- ═══════ 상세 ═══════ -->
+    <section class="card" id="detail" aria-labelledby="detTitle">
+        <div class="card-hd">
+            <div><h2 id="detTitle">변경 자재 상세</h2><p>전일 BOM 과 금일 BOM 의 차이를 호기 · 자재 단위로 확인합니다</p></div>
+            <div class="seg" role="group" aria-label="상세 보기 방식">
+                <button type="button" data-view="rows" aria-pressed="true">변경 내역</button>
+                <button type="button" data-view="parts" aria-pressed="false">자재별 집계</button>
+            </div>
+        </div>
+        <div class="tools">
+            <div class="chips" id="chips" role="group" aria-label="변경 유형 필터"></div>
+            <div class="search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <label for="inSearch" class="sr">호기 · 품번 · 품명 검색</label>
+                <input id="inSearch" type="search" placeholder="호기 · 품번 · 품명 검색" autocomplete="off">
+            </div>
+        </div>
+        <div class="scope" id="scope" hidden></div>
+        <div class="tbl-wrap">
+            <table class="det" id="detRows">
+                <thead><tr id="detHead">
+                    <th scope="col" data-k="type"><button type="button">유형</button></th>
+                    <th scope="col" data-k="brand"><button type="button">브랜드</button></th>
+                    <th scope="col" data-k="hogi"><button type="button">호기</button></th>
+                    <th scope="col" data-k="block"><button type="button">블록</button></th>
+                    <th scope="col"><span class="th">전일 자재</span></th>
+                    <th scope="col"><span class="th">금일 자재</span></th>
+                    <th scope="col" class="r" data-k="prevQty"><button type="button">전일 수량</button></th>
+                    <th scope="col" class="r" data-k="nextQty"><button type="button">금일 수량</button></th>
+                    <th scope="col" class="r" data-k="delta"><button type="button">증감</button></th>
+                    <th scope="col"><span class="th">단위</span></th>
+                </tr></thead>
+                <tbody id="detBody"></tbody>
+            </table>
+            <table class="det" id="detParts" hidden>
+                <thead><tr>
+                    <th scope="col"><span class="th">유형</span></th>
+                    <th scope="col"><span class="th">전일 자재</span></th>
+                    <th scope="col"><span class="th">금일 자재</span></th>
+                    <th scope="col"><span class="th">블록</span></th>
+                    <th scope="col"><span class="th">브랜드</span></th>
+                    <th scope="col" class="r"><span class="th">영향 호기</span></th>
+                    <th scope="col" class="r"><span class="th">수량 순증감</span></th>
+                </tr></thead>
+                <tbody id="partBody"></tbody>
+            </table>
+            <div class="empty" id="detEmpty" hidden>조건에 맞는 변경 자재가 없습니다. 필터나 검색어를 바꿔 보세요.</div>
+        </div>
+        <div class="foot">
+            <span id="detCount" role="status">-</span>
+            <div class="pager" id="pager">
+                <button type="button" id="pgPrev">이전</button>
+                <span class="tnum" id="pgText">-</span>
+                <button type="button" id="pgNext">다음</button>
+            </div>
+        </div>
+        <p class="note">수량 합계와 순증감은 단위(EA, M 등)를 구분하지 않고 더한 참고값입니다. 정확한 수량은 단위가 표시된 변경 내역에서 확인하세요.</p>
+    </section>
+</main>
+
+<script src="/resources/dist/js/highcharts.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    const $ = id => document.getElementById(id);
+    const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const fmt = n => Number(n).toLocaleString('ko-KR', { maximumFractionDigits: 1 });
+    const signed = n => (n > 0 ? '+' : n < 0 ? '−' : '') + fmt(Math.abs(n));
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const ymd = d => d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    const isoDate = d => ymd(d).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+    const WEEK = '일월화수목금토';
+    const dayLabel = d => (d.getMonth() + 1) + '월 ' + d.getDate() + '일(' + WEEK.charAt(d.getDay()) + ')';
+    const ARROW = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+
+    const TYPES = {
+        qty:  { label: '수량 변경', color: css('--t-qty'),  rank: 3 },
+        swap: { label: '자재 교체', color: css('--t-swap'), rank: 0 },
+        add:  { label: '신규 수배', color: css('--t-add'),  rank: 1 },
+        del:  { label: '수배 제외', color: css('--t-del'),  rank: 2 }
+    };
+    const TYPE_KEYS = ['qty', 'swap', 'add', 'del'];
+    const INC = css('--inc'), DEC = css('--dec');
+
+    /* ════════════ 샘플 데이터 (나중에 API 로 교체) ════════════ */
+    const BRANDS = [
+        { code: 'NEX_MR',    units: 18, activity: 1.0 },
+        { code: 'NEX_MRL',   units: 14, activity: .75 },
+        { code: 'LUXEN_2',   units: 9,  activity: 1.1 },
+        { code: 'NEX_MR_G',  units: 11, activity: .5 },
+        { code: 'NEX_MRL_G', units: 7,  activity: .6 },
+        { code: 'LUXEN_G',   units: 5,  activity: .4 }
+    ];
+    const BLOCKS = {
+        CAR:  { name: '카 프레임',  weight: 9,  parts: ['카 상부 프레임', '카 바닥판', '방진 고무'] },
+        DOOR: { name: '도어 장치',  weight: 8,  parts: ['도어 행거', '도어 모터', '인터록 스위치'] },
+        CTRL: { name: '제어반',     weight: 10, parts: ['메인 보드', 'INV 유닛', '배선 하네스'] },
+        TM:   { name: '권상기',     weight: 3,  parts: ['브레이크 라이닝', '엔코더'] },
+        RAIL: { name: '가이드 레일', weight: 4,  parts: ['T형 레일', '레일 브라켓'], uom: 'M' },
+        CWT:  { name: '균형추',     weight: 2,  parts: ['균형추 블록', '균형추 프레임'] },
+        HALL: { name: '승강장',     weight: 6,  parts: ['승강장 버튼', '홀 랜턴', '실 앵글'] },
+        ROPE: { name: '로프',       weight: 3,  parts: ['메인 로프', '보상 체인'], uom: 'M' },
+        SAFE: { name: '안전장치',   weight: 4,  parts: ['조속기', '완충기'] },
+        PIT:  { name: '피트',       weight: 2,  parts: ['피트 사다리', '피트 스위치'] },
+        SIG:  { name: '신호 장치',  weight: 6,  parts: ['인디케이터', 'COP 패널'] },
+        DECO: { name: '카 의장',    weight: 8,  parts: ['천장 조명', '핸드레일', '카 벽판 마감'] }
+    };
+    const BLOCK_KEYS = Object.keys(BLOCKS);
+    const BLOCK_WEIGHT = {};
+    BLOCK_KEYS.forEach(k => { BLOCK_WEIGHT[k] = BLOCKS[k].weight; });
+
+    /* 시드가 같으면 같은 값이 나오는 난수 (같은 날짜면 같은 샘플) */
+    function rng(seed) {
+        let s = seed % 2147483647; if (s <= 0) s += 2147483646;
+        const next = () => (s = s * 16807 % 2147483647) / 2147483647;
+        next(); next(); next();
+        return next;
+    }
+    function tools(r) {
+        const ri = (a, b) => a + Math.floor(r() * (b - a + 1));
+        return {
+            ri,
+            pick: arr => arr.at(ri(0, arr.length - 1)),
+            pickW: weights => {
+                const keys = Object.keys(weights);
+                let x = r() * keys.reduce((a, k) => a + weights[k], 0);
+                for (const k of keys) { x -= weights[k]; if (x <= 0) return k; }
+                return keys.at(-1);
+            }
+        };
+    }
+
+    /* 호기 · 자재 기준 정보는 날짜와 상관없이 고정 */
+    const FLEET = (function () {
+        const r = rng(20261107), t = tools(r), out = [];
+        BRANDS.forEach(b => {
+            for (let i = 0; i < b.units; i++) {
+                const lines = t.ri(360, 640);
+                out.push({
+                    brand: b.code,
+                    hogi: 'H' + t.ri(24, 26) + String.fromCharCode(65 + t.ri(0, 11)) + String(t.ri(1000, 9999)),
+                    lines,
+                    qty: Math.round(lines * (5 + r() * 4))
+                });
+            }
+        });
+        return out;
+    })();
+    const CATALOG = (function () {
+        const out = {};
+        BLOCK_KEYS.forEach((blk, bi) => {
+            out[blk] = BLOCKS[blk].parts.map((name, pi) => ({
+                name, block: blk, uom: BLOCKS[blk].uom || 'EA',
+                base: blk.slice(0, 2) + '-' + (100 + bi) + (10 + pi * 7)
+            }));
+        });
+        return out;
+    })();
+    const partNo = (part, variant) => part.base + String.fromCharCode(65 + variant);
+    function pickPart(t) {
+        const block = t.pickW(BLOCK_WEIGHT);
+        return t.pick(CATALOG[block]);
+    }
+
+    function makeItem(t, hogi, type, part, delta) {
+        const mul = part.uom === 'M' ? 2.5 : 1;
+        const base = t.ri(2, 24);
+        let prev = base, next = base;
+        if (type === 'qty') { next = Math.max(1, base + delta); if (next === base) next = base + 1; }
+        if (type === 'swap' && Math.abs(delta) > 4) next = Math.max(1, base + delta);
+        if (type === 'add') prev = 0;
+        if (type === 'del') next = 0;
+        const v0 = delta > 0 ? 0 : 1;
+        return {
+            brand: hogi.brand, hogi: hogi.hogi, block: part.block, type, uom: part.uom,
+            prevNo: type === 'add' ? null : partNo(part, v0),
+            prevName: type === 'add' ? null : part.name,
+            nextNo: type === 'del' ? null : partNo(part, type === 'swap' ? v0 + 1 : v0),
+            nextName: type === 'del' ? null : part.name,
+            prevQty: prev * mul, nextQty: next * mul
+        };
+    }
+
+    const dayCache = new Map();
+    function makeDay(date) {
+        const key = ymd(date);
+        if (dayCache.has(key)) return dayCache.get(key);
+        const items = [], active = [], excluded = [];
+
+        BRANDS.forEach((b, bi) => {
+            const r = rng(Number(key) * 31 + bi * 7919 + 1), t = tools(r);
+            const fleet = FLEET.filter(h => h.brand === b.code);
+            const ok = [];
+            fleet.forEach(h => (r() < .03 ? excluded : ok).push(h));
+            active.push(...ok);
+            if (!ok.length) return;
+
+            /* 설계 변경 한 건이 같은 브랜드의 여러 호기에 함께 나타난다 */
+            const events = Math.round(b.activity * t.ri(1, 6));
+            for (let e = 0; e < events; e++) {
+                const type = t.pickW({ qty: 5, swap: 3, add: 2, del: 1 });
+                const part = pickPart(t);
+                const delta = t.ri(1, 8) * (r() < .55 ? 1 : -1);
+                const share = .12 + r() * .4;
+                const targets = ok.filter(() => r() < share);
+                if (!targets.length) targets.push(t.pick(ok));
+                targets.forEach(h => items.push(makeItem(t, h, type, part, delta)));
+            }
+            /* 호기 하나에만 나타나는 개별 변경 */
+            ok.forEach(h => {
+                if (r() < .1) {
+                    items.push(makeItem(t, h, 'qty', pickPart(t), t.ri(1, 4) * (r() < .5 ? 1 : -1)));
+                }
+            });
+        });
+
+        const day = { date, items, active, excluded };
+        dayCache.set(key, day);
+        return day;
+    }
+
+    /* ════════════ 집계 ════════════ */
+    const deltaOf = it => it.nextQty - it.prevQty;
+
+    function summarize(day, brand) {
+        const match = x => !brand || x.brand === brand;
+        const items = day.items.filter(match);
+        const active = day.active.filter(match);
+        const s = {
+            hogis: active.length,
+            excluded: day.excluded.filter(match),
+            changed: new Set(items.map(x => x.hogi)).size,
+            lines: active.reduce((a, h) => a + h.lines, 0),
+            qtyPrev: active.reduce((a, h) => a + h.qty, 0),
+            qty: 0, swap: 0, add: 0, del: 0, inc: 0, dec: 0
+        };
+        items.forEach(it => {
+            s[it.type]++;
+            const d = deltaOf(it);
+            if (d > 0) s.inc += d; else s.dec += d;
+        });
+        s.net = s.inc + s.dec;
+        s.qtyNow = s.qtyPrev + s.net;
+        s.mat = s.swap + s.add + s.del;
+        s.total = s.qty + s.mat;
+        s.match = s.lines ? (s.lines - s.total) / s.lines * 100 : 100;
+        return s;
+    }
+
+    /* 배치는 평일에만 돈다 (CopService cron 1-5 기준) */
+    function lastBizDay(d) {
+        const x = new Date(d);
+        while (x.getDay() === 0 || x.getDay() === 6) x.setDate(x.getDate() - 1);
+        return x;
+    }
+    function prevBizDay(d) {
+        const x = new Date(d);
+        x.setDate(x.getDate() - 1);
+        return lastBizDay(x);
+    }
+    function recentDays(date, n) {
+        const days = [date];
+        while (days.length < n) days.unshift(prevBizDay(days.at(0)));
+        return days;
+    }
+
+    /* ════════════ 상태 ════════════ */
+    const PAGE_SIZE = 12;
+    const state = {
+        date: lastBizDay(new Date()), brand: '', block: '', type: 'all', q: '',
+        view: 'rows', ledK: 'total', ledDir: -1, detK: 'type', detDir: 1, page: 1
+    };
+    let day, sum, prevSum, brandRows;
+
+    function select(patch, scroll) {
+        Object.assign(state, patch, { page: 1 });
+        render();
+        if (scroll) {
+            const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            $('detail').scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+        }
+    }
+    const toggleBrand = code => select({ brand: state.brand === code ? '' : code, block: '' });
+
+    /* ════════════ 결론 · 지표 ════════════ */
+    function renderHero() {
+        const prev = prevBizDay(state.date);
+        $('periodText').textContent = dayLabel(prev) + ' → ' + dayLabel(state.date);
+        const scope = state.brand ? state.brand + ' ' : '';
+        const changedBrands = brandRows.filter(x => x.total > 0);
+
+        if (!sum.total) {
+            $('heroTitle').innerHTML = esc(scope) + '비교한 <b>' + sum.hogis + '대</b>의 BOM 이 전일과 같습니다';
+            $('heroSub').textContent = '수량이 달라지거나 다른 자재가 수배된 호기가 없습니다.';
+            return;
+        }
+        if (state.brand) {
+            $('heroTitle').innerHTML = '<b>' + esc(state.brand) + '</b> ' + sum.hogis + '대 중 <b>' + sum.changed + '대</b>의 BOM 이 전일과 달라졌습니다';
+        } else {
+            $('heroTitle').innerHTML = '<b>' + changedBrands.length + '개 브랜드, ' + sum.changed + '대</b>의 BOM 이 전일과 달라졌습니다';
+        }
+        const lead = state.brand ? '' : '변경이 가장 많은 브랜드는 ' + changedBrands.slice().sort((a, b) => b.total - a.total).at(0).code + ' 입니다. ';
+        $('heroSub').textContent = lead + '다른 자재 수배 ' + fmt(sum.mat) + '건, 수량 변경 ' + fmt(sum.qty) + '건이 확인되었고 자재 수량은 전일보다 ' +
+            (sum.net === 0 ? '변동이 없습니다.' : fmt(Math.abs(sum.net)) + (sum.net > 0 ? ' 늘었습니다.' : ' 줄었습니다.'));
+    }
+
+    function renderWatch() {
+        const items = day.items.filter(x => !state.brand || x.brand === state.brand);
+        const rows = [];
+
+        const swaps = groupParts(items.filter(x => x.type === 'swap')).at(0);
+        if (swaps) {
+            rows.push('<li><button type="button" class="watch-row" data-q="' + esc(swaps.nextNo) + '" data-t="swap"><b>' + esc(swaps.name) + ' 품번 교체</b>' +
+                '<small><span class="mono">' + esc(swaps.prevNo) + ' → ' + esc(swaps.nextNo) + '</span> · ' + swaps.hogis.size + '대</small>' + ARROW + '</button></li>');
+        }
+        const swing = (state.brand ? brandRows.filter(x => x.code === state.brand) : brandRows.slice())
+            .filter(x => x.net !== 0).sort((a, b) => Math.abs(b.net) - Math.abs(a.net)).at(0);
+        if (swing) {
+            rows.push('<li><button type="button" class="watch-row" data-b="' + esc(swing.code) + '" data-t="qty"><b>' + esc(swing.code) + ' 수량 ' + signed(swing.net) + '</b>' +
+                '<small>증가 ' + signed(swing.inc) + ' · 감소 ' + signed(swing.dec) + '</small>' + ARROW + '</button></li>');
+        }
+        if (sum.excluded.length) {
+            const names = sum.excluded.map(x => x.hogi);
+            rows.push('<li><div class="watch-row"><b>비교하지 못한 호기 ' + names.length + '대</b>' +
+                '<small><span class="mono">' + names.slice(0, 3).map(esc).join(', ') + '</span>' + (names.length > 3 ? ' 외 ' + (names.length - 3) + '대' : '') + ' · BOM 없음</small></div></li>');
+        }
+        $('watchList').innerHTML = rows.length ? rows.join('') : '<li><div class="watch-row"><small>확인이 필요한 항목이 없습니다.</small></div></li>';
+    }
+
+    function compare(cur, prev, unit) {
+        const d = cur - prev;
+        return '직전 비교 대비 ' + (d === 0 ? '같음' : (d > 0 ? '▲ ' : '▼ ') + fmt(Math.abs(d)) + unit);
+    }
+
+    function renderKpis() {
+        const go = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+        $('kpis').innerHTML =
+            '<div class="kpi">' +
+                '<div class="kpi-l">변동 호기</div>' +
+                '<div class="kpi-v"><b>' + fmt(sum.changed) + '</b><small>/ ' + fmt(sum.hogis) + '대</small></div>' +
+                '<div class="kpi-d">' + compare(sum.changed, prevSum.changed, '대') + '</div>' +
+                '<div class="kpi-s">비교 제외 ' + sum.excluded.length + '대</div>' +
+            '</div>' +
+            '<button type="button" class="kpi" data-t="qty">' +
+                '<div class="kpi-l"><i class="dot" style="background:var(--t-qty)"></i>수량 변경' + go + '</div>' +
+                '<div class="kpi-v"><b>' + fmt(sum.qty) + '</b><small>건</small></div>' +
+                '<div class="kpi-d">' + compare(sum.qty, prevSum.qty, '건') + '</div>' +
+                '<div class="kpi-s">전체 수량 순증감 ' + (signed(sum.net) || '0') + '</div>' +
+            '</button>' +
+            '<button type="button" class="kpi" data-t="mat">' +
+                '<div class="kpi-l"><i class="dot" style="background:var(--t-swap)"></i>다른 자재 수배' + go + '</div>' +
+                '<div class="kpi-v"><b>' + fmt(sum.mat) + '</b><small>건</small></div>' +
+                '<div class="kpi-d">' + compare(sum.mat, prevSum.mat, '건') + '</div>' +
+                '<div class="kpi-s">교체 ' + sum.swap + ' · 신규 ' + sum.add + ' · 제외 ' + sum.del + '</div>' +
+            '</button>' +
+            '<div class="kpi">' +
+                '<div class="kpi-l">BOM 일치율</div>' +
+                '<div class="kpi-v"><b>' + sum.match.toFixed(1) + '</b><small>%</small></div>' +
+                '<div class="kpi-d">' + compare(Number(sum.match.toFixed(1)), Number(prevSum.match.toFixed(1)), 'pt') + '</div>' +
+                '<div class="kpi-s">' + fmt(sum.lines) + '개 라인 중 ' + fmt(sum.total) + '건 변경</div>' +
+            '</div>';
+    }
+
+    /* ════════════ 차트 ════════════ */
+    const charts = {};
+    function drawChart(id, hasData, opt) {
+        if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+        const none = $(id + 'None');
+        $(id).hidden = !hasData;
+        if (none) none.hidden = hasData;
+        if (hasData) charts[id] = Highcharts.chart(id, opt);
+    }
+    const fade = (color, code) => Highcharts.color(color).setOpacity(!state.brand || state.brand === code ? 1 : .22).get();
+
+    function brandOrder() {
+        return brandRows.slice().sort((a, b) => b.total - a.total);
+    }
+    const pointClick = { click: function () { toggleBrand(this.category); } };
+
+    function renderMix() {
+        const rows = brandOrder();
+        const top = rows.slice().sort((a, b) => b.mat - a.mat).at(0);
+        $('mixDesc').textContent = top.mat ? '다른 자재 수배가 가장 많은 브랜드는 ' + top.code + ' (' + top.mat + '건)' : '다른 자재 수배가 없습니다';
+        $('chMix').setAttribute('aria-label', '브랜드별 변경 건수. ' + rows.map(x => x.code + ' ' + x.total + '건').join(', '));
+        drawChart('chMix', rows.some(x => x.total > 0), {
+            chart: { type: 'bar' },
+            xAxis: { categories: rows.map(x => x.code), labels: { style: { fontFamily: 'var(--mono)', fontWeight: '700' } } },
+            yAxis: { title: { text: null }, allowDecimals: false, reversedStacks: false,
+                stackLabels: { enabled: true, style: { fontWeight: '700', color: css('--ink'), textOutline: 'none' } } },
+            tooltip: { shared: true, headerFormat: '<b>{point.key}</b><br/>', pointFormat: '<span style="color:{series.color}">●</span> {series.name}: <b>{point.y}건</b><br/>' },
+            plotOptions: { bar: { stacking: 'normal', pointWidth: 18, borderWidth: 1, borderColor: '#fff', borderRadius: 3 }, series: { cursor: 'pointer', point: { events: pointClick } } },
+            series: TYPE_KEYS.map(k => ({
+                name: TYPES[k].label, color: TYPES[k].color,
+                data: rows.map(x => ({ y: x[k], color: fade(TYPES[k].color, x.code) }))
+            }))
+        });
+    }
+
+    function renderNet() {
+        const rows = brandOrder();
+        const top = rows.slice().sort((a, b) => Math.abs(b.net) - Math.abs(a.net)).at(0);
+        $('netDesc').textContent = top.net ? '순증감이 가장 큰 브랜드는 ' + top.code + ' (' + signed(top.net) + ')' : '전일과 수량 합계가 같습니다';
+        $('chNet').setAttribute('aria-label', '브랜드별 수량 증감. ' + rows.map(x => x.code + ' 증가 ' + fmt(x.inc) + ', 감소 ' + fmt(Math.abs(x.dec))).join(', '));
+        const label = {
+            enabled: true,
+            formatter: function () { return this.y ? signed(this.y) : null; },
+            style: { fontWeight: '600', color: css('--ink-2'), textOutline: 'none' }
+        };
+        drawChart('chNet', rows.some(x => x.inc || x.dec), {
+            chart: { type: 'bar' },
+            xAxis: { categories: rows.map(x => x.code), labels: { style: { fontFamily: 'var(--mono)', fontWeight: '700' } } },
+            yAxis: { title: { text: null }, minPadding: .14, maxPadding: .14, labels: { formatter: function () { return signed(this.value) || '0'; } },
+                plotLines: [{ value: 0, width: 1, color: css('--ink-3'), zIndex: 4 }] },
+            tooltip: { shared: true, headerFormat: '<b>{point.key}</b><br/>',
+                pointFormatter: function () { return '<span style="color:' + this.series.color + '">●</span> ' + this.series.name + ': <b>' + signed(this.y) + '</b><br/>'; } },
+            plotOptions: { bar: { grouping: false, pointWidth: 18, borderWidth: 0, borderRadius: 3, dataLabels: label }, series: { cursor: 'pointer', point: { events: pointClick } } },
+            series: [
+                { name: '증가', color: INC, data: rows.map(x => ({ y: x.inc, color: fade(INC, x.code) })) },
+                { name: '감소', color: DEC, data: rows.map(x => ({ y: x.dec, color: fade(DEC, x.code) })) }
+            ]
+        });
+    }
+
+    function renderTrend() {
+        const days = recentDays(state.date, 14);
+        const rows = days.map(d => summarize(makeDay(d), state.brand));
+        const avg = rows.reduce((a, x) => a + x.total, 0) / rows.length;
+        const last = rows.at(-1);
+        $('trendDesc').textContent = (state.brand ? state.brand + ' · ' : '전체 브랜드 · ') + '이번 ' + last.total + '건, 14회 평균 ' + fmt(avg) + '건';
+        $('chTrend').setAttribute('aria-label', '최근 14회 변경 건수 추이. 이번 ' + last.total + '건, 평균 ' + fmt(avg) + '건');
+        const lastX = rows.length - 1;
+        drawChart('chTrend', true, {
+            chart: { type: 'column' },
+            xAxis: { categories: days.map(d => (d.getMonth() + 1) + '/' + d.getDate()), labels: { style: { fontSize: '11px' } } },
+            yAxis: { title: { text: null }, allowDecimals: false, reversedStacks: false,
+                stackLabels: { enabled: true, formatter: function () { return this.x === lastX ? this.total : ''; }, style: { fontWeight: '700', color: css('--ink'), textOutline: 'none' } } },
+            tooltip: { shared: true, headerFormat: '<b>{point.key}</b><br/>', pointFormat: '<span style="color:{series.color}">●</span> {series.name}: <b>{point.y}건</b><br/>' },
+            plotOptions: { column: { stacking: 'normal', borderWidth: 1, borderColor: '#fff', borderRadius: 2, pointPadding: .1, groupPadding: .08 } },
+            series: TYPE_KEYS.map(k => ({ name: TYPES[k].label, color: TYPES[k].color, data: rows.map(x => x[k]) }))
+        });
+    }
+
+    /* ════════════ 브랜드 비교표 ════════════ */
+    function sparkline(values, max) {
+        const w = 5, gap = 2, h = 24;
+        const bars = values.map((v, i) => {
+            const bh = v ? Math.max(2, v / (max || 1) * h) : 1;
+            const fill = i === values.length - 1 ? css('--brand') : css('--heat-2');
+            return '<rect x="' + i * (w + gap) + '" y="' + (h - bh) + '" width="' + w + '" height="' + bh + '" rx="1" fill="' + fill + '"/>';
+        }).join('');
+        return '<svg class="spark" width="' + (values.length * (w + gap) - gap) + '" height="' + h + '" role="img" aria-label="최근 14회 변경 건수, 이번 ' + values.at(-1) + '건"><title>' + values.join(', ') + '</title>' + bars + '</svg>';
+    }
+
+    function renderLedger() {
+        const days = recentDays(state.date, 14);
+        const hist = {};
+        let histMax = 0;
+        BRANDS.forEach(b => {
+            hist[b.code] = days.map(d => summarize(makeDay(d), b.code).total);
+            histMax = Math.max(histMax, ...hist[b.code]);
+        });
+        const netMax = Math.max(1, ...brandRows.map(x => Math.max(x.inc, Math.abs(x.dec))));
+        const k = state.ledK, dir = state.ledDir;
+        const rows = brandRows.slice().sort((a, b) => {
+            const av = a[k], bv = b[k];
+            return (typeof av === 'string' ? av.localeCompare(bv) : av - bv) * dir;
+        });
+
+        $('ledBody').innerHTML = rows.map(x => {
+            const incW = x.inc / netMax * 50, decW = Math.abs(x.dec) / netMax * 50;
+            return '<tr class="' + (state.brand === x.code ? 'on' : '') + '" data-b="' + esc(x.code) + '">' +
+                '<td><button type="button" class="brand-btn" aria-pressed="' + (state.brand === x.code) + '">' + esc(x.code) + '</button></td>' +
+                '<td class="r tnum">' + x.changed + ' / ' + x.hogis + '대' + (x.excluded.length ? '<span class="sub">비교 제외 ' + x.excluded.length + '대</span>' : '') + '</td>' +
+                '<td class="r tnum">' + fmt(x.qtyPrev) + ' → <b>' + fmt(x.qtyNow) + '</b></td>' +
+                '<td class="r"><span class="diverge"><span class="dv" aria-hidden="true"><span class="dec" style="width:' + decW + '%"></span><span class="inc" style="width:' + incW + '%"></span></span>' +
+                    '<b class="tnum ' + (x.net > 0 ? 'up' : x.net < 0 ? 'down' : '') + '">' + (signed(x.net) || '0') + '</b></span></td>' +
+                '<td class="r tnum">' + x.qty + '건</td>' +
+                '<td class="r tnum"><b>' + x.mat + '건</b><span class="sub">교체 ' + x.swap + ' · 신규 ' + x.add + ' · 제외 ' + x.del + '</span></td>' +
+                '<td class="r tnum">' + x.match.toFixed(1) + '%</td>' +
+                '<td>' + sparkline(hist[x.code], histMax) + '</td>' +
+                '</tr>';
+        }).join('');
+
+        const all = summarize(day, '');
+        $('ledFoot').innerHTML = '<tr><td>전체</td>' +
+            '<td class="r tnum">' + all.changed + ' / ' + all.hogis + '대</td>' +
+            '<td class="r tnum">' + fmt(all.qtyPrev) + ' → ' + fmt(all.qtyNow) + '</td>' +
+            '<td class="r tnum ' + (all.net > 0 ? 'up' : all.net < 0 ? 'down' : '') + '">' + (signed(all.net) || '0') + '</td>' +
+            '<td class="r tnum">' + all.qty + '건</td>' +
+            '<td class="r tnum">' + all.mat + '건</td>' +
+            '<td class="r tnum">' + all.match.toFixed(1) + '%</td><td></td></tr>';
+
+        document.querySelectorAll('#ledHead th[data-k]').forEach(th => {
+            if (th.dataset.k === k) th.setAttribute('aria-sort', dir > 0 ? 'ascending' : 'descending');
+            else th.removeAttribute('aria-sort');
+        });
+    }
+
+    /* ════════════ 브랜드 x 블록 분포 ════════════ */
+    const heatClass = n => n === 0 ? 'zero' : n <= 2 ? 'h1' : n <= 5 ? 'h2' : n <= 10 ? 'h3' : n <= 20 ? 'h4' : 'h5';
+
+    function renderHeat() {
+        const blockTotal = {};
+        BLOCK_KEYS.forEach(k => { blockTotal[k] = 0; });
+        const cell = {};
+        day.items.forEach(it => {
+            const key = it.brand + '|' + it.block;
+            cell[key] = (cell[key] || 0) + 1;
+            blockTotal[it.block]++;
+        });
+        const cols = BLOCK_KEYS.slice().sort((a, b) => blockTotal[b] - blockTotal[a]);
+        const rows = brandOrder();
+
+        const topKey = Object.keys(cell).sort((a, b) => cell[b] - cell[a]).at(0);
+        if (topKey) {
+            const parts = topKey.split('|');
+            const topBlock = parts.at(1);
+            $('heatDesc').textContent = '가장 많이 달라진 곳은 ' + parts.at(0) + ' ' + BLOCKS[topBlock].name + ' (' + cell[topKey] + '건) · 칸을 누르면 상세 내역으로 이동합니다';
+        } else {
+            $('heatDesc').textContent = '달라진 블록이 없습니다';
+        }
+
+        $('heat').innerHTML = '<caption class="sr">브랜드와 블록별 변경 건수</caption><thead><tr><th scope="col">브랜드</th>' +
+            cols.map(k => '<th scope="col">' + esc(BLOCKS[k].name) + '</th>').join('') + '<th scope="col">합계</th></tr></thead><tbody>' +
+            rows.map(x => {
+                const dim = state.brand && state.brand !== x.code;
+                return '<tr class="' + (dim ? 'dim' : '') + '"><th scope="row">' + esc(x.code) + '</th>' + cols.map(k => {
+                    const n = cell[x.code + '|' + k] || 0;
+                    const sel = state.brand === x.code && state.block === k;
+                    return '<td><button type="button" class="heat-c tnum ' + heatClass(n) + (sel ? ' sel' : '') + '"' +
+                        (n ? ' data-b="' + esc(x.code) + '" data-k="' + k + '"' : ' disabled') +
+                        ' aria-label="' + esc(x.code) + ' ' + esc(BLOCKS[k].name) + ' ' + n + '건">' + (n || '·') + '</button></td>';
+                }).join('') + '<td class="heat-sum tnum">' + x.total + '</td></tr>';
+            }).join('') + '</tbody>';
+    }
+
+    /* ════════════ 상세 ════════════ */
+    function matchesType(it) {
+        if (state.type === 'all') return true;
+        if (state.type === 'mat') return it.type !== 'qty';
+        return it.type === state.type;
+    }
+    function scopedItems() {
+        const q = state.q.trim().toLowerCase();
+        return day.items.filter(it => {
+            if (state.brand && it.brand !== state.brand) return false;
+            if (state.block && it.block !== state.block) return false;
+            if (!q) return true;
+            return [it.hogi, it.brand, it.prevNo, it.nextNo, it.prevName, it.nextName].some(v => v && v.toLowerCase().includes(q));
+        });
+    }
+    function groupParts(items) {
+        const map = new Map();
+        items.forEach(it => {
+            const key = it.type + '|' + it.prevNo + '|' + it.nextNo;
+            let g = map.get(key);
+            if (!g) {
+                g = { type: it.type, prevNo: it.prevNo, nextNo: it.nextNo, name: it.nextName || it.prevName, prevName: it.prevName, nextName: it.nextName,
+                      block: it.block, uom: it.uom, brands: new Set(), hogis: new Set(), net: 0 };
+                map.set(key, g);
+            }
+            g.brands.add(it.brand);
+            g.hogis.add(it.hogi);
+            g.net += deltaOf(it);
+        });
+        return Array.from(map.values()).sort((a, b) => b.hogis.size - a.hogis.size || Math.abs(b.net) - Math.abs(a.net));
+    }
+
+    const partCell = (no, name) => no
+        ? '<td class="pn"><span class="pn-no">' + esc(no) + '</span><span class="pn-nm">' + esc(name) + '</span></td>'
+        : '<td class="pn nil">없음</td>';
+    const netCell = n => '<td class="r tnum"><b class="' + (n > 0 ? 'up' : n < 0 ? 'down' : '') + '">' + (signed(n) || '0') + '</b></td>';
+
+    function renderChips(items) {
+        const n = { all: items.length, qty: 0, mat: 0, swap: 0, add: 0, del: 0 };
+        items.forEach(it => { n[it.type]++; if (it.type !== 'qty') n.mat++; });
+        const chips = [
+            { k: 'all', l: '전체' }, { k: 'qty', l: '수량 변경' }, { k: 'mat', l: '다른 자재 전체' },
+            { k: 'swap', l: '교체' }, { k: 'add', l: '신규' }, { k: 'del', l: '제외' }
+        ];
+        $('chips').innerHTML = chips.map(c => '<button type="button" class="chip" data-t="' + c.k + '" aria-pressed="' + (state.type === c.k) + '">' + c.l + ' <span class="n">' + n[c.k] + '</span></button>').join('');
+    }
+
+    function renderScope() {
+        const parts = [];
+        if (state.brand) parts.push('<button type="button" data-clear="brand" aria-label="브랜드 필터 해제">' + esc(state.brand) + ' <span aria-hidden="true">×</span></button>');
+        if (state.block) parts.push('<button type="button" data-clear="block" aria-label="블록 필터 해제">' + esc(BLOCKS[state.block].name) + ' <span aria-hidden="true">×</span></button>');
+        $('scope').hidden = !parts.length;
+        $('scope').innerHTML = parts.length ? '<span>적용 중</span>' + parts.join('') : '';
+    }
+
+    function renderDetail() {
+        const scoped = scopedItems();
+        renderChips(scoped);
+        renderScope();
+        const items = scoped.filter(matchesType);
+        const parts = state.view === 'parts';
+        $('detRows').hidden = parts || !items.length;
+        $('detParts').hidden = !parts || !items.length;
+        $('detEmpty').hidden = items.length > 0;
+        document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
+
+        const list = parts ? groupParts(items) : sortRows(items);
+        const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+        state.page = Math.min(state.page, pages);
+        const slice = list.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE);
+
+        if (parts) {
+            $('partBody').innerHTML = slice.map(g => '<tr>' +
+                '<td><span class="tag ' + g.type + '">' + TYPES[g.type].label + '</span></td>' +
+                partCell(g.prevNo, g.prevName) + partCell(g.nextNo, g.nextName) +
+                '<td>' + esc(BLOCKS[g.block].name) + '</td>' +
+                '<td class="mono">' + Array.from(g.brands).map(esc).join(', ') + '</td>' +
+                '<td class="r tnum"><b>' + g.hogis.size + '대</b></td>' + netCell(g.net) + '</tr>').join('');
+            $('detCount').textContent = '자재 ' + fmt(list.length) + '종 (변경 ' + fmt(items.length) + '건)';
+        } else {
+            $('detBody').innerHTML = slice.map(it => '<tr>' +
+                '<td><span class="tag ' + it.type + '">' + TYPES[it.type].label + '</span></td>' +
+                '<td class="mono">' + esc(it.brand) + '</td>' +
+                '<td class="mono">' + esc(it.hogi) + '</td>' +
+                '<td>' + esc(BLOCKS[it.block].name) + '</td>' +
+                partCell(it.prevNo, it.prevName) + partCell(it.nextNo, it.nextName) +
+                '<td class="r tnum">' + fmt(it.prevQty) + '</td>' +
+                '<td class="r tnum">' + fmt(it.nextQty) + '</td>' +
+                netCell(deltaOf(it)) +
+                '<td>' + esc(it.uom) + '</td></tr>').join('');
+            $('detCount').textContent = '변경 ' + fmt(list.length) + '건';
+        }
+
+        $('pager').hidden = pages <= 1;
+        $('pgText').textContent = state.page + ' / ' + pages;
+        $('pgPrev').disabled = state.page <= 1;
+        $('pgNext').disabled = state.page >= pages;
+        document.querySelectorAll('#detHead th[data-k]').forEach(th => {
+            if (th.dataset.k === state.detK) th.setAttribute('aria-sort', state.detDir > 0 ? 'ascending' : 'descending');
+            else th.removeAttribute('aria-sort');
+        });
+    }
+
+    function sortRows(items) {
+        const k = state.detK, dir = state.detDir;
+        const value = it => k === 'type' ? TYPES[it.type].rank
+            : k === 'delta' ? deltaOf(it)
+            : k === 'block' ? BLOCKS[it.block].name
+            : it[k];
+        return items.slice().sort((a, b) => {
+            const av = value(a), bv = value(b);
+            const c = typeof av === 'string' ? av.localeCompare(bv) : av - bv;
+            return c * dir || Math.abs(deltaOf(b)) - Math.abs(deltaOf(a));
+        });
+    }
+
+    /* ════════════ 전체 그리기 ════════════ */
+    function render() {
+        day = makeDay(state.date);
+        sum = summarize(day, state.brand);
+        prevSum = summarize(makeDay(prevBizDay(state.date)), state.brand);
+        brandRows = BRANDS.map(b => Object.assign({ code: b.code }, summarize(day, b.code)));
+
+        $('inDate').value = isoDate(state.date);
+        $('inBrand').value = state.brand;
+        if ($('inSearch').value !== state.q) $('inSearch').value = state.q;
+
+        renderHero();
+        renderWatch();
+        renderKpis();
+        renderMix();
+        renderNet();
+        renderLedger();
+        renderHeat();
+        renderTrend();
+        renderDetail();
+    }
+
+    /* ════════════ 이벤트 ════════════ */
+    Highcharts.setOptions({
+        chart: { animation: false, backgroundColor: 'transparent', style: { fontFamily: css('--sans') }, spacing: [8, 12, 4, 0] },
+        title: { text: null },
+        credits: { enabled: false },
+        accessibility: { enabled: false },
+        legend: { align: 'left', verticalAlign: 'top', margin: 8, itemStyle: { fontSize: '13px', fontWeight: '600', color: css('--ink-2') }, symbolRadius: 2 },
+        tooltip: { backgroundColor: '#fff', borderColor: css('--line-2'), borderRadius: 8, style: { fontSize: '13px', color: css('--ink') } },
+        xAxis: { lineColor: css('--line-2'), tickLength: 0, labels: { style: { fontSize: '12.5px', color: css('--ink-2') } } },
+        yAxis: { gridLineColor: css('--line'), labels: { style: { fontSize: '12px', color: css('--ink-3') } } },
+        plotOptions: { series: { animation: false, states: { inactive: { opacity: 1 } } } }
+    });
+
+    $('inBrand').innerHTML = '<option value="">전체</option>' + BRANDS.map(b => '<option value="' + esc(b.code) + '">' + esc(b.code) + '</option>').join('');
+    $('inDate').max = isoDate(lastBizDay(new Date()));
+
+    $('inDate').addEventListener('change', e => {
+        if (!e.target.value) { render(); return; }
+        const p = e.target.value.split('-').map(Number);
+        select({ date: lastBizDay(new Date(p.at(0), p.at(1) - 1, p.at(2))), block: '' });
+    });
+    $('inBrand').addEventListener('change', e => select({ brand: e.target.value, block: '' }));
+
+    $('watchList').addEventListener('click', e => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        const patch = { type: b.dataset.t, block: '', q: b.dataset.q || '' };
+        if (b.dataset.b) patch.brand = b.dataset.b;
+        select(patch, true);
+    });
+    $('kpis').addEventListener('click', e => {
+        const b = e.target.closest('button');
+        if (b) select({ type: b.dataset.t }, true);
+    });
+
+    $('ledBody').addEventListener('click', e => {
+        const tr = e.target.closest('tr');
+        if (tr) toggleBrand(tr.dataset.b);
+    });
+    $('ledHead').addEventListener('click', e => {
+        const th = e.target.closest('th[data-k]');
+        if (!th) return;
+        const k = th.dataset.k;
+        state.ledDir = state.ledK === k ? -state.ledDir : (k === 'code' ? 1 : -1);
+        state.ledK = k;
+        renderLedger();
+    });
+
+    $('heat').addEventListener('click', e => {
+        const b = e.target.closest('button[data-k]');
+        if (b) select({ brand: b.dataset.b, block: b.dataset.k }, true);
+    });
+
+    $('chips').addEventListener('click', e => {
+        const b = e.target.closest('.chip');
+        if (!b) return;
+        state.type = b.dataset.t;
+        state.page = 1;
+        renderDetail();
+    });
+    $('scope').addEventListener('click', e => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        select(b.dataset.clear === 'brand' ? { brand: '', block: '' } : { block: '' });
+    });
+    document.querySelector('.seg').addEventListener('click', e => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        state.view = b.dataset.view;
+        state.page = 1;
+        renderDetail();
+    });
+    $('detHead').addEventListener('click', e => {
+        const th = e.target.closest('th[data-k]');
+        if (!th) return;
+        const k = th.dataset.k;
+        state.detDir = state.detK === k ? -state.detDir : (k === 'delta' ? -1 : 1);
+        state.detK = k;
+        state.page = 1;
+        renderDetail();
+    });
+    let timer;
+    $('inSearch').addEventListener('input', e => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            state.q = e.target.value;
+            state.page = 1;
+            renderDetail();
+        }, 150);
+    });
+    $('pgPrev').addEventListener('click', () => { state.page--; renderDetail(); });
+    $('pgNext').addEventListener('click', () => { state.page++; renderDetail(); });
+
+    render();
+})();
+</script>
+</body>
+</html>

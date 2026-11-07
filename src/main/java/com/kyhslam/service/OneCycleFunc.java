@@ -4,7 +4,10 @@ import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.kyhslam.dto.BomDTO;
 import com.kyhslam.util.PLMDBConnection;
+import com.kyhslam.util.ProductCommonUtil;
+import com.kyhslam.util.cop.CopUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -23,6 +26,8 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -56,12 +61,15 @@ public class OneCycleFunc {
     /** 공사정보 클래스 ouid (동일정보 생성 시 사용) */
     private static final String CLASS_OUID_ELV_INFO = "860cebeb";
 
-    /** BOM 계산 전개 옵션 (구성전개 c / 자재전개 m / 사양전개 f) */
+    /** BOM 계산 전개 옵션 (구성전개 c / 자재전개 m / 사양전개 f / 전기 파트 1, 2, 3) */
     public static final String BOM_C = "c";
     public static final String BOM_M = "m";
     public static final String BOM_F = "f";
+    public static final String BOM_1 = "1";
+    public static final String BOM_2 = "2";
+    public static final String BOM_3 = "3";
 
-    /** 종속사양 산출 / BOM 계산 재시도 횟수 */
+    /** 종속사양 산출 등 재시도 횟수 (BOM 계산은 재시도하지 않는다) */
     private static final int MAX_RETRY = 3;
 
     /** 재시도 간 대기 시간(ms) */
@@ -69,6 +77,9 @@ public class OneCycleFunc {
 
     private static final int CONNECT_TIMEOUT = 10000;
     private static final int READ_TIMEOUT = 120000;
+
+    /** BOM 계산 응답 대기 시간(ms). 계산이 오래 걸려 다른 호출보다 길게 둔다. */
+    private static final int BOM_READ_TIMEOUT = 600000;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -272,11 +283,74 @@ public class OneCycleFunc {
             return;
         }
 
-        // BOM 계산 (구성전개 c / 자재전개 m / 사양전개 f)
+        // BOM 계산 (구성전개 c / 자재전개 m / 사양전개 f / 전기 파트 1, 2, 3)
         String bomMessage = bomCalStart(session, vfOuid);
         result.setBomMessage(bomMessage);
         result.setSuccess(bomMessage != null);
         result.setMessage(bomMessage != null ? bomMessage : "BOM 계산 응답을 확인하지 못했습니다.");
+
+        // 호기 BOM 저장 + 배치 날짜 갱신 (결과는 사이클 성공 여부에 영향을 주지 않는다)
+        if (bomMessage != null) {
+            result.setBomSaveMessage(saveHogiBom(result.getProductNo()));
+            updateHogiBatchDate(result.getProductNo());
+        }
+    }
+
+    /**
+     * BOM 계산을 수행한 날짜(yyyyMMdd)를 관리대상 호기(PLM_SIMUL_HOGI)의 BATCHDATE 에 기록한다.
+     * 등록되지 않은 호기는 건너뛴다. 실패해도 예외를 던지지 않는다.
+     *
+     * @param productNo 프로젝트호기번호
+     */
+    public void updateHogiBatchDate(String productNo) {
+
+        if (productNo == null || productNo.isBlank()) {
+            return;
+        }
+
+        try {
+            String batchDate = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
+            boolean updated = CopUtil.updateManagedHogiBatchDate(productNo, batchDate);
+            System.out.println("[PLM_SIMUL_HOGI 배치 날짜] hogi = " + productNo
+                    + (updated ? ", batchDate = " + batchDate : ", 관리대상 호기가 아니어서 건너뜀"));
+        } catch (Exception e) {
+            System.out.println("### 배치 날짜 갱신 중 오류. hogi = " + productNo + ", " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 호기의 1레벨 BOM 을 조회해서 PLM_SIMUL_HOGIBOM 에 저장한다. BATCHDATE 는 오늘(yyyyMMdd).
+     * 같은 호기의 기존 BOM 은 지우고 다시 저장한다. 조회된 BOM 이 없으면 기존 BOM 을 그대로 둔다.
+     * 실패해도 예외를 던지지 않고 결과 메시지로 돌려준다.
+     *
+     * @param productNo 프로젝트호기번호
+     * @return 처리 결과 메시지
+     */
+    public String saveHogiBom(String productNo) {
+
+        String message;
+
+        try {
+            if (productNo == null || productNo.isBlank()) {
+                message = "호기번호가 없어 BOM 을 저장하지 못했습니다.";
+            } else {
+                List<BomDTO> bomList = ProductCommonUtil.findProductInfo_v01(productNo);
+                if (bomList.isEmpty()) {
+                    message = "조회된 BOM 이 없어 저장하지 않았습니다. productNo = " + productNo;
+                } else {
+                    String batchDate = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
+                    int count = CopUtil.replaceHogiBom(productNo, bomList, batchDate);
+                    return "BOM 저장 완료 : " + count + "건";
+                }
+            }
+        } catch (Exception e) {
+            message = "BOM 저장 중 오류 : " + e.getMessage();
+            e.printStackTrace();
+        }
+
+        System.out.println("### " + message);
+        return message;
     }
 
     /**
@@ -286,6 +360,11 @@ public class OneCycleFunc {
      */
     public PlmSession login() {
         return login(plmUserId, plmPassword);
+    }
+
+    /** 설정(application.properties)의 PLM 계정 사번 */
+    public String getPlmUserId() {
+        return plmUserId;
     }
 
     /**
@@ -380,60 +459,48 @@ public class OneCycleFunc {
     }
 
     /**
-     * BOM 계산 (구성전개 c / 자재전개 m / 사양전개 f 를 모두 수행)
+     * BOM 계산 (구성전개 c / 자재전개 m / 사양전개 f / 전기 파트 1, 2, 3 을 모두 수행)
      *
      * @param vfOuid {@link #toObjectOuid(String)} 로 조회한 영업사양 ouid (elv_info$vf@xxxxxxxx)
-     * @return 응답 json 의 message 값. 끝내 실패하면 null
+     * @return HTTP 200 이면 "BOM 계산 완료". 그 외에는 null
      */
     public String bomCalStart(PlmSession session, String vfOuid) {
-        return bomCalStart(session, vfOuid, BOM_C, BOM_M, BOM_F);
+        return bomCalStart(session, vfOuid, BOM_C, BOM_M, BOM_F, BOM_1, BOM_2, BOM_3);
     }
 
     /**
      * BOM 계산 (POST /SubaeManager.do, cmd=bomCalStart)
      *
      * @param vfOuid 영업사양 ouid. "ac45dd18" 처럼 ouid 만 넘겨도 되고 "elv_info$vf@ac45dd18" 전체를 넘겨도 된다.
-     * @param bc     b_c 값. 안 쓰면 null (예: "c")
-     * @param bm     b_m 값. 안 쓰면 null (예: "m")
-     * @param bf     b_f 값. 안 쓰면 null (예: "f")
-     * @return 응답 json 의 message 값. 응답이 json 이 아니면(세션 만료 등) 재시도하고, 끝내 실패하면 null
+     * @param parts  계산할 항목. 값마다 b_값=값 으로 전송한다. (예: "c" -> b_c=c, "1" -> b_1=1) null 은 건너뛴다.
+     * @return HTTP 200 이면 "BOM 계산 완료". 그 외(시간 초과, 연결 오류, 200 이 아닌 응답 등)에는 null
      */
-    public String bomCalStart(PlmSession session, String vfOuid, String bc, String bm, String bf) {
+    public String bomCalStart(PlmSession session, String vfOuid, String... parts) {
 
         String iOuid = toIOuid(vfOuid);
 
         Map<String, String> data = new LinkedHashMap<>();
         data.put("cmd", "bomCalStart");
         data.put("iOuid", iOuid);
-        if (bc != null) {
-            data.put("b_c", bc);
-        }
-        if (bm != null) {
-            data.put("b_m", bm);
-        }
-        if (bf != null) {
-            data.put("b_f", bf);
-        }
-
-        // 계산이 오래 걸려 응답이 끊기는 경우가 있어 실패 시 재시도
-        for (int i = 1; i <= MAX_RETRY; i++) {
-
-            PlmResponse response = post(session, baseUrl + "/SubaeManager.do", data, baseUrl + "/");
-            String message = getMessage(response.getBody());
-
-            System.out.println("[BOM 계산 " + i + "회차] iOuid = " + iOuid + ", message = " + message);
-
-            if (message != null) {
-                return message;
-            }
-
-            System.out.println("### BOM 계산 응답이 json 이 아닙니다. " + describe(response));
-
-            if (i < MAX_RETRY) {
-                sleep(RETRY_INTERVAL);
+        for (String part : parts) {
+            if (part != null) {
+                data.put("b_" + part, part);
             }
         }
 
+        // 시간 초과 후 다시 요청하면 서버에서 계산이 겹칠 수 있으므로 한 번만 요청한다.
+        PlmResponse response = post(session, baseUrl + "/SubaeManager.do", data, baseUrl + "/",
+                BOM_READ_TIMEOUT, true);
+
+        System.out.println("[BOM 계산] iOuid = " + iOuid + ", status = " + response.getStatus());
+
+        // BOM 계산 응답에는 message 가 없으므로 HTTP 200 이면 성공으로 본다.
+        if (response.getStatus() == HttpURLConnection.HTTP_OK) {
+            return "BOM 계산 완료";
+        }
+
+        System.out.println("### BOM 계산 정상 응답을 받지 못했습니다. status = " + response.getStatus()
+                + ", " + describe(response));
         return null;
     }
 
@@ -464,7 +531,8 @@ public class OneCycleFunc {
                             V.VF$VERSION AS VERSION
                             --,V.*
                      from ELV_INFO$VF V, ELV_INFO$id A
-                     where V.vf$identity = A.id$ouid and V.vf$ouid = A.id$wip
+                     where V.vf$identity = A.id$ouid 
+                       --and V.vf$ouid = A.id$wip -- wip 생성 찾기
                        AND V.md$number = ?
                     """.formatted(VF_PREFIX);
 
@@ -780,7 +848,10 @@ public class OneCycleFunc {
             if (verify) {
                 Map<String, String> current = getAttrValues(session, vfOuid, attrs.keySet());
                 result.setCurrent(current);
-                result.setVerified(result.getRequested().equals(current));
+                // 공백으로 보낸 항목은 null 로 조회될 수 있으므로 null 을 "" 로 보고 비교한다.
+                Map<String, String> normalized = new LinkedHashMap<>();
+                current.forEach((k, v) -> normalized.put(k, v == null ? "" : v));
+                result.setVerified(result.getRequested().equals(normalized));
             }
 
         } catch (Exception e) {
@@ -917,8 +988,10 @@ public class OneCycleFunc {
 
         for (Map.Entry<String, ?> entry : attrs.entrySet()) {
             Object value = entry.getValue();
-            String text = value instanceof Collection<?> c
-                    ? c.stream().map(String::valueOf).collect(Collectors.joining(","))
+            // 값이 없으면 공백("")으로 넘긴다. (null 이 "null" 문자열로 전송되지 않도록)
+            String text = value == null ? ""
+                    : value instanceof Collection<?> c
+                    ? c.stream().map(v -> v == null ? "" : String.valueOf(v)).collect(Collectors.joining(","))
                     : String.valueOf(value);
             data.put(entry.getKey(), text);
         }
@@ -1029,6 +1102,15 @@ public class OneCycleFunc {
 
     /** form-urlencoded POST. 세션 쿠키를 실어 보내고 응답의 Set-Cookie 를 세션에 반영한다. */
     private PlmResponse post(PlmSession session, String apiUrl, Map<String, String> data, String referer) {
+        return post(session, apiUrl, data, referer, READ_TIMEOUT, false);
+    }
+
+    /**
+     * @param readTimeout 응답 대기 시간(ms)
+     * @param sendOnce    true 면 연결이 끊겨도 JDK 가 POST 를 자동으로 다시 보내지 않도록 스트리밍 모드로 전송한다.
+     */
+    private PlmResponse post(PlmSession session, String apiUrl, Map<String, String> data, String referer,
+                             int readTimeout, boolean sendOnce) {
 
         HttpURLConnection conn = null;
 
@@ -1043,12 +1125,18 @@ public class OneCycleFunc {
                         .append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
             }
 
+            byte[] requestBody = sb.toString().getBytes(StandardCharsets.UTF_8);
+
             conn = openConnection(session, apiUrl, "POST", referer);
+            conn.setReadTimeout(readTimeout);
             conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
             conn.setDoOutput(true);
+            if (sendOnce) {
+                conn.setFixedLengthStreamingMode(requestBody.length);
+            }
 
             try (OutputStream os = conn.getOutputStream()) {
-                os.write(sb.toString().getBytes(StandardCharsets.UTF_8));
+                os.write(requestBody);
             }
 
             return readResponse(session, conn, apiUrl);
@@ -1259,6 +1347,9 @@ public class OneCycleFunc {
 
         /** BOM 계산 결과 메시지 */
         private String bomMessage;
+
+        /** 호기 BOM 저장(PLM_SIMUL_HOGIBOM) 결과 메시지 (BOM 계산 응답을 받지 못하면 null) */
+        private String bomSaveMessage;
 
         /** 최종 결과 메시지 */
         private String message;

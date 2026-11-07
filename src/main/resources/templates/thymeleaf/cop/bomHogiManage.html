@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>관리대상 호기 · SENTINEL</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        SENTINEL B1 · 관리대상 호기 관리 (CopMainController : GET /cop/hogi)
+
+        BOM 이상감지를 수행할 호기(PLM_SIMUL_HOGI)를 조회 · 등록 · 수정 · 삭제한다.
+          조회 : GET  /cop/hogi/list
+          저장 : POST /cop/hogi/save   (mode=create|update)
+          삭제 : POST /cop/hogi/delete (hogis=[호기, ...])
+
+        행의 [원사이클] 은 호기별 실행 팝업(GET /cop/bom/oneCycle?hogi=호기, bomOneCycle.html)을 연다.
+
+        검색 · 정렬 · 페이지 나눔은 받아 온 목록으로 화면에서 처리한다.
+        배치 날짜는 yyyyMMdd 로 저장한다.
+    -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <style>
+        /* ════════════ 토큰 (SENTINEL 공통) ════════════ */
+        :root {
+            color-scheme: dark;
+            --void:    #04060A;
+            --panel:   #0C1018;
+            --panel-2: #111723;
+            --panel-3: #161D2B;
+            --line:    rgba(255,255,255,.08);
+            --line-2:  rgba(255,255,255,.15);
+
+            --ink:   #F4F6FA;
+            --ink-2: #AEB6C4;
+            --ink-3: #8690A1;
+
+            --scan:   #7FE3FF;  --scan-dim:  rgba(127,227,255,.13);
+            --alert:  #FF6B4A;  --alert-dim: rgba(255,90,54,.15);
+            --warn:   #FFB020;  --warn-dim:  rgba(255,176,32,.14);
+            --ok:     #5EF0A6;  --ok-dim:    rgba(94,240,166,.13);
+
+            --mono: "D2Coding", Consolas, "SF Mono", Menlo, monospace;
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+            --ease-out: cubic-bezier(.16,1,.3,1);
+            --nav-h: 64px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; background: var(--void); }
+        body { margin: 0; min-height: 100vh; font-family: var(--sans); font-size: 15px; line-height: 1.5; color: var(--ink); background: var(--void); word-break: keep-all; overflow-wrap: anywhere; }
+        h1, h2, h3, p, ul { margin: 0; }
+        ul { padding: 0; list-style: none; }
+        a { color: inherit; text-decoration: none; }
+        button, input, select { font: inherit; color: inherit; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 2px solid var(--scan); outline-offset: 2px; border-radius: 6px; }
+        .mono { font-family: var(--mono); }
+        .tnum { font-variant-numeric: tabular-nums; }
+        .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        .wrap { width: 100%; max-width: 1440px; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
+        @media (min-width: 900px) { .wrap { padding-left: 32px; padding-right: 32px; } }
+        .skip { position: absolute; left: 12px; top: -60px; z-index: 110; padding: 10px 14px; border-radius: 8px; background: var(--ink); color: var(--void); font-weight: 700; }
+        .skip:focus { top: 12px; }
+
+        /* ════════════ 상단 바 ════════════ */
+        .nav { position: sticky; top: 0; z-index: 40; background: rgba(4,6,10,.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+        .nav-in { height: var(--nav-h); display: flex; align-items: center; gap: 16px; }
+        .brand { display: flex; align-items: center; gap: 12px; flex: none; }
+        .brand-mark { position: relative; width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--scan); }
+        .brand-mark::after { content: ""; position: absolute; left: 50%; top: 50%; width: 50%; height: 1.5px; background: var(--scan); transform-origin: 0 50%; animation: spin 3s linear infinite; }
+        .brand b { font: 800 14px/1 var(--sans); letter-spacing: .3em; }
+        .crumb { display: none; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-2); }
+        .crumb .floor-tag { font: 700 13px/1 var(--mono); color: var(--alert); text-shadow: 0 0 10px rgba(255,90,54,.55); padding: 5px 8px; border-radius: 6px; background: #000; border: 1px solid var(--line-2); }
+        .crumb b { color: var(--ink); font-weight: 750; }
+        @media (min-width: 760px) { .crumb { display: flex; } }
+        .nav-tools { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; cursor: pointer;
+            font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap;
+            transition: background .2s, border-color .2s, transform .2s var(--ease-out), opacity .2s;
+        }
+        .btn:hover:not(:disabled) { background: rgba(255,255,255,.06); border-color: var(--ink-3); }
+        .btn:active:not(:disabled) { transform: scale(.97); }
+        .btn:disabled { opacity: .45; cursor: not-allowed; }
+        .btn-sm { min-height: 34px; padding: 0 12px; font-size: 13px; }
+        .btn-solid { background: var(--ink); color: var(--void); border-color: var(--ink); }
+        .btn-solid:hover:not(:disabled) { background: #fff; border-color: #fff; box-shadow: 0 8px 22px -8px rgba(127,227,255,.6); }
+        .btn-danger { color: var(--alert); border-color: rgba(255,107,74,.45); }
+        .btn-danger:hover:not(:disabled) { background: var(--alert-dim); border-color: var(--alert); }
+        .btn-cycle { color: var(--scan); border-color: rgba(127,227,255,.45); }
+        .btn-cycle:hover:not(:disabled) { background: var(--scan-dim); border-color: var(--scan); }
+        .btn-danger-solid { background: var(--alert); border-color: var(--alert); color: #1A0500; }
+        .btn-danger-solid:hover:not(:disabled) { background: #FF8469; border-color: #FF8469; }
+        @media (max-width: 560px) { .hide-sm { display: none; } }
+
+        .card { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; min-width: 0; }
+
+        main.wrap { padding-top: 24px; padding-bottom: 64px; display: flex; flex-direction: column; gap: 16px; }
+
+        /* ════════════ 머리 ════════════ */
+        .head { position: relative; overflow: hidden; padding: 28px; background: radial-gradient(600px 240px at 88% 0%, rgba(127,227,255,.13), transparent 70%), var(--panel); }
+        .kicker { font: 700 12px/1 var(--mono); letter-spacing: .2em; color: var(--scan); }
+        .head h1 { margin-top: 12px; font-size: clamp(26px, 2.6vw, 34px); font-weight: 850; letter-spacing: -.025em; line-height: 1.25; }
+        .head p { margin-top: 8px; font-size: 15px; color: var(--ink-2); max-width: 720px; }
+
+        /* ════════════ 요약 ════════════ */
+        .summary { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 1100px) { .summary { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
+        .kpis { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        @media (min-width: 700px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .kpi { padding: 20px; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+        .kpi-hd { font-size: 13.5px; font-weight: 650; color: var(--ink-2); }
+        .kpi b { font-size: 34px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+        .kpi b small { margin-left: 4px; font-size: 14px; font-weight: 600; color: var(--ink-3); letter-spacing: 0; }
+        .kpi p { font-size: 13px; color: var(--ink-3); }
+        .kpi.is-main b { color: var(--scan); }
+        .kpi.is-warn b { color: var(--warn); }
+
+        .dist { padding: 20px; }
+        .dist h2 { font-size: 15px; font-weight: 750; }
+        .dist ul { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+        .dist li { display: grid; grid-template-columns: minmax(64px, 96px) minmax(0, 1fr) 32px; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); }
+        .dist li > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dist-bar { height: 6px; border-radius: 99px; background: var(--panel-3); overflow: hidden; }
+        .dist-bar span { display: block; height: 100%; border-radius: 99px; background: var(--scan); }
+        .dist li b { text-align: right; font-family: var(--mono); font-weight: 600; color: var(--ink); }
+        .dist .none { margin-top: 14px; font-size: 13px; color: var(--ink-3); }
+
+        /* ════════════ 목록 ════════════ */
+        .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+        .search { position: relative; flex: 1 1 260px; max-width: 420px; }
+        .search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
+        .field-in { width: 100%; min-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--panel-2); font-size: 14px; }
+        .field-in:focus { outline: none; border-color: var(--scan); box-shadow: 0 0 0 3px var(--scan-dim); }
+        .field-in::placeholder { color: var(--ink-3); }
+        .search .field-in { padding-left: 36px; }
+        .brand-filter { width: auto; min-width: 150px; }
+        .tools-end { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+        .sel-count { font-size: 13px; color: var(--ink-2); }
+
+        .tbl-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 1040px; }
+        thead th { background: var(--panel-2); text-align: left; font-size: 12.5px; font-weight: 650; color: var(--ink-2); padding: 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+        thead th button { width: 100%; min-height: 42px; padding: 0 14px; border: 0; background: transparent; cursor: pointer; font: inherit; color: inherit; text-align: left; display: inline-flex; align-items: center; gap: 4px; }
+        thead th button:hover { color: var(--ink); }
+        thead th[aria-sort="ascending"] button::after  { content: "▲"; font-size: 9px; color: var(--scan); }
+        thead th[aria-sort="descending"] button::after { content: "▼"; font-size: 9px; color: var(--scan); }
+        thead th .th { display: inline-flex; min-height: 42px; align-items: center; padding: 0 14px; }
+        tbody td { padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+        tbody tr { transition: background .12s; }
+        tbody tr:hover { background: rgba(255,255,255,.025); }
+        tbody tr.is-sel { background: var(--scan-dim); }
+        .c-sel { width: 48px; text-align: center; padding-left: 16px !important; padding-right: 4px !important; }
+        .c-sel input { width: 18px; height: 18px; margin: 0; accent-color: var(--scan); cursor: pointer; vertical-align: middle; }
+        .hogi-no { font-family: var(--mono); font-weight: 700; color: var(--ink); }
+        .before-no { font-family: var(--mono); color: var(--ink-2); }
+        .muted { color: var(--ink-3); }
+        .pill { display: inline-flex; padding: 2px 10px; border-radius: 999px; background: var(--panel-3); border: 1px solid var(--line); font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+        .no-batch { display: inline-flex; padding: 2px 8px; border-radius: 6px; background: var(--warn-dim); color: var(--warn); font-size: 12px; font-weight: 700; }
+        .row-acts { display: flex; justify-content: flex-end; gap: 6px; }
+        .c-acts { width: 1%; }
+
+        .state { padding: 64px 20px; text-align: center; color: var(--ink-2); }
+        .state h3 { font-size: 17px; font-weight: 750; color: var(--ink); }
+        .state p { margin-top: 6px; font-size: 14px; }
+        .state .btn { margin-top: 16px; }
+        .skel { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--panel-3) 25%, rgba(255,255,255,.09) 50%, var(--panel-3) 75%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+        @keyframes shimmer { to { background-position: -200% 0; } }
+
+        .foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 20px; font-size: 13px; color: var(--ink-2); }
+        .pager { display: flex; align-items: center; gap: 8px; }
+
+        /* ════════════ 등록 · 수정 드로어 ════════════ */
+        .scrim { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.62); opacity: 0; transition: opacity .2s; }
+        .scrim.on { opacity: 1; }
+        .drawer {
+            position: fixed; top: 0; right: 0; bottom: 0; z-index: 100; width: min(480px, 100%);
+            background: var(--panel); border-left: 1px solid var(--line-2); display: flex; flex-direction: column;
+            transform: translateX(100%); transition: transform .28s var(--ease-out);
+        }
+        .drawer.on { transform: none; }
+        .dr-hd { padding: 22px 24px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; gap: 12px; }
+        .dr-hd h2 { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+        .dr-hd p { margin-top: 4px; font-size: 13.5px; color: var(--ink-2); }
+        .icon-btn { margin-left: auto; width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line-2); background: transparent; color: var(--ink-2); cursor: pointer; }
+        .icon-btn:hover { background: rgba(255,255,255,.06); color: var(--ink); }
+        .dr-bd { flex: 1; overflow-y: auto; padding: 22px 24px; display: flex; flex-direction: column; gap: 18px; }
+        .field label { display: block; margin-bottom: 6px; font-size: 13.5px; font-weight: 650; color: var(--ink-2); }
+        .field label i { font-style: normal; color: var(--alert); }
+        .field .field-in { min-height: 44px; }
+        .field .field-in[readonly] { background: transparent; border-style: dashed; color: var(--ink-2); cursor: not-allowed; }
+        .field .field-in[aria-invalid="true"] { border-color: var(--alert); }
+        .field-pair { display: grid; gap: 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .help { margin-top: 6px; font-size: 12.5px; color: var(--ink-3); }
+        .err { margin-top: 6px; font-size: 13px; font-weight: 600; color: var(--alert); }
+        .form-err { padding: 12px 14px; border-radius: 12px; background: var(--alert-dim); color: var(--alert); font-size: 13.5px; font-weight: 600; }
+        .dr-ft { padding: 16px 24px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; }
+
+        /* ════════════ 삭제 확인 ════════════ */
+        .modal { position: fixed; z-index: 100; left: 50%; top: 50%; width: min(460px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow-y: auto; transform: translate(-50%, -50%); padding: 26px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 20px; }
+        .modal h2 { font-size: 19px; font-weight: 800; }
+        .modal > p { margin-top: 8px; font-size: 14px; color: var(--ink-2); }
+        .del-list { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 14px; font: 600 13px/1.5 var(--mono); }
+        .modal .form-err { margin-top: 14px; }
+        .modal-ft { margin-top: 20px; display: flex; justify-content: flex-end; gap: 8px; }
+
+        /* ════════════ 알림 ════════════ */
+        .toast { position: fixed; z-index: 120; left: 50%; bottom: 24px; transform: translate(-50%, 16px); max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 999px; background: var(--ink); color: var(--void); font-size: 14px; font-weight: 700; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s var(--ease-out); }
+        .toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: .01ms !important; animation: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+
+<header class="nav">
+    <div class="wrap nav-in">
+        <a class="brand" href="/cop/main" aria-label="SENTINEL 메인으로">
+            <span class="brand-mark" aria-hidden="true"></span><b>SENTINEL</b>
+        </a>
+        <div class="crumb" aria-label="현재 위치">
+            <span class="floor-tag">B1</span><b>관리대상 호기</b>
+        </div>
+        <div class="nav-tools">
+            <a class="btn hide-sm" href="/cop/main">메인으로</a>
+            <button type="button" class="btn btn-solid" id="btnAdd">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                호기 등록
+            </button>
+        </div>
+    </div>
+</header>
+
+<main class="wrap" id="main">
+
+    <section class="card head" aria-labelledby="pageTitle">
+        <p class="kicker">B1 · MANAGED UNITS</p>
+        <h1 id="pageTitle">관리대상 호기</h1>
+        <p>BOM 이상감지를 수행할 호기를 한곳에서 조회하고, 등록 · 수정 · 삭제합니다.</p>
+    </section>
+
+    <section class="summary" aria-label="관리 현황 요약">
+        <div class="kpis">
+            <article class="card kpi is-main"><span class="kpi-hd">전체 관리 호기</span><b class="tnum"><span id="kTotal">-</span><small>대</small></b><p>PLM_SIMUL_HOGI 기준</p></article>
+            <article class="card kpi"><span class="kpi-hd">이전호기 연결</span><b class="tnum"><span id="kBefore">-</span><small>대</small></b><p id="kBeforeRate">-</p></article>
+            <article class="card kpi"><span class="kpi-hd">오늘 등록</span><b class="tnum"><span id="kToday">-</span><small>대</small></b><p id="kTodayDate">-</p></article>
+            <article class="card kpi is-warn"><span class="kpi-hd">배치 날짜 미지정</span><b class="tnum"><span id="kNoBatch">-</span><small>대</small></b><p id="kLastBatch">-</p></article>
+        </div>
+        <article class="card dist">
+            <h2>브랜드 분포</h2>
+            <ul id="brandDist"></ul>
+            <p class="none" id="brandNone" hidden>표시할 브랜드가 없습니다.</p>
+        </article>
+    </section>
+
+    <section class="card" aria-labelledby="listTitle">
+        <h2 class="sr" id="listTitle">호기 목록</h2>
+        <div class="tools">
+            <div class="search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <label class="sr" for="inSearch">호기 검색</label>
+                <input class="field-in" id="inSearch" type="search" placeholder="호기 · 이전호기 · 브랜드 · 용량 · 속도 검색" autocomplete="off">
+            </div>
+            <label class="sr" for="inBrand">브랜드 필터</label>
+            <select class="field-in brand-filter" id="inBrand"><option value="">전체 브랜드</option></select>
+            <div class="tools-end">
+                <span class="sel-count" id="selCount" hidden></span>
+                <button type="button" class="btn btn-sm btn-danger" id="btnDelSel" disabled>선택 삭제</button>
+                <button type="button" class="btn btn-sm" id="btnReload">새로고침</button>
+            </div>
+        </div>
+
+        <div class="tbl-wrap" id="tblWrap">
+            <table>
+                <thead>
+                <tr id="thead">
+                    <th scope="col" class="c-sel"><label class="sr" for="chkAll">현재 페이지 전체 선택</label><input type="checkbox" id="chkAll"></th>
+                    <th scope="col" data-k="HOGI"><button type="button">호기</button></th>
+                    <th scope="col" data-k="BEFOREHOGI"><button type="button">이전호기</button></th>
+                    <th scope="col" data-k="BRAND"><button type="button">브랜드</button></th>
+                    <th scope="col" data-k="ACAPA"><button type="button">용량</button></th>
+                    <th scope="col" data-k="SPEED"><button type="button">속도</button></th>
+                    <th scope="col" data-k="BATCHDATE"><button type="button">배치 날짜</button></th>
+                    <th scope="col" data-k="CREDATE" aria-sort="descending"><button type="button">생성 일시</button></th>
+                    <th scope="col" class="c-acts"><span class="th">관리</span></th>
+                </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+        </div>
+
+        <div class="state" id="stEmpty" hidden>
+            <h3>아직 등록된 호기가 없습니다</h3>
+            <p>BOM 이상감지를 수행할 호기를 등록해 주세요.</p>
+            <button type="button" class="btn btn-solid" id="btnAddEmpty">호기 등록</button>
+        </div>
+        <div class="state" id="stNoMatch" hidden>
+            <h3>조건에 맞는 호기가 없습니다</h3>
+            <p>검색어나 브랜드 필터를 바꿔 보세요.</p>
+            <button type="button" class="btn" id="btnClearFilter">조건 지우기</button>
+        </div>
+        <div class="state" id="stError" role="alert" hidden>
+            <h3>호기 목록을 불러오지 못했습니다</h3>
+            <p id="stErrorMsg"></p>
+            <button type="button" class="btn" id="btnRetry">다시 시도</button>
+        </div>
+
+        <div class="foot" id="foot" hidden>
+            <span id="listCount" aria-live="polite"></span>
+            <div class="pager">
+                <button type="button" class="btn btn-sm" id="btnPrev">이전</button>
+                <span class="tnum" id="pageInfo"></span>
+                <button type="button" class="btn btn-sm" id="btnNext">다음</button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<div class="scrim" id="scrim" hidden></div>
+
+<!-- 등록 · 수정 -->
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="formTitle" hidden>
+    <div class="dr-hd">
+        <div>
+            <h2 id="formTitle">호기 등록</h2>
+            <p id="formSub">BOM 이상감지 대상으로 관리할 호기를 입력합니다.</p>
+        </div>
+        <button type="button" class="icon-btn" id="formClose" aria-label="닫기">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+    </div>
+    <form id="form" novalidate style="display:contents">
+        <div class="dr-bd">
+            <div class="field">
+                <label for="fHogi">호기 <i aria-hidden="true">*</i></label>
+                <input class="field-in mono" id="fHogi" maxlength="50" required autocomplete="off" aria-describedby="fHogiHelp">
+                <p class="help" id="fHogiHelp">등록 후에는 호기를 바꿀 수 없습니다.</p>
+                <p class="err" id="fHogiErr" role="alert" hidden></p>
+            </div>
+            <div class="field">
+                <label for="fBefore">이전호기</label>
+                <input class="field-in mono" id="fBefore" maxlength="50" autocomplete="off">
+            </div>
+            <div class="field">
+                <label for="fBrand">브랜드</label>
+                <input class="field-in" id="fBrand" maxlength="100" autocomplete="off" list="brandList">
+                <datalist id="brandList"></datalist>
+            </div>
+            <div class="field-pair">
+                <div class="field">
+                    <label for="fAcapa">용량</label>
+                    <input class="field-in" id="fAcapa" maxlength="100" autocomplete="off">
+                </div>
+                <div class="field">
+                    <label for="fSpeed">속도</label>
+                    <input class="field-in" id="fSpeed" maxlength="100" autocomplete="off">
+                </div>
+            </div>
+            <div class="field">
+                <label for="fBatch">배치 날짜</label>
+                <input class="field-in mono" id="fBatch" type="date">
+                <p class="help" id="fBatchHelp" hidden></p>
+            </div>
+            <p class="form-err" id="formErr" role="alert" hidden></p>
+        </div>
+        <div class="dr-ft">
+            <button type="button" class="btn" id="formCancel">취소</button>
+            <button type="submit" class="btn btn-solid" id="formSave">저장</button>
+        </div>
+    </form>
+</aside>
+
+<!-- 삭제 확인 -->
+<div class="modal" id="delModal" role="alertdialog" aria-modal="true" aria-labelledby="delTitle" aria-describedby="delDesc" hidden>
+    <h2 id="delTitle">호기를 삭제할까요?</h2>
+    <p id="delDesc">삭제하면 되돌릴 수 없습니다.</p>
+    <div class="del-list" id="delList"></div>
+    <p class="form-err" id="delErr" role="alert" hidden></p>
+    <div class="modal-ft">
+        <button type="button" class="btn" id="delCancel">취소</button>
+        <button type="button" class="btn btn-danger-solid" id="delOk">삭제</button>
+    </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+    'use strict';
+
+    const PAGE_SIZE = 20;
+    const SEARCH_KEYS = ['HOGI', 'BEFOREHOGI', 'BRAND', 'ACAPA', 'SPEED'];
+
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const fmt = n => Number(n).toLocaleString('ko-KR');
+    const dash = v => v ? esc(v) : '<span class="muted">-</span>';
+
+    const state = { rows: [], q: '', brand: '', sortK: 'CREDATE', sortDir: -1, page: 1, selected: new Set(), loading: true, error: '' };
+
+    /* ════════════ 서버 호출 ════════════ */
+    async function api(url, body) {
+        const res = await fetch(url, body
+            ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+            : { cache: 'no-store' });
+        let data = {};
+        try { data = await res.json(); } catch (e) { /* 본문이 JSON 이 아니면 아래에서 상태 코드로 안내 */ }
+        if (!res.ok || data.success === false) throw new Error(data.message || '서버 응답 오류 (' + res.status + ')');
+        return data;
+    }
+
+    async function load() {
+        state.loading = true; state.error = '';
+        render();
+        try {
+            const data = await api('/cop/hogi/list');
+            state.rows = data.rows || [];
+            const alive = new Set(state.rows.map(x => x.HOGI));
+            state.selected.forEach(h => { if (!alive.has(h)) state.selected.delete(h); });
+        } catch (e) {
+            state.error = e.message;
+        }
+        state.loading = false;
+        render();
+    }
+
+    /* ════════════ 날짜 ════════════ */
+    const pad = n => String(n).padStart(2, '0');
+    const todayIso = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+    /* yyyyMMdd · yyyy-MM-dd → yyyy-MM-dd, 그 밖의 값은 빈 문자열 */
+    function toIso(v) {
+        const m = /^(\d{4})-?(\d{2})-?(\d{2})$/.exec((v || '').trim());
+        return m ? m.slice(1).join('-') : '';
+    }
+
+    /* ════════════ 목록 ════════════ */
+    function filtered() {
+        const q = state.q.trim().toLowerCase();
+        return state.rows
+            .filter(x => !state.brand || x.BRAND === state.brand)
+            .filter(x => !q || SEARCH_KEYS.some(k => (x[k] || '').toLowerCase().includes(q)))
+            .sort((a, b) => {
+                const va = a[state.sortK] || '', vb = b[state.sortK] || '';
+                if (!va !== !vb) return va ? -1 : 1;   /* 빈 값은 항상 뒤로 */
+                return va.localeCompare(vb, 'ko', { numeric: true }) * state.sortDir;
+            });
+    }
+
+    function renderSummary() {
+        const rows = state.rows, n = rows.length;
+        const before = rows.filter(x => x.BEFOREHOGI).length;
+        const today = todayIso();
+        const batches = rows.map(x => toIso(x.BATCHDATE)).filter(Boolean).sort();
+
+        $('kTotal').textContent = fmt(n);
+        $('kBefore').textContent = fmt(before);
+        $('kBeforeRate').textContent = n ? '전체의 ' + (before / n * 100).toFixed(1) + '%' : '등록된 호기 없음';
+        $('kToday').textContent = fmt(rows.filter(x => (x.CREDATE || '').startsWith(today)).length);
+        $('kTodayDate').textContent = today + ' 기준';
+        $('kNoBatch').textContent = fmt(rows.filter(x => !x.BATCHDATE).length);
+        $('kLastBatch').textContent = batches.length ? '최근 배치 ' + batches.at(-1) : '배치 날짜 없음';
+
+        const counts = {};
+        rows.forEach(x => { if (x.BRAND) counts[x.BRAND] = (counts[x.BRAND] || 0) + 1; });
+        const brands = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b, 'ko'));
+        const max = Math.max(1, ...Object.values(counts));
+        $('brandDist').innerHTML = brands.slice(0, 5).map(b =>
+            '<li><span title="' + esc(b) + '">' + esc(b) + '</span><span class="dist-bar" aria-hidden="true"><span style="width:' + (counts[b] / max * 100) + '%"></span></span><b>' + fmt(counts[b]) + '</b></li>'
+        ).join('');
+        $('brandNone').hidden = brands.length > 0;
+
+        const sel = $('inBrand');
+        if (state.brand && !counts[state.brand]) state.brand = '';
+        sel.innerHTML = '<option value="">전체 브랜드</option>' + brands.map(b => '<option value="' + esc(b) + '">' + esc(b) + '</option>').join('');
+        sel.value = state.brand;
+        $('brandList').innerHTML = brands.map(b => '<option value="' + esc(b) + '"></option>').join('');
+    }
+
+    function rowHtml(x) {
+        const on = state.selected.has(x.HOGI), h = esc(x.HOGI);
+        const batch = x.BATCHDATE ? esc(toIso(x.BATCHDATE) || x.BATCHDATE) : '<span class="no-batch">미지정</span>';
+        const diff = x.BEFOREHOGI
+            ? '<a class="btn btn-sm" href="/cop/diff?a=' + encodeURIComponent(x.BEFOREHOGI) + '&b=' + encodeURIComponent(x.HOGI) + '" aria-label="' + h + ' BOM 비교">BOM 비교</a>'
+            : '';
+        return '<tr data-hogi="' + h + '"' + (on ? ' class="is-sel"' : '') + '>' +
+            '<td class="c-sel"><input type="checkbox" data-act="sel" aria-label="' + h + ' 선택"' + (on ? ' checked' : '') + '></td>' +
+            '<td class="hogi-no">' + h + '</td>' +
+            '<td class="before-no">' + dash(x.BEFOREHOGI) + '</td>' +
+            '<td>' + (x.BRAND ? '<span class="pill">' + esc(x.BRAND) + '</span>' : dash('')) + '</td>' +
+            '<td class="tnum">' + dash(x.ACAPA) + '</td>' +
+            '<td class="tnum">' + dash(x.SPEED) + '</td>' +
+            '<td class="mono">' + batch + '</td>' +
+            '<td class="mono muted">' + dash(x.CREDATE) + '</td>' +
+            '<td class="c-acts"><div class="row-acts">' +
+                '<button type="button" class="btn btn-sm btn-cycle" data-act="cycle" aria-label="' + h + ' 원사이클 실행">원사이클</button>' +
+                diff +
+                '<button type="button" class="btn btn-sm" data-act="edit" aria-label="' + h + ' 수정">수정</button>' +
+                '<button type="button" class="btn btn-sm btn-danger" data-act="del" aria-label="' + h + ' 삭제">삭제</button>' +
+            '</div></td></tr>';
+    }
+
+    function render() {
+        const list = filtered();
+        const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+        state.page = Math.min(state.page, pages);
+        const start = (state.page - 1) * PAGE_SIZE;
+        const view = list.slice(start, start + PAGE_SIZE);
+
+        const ready = !state.loading && !state.error;
+        const hasRows = ready && view.length > 0;
+        $('tblWrap').hidden = !(state.loading || hasRows);
+        $('stEmpty').hidden = !(ready && state.rows.length === 0);
+        $('stNoMatch').hidden = !(ready && state.rows.length > 0 && list.length === 0);
+        $('stError').hidden = !state.error;
+        $('stErrorMsg').textContent = state.error;
+        $('foot').hidden = !hasRows;
+        $('btnReload').disabled = state.loading;
+
+        if (state.loading) {
+            $('tbody').innerHTML = Array.from({ length: 6 }, () => '<tr aria-hidden="true">' + '<td><div class="skel"></div></td>'.repeat(9) + '</tr>').join('');
+        } else {
+            renderSummary();
+            $('tbody').innerHTML = view.map(rowHtml).join('');
+            $('listCount').textContent = '전체 ' + fmt(state.rows.length) + '대 중 ' + fmt(list.length) + '대';
+            $('pageInfo').textContent = state.page + ' / ' + pages;
+            $('btnPrev').disabled = state.page <= 1;
+            $('btnNext').disabled = state.page >= pages;
+        }
+
+        const onPage = view.filter(x => state.selected.has(x.HOGI)).length;
+        $('chkAll').checked = view.length > 0 && onPage === view.length;
+        $('chkAll').indeterminate = onPage > 0 && onPage < view.length;
+        $('selCount').hidden = state.selected.size === 0;
+        $('selCount').textContent = fmt(state.selected.size) + '대 선택됨';
+        $('btnDelSel').disabled = state.selected.size === 0;
+
+        document.querySelectorAll('#thead th').forEach(th => {
+            if (!th.dataset.k) return;
+            if (th.dataset.k === state.sortK) th.setAttribute('aria-sort', state.sortDir > 0 ? 'ascending' : 'descending');
+            else th.removeAttribute('aria-sort');
+        });
+    }
+
+    /* 조건이 바뀌면 보이지 않는 호기가 함께 삭제되지 않도록 선택을 비운다 */
+    function changeFilter() {
+        state.page = 1;
+        state.selected.clear();
+        render();
+    }
+
+    /* ════════════ 알림 ════════════ */
+    let toastTimer;
+    function toast(msg) {
+        const t = $('toast');
+        t.textContent = msg;
+        t.classList.add('on');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('on'), 3500);
+    }
+
+    /* ════════════ 공통 : 오버레이 ════════════ */
+    let lastFocus = null, overlayTimer = null, activeOverlay = null;
+
+    function openOverlay(el, focusEl) {
+        clearTimeout(overlayTimer);
+        lastFocus = document.activeElement;
+        activeOverlay = el;
+        el.hidden = false; $('scrim').hidden = false;
+        requestAnimationFrame(() => { el.classList.add('on'); $('scrim').classList.add('on'); });
+        focusEl.focus();
+    }
+
+    function closeOverlay() {
+        const el = activeOverlay;
+        if (!el) return;
+        activeOverlay = null;
+        el.classList.remove('on'); $('scrim').classList.remove('on');
+        overlayTimer = setTimeout(() => { el.hidden = true; $('scrim').hidden = true; }, 220);
+        /* 목록을 다시 그려 원래 버튼이 사라졌으면 추가 버튼으로 포커스를 옮긴다 */
+        (lastFocus && document.contains(lastFocus) ? lastFocus : $('btnAdd')).focus();
+    }
+
+    document.addEventListener('keydown', e => {
+        if (!activeOverlay) return;
+        if (e.key === 'Escape') { if (!busy) closeOverlay(); return; }
+        if (e.key !== 'Tab') return;
+        const items = Array.from(activeOverlay.querySelectorAll('button, a[href], input, select')).filter(x => !x.disabled && !x.hidden);
+        const first = items.at(0), last = items.at(-1);
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+
+    /* ════════════ 등록 · 수정 ════════════ */
+    let editing = null, busy = false;
+
+    function setFieldError(msg) {
+        $('fHogiErr').textContent = msg;
+        $('fHogiErr').hidden = !msg;
+        $('fHogi').setAttribute('aria-invalid', String(!!msg));
+    }
+
+    function openForm(row) {
+        editing = row || null;
+        $('formTitle').textContent = row ? '호기 수정' : '호기 등록';
+        $('formSub').textContent = row ? row.HOGI + ' 호기의 정보를 수정합니다.' : 'BOM 이상감지 대상으로 관리할 호기를 입력합니다.';
+        $('fHogi').value = row ? row.HOGI : '';
+        $('fHogi').readOnly = !!row;
+        $('fBefore').value = row ? row.BEFOREHOGI : '';
+        $('fBrand').value = row ? row.BRAND : '';
+        $('fAcapa').value = row ? row.ACAPA : '';
+        $('fSpeed').value = row ? row.SPEED : '';
+        $('fBatch').value = row ? toIso(row.BATCHDATE) : '';
+        /* 날짜로 읽을 수 없는 기존 값은 새 날짜를 고르지 않으면 그대로 유지한다 */
+        const legacy = row && row.BATCHDATE && !toIso(row.BATCHDATE);
+        $('fBatchHelp').hidden = !legacy;
+        $('fBatchHelp').textContent = legacy ? '현재 값 "' + row.BATCHDATE + '" 은 날짜를 고르지 않으면 그대로 유지됩니다.' : '';
+        setFieldError('');
+        $('formErr').hidden = true;
+        openOverlay($('drawer'), row ? $('fBefore') : $('fHogi'));
+    }
+
+    function formBatchDate() {
+        const v = $('fBatch').value;
+        if (v) return v.replace(/-/g, '');
+        return editing && !toIso(editing.BATCHDATE) ? editing.BATCHDATE : '';
+    }
+
+    $('form').addEventListener('submit', async e => {
+        e.preventDefault();
+        if (busy) return;
+
+        const hogi = $('fHogi').value.trim().toUpperCase();
+        const before = $('fBefore').value.trim().toUpperCase();
+        setFieldError('');
+        $('formErr').hidden = true;
+        if (!hogi) { setFieldError('호기를 입력해 주세요.'); $('fHogi').focus(); return; }
+        if (hogi === before) { $('formErr').textContent = '이전호기는 호기와 달라야 합니다.'; $('formErr').hidden = false; $('fBefore').focus(); return; }
+
+        busy = true;
+        $('formSave').disabled = true; $('formSave').textContent = '저장 중…';
+        try {
+            await api('/cop/hogi/save', {
+                mode: editing ? 'update' : 'create', HOGI: hogi, BEFOREHOGI: before,
+                BRAND: $('fBrand').value.trim(), ACAPA: $('fAcapa').value.trim(), SPEED: $('fSpeed').value.trim(),
+                BATCHDATE: formBatchDate()
+            });
+            const wasEdit = !!editing;
+            busy = false;
+            closeOverlay();
+            toast(hogi + ' 호기를 ' + (wasEdit ? '수정' : '등록') + '했습니다.');
+            load();
+        } catch (err) {
+            $('formErr').textContent = err.message;
+            $('formErr').hidden = false;
+        } finally {
+            busy = false;
+            $('formSave').disabled = false; $('formSave').textContent = '저장';
+        }
+    });
+
+    $('fHogi').addEventListener('input', () => { if (!$('fHogiErr').hidden) setFieldError(''); });
+    $('formClose').addEventListener('click', () => { if (!busy) closeOverlay(); });
+    $('formCancel').addEventListener('click', () => { if (!busy) closeOverlay(); });
+
+    /* ════════════ 삭제 ════════════ */
+    let pendingDelete = [];
+
+    function openDelete(hogis) {
+        pendingDelete = hogis;
+        const shown = hogis.slice(0, 12);
+        $('delTitle').textContent = hogis.length > 1 ? '호기 ' + fmt(hogis.length) + '대를 삭제할까요?' : hogis.at(0) + ' 호기를 삭제할까요?';
+        $('delDesc').textContent = 'BOM 이상감지 관리대상에서 제외되며, 삭제하면 되돌릴 수 없습니다.';
+        $('delList').innerHTML = shown.map(h => '<span>' + esc(h) + '</span>').join('') +
+            (hogis.length > shown.length ? '<span class="muted">외 ' + fmt(hogis.length - shown.length) + '대</span>' : '');
+        $('delErr').hidden = true;
+        openOverlay($('delModal'), $('delCancel'));
+    }
+
+    $('delCancel').addEventListener('click', () => { if (!busy) closeOverlay(); });
+    $('delOk').addEventListener('click', async () => {
+        if (busy) return;
+        busy = true;
+        $('delOk').disabled = true; $('delOk').textContent = '삭제 중…';
+        $('delErr').hidden = true;
+        try {
+            const data = await api('/cop/hogi/delete', { hogis: pendingDelete });
+            pendingDelete.forEach(h => state.selected.delete(h));
+            busy = false;
+            closeOverlay();
+            toast('호기 ' + fmt(data.count) + '대를 삭제했습니다.');
+            load();
+        } catch (err) {
+            $('delErr').textContent = err.message;
+            $('delErr').hidden = false;
+        } finally {
+            busy = false;
+            $('delOk').disabled = false; $('delOk').textContent = '삭제';
+        }
+    });
+
+    /* ════════════ 원사이클 ════════════ */
+    /* 호기별로 창을 하나만 쓴다. 이미 열린 창에 주소를 다시 넣으면 진행 화면이 새로고침되므로 앞으로 가져오기만 한다. */
+    function openOneCycle(hogi) {
+        const name = 'oneCycle_' + hogi.replace(/[^A-Za-z0-9_]/g, '_');
+        const win = window.open('', name, 'width=560,height=800,resizable=yes,scrollbars=yes');
+        if (!win) { toast('팝업이 차단되었습니다. 브라우저에서 이 사이트의 팝업을 허용해 주세요.'); return; }
+        if (win.location.href === 'about:blank') win.location.href = '/cop/bom/oneCycle?hogi=' + encodeURIComponent(hogi);
+        win.focus();
+    }
+
+    /* ════════════ 이벤트 ════════════ */
+    $('btnAdd').addEventListener('click', () => openForm(null));
+    $('btnAddEmpty').addEventListener('click', () => openForm(null));
+    $('btnReload').addEventListener('click', load);
+    $('btnRetry').addEventListener('click', load);
+    $('btnDelSel').addEventListener('click', () => openDelete(Array.from(state.selected)));
+
+    let searchTimer;
+    $('inSearch').addEventListener('input', e => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { state.q = e.target.value; changeFilter(); }, 150);
+    });
+    $('inBrand').addEventListener('change', e => { state.brand = e.target.value; changeFilter(); });
+    $('btnClearFilter').addEventListener('click', () => {
+        state.q = ''; state.brand = '';
+        $('inSearch').value = '';
+        changeFilter();
+        $('inSearch').focus();
+    });
+
+    $('thead').addEventListener('click', e => {
+        const th = e.target.closest('th');
+        if (!th || !th.dataset.k) return;
+        if (state.sortK === th.dataset.k) state.sortDir *= -1;
+        else { state.sortK = th.dataset.k; state.sortDir = 1; }
+        state.page = 1;
+        render();
+    });
+
+    $('chkAll').addEventListener('change', e => {
+        const start = (state.page - 1) * PAGE_SIZE;
+        filtered().slice(start, start + PAGE_SIZE).forEach(x => {
+            if (e.target.checked) state.selected.add(x.HOGI); else state.selected.delete(x.HOGI);
+        });
+        render();
+    });
+
+    $('tbody').addEventListener('click', e => {
+        const el = e.target.closest('[data-act]');
+        if (!el) return;
+        const hogi = el.closest('tr').dataset.hogi;
+        if (el.dataset.act === 'sel') {
+            if (el.checked) state.selected.add(hogi); else state.selected.delete(hogi);
+            const keep = el.getAttribute('aria-label');
+            render();
+            const again = Array.from(document.querySelectorAll('#tbody [data-act="sel"]')).find(x => x.getAttribute('aria-label') === keep);
+            if (again) again.focus();
+        } else if (el.dataset.act === 'cycle') {
+            openOneCycle(hogi);
+        } else if (el.dataset.act === 'edit') {
+            openForm(state.rows.find(x => x.HOGI === hogi));
+        } else if (el.dataset.act === 'del') {
+            openDelete(Array.of(hogi));
+        }
+    });
+
+    $('btnPrev').addEventListener('click', () => { state.page--; render(); });
+    $('btnNext').addEventListener('click', () => { state.page++; render(); });
+
+    load();
+})();
+</script>
+</body>
+</html>

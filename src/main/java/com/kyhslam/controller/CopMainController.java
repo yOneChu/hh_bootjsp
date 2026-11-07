@@ -1,13 +1,17 @@
 package com.kyhslam.controller;
 
 import com.kyhslam.service.BomAnomalyService;
+import com.kyhslam.service.cop.CopService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,6 +28,10 @@ import java.util.Map;
  *   GET /cop/trace/sales        : 3F 영업사양 원인 추정 (BOM 비교 "원인 →", ?a=기준호기&no=비교호기&block=블록번호&part=품번)
  *   GET /cop/report             : 2F 이상 리포트 화면 (?period=week|month|quarter)
  *   GET /cop/rules              : 1F 감지 규칙 관리 화면 (?id=규칙ID)
+ *   GET /cop/hogi               : B1 관리대상 호기 관리 화면
+ *   GET /cop/hogi/list          : 관리대상 호기 조회 (PLM_SIMUL_HOGI)
+ *   POST /cop/hogi/save         : 관리대상 호기 등록 · 수정 (mode=create|update)
+ *   POST /cop/hogi/delete       : 관리대상 호기 삭제 (hogis=[호기, ...])
  *
  * 하위 화면
  *   /cop/bom                    : BOM 원사이클 자동화 (BomManageController)
@@ -33,6 +41,7 @@ import java.util.Map;
 public class CopMainController {
 
     private final BomAnomalyService bomAnomalyService;
+    private final CopService copService;
 
     @GetMapping("/cop")
     public String root() {
@@ -67,6 +76,12 @@ public class CopMainController {
         return "thymeleaf/cop/copDashboard";
     }
 
+    /** 브랜드별 BOM 일일 변동 대시보드 (전일 ↔ 금일, 지금은 화면 안의 샘플 데이터 사용) */
+    @GetMapping("/cop/dashboard/brand")
+    public String brandDashboard() {
+        return "thymeleaf/cop/copBrandBomDashboard";
+    }
+
     /** 3F 이상 원인 추적 (지금은 화면 안의 샘플 추적 데이터 사용) */
     @GetMapping("/cop/trace")
     public String trace() {
@@ -91,6 +106,54 @@ public class CopMainController {
     @GetMapping("/cop/rules")
     public String rules() {
         return "thymeleaf/cop/bomCopRules";
+    }
+
+    /** B1 관리대상 호기 관리 (PLM_SIMUL_HOGI 조회 · 저장 · 삭제) */
+    @GetMapping("/cop/hogi")
+    public String hogi() {
+        return "thymeleaf/cop/bomHogiManage";
+    }
+
+    @GetMapping("/cop/hogi/list")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> hogiList() {
+        try {
+            return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                    .body(Map.of("success", true, "rows", copService.findManagedHogi()));
+        } catch (Exception e) {
+            return hogiFail(e, "호기 목록을 불러오지 못했습니다.");
+        }
+    }
+
+    @PostMapping("/cop/hogi/save")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> hogiSave(@RequestBody Map<String, String> req) {
+        try {
+            copService.saveManagedHogi(req);
+            return ResponseEntity.ok(Map.of("success", true));
+        } catch (Exception e) {
+            return hogiFail(e, "호기를 저장하지 못했습니다.");
+        }
+    }
+
+    @PostMapping("/cop/hogi/delete")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> hogiDelete(@RequestBody Map<String, List<String>> req) {
+        try {
+            int count = copService.deleteManagedHogi(req.get("hogis"));
+            return ResponseEntity.ok(Map.of("success", true, "count", count));
+        } catch (Exception e) {
+            return hogiFail(e, "호기를 삭제하지 못했습니다.");
+        }
+    }
+
+    /** 입력 오류는 메시지를 그대로 400 으로, 그 밖의 오류는 로그만 남기고 500 으로 */
+    private ResponseEntity<Map<String, Object>> hogiFail(Exception e, String message) {
+        if (e instanceof IllegalArgumentException) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        }
+        e.printStackTrace();
+        return ResponseEntity.internalServerError().body(Map.of("success", false, "message", message));
     }
 
     @GetMapping("/cop/radar/anomalies")

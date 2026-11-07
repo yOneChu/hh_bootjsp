@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>원사이클 실행 · SENTINEL</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        SENTINEL · 호기별 원사이클 실행 팝업 (BomManageController : GET /cop/bom/oneCycle?hogi=호기)
+
+        관리대상 호기 화면(bomHogiManage)의 [원사이클] 버튼으로 열리며, 열리면 바로 실행한다.
+          로그인(/autoLogin) → 영업사양 확인(/resolve) → WIP 생성(/wip) → 종속사양 산출(/jongsoksung) → BOM 계산(/bom)
+
+        - 비밀번호는 화면에 없다. 서버 설정(plm.user-id / plm.password)의 계정으로 로그인한다.
+        - 진행률은 끝난 단계 수 기준의 실제 값이다. 단계 안에서는 PLM 이 진행률을 주지 않아 경과 시간만 표시한다.
+        - PLM 에 변경을 일으키므로 호기 화면에서 연 첫 로드에만 자동 실행한다. 새로고침 · 주소 직접 입력 시에는 버튼을 눌러야 한다.
+    -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <style>
+        /* ════════════ 토큰 (SENTINEL 공통) ════════════ */
+        :root {
+            color-scheme: dark;
+            --void:    #04060A;
+            --panel:   #0C1018;
+            --panel-2: #111723;
+            --panel-3: #161D2B;
+            --line:    rgba(255,255,255,.08);
+            --line-2:  rgba(255,255,255,.15);
+
+            --ink:   #F4F6FA;
+            --ink-2: #AEB6C4;
+            --ink-3: #8690A1;
+
+            --scan:   #7FE3FF;  --scan-dim:  rgba(127,227,255,.13);
+            --alert:  #FF6B4A;  --alert-dim: rgba(255,90,54,.15);
+            --warn:   #FFB020;  --warn-dim:  rgba(255,176,32,.14);
+            --ok:     #5EF0A6;  --ok-dim:    rgba(94,240,166,.13);
+
+            --mono: "D2Coding", Consolas, "SF Mono", Menlo, monospace;
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+            --ease-out: cubic-bezier(.16,1,.3,1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; background: var(--void); }
+        body { margin: 0; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; font-family: var(--sans); font-size: 15px; line-height: 1.5; color: var(--ink); background: var(--void); word-break: keep-all; overflow-wrap: anywhere; }
+        h1, h2, p, ol { margin: 0; }
+        ol { padding: 0; list-style: none; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 2px solid var(--scan); outline-offset: 2px; border-radius: 6px; }
+        .tnum { font-variant-numeric: tabular-nums; }
+
+        /* ════════════ 머리 ════════════ */
+        .head { padding: 20px; border-bottom: 1px solid var(--line); background: radial-gradient(420px 160px at 92% 0%, rgba(127,227,255,.13), transparent 70%), var(--panel); }
+        .kicker { font: 700 12px/1 var(--mono); letter-spacing: .2em; color: var(--scan); }
+        .head h1 { margin-top: 10px; font: 800 26px/1.2 var(--mono); letter-spacing: -.01em; }
+        .head-sub { margin-top: 6px; font-size: 13.5px; color: var(--ink-2); }
+
+        main { flex: 1; padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
+
+        /* ════════════ 진행률 ════════════ */
+        .progress { padding: 18px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+        .progress-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+        .progress-top h2 { font-size: 16px; font-weight: 750; }
+        .pct { font: 800 26px/1 var(--mono); }
+        .bar { position: relative; margin-top: 12px; height: 10px; border-radius: 99px; background: var(--panel-3); overflow: hidden; }
+        .bar-fill { position: absolute; inset: 0; border-radius: 99px; background: var(--scan); transform: scaleX(0); transform-origin: 0 50%; transition: transform .45s var(--ease-out), background .2s; }
+        /* 단계가 처리 중임을 보여 주는 흐름. 진행률 값과는 무관하다 */
+        .bar-flow { position: absolute; inset: 0; opacity: 0; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.28) 50%, transparent 100%); background-size: 40% 100%; background-repeat: no-repeat; }
+        .is-running .bar-flow { opacity: 1; animation: flow 1.5s linear infinite; }
+        @keyframes flow { from { background-position: -70% 0; } to { background-position: 170% 0; } }
+        .is-done .bar-fill { background: var(--ok); }
+        .is-fail .bar-fill { background: var(--alert); }
+        .is-stop .bar-fill { background: var(--warn); }
+        .progress-meta { margin-top: 10px; display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--ink-2); }
+        .summary { margin-top: 12px; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; font-weight: 600; }
+        .is-done .summary { background: var(--ok-dim); color: var(--ok); }
+        .is-fail .summary { background: var(--alert-dim); color: var(--alert); }
+        .is-stop .summary { background: var(--warn-dim); color: var(--warn); }
+        .is-idle .summary, .is-running .summary { background: var(--scan-dim); color: var(--scan); }
+
+        /* ════════════ 단계 ════════════ */
+        .step { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; column-gap: 12px; padding: 10px 0; scroll-margin-bottom: 84px; /* 하단 버튼 영역에 가리지 않게 */ }
+        /* 단계 사이 연결선 */
+        .step:not(:last-child)::before { content: ""; position: absolute; left: 13px; top: 40px; bottom: -8px; width: 2px; background: var(--line-2); }
+        .step[data-st="done"]:not(:last-child)::before,
+        .step[data-st="warn"]:not(:last-child)::before { background: var(--ok); }
+        .dot { position: relative; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--panel-3); border: 1.5px solid var(--line-2); color: var(--ink-3); }
+        .dot svg { display: none; }
+        .step[data-st="running"] .dot { border-color: var(--scan); border-right-color: transparent; animation: spin .9s linear infinite; }
+        .step[data-st="done"] .dot { background: var(--ok); border-color: var(--ok); color: #03130B; }
+        .step[data-st="warn"] .dot { background: var(--warn); border-color: var(--warn); color: #1A1000; }
+        .step[data-st="fail"] .dot { background: var(--alert); border-color: var(--alert); color: #1A0500; }
+        .step[data-st="done"] .i-ok, .step[data-st="warn"] .i-warn, .step[data-st="fail"] .i-fail { display: block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .step-name { font-size: 15px; font-weight: 700; }
+        .step-st { margin-left: 6px; font-size: 12.5px; font-weight: 650; color: var(--ink-3); }
+        .step[data-st="running"] .step-st { color: var(--scan); }
+        .step[data-st="done"] .step-st { color: var(--ok); }
+        .step[data-st="warn"] .step-st { color: var(--warn); }
+        .step[data-st="fail"] .step-st { color: var(--alert); }
+        .step[data-st="wait"] .step-name, .step[data-st="cancel"] .step-name { color: var(--ink-2); font-weight: 600; }
+        .step-msg { font-size: 13px; color: var(--ink-2); }
+        .step[data-st="fail"] .step-msg { color: var(--alert); font-weight: 600; }
+        .step-time { font: 600 13px/28px var(--mono); color: var(--ink-3); }
+
+        /* ════════════ 하단 ════════════ */
+        .foot { position: sticky; bottom: 0; padding: 12px 20px; display: flex; justify-content: flex-end; gap: 8px; background: var(--void); border-top: 1px solid var(--line); }
+        .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 20px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; transition: background .2s, border-color .2s, transform .2s var(--ease-out), opacity .2s; }
+        .btn:hover:not(:disabled) { background: rgba(255,255,255,.06); border-color: var(--ink-3); }
+        .btn:active:not(:disabled) { transform: scale(.97); }
+        .btn:disabled { opacity: .45; cursor: not-allowed; }
+        .btn-solid { background: var(--ink); color: var(--void); border-color: var(--ink); }
+        .btn-solid:hover:not(:disabled) { background: #fff; border-color: #fff; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: .01ms !important; animation: none !important; }
+            .step[data-st="running"] .dot { border-right-color: var(--scan); }
+        }
+    </style>
+</head>
+<body>
+
+<header class="head">
+    <p class="kicker">ONE-CYCLE</p>
+    <h1 id="hogiNo">-</h1>
+    <p class="head-sub" id="headSub">호기 원사이클 실행</p>
+</header>
+
+<main>
+    <section class="progress is-idle" id="progress" aria-labelledby="progressTitle">
+        <div class="progress-top">
+            <h2 id="progressTitle">실행 대기</h2>
+            <span class="pct tnum" id="pct" aria-hidden="true">0%</span>
+        </div>
+        <div class="bar" id="bar" role="progressbar" aria-labelledby="progressTitle" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="bar-fill" id="barFill"></div>
+            <div class="bar-flow" aria-hidden="true"></div>
+        </div>
+        <div class="progress-meta tnum">
+            <span id="stepCount"></span>
+            <span>경과 <span id="totalTime">0.0초</span></span>
+        </div>
+        <p class="summary" id="summary" role="status" aria-live="polite" hidden></p>
+    </section>
+
+    <ol id="steps" aria-label="실행 단계"></ol>
+</main>
+
+<footer class="foot">
+    <button type="button" class="btn" id="btnStop" hidden>중지</button>
+    <button type="button" class="btn btn-solid" id="btnRun" hidden>원사이클 실행</button>
+    <button type="button" class="btn" id="btnClose" hidden>닫기</button>
+</footer>
+
+<script>
+(function () {
+    'use strict';
+
+    const BASE = '/cop/bom';
+    const STEPS = [
+        { key: 'login',   name: 'PLM 로그인',    url: '/autoLogin' },
+        { key: 'resolve', name: '영업사양 확인', url: '/resolve' },
+        { key: 'wip',     name: 'WIP 생성',      url: '/wip' },
+        { key: 'jong',    name: '종속사양 산출', url: '/jongsoksung' },
+        { key: 'bom',     name: 'BOM 계산',      url: '/bom' }
+    ];
+    const ST_LABEL = { wait: '대기', running: '진행 중', done: '완료', warn: '확인 필요', fail: '실패', cancel: '실행 안 함' };
+
+    const $ = id => document.getElementById(id);
+    const hogi = (new URLSearchParams(location.search).get('hogi') || '').trim();
+    const canClose = !!window.opener;
+
+    const state = { running: false, stopReq: false, done: 0, warn: 0, ouid: null, started: 0 };
+    let totalTimer = null, stepTimer = null;
+
+    /* ════════════ 표시 ════════════ */
+    function fmtSec(ms) {
+        const sec = ms / 1000;
+        if (sec < 60) return sec.toFixed(1) + '초';
+        return Math.floor(sec / 60) + '분 ' + String(Math.floor(sec % 60)).padStart(2, '0') + '초';
+    }
+
+    function renderSteps() {
+        $('steps').innerHTML = STEPS.map(s =>
+            '<li class="step" data-st="wait" data-key="' + s.key + '">' +
+                '<span class="dot" aria-hidden="true">' +
+                    '<svg class="i-ok" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>' +
+                    '<svg class="i-warn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 6v8M12 18v.01"/></svg>' +
+                    '<svg class="i-fail" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+                '</span>' +
+                '<div><span class="step-name">' + s.name + '</span><span class="step-st">' + ST_LABEL.wait + '</span><p class="step-msg"></p></div>' +
+                '<span class="step-time tnum"></span>' +
+            '</li>'
+        ).join('');
+    }
+
+    function setStep(key, st, msg, ms) {
+        const el = $('steps').querySelector('[data-key="' + key + '"]');
+        el.dataset.st = st;
+        el.querySelector('.step-st').textContent = ST_LABEL[st];
+        if (st === 'running') el.setAttribute('aria-current', 'step'); else el.removeAttribute('aria-current');
+        el.querySelector('.step-msg').textContent = msg || '';
+        if (ms !== undefined) el.querySelector('.step-time').textContent = ms === null ? '' : fmtSec(ms);
+        if (st === 'running' || st === 'fail') el.scrollIntoView({ block: 'nearest' });
+    }
+
+    function setProgress() {
+        const pct = Math.round(state.done / STEPS.length * 100);
+        $('barFill').style.transform = 'scaleX(' + (state.done / STEPS.length) + ')';
+        $('bar').setAttribute('aria-valuenow', String(pct));
+        $('pct').textContent = pct + '%';
+        $('stepCount').textContent = state.done + ' / ' + STEPS.length + ' 단계';
+        document.title = (state.running ? pct + '% · ' : '') + hogi + ' 원사이클 · SENTINEL';
+    }
+
+    /* mode : idle | running | done | fail | stop */
+    function setMode(mode, title, summary) {
+        $('progress').className = 'progress is-' + mode;
+        $('progressTitle').textContent = title;
+        $('summary').textContent = summary || '';
+        $('summary').hidden = !summary;
+
+        const running = mode === 'running';
+        $('btnStop').hidden = !running;
+        $('btnStop').disabled = false;
+        $('btnStop').textContent = '중지';
+        $('btnRun').hidden = running || mode === 'done';
+        $('btnRun').textContent = mode === 'idle' ? '원사이클 실행' : '처음부터 다시 실행';
+        $('btnClose').hidden = running || !canClose;
+    }
+
+    /* ════════════ 서버 호출 ════════════ */
+    async function api(path, body) {
+        const res = await fetch(BASE + path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body || {})
+        });
+        let data = {};
+        try { data = await res.json(); } catch (e) { /* 본문이 JSON 이 아니면 아래에서 상태 코드로 안내 */ }
+        if (!res.ok) {
+            data.success = false;
+            data.message = data.message || '서버 응답 오류 (' + res.status + ')';
+        }
+        return data;
+    }
+
+    function payloadFor(step) {
+        if (step.key === 'login') return {};
+        if (step.key === 'resolve') return { productNo: hogi };
+        if (step.key === 'bom') return { ouid: state.ouid, c: true, m: true, f: true, '1': true, '2': true, '3': true };
+        return { ouid: state.ouid };
+    }
+
+    /* ════════════ 실행 ════════════ */
+    /** 단계 하나를 실행하고 done / warn / fail 을 돌려준다 */
+    async function execStep(step) {
+        const started = Date.now();
+        setStep(step.key, 'running', 'PLM 처리 중…', 0);
+        const timeEl = $('steps').querySelector('[data-key="' + step.key + '"] .step-time');
+        stepTimer = setInterval(() => { timeEl.textContent = fmtSec(Date.now() - started); }, 200);
+
+        let r;
+        try {
+            r = await api(step.url, payloadFor(step));
+        } catch (e) {
+            r = { success: false, message: '서버에 연결하지 못했습니다.' };
+        }
+        clearInterval(stepTimer);
+        const elapsed = Date.now() - started;
+
+        let st = r.success ? 'done' : 'fail';
+        let msg = r.message || (r.success ? '완료' : '실패');
+
+        if (r.success && step.key === 'login') {
+            $('headSub').textContent = 'PLM 계정 ' + r.userid + ' 로 실행';
+        }
+        if (r.success && step.key === 'resolve') {
+            state.ouid = r.ouid;
+        }
+        /* 이미 WIP 인 경우 PLM 이 오류 메시지를 주지만 다음 단계 진행에는 문제가 없다 */
+        if (r.success && step.key === 'wip' && /오류|확인 필요/.test(msg)) {
+            st = 'warn';
+        }
+        if (r.success && step.key === 'bom' && r.bomSaveMessage) {
+            msg += ' · ' + r.bomSaveMessage;
+            if (!/^BOM 저장 완료/.test(r.bomSaveMessage)) st = 'warn';
+        }
+        /* BOM 계산은 시간 초과여도 PLM 쪽 계산이 계속될 수 있어 바로 재실행하면 겹칠 수 있다 */
+        if (!r.success && step.key === 'bom') {
+            msg += ' PLM 에서 계산이 계속 진행 중일 수 있으니 결과를 확인한 뒤 다시 실행하세요.';
+        }
+
+        setStep(step.key, st, msg, elapsed);
+        return st;
+    }
+
+    function finish(mode, title, summary) {
+        clearInterval(totalTimer);
+        state.running = false;
+        $('totalTime').textContent = fmtSec(Date.now() - state.started);
+        setProgress();
+        setMode(mode, title, summary);
+        $(mode === 'done' ? 'btnClose' : 'btnRun').focus();
+        /* 요약 문구가 나타나며 내용이 밀리므로 실패한 단계가 보이도록 다시 맞춘다 */
+        const failed = $('steps').querySelector('[data-st="fail"]');
+        if (failed) failed.scrollIntoView({ block: 'nearest' });
+    }
+
+    async function run() {
+        if (state.running || !hogi) return;
+
+        state.running = true; state.stopReq = false;
+        state.done = 0; state.warn = 0; state.ouid = null;
+        state.started = Date.now();
+        renderSteps();
+        setProgress();
+        setMode('running', '원사이클 실행 중', '');
+        totalTimer = setInterval(() => { $('totalTime').textContent = fmtSec(Date.now() - state.started); }, 200);
+
+        for (let i = 0; i < STEPS.length; i++) {
+            const step = STEPS.at(i);
+            const rest = STEPS.slice(i + 1);
+
+            if (state.stopReq) {
+                STEPS.slice(i).forEach(s => setStep(s.key, 'cancel', '사용자가 중지함', null));
+                finish('stop', '실행 중지', '끝난 단계까지는 PLM 에 반영되었습니다.');
+                return;
+            }
+
+            const st = await execStep(step);
+            if (st === 'fail') {
+                rest.forEach(s => setStep(s.key, 'cancel', '앞 단계 실패로 중단', null));
+                finish('fail', step.name + ' 실패', '끝난 단계까지는 PLM 에 반영되었습니다. 메시지를 확인한 뒤 다시 실행하세요.');
+                return;
+            }
+            if (st === 'warn') state.warn++;
+            state.done++;
+            setProgress();
+        }
+
+        finish('done', '원사이클 완료',
+            state.warn ? '실행을 마쳤습니다. 확인 필요 ' + state.warn + '건의 메시지를 확인하세요.' : '모든 단계를 정상적으로 마쳤습니다.');
+    }
+
+    /* ════════════ 이벤트 ════════════ */
+    $('btnRun').addEventListener('click', run);
+    $('btnClose').addEventListener('click', () => window.close());
+    $('btnStop').addEventListener('click', () => {
+        state.stopReq = true;
+        $('btnStop').disabled = true;
+        $('btnStop').textContent = '중지 대기 중…';
+        $('summary').textContent = '진행 중인 단계가 끝나면 중지합니다.';
+        $('summary').hidden = false;
+    });
+    /* 창을 닫아도 진행 중인 단계는 서버에서 계속되므로 실수로 닫지 않게 묻는다 */
+    window.addEventListener('beforeunload', e => {
+        if (state.running) { e.preventDefault(); e.returnValue = ''; }
+    });
+
+    /* ════════════ 시작 ════════════ */
+    /* sessionStorage 가 막힌 환경에서는 자동 실행하지 않고 버튼으로 실행하게 한다 */
+    function firstLoad() {
+        try {
+            const key = 'oneCycleStarted:' + hogi;
+            if (sessionStorage.getItem(key)) return false;
+            sessionStorage.setItem(key, '1');
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    renderSteps();
+    $('hogiNo').textContent = hogi || '호기 없음';
+    setProgress();
+
+    if (!hogi) {
+        setMode('fail', '대상 호기가 없습니다', '관리대상 호기 화면에서 호기의 [원사이클] 버튼으로 열어 주세요.');
+        $('btnRun').hidden = true;
+    } else if (canClose && firstLoad()) {
+        run();
+    } else {
+        setMode('idle', '실행 대기', '자동 실행하지 않았습니다. PLM 에 반영되는 작업이니 확인 후 실행하세요.');
+        $('btnRun').focus();
+    }
+})();
+</script>
+</body>
+</html>
