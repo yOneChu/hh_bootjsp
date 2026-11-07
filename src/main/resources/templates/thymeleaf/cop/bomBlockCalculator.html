@@ -1,0 +1,1144 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>일자별 수량 계산 비교</title>
+    <!--
+        일자별 블럭 수량 계산 비교
+          화면 : GET  /simulateup/blockQtyCompare  (?project=&pid=&floor=&beforePid=&dates=2026-09-01,2026-10-01 로 열면 바로 추출)
+          추출 : POST /simulateup/blockQtyCompare/extract  { project, pid, floor, beforePid, dates }
+          실행 : POST /simulateup/blockQtyCompare/run      { project, pid, floor, beforePid, columns: [{ date, overrides }] }
+        - 일자(기준일)마다 모든 PID(자재수배 / 블럭 / CALL 하위)를 그 날짜 이전 가장 가까운 버전으로 실행한다. 일자를 비우면 최신 버전.
+        - 일자마다 영업사양 값을 따로 바꿀 수 있다. DB / 공사정보에는 쓰지 않는다.
+        - 사내망 : 외부 CDN 을 쓰지 않는다. Thymeleaf 인라인 표현식과 겹치지 않도록 스크립트에 대괄호 두 개 / 대괄호+여는 괄호를 연달아 쓰지 않는다.
+    -->
+    <style>
+        :root {
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --border: #d9dee5;
+            --border-strong: #c3cad3;
+            --text: #0f172a;
+            --text-2: #334155;
+            --muted: #5b6676;
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-soft: #e8efff;
+            --run: #16a34a;
+            --run-dark: #15803d;
+            --warn: #b45309;
+            --warn-soft: #fef3e2;
+            --danger: #b91c1c;
+            --danger-soft: #fdecec;
+            --ok: #15803d;
+            --ok-soft: #e7f6ec;
+            --changed: #7c3aed;
+            --changed-soft: #f1eafe;
+            --diff-bg: #fff7e0;
+
+            --head-bg: #1e293b;
+            --head-bg-2: #0f172a;
+            --head-border: #475569;
+            --head-text: #f8fafc;
+            --head-muted: #a5b4c8;
+
+            /* 일자 열 구분색 (색만으로 구분하지 않도록 번호 / 날짜를 같이 표시) */
+            --c1: #2563eb; --c2: #0d9488; --c3: #c2410c; --c4: #7c3aed; --c5: #be185d;
+
+            --mono: Consolas, "D2Coding", "Cascadia Mono", "Courier New", monospace;
+            --sans: "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+            --radius: 6px;
+            --shadow-1: 0 1px 2px rgba(15, 23, 42, .06), 0 1px 3px rgba(15, 23, 42, .08);
+            --shadow-2: 0 8px 24px rgba(15, 23, 42, .14);
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; }
+        body { font-family: var(--sans); font-size: 13px; line-height: 1.5; color: var(--text); background: var(--bg); min-height: 100vh; padding-bottom: 72px; }
+        .ico { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .ico.sm { width: 13px; height: 13px; }
+        .mono { font-family: var(--mono); }
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+        button {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            min-height: 32px; padding: 4px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+            background: var(--surface); color: var(--text-2); font: inherit; font-size: 12.5px; white-space: nowrap; cursor: pointer;
+            transition: background-color .15s, border-color .15s, color .15s;
+        }
+        button:hover:not(:disabled) { background: #eef2f7; }
+        button:disabled { opacity: .45; cursor: not-allowed; }
+        button.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+        button.primary:hover:not(:disabled) { background: var(--primary-dark); }
+        button.run { background: var(--run); border-color: var(--run); color: #fff; font-weight: 700; min-height: 38px; padding: 6px 18px; font-size: 13.5px; }
+        button.run:hover:not(:disabled) { background: var(--run-dark); }
+        button.ghost { background: transparent; border-color: transparent; }
+        button.ghost:hover:not(:disabled) { background: #e9edf3; }
+        button.icon { padding: 4px 7px; min-height: 28px; }
+        button.sm { min-height: 26px; padding: 2px 8px; font-size: 12px; }
+        .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.45); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
+        .spinner.dark { border-color: rgba(37,99,235,.25); border-top-color: var(--primary); width: 22px; height: 22px; margin: 0 auto 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } * { transition: none !important; } }
+
+        .app-head { background: linear-gradient(180deg, var(--head-bg), var(--head-bg-2)); color: var(--head-text); border-bottom: 1px solid var(--head-border); }
+        .app-head .inner { max-width: 1600px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .app-head h1 { margin: 0; font-size: 17px; letter-spacing: -.2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .app-head p { margin: 2px 0 0; color: var(--head-muted); font-size: 12.5px; }
+        .head-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border: 1px solid var(--head-border); border-radius: 999px; color: var(--head-muted); font-size: 11.5px; font-weight: 400; }
+        .app-head .spacer { flex: 1; }
+        .app-head a.back { color: var(--head-muted); text-decoration: none; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: var(--radius); }
+        .app-head a.back:hover { color: var(--head-text); background: rgba(255,255,255,.06); }
+
+        main { max-width: 1600px; margin: 0 auto; padding: 18px 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+        .steps { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+        .steps li { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 12.5px; }
+        .steps li b { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; background: #e2e8f0; color: var(--text-2); font-size: 11px; }
+        .steps li.is-on { border-color: var(--primary); color: var(--primary-dark); font-weight: 700; background: var(--primary-soft); }
+        .steps li.is-on b { background: var(--primary); color: #fff; }
+        .steps li.is-done { color: var(--ok); }
+        .steps li.is-done b { background: var(--ok); color: #fff; }
+        .steps .sep { align-self: center; color: var(--border-strong); border: 0; background: none; padding: 0; }
+
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-1); }
+        .card-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .card-head h2 { margin: 0; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .card-head h2 .num { width: 22px; height: 22px; border-radius: 6px; display: inline-grid; place-items: center; background: var(--head-bg); color: #fff; font-size: 12px; }
+        .card-head .desc { color: var(--muted); font-size: 12px; }
+        .card-head .right { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+        .card-body { padding: 14px 16px; }
+
+        /* ===== 1. 실행 조건 ===== */
+        .cond { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px 14px; align-items: start; }
+        .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .field label, .field .lbl { font-size: 12px; font-weight: 700; color: var(--text-2); }
+        .field label .req { color: var(--danger); margin-left: 2px; }
+        .help { font-size: 11.5px; color: var(--muted); }
+        .field-err { color: var(--danger); font-size: 11.5px; }
+        .c-project { grid-column: span 3; } .c-pid { grid-column: span 3; } .c-floor { grid-column: span 2; } .c-before { grid-column: span 4; }
+        .c-dates { grid-column: span 12; }
+        @media (max-width: 1100px) { .c-project, .c-pid { grid-column: span 6; } .c-floor { grid-column: span 4; } .c-before { grid-column: span 8; } }
+        @media (max-width: 640px) { .c-project, .c-pid, .c-floor, .c-before { grid-column: span 12; } }
+        input[type=text], input[type=search], input[type=date], select, textarea {
+            width: 100%; min-height: 34px; padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius);
+            background: #fff; color: var(--text); font: inherit; font-size: 13px;
+        }
+        textarea { resize: vertical; min-height: 34px; height: 34px; font-family: var(--mono); }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: 2px solid rgba(37,99,235,.18); outline-offset: 0; }
+        input.mono { font-family: var(--mono); }
+        .chk { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-2); cursor: pointer; }
+        .chk input { width: 15px; height: 15px; accent-color: var(--primary); margin: 0; }
+
+        /* 비교 일자 */
+        .dates { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
+        .date-card { position: relative; flex: 0 1 200px; min-width: 170px; border: 1px solid var(--border); border-top: 3px solid var(--cc, var(--c1)); border-radius: 8px; padding: 8px 10px 10px; background: var(--surface-2); display: flex; flex-direction: column; gap: 6px; }
+        .date-card .dc-head { display: flex; align-items: center; gap: 6px; }
+        .date-card .dc-no { width: 20px; height: 20px; border-radius: 50%; background: var(--cc, var(--c1)); color: #fff; font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; }
+        .date-card .dc-title { font-weight: 700; font-size: 12.5px; }
+        .date-card .dc-del { margin-left: auto; }
+        .date-card .dc-tools { display: flex; gap: 4px; flex-wrap: wrap; }
+        .date-add { flex: 0 1 170px; min-width: 150px; border: 1px dashed var(--border-strong); border-radius: 8px; background: transparent; color: var(--muted); flex-direction: column; gap: 2px; min-height: 96px; }
+        .date-add:hover:not(:disabled) { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-soft); }
+        .date-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+        .date-bar .right { margin-left: auto; }
+        .date-bar .c-act button { min-height: 36px; }
+
+        .notice { display: flex; gap: 8px; align-items: flex-start; padding: 10px 14px; border-radius: 8px; font-size: 12.5px; border: 1px solid; }
+        .notice.err { background: var(--danger-soft); border-color: #f3b4b4; color: var(--danger); }
+        .notice.warn { background: var(--warn-soft); border-color: #f5cf95; color: #92400e; }
+        .notice ul { margin: 4px 0 0; padding-left: 18px; }
+
+        /* ===== 2. 영업사양 값 입력 (일자별 열) ===== */
+        .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+        .toolbar .search { position: relative; flex: 1 1 240px; max-width: 340px; }
+        .toolbar .search .ico { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+        .toolbar .search input { padding-left: 30px; }
+        .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius); overflow: hidden; background: #fff; flex-wrap: wrap; }
+        .seg button { border: 0; border-radius: 0; min-height: 32px; border-right: 1px solid var(--border); }
+        .seg button:last-child { border-right: 0; }
+        .seg button[aria-pressed=true], .seg button[aria-selected=true] { background: var(--head-bg); color: #fff; font-weight: 700; }
+        .seg .cnt { font-variant-numeric: tabular-nums; opacity: .8; }
+        .toolbar .right { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+
+        .tbl-wrap { overflow: auto; max-height: 60vh; }
+        table.grid-t { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; }
+        table.grid-t th, table.grid-t td { padding: 6px 9px; border-bottom: 1px solid #eceff3; text-align: left; vertical-align: top; }
+        table.grid-t thead th { position: sticky; top: 0; z-index: 2; background: #eef2f7; color: var(--text-2); font-size: 11.5px; font-weight: 700; border-bottom: 1px solid var(--border); white-space: nowrap; vertical-align: bottom; }
+        table.grid-t tbody tr:hover td, table.grid-t tbody tr:hover th { background: #f8fafc; }
+        table.grid-t th.k, table.grid-t td.k { position: sticky; left: 0; z-index: 1; background: #fff; }
+        table.grid-t thead th.k { z-index: 3; background: #eef2f7; }
+        table.grid-t td.no { color: var(--muted); font-variant-numeric: tabular-nums; width: 36px; text-align: right; }
+        table.grid-t td.code, table.grid-t th.code { font-family: var(--mono); font-weight: 700; white-space: nowrap; }
+        table.grid-t td.name { color: var(--text-2); min-width: 110px; }
+        table.grid-t td.cur { font-family: var(--mono); min-width: 90px; overflow-wrap: anywhere; }
+        .none { color: var(--muted); font-style: italic; font-family: var(--sans); }
+        th.colh { border-top: 3px solid var(--cc, var(--c1)); min-width: 170px; }
+        th.colh .cn { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--cc); color: #fff; font-size: 10.5px; margin-right: 4px; }
+        th.colh small { display: block; font-weight: 400; color: var(--muted); }
+        td.vin { min-width: 170px; }
+        td.vin input { font-family: var(--mono); min-height: 30px; padding: 4px 8px; }
+        td.vin input.is-changed { border-color: var(--changed); background: #fcfaff; font-weight: 700; }
+        td.vin.unused input { background: #f4f5f7; }
+        td.vin .vmeta { font-size: 11px; color: var(--muted); margin-top: 2px; min-height: 14px; }
+        td.vin .vmeta.chg { color: var(--changed); font-weight: 700; }
+        tr.is-changed td.k { box-shadow: inset 3px 0 0 var(--changed); }
+        .use-pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 999px; background: #eef2f7; color: var(--text-2); font-size: 11.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .row-tools { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+        .cons { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+        .con-chip { min-height: 20px; padding: 0 6px; font-family: var(--mono); font-size: 11px; border-radius: 999px; }
+        .con-chip:hover:not(:disabled) { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-soft); }
+        .tbl-empty { padding: 34px 16px; text-align: center; color: var(--muted); }
+        .tbl-empty b { display: block; color: var(--text-2); font-size: 13.5px; margin-bottom: 4px; }
+        details.others { border-top: 1px solid var(--border); }
+        details.others summary { cursor: pointer; padding: 10px 16px; color: var(--text-2); font-weight: 700; font-size: 12.5px; display: flex; align-items: center; gap: 8px; list-style: none; flex-wrap: wrap; }
+        details.others summary::-webkit-details-marker { display: none; }
+        details.others summary .chev { transition: transform .15s; }
+        details.others[open] summary .chev { transform: rotate(90deg); }
+        details.others summary .desc { font-weight: 400; color: var(--muted); }
+        .other-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 14px; }
+        .other-chip { font-family: var(--mono); font-size: 11.5px; padding: 2px 8px; border-radius: 4px; background: #eef0f3; color: #4b5563; border: 1px dashed var(--border-strong); }
+        .other-chip small { font-family: var(--sans); color: var(--muted); margin-left: 4px; }
+
+        /* ===== 3. 결과 ===== */
+        .result-empty { padding: 32px 16px; text-align: center; color: var(--muted); }
+        .result-empty .ico { width: 30px; height: 30px; color: var(--border-strong); margin-bottom: 6px; }
+        .result-empty b { display: block; color: var(--text-2); font-size: 13.5px; margin-bottom: 2px; }
+        .col-sum { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+        .cs { border: 1px solid var(--border); border-top: 3px solid var(--cc); border-radius: 8px; background: #fff; padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+        .cs .t { font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .cs .t .cn { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--cc); color: #fff; font-size: 10.5px; }
+        .cs .m { font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+        .cs .m b { color: var(--changed); }
+        .cs.err { border-color: #f3b4b4; }
+        .cs.err .m { color: var(--danger); }
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; }
+        .badge.ok { background: var(--ok-soft); color: var(--ok); }
+        .badge.diff { background: var(--danger-soft); color: var(--danger); }
+        .badge.same { background: #eef0f3; color: #4b5563; }
+        .res-tabs { display: flex; gap: 4px; padding: 10px 16px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .res-tabs button { border: 1px solid transparent; border-bottom: 0; border-radius: 6px 6px 0 0; margin-bottom: -1px; background: transparent; }
+        .res-tabs button[aria-selected=true] { background: #fff; border-color: var(--border); color: var(--text); font-weight: 700; }
+        .res-tools { display: flex; gap: 10px; padding: 8px 16px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid #eceff3; }
+        .res-tools .search { position: relative; flex: 0 1 260px; }
+        .res-tools .search .ico { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+        .res-tools .search input { padding-left: 30px; min-height: 30px; }
+        tr.is-diff > td, tr.is-diff > th { background: var(--diff-bg); }
+        tr.is-diff > th.k, tr.is-diff > td.k { box-shadow: inset 3px 0 0 var(--warn); }
+        td.cell { font-family: var(--mono); min-width: 150px; white-space: pre-wrap; overflow-wrap: anywhere; }
+        td.cell .part { font-weight: 700; }
+        td.cell .qty { display: inline-block; margin-top: 2px; padding: 0 6px; border-radius: 4px; background: #eef2f7; font-variant-numeric: tabular-nums; }
+        td.cell .qty.d { background: #fde2c4; color: #7c2d12; font-weight: 700; }
+        td.cell .part.d { color: #9a3412; }
+        td.cell .cmt { margin-top: 4px; padding: 3px 6px; border-left: 2px solid var(--border-strong); background: #f8fafc; font-family: var(--sans); font-size: 11.5px; color: var(--text-2); white-space: pre-wrap; }
+        td.cell .cmt.d { border-left-color: var(--warn); background: #fff1dc; color: #7c2d12; }
+        td.cell .cmt-l { display: block; font-size: 10.5px; color: var(--muted); font-weight: 700; }
+        td.cell.blank { background: repeating-linear-gradient(135deg, transparent 0 6px, #f3f4f6 6px 7px); }
+        td.cell.err { color: var(--danger); font-family: var(--sans); white-space: normal; }
+        td.num { font-family: var(--mono); text-align: right; font-variant-numeric: tabular-nums; min-width: 90px; }
+        td.num.d { font-weight: 700; color: #9a3412; }
+        details.vers { padding: 8px 16px; }
+        details.vers summary { cursor: pointer; color: var(--muted); }
+        details.vers table { margin-top: 6px; width: auto; }
+
+        .run-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: rgba(255,255,255,.97); border-top: 1px solid var(--border); box-shadow: 0 -4px 16px rgba(15,23,42,.08); }
+        .run-bar .inner { max-width: 1600px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .run-bar .msg { color: var(--text-2); font-size: 12.5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .run-bar .msg b { color: var(--changed); font-variant-numeric: tabular-nums; }
+        .run-bar .msg .stale { color: var(--warn); font-weight: 700; }
+        .run-bar .right { margin-left: auto; display: flex; gap: 8px; }
+
+        .toast { position: fixed; right: 20px; bottom: 80px; z-index: 30; background: var(--head-bg); color: #fff; padding: 10px 14px; border-radius: 8px; box-shadow: var(--shadow-2); font-size: 12.5px; opacity: 0; transform: translateY(6px); transition: opacity .18s, transform .18s; pointer-events: none; max-width: calc(100vw - 40px); }
+        .toast.is-show { opacity: 1; transform: none; }
+        .toast.is-err { background: var(--danger); }
+
+        @media (max-width: 640px) {
+            .app-head .inner, main, .run-bar .inner { padding-left: 16px; padding-right: 16px; }
+            .run-bar .right { margin-left: 0; width: 100%; }
+            .run-bar .right button { flex: 1; }
+            .date-card, .date-add { flex: 1 1 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></symbol>
+    <symbol id="i-result" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
+</svg>
+
+<header class="app-head">
+    <div class="inner">
+        <div>
+            <h1>일자별 수량 계산 비교
+                <span class="head-chip"><svg class="ico sm" aria-hidden="true"><use href="#i-db"/></svg>DB 미반영 · 조회 전용</span>
+            </h1>
+            <p>기준일마다 그 날짜의 PID 버전으로 블럭 수량을 계산해, 어떤 자재가 몇 개 수배되는지 일자별로 비교합니다. 일자마다 영업사양 값을 바꿔 볼 수도 있습니다.</p>
+        </div>
+        <span class="spacer"></span>
+        <a class="back" href="/simulateup/pidSimulatorUp" id="backLink"><svg class="ico sm" aria-hidden="true"><use href="#i-back"/></svg>PID 시뮬레이터로</a>
+    </div>
+</header>
+
+<main>
+    <ol class="steps" aria-label="진행 단계">
+        <li id="step1" class="is-on" aria-current="step"><b>1</b>호기 · 일자</li>
+        <li class="sep" aria-hidden="true">›</li>
+        <li id="step2"><b>2</b>일자별 영업사양</li>
+        <li class="sep" aria-hidden="true">›</li>
+        <li id="step3"><b>3</b>수량 비교</li>
+    </ol>
+
+    <!-- ═══════════ 1. 호기 · 일자 ═══════════ -->
+    <section class="card" aria-labelledby="t1">
+        <div class="card-head">
+            <h2 id="t1"><span class="num">1</span>호기 · 비교 일자</h2>
+            <span class="desc">일자를 비우면 최신 버전으로 계산합니다. 같은 일자를 두 번 넣고 영업사양만 다르게 바꿔 비교할 수도 있습니다.</span>
+        </div>
+        <div class="card-body">
+            <form class="cond" id="condForm" onsubmit="return false">
+                <div class="field c-project">
+                    <label for="project">공사번호 / 호기<span class="req" aria-hidden="true">*</span></label>
+                    <input type="text" id="project" class="mono" placeholder="예) 206663L01" autocomplete="off" aria-describedby="projectErr">
+                    <span class="field-err" id="projectErr" role="alert"></span>
+                </div>
+                <div class="field c-pid">
+                    <label for="pid">블럭 PID<span class="req" aria-hidden="true">*</span></label>
+                    <input type="text" id="pid" class="mono" placeholder="예) B181B · SH_A101A" autocomplete="off" spellcheck="false" aria-describedby="pidErr pidHelp">
+                    <span class="help" id="pidHelp">EL_P / SH_P 를 붙여도 됩니다. 영문은 대문자로 바뀝니다.</span>
+                    <span class="field-err" id="pidErr" role="alert"></span>
+                </div>
+                <div class="field c-floor">
+                    <label for="floor">층</label>
+                    <input type="text" id="floor" class="mono" placeholder="층별 PID 만" autocomplete="off">
+                </div>
+                <div class="field c-before">
+                    <label for="beforePid">전처리 PID</label>
+                    <textarea id="beforePid" placeholder="먼저 실행할 PID (콤마 또는 줄바꿈 구분)" rows="1" spellcheck="false"></textarea>
+                </div>
+                <div class="field c-dates">
+                    <span class="lbl" id="datesLbl">비교 일자 <span class="help" id="dateCnt" style="font-weight:400"></span></span>
+                    <div class="dates" id="dates" role="group" aria-labelledby="datesLbl"></div>
+                    <div class="date-bar">
+                        <span class="help">빠른 설정 :</span>
+                        <button type="button" class="sm" data-preset="m3">최근 3개월 (매월 1일 + 최신)</button>
+                        <button type="button" class="sm" data-preset="m5">최근 5개월 (매월 1일)</button>
+                        <button type="button" class="sm" data-preset="latest">최신 1개</button>
+                        <span class="right c-act" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+                            <label class="chk" title="PICK 마다 BLOCKNO$SF 의 주석 PID(CMTn)를 실행해 주석을 계산합니다. 끄면 블럭 PID 결과의 CMT 만 보여주고 조금 빨라집니다."><input type="checkbox" id="optCmt" checked> PICK 주석(CMT) 계산</label>
+                            <button type="button" class="primary" id="btnExtract"><svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg><span>영업사양 추출</span></button>
+                        </span>
+                    </div>
+                    <span class="field-err" id="datesErr" role="alert"></span>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <div id="noticeArea" aria-live="polite"></div>
+
+    <!-- ═══════════ 2. 일자별 영업사양 ═══════════ -->
+    <section class="card" aria-labelledby="t2">
+        <div class="card-head">
+            <h2 id="t2"><span class="num">2</span>일자별 영업사양 값</h2>
+            <span class="desc">자재수배 PID · 블럭 PID · CALL 하위 PID 의 SPEC 열 중 영업사양 코드만 보여줍니다. 칸을 비우면 공사값 그대로 계산합니다.</span>
+            <div class="right" id="srcLabel" aria-live="polite"></div>
+        </div>
+        <div class="toolbar">
+            <div class="search">
+                <svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>
+                <label for="keyword" class="sr-only">특성코드 / 사양명 검색</label>
+                <input type="search" id="keyword" placeholder="특성코드 / 사양명 / 값 검색">
+            </div>
+            <div class="seg" role="group" aria-label="표시 범위">
+                <button type="button" data-filter="all" aria-pressed="true">전체 <span class="cnt" id="fAll">0</span></button>
+                <button type="button" data-filter="changed" aria-pressed="false">값 변경 <span class="cnt" id="fChanged">0</span></button>
+                <button type="button" data-filter="blank" aria-pressed="false">공사값 없음 <span class="cnt" id="fBlank">0</span></button>
+            </div>
+            <div class="right">
+                <button type="button" id="btnResetAll" disabled title="모든 일자의 입력값을 지우고 공사값으로 되돌립니다"><svg class="ico" aria-hidden="true"><use href="#i-undo"/></svg>모두 되돌리기</button>
+            </div>
+        </div>
+        <div class="tbl-wrap">
+            <table class="grid-t" aria-describedby="t2">
+                <thead id="specHead"></thead>
+                <tbody id="specBody">
+                <tr><td><div class="tbl-empty"><b>아직 추출한 영업사양이 없습니다</b>호기와 블럭 PID, 비교 일자를 입력하고 [영업사양 추출] 을 누르세요.</div></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <datalist id="dlEmpty"></datalist>
+        <details class="others" id="othersBox">
+            <summary>
+                <svg class="ico sm chev" aria-hidden="true"><use href="#i-chev"/></svg>
+                영업사양이 아닌 SPEC <span id="otherCnt">0</span>개
+                <span class="desc">— 특성코드 사전에 없는 코드 (PID 내부 변수 / 결과값)라 값을 지정하지 않습니다.</span>
+            </summary>
+            <div class="other-list" id="otherList"></div>
+        </details>
+    </section>
+
+    <!-- ═══════════ 3. 수량 비교 ═══════════ -->
+    <section class="card" aria-labelledby="t3" id="resultCard">
+        <div class="card-head">
+            <h2 id="t3"><span class="num">3</span>일자별 자재 · 수량 비교</h2>
+            <span class="desc">일자마다 수배되는 자재(PICK 값)와 블럭 PID 결과(QTY 등)를 비교합니다. 일자 사이에 다른 값은 노란색으로 표시합니다.</span>
+        </div>
+        <div id="resultArea" aria-live="polite">
+            <div class="result-empty"><svg class="ico" aria-hidden="true"><use href="#i-result"/></svg>
+                <b>아직 계산하지 않았습니다</b>영업사양을 추출한 뒤 아래 [일자별 수량 계산] 을 누르세요.</div>
+        </div>
+    </section>
+</main>
+
+<div class="run-bar" role="region" aria-label="실행">
+    <div class="inner">
+        <div class="msg" id="runMsg">영업사양을 먼저 추출하세요.</div>
+        <div class="right">
+            <button type="button" id="btnRun" class="run" disabled>
+                <svg class="ico" aria-hidden="true" style="fill:currentColor;stroke:none"><use href="#i-play"/></svg><span>일자별 수량 계산</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+    const BASE = '/simulateup/blockQtyCompare';
+    const MAX_COLS = 5;
+    const COLORS = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)'];
+    const BLANK = '(공백)';
+    const QTY_KEY = 'QTY';
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const nvl = (v) => (v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v)));
+
+    let colSeq = 0;
+    const state = {
+        cols: [],          // 일자 열 { id, date }
+        rows: [],          // 영업사양 { code, name, cur, inBase, lines, pids, cons, values, used:Set(열 index), vals: [열 수] }
+        others: [],
+        extract: null,     // 추출 응답
+        query: null,       // 추출에 쓴 조건 (일자 포함)
+        extracted: false,
+        stale: false,
+        result: null,      // 실행 응답
+        runCols: [],       // 실행에 쓴 열 (라벨용)
+        filter: 'all',
+        keyword: '',
+        resTab: 'pick',
+        onlyDiff: true,
+        resKeyword: '',
+        detailCol: 0,
+        running: false
+    };
+
+    /* ---------- 공통 ---------- */
+    let toastTimer = null;
+    function toast(msg, err) {
+        const t = $('toast');
+        t.textContent = msg;
+        t.classList.toggle('is-err', !!err);
+        t.classList.add('is-show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('is-show'), err ? 5000 : 3200);
+    }
+    function busy(btn, on, text) {
+        if (on) { btn.dataset.html = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>' + esc(text) + '</span>'; }
+        else { if (btn.dataset.html) btn.innerHTML = btn.dataset.html; btn.disabled = false; }
+    }
+    function setStep(n) {
+        for (let i = 1; i <= 3; i++) {
+            const el = $('step' + i);
+            el.classList.toggle('is-on', i === n);
+            el.classList.toggle('is-done', i < n);
+            if (i === n) el.setAttribute('aria-current', 'step'); else el.removeAttribute('aria-current');
+        }
+    }
+    function notice(kind, html) {
+        $('noticeArea').innerHTML = html ? '<div class="notice ' + kind + '" role="' + (kind === 'err' ? 'alert' : 'status') + '">'
+            + '<svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg><div>' + html + '</div></div>' : '';
+    }
+    async function api(path, body) {
+        try {
+            const res = await fetch(BASE + path, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify(body || {}), credentials: 'same-origin'
+            });
+            let data = null;
+            try { data = await res.json(); } catch (e) { /* 아래에서 처리 */ }
+            if (!data) return { success: false, message: '서버 응답을 읽지 못했습니다. (HTTP ' + res.status + ')' };
+            if (!res.ok && data.success === undefined) return { success: false, message: data.message || data.error || ('HTTP ' + res.status) };
+            return data;
+        } catch (e) {
+            return { success: false, message: '서버에 연결하지 못했습니다.' };
+        }
+    }
+    const pad = (n) => (n < 10 ? '0' : '') + n;
+    const ymd = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    const colLabel = (date) => date || '최신';
+    const colStyle = (i) => '--cc:' + COLORS[i % COLORS.length];
+
+    /* ---------- 1. 비교 일자 ---------- */
+    function addCol(date, silent) {
+        if (state.cols.length >= MAX_COLS) { toast('비교 일자는 최대 ' + MAX_COLS + '개입니다.'); return; }
+        state.cols.push({ id: ++colSeq, date: date || '' });
+        state.rows.forEach((r) => r.vals.push(''));
+        renderDates();
+        if (!silent) { const inp = document.querySelector('#dates .date-card:last-of-type input[type=date]'); if (inp) inp.focus(); }
+        markStale();
+    }
+    function renderDates() {
+        const n = state.cols.length;
+        $('dateCnt').textContent = '(' + n + ' / ' + MAX_COLS + ')';
+        $('dates').innerHTML = state.cols.map((c, i) =>
+            '<div class="date-card" style="' + colStyle(i) + '" data-id="' + c.id + '">'
+            + '<div class="dc-head"><span class="dc-no" aria-hidden="true">' + (i + 1) + '</span>'
+            + '<label class="dc-title" for="d_' + c.id + '">일자 ' + (i + 1) + '</label>'
+            + '<button type="button" class="ghost icon dc-del" data-del="' + c.id + '" aria-label="일자 ' + (i + 1) + ' 삭제" title="삭제"' + (n <= 1 ? ' disabled' : '') + '>'
+            + '<svg class="ico sm" aria-hidden="true"><use href="#i-x"/></svg></button></div>'
+            + '<input type="date" id="d_' + c.id + '" data-date="' + c.id + '" value="' + esc(c.date) + '" max="' + ymd(new Date()) + '" aria-describedby="dh_' + c.id + '">'
+            + '<div class="dc-tools"><button type="button" class="sm" data-latest="' + c.id + '" aria-pressed="' + (c.date === '') + '">최신</button>'
+            + '<button type="button" class="sm" data-today="' + c.id + '">오늘</button></div>'
+            + '<span class="help" id="dh_' + c.id + '">' + (c.date ? esc(c.date) + ' 이전 가장 가까운 버전' : '최신 버전으로 계산') + '</span>'
+            + '</div>').join('')
+            + '<button type="button" class="date-add" id="btnAddDate"' + (n >= MAX_COLS ? ' disabled' : '') + '>'
+            + '<svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg>일자 추가<span class="help">' + (n >= MAX_COLS ? '최대 ' + MAX_COLS + '개' : (MAX_COLS - n) + '개 더 추가 가능') + '</span></button>';
+    }
+    $('dates').addEventListener('click', (e) => {
+        const t = e.target.closest('button');
+        if (!t) return;
+        if (t.id === 'btnAddDate') { addCol(''); return; }
+        const find = (id) => state.cols.find((c) => String(c.id) === String(id));
+        if (t.dataset.del) {
+            const idx = state.cols.findIndex((c) => String(c.id) === t.dataset.del);
+            if (idx < 0) return;
+            const hasVal = state.rows.some((r) => r.vals.length > idx && r.vals[idx]);
+            if (hasVal && !confirm('이 일자에 입력한 영업사양 값도 함께 지워집니다. 삭제할까요?')) return;
+            state.cols.splice(idx, 1);
+            state.rows.forEach((r) => r.vals.splice(idx, 1));
+            renderDates();
+            markStale();
+            return;
+        }
+        if (t.dataset.latest) { find(t.dataset.latest).date = ''; renderDates(); markStale(); return; }
+        if (t.dataset.today) { find(t.dataset.today).date = ymd(new Date()); renderDates(); markStale(); }
+    });
+    $('dates').addEventListener('change', (e) => {
+        const inp = e.target.closest('input[data-date]');
+        if (!inp) return;
+        const c = state.cols.find((x) => String(x.id) === inp.dataset.date);
+        c.date = inp.value || '';
+        const help = $('dh_' + c.id);
+        if (help) help.textContent = c.date ? c.date + ' 이전 가장 가까운 버전' : '최신 버전으로 계산';
+        const lb = document.querySelector('[data-latest="' + c.id + '"]');
+        if (lb) lb.setAttribute('aria-pressed', String(c.date === ''));
+        markStale();
+    });
+    document.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => {
+        const p = b.dataset.preset, now = new Date(), list = [];
+        if (p === 'latest') list.push('');
+        else {
+            const months = p === 'm3' ? 3 : 5;
+            for (let i = months - 1; i >= 0; i--) list.push(ymd(new Date(now.getFullYear(), now.getMonth() - i, 1)));
+            if (p === 'm3') list.push('');
+        }
+        if (state.rows.some((r) => r.vals.some((v) => v)) && !confirm('일자를 바꾸면 일자별로 입력한 영업사양 값이 지워집니다. 계속할까요?')) return;
+        state.cols = [];
+        list.slice(0, MAX_COLS).forEach((d) => state.cols.push({ id: ++colSeq, date: d }));
+        state.rows.forEach((r) => { r.vals = state.cols.map(() => ''); });
+        renderDates();
+        markStale();
+    }));
+
+    function readQuery() {
+        return {
+            project: $('project').value.trim(),
+            pid: $('pid').value.trim().toUpperCase(),
+            floor: $('floor').value.trim(),
+            beforePid: $('beforePid').value.trim().toUpperCase(),
+            pickCmt: $('optCmt').checked,
+            dates: state.cols.map((c) => c.date)
+        };
+    }
+    const sameQuery = (a, b) => !!a && !!b && ['project', 'pid', 'floor', 'beforePid', 'pickCmt'].every((n) => a[n] === b[n]) && a.dates.join('|') === b.dates.join('|');
+    function markStale() {
+        if (!state.extracted) { renderCounts(); return; }
+        state.stale = !sameQuery(readQuery(), state.query);
+        renderCounts();
+    }
+
+    /* PID 입력 : 영문은 대문자로 (커서 위치 유지, 한글 조합 중에는 건드리지 않음) */
+    function upperInput(el) {
+        const apply = () => {
+            const v = el.value, up = v.toUpperCase();
+            if (v === up) return;
+            const s = el.selectionStart, e = el.selectionEnd;
+            el.value = up;
+            try { el.setSelectionRange(s, e); } catch (err) { /* 무시 */ }
+        };
+        el.addEventListener('input', (ev) => { if (!ev.isComposing) apply(); });
+        el.addEventListener('compositionend', apply);
+        el.addEventListener('change', apply);
+    }
+    ['pid', 'beforePid'].forEach((id) => upperInput($(id)));
+    ['project', 'pid', 'floor', 'beforePid'].forEach((id) => $(id).addEventListener('input', markStale));
+    $('optCmt').addEventListener('change', markStale);
+
+    /* ---------- 영업사양 추출 ---------- */
+    function validate(q) {
+        $('projectErr').textContent = q.project ? '' : '공사번호를 입력하세요.';
+        $('pidErr').textContent = q.pid ? '' : '블럭 PID 를 입력하세요.';
+        const dup = q.dates.filter((d, i) => q.dates.indexOf(d) !== i);
+        $('datesErr').textContent = !q.dates.length ? '비교 일자를 1개 이상 넣으세요.' : '';
+        if (!q.project) { $('project').focus(); return false; }
+        if (!q.pid) { $('pid').focus(); return false; }
+        if (!q.dates.length) return false;
+        if (dup.length) toast('같은 일자가 ' + (dup.length + 1) + '번 있습니다. 영업사양을 다르게 바꿔 비교할 때 쓰세요.');
+        return true;
+    }
+
+    async function extract() {
+        const q = readQuery();
+        if (!validate(q)) return;
+        if (state.rows.some((r) => r.vals.some((v) => v)) && !confirm('다시 추출하면 같은 특성코드 / 같은 열에 입력한 값만 유지됩니다. 계속할까요?')) return;
+        const btn = $('btnExtract');
+        busy(btn, true, '추출 중');
+        notice('', '');
+        $('specHead').innerHTML = '';
+        $('specBody').innerHTML = '<tr><td><div class="tbl-empty" role="status"><span class="spinner dark" aria-hidden="true"></span>'
+            + '<b>일자마다 공사값으로 수량 계산을 실행해 SPEC 을 모으고 있습니다… (' + q.dates.length + '개 일자)</b>PICK 이 많은 블럭은 시간이 걸릴 수 있습니다.</div></td></tr>';
+
+        const d = await api('/extract', q);
+        busy(btn, false);
+        if (!d.success) {
+            notice('err', '<b>영업사양을 추출하지 못했습니다.</b> ' + esc(d.message || '') + '<br>공사번호 / 블럭 PID / 일자를 확인한 뒤 다시 시도하세요.');
+            state.extracted = false;
+            renderTable();
+            return;
+        }
+        const prev = new Map(state.rows.map((r) => [r.code, r.vals]));
+        state.rows = (d.sales || []).map((s) => ({
+            code: s.code, name: s.name || '', cur: s.cur == null ? '' : String(s.cur), inBase: !!s.inBase,
+            lines: s.lines || 0, pids: s.pids || [], cons: s.cons || [], values: s.values || [],
+            used: new Set(s.used || []),
+            vals: state.cols.map((c, i) => { const p = prev.get(s.code); return p && p.length > i ? (p[i] || '') : ''; })
+        }));
+        state.others = d.others || [];
+        state.extract = d;
+        state.query = q;
+        state.extracted = true;
+        state.stale = false;
+        state.result = null;
+        resetResult();
+
+        const h = ((d.columns || []).find((c) => c.success) || {}).header || {};
+        $('srcLabel').innerHTML = '<span class="badge same" title="' + esc(h.projectTitle || '') + '">' + esc((h.projectNo || q.project) + ' · ' + (h.blockPid || q.pid)
+            + (h.blockPidName ? ' ' + h.blockPidName : '') + ' · ' + (h.type === 'SHIP' ? '선박' : '엘리베이터')) + '</span>';
+
+        const msgs = [];
+        (d.columns || []).forEach((c, i) => {
+            if (!c.success) msgs.push('<b>일자 ' + (i + 1) + ' (' + esc(colLabel(c.date)) + ')</b> : ' + esc(c.message));
+            (c.warnings || []).forEach((w) => msgs.push('일자 ' + (i + 1) + ' (' + esc(colLabel(c.date)) + ') : ' + esc(w)));
+        });
+        if (d.dictEmpty) msgs.push('특성코드 사전이 아직 로딩되지 않았습니다. 잠시 후 다시 추출하세요.');
+        if (msgs.length) notice('warn', '<b>확인하세요</b><ul>' + msgs.slice(0, 20).map((m) => '<li>' + m + '</li>').join('') + (msgs.length > 20 ? '<li>… 외 ' + (msgs.length - 20) + '건</li>' : '') + '</ul>');
+
+        renderOthers();
+        renderTable();
+        setStep(2);
+        syncUrl(q);
+        toast('영업사양 ' + state.rows.length + '개를 추출했습니다. (' + (d.elapsedMillis / 1000).toFixed(1) + '초)');
+    }
+    $('btnExtract').addEventListener('click', extract);
+
+    /* ---------- 2. 영업사양 표 (일자별 열) ---------- */
+    const effVal = (v) => (v === BLANK ? '' : v);
+    const cellChanged = (r, i) => { const v = r.vals.length > i ? r.vals[i] : ''; return !!v && (v === BLANK ? (r.cur !== '' || !r.inBase) : v !== r.cur); };
+    const rowChanged = (r) => r.vals.some((v, i) => cellChanged(r, i));
+    const isBlank = (r) => r.cur === '';
+
+    function visibleRows() {
+        const kw = state.keyword.toLowerCase();
+        return state.rows.filter((r) => {
+            if (state.filter === 'changed' && !rowChanged(r)) return false;
+            if (state.filter === 'blank' && !isBlank(r)) return false;
+            if (!kw) return true;
+            return (r.code + ' ' + r.name + ' ' + r.cur + ' ' + r.vals.join(' ')).toLowerCase().includes(kw);
+        });
+    }
+
+    function renderTable() {
+        const head = $('specHead'), body = $('specBody');
+        if (!state.extracted) {
+            head.innerHTML = '';
+            body.innerHTML = '<tr><td><div class="tbl-empty"><b>아직 추출한 영업사양이 없습니다</b>호기와 블럭 PID, 비교 일자를 입력하고 [영업사양 추출] 을 누르세요.</div></td></tr>';
+            renderCounts();
+            return;
+        }
+        const cols = state.query.dates;
+        head.innerHTML = '<tr><th scope="col">#</th><th scope="col" class="k">특성코드</th><th scope="col">사양명</th><th scope="col" title="실행된 PID 에서 SPEC 으로 쓴 라인 수">사용</th><th scope="col">공사 현재값</th>'
+            + cols.map((d, i) => {
+                const n = state.rows.filter((r) => cellChanged(r, i)).length;
+                return '<th scope="col" class="colh" style="' + colStyle(i) + '"><span class="cn" aria-hidden="true">' + (i + 1) + '</span>' + esc(colLabel(d))
+                    + '<small>' + (n ? n + '건 변경' : '공사값') + '</small></th>';
+            }).join('') + '</tr>';
+
+        const rows = visibleRows();
+        const span = 5 + cols.length;
+        if (!state.rows.length) {
+            body.innerHTML = '<tr><td colspan="' + span + '"><div class="tbl-empty"><b>SPEC 열에 영업사양 코드가 없습니다</b>아래 [영업사양이 아닌 SPEC] 을 확인하세요.</div></td></tr>';
+        } else if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="' + span + '"><div class="tbl-empty"><b>조건에 맞는 영업사양이 없습니다</b>검색어나 표시 범위를 바꿔 보세요.</div></td></tr>';
+        } else {
+            body.innerHTML = rows.map((r) => {
+                const idx = state.rows.indexOf(r);
+                const listId = 'dl_' + idx;
+                const consHtml = r.cons.length ? '<div class="cons" aria-label="CON 값 (첫 일자에 채움)">' + r.cons.slice(0, 6).map((c) =>
+                    '<button type="button" class="con-chip" data-fill="' + idx + '" data-v="' + esc(c) + '" title="모든 일자에 ' + esc(r.code) + ' = ' + esc(c) + ' 로 채우기">' + esc(c) + '</button>').join('')
+                    + (r.cons.length > 6 ? '<span class="help">+' + (r.cons.length - 6) + '</span>' : '') + '</div>' : '';
+                return '<tr class="' + (rowChanged(r) ? 'is-changed' : '') + '">'
+                    + '<td class="no">' + (idx + 1) + '</td>'
+                    + '<td class="code k">' + esc(r.code)
+                    + '<div class="row-tools"><button type="button" class="sm" data-copy="' + idx + '" title="첫 번째로 입력한 값을 모든 일자에 복사"><svg class="ico sm" aria-hidden="true"><use href="#i-copy"/></svg>모든 일자</button>'
+                    + '<button type="button" class="sm ghost" data-reset="' + idx + '"' + (r.vals.some((v) => v) ? '' : ' disabled') + ' aria-label="' + esc(r.code) + ' 모든 일자 되돌리기" title="모든 일자 공사값으로"><svg class="ico sm" aria-hidden="true"><use href="#i-undo"/></svg></button></div></td>'
+                    + '<td class="name">' + esc(r.name) + consHtml + '</td>'
+                    + '<td><span class="use-pill" title="' + esc(r.pids.join(', ')) + '">' + r.lines + '줄 · PID ' + r.pids.length + '</span></td>'
+                    + '<td class="cur">' + (r.cur === '' ? '<span class="none">(없음)</span>' : esc(r.cur)) + '</td>'
+                    + cols.map((d, i) => {
+                        const v = r.vals.length > i ? r.vals[i] : '';
+                        const ch = cellChanged(r, i);
+                        const unused = !r.used.has(i);
+                        return '<td class="vin' + (unused ? ' unused' : '') + '">'
+                            + '<label class="sr-only" for="v_' + idx + '_' + i + '">' + esc(r.code) + ' 일자 ' + (i + 1) + ' 값</label>'
+                            + '<input type="text" id="v_' + idx + '_' + i + '" data-r="' + idx + '" data-c="' + i + '" list="' + listId + '" value="' + esc(v) + '"'
+                            + ' placeholder="' + esc(r.cur === '' ? '공사값 (없음)' : r.cur) + '" class="' + (ch ? 'is-changed' : '') + '" autocomplete="off" spellcheck="false"'
+                            + (unused ? ' title="이 일자의 PID 버전에서는 이 영업사양을 SPEC 으로 쓰지 않습니다"' : '') + '>'
+                            + '<div class="vmeta' + (ch ? ' chg' : '') + '">' + (ch ? (v === BLANK ? '공백으로 변경' : '변경') : (unused ? '이 일자 미사용' : '')) + '</div></td>';
+                    }).join('')
+                    + '</tr>';
+            }).join('');
+            // datalist 는 행마다 한 번
+            body.insertAdjacentHTML('beforeend', '<tr hidden><td>' + rows.map((r) => {
+                const idx = state.rows.indexOf(r);
+                const opts = ['<option value="' + esc(BLANK) + '">공백으로 계산</option>'];
+                const seen = new Set([BLANK]);
+                r.cons.forEach((c) => { if (!seen.has(c)) { seen.add(c); opts.push('<option value="' + esc(c) + '">PID CON</option>'); } });
+                r.values.forEach((v) => { if (!seen.has(v.v)) { seen.add(v.v); opts.push('<option value="' + esc(v.v) + '">' + esc(v.n) + '</option>'); } });
+                return '<datalist id="dl_' + idx + '">' + opts.join('') + '</datalist>';
+            }).join('') + '</td></tr>');
+        }
+        renderCounts();
+    }
+
+    function renderCounts() {
+        const ex = state.extracted;
+        const changedCells = ex ? state.rows.reduce((s, r) => s + r.vals.filter((v, i) => cellChanged(r, i)).length, 0) : 0;
+        $('fAll').textContent = state.rows.length;
+        $('fChanged').textContent = state.rows.filter(rowChanged).length;
+        $('fBlank').textContent = state.rows.filter(isBlank).length;
+        $('btnResetAll').disabled = !ex || !state.rows.some((r) => r.vals.some((v) => v));
+        $('btnRun').disabled = !ex || state.stale || state.running;
+        // 조건이 바뀐 상태에서는 표의 열(일자)이 실제 일자와 다를 수 있어 다시 추출할 때까지 입력을 막는다
+        document.querySelectorAll('#specBody input, #specBody button').forEach((el) => {
+            if (state.stale) { el.dataset.lock = '1'; el.disabled = true; }
+            else if (el.dataset.lock) { delete el.dataset.lock; el.disabled = false; }
+        });
+        const n = state.cols.length;
+        $('runMsg').innerHTML = !ex ? '영업사양을 먼저 추출하세요.'
+            : state.stale ? '<span class="stale">호기 / PID / 일자가 바뀌었습니다. [영업사양 추출] 을 다시 누르세요.</span>'
+            : n + '개 일자로 계산합니다. ' + (changedCells ? '영업사양 변경 <b>' + changedCells + '</b>칸 적용.' : '영업사양은 모두 공사값 그대로입니다.');
+    }
+
+    function renderOthers() {
+        $('otherCnt').textContent = state.others.length;
+        $('otherList').innerHTML = state.others.length
+            ? state.others.map((o) => '<span class="other-chip" title="' + esc(o.where) + ' 에서 처음 사용">' + esc(o.code) + '<small>' + esc(o.where) + '</small></span>').join('')
+            : '<span class="help">없음</span>';
+    }
+
+    function refreshCell(inp) {
+        const r = state.rows[+inp.dataset.r], i = +inp.dataset.c;
+        const ch = cellChanged(r, i);
+        inp.classList.toggle('is-changed', ch);
+        const meta = inp.parentElement.querySelector('.vmeta');
+        meta.classList.toggle('chg', ch);
+        meta.textContent = ch ? (r.vals[i] === BLANK ? '공백으로 변경' : '변경') : (r.used.has(i) ? '' : '이 일자 미사용');
+        const tr = inp.closest('tr');
+        tr.classList.toggle('is-changed', rowChanged(r));
+        const rs = tr.querySelector('[data-reset]');
+        if (rs) rs.disabled = !r.vals.some((v) => v);
+        // 열 머리 변경 건수
+        const th = document.querySelectorAll('#specHead th.colh').item(i);
+        if (th) { const n = state.rows.filter((x) => cellChanged(x, i)).length; th.querySelector('small').textContent = n ? n + '건 변경' : '공사값'; }
+        renderCounts();
+    }
+    $('specBody').addEventListener('input', (e) => {
+        const inp = e.target.closest('input[data-r]');
+        if (!inp) return;
+        state.rows[+inp.dataset.r].vals.splice(+inp.dataset.c, 1, inp.value.trim());
+        refreshCell(inp);
+    });
+    $('specBody').addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        if (b.dataset.copy) {
+            const r = state.rows[+b.dataset.copy];
+            const first = r.vals.find((v) => v);
+            if (!first) { toast('먼저 한 일자에 값을 입력하세요.'); return; }
+            r.vals = r.vals.map(() => first);
+            renderTable();
+            toast(r.code + ' = ' + first + ' 를 모든 일자에 넣었습니다.');
+        } else if (b.dataset.reset) {
+            const r = state.rows[+b.dataset.reset];
+            r.vals = r.vals.map(() => '');
+            renderTable();
+        } else if (b.dataset.fill) {
+            const r = state.rows[+b.dataset.fill];
+            const same = r.vals.every((v) => v === b.dataset.v);
+            r.vals = r.vals.map(() => (same ? '' : b.dataset.v));
+            renderTable();
+        }
+    });
+    document.querySelectorAll('.seg button[data-filter]').forEach((b) => b.addEventListener('click', function () {
+        state.filter = this.dataset.filter;
+        document.querySelectorAll('.seg button[data-filter]').forEach((x) => x.setAttribute('aria-pressed', String(x === this)));
+        renderTable();
+    }));
+    let kwTimer = null;
+    $('keyword').addEventListener('input', function () {
+        clearTimeout(kwTimer);
+        kwTimer = setTimeout(() => { state.keyword = this.value.trim(); renderTable(); }, 150);
+    });
+    $('btnResetAll').addEventListener('click', () => {
+        if (!confirm('모든 일자의 입력값을 지우고 공사값으로 되돌릴까요?')) return;
+        state.rows.forEach((r) => { r.vals = r.vals.map(() => ''); });
+        renderTable();
+        toast('공사값으로 되돌렸습니다.');
+    });
+
+    /* ---------- 3. 일자별 수량 계산 ---------- */
+    function resetResult() {
+        $('resultArea').innerHTML = '<div class="result-empty"><svg class="ico" aria-hidden="true"><use href="#i-result"/></svg>'
+            + '<b>아직 계산하지 않았습니다</b>영업사양을 추출한 뒤 아래 [일자별 수량 계산] 을 누르세요.</div>';
+    }
+
+    async function run() {
+        if (!state.extracted || state.stale || state.running) return;
+        const q = state.query;
+        const columns = q.dates.map((date, i) => {
+            const overrides = {};
+            state.rows.forEach((r) => { if (cellChanged(r, i)) overrides[r.code] = effVal(r.vals[i]); });
+            return { date, overrides };
+        });
+        state.running = true;
+        const btn = $('btnRun');
+        busy(btn, true, '계산 중');
+        renderCounts();
+        $('resultArea').innerHTML = '<div class="result-empty" role="status"><span class="spinner dark" aria-hidden="true"></span>'
+            + '<b>' + columns.length + '개 일자의 수량을 계산하고 있습니다…</b>일자마다 자재수배 PID 와 PICK 별 블럭 PID 를 실행합니다.</div>';
+
+        const d = await api('/run', Object.assign({}, q, { columns }));
+        state.running = false;
+        busy(btn, false);
+        renderCounts();
+        if (!d.success) {
+            $('resultArea').innerHTML = '<div style="padding:12px 16px"><div class="notice err" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg>'
+                + '<div><b>계산하지 못했습니다.</b> ' + esc(d.message || '') + '<br>조건을 확인한 뒤 다시 실행하세요.</div></div></div>';
+            toast('계산하지 못했습니다.', true);
+            return;
+        }
+        state.result = d;
+        state.resTab = 'pick';
+        state.onlyDiff = true;
+        state.resKeyword = '';
+        state.detailCol = Math.max(0, (d.columns || []).findIndex((c) => c.success));
+        renderResult();
+        setStep(3);
+        $('resultCard').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    }
+    $('btnRun').addEventListener('click', run);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !$('btnRun').disabled) { e.preventDefault(); run(); }
+    });
+
+    /* 결과 데이터 가공 */
+    const okCols = () => (state.result.columns || []).map((c, i) => Object.assign({ idx: i }, c)).filter((c) => c.success);
+    const runsOf = (c) => (c.result && c.result.runs) || [];
+    const noPart = (run) => !nvl(run.pickValue).trim();
+    function qtyOf(run) {
+        const m = run.resultMap || {};
+        const k = Object.keys(m).find((x) => x.toUpperCase() === QTY_KEY);
+        return k === undefined ? null : nvl(m[k]);
+    }
+    /* PICK 주석 : BLOCKNO$SF 주석 PID 결과(cmt) 우선, 없으면 블럭 PID 결과의 CMT. 둘 다 없으면 null */
+    function cmtOf(run) {
+        if (run.cmt !== null && run.cmt !== undefined) return { text: nvl(run.cmt), src: 'BLOCKNO$SF 주석 PID : ' + nvl(run.cmtPids) };
+        const m = run.resultMap || {};
+        const k = Object.keys(m).find((x) => x.toUpperCase() === 'CMT');
+        return k === undefined ? null : { text: nvl(m[k]), src: '블럭 PID 결과 CMT' };
+    }
+    function differ(values) {
+        return new Set(values.map((v) => (v === null || v === undefined ? '\u0000' : v))).size > 1;
+    }
+
+    /* PICK 별 비교 : 행 = PICK, 열 = 일자 (자재 + QTY) */
+    function pickModel() {
+        const cols = okCols();
+        const picks = [];
+        cols.forEach((c) => runsOf(c).forEach((r) => { if (!picks.includes(r.pick)) picks.push(r.pick); }));
+        return picks.map((p) => {
+            const cells = cols.map((c) => runsOf(c).find((r) => r.pick === p) || null);
+            const parts = cells.map((r) => (r && !noPart(r) ? nvl(r.pickValue) : null));
+            const qtys = cells.map((r) => (r && !noPart(r) ? qtyOf(r) : null));
+            const cmts = cells.map((r) => { const c = r && !noPart(r) ? cmtOf(r) : null; return c; });
+            const cmtTexts = cmts.map((c) => (c ? c.text : null));
+            return { pick: p, cells, parts, qtys, cmts, dPart: differ(parts), dQty: differ(qtys), dCmt: differ(cmtTexts) };
+        });
+    }
+
+    /* 자재별 수량 : 행 = 자재번호, 열 = 일자 (QTY 합계) */
+    function partModel() {
+        const cols = okCols();
+        const map = new Map();
+        cols.forEach((c, ci) => runsOf(c).forEach((r) => {
+            if (noPart(r)) return;
+            const part = nvl(r.pickValue).trim();
+            if (!map.has(part)) map.set(part, { part, sums: cols.map(() => null), picks: cols.map(() => []), text: cols.map(() => []) });
+            const row = map.get(part);
+            const q = qtyOf(r);
+            const n = q === null || q === '' ? NaN : Number(q);
+            if (!isNaN(n)) row.sums.splice(ci, 1, (row.sums[ci] || 0) + n);
+            else if (q !== null && q !== '') row.text[ci].push(q);
+            row.picks[ci].push(r.pick);
+        }));
+        return [...map.values()].map((r) => {
+            const vals = r.sums.map((s, i) => (s === null ? (r.text[i].length ? r.text[i].join(', ') : null) : String(Math.round(s * 1000) / 1000)));
+            return Object.assign(r, { vals, d: differ(vals) });
+        }).sort((a, b) => a.part.localeCompare(b.part));
+    }
+
+    function renderResult() {
+        const d = state.result;
+        const cols = d.columns || [];
+        let html = '<div class="col-sum">' + cols.map((c, i) => {
+            const r = c.result || {};
+            if (!c.success) return '<div class="cs err" style="' + colStyle(i) + '"><div class="t"><span class="cn" aria-hidden="true">' + (i + 1) + '</span>' + esc(colLabel(c.date))
+                + '</div><div class="m"><b style="color:var(--danger)">실패</b> ' + esc(c.message) + '</div></div>';
+            const applied = c.applied || [];
+            const parts = runsOf(c).filter((x) => !noPart(x)).length;
+            return '<div class="cs" style="' + colStyle(i) + '"><div class="t"><span class="cn" aria-hidden="true">' + (i + 1) + '</span>' + esc(colLabel(c.date))
+                + '<span class="badge same" style="margin-left:auto">' + esc(r.blockPid) + ' v' + esc(r.runVersion) + '</span></div>'
+                + '<div class="m">자재 ' + parts + '건 / PICK ' + runsOf(c).length + '건 · ' + (c.elapsedMillis / 1000).toFixed(1) + '초</div>'
+                + '<div class="m">' + (applied.length ? '영업사양 변경 <b>' + applied.length + '건</b> : ' + applied.map((a) => esc(a.code) + ' ' + esc(a.from || '(없음)') + '→' + esc(a.to === '' ? '(공백)' : a.to)).join(', ') : '영업사양 변경 없음') + '</div>'
+                + ((r.warnings || []).length ? '<div class="m" style="color:var(--warn)">경고 ' + r.warnings.length + '건 (일자별 상세에서 확인)</div>' : '')
+                + '</div>';
+        }).join('') + '</div>';
+
+        if (!okCols().length) { $('resultArea').innerHTML = html; return; }
+
+        const pm = pickModel(), parts = partModel();
+        const pickDiff = pm.filter((x) => x.dPart || x.dQty || x.dCmt).length;
+        const partDiff = parts.filter((x) => x.d).length;
+        const tab = (id, label) => '<button type="button" role="tab" id="tab_' + id + '" aria-controls="resPanel" aria-selected="' + (state.resTab === id) + '" data-tab="' + id + '">' + label + '</button>';
+        html += '<div class="res-tabs" role="tablist" aria-label="결과 보기">'
+            + tab('pick', 'PICK 별 자재 · 수량 <span class="badge ' + (pickDiff ? 'diff' : 'ok') + '">' + pickDiff + '건 다름</span>')
+            + tab('part', '자재별 수량 합계 <span class="badge ' + (partDiff ? 'diff' : 'ok') + '">' + partDiff + '건 다름</span>')
+            + tab('detail', '일자별 상세')
+            + '</div>';
+
+        html += '<div class="res-tools">'
+            + '<div class="search"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><label for="resKw" class="sr-only">결과 검색</label>'
+            + '<input type="search" id="resKw" placeholder="' + (state.resTab === 'part' ? '자재번호 검색' : 'PICK / 자재 / KEY / 값 검색') + '" value="' + esc(state.resKeyword) + '"></div>';
+        if (state.resTab !== 'detail' || okCols().length > 1)
+            html += '<label class="chk"><input type="checkbox" id="onlyDiff"' + (state.onlyDiff ? ' checked' : '') + '> '
+                + (state.resTab === 'detail' ? 'PICK 사이에 값이 다른 행만' : '일자 사이에 다른 것만') + '</label>';
+        if (state.resTab === 'detail')
+            html += '<div class="seg" role="group" aria-label="일자 선택" style="margin-left:auto">' + cols.map((c, i) => c.success
+                ? '<button type="button" data-detail="' + i + '" aria-pressed="' + (state.detailCol === i) + '" style="' + colStyle(i) + '">' + (i + 1) + '. ' + esc(colLabel(c.date)) + '</button>' : '').join('') + '</div>';
+        html += '</div><div id="resPanel" role="tabpanel" aria-labelledby="tab_' + state.resTab + '">'
+            + (state.resTab === 'pick' ? pickTable(pm) : state.resTab === 'part' ? partTable(parts) : detailTable(cols[state.detailCol]))
+            + '</div>';
+        $('resultArea').innerHTML = html;
+    }
+
+    function colHeads() {
+        return okCols().map((c) => '<th scope="col" class="colh" style="' + colStyle(c.idx) + '"><span class="cn" aria-hidden="true">' + (c.idx + 1) + '</span>'
+            + esc(colLabel(c.date)) + '<small>' + esc(c.result.blockPid) + ' v' + esc(c.result.runVersion) + ((c.applied || []).length ? ' · 사양 변경 ' + c.applied.length + '건' : '') + '</small></th>').join('');
+    }
+    const kwMatch = (text) => !state.resKeyword || text.toLowerCase().includes(state.resKeyword.toLowerCase());
+
+    function pickTable(pm) {
+        let list = state.onlyDiff ? pm.filter((x) => x.dPart || x.dQty || x.dCmt) : pm;
+        list = list.filter((x) => kwMatch(x.pick + ' ' + x.parts.join(' ') + ' ' + x.qtys.join(' ') + ' ' + x.cmts.map((c) => (c ? c.text : '')).join(' ')));
+        if (!list.length) return '<div class="tbl-empty"><b>' + (pm.length ? (state.onlyDiff ? '일자 사이에 다른 자재 / 수량이 없습니다' : '검색 결과가 없습니다') : 'PICK 이 없습니다') + '</b>'
+            + (pm.length && state.onlyDiff ? '[일자 사이에 다른 것만] 을 끄면 전체를 볼 수 있습니다.' : '') + '</div>';
+        return '<div class="tbl-wrap"><table class="grid-t"><thead><tr><th scope="col" class="k">PICK (결과변수)</th>' + colHeads() + '</tr></thead><tbody>'
+            + list.map((x) => '<tr class="' + (x.dPart || x.dQty || x.dCmt ? 'is-diff' : '') + '"><th scope="row" class="k code">' + esc(x.pick) + '</th>'
+                + x.cells.map((r, i) => {
+                    if (!r) return '<td class="cell"><span class="none">PICK 없음</span></td>';
+                    if (noPart(r)) return '<td class="cell blank" title="PICK 값(자재번호)이 없어 수배되지 않습니다"><span class="none">미수배</span></td>';
+                    if (r.error) return '<td class="cell err"><span class="part">' + esc(r.pickValue) + '</span><br>' + esc(r.error) + '</td>';
+                    const q = x.qtys[i];
+                    return '<td class="cell"><span class="part' + (x.dPart ? ' d' : '') + '">' + esc(r.pickValue) + '</span><br>'
+                        + '<span class="qty' + (x.dQty ? ' d' : '') + '">QTY ' + (q === null ? '<span class="none">-</span>' : q === '' ? '<span class="none">(빈 값)</span>' : esc(q)) + '</span>'
+                        + cmtHtml(x.cmts[i], x.dCmt) + '</td>';
+                }).join('') + '</tr>').join('')
+            + '</tbody></table></div>';
+    }
+
+    function cmtHtml(c, diff) {
+        if (!c) return '';
+        return '<div class="cmt' + (diff ? ' d' : '') + '" title="' + esc(c.src) + '"><span class="cmt-l">주석</span>'
+            + (c.text === '' ? '<span class="none">(빈 값)</span>' : esc(c.text)) + '</div>';
+    }
+
+    function partTable(parts) {
+        let list = state.onlyDiff ? parts.filter((x) => x.d) : parts;
+        list = list.filter((x) => kwMatch(x.part));
+        if (!list.length) return '<div class="tbl-empty"><b>' + (parts.length ? (state.onlyDiff ? '일자 사이에 수량이 다른 자재가 없습니다' : '검색 결과가 없습니다') : '수배된 자재가 없습니다') + '</b></div>';
+        return '<div class="tbl-wrap"><table class="grid-t"><thead><tr><th scope="col" class="k">자재번호 (PICK 값)</th>' + colHeads() + '</tr></thead><tbody>'
+            + list.map((x) => '<tr class="' + (x.d ? 'is-diff' : '') + '"><th scope="row" class="k code">' + esc(x.part) + '</th>'
+                + x.vals.map((v, i) => '<td class="num' + (x.d ? ' d' : '') + '" title="PICK : ' + esc(x.picks[i].join(', ')) + '">'
+                    + (v === null ? '<span class="none">미수배</span>' : esc(v)) + '</td>').join('') + '</tr>').join('')
+            + '</tbody></table></div>'
+            + '<div class="help" style="padding:8px 16px">같은 자재가 여러 PICK 에서 나오면 QTY 를 더합니다. QTY 가 숫자가 아니면 값을 그대로 나열합니다.</div>';
+    }
+
+    /* 일자별 상세 : pidSimulatorUpCalPopUp 과 같은 표 (열 = PICK, 행 = KEY, QTY 먼저, OUTPUTxxxx 제외) */
+    function detailTable(c) {
+        if (!c || !c.success) return '<div class="tbl-empty"><b>이 일자는 계산에 실패했습니다</b></div>';
+        const r = c.result;
+        const runs = r.runs || [];
+        const keys = [];
+        runs.forEach((run) => Object.keys(run.resultMap || {}).forEach((k) => { if (!k.startsWith('OUTPUT') && !keys.includes(k)) keys.push(k); }));
+        const qi = keys.findIndex((k) => k.toUpperCase() === QTY_KEY);
+        keys.unshift(qi >= 0 ? keys.splice(qi, 1)[0] : QTY_KEY);
+
+        let html = '<div style="padding:8px 16px" class="help">공사 ' + esc(r.projectNo) + (r.floor ? ' · 층 ' + esc(r.floor) : '') + ' · ' + esc(r.blockPid) + ' ' + esc(r.blockPidName)
+            + ' v' + esc(r.runVersion) + ' · ' + esc(r.elpPid) + ' 결과변수 ' + runs.length + '건'
+            + (r.beforePids ? ' · 전처리 ' + esc(String(r.beforePids).replace(/\n/g, ', ')) : '') + '</div>';
+        (r.warnings || []).forEach((w) => { html += '<div style="padding:0 16px 4px;color:var(--warn)" class="help">' + esc(w) + '</div>'; });
+        const vers = Object.entries(r.asOfVersions || {});
+        if (r.asOfDate && vers.length) {
+            html += '<details class="vers"><summary>기준일 ' + esc(r.asOfDate) + ' 실행 버전 (PID ' + vers.length + '개)</summary>'
+                + '<table class="grid-t"><thead><tr><th>PID</th><th>버전</th><th>등록일시</th></tr></thead><tbody>'
+                + vers.map((e) => { const v = e[1] || {}; return (v.version === null || v.version === undefined)
+                    ? '<tr><td class="code">' + esc(e[0]) + '</td><td colspan="2" class="none">기준일 이전 버전 없음</td></tr>'
+                    : '<tr><td class="code">' + esc(e[0]) + '</td><td>v' + esc(v.version) + '</td><td>' + esc(v.regDate) + '</td></tr>'; }).join('')
+                + '</tbody></table></details>';
+        }
+        if (!runs.length) return html + '<div class="tbl-empty"><b>PICK 이 없습니다</b></div>';
+
+        const rowsHtml = [];
+        if (runs.some((run) => run.error && !noPart(run)))
+            rowsHtml.push({ cls: 'is-diff', text: '오류', html: '<tr class="is-diff"><th class="k">오류</th>' + runs.map((run) => '<td class="cell err">' + (noPart(run) ? '' : esc(run.error)) + '</td>').join('') + '</tr>', pin: true });
+        keys.forEach((k, ki) => {
+            const vals = runs.map((run) => (noPart(run) ? undefined : (run.resultMap && Object.prototype.hasOwnProperty.call(run.resultMap, k) ? nvl(run.resultMap[k]) : null)));
+            const diff = differ(vals.filter((v) => v !== undefined));
+            const text = k + ' ' + vals.join(' ');
+            rowsHtml.push({ diff, pin: ki === 0, text,
+                html: '<tr class="' + (diff ? 'is-diff' : '') + '"><th class="k code">' + esc(k) + '</th>'
+                    + vals.map((v) => (v === undefined ? '<td class="cell blank"></td>' : v === null ? '<td class="cell"><span class="none">-</span></td>'
+                        : v === '' ? '<td class="cell"><span class="none">(빈 값)</span></td>' : '<td class="cell">' + esc(v) + '</td>')).join('') + '</tr>' });
+        });
+        // PICK 주석 (BLOCKNO$SF 주석 PID 결과) : QTY 바로 아래에 고정
+        if (runs.some((run) => run.cmt !== null && run.cmt !== undefined)) {
+            const vals = runs.map((run) => (noPart(run) ? undefined : (run.cmt === null || run.cmt === undefined ? null : nvl(run.cmt))));
+            const diff = differ(vals.filter((v) => v !== undefined));
+            const at = rowsHtml.findIndex((x) => x.text.split(' ').shift() === keys[0]) + 1;
+            rowsHtml.splice(at, 0, { diff, pin: true, text: '주석 ' + vals.join(' '),
+                html: '<tr class="' + (diff ? 'is-diff' : '') + '"><th class="k" title="BLOCKNO$SF 의 주석 PID(CMTn) 실행 결과">주석 (CMT)</th>'
+                    + runs.map((run, i) => { const v = vals[i];
+                        return v === undefined ? '<td class="cell blank"></td>' : v === null ? '<td class="cell"><span class="none">-</span></td>'
+                            : '<td class="cell" title="주석 PID : ' + esc(run.cmtPids) + '" style="font-family:var(--sans)">' + (v === '' ? '<span class="none">(빈 값)</span>' : esc(v)) + '</td>'; }).join('') + '</tr>' });
+        }
+        const shown = rowsHtml.filter((x) => (x.pin || !state.onlyDiff || x.diff) && (x.pin || kwMatch(x.text)));
+        return html + '<div class="tbl-wrap"><table class="grid-t"><thead><tr><th class="k">KEY</th>'
+            + runs.map((run) => '<th>' + esc(run.pick) + '<small style="display:block;font-weight:400;color:var(--muted)">PICK 값 : ' + esc(run.pickValue) + '</small></th>').join('')
+            + '</tr></thead><tbody>' + shown.map((x) => x.html).join('') + '</tbody></table></div>';
+    }
+
+    $('resultArea').addEventListener('click', (e) => {
+        const tab = e.target.closest('[data-tab]');
+        if (tab) {
+            state.resTab = tab.dataset.tab;
+            state.onlyDiff = true;
+            state.resKeyword = '';
+            renderResult();
+            const t = $('tab_' + state.resTab); if (t) t.focus();
+            return;
+        }
+        const dc = e.target.closest('[data-detail]');
+        if (dc) { state.detailCol = +dc.dataset.detail; renderResult(); const b = document.querySelector('[data-detail="' + state.detailCol + '"]'); if (b) b.focus(); }
+    });
+    $('resultArea').addEventListener('change', (e) => {
+        if (e.target.id === 'onlyDiff') { state.onlyDiff = e.target.checked; renderResult(); $('onlyDiff').focus(); }
+    });
+    let resKwTimer = null;
+    $('resultArea').addEventListener('input', (e) => {
+        if (e.target.id !== 'resKw') return;
+        clearTimeout(resKwTimer);
+        const v = e.target.value;
+        resKwTimer = setTimeout(() => {
+            state.resKeyword = v.trim();
+            renderResult();
+            const k = $('resKw'); if (k) { k.focus(); k.setSelectionRange(k.value.length, k.value.length); }
+        }, 200);
+    });
+
+    /* ---------- 주소창 (공유 / 새로고침) ---------- */
+    function syncUrl(q) {
+        try {
+            const qs = new URLSearchParams();
+            ['project', 'pid', 'floor', 'beforePid'].forEach((n) => { if (q[n]) qs.set(n, q[n]); });
+            qs.set('dates', q.dates.map((d) => d || 'latest').join(','));
+            if (!q.pickCmt) qs.set('pickCmt', 'false');
+            history.replaceState(null, '', location.pathname + '?' + qs);
+            const back = new URLSearchParams();
+            if (q.project) back.set('project', q.project);
+            $('backLink').href = '/simulateup/pidSimulatorUp' + (back.toString() ? '?' + back : '');
+        } catch (e) { /* 무시 */ }
+    }
+
+    ['project', 'pid'].forEach((id) => $(id).addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); extract(); }
+    }));
+
+    (function init() {
+        const p = new URLSearchParams(location.search);
+        ['project', 'pid', 'floor', 'beforePid'].forEach((n) => { if (p.has(n)) $(n).value = p.get(n); });
+        $('pid').value = $('pid').value.toUpperCase();
+        $('beforePid').value = $('beforePid').value.toUpperCase();
+        if (p.get('pickCmt') === 'false') $('optCmt').checked = false;
+        const dates = (p.get('dates') || '').split(',').map((s) => s.trim()).filter(Boolean)
+            .map((s) => (s.toLowerCase() === 'latest' ? '' : s)).slice(0, MAX_COLS);
+        if (dates.length) dates.forEach((d) => state.cols.push({ id: ++colSeq, date: d }));
+        else {
+            // 기본 : 한 달 전 1일 + 최신
+            const now = new Date();
+            state.cols.push({ id: ++colSeq, date: ymd(new Date(now.getFullYear(), now.getMonth() - 1, 1)) });
+            state.cols.push({ id: ++colSeq, date: '' });
+        }
+        renderDates();
+        renderCounts();
+        if (p.get('project') && p.get('pid')) extract();
+    })();
+</script>
+</body>
+</html>

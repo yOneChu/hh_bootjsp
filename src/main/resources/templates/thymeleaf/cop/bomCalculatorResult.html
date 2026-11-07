@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>영업사양 지정 PID 실행</title>
+    <!--
+        영업사양 지정 PID 실행
+          화면 : GET  /simulateup/specOverride  (?project=&pid=&version=&floor=&beforePid= 로 열면 바로 추출)
+          추출 : POST /simulateup/specOverride/extract  { project, pid, version, floor, beforePid, includeSub }
+          실행 : POST /simulateup/specOverride/run      { project, pid, version, floor, beforePid, overrides: {코드: 값} }
+          버전 : GET  /simulateup/pidVersions?pid=      (기존 API, 조회만)
+        - 추출 : 공사값으로 한 번 실행해, 실행된 PID 의 SPEC 열 특성코드 중 영업사양 코드(특성코드 사전에 있는 것)만 보여준다.
+        - 실행 : 공사값 실행과 지정값 실행을 서버에서 차례로 하고 최종 OUTPUT 을 비교한다. DB / 공사정보에는 쓰지 않는다.
+        - 사내망 : 외부 CDN 을 쓰지 않는다. Thymeleaf 인라인 표현식과 겹치지 않도록 스크립트에 대괄호 두 개를 연달아 쓰지 않는다.
+    -->
+    <style>
+        /* ===== 디자인 토큰 (pidSimulatorUp 과 같은 체계 : 어두운 헤더 + 밝은 작업 영역) ===== */
+        :root {
+            --bg: #f1f5f9;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --border: #d9dee5;
+            --border-strong: #c3cad3;
+            --text: #0f172a;
+            --text-2: #334155;
+            --muted: #5b6676;
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-soft: #e8efff;
+            --run: #16a34a;
+            --run-dark: #15803d;
+            --warn: #b45309;
+            --warn-soft: #fef3e2;
+            --danger: #b91c1c;
+            --danger-soft: #fdecec;
+            --ok: #15803d;
+            --ok-soft: #e7f6ec;
+            --changed: #7c3aed;
+            --changed-soft: #f1eafe;
+
+            --head-bg: #1e293b;
+            --head-bg-2: #0f172a;
+            --head-border: #475569;
+            --head-text: #f8fafc;
+            --head-muted: #a5b4c8;
+
+            --mono: Consolas, "D2Coding", "Cascadia Mono", "Courier New", monospace;
+            --sans: "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+            --radius: 6px;
+            --shadow-1: 0 1px 2px rgba(15, 23, 42, .06), 0 1px 3px rgba(15, 23, 42, .08);
+            --shadow-2: 0 8px 24px rgba(15, 23, 42, .14);
+        }
+
+        * { box-sizing: border-box; }
+        html, body { margin: 0; }
+        body {
+            font-family: var(--sans);
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text);
+            background: var(--bg);
+            min-height: 100vh;
+            padding-bottom: 72px; /* 하단 실행 바 공간 */
+        }
+        .ico { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .ico.sm { width: 13px; height: 13px; }
+        .mono { font-family: var(--mono); }
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+        :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+        /* ===== 버튼 ===== */
+        button {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            min-height: 32px; padding: 4px 12px;
+            border: 1px solid var(--border); border-radius: var(--radius);
+            background: var(--surface); color: var(--text-2);
+            font: inherit; font-size: 12.5px; white-space: nowrap; cursor: pointer;
+            transition: background-color .15s, border-color .15s, color .15s;
+        }
+        button:hover:not(:disabled) { background: #eef2f7; }
+        button:disabled { opacity: .45; cursor: not-allowed; }
+        button.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+        button.primary:hover:not(:disabled) { background: var(--primary-dark); }
+        button.run { background: var(--run); border-color: var(--run); color: #fff; font-weight: 700; min-height: 38px; padding: 6px 18px; font-size: 13.5px; }
+        button.run:hover:not(:disabled) { background: var(--run-dark); }
+        button.ghost { background: transparent; border-color: transparent; }
+        button.ghost:hover:not(:disabled) { background: #e9edf3; }
+        button.icon { padding: 4px 7px; min-height: 28px; }
+        .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.45); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
+        .spinner.dark { border-color: rgba(37,99,235,.25); border-top-color: var(--primary); width: 22px; height: 22px; margin: 0 auto 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } * { transition: none !important; } }
+
+        /* ===== 헤더 ===== */
+        .app-head { background: linear-gradient(180deg, var(--head-bg), var(--head-bg-2)); color: var(--head-text); border-bottom: 1px solid var(--head-border); }
+        .app-head .inner { max-width: 1440px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .app-head h1 { margin: 0; font-size: 17px; letter-spacing: -.2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .app-head p { margin: 2px 0 0; color: var(--head-muted); font-size: 12.5px; }
+        .head-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border: 1px solid var(--head-border); border-radius: 999px; color: var(--head-muted); font-size: 11.5px; font-weight: 400; }
+        .app-head .spacer { flex: 1; }
+        .app-head a.back { color: var(--head-muted); text-decoration: none; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: var(--radius); }
+        .app-head a.back:hover { color: var(--head-text); background: rgba(255,255,255,.06); }
+
+        main { max-width: 1440px; margin: 0 auto; padding: 18px 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+        /* ===== 진행 단계 ===== */
+        .steps { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+        .steps li { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 12.5px; }
+        .steps li b { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; background: #e2e8f0; color: var(--text-2); font-size: 11px; }
+        .steps li.is-on { border-color: var(--primary); color: var(--primary-dark); font-weight: 700; background: var(--primary-soft); }
+        .steps li.is-on b { background: var(--primary); color: #fff; }
+        .steps li.is-done { color: var(--ok); }
+        .steps li.is-done b { background: var(--ok); color: #fff; }
+        .steps .sep { align-self: center; color: var(--border-strong); border: 0; background: none; padding: 0; }
+
+        /* ===== 카드 ===== */
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-1); }
+        .card-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .card-head h2 { margin: 0; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .card-head h2 .num { width: 22px; height: 22px; border-radius: 6px; display: inline-grid; place-items: center; background: var(--head-bg); color: #fff; font-size: 12px; }
+        .card-head .desc { color: var(--muted); font-size: 12px; }
+        .card-head .right { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+        .card-body { padding: 14px 16px; }
+
+        /* ===== 1. 실행 조건 ===== */
+        .cond { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px 14px; align-items: end; }
+        .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .field label, .field .lbl { font-size: 12px; font-weight: 700; color: var(--text-2); }
+        .field label .req { color: var(--danger); margin-left: 2px; }
+        .field .help { font-size: 11.5px; color: var(--muted); }
+        .c-project { grid-column: span 3; } .c-pid { grid-column: span 3; } .c-ver { grid-column: span 2; } .c-floor { grid-column: span 2; } .c-act { grid-column: span 2; }
+        .c-before { grid-column: span 6; } .c-opts { grid-column: span 6; }
+        @media (max-width: 1100px) {
+            .c-project, .c-pid { grid-column: span 6; } .c-ver, .c-floor { grid-column: span 3; } .c-act { grid-column: span 6; }
+            .c-before, .c-opts { grid-column: span 12; }
+        }
+        @media (max-width: 640px) {
+            .c-project, .c-pid, .c-ver, .c-floor, .c-act { grid-column: span 12; }
+        }
+        input[type=text], input[type=search], select, textarea {
+            width: 100%; min-height: 34px; padding: 6px 10px;
+            border: 1px solid var(--border-strong); border-radius: var(--radius);
+            background: #fff; color: var(--text); font: inherit; font-size: 13px;
+        }
+        textarea { resize: vertical; min-height: 34px; height: 34px; font-family: var(--mono); }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: 2px solid rgba(37,99,235,.18); outline-offset: 0; }
+        input.mono { font-family: var(--mono); }
+        .c-act button { width: 100%; min-height: 34px; }
+        .opts { display: flex; gap: 6px 16px; flex-wrap: wrap; padding: 6px 0; align-items: center; }
+        .chk { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-2); cursor: pointer; }
+        .chk input { width: 15px; height: 15px; accent-color: var(--primary); margin: 0; }
+        .field-err { color: var(--danger); font-size: 11.5px; min-height: 0; }
+
+        /* 알림 띠 */
+        .notice { display: flex; gap: 8px; align-items: flex-start; padding: 10px 14px; border-radius: 8px; font-size: 12.5px; border: 1px solid; }
+        .notice.err { background: var(--danger-soft); border-color: #f3b4b4; color: var(--danger); }
+        .notice.warn { background: var(--warn-soft); border-color: #f5cf95; color: #92400e; }
+        .notice.info { background: var(--primary-soft); border-color: #bcd0fb; color: var(--primary-dark); }
+        .notice b { font-weight: 700; }
+        .notice ul { margin: 4px 0 0; padding-left: 18px; }
+
+        /* ===== 요약 지표 ===== */
+        .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+        @media (max-width: 1000px) { .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        @media (max-width: 560px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .stat .k { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+        .stat .v { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .stat .s { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .stat.is-sales .v { color: var(--primary-dark); }
+        .stat.is-changed .v { color: var(--changed); }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+        /* ===== 2. 영업사양 값 입력 ===== */
+        .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+        .toolbar .search { position: relative; flex: 1 1 260px; max-width: 360px; }
+        .toolbar .search .ico { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+        .toolbar .search input { padding-left: 30px; }
+        .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius); overflow: hidden; background: #fff; }
+        .seg button { border: 0; border-radius: 0; min-height: 32px; border-right: 1px solid var(--border); }
+        .seg button:last-child { border-right: 0; }
+        .seg button[aria-pressed=true] { background: var(--head-bg); color: #fff; font-weight: 700; }
+        .seg .cnt { font-variant-numeric: tabular-nums; opacity: .8; }
+        .toolbar .right { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+
+        .paste-box { display: none; padding: 12px 16px; border-bottom: 1px solid var(--border); background: #fbfcfe; gap: 10px; flex-direction: column; }
+        .paste-box.is-open { display: flex; }
+        .paste-box textarea { height: 110px; font-size: 12.5px; }
+        .paste-box .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .paste-box .help { color: var(--muted); font-size: 12px; }
+
+        .tbl-wrap { overflow: auto; max-height: 56vh; }
+        table.spec { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; }
+        table.spec th, table.spec td { padding: 7px 10px; border-bottom: 1px solid #eceff3; text-align: left; vertical-align: middle; }
+        table.spec thead th { position: sticky; top: 0; z-index: 2; background: #eef2f7; color: var(--text-2); font-size: 11.5px; font-weight: 700; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        table.spec tbody tr:hover td { background: #f8fafc; }
+        table.spec tbody tr.is-changed td { background: #faf7ff; }
+        table.spec tbody tr.is-changed td:first-child { box-shadow: inset 3px 0 0 var(--changed); }
+        table.spec td.no { color: var(--muted); font-variant-numeric: tabular-nums; width: 40px; text-align: right; }
+        table.spec td.code { font-family: var(--mono); font-weight: 700; white-space: nowrap; }
+        table.spec td.name { color: var(--text-2); min-width: 120px; }
+        table.spec td.use { white-space: nowrap; }
+        table.spec td.cur { font-family: var(--mono); min-width: 110px; overflow-wrap: anywhere; }
+        table.spec td.cur .empty { color: var(--muted); font-family: var(--sans); font-style: italic; }
+        table.spec td.inp { min-width: 260px; width: 30%; }
+        table.spec td.st { white-space: nowrap; width: 92px; }
+        table.spec td.act { width: 40px; text-align: center; }
+        .use-pill { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 999px; background: #eef2f7; color: var(--text-2); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+        .use-pill.sub { background: #fff7ed; color: var(--warn); }
+        .inp-box { display: flex; flex-direction: column; gap: 5px; }
+        .inp-box input { font-family: var(--mono); min-height: 30px; padding: 4px 8px; }
+        .inp-box input.is-changed { border-color: var(--changed); background: #fcfaff; }
+        .cons { display: flex; flex-wrap: wrap; gap: 4px; }
+        .cons .lbl { font-size: 11px; color: var(--muted); margin-right: 2px; align-self: center; }
+        .con-chip { min-height: 22px; padding: 0 7px; font-family: var(--mono); font-size: 11.5px; border-radius: 999px; border-color: var(--border); background: #fff; }
+        .con-chip:hover:not(:disabled) { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-soft); }
+        .con-chip[aria-pressed=true] { border-color: var(--primary); background: var(--primary); color: #fff; }
+        .con-more { min-height: 22px; padding: 0 7px; font-size: 11px; border-radius: 999px; border-style: dashed; }
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; }
+        .badge.same { background: #eef0f3; color: #4b5563; }
+        .badge.changed { background: var(--changed-soft); color: var(--changed); }
+        .badge.blank { background: var(--warn-soft); color: var(--warn); }
+
+        .tbl-empty { padding: 36px 16px; text-align: center; color: var(--muted); }
+        .tbl-empty b { display: block; color: var(--text-2); font-size: 13.5px; margin-bottom: 4px; }
+
+        /* 영업사양이 아닌 SPEC (내부 변수 등) */
+        details.others { border-top: 1px solid var(--border); }
+        details.others summary { cursor: pointer; padding: 10px 16px; color: var(--text-2); font-weight: 700; font-size: 12.5px; display: flex; align-items: center; gap: 8px; list-style: none; flex-wrap: wrap; }
+        details.others summary::-webkit-details-marker { display: none; }
+        details.others summary .chev { transition: transform .15s; }
+        details.others[open] summary .chev { transform: rotate(90deg); }
+        details.others summary .desc { font-weight: 400; color: var(--muted); }
+        .other-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 14px; }
+        .other-chip { font-family: var(--mono); font-size: 11.5px; padding: 2px 8px; border-radius: 4px; background: #eef0f3; color: #4b5563; border: 1px dashed var(--border-strong); }
+        .other-chip small { font-family: var(--sans); color: var(--muted); margin-left: 4px; }
+
+        /* ===== 3. 실행 결과 ===== */
+        .result-empty { padding: 32px 16px; text-align: center; color: var(--muted); }
+        .result-empty .ico { width: 30px; height: 30px; color: var(--border-strong); margin-bottom: 6px; }
+        .result-empty b { display: block; color: var(--text-2); font-size: 13.5px; margin-bottom: 2px; }
+        .res-sum { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface-2); align-items: center; }
+        .res-sum .badge { font-size: 12px; padding: 3px 10px; }
+        .res-applied { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+        .res-note { padding: 10px 16px 0; }
+        .badge.ok { background: var(--ok-soft); color: var(--ok); }
+        .badge.diff { background: var(--danger-soft); color: var(--danger); }
+        .badge.info { background: var(--primary-soft); color: var(--primary-dark); }
+        .badge.t { background: var(--ok-soft); color: var(--ok); }
+        .badge.f { background: var(--danger-soft); color: var(--danger); }
+        .badge.u { background: #eef0f3; color: #6b7480; }
+        tr.is-diff td { background: #fff8f8; }
+        tr.is-diff td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+        .arrow { color: var(--muted); margin: 0 4px; }
+        .none { color: var(--muted); font-style: italic; font-family: var(--sans); }
+        .res-tabs { display: flex; gap: 4px; padding: 10px 16px 0; border-bottom: 1px solid var(--border); }
+        .res-tabs button { border: 1px solid transparent; border-bottom: 0; border-radius: 6px 6px 0 0; margin-bottom: -1px; background: transparent; }
+        .res-tabs button[aria-selected=true] { background: #fff; border-color: var(--border); color: var(--text); font-weight: 700; }
+        .res-tools { display: flex; gap: 10px; padding: 8px 16px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid #eceff3; }
+        .cchip { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; margin: 1px 2px; border-radius: 4px; font-family: var(--mono); font-size: 11.5px; background: #f1f5f9; }
+        .cchip.T { background: #dcf3e3; }
+        .cchip.F { background: #fbe0e0; }
+        .cchip .sv { color: var(--muted); font-size: 10.5px; }
+        td.out { font-family: var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; min-width: 200px; }
+
+        /* ===== 하단 실행 바 ===== */
+        .run-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: rgba(255,255,255,.97); border-top: 1px solid var(--border); box-shadow: 0 -4px 16px rgba(15,23,42,.08); }
+        .run-bar .inner { max-width: 1440px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .run-bar .msg { color: var(--text-2); font-size: 12.5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .run-bar .msg b { color: var(--changed); font-variant-numeric: tabular-nums; }
+        .run-bar .msg .stale { color: var(--warn); font-weight: 700; }
+        .run-bar .right { margin-left: auto; display: flex; gap: 8px; }
+
+        /* ===== 토스트 ===== */
+        .toast { position: fixed; right: 20px; bottom: 80px; z-index: 30; background: var(--head-bg); color: #fff; padding: 10px 14px; border-radius: 8px; box-shadow: var(--shadow-2); font-size: 12.5px; opacity: 0; transform: translateY(6px); transition: opacity .18s, transform .18s; pointer-events: none; max-width: calc(100vw - 40px); }
+        .toast.is-show { opacity: 1; transform: none; }
+        .toast.is-err { background: var(--danger); }
+
+        @media (max-width: 640px) {
+            .app-head .inner, main, .run-bar .inner { padding-left: 16px; padding-right: 16px; }
+            .run-bar .right { margin-left: 0; width: 100%; }
+            .run-bar .right button { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 아이콘 (인라인 SVG) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></symbol>
+    <symbol id="i-paste" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/></symbol>
+    <symbol id="i-result" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/></symbol>
+</svg>
+
+<header class="app-head">
+    <div class="inner">
+        <div>
+            <h1>영업사양 지정 PID 실행
+                <span class="head-chip"><svg class="ico sm" aria-hidden="true"><use href="#i-db"/></svg>DB 미반영 · 조회 전용</span>
+            </h1>
+            <p>PID 의 SPEC 열에서 영업사양 코드만 뽑아, 값을 직접 바꿔 PID 를 실행해 봅니다. 공사 영업사양은 바뀌지 않습니다.</p>
+        </div>
+        <span class="spacer"></span>
+        <a class="back" href="/simulateup/pidSimulatorUp" id="backLink"><svg class="ico sm" aria-hidden="true"><use href="#i-back"/></svg>PID 시뮬레이터로</a>
+    </div>
+</header>
+
+<main>
+    <!-- 진행 단계 -->
+    <ol class="steps" aria-label="진행 단계">
+        <li id="step1" class="is-on" aria-current="step"><b>1</b>실행 조건</li>
+        <li class="sep" aria-hidden="true">›</li>
+        <li id="step2"><b>2</b>영업사양 값 입력</li>
+        <li class="sep" aria-hidden="true">›</li>
+        <li id="step3"><b>3</b>실행 결과</li>
+    </ol>
+
+    <!-- ═══════════ 1. 실행 조건 ═══════════ -->
+    <section class="card" aria-labelledby="t1">
+        <div class="card-head">
+            <h2 id="t1"><span class="num">1</span>실행 조건</h2>
+            <span class="desc">공사값으로 한 번 실행해서, 실행된 PID 의 SPEC 열 중 영업사양 코드만 아래에 표시합니다.</span>
+        </div>
+        <div class="card-body">
+            <form class="cond" id="condForm" onsubmit="return false">
+                <div class="field c-project">
+                    <label for="project">공사번호 / 호기<span class="req" aria-hidden="true">*</span></label>
+                    <input type="text" id="project" class="mono" placeholder="예) 206663L01" autocomplete="off" required aria-describedby="projectErr">
+                    <span class="field-err" id="projectErr" role="alert"></span>
+                </div>
+                <div class="field c-pid">
+                    <label for="pid">PID<span class="req" aria-hidden="true">*</span></label>
+                    <input type="text" id="pid" class="mono" placeholder="예) D375A" autocomplete="off" required aria-describedby="pidErr">
+                    <span class="field-err" id="pidErr" role="alert"></span>
+                </div>
+                <div class="field c-ver">
+                    <label for="version">버전</label>
+                    <select id="version">
+                        <option value="">최신</option>
+                    </select>
+                    <span class="field-err"></span>
+                </div>
+                <div class="field c-floor">
+                    <label for="floor">층</label>
+                    <input type="text" id="floor" class="mono" placeholder="층별 PID 만" autocomplete="off">
+                    <span class="field-err"></span>
+                </div>
+                <div class="field c-act">
+                    <button type="button" class="primary" id="btnExtract">
+                        <svg class="ico" aria-hidden="true"><use href="#i-filter"/></svg><span>영업사양 추출</span>
+                    </button>
+                    <span class="field-err"></span>
+                </div>
+                <div class="field c-before">
+                    <label for="beforePid">전처리 PID</label>
+                    <textarea id="beforePid" placeholder="먼저 실행할 PID (콤마 또는 줄바꿈 구분)" rows="1"></textarea>
+                </div>
+                <div class="field c-opts">
+                    <span class="lbl" id="optLbl">추출 범위</span>
+                    <div class="opts" role="group" aria-labelledby="optLbl">
+                        <label class="chk"><input type="checkbox" id="optSub" checked> CALL 하위 PID 의 SPEC 포함</label>
+                        <span class="help">전처리 PID 는 실행만 하고 SPEC 은 뽑지 않습니다.</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <div id="noticeArea" aria-live="polite"></div>
+
+    <!-- 요약 지표 -->
+    <section class="stats" aria-label="추출 요약" id="stats">
+        <div class="stat"><span class="k">SPEC 코드 전체</span><span class="v" id="sAll">-</span><span class="s" id="sAllSub">추출 전</span></div>
+        <div class="stat is-sales"><span class="k"><i class="dot" style="background:var(--primary)"></i>영업사양 코드</span><span class="v" id="sSales">-</span><span class="s">값 입력 대상</span></div>
+        <div class="stat"><span class="k"><i class="dot" style="background:#9ca3af"></i>영업사양 아님</span><span class="v" id="sOther">-</span><span class="s">PID 내부 변수 · 결과값</span></div>
+        <div class="stat is-changed"><span class="k"><i class="dot" style="background:var(--changed)"></i>값 변경</span><span class="v" id="sChanged">-</span><span class="s">공사값과 다르게 입력</span></div>
+        <div class="stat"><span class="k"><i class="dot" style="background:var(--warn)"></i>공사값 없음</span><span class="v" id="sBlank">-</span><span class="s">공사에 값이 비어 있음</span></div>
+    </section>
+
+    <!-- ═══════════ 2. 영업사양 값 입력 ═══════════ -->
+    <section class="card" aria-labelledby="t2">
+        <div class="card-head">
+            <h2 id="t2"><span class="num">2</span>영업사양 값 입력</h2>
+            <span class="desc">입력칸을 비우면 공사값 그대로 실행합니다. CON 값을 누르면 바로 채워집니다.</span>
+            <div class="right" id="srcLabel" aria-live="polite"></div>
+        </div>
+
+        <div class="toolbar">
+            <div class="search">
+                <svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>
+                <label for="keyword" class="sr-only">특성코드 / 사양명 검색</label>
+                <input type="search" id="keyword" placeholder="특성코드 / 사양명 / 값 검색">
+            </div>
+            <div class="seg" role="group" aria-label="표시 범위">
+                <button type="button" data-filter="all" aria-pressed="true">전체 <span class="cnt" id="fAll">0</span></button>
+                <button type="button" data-filter="changed" aria-pressed="false">변경 <span class="cnt" id="fChanged">0</span></button>
+                <button type="button" data-filter="blank" aria-pressed="false">공사값 없음 <span class="cnt" id="fBlank">0</span></button>
+                <button type="button" data-filter="sub" aria-pressed="false">하위 PID 사용 <span class="cnt" id="fSub">0</span></button>
+            </div>
+            <div class="right">
+                <button type="button" id="btnPaste" aria-expanded="false" aria-controls="pasteBox" title="엑셀에서 '특성코드 [Tab] 값' 두 열을 복사해 한 번에 붙여넣습니다" disabled>
+                    <svg class="ico" aria-hidden="true"><use href="#i-paste"/></svg>붙여넣기
+                </button>
+                <button type="button" id="btnResetAll" title="입력한 값을 모두 지우고 공사값으로 되돌립니다" disabled>
+                    <svg class="ico" aria-hidden="true"><use href="#i-undo"/></svg>모두 되돌리기
+                </button>
+            </div>
+        </div>
+
+        <div class="paste-box" id="pasteBox">
+            <label for="pasteText" class="help">한 줄에 <b>특성코드</b> 와 <b>값</b> 을 Tab / 콤마 / = 로 구분해 붙여넣으세요. 값에 <b>공백</b> 이라고 쓰면 공백으로 실행합니다. 목록에 없는 특성코드는 건너뜁니다.</label>
+            <textarea id="pasteText" placeholder="EL_SPEED&#9;150&#10;EL_CAPA=1600"></textarea>
+            <div class="row">
+                <button type="button" class="primary" id="btnPasteApply">적용</button>
+                <button type="button" id="btnPasteCancel">닫기</button>
+                <span class="help" id="pasteMsg" aria-live="polite"></span>
+            </div>
+        </div>
+
+        <div class="tbl-wrap">
+            <table class="spec" aria-describedby="t2">
+                <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">특성코드</th>
+                    <th scope="col">사양명</th>
+                    <th scope="col" title="이 특성코드를 SPEC 으로 쓰는 라인 수">사용 라인</th>
+                    <th scope="col">공사 현재값</th>
+                    <th scope="col">실행할 값</th>
+                    <th scope="col">상태</th>
+                    <th scope="col"><span class="sr-only">되돌리기</span></th>
+                </tr>
+                </thead>
+                <tbody id="specBody">
+                <tr><td colspan="8"><div class="tbl-empty"><b>아직 추출한 영업사양이 없습니다</b>위에서 공사번호와 PID 를 입력하고 [영업사양 추출] 을 누르세요.</div></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <details class="others" id="othersBox">
+            <summary>
+                <svg class="ico sm chev" aria-hidden="true"><use href="#i-chev"/></svg>
+                영업사양이 아닌 SPEC <span id="otherCnt">0</span>개
+                <span class="desc">— 특성코드 사전에 없는 코드 (PID 실행 중에 계산되는 내부 변수 / 결과값)라 값을 지정하지 않습니다.</span>
+            </summary>
+            <div class="other-list" id="otherList"></div>
+        </details>
+    </section>
+
+    <!-- ═══════════ 3. 실행 결과 ═══════════ -->
+    <section class="card" aria-labelledby="t3" id="resultCard">
+        <div class="card-head">
+            <h2 id="t3"><span class="num">3</span>실행 결과</h2>
+            <span class="desc">영업사양을 바꾸지 않고 최신 버전으로 실행한 결과와, 영업사양을 바꿔 실행한 결과를 비교합니다.</span>
+        </div>
+        <div id="resultArea" aria-live="polite">
+            <div class="result-empty">
+                <svg class="ico" aria-hidden="true"><use href="#i-result"/></svg>
+                <b>아직 실행하지 않았습니다</b>
+                영업사양 값을 입력한 뒤 아래 [지정값으로 실행] 을 누르세요.
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- 하단 실행 바 -->
+<div class="run-bar" role="region" aria-label="실행">
+    <div class="inner">
+        <div class="msg" id="runMsg">영업사양을 먼저 추출하세요.</div>
+        <div class="right">
+            <button type="button" id="btnRun" class="run" disabled>
+                <svg class="ico" aria-hidden="true" style="fill:currentColor;stroke:none"><use href="#i-play"/></svg><span>지정값으로 실행</span><kbd class="sr-only">Ctrl+Enter</kbd>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+    const BASE = '/simulateup/specOverride';
+    const VERSIONS_API = '/simulateup/pidVersions?pid=';
+    const PARAM_NAMES = ['project', 'pid', 'version', 'floor', 'beforePid'];
+    const CON_SHOW = 8;   // CON 칩을 처음에 보여줄 개수 (나머지는 [+n] 으로 펼침)
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    const state = {
+        rows: [],          // { code, name, cur, inBase, lines, sub, subPids, cons, values, val, conOpen }
+        others: [],
+        filter: 'all',
+        keyword: '',
+        extracted: false,
+        stale: false,      // 추출 후 실행 조건을 바꿨는지
+        query: null,       // 추출에 쓴 실행 조건
+        info: null,        // 추출 응답 (헤더 정보)
+        result: null,      // 실행 응답
+        resTab: 'out',
+        onlyDiff: false,
+        cmpBase: 'latest', // OUTPUT 비교 기준 : 'latest' 최신 버전 + 공사값 / 'base' 선택 버전 + 공사값
+        running: false
+    };
+
+    /* ---------- 공통 ---------- */
+    let toastTimer = null;
+    function toast(msg, err) {
+        const t = $('toast');
+        t.textContent = msg;
+        t.classList.toggle('is-err', !!err);
+        t.classList.add('is-show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('is-show'), err ? 5000 : 3200);
+    }
+    function busy(btn, on, text) {
+        if (on) {
+            btn.dataset.html = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>' + esc(text) + '</span>';
+        } else {
+            if (btn.dataset.html) btn.innerHTML = btn.dataset.html;
+            btn.disabled = false;
+        }
+    }
+    function setStep(n) {
+        for (let i = 1; i <= 3; i++) {
+            const el = $('step' + i);
+            el.classList.toggle('is-on', i === n);
+            el.classList.toggle('is-done', i < n);
+            if (i === n) el.setAttribute('aria-current', 'step'); else el.removeAttribute('aria-current');
+        }
+    }
+    function notice(kind, html) {
+        $('noticeArea').innerHTML = html ? '<div class="notice ' + kind + '" role="' + (kind === 'err' ? 'alert' : 'status') + '">'
+            + '<svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg><div>' + html + '</div></div>' : '';
+    }
+    async function api(path, body) {
+        try {
+            const res = await fetch(BASE + path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify(body || {}),
+                credentials: 'same-origin'
+            });
+            let data = null;
+            try { data = await res.json(); } catch (e) { /* 아래에서 처리 */ }
+            if (!data) return { success: false, message: '서버 응답을 읽지 못했습니다. (HTTP ' + res.status + ')' };
+            if (!res.ok && data.success === undefined) return { success: false, message: data.message || data.error || ('HTTP ' + res.status) };
+            return data;
+        } catch (e) {
+            return { success: false, message: '서버에 연결하지 못했습니다.' };
+        }
+    }
+    // 실행할 값을 '공백'으로 지정 (입력칸이 비어 있으면 공사값 그대로이므로 따로 표시값을 쓴다)
+    const BLANK = '(공백)';
+    const isChanged = (r) => r.val === BLANK ? (r.cur !== '' || !r.inBase) : (r.val !== '' && r.val !== r.cur);
+    const sendValue = (v) => v === BLANK ? '' : v;
+    const isBlank = (r) => r.cur === '';
+    const versionText = (d) => d.testVersion ? 'TEST' : ('v' + d.runVersion + (d.runVersion === d.latestVersion ? ' 최신' : ''));
+
+    function readQuery() {
+        return {
+            project: $('project').value.trim(),
+            pid: $('pid').value.trim().toUpperCase(),
+            version: $('version').value,
+            floor: $('floor').value.trim(),
+            beforePid: $('beforePid').value.trim().toUpperCase(),
+            includeSub: $('optSub').checked
+        };
+    }
+    const sameQuery = (a, b) => !!a && !!b && PARAM_NAMES.every((n) => a[n] === b[n]) && a.includeSub === b.includeSub;
+
+    /* ---------- 버전 목록 (기존 API) ---------- */
+    let versionsReq = 0, versionsPid = '';
+    async function loadVersions(keep) {
+        const pid = $('pid').value.trim();
+        const sel = $('version');
+        if (pid === versionsPid) return;
+        versionsPid = pid;
+        const want = keep !== undefined ? keep : sel.value;
+        sel.innerHTML = '<option value="">최신</option>';
+        if (!pid) return;
+        const req = ++versionsReq;
+        sel.disabled = true;
+        try {
+            const res = await fetch(VERSIONS_API + encodeURIComponent(pid), { headers: { Accept: 'application/json' } });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const list = await res.json();
+            if (req !== versionsReq || !Array.isArray(list)) return;
+            sel.innerHTML = '<option value="">최신</option>' + list.map((v) =>
+                '<option value="' + esc(v.version) + '">' + (String(v.version) === '-1' ? 'TEST' : 'v' + esc(v.version) + (v.latest ? ' (최신)' : '')) + '</option>').join('');
+        } catch (e) {
+            // 목록을 못 읽어도 최신으로 실행 가능. 주소창으로 받은 버전은 그대로 넣어 둔다
+            if (want && want !== '') sel.insertAdjacentHTML('beforeend', '<option value="' + esc(want) + '">' + (want === '-1' ? 'TEST' : 'v' + esc(want)) + '</option>');
+        } finally {
+            if (req === versionsReq) sel.disabled = false;
+        }
+        if (want !== undefined && Array.prototype.some.call(sel.options, (o) => o.value === want)) sel.value = want;
+        markStale();
+    }
+    $('pid').addEventListener('change', () => loadVersions());
+    $('pid').addEventListener('blur', () => loadVersions());
+
+    /* ---------- 1. 영업사양 추출 ---------- */
+    function validate(q) {
+        $('projectErr').textContent = q.project ? '' : '공사번호를 입력하세요.';
+        $('pidErr').textContent = q.pid ? '' : 'PID 를 입력하세요.';
+        if (!q.project) { $('project').focus(); return false; }
+        if (!q.pid) { $('pid').focus(); return false; }
+        return true;
+    }
+
+    async function extract() {
+        const q = readQuery();
+        if (!validate(q)) return;
+        if (state.rows.some((r) => r.val !== '') && !confirm('다시 추출하면 입력한 값이 같은 특성코드에만 유지됩니다. 계속할까요?')) return;
+
+        const btn = $('btnExtract');
+        busy(btn, true, '추출 중');
+        notice('', '');
+        $('specBody').innerHTML = '<tr><td colspan="8"><div class="tbl-empty" role="status"><span class="spinner dark" aria-hidden="true"></span>'
+            + '<b>공사값으로 PID 를 실행해 SPEC 을 모으고 있습니다…</b>PID 와 CALL 하위 PID 가 많으면 시간이 걸릴 수 있습니다.</div></td></tr>';
+
+        const d = await api('/extract', q);
+        busy(btn, false);
+        if (!d.success) {
+            notice('err', '<b>영업사양을 추출하지 못했습니다.</b> ' + esc(d.message || '') + '<br>공사번호 / PID / 버전 / 층을 확인한 뒤 다시 시도하세요.');
+            renderTable();
+            return;
+        }
+
+        // 같은 특성코드에 입력했던 값은 유지
+        const prev = new Map(state.rows.map((r) => [r.code, r.val]));
+        state.rows = (d.sales || []).map((s) => ({
+            code: s.code, name: s.name || '', cur: s.cur == null ? '' : String(s.cur), inBase: !!s.inBase,
+            lines: s.lines || 0, sub: s.sub || 0, subPids: s.subPids || [], cons: s.cons || [], values: s.values || [],
+            val: prev.get(s.code) || '', conOpen: false
+        }));
+        state.others = d.others || [];
+        state.info = d;
+        state.query = q;
+        state.extracted = true;
+        state.stale = false;
+        state.result = null;
+        resetResult();
+
+        $('srcLabel').innerHTML = '<span class="badge info" title="' + esc(d.projectTitle || '') + '">'
+            + esc((d.projectNo || q.project) + ' · ' + d.pid + (d.pidName ? ' ' + d.pidName : '') + ' (' + versionText(d) + ')'
+            + (d.floor ? ' · ' + d.floor : '')) + '</span>';
+        $('sAllSub').textContent = q.includeSub ? 'CALL 하위 PID ' + (d.subPidCount || 0) + '개 포함' : '대상 PID 만';
+
+        const msgs = [];
+        if (d.javaMethod) msgs.push('대상 PID 가 JAVA 방식이라 로직(SPEC 열)이 없습니다. CALL 하위 PID 에서 쓰는 영업사양만 표시합니다.');
+        if (d.dictEmpty) msgs.push('특성코드 사전이 아직 로딩되지 않았습니다. 잠시 후 다시 추출하세요.');
+        if (d.isFloorSpec === 'Y' && !q.floor) msgs.push('층별 PID 입니다. 층을 입력하지 않으면 공사(호기) 영업사양으로 실행합니다.');
+        (d.warnings || []).forEach((w) => msgs.push(esc(w)));
+        if (msgs.length) notice('warn', '<b>확인하세요</b><ul>' + msgs.map((m) => '<li>' + m + '</li>').join('') + '</ul>');
+
+        renderOthers();
+        renderTable();
+        setStep(2);
+        syncUrl(q);
+        toast('영업사양 ' + state.rows.length + '개를 추출했습니다. (' + (d.elapsedMillis / 1000).toFixed(1) + '초)');
+    }
+    $('btnExtract').addEventListener('click', extract);
+
+    /* 추출 후 조건을 바꾸면 다시 추출해야 실행할 수 있다 */
+    function markStale() {
+        if (!state.extracted) return;
+        state.stale = !sameQuery(readQuery(), state.query);
+        renderCounts();
+    }
+    /* PID 입력 : 영문은 대문자로 (커서 위치 유지, 한글 조합 중에는 건드리지 않음) */
+    function upperInput(el) {
+        const apply = () => {
+            const v = el.value, up = v.toUpperCase();
+            if (v === up) return;
+            const s = el.selectionStart, e = el.selectionEnd;
+            el.value = up;
+            try { el.setSelectionRange(s, e); } catch (err) { /* 무시 */ }
+        };
+        el.addEventListener('input', (ev) => { if (!ev.isComposing) apply(); });
+        el.addEventListener('compositionend', apply);
+        el.addEventListener('change', apply);
+    }
+    ['pid', 'beforePid'].forEach((id) => upperInput($(id)));
+
+    ['project', 'pid', 'floor', 'beforePid'].forEach((id) => $(id).addEventListener('input', markStale));
+    ['version', 'optSub'].forEach((id) => $(id).addEventListener('change', markStale));
+
+    /* ---------- 2. 표 그리기 ---------- */
+    function visibleRows() {
+        const kw = state.keyword.toLowerCase();
+        return state.rows.filter((r) => {
+            if (state.filter === 'changed' && !isChanged(r)) return false;
+            if (state.filter === 'blank' && !isBlank(r)) return false;
+            if (state.filter === 'sub' && !r.sub) return false;
+            if (!kw) return true;
+            return (r.code + ' ' + r.name + ' ' + r.cur + ' ' + r.val).toLowerCase().includes(kw);
+        });
+    }
+
+    function statusHtml(r) {
+        return isChanged(r) ? '<span class="badge changed">' + (r.val === BLANK ? '공백' : '변경') + '</span>'
+            : (isBlank(r) && r.val === '') ? '<span class="badge blank" title="' + (r.inBase ? '공사 영업사양 값이 비어 있습니다' : '공사 영업사양에 이 특성이 없습니다') + '">값 없음</span>'
+            : '<span class="badge same">공사값</span>';
+    }
+
+    function consHtml(r, idx) {
+        const list = r.conOpen ? r.cons : r.cons.slice(0, CON_SHOW);
+        const blankChip = '<button type="button" class="con-chip" data-i="' + idx + '" data-v="' + esc(BLANK) + '" aria-pressed="' + (r.val === BLANK) + '"'
+            + ' title="' + esc(r.code) + ' 을 공백으로 바꿔 실행 (다시 누르면 해제)" style="font-family:var(--sans)">공백</button>';
+        return '<div class="cons"><span class="lbl">' + (r.cons.length ? 'CON' : '값') + '</span>' + blankChip + list.map((c) =>
+            '<button type="button" class="con-chip" data-i="' + idx + '" data-v="' + esc(c) + '" aria-pressed="' + (r.val === c) + '"'
+            + ' title="' + esc(r.code) + ' = ' + esc(c) + ' 로 채우기 (다시 누르면 해제)">' + esc(c) + '</button>').join('')
+            + (r.cons.length > CON_SHOW ? '<button type="button" class="con-more" data-more="' + idx + '" aria-expanded="' + r.conOpen + '">'
+                + (r.conOpen ? '접기' : '+' + (r.cons.length - CON_SHOW)) + '</button>' : '')
+            + '</div>';
+    }
+
+    function renderTable() {
+        const body = $('specBody');
+        if (!state.extracted) {
+            body.innerHTML = '<tr><td colspan="8"><div class="tbl-empty"><b>아직 추출한 영업사양이 없습니다</b>위에서 공사번호와 PID 를 입력하고 [영업사양 추출] 을 누르세요.</div></td></tr>';
+            renderCounts();
+            return;
+        }
+        const rows = visibleRows();
+        if (!state.rows.length) {
+            body.innerHTML = '<tr><td colspan="8"><div class="tbl-empty"><b>SPEC 열에 영업사양 코드가 없습니다</b>이 PID 는 영업사양을 조건으로 쓰지 않습니다. 아래 [영업사양이 아닌 SPEC] 을 확인하세요.</div></td></tr>';
+        } else if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="8"><div class="tbl-empty"><b>조건에 맞는 영업사양이 없습니다</b>검색어나 표시 범위를 바꿔 보세요.</div></td></tr>';
+        } else {
+            body.innerHTML = rows.map((r) => {
+                const idx = state.rows.indexOf(r);
+                const ch = isChanged(r);
+                const listId = 'dl_' + idx;
+                const opts = [];
+                const seen = new Set([BLANK]);
+                opts.push('<option value="' + esc(BLANK) + '">공백으로 실행</option>');
+                r.cons.forEach((c) => { if (!seen.has(c)) { seen.add(c); opts.push('<option value="' + esc(c) + '">PID CON</option>'); } });
+                r.values.forEach((v) => { if (!seen.has(v.v)) { seen.add(v.v); opts.push('<option value="' + esc(v.v) + '">' + esc(v.n) + '</option>'); } });
+                return '<tr class="' + (ch ? 'is-changed' : '') + '">'
+                    + '<td class="no">' + (idx + 1) + '</td>'
+                    + '<td class="code">' + esc(r.code) + '</td>'
+                    + '<td class="name">' + esc(r.name) + '</td>'
+                    + '<td class="use">' + (r.lines ? '<span class="use-pill" title="대상 PID 에서 SPEC 으로 쓰는 라인 수">' + r.lines + '줄</span>' : '')
+                    + (r.sub ? ' <span class="use-pill sub" title="CALL 하위 PID : ' + esc(r.subPids.join(', ')) + '">하위 ' + r.sub + '</span>' : '') + '</td>'
+                    + '<td class="cur">' + (r.cur === '' ? '<span class="empty">(없음)</span>' : esc(r.cur)) + '</td>'
+                    + '<td class="inp"><div class="inp-box">'
+                    + '<label class="sr-only" for="v_' + idx + '">' + esc(r.code) + ' 실행할 값</label>'
+                    + '<input type="text" id="v_' + idx + '" data-i="' + idx + '"' + (opts.length ? ' list="' + listId + '"' : '') + ' value="' + esc(r.val) + '"'
+                    + ' placeholder="' + esc(r.cur === '' ? '비우면 공사값 (없음)' : r.cur + ' (공사값)') + '" class="' + (ch ? 'is-changed' : '') + '" autocomplete="off" spellcheck="false">'
+                    + (opts.length ? '<datalist id="' + listId + '">' + opts.join('') + '</datalist>' : '')
+                    + consHtml(r, idx) + '</div></td>'
+                    + '<td class="st">' + statusHtml(r) + '</td>'
+                    + '<td class="act"><button type="button" class="ghost icon btn-reset" data-i="' + idx + '"' + (r.val === '' ? ' disabled' : '')
+                    + ' aria-label="' + esc(r.code) + ' 공사값으로 되돌리기" title="공사값으로 되돌리기"><svg class="ico sm" aria-hidden="true"><use href="#i-undo"/></svg></button></td>'
+                    + '</tr>';
+            }).join('');
+        }
+        renderCounts();
+    }
+
+    function renderCounts() {
+        const changed = state.rows.filter(isChanged).length;
+        const blank = state.rows.filter(isBlank).length;
+        const ex = state.extracted;
+        $('sAll').textContent = ex ? (state.info.totalSpec || 0) : '-';
+        $('sSales').textContent = ex ? state.rows.length : '-';
+        $('sOther').textContent = ex ? state.others.length : '-';
+        $('sChanged').textContent = ex ? changed : '-';
+        $('sBlank').textContent = ex ? blank : '-';
+        $('fAll').textContent = state.rows.length;
+        $('fChanged').textContent = changed;
+        $('fBlank').textContent = blank;
+        $('fSub').textContent = state.rows.filter((r) => r.sub).length;
+        $('btnPaste').disabled = !ex || !state.rows.length;
+        $('btnResetAll').disabled = !ex || !state.rows.some((r) => r.val !== '');
+
+        $('btnRun').disabled = !ex || state.stale || state.running;
+        $('runMsg').innerHTML = !ex ? '영업사양을 먼저 추출하세요.'
+            : state.stale ? '<span class="stale">실행 조건이 바뀌었습니다. [영업사양 추출] 을 다시 누르세요.</span>'
+            : changed ? '영업사양 <b>' + changed + '</b>건을 바꿔서 실행합니다. 나머지는 공사값 그대로입니다.'
+            : '바꾼 값이 없습니다. 지금 실행하면 공사값 실행과 같은 결과가 나옵니다.';
+    }
+
+    function renderOthers() {
+        $('otherCnt').textContent = state.others.length;
+        $('otherList').innerHTML = state.others.length
+            ? state.others.map((o) => '<span class="other-chip" title="' + esc(o.where) + ' 에서 처음 사용">' + esc(o.code) + '<small>' + esc(o.where) + '</small></span>').join('')
+            : '<span class="help" style="color:var(--muted)">없음</span>';
+    }
+
+    /* 입력 : 표 전체를 다시 그리지 않고 해당 행만 갱신 (입력 중 포커스 유지) */
+    $('specBody').addEventListener('input', (e) => {
+        const inp = e.target.closest('input[data-i]');
+        if (!inp) return;
+        const r = state.rows[+inp.dataset.i];
+        r.val = inp.value.trim();
+        const tr = inp.closest('tr');
+        const ch = isChanged(r);
+        tr.classList.toggle('is-changed', ch);
+        inp.classList.toggle('is-changed', ch);
+        tr.querySelector('.st').innerHTML = statusHtml(r);
+        tr.querySelector('.btn-reset').disabled = r.val === '';
+        tr.querySelectorAll('.con-chip').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.v === r.val)));
+        renderCounts();
+    });
+
+    $('specBody').addEventListener('click', (e) => {
+        const chip = e.target.closest('.con-chip');
+        if (chip) {
+            const r = state.rows[+chip.dataset.i];
+            r.val = r.val === chip.dataset.v ? '' : chip.dataset.v;   // 다시 누르면 해제
+            renderTable();
+            const inp = $('v_' + chip.dataset.i);
+            if (inp) inp.focus();
+            return;
+        }
+        const more = e.target.closest('.con-more');
+        if (more) {
+            const r = state.rows[+more.dataset.more];
+            r.conOpen = !r.conOpen;
+            renderTable();
+            return;
+        }
+        const rs = e.target.closest('.btn-reset');
+        if (rs) {
+            state.rows[+rs.dataset.i].val = '';
+            renderTable();
+            const inp = $('v_' + rs.dataset.i);
+            if (inp) inp.focus();
+        }
+    });
+
+    /* 필터 / 검색 */
+    document.querySelectorAll('.seg button[data-filter]').forEach((b) => b.addEventListener('click', function () {
+        state.filter = this.dataset.filter;
+        document.querySelectorAll('.seg button[data-filter]').forEach((x) => x.setAttribute('aria-pressed', String(x === this)));
+        renderTable();
+    }));
+    let kwTimer = null;
+    $('keyword').addEventListener('input', function () {
+        clearTimeout(kwTimer);
+        kwTimer = setTimeout(() => { state.keyword = this.value.trim(); renderTable(); }, 150);
+    });
+
+    $('btnResetAll').addEventListener('click', () => {
+        const n = state.rows.filter((r) => r.val !== '').length;
+        if (!n) { toast('되돌릴 입력값이 없습니다.'); return; }
+        if (!confirm('입력한 값 ' + n + '건을 모두 지우고 공사값으로 되돌릴까요?')) return;
+        state.rows.forEach((r) => { r.val = ''; });
+        renderTable();
+        toast('공사값으로 되돌렸습니다.');
+    });
+
+    /* 붙여넣기 : "코드<Tab>값" / "코드,값" / "코드=값" */
+    function togglePaste(open) {
+        $('pasteBox').classList.toggle('is-open', open);
+        $('btnPaste').setAttribute('aria-expanded', String(open));
+        if (open) { $('pasteMsg').textContent = ''; $('pasteText').focus(); }
+    }
+    $('btnPaste').addEventListener('click', () => togglePaste(!$('pasteBox').classList.contains('is-open')));
+    $('btnPasteCancel').addEventListener('click', () => { togglePaste(false); $('btnPaste').focus(); });
+    $('btnPasteApply').addEventListener('click', () => {
+        const byCode = new Map(state.rows.map((r) => [r.code.toUpperCase(), r]));
+        let ok = 0;
+        const skipped = [];
+        $('pasteText').value.split(/\r?\n/).forEach((line) => {
+            if (!line.trim()) return;
+            const m = line.match(/^\s*([^\t,=]+?)\s*[\t,=]\s*(.*?)\s*$/);
+            if (!m) { skipped.push(line.trim()); return; }
+            const r = byCode.get(m[1].toUpperCase());
+            if (!r) { skipped.push(m[1]); return; }
+            r.val = (m[2] === '공백' || m[2] === BLANK) ? BLANK : m[2];
+            ok++;
+        });
+        renderTable();
+        $('pasteMsg').textContent = ok + '건 적용' + (skipped.length ? ' · 건너뜀 ' + skipped.length + '건 (' + skipped.slice(0, 5).join(', ') + (skipped.length > 5 ? ' …' : '') + ')' : '');
+        if (ok && !skipped.length) { togglePaste(false); $('pasteText').value = ''; toast(ok + '건을 붙여넣었습니다.'); }
+    });
+
+    /* ---------- 3. 실행 ---------- */
+    function resetResult() {
+        $('resultArea').innerHTML = '<div class="result-empty"><svg class="ico" aria-hidden="true"><use href="#i-result"/></svg>'
+            + '<b>아직 실행하지 않았습니다</b>영업사양 값을 입력한 뒤 아래 [지정값으로 실행] 을 누르세요.</div>';
+    }
+
+    async function run() {
+        if (!state.extracted || state.stale || state.running) return;
+        const overrides = {};
+        state.rows.filter(isChanged).forEach((r) => { overrides[r.code] = sendValue(r.val); });
+
+        state.running = true;
+        const btn = $('btnRun');
+        busy(btn, true, '실행 중');
+        renderCounts();
+        $('resultArea').innerHTML = '<div class="result-empty" role="status"><span class="spinner dark" aria-hidden="true"></span>'
+            + '<b>PID 를 실행하고 있습니다…</b>공사값 실행과 지정값 실행을 차례로 수행합니다.</div>';
+
+        const d = await api('/run', Object.assign({}, state.query, { overrides }));
+        state.running = false;
+        busy(btn, false);
+        renderCounts();
+        if (!d.success) {
+            $('resultArea').innerHTML = '<div class="res-note"><div class="notice err" role="alert"><svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg>'
+                + '<div><b>실행하지 못했습니다.</b> ' + esc(d.message || '') + '<br>입력값을 확인한 뒤 다시 실행하세요.</div></div></div>';
+            toast('실행하지 못했습니다.', true);
+            return;
+        }
+        state.result = d;
+        state.resTab = 'out';
+        state.onlyDiff = false;
+        state.cmpBase = 'latest';
+        renderResult();
+        setStep(3);
+        $('resultCard').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    }
+    $('btnRun').addEventListener('click', run);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !$('btnRun').disabled) { e.preventDefault(); run(); }
+    });
+
+    function lineDiffs(d) {
+        const base = d.baseLines || [];
+        return (d.lines || []).filter((l, i) => i < base.length && base[i] !== l.state).length;
+    }
+
+    function renderResult() {
+        const d = state.result;
+        const applied = d.applied || [];
+        const outs = d.outputs || [];
+        const lineDiff = lineDiffs(d);
+
+        let html = '<div class="res-sum">'
+            + '<span class="badge info">지정한 영업사양 ' + applied.length + '건</span>'
+            + '<span class="badge ' + (d.diffLatestCount ? 'diff' : 'ok') + '" title="최신 버전(v' + esc(d.latestRunVersion) + ')을 공사값으로 실행한 결과와 비교">'
+            + '최신 v' + esc(d.latestRunVersion) + ' 대비 OUTPUT ' + outs.length + '개 중 ' + d.diffLatestCount + '개 달라짐</span>'
+            + (d.latestSeparate ? '<span class="badge ' + (d.diffCount ? 'diff' : 'ok') + '" title="선택한 버전을 공사값으로 실행한 결과와 비교">'
+                + '선택 버전(' + esc(versionText(d)) + ') 공사값 대비 ' + d.diffCount + '개 달라짐</span>' : '')
+            + (d.javaMethod ? '' : '<span class="badge ' + (lineDiff ? 'diff' : 'ok') + '">조건 결과가 바뀐 라인 ' + lineDiff + '줄</span>')
+            + '<span class="badge same">' + (d.elapsedMillis / 1000).toFixed(1) + '초 · DB 미반영</span>'
+            + (applied.length ? '<span class="res-applied">' + applied.map((a) => '<span class="mono">' + esc(a.code) + '</span> '
+                + (a.from === '' ? '<span class="none">(없음)</span>' : '<span class="mono">' + esc(a.from) + '</span>')
+                + '<span class="arrow">→</span>' + (a.to === '' ? '<b class="none">(공백)</b>' : '<b class="mono">' + esc(a.to) + '</b>')).join(' · ') + '</span>' : '')
+            + '</div>';
+
+        const notes = [];
+        if ((d.newSpecs || []).length)
+            notes.push('지정값 때문에 새로 실행된 PID 에서 쓰는 영업사양이 있습니다 (추출 목록에 없음) : '
+                + d.newSpecs.map((n) => '<span class="mono">' + esc(n.code) + '</span> ' + esc(n.name) + ' <small>(' + esc(n.where) + ')</small>').join(', ')
+                + ' <button type="button" id="btnAddNew" style="min-height:26px;margin-left:4px">입력 목록에 추가</button>');
+        (d.warnings || []).forEach((w) => notes.push(esc(w)));
+        if (notes.length) html += '<div class="res-note"><div class="notice warn"><svg class="ico" aria-hidden="true"><use href="#i-alert"/></svg><div><ul style="margin:0">'
+            + notes.map((n) => '<li>' + n + '</li>').join('') + '</ul></div></div></div>';
+
+        html += '<div class="res-tabs" role="tablist" aria-label="결과 보기">'
+            + '<button type="button" role="tab" id="tabOut" aria-controls="resPanel" aria-selected="' + (state.resTab === 'out') + '" data-tab="out">최종 OUTPUT 비교</button>'
+            + (d.javaMethod ? '' : '<button type="button" role="tab" id="tabLine" aria-controls="resPanel" aria-selected="' + (state.resTab === 'line') + '" data-tab="line">라인별 결과 (지정값)</button>')
+            + '</div>'
+            + '<div class="res-tools"><label class="chk"><input type="checkbox" id="onlyDiff"' + (state.onlyDiff ? ' checked' : '') + '> '
+            + (state.resTab === 'out' ? '달라진 OUTPUT 만' : '조건 결과가 바뀐 라인만') + '</label>'
+            + (state.resTab === 'out' && d.latestSeparate
+                ? '<div class="seg" role="group" aria-label="비교 기준" style="margin-left:auto">'
+                + '<button type="button" data-cmp="latest" aria-pressed="' + (state.cmpBase === 'latest') + '">기준 : 최신 v' + esc(d.latestRunVersion) + '</button>'
+                + '<button type="button" data-cmp="base" aria-pressed="' + (state.cmpBase === 'base') + '">기준 : 선택 버전 공사값</button></div>'
+                : '')
+            + '</div>'
+            + '<div id="resPanel" role="tabpanel" aria-labelledby="' + (state.resTab === 'out' ? 'tabOut' : 'tabLine') + '">'
+            + (state.resTab === 'out' ? outputTable(outs, d) : lineTable(d)) + '</div>';
+
+        $('resultArea').innerHTML = html;
+    }
+
+    function outputTable(outs, d) {
+        // 비교 기준 : 최신 버전 + 공사값 (기본) / 선택 버전 + 공사값. 선택 버전이 최신이면 두 실행이 같아 열을 하나만 보여준다
+        const sep = !!d.latestSeparate;
+        const useBase = sep && state.cmpBase === 'base';
+        const isDiff = (o) => useBase ? o.diff : o.diffLatest;
+        const list = state.onlyDiff ? outs.filter(isDiff) : outs;
+        const baseName = useBase ? '선택 버전 공사값 실행' : '최신 버전 실행';
+        if (!list.length) return '<div class="tbl-empty"><b>' + (outs.length ? baseName + ' 과 달라진 OUTPUT 이 없습니다' : '최종 OUTPUT 이 없습니다') + '</b>'
+            + (outs.length ? '지정값 실행 결과가 ' + baseName + ' 결과와 같습니다.' : 'PID 실행 결과 KEY 가 없습니다.') + '</div>';
+        const cell = (v) => v === null || v === undefined ? '<span class="none">(없음)</span>' : (v === '' ? '<span class="none">(공백)</span>' : esc(v));
+        const latestHead = '<th scope="col" title="영업사양을 바꾸지 않고 최신 버전 PID 로 실행">최신 v' + esc(d.latestRunVersion) + ' 실행<br><small style="font-weight:400">공사값</small></th>';
+        const baseHead = sep ? '<th scope="col" title="영업사양을 바꾸지 않고 선택한 버전으로 실행">' + esc(versionText(d)) + ' 실행<br><small style="font-weight:400">공사값</small></th>' : '';
+        const nowHead = '<th scope="col" title="선택한 버전 + 지정한 영업사양으로 실행">' + esc(versionText(d)) + ' 실행<br><small style="font-weight:400">지정값</small></th>';
+        return '<div class="tbl-wrap" style="max-height:52vh"><table class="spec"><thead><tr>'
+            + '<th scope="col">#</th><th scope="col">OUTPUT KEY</th>' + latestHead + baseHead + nowHead
+            + '<th scope="col">비교 (' + (useBase ? '선택 버전 공사값' : '최신') + ' 대비)</th>'
+            + '</tr></thead><tbody>'
+            + list.map((o, i) => {
+                const df = isDiff(o);
+                const em = (v, on) => on ? '<b>' + cell(v) + '</b>' : cell(v);
+                return '<tr class="' + (df ? 'is-diff' : '') + '">'
+                    + '<td class="no">' + (i + 1) + '</td><td class="code">' + esc(o.key) + '</td>'
+                    + '<td class="cur"' + (useBase ? ' style="color:var(--muted)"' : '') + '>' + cell(o.latest) + '</td>'
+                    + (sep ? '<td class="cur"' + (useBase ? '' : ' style="color:var(--muted)"') + '>' + cell(o.base) + '</td>' : '')
+                    + '<td class="cur">' + em(o.now, df) + '</td>'
+                    + '<td class="st">' + (df ? '<span class="badge diff">달라짐</span>' : '<span class="badge same">같음</span>') + '</td></tr>';
+            }).join('')
+            + '</tbody></table></div>';
+    }
+
+    const STATE_TEXT = { TRUE: '일치', FALSE: '불일치', UNREAD: '안 읽음' };
+    const STATE_CLS = { TRUE: 't', FALSE: 'f', UNREAD: 'u' };
+    function stateBadge(s) {
+        return s ? '<span class="badge ' + (STATE_CLS[s] || 'u') + '">' + esc(STATE_TEXT[s] || s) + '</span>' : '';
+    }
+
+    function lineTable(d) {
+        const base = d.baseLines || [];
+        const changedCodes = new Set((d.applied || []).map((a) => a.code));
+        let lines = (d.lines || []).map((l, i) => ({ l, before: i < base.length ? base[i] : '' }));
+        if (state.onlyDiff) lines = lines.filter((x) => x.before !== x.l.state);
+        if (!lines.length) return '<div class="tbl-empty"><b>' + (state.onlyDiff ? '조건 결과가 바뀐 라인이 없습니다' : '라인이 없습니다') + '</b></div>';
+        return '<div class="tbl-wrap" style="max-height:52vh"><table class="spec"><thead><tr>'
+            + '<th scope="col">#</th><th scope="col">ADDR</th><th scope="col">공사값</th><th scope="col">지정값</th><th scope="col">조건 (SPEC = CON)</th><th scope="col">OUTPUT</th>'
+            + '</tr></thead><tbody>'
+            + lines.map((x) => {
+                const l = x.l;
+                const conds = (l.conditions || []).filter((c) => (c.spec || '') !== '' || (c.con || '') !== '').map((c) =>
+                    '<span class="cchip ' + esc(c.compare || '') + '" title="' + (c.compare === 'T' ? '조건 일치' : c.compare === 'F' ? '조건 불일치' : '')
+                    + ' · 영업사양값: ' + esc(c.specValue) + '">'
+                    + (changedCodes.has(c.spec) ? '<b>' + esc(c.spec) + '</b>' : esc(c.spec)) + ' = ' + esc(c.con)
+                    + ' <span class="sv">(' + esc(c.specValue === '' ? '없음' : c.specValue) + ')</span></span>').join('');
+                return '<tr class="' + (x.before !== l.state ? 'is-diff' : '') + '">'
+                    + '<td class="no">' + l.no + '</td><td class="code">' + esc(l.addr) + '</td>'
+                    + '<td class="st">' + stateBadge(x.before) + '</td><td class="st">' + stateBadge(l.state) + '</td>'
+                    + '<td>' + conds + '</td><td class="out">' + esc(l.output) + '</td></tr>';
+            }).join('')
+            + '</tbody></table></div>';
+    }
+
+    $('resultArea').addEventListener('click', (e) => {
+        if (e.target.closest('#btnAddNew')) {
+            const have = new Set(state.rows.map((r) => r.code));
+            let n = 0;
+            (state.result.newSpecs || []).forEach((s) => {
+                if (have.has(s.code)) return;
+                state.rows.push({ code: s.code, name: s.name || '', cur: s.cur == null ? '' : String(s.cur), inBase: s.cur !== '',
+                    lines: 0, sub: 1, subPids: [s.where], cons: [], values: [], val: '', conOpen: false });
+                n++;
+            });
+            renderTable();
+            toast(n ? n + '개를 입력 목록 끝에 추가했습니다.' : '이미 목록에 있습니다.');
+            return;
+        }
+        const cmp = e.target.closest('[data-cmp]');
+        if (cmp) {
+            state.cmpBase = cmp.dataset.cmp;
+            renderResult();
+            const b = document.querySelector('[data-cmp="' + state.cmpBase + '"]');
+            if (b) b.focus();
+            return;
+        }
+        const tab = e.target.closest('[data-tab]');
+        if (tab) { state.resTab = tab.dataset.tab; state.onlyDiff = false; renderResult(); const t = $(state.resTab === 'out' ? 'tabOut' : 'tabLine'); if (t) t.focus(); }
+    });
+    $('resultArea').addEventListener('change', (e) => {
+        if (e.target.id === 'onlyDiff') { state.onlyDiff = e.target.checked; renderResult(); $('onlyDiff').focus(); }
+    });
+
+    /* ---------- 주소창 (공유 / 새로고침) ---------- */
+    function syncUrl(q) {
+        try {
+            const qs = new URLSearchParams();
+            PARAM_NAMES.forEach((n) => { if (q[n]) qs.set(n, q[n]); });
+            history.replaceState(null, '', location.pathname + (qs.toString() ? '?' + qs : ''));
+            const back = new URLSearchParams(qs);
+            $('backLink').href = '/simulateup/pidSimulatorUp' + (back.toString() ? '?' + back : '');
+        } catch (e) { /* 무시 */ }
+    }
+
+    ['project', 'pid'].forEach((id) => $(id).addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); if (id === 'pid') loadVersions(); extract(); }
+    }));
+
+    (async function init() {
+        const p = new URLSearchParams(location.search);
+        ['project', 'pid', 'floor', 'beforePid'].forEach((n) => { if (p.has(n)) $(n).value = p.get(n); });
+        $('pid').value = $('pid').value.toUpperCase();
+        $('beforePid').value = $('beforePid').value.toUpperCase();
+        if (p.get('pid')) await loadVersions(p.get('version') || '');
+        if (p.get('project') && p.get('pid')) extract();
+    })();
+</script>
+</body>
+</html>
