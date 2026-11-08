@@ -9,6 +9,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.List;
@@ -24,6 +25,8 @@ import java.util.Map;
  *   GET /cop/radar/anomalies    : 관제 화면 데이터 (BomAnomalyService, 지금은 데모)
  *   GET /cop/diff               : 4F 호기 BOM 비교 화면 (?a=기준호기&b=비교호기)
  *   GET /cop/dashboard          : COP 배치 변경 대시보드 (이전호기 ↔ 시뮬호기)
+ *   GET /cop/dashboard/brand    : BOM 이상감지 (브랜드 · 기종 · 블럭별 일자 변동 추적)
+ *   GET /cop/dashboard/brand/history : 위 화면 데이터 (?from=yyyyMMdd&to=yyyyMMdd, PLM_SIMUL_HOGIBOM 이력)
  *   GET /cop/trace              : 3F 이상 원인 추적 화면 (?id=이상ID | ?no=호기번호&part=품번)
  *   GET /cop/trace/sales        : 3F 영업사양 원인 추정 (BOM 비교 "원인 →", ?a=기준호기&no=비교호기&block=블록번호&part=품번)
  *   GET /cop/report             : 2F 이상 리포트 화면 (?period=week|month|quarter)
@@ -76,10 +79,21 @@ public class CopMainController {
         return "thymeleaf/cop/copDashboard";
     }
 
-    /** 브랜드별 BOM 일일 변동 대시보드 (전일 ↔ 금일, 지금은 화면 안의 샘플 데이터 사용) */
+    /** BOM 이상감지 : 브랜드 · 기종 · 블럭별 일자(BATCHDATE) 수량 · 자재 변동 추적 (PLM_SIMUL_HOGIBOM 이력) */
     @GetMapping("/cop/dashboard/brand")
     public String brandDashboard() {
         return "thymeleaf/cop/copBrandBomDashboard";
+    }
+
+    @GetMapping("/cop/dashboard/brand/history")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> brandDashboardHistory(@RequestParam(required = false) String from,
+                                                                     @RequestParam(required = false) String to) {
+        try {
+            return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(copService.findBomHistory(from, to));
+        } catch (Exception e) {
+            return hogiFail(e, "BOM 이력을 불러오지 못했습니다.");
+        }
     }
 
     /** 3F 이상 원인 추적 (지금은 화면 안의 샘플 추적 데이터 사용) */

@@ -106,6 +106,56 @@ public class CopService {
         return CopUtil.deleteManagedHogi(hogis);
     }
 
+    private static final int HISTORY_MAX_ROWS = 200_000;
+    private static final int HISTORY_MAX_DAYS = 366;
+
+    /**
+     * BOM 이상감지 대시보드 데이터 (PLM_SIMUL_HOGIBOM 일자별 실행결과 이력)
+     * from / to : yyyyMMdd (비우면 오늘 기준 최근 30일). 행은 배열로 보내 응답 크기를 줄인다
+     *   columns : HOGI, BLOCKNO, BRAND, ATYP, SPEED, ACAPA, PICK, PARTNO, QTY, CMT, BATCHDATE
+     */
+    public Map<String, Object> findBomHistory(String from, String to) throws Exception {
+        DateTimeFormatter f = DateTimeFormatter.BASIC_ISO_DATE;
+        LocalDate end = parseYmd(to, LocalDate.now());
+        LocalDate start = parseYmd(from, end.minusDays(30));
+        if (start.isAfter(end)) {
+            throw new IllegalArgumentException("시작일이 종료일보다 늦습니다.");
+        }
+        if (start.plusDays(HISTORY_MAX_DAYS).isBefore(end)) {
+            throw new IllegalArgumentException("조회 기간은 최대 " + HISTORY_MAX_DAYS + "일입니다.");
+        }
+
+        List<String[]> rows = CopUtil.findHogiBomHistory(start.format(f), end.format(f), HISTORY_MAX_ROWS);
+        boolean truncated = rows.size() > HISTORY_MAX_ROWS;
+        if (truncated) {
+            rows = rows.subList(0, HISTORY_MAX_ROWS);
+        }
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("success", true);
+        res.put("from", start.format(f));
+        res.put("to", end.format(f));
+        res.put("columns", List.of("HOGI", "BLOCKNO", "BRAND", "ATYP", "SPEED", "ACAPA", "PICK", "PARTNO", "QTY", "CMT", "BATCHDATE"));
+        res.put("rows", rows);
+        res.put("truncated", truncated);
+        return res;
+    }
+
+    private LocalDate parseYmd(String value, LocalDate fallback) {
+        String v = value == null ? "" : value.replace("-", "").trim();
+        if (v.isEmpty()) {
+            return fallback;
+        }
+        if (!v.matches("\\d{8}")) {
+            throw new IllegalArgumentException("일자 형식이 올바르지 않습니다 : " + value);
+        }
+        try {
+            return LocalDate.parse(v, DateTimeFormatter.BASIC_ISO_DATE);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("일자 형식이 올바르지 않습니다 : " + value);
+        }
+    }
+
     private String clean(String value, String label, int maxLength) {
         String text = value == null ? "" : value.trim();
         if (text.length() > maxLength) {

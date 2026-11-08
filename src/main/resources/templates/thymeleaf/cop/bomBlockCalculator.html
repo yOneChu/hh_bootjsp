@@ -894,6 +894,7 @@
             brand: (c.spec && c.spec.brand) || '',
             speed: (c.spec && c.spec.speed) || '',
             acapa: (c.spec && c.spec.acapa) || '',
+            atyp: (c.spec && c.spec.atyp) || '',
             items: runsOf(c).map((r) => {
                 const part = noPart(r) ? '' : nvl(r.pickValue).trim();
                 const cm = part ? cmtOf(r) : null;

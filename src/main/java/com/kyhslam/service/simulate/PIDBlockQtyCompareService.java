@@ -172,7 +172,7 @@ public class PIDBlockQtyCompareService {
     /** 이력 저장 1건 (일자 1개) */
     public static class HistoryColumn {
         public String batchDate;   // yyyyMMdd
-        public String brand, speed, acapa;
+        public String brand, speed, acapa, atyp;
         public List<HistoryItem> items = new ArrayList<>();
     }
 
@@ -223,7 +223,7 @@ public class PIDBlockQtyCompareService {
 
     // ------------------------------------------------------------------ 내부
 
-    /** 이력 저장용 영업사양 (지정값 적용 후) : brand = EL_ABRAND, speed = EL_ASPD, acapa = EL_ACAPA */
+    /** 이력 저장용 영업사양 (지정값 적용 후) : brand = EL_ABRAND, speed = EL_ASPD, acapa = EL_ACAPA, atyp = EL_ATYP */
     private static Map<String, String> historySpec(PIDBlockQtyOverrideSimul.Run run) {
         Map<String, Object> eff = new HashMap<>(run.baseSpec);
         eff.putAll(run.applied);
@@ -231,6 +231,7 @@ public class PIDBlockQtyCompareService {
         m.put("brand", specValue(eff, "EL_ABRAND"));
         m.put("speed", specValue(eff, "EL_ASPD"));
         m.put("acapa", specValue(eff, "EL_ACAPA"));
+        m.put("atyp", specValue(eff, "EL_ATYP"));
         return m;
     }
 

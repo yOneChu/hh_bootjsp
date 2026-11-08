@@ -19,7 +19,7 @@ import java.util.Map;
  *   GET  /simulateup/blockQtyCompare          : 화면
  *   POST /simulateup/blockQtyCompare/extract  : { project, pid, floor, beforePid, pickCmt, dates: ["yyyy-MM-dd" | ""] }
  *   POST /simulateup/blockQtyCompare/run      : { project, pid, floor, beforePid, pickCmt, columns: [{ date, overrides: {코드: 값} }] }
- *   POST /simulateup/blockQtyCompare/saveHistory : { project, pid, columns: [{ batchDate: "yyyyMMdd", brand, speed, acapa, items: [{ pick, partNo, qty, cmt }] }] }
+ *   POST /simulateup/blockQtyCompare/saveHistory : { project, pid, columns: [{ batchDate: "yyyyMMdd", brand, speed, acapa, atyp, items: [{ pick, partNo, qty, cmt }] }] }
  *                                                  → PLM_SIMUL_HOGIBOM 이력 저장 (같은 호기 / 블럭 / 일자는 바꿔 씀)
  *   pickCmt : true 면 PICK 마다 BLOCKNO$SF 의 주석 PID(CMTn) 실행 결과를 PickRun.cmt 에 넣는다
  *
@@ -105,6 +105,7 @@ public class PIDBlockQtyCompareController {
                 c.brand = str(m.get("brand"));
                 c.speed = str(m.get("speed"));
                 c.acapa = str(m.get("acapa"));
+                c.atyp = str(m.get("atyp"));
                 if (m.get("items") instanceof List<?> items) {
                     for (Object io : items) {
                         if (!(io instanceof Map<?, ?> im))

@@ -191,8 +191,8 @@ public class CopUtil {
 
             String sql = """
                     INSERT INTO PLM_SIMUL_HOGIBOM
-                        (HOGI, BLOCKNO, BRAND, SPEED, ACAPA, PICK, PARTNO, QTY, CMT, CREDATE, BATCHDATE)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?)
+                        (HOGI, BLOCKNO, BRAND, SPEED, ACAPA, ATYP, PICK, PARTNO, QTY, CMT, CREDATE, BATCHDATE)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?)
                     """;
 
             pstmt = con.prepareStatement(sql);
@@ -205,11 +205,12 @@ public class CopUtil {
                     pstmt.setNString(3, col.brand);
                     pstmt.setNString(4, col.speed);
                     pstmt.setNString(5, col.acapa);
-                    pstmt.setNString(6, item.pick);
-                    pstmt.setString(7, item.partNo);
-                    pstmt.setNString(8, item.qty);
-                    pstmt.setNString(9, item.cmt);
-                    pstmt.setNString(10, col.batchDate);
+                    pstmt.setNString(6, col.atyp);
+                    pstmt.setNString(7, item.pick);
+                    pstmt.setString(8, item.partNo);
+                    pstmt.setNString(9, item.qty);
+                    pstmt.setNString(10, item.cmt);
+                    pstmt.setNString(11, col.batchDate);
                     pstmt.addBatch();
                     count++;
                 }
@@ -260,6 +261,7 @@ public class CopUtil {
             check.accept("BRAND", col.brand);
             check.accept("SPEED", col.speed);
             check.accept("ACAPA", col.acapa);
+            check.accept("ATYP", col.atyp);
             for (var item : col.items) {
                 check.accept("PICK", item.pick);
                 check.accept("PARTNO", item.partNo);
@@ -271,6 +273,50 @@ public class CopUtil {
             System.out.println("[PLM_SIMUL_HOGIBOM 이력 저장] 컬럼 길이 초과 : " + over);
             throw new IllegalArgumentException("컬럼 길이보다 긴 값이 있어 저장하지 못했습니다. " + String.join(" / ", over));
         }
+    }
+
+
+    // BOM 이상감지 대시보드 : 기간(BATCHDATE yyyyMMdd) 안의 일자별 실행결과 이력 조회
+    // PICK 이 있는 행(일자별 수량 계산 > 이력 저장)만 본다. maxRows + 1 건까지 읽어 넘침 여부를 알 수 있게 한다
+    public static List<String[]> findHogiBomHistory(String from, String to, int maxRows) throws Exception {
+
+        List<String[]> result = new ArrayList<>();
+
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        try {
+            con = connect();
+
+            String sql = """
+                    SELECT TOP (?) HOGI, BLOCKNO, BRAND, ATYP, SPEED, ACAPA, PICK, PARTNO, QTY, CMT, BATCHDATE
+                    FROM PLM_SIMUL_HOGIBOM
+                    WHERE BATCHDATE BETWEEN ? AND ?
+                      AND PICK IS NOT NULL AND PICK <> ''
+                    ORDER BY BATCHDATE, HOGI, BLOCKNO, PICK
+                    """;
+
+            pstmt = con.prepareStatement(sql);
+            pstmt.setInt(1, maxRows + 1);
+            pstmt.setNString(2, from);
+            pstmt.setNString(3, to);
+            rs = pstmt.executeQuery();
+
+            String[] columns = {"HOGI", "BLOCKNO", "BRAND", "ATYP", "SPEED", "ACAPA", "PICK", "PARTNO", "QTY", "CMT", "BATCHDATE"};
+            while (rs.next()) {
+                String[] row = new String[columns.length];
+                for (int i = 0; i < columns.length; i++) {
+                    String value = rs.getString(columns[i]);
+                    row[i] = value == null ? "" : value.trim();
+                }
+                result.add(row);
+            }
+
+        } finally {
+            VaultDBConnection.disconnect(con, pstmt, rs);
+        }
+        return result;
     }
 
 

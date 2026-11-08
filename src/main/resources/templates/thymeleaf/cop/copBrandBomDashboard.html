@@ -3,27 +3,27 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>브랜드별 BOM 일일 변동 · SENTINEL</title>
+    <title>BOM 이상감지 · SENTINEL</title>
     <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
     <!--
-        SENTINEL · 브랜드별 BOM 일일 변동 대시보드 (CopMainController : GET /cop/dashboard/brand)
+        SENTINEL · BOM 이상감지 (CopMainController : GET /cop/dashboard/brand)
 
-        전일 BOM 과 금일 BOM 을 호기 단위로 맞춰 보고, 그 결과를 브랜드별로 집계한다.
-          수량 변경 : 같은 품번인데 수량이 달라짐
-          다른 자재 수배 : 교체(같은 블록에서 품번이 바뀜) / 신규(금일에만 있음) / 제외(전일에만 있음)
+        데이터 : PLM_SIMUL_HOGIBOM 의 일자별 실행결과 이력 (일자별 수량 계산 비교 > 이력 저장)
+                 GET /cop/dashboard/brand/history?from=yyyyMMdd&to=yyyyMMdd
+                 columns : HOGI, BLOCKNO, BRAND, ATYP, SPEED, ACAPA, PICK, PARTNO, QTY, CMT, BATCHDATE
 
-        화면 구성
-          위 (임원)   : 결론 문장 · 먼저 볼 항목 · 핵심 지표 · 브랜드별 차트 · 브랜드 비교표
-          아래 (실무) : 브랜드 x 블록 분포 · 최근 14회 추이 · 변경 내역 / 자재별 집계
+        추적 단위
+          시계열  : 호기 + BLOCKNO 의 BATCHDATE 별 스냅샷 (PICK → 자재 / 수량)
+          그룹    : 브랜드(BRAND) x 기종(ATYP) x 블럭(BLOCKNO). 브랜드 / 기종은 그 호기 · 블럭의 마지막 일자 값을 쓴다
+          변동    : 같은 호기 · 블럭의 바로 앞 저장 일자와 PICK 단위로 비교
+                    수량 변경(같은 자재, 수량 다름) / 자재 교체(품번 바뀜) / 신규 수배(앞 일자에 없음) / 수배 제외(이번 일자에 없음)
 
-        지금은 서버 로직 없이 화면 안의 샘플 데이터(makeDay)를 쓴다. 모든 수치는 DEMO.
-        연동할 때는 makeDay(date) 가 같은 모양의 값을 돌려주도록 API 호출로 바꾸면 된다.
-          items    : brand, hogi, block, type(qty|swap|add|del), prevNo, prevName, nextNo, nextName, prevQty, nextQty, uom
-          active   : 비교한 호기 (hogi, brand, lines, qty)
-          excluded : BOM 이 없어 비교하지 못한 호기
+        이상 판정
+          높음 : 자재 교체, 같은 PICK 이 기간 안에 2번 이상 변동(반복 변동), 예전 자재로 되돌아감(되돌림)
+          중간 : 신규 수배 / 수배 제외, 수량 50% 이상 급변
+          낮음 : 그 밖의 수량 변경
+          그룹 상태 : 높음이 하나라도 있으면 "이상", 변동만 있으면 "주의", 변동이 없으면 "안정"
     -->
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
 
     <style>
         :root {
@@ -39,32 +39,33 @@
             --brand-2: #2F5BEA;
             --brand-bg: #EEF2FF;
 
-            /* 변경 유형 (차트 · 배지 공통). 대비가 낮은 색은 범례 · 라벨 · 표로 보완한다 */
+            /* 변동 유형 (차트 · 배지 공통) */
             --t-qty: #2A78D6;
             --t-swap: #EB6834;
             --t-add: #1BAF7A;
             --t-del: #EDA100;
 
-            /* 수량 증감 */
             --inc: #2A78D6;
             --dec: #E34948;
             --inc-ink: #184F95;
             --dec-ink: #B42318;
 
-            /* 분포표 단계 */
+            /* 판정 */
+            --lv3: #D92D20; --lv3-bg: #FEF3F2; --lv3-ink: #B42318;
+            --lv2: #DC6803; --lv2-bg: #FFFAEB; --lv2-ink: #B54708;
+            --lv1: #667085; --lv1-bg: #F2F4F7; --lv1-ink: #475467;
+            --ok: #079455;  --ok-bg: #ECFDF3;  --ok-ink: #067647;
+
             --heat-1: #DCEAFB;
             --heat-2: #B7D3F6;
             --heat-3: #6DA7EC;
             --heat-4: #256ABF;
             --heat-5: #104281;
 
-            --warn-bg: #FFFAEB;
-            --warn: #B54708;
             --radius: 14px;
             --shadow: 0 1px 2px rgba(16,24,40,.05);
             --mono: "D2Coding", Consolas, "SF Mono", Menlo, monospace;
             --sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
-            --nav-h: 64px;
         }
 
         *, *::before, *::after { box-sizing: border-box; }
@@ -83,78 +84,131 @@
         .tnum { font-variant-numeric: tabular-nums; }
         .mono { font-family: var(--mono); }
         .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-        .wrap { width: 100%; max-width: 1440px; margin: 0 auto; padding: 0 16px; }
+        .wrap { width: 100%; max-width: 1480px; margin: 0 auto; padding: 0 16px; }
         @media (min-width: 900px) { .wrap { padding: 0 32px; } }
         .skip { position: absolute; left: 12px; top: -48px; z-index: 60; padding: 8px 14px; border-radius: 8px; background: var(--ink); color: #fff; }
         .skip:focus { top: 12px; }
-        .demo { display: inline-flex; padding: 2px 8px; border-radius: 6px; background: var(--warn-bg); color: var(--warn); font: 700 11px/1.5 var(--mono); letter-spacing: .1em; }
 
-        /* ───── 상단 바 ───── */
-        .nav { position: sticky; top: 0; z-index: 40; background: var(--surface); border-bottom: 1px solid var(--line); }
-        .nav-in { min-height: var(--nav-h); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding-top: 10px; padding-bottom: 10px; }
+        /* ───── 상단 바 (로고 · 섹션 이동 + 필터) ───── */
+        .hdr { position: sticky; top: 0; z-index: 40; background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: 0 2px 6px rgba(16,24,40,.04); }
+        .nav-in { min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding-top: 8px; padding-bottom: 8px; }
+        .jump { display: none; align-items: center; gap: 2px; margin-left: 8px; }
+        @media (min-width: 1100px) { .jump { display: flex; } }
+        .jump a { min-height: 34px; display: inline-flex; align-items: center; padding: 0 11px; border-radius: 8px; font-size: 13.5px; font-weight: 650; color: var(--ink-3); transition: background .15s, color .15s; }
+        .jump a:hover { background: var(--surface-2); color: var(--ink); }
+        .jump a.on { background: var(--brand-bg); color: var(--brand); }
+        .nav-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+        .filters { border-top: 1px solid var(--line); background: var(--surface-2); }
+        .filters-in { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px; padding-top: 10px; padding-bottom: 12px; }
+        .ff { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .ff > label, .ff > .lbl { font-size: 12px; font-weight: 700; color: var(--ink-3); letter-spacing: .02em; }
+        .ff .row { display: flex; align-items: center; gap: 6px; }
+        .ff select.ctl { min-width: 128px; }
+        .f-sep { width: 1px; align-self: stretch; background: var(--line-2); margin: 4px 2px 0; }
+        @media (max-width: 760px) { .f-sep { display: none; } }
+        .btn-ghost { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); font-size: 13.5px; font-weight: 650; cursor: pointer; white-space: nowrap; transition: background .15s, border-color .15s; }
+        .btn-ghost:hover { background: var(--surface-2); border-color: var(--ink-3); color: var(--ink); }
+        .btn-ghost:disabled { opacity: .45; cursor: default; }
+        .f-sum { margin-left: auto; align-self: center; font-size: 13px; color: var(--ink-3); }
+        .f-sum b { color: var(--ink); font-weight: 700; }
+        .eyebrow { display: block; margin-bottom: 4px; font: 700 11.5px var(--mono); letter-spacing: .12em; color: var(--brand); }
+
+        /* 불러오는 중 (스켈레톤) */
+        .skel { display: flex; flex-direction: column; gap: 16px; }
+        .skel-row { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 1180px) { .skel-row { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+        .sk { border-radius: var(--radius); border: 1px solid var(--line); background: linear-gradient(90deg, #EEF0F3 0%, #F7F8FA 50%, #EEF0F3 100%); background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+        @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
         .logo { display: flex; align-items: center; gap: 10px; flex: none; }
-        .logo-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--brand); display: grid; place-items: center; color: #fff; }
+        .logo-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--brand); display: flex; align-items: center; justify-content: center; color: #fff; }
         .logo b { font: 800 14px/1 var(--sans); letter-spacing: .24em; }
         .crumb { display: none; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-3); }
         .crumb b { color: var(--ink); font-weight: 700; }
-        @media (min-width: 900px) { .crumb { display: flex; } }
+        @media (min-width: 1000px) { .crumb { display: flex; } }
         .nav-tools { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
         .field { display: flex; align-items: center; gap: 6px; }
         .field label { font-size: 13px; color: var(--ink-3); font-weight: 600; white-space: nowrap; }
-        .ctl { min-height: 38px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--surface); font-size: 14px; font-weight: 600; }
+        .ctl { min-height: 38px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--surface); font-size: 14px; font-weight: 600; max-width: 100%; }
         .ctl:focus { outline: none; border-color: var(--brand-2); box-shadow: 0 0 0 3px var(--brand-bg); }
-        .link-btn { display: inline-flex; align-items: center; min-height: 38px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line-2); font-size: 14px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+        .ctl.q { width: 170px; font-weight: 500; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid var(--brand); background: var(--brand); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .btn:hover { background: var(--brand-2); }
+        .btn:disabled { opacity: .55; cursor: default; }
+        .link-btn { display: inline-flex; align-items: center; min-height: 38px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line-2); font-size: 14px; font-weight: 600; color: var(--ink-2); white-space: nowrap; background: var(--surface); }
         .link-btn:hover { background: var(--surface-2); color: var(--ink); }
-        @media (max-width: 640px) { .link-btn { display: none; } }
+        @media (max-width: 640px) { .link-btn { display: none; } .ctl.q { width: 130px; } }
 
         main.wrap { padding-top: 20px; padding-bottom: 56px; display: flex; flex-direction: column; gap: 16px; }
-        section, article { scroll-margin-top: 92px; }
+        section, article { scroll-margin-top: 150px; }
         .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; }
         .card-hd { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 16px; padding: 18px 20px 0; }
-        .card-hd h2 { font-size: 16px; font-weight: 750; letter-spacing: -.01em; }
+        .card-hd h2 { font-size: 16.5px; font-weight: 750; letter-spacing: -.01em; }
         .card-hd p { margin-top: 2px; font-size: 13.5px; color: var(--ink-3); }
         .card-bd { padding: 10px 20px 16px; }
-        .grid-2 { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
-        @media (min-width: 1100px) { .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        .grid-heat { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
-        @media (min-width: 1240px) { .grid-heat { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
-        .chart { height: 320px; }
-        .none { display: flex; align-items: center; justify-content: center; min-height: 180px; color: var(--ink-3); font-size: 14px; text-align: center; padding: 16px; }
+        .cols-2 { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 1180px) { .cols-2 { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+        .chart { height: 300px; }
+        .none { display: flex; align-items: center; justify-content: center; min-height: 160px; color: var(--ink-3); font-size: 14px; text-align: center; padding: 16px; }
+
+        /* ───── 상태 화면 ───── */
+        .state-box { padding: 56px 24px; text-align: center; color: var(--ink-2); }
+        .state-box h2 { font-size: 18px; font-weight: 750; color: var(--ink); }
+        .state-box p { margin-top: 8px; font-size: 14px; color: var(--ink-3); }
+        .state-box .btn { margin-top: 16px; }
+        .state-box.err h2 { color: var(--lv3-ink); }
+        .spin { width: 28px; height: 28px; margin: 0 auto 14px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--brand); animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .notice { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-radius: 10px; background: var(--lv2-bg); color: var(--lv2-ink); font-size: 13.5px; font-weight: 600; }
 
         /* ───── 결론 ───── */
         .hero { border-top: 3px solid var(--brand); }
         .hero-top { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); padding: 22px 20px; }
-        @media (min-width: 1100px) { .hero-top { grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 36px; padding: 26px 28px; } }
+        @media (min-width: 1100px) { .hero-top { grid-template-columns: minmax(0, 1fr) minmax(340px, 460px); gap: 36px; padding: 26px 28px; } }
         .period { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-2); font-weight: 650; }
-        .period i { font-style: normal; color: var(--ink-3); }
         .hero h1 { margin-top: 10px; font-size: clamp(22px, 2.4vw, 30px); line-height: 1.38; font-weight: 600; letter-spacing: -.02em; color: var(--ink-2); text-wrap: balance; }
         .hero h1 b { font-weight: 800; color: var(--ink); }
-        .hero-sub { margin-top: 10px; font-size: 15px; color: var(--ink-2); max-width: 74ch; }
+        .hero h1 b.bad { color: var(--lv3-ink); }
+        .hero-sub { margin-top: 10px; font-size: 15px; color: var(--ink-2); max-width: 78ch; }
 
         .watch h2 { font-size: 13.5px; font-weight: 700; color: var(--ink-3); margin-bottom: 8px; }
         .watch li + li { border-top: 1px solid var(--line); }
-        .watch-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; width: 100%; padding: 9px 8px; border: 0; background: transparent; text-align: left; border-radius: 8px; }
+        .watch-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 10px; width: 100%; padding: 9px 8px; border: 0; background: transparent; text-align: left; border-radius: 8px; align-items: center; }
         button.watch-row { cursor: pointer; }
         button.watch-row:hover { background: var(--surface-2); }
+        .watch-row .lv { grid-row: 1 / span 2; }
         .watch-row b { font-size: 14px; font-weight: 700; }
-        .watch-row small { grid-column: 1; font-size: 13px; color: var(--ink-3); }
-        .watch-row svg { grid-column: 2; grid-row: 1 / span 2; align-self: center; color: var(--ink-3); }
+        .watch-row small { grid-column: 2; font-size: 13px; color: var(--ink-3); }
+        .watch-row svg { grid-column: 3; grid-row: 1 / span 2; color: var(--ink-3); }
 
         .kpis { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--line); }
         @media (min-width: 620px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @media (min-width: 1100px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        @media (min-width: 1100px) { .kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
         .kpi { display: flex; flex-direction: column; gap: 4px; padding: 16px 20px; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; min-width: 0; }
-        @media (min-width: 1100px) { .kpi { padding: 18px 28px; border-bottom: 0; border-right: 1px solid var(--line); } .kpi:last-child { border-right: 0; } }
+        @media (min-width: 1100px) { .kpi { padding: 18px 24px; border-bottom: 0; border-right: 1px solid var(--line); } .kpi:last-child { border-right: 0; } }
         button.kpi { cursor: pointer; transition: background .15s; }
         button.kpi:hover { background: var(--surface-2); }
         .kpi-l { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 650; color: var(--ink-2); }
         .kpi-l svg { margin-left: auto; color: var(--ink-3); }
         .kpi-v { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
-        .kpi-v b { font-size: 34px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
+        .kpi-v b { font-size: 32px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
+        .kpi-v b.bad { color: var(--lv3-ink); }
         .kpi-v small { font-size: 14px; font-weight: 600; color: var(--ink-3); }
-        .kpi-d { font-size: 13px; font-weight: 650; color: var(--ink-2); }
         .kpi-s { font-size: 13px; color: var(--ink-3); }
         .dot { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 3px; }
+
+        /* ───── 배지 ───── */
+        .lv { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 40px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 12px; font-weight: 750; white-space: nowrap; }
+        .lv svg { flex: none; }
+        .lv.l3 { background: var(--lv3-bg); color: var(--lv3-ink); }
+        .lv.l2 { background: var(--lv2-bg); color: var(--lv2-ink); }
+        .lv.l1 { background: var(--lv1-bg); color: var(--lv1-ink); }
+        .lv.l0 { background: var(--ok-bg); color: var(--ok-ink); }
+        .tag { display: inline-flex; justify-content: center; min-width: 64px; padding: 2px 8px; border-radius: 6px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+        .tag.qty { background: #E5F0FC; color: #184F95; }
+        .tag.swap { background: #FDEDE5; color: #9A3412; }
+        .tag.add { background: #E2F6EE; color: #0B6B4A; }
+        .tag.del { background: #FDF3D8; color: #7A5200; }
+        .flag { display: inline-flex; margin-left: 4px; padding: 1px 6px; border-radius: 5px; font-size: 11.5px; font-weight: 700; background: var(--lv3-bg); color: var(--lv3-ink); white-space: nowrap; }
 
         /* ───── 표 공통 ───── */
         .tbl-wrap { overflow-x: auto; }
@@ -167,80 +221,112 @@
         thead th[aria-sort="descending"] button::after { content: "▼"; font-size: 9px; color: var(--brand); }
         thead th .th { display: inline-flex; min-height: 40px; align-items: center; padding: 0 12px; }
         thead th.r .th { justify-content: flex-end; width: 100%; }
-        tbody td, tfoot td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
-        tfoot td { background: var(--surface-2); font-weight: 700; border-bottom: 0; }
+        tbody td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
         td.r, th.r { text-align: right; }
-
-        /* 브랜드 비교표 */
-        .led { min-width: 1020px; }
-        .led tbody tr { cursor: pointer; transition: background .12s; }
-        .led tbody tr:hover { background: #F5F8FF; }
-        .led tbody tr.on { background: var(--brand-bg); box-shadow: inset 3px 0 0 var(--brand); }
-        .brand-btn { padding: 4px 0; border: 0; background: transparent; cursor: pointer; font: 700 14px var(--mono); }
-        .sub { display: block; font-size: 12.5px; font-weight: 400; color: var(--ink-3); }
-        .diverge { display: inline-flex; align-items: center; gap: 10px; justify-content: flex-end; }
-        .diverge b { min-width: 64px; text-align: right; font-weight: 700; }
         .up { color: var(--inc-ink); }
         .down { color: var(--dec-ink); }
-        .dv { position: relative; width: 112px; height: 10px; }
-        .dv::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--line-2); }
-        .dv span { position: absolute; top: 0; height: 100%; }
-        .dv .inc { left: calc(50% + 1px); background: var(--inc); border-radius: 0 3px 3px 0; }
-        .dv .dec { right: calc(50% + 1px); background: var(--dec); border-radius: 3px 0 0 3px; }
-        .spark { display: block; }
 
-        /* 분포표 */
-        .heat { min-width: 760px; table-layout: fixed; }
-        .heat th, .heat td { border: 0; }
-        .heat thead th { background: transparent; border: 0; white-space: normal; text-align: center; vertical-align: bottom; padding: 0 2px 6px; font-size: 12px; line-height: 1.3; }
-        .heat thead th:first-child { width: 96px; text-align: left; }
-        .heat thead th:last-child { width: 52px; }
-        .heat tbody th { text-align: left; font: 700 13px var(--mono); padding: 2px 8px 2px 0; }
-        .heat tbody th.dim, .heat tr.dim th { color: var(--ink-3); font-weight: 400; }
-        .heat td { padding: 2px; }
-        .heat-c { width: 100%; height: 36px; border: 0; border-radius: 5px; font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; background: var(--surface-2); color: var(--ink); }
+        /* 브랜드 x 기종 */
+        .bx { table-layout: auto; }
+        .bx thead th { background: transparent; border: 0; text-align: center; font-size: 12.5px; padding: 0 2px 6px; white-space: normal; }
+        .bx thead th:first-child { text-align: left; }
+        .bx tbody th { text-align: left; font: 700 13px var(--mono); padding: 2px 10px 2px 0; white-space: nowrap; }
+        .bx td { padding: 2px; border: 0; }
+
+        .heat-c { width: 100%; min-width: 34px; height: 34px; border: 0; border-radius: 5px; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; background: var(--surface-2); color: var(--ink); position: relative; }
         .heat-c:hover { box-shadow: inset 0 0 0 2px var(--ink); }
-        .heat-c.zero { color: var(--ink-3); font-weight: 400; cursor: default; }
-        .heat-c.zero:hover { box-shadow: none; }
+        .heat-c.zero { color: var(--ink-3); font-weight: 400; }
+        .heat-c.nil { background: repeating-linear-gradient(45deg, transparent 0 4px, var(--line) 4px 5px); color: transparent; cursor: default; }
+        .heat-c.nil:hover, .heat-c:disabled:hover { box-shadow: none; }
+        .heat-c:disabled { cursor: default; }
         .heat-c.h1 { background: var(--heat-1); }
         .heat-c.h2 { background: var(--heat-2); }
         .heat-c.h3 { background: var(--heat-3); }
         .heat-c.h4 { background: var(--heat-4); color: #fff; }
         .heat-c.h5 { background: var(--heat-5); color: #fff; }
+        .heat-c.bad::after { content: ""; position: absolute; right: 3px; top: 3px; width: 7px; height: 7px; border-radius: 50%; background: var(--lv3); box-shadow: 0 0 0 1.5px #fff; }
         .heat-c.sel { box-shadow: inset 0 0 0 2px var(--ink), inset 0 0 0 3px #fff; }
-        .heat tr.dim .heat-c { opacity: .35; }
-        .heat-sum { text-align: center; font-weight: 700; font-size: 13.5px; }
         .scale { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 10px; font-size: 12.5px; color: var(--ink-3); }
         .scale span { display: inline-flex; align-items: center; gap: 5px; }
-        .scale i { width: 14px; height: 14px; border-radius: 3px; }
+        .scale i { width: 14px; height: 14px; border-radius: 3px; position: relative; }
 
-        /* 상세 */
-        .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 20px; }
-        .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); flex: none; }
-        .seg button { min-height: 32px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--ink-3); }
-        .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(16,24,40,.14); }
-        .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        /* 그룹 x 일자 추적표 */
+        .trk { border-collapse: separate; border-spacing: 0; }
+        .trk thead th { position: sticky; top: 0; z-index: 1; text-align: center; padding: 6px 2px; font-size: 12px; line-height: 1.25; white-space: nowrap; }
+        .trk thead th.g { text-align: left; padding-left: 12px; }
+        .trk thead th.last, .pk thead th.last { color: var(--brand); font-weight: 800; box-shadow: inset 0 -2px 0 var(--brand); }
+        .trk-wrap { max-height: 640px; overflow: auto; border-top: 1px solid var(--line); }
+        .trk th.g, .trk td.g { position: sticky; left: 0; z-index: 2; background: var(--surface); box-shadow: 1px 0 0 var(--line); }
+        .trk thead th.g { background: var(--surface-2); z-index: 3; }
+        .trk tbody td { padding: 3px 2px; border-bottom: 1px solid var(--line); }
+        .trk tbody td.g { padding: 6px 12px; min-width: 260px; max-width: 320px; white-space: normal; }
+        .trk tbody tr { cursor: pointer; }
+        .trk tbody tr:hover td.g { background: #F5F8FF; }
+        .trk tbody tr.on td.g { background: var(--brand-bg); box-shadow: inset 3px 0 0 var(--brand), 1px 0 0 var(--line); }
+        .trk td.sum { padding: 3px 12px; text-align: right; font-weight: 700; }
+        .g-name { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+        .g-name b { font: 700 13.5px var(--mono); }
+        .g-sub { display: block; margin-top: 2px; font-size: 12.5px; color: var(--ink-3); }
+        .more { display: flex; justify-content: center; padding: 12px; }
+        .more button { min-height: 34px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--ink-2); }
+
+        /* 그룹 상세 */
+        .gd-hd { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+        .gd-hd h2 { font: 750 17px var(--sans); }
+        .gd-hd h2 .mono { font-weight: 800; }
+        .gd-nav { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-3); }
+        .gd-nav .btn-ghost { min-height: 34px; padding: 0 10px; }
+        .specs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .spec { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--line); font-size: 12.5px; color: var(--ink-3); }
+        .spec b { font: 700 12.5px var(--mono); color: var(--ink); }
+        .sub-hd { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; padding: 16px 20px 0; border-top: 1px solid var(--line); }
+        .sub-hd h3 { font-size: 15px; font-weight: 750; }
+        .sub-hd p { margin-top: 2px; font-size: 13px; color: var(--ink-3); }
+        .filter-on { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--brand); background: var(--brand-bg); color: var(--brand); font-size: 13.5px; font-weight: 700; cursor: pointer; }
+        .tools .right { margin-left: auto; display: flex; gap: 8px; }
+        .hogis { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 20px 0; }
         .chip { min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
         .chip:hover { border-color: var(--ink-3); }
         .chip .n { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
         .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
         .chip[aria-pressed="true"] .n { color: rgba(255,255,255,.78); }
-        .search { position: relative; margin-left: auto; flex: 1 1 220px; max-width: 320px; }
-        .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
-        .search input { width: 100%; min-height: 38px; padding: 0 12px 0 34px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--surface); font-size: 14px; }
-        .search input:focus { outline: none; border-color: var(--brand-2); box-shadow: 0 0 0 3px var(--brand-bg); }
-        .scope { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 20px 12px; font-size: 13px; color: var(--ink-3); }
-        .scope button { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line-2); background: var(--brand-bg); color: var(--brand); font-size: 13px; font-weight: 650; cursor: pointer; }
-        .det { min-width: 1120px; }
-        .det td.pn { line-height: 1.35; white-space: normal; min-width: 170px; }
-        .det .pn-no { font-family: var(--mono); font-weight: 600; font-size: 13.5px; white-space: nowrap; }
-        .det .pn-nm { display: block; font-size: 12.5px; color: var(--ink-3); }
-        .det .nil { color: var(--ink-3); }
-        .tag { display: inline-flex; justify-content: center; min-width: 64px; padding: 2px 8px; border-radius: 6px; font-size: 12.5px; font-weight: 700; }
-        .tag.qty { background: #E5F0FC; color: #184F95; }
-        .tag.swap { background: #FDEDE5; color: #9A3412; }
-        .tag.add { background: #E2F6EE; color: #0B6B4A; }
-        .tag.del { background: #FDF3D8; color: #7A5200; }
+        .chip.mono { font-family: var(--mono); }
+
+        .pk { border-collapse: separate; border-spacing: 0; font-size: 13px; }
+        .pk thead th { position: sticky; top: 0; z-index: 1; text-align: center; padding: 6px 8px; font-size: 12px; }
+        .pk th.p, .pk td.p { position: sticky; left: 0; z-index: 2; background: var(--surface); box-shadow: 1px 0 0 var(--line); text-align: left; }
+        .pk thead th.p { background: var(--surface-2); z-index: 3; }
+        .pk tbody td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+        .pk td.p { font: 700 13px var(--mono); padding: 8px 12px; }
+        .pk td.p small { display: block; font: 600 11.5px var(--sans); color: var(--lv3-ink); }
+        .cell { display: block; min-width: 108px; padding: 4px 7px; border-radius: 6px; line-height: 1.3; }
+        .cell .no { display: block; font: 600 12.5px var(--mono); white-space: nowrap; }
+        .cell .q { display: block; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+        .cell.c-qty { background: #E5F0FC; box-shadow: inset 3px 0 0 var(--t-qty); }
+        .cell.c-swap { background: #FDEDE5; box-shadow: inset 3px 0 0 var(--t-swap); }
+        .cell.c-add { background: #E2F6EE; box-shadow: inset 3px 0 0 var(--t-add); }
+        .cell.c-del { background: #FDF3D8; box-shadow: inset 3px 0 0 var(--t-del); }
+        .cell.c-qty .q, .cell.c-swap .no { color: var(--ink); font-weight: 750; }
+        .cell.empty { color: var(--ink-3); }
+        .cell.nosnap { color: var(--ink-3); background: repeating-linear-gradient(45deg, transparent 0 4px, var(--surface-2) 4px 8px); }
+        .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 10px 20px 0; font-size: 12.5px; color: var(--ink-3); }
+        .legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .legend i { width: 14px; height: 14px; border-radius: 3px; }
+
+        /* 변동 내역 */
+        .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 20px; }
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); flex: none; }
+        .seg button { min-height: 32px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--ink-3); }
+        .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(16,24,40,.14); }
+        .log { min-width: 1240px; }
+        .log tbody tr { cursor: pointer; }
+        .log tbody tr:hover { background: #F5F8FF; }
+        .log td.pn { line-height: 1.35; }
+        .log .pn-no { font-family: var(--mono); font-weight: 600; font-size: 13px; }
+        .log .pn-q { display: block; font-size: 12px; color: var(--ink-3); }
+        .log .nil { color: var(--ink-3); }
+        .log td.cmt { max-width: 240px; overflow: hidden; text-overflow: ellipsis; color: var(--ink-3); font-size: 13px; }
         .empty { padding: 44px 20px; text-align: center; color: var(--ink-3); font-size: 14px; }
         .foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 20px; font-size: 13px; color: var(--ink-3); }
         .pager { display: flex; align-items: center; gap: 8px; }
@@ -256,166 +342,227 @@
 <body>
 <a class="skip" href="#main">본문으로 건너뛰기</a>
 
-<header class="nav">
+<header class="hdr">
     <div class="wrap nav-in">
         <a class="logo" href="/cop2/main" aria-label="SENTINEL 메인으로">
             <span class="logo-mark" aria-hidden="true">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 12l5-3"/></svg>
             </span><b>SENTINEL</b>
         </a>
-        <div class="crumb"><span aria-hidden="true">/</span><b>브랜드별 BOM 일일 변동</b><span class="demo">DEMO</span></div>
-        <div class="nav-tools">
-            <div class="field">
-                <label for="inDate">기준일</label>
-                <input class="ctl mono" type="date" id="inDate">
-            </div>
-            <div class="field">
-                <label for="inBrand">브랜드</label>
-                <select class="ctl" id="inBrand"></select>
-            </div>
-            <a class="link-btn" href="/cop/dashboard">배치 변경 대시보드</a>
+        <div class="crumb"><span aria-hidden="true">/</span><b>BOM 이상감지</b></div>
+        <nav class="jump" id="jump" aria-label="섹션 이동">
+            <a href="#secSum">요약</a>
+            <a href="#secTrend">추이</a>
+            <a href="#secTrk">일자 추적</a>
+            <a href="#detail">그룹 상세</a>
+            <a href="#logCard">변동 내역</a>
+        </nav>
+        <div class="nav-right">
+            <a class="link-btn" href="/simulateup/blockQtyCompare">일자별 수량 계산 · 이력 저장</a>
         </div>
+    </div>
+    <div class="filters">
+        <form class="wrap filters-in" id="fForm">
+            <div class="ff">
+                <span class="lbl" id="lblPeriod">기간 (BATCHDATE)</span>
+                <div class="row" role="group" aria-labelledby="lblPeriod">
+                    <label for="inFrom" class="sr">시작일</label>
+                    <input class="ctl mono" type="date" id="inFrom" required>
+                    <span aria-hidden="true">~</span>
+                    <label for="inTo" class="sr">종료일</label>
+                    <input class="ctl mono" type="date" id="inTo" required>
+                    <button type="submit" class="btn" id="btnLoad">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 11-3-6.7M21 4v5h-5"/></svg>조회
+                    </button>
+                </div>
+            </div>
+            <span class="f-sep" aria-hidden="true"></span>
+            <div class="ff">
+                <label for="inBrand">브랜드</label>
+                <select class="ctl" id="inBrand"><option value="">전체</option></select>
+            </div>
+            <div class="ff">
+                <label for="inAtyp">기종 (ATYP)</label>
+                <select class="ctl" id="inAtyp"><option value="">전체</option></select>
+            </div>
+            <div class="ff">
+                <label for="inBlock">블럭 (BLOCKNO)</label>
+                <select class="ctl mono" id="inBlock"><option value="">전체</option></select>
+            </div>
+            <div class="ff">
+                <label for="inQ">검색</label>
+                <input class="ctl q" type="search" id="inQ" placeholder="호기 · PICK · 품번" autocomplete="off">
+            </div>
+            <button type="button" class="btn-ghost" id="btnReset" title="브랜드 · 기종 · 블럭 · 검색어를 모두 지웁니다">초기화</button>
+            <span class="f-sum" id="fSum" role="status"></span>
+        </form>
     </div>
 </header>
 
 <main class="wrap" id="main">
 
-    <!-- ═══════ 결론 ═══════ -->
-    <section class="card hero" aria-labelledby="heroTitle">
-        <div class="hero-top">
-            <div>
-                <div class="period"><span id="periodText">-</span><span class="demo">샘플 데이터</span></div>
-                <h1 id="heroTitle">-</h1>
-                <p class="hero-sub" id="heroSub">-</p>
-            </div>
-            <div class="watch">
-                <h2>먼저 볼 항목</h2>
-                <ul id="watchList"></ul>
-            </div>
-        </div>
-        <div class="kpis" id="kpis"></div>
-    </section>
-
-    <!-- ═══════ 브랜드별 차트 ═══════ -->
-    <div class="grid-2">
-        <article class="card">
-            <div class="card-hd"><div><h2>브랜드별 변경 건수</h2><p id="mixDesc">-</p></div></div>
-            <div class="card-bd">
-                <div class="chart" id="chMix" role="img"></div>
-                <div class="none" id="chMixNone" hidden>전일과 달라진 자재가 없습니다.</div>
-            </div>
-        </article>
-        <article class="card">
-            <div class="card-hd"><div><h2>브랜드별 자재 수량 증감</h2><p id="netDesc">-</p></div></div>
-            <div class="card-bd">
-                <div class="chart" id="chNet" role="img"></div>
-                <div class="none" id="chNetNone" hidden>전일과 수량이 달라진 브랜드가 없습니다.</div>
-            </div>
-        </article>
+    <!-- 불러오는 중 / 오류 / 데이터 없음 -->
+    <div class="skel" id="skel" aria-busy="true" aria-label="BOM 이력을 불러오는 중">
+        <div class="sk" style="height:250px"></div>
+        <div class="skel-row"><div class="sk" style="height:340px"></div><div class="sk" style="height:340px"></div></div>
+        <div class="sk" style="height:300px"></div>
     </div>
-
-    <!-- ═══════ 브랜드 비교표 ═══════ -->
-    <section class="card" aria-labelledby="ledTitle">
-        <div class="card-hd" style="padding-bottom:12px"><div><h2 id="ledTitle">브랜드 비교표</h2><p>행을 누르면 화면 전체가 해당 브랜드 기준으로 바뀝니다</p></div></div>
-        <div class="tbl-wrap">
-            <table class="led">
-                <thead><tr id="ledHead">
-                    <th scope="col" data-k="code"><button type="button">브랜드</button></th>
-                    <th scope="col" class="r" data-k="changed"><button type="button">변동 호기</button></th>
-                    <th scope="col" class="r" data-k="qtyNow"><button type="button">자재 수량 (전일 → 금일)</button></th>
-                    <th scope="col" class="r" data-k="net"><button type="button">수량 순증감</button></th>
-                    <th scope="col" class="r" data-k="qty"><button type="button">수량 변경</button></th>
-                    <th scope="col" class="r" data-k="mat"><button type="button">다른 자재 수배</button></th>
-                    <th scope="col" class="r" data-k="match"><button type="button">BOM 일치율</button></th>
-                    <th scope="col"><span class="th">최근 14회 변경 건수</span></th>
-                </tr></thead>
-                <tbody id="ledBody"></tbody>
-                <tfoot id="ledFoot"></tfoot>
-            </table>
-        </div>
+    <section class="card" id="stateCard" hidden>
+        <div class="state-box" id="stateBox"></div>
     </section>
 
-    <!-- ═══════ 분포 · 추이 ═══════ -->
-    <div class="grid-heat">
-        <article class="card">
-            <div class="card-hd"><div><h2>어느 브랜드의 어느 블록에서 달라졌나</h2><p id="heatDesc">-</p></div></div>
-            <div class="card-bd">
-                <div class="tbl-wrap"><table class="heat" id="heat"></table></div>
-                <div class="scale" aria-hidden="true">
-                    <span>변경 건수</span>
-                    <span><i style="background:var(--surface-2);border:1px solid var(--line)"></i>0</span>
-                    <span><i style="background:var(--heat-1)"></i>1–2</span>
-                    <span><i style="background:var(--heat-2)"></i>3–5</span>
-                    <span><i style="background:var(--heat-3)"></i>6–10</span>
-                    <span><i style="background:var(--heat-4)"></i>11–20</span>
-                    <span><i style="background:var(--heat-5)"></i>21+</span>
+    <div id="dash" hidden style="display:flex;flex-direction:column;gap:16px">
+        <div class="notice" id="truncNotice" hidden>조회 건수가 많아 앞쪽 일부만 불러왔습니다. 기간을 줄여 다시 조회하세요.</div>
+
+        <!-- ═══════ 결론 ═══════ -->
+        <section class="card hero" id="secSum" aria-labelledby="heroTitle">
+            <div class="hero-top">
+                <div>
+                    <div class="period" id="periodText">-</div>
+                    <h1 id="heroTitle">-</h1>
+                    <p class="hero-sub" id="heroSub">-</p>
+                </div>
+                <div class="watch">
+                    <h2>먼저 볼 이상 항목</h2>
+                    <ul id="watchList"></ul>
                 </div>
             </div>
-        </article>
-        <article class="card">
-            <div class="card-hd"><div><h2>최근 14회 변경 추이</h2><p id="trendDesc">-</p></div></div>
-            <div class="card-bd"><div class="chart" id="chTrend" role="img" style="height:360px"></div></div>
-        </article>
-    </div>
+            <div class="kpis" id="kpis"></div>
+        </section>
 
-    <!-- ═══════ 상세 ═══════ -->
-    <section class="card" id="detail" aria-labelledby="detTitle">
-        <div class="card-hd">
-            <div><h2 id="detTitle">변경 자재 상세</h2><p>전일 BOM 과 금일 BOM 의 차이를 호기 · 자재 단위로 확인합니다</p></div>
-            <div class="seg" role="group" aria-label="상세 보기 방식">
-                <button type="button" data-view="rows" aria-pressed="true">변경 내역</button>
-                <button type="button" data-view="parts" aria-pressed="false">자재별 집계</button>
+        <!-- ═══════ 추이 · 브랜드 x 기종 ═══════ -->
+        <div class="cols-2" id="secTrend">
+            <article class="card">
+                <div class="card-hd"><div><span class="eyebrow">01 · TREND</span><h2>일자별 BOM 변동 건수</h2><p id="trendDesc">-</p></div></div>
+                <div class="card-bd">
+                    <div class="chart" id="chTrend" role="img"></div>
+                    <div class="none" id="chTrendNone" hidden>기간 안에 비교할 수 있는 일자가 없습니다. (호기 · 블럭별로 2개 일자 이상 저장되어야 비교합니다)</div>
+                </div>
+            </article>
+            <article class="card">
+                <div class="card-hd"><div><span class="eyebrow">02 · MAP</span><h2>브랜드 x 기종 변동</h2><p id="bxDesc">칸을 누르면 해당 브랜드 · 기종만 봅니다</p></div></div>
+                <div class="card-bd">
+                    <div class="tbl-wrap"><table class="bx" id="bx"></table></div>
+                    <div class="scale" aria-hidden="true">
+                        <span>변동 건수</span>
+                        <span><i style="background:var(--surface-2);border:1px solid var(--line)"></i>0</span>
+                        <span><i style="background:var(--heat-1)"></i>1–2</span>
+                        <span><i style="background:var(--heat-2)"></i>3–5</span>
+                        <span><i style="background:var(--heat-3)"></i>6–10</span>
+                        <span><i style="background:var(--heat-4)"></i>11–20</span>
+                        <span><i style="background:var(--heat-5)"></i>21+</span>
+                        <span><i style="background:var(--heat-1)"><b style="position:absolute;right:2px;top:2px;width:6px;height:6px;border-radius:50%;background:var(--lv3)"></b></i>이상 포함</span>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <!-- ═══════ 그룹 x 일자 추적 ═══════ -->
+        <section class="card" id="secTrk" aria-labelledby="trkTitle">
+            <div class="card-hd" style="padding-bottom:12px">
+                <div><span class="eyebrow">03 · TRACKING</span><h2 id="trkTitle">브랜드 · 기종 · 블럭별 일자 추적</h2><p id="trkDesc">-</p></div>
+                <div class="seg" role="group" aria-label="추적 대상">
+                    <button type="button" data-trk="changed" aria-pressed="true">변동 있는 그룹</button>
+                    <button type="button" data-trk="all" aria-pressed="false">전체 그룹</button>
+                </div>
             </div>
-        </div>
-        <div class="tools">
-            <div class="chips" id="chips" role="group" aria-label="변경 유형 필터"></div>
-            <div class="search">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-                <label for="inSearch" class="sr">호기 · 품번 · 품명 검색</label>
-                <input id="inSearch" type="search" placeholder="호기 · 품번 · 품명 검색" autocomplete="off">
+            <div class="trk-wrap"><table class="trk" id="trk"></table></div>
+            <div class="none" id="trkNone" hidden>조건에 맞는 그룹이 없습니다.</div>
+            <div class="more" id="trkMore" hidden><button type="button" id="btnMore">더 보기</button></div>
+            <div class="scale" style="padding:0 20px 14px" aria-hidden="true">
+                <span>칸 = 그 일자에 앞 저장 일자 대비 달라진 PICK 건수</span>
+                <span><i style="background:repeating-linear-gradient(45deg,transparent 0 4px,var(--line) 4px 5px);border:1px solid var(--line)"></i>저장 안 됨</span>
+                <span><i style="background:var(--surface-2);border:1px solid var(--line)"></i>저장 · 변동 없음</span>
+                <span><i style="background:var(--heat-3)"></i>변동</span>
             </div>
-        </div>
-        <div class="scope" id="scope" hidden></div>
-        <div class="tbl-wrap">
-            <table class="det" id="detRows">
-                <thead><tr id="detHead">
-                    <th scope="col" data-k="type"><button type="button">유형</button></th>
-                    <th scope="col" data-k="brand"><button type="button">브랜드</button></th>
-                    <th scope="col" data-k="hogi"><button type="button">호기</button></th>
-                    <th scope="col" data-k="block"><button type="button">블록</button></th>
-                    <th scope="col"><span class="th">전일 자재</span></th>
-                    <th scope="col"><span class="th">금일 자재</span></th>
-                    <th scope="col" class="r" data-k="prevQty"><button type="button">전일 수량</button></th>
-                    <th scope="col" class="r" data-k="nextQty"><button type="button">금일 수량</button></th>
-                    <th scope="col" class="r" data-k="delta"><button type="button">증감</button></th>
-                    <th scope="col"><span class="th">단위</span></th>
-                </tr></thead>
-                <tbody id="detBody"></tbody>
-            </table>
-            <table class="det" id="detParts" hidden>
-                <thead><tr>
-                    <th scope="col"><span class="th">유형</span></th>
-                    <th scope="col"><span class="th">전일 자재</span></th>
-                    <th scope="col"><span class="th">금일 자재</span></th>
-                    <th scope="col"><span class="th">블록</span></th>
-                    <th scope="col"><span class="th">브랜드</span></th>
-                    <th scope="col" class="r"><span class="th">영향 호기</span></th>
-                    <th scope="col" class="r"><span class="th">수량 순증감</span></th>
-                </tr></thead>
-                <tbody id="partBody"></tbody>
-            </table>
-            <div class="empty" id="detEmpty" hidden>조건에 맞는 변경 자재가 없습니다. 필터나 검색어를 바꿔 보세요.</div>
-        </div>
-        <div class="foot">
-            <span id="detCount" role="status">-</span>
-            <div class="pager" id="pager">
-                <button type="button" id="pgPrev">이전</button>
-                <span class="tnum" id="pgText">-</span>
-                <button type="button" id="pgNext">다음</button>
+        </section>
+
+        <!-- ═══════ 그룹 상세 ═══════ -->
+        <section class="card" id="detail" aria-labelledby="gdTitle">
+            <div class="card-hd">
+                <div>
+                    <span class="eyebrow">04 · GROUP</span>
+                    <div class="gd-hd"><h2 id="gdTitle">-</h2><span id="gdLv"></span></div>
+                    <p id="gdDesc">-</p>
+                </div>
+                <div class="gd-nav">
+                    <button type="button" class="btn-ghost" id="gdPrev" aria-label="이전 그룹">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>이전
+                    </button>
+                    <span class="tnum" id="gdPos" aria-live="polite">-</span>
+                    <button type="button" class="btn-ghost" id="gdNext" aria-label="다음 그룹">다음
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                </div>
             </div>
-        </div>
-        <p class="note">수량 합계와 순증감은 단위(EA, M 등)를 구분하지 않고 더한 참고값입니다. 정확한 수량은 단위가 표시된 변경 내역에서 확인하세요.</p>
-    </section>
+            <div class="hogis" id="hogis" role="group" aria-label="호기 선택"></div>
+            <div class="card-bd">
+                <div class="chart" id="chGroup" role="img" style="height:260px"></div>
+            </div>
+            <div class="sub-hd">
+                <div><h3>PICK 별 자재 · 수량 추적</h3><p id="pkDesc">-</p><div class="specs" id="pkSpec"></div></div>
+                <div class="seg" role="group" aria-label="PICK 범위">
+                    <button type="button" data-pk="changed" aria-pressed="true">변동 PICK 만</button>
+                    <button type="button" data-pk="all" aria-pressed="false">전체 PICK</button>
+                </div>
+            </div>
+            <div class="legend" aria-hidden="true">
+                <span><i style="background:#E5F0FC;box-shadow:inset 3px 0 0 var(--t-qty)"></i>수량 변경</span>
+                <span><i style="background:#FDEDE5;box-shadow:inset 3px 0 0 var(--t-swap)"></i>자재 교체</span>
+                <span><i style="background:#E2F6EE;box-shadow:inset 3px 0 0 var(--t-add)"></i>신규 수배</span>
+                <span><i style="background:#FDF3D8;box-shadow:inset 3px 0 0 var(--t-del)"></i>수배 제외</span>
+                <span>칸에 마우스를 올리면 앞 일자 값이 보입니다</span>
+            </div>
+            <div class="tbl-wrap" style="max-height:560px;overflow:auto;margin-top:10px"><table class="pk" id="pk"></table></div>
+            <div class="empty" id="pkEmpty" hidden>기간 안에 달라진 PICK 이 없습니다. "전체 PICK" 을 누르면 모든 PICK 을 볼 수 있습니다.</div>
+            <p class="note" style="padding-top:12px">수량 합계는 단위를 구분하지 않고 더한 참고값입니다.</p>
+        </section>
+
+        <!-- ═══════ 변동 내역 ═══════ -->
+        <section class="card" id="logCard" aria-labelledby="logTitle">
+            <div class="card-hd">
+                <div><span class="eyebrow">05 · LOG</span><h2 id="logTitle">BOM 변동 내역</h2><p>같은 호기 · 블럭의 바로 앞 저장 일자와 PICK 단위로 비교한 결과입니다. 행을 누르면 해당 그룹을 상세에서 봅니다</p></div>
+            </div>
+            <div class="tools">
+                <div class="chips" id="typeChips" role="group" aria-label="변동 유형 필터"></div>
+                <div class="chips" id="lvChips" role="group" aria-label="판정 필터"></div>
+                <span id="logDateChip"></span>
+                <div class="right">
+                    <button type="button" class="btn-ghost" id="btnCsv">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>CSV 내려받기
+                    </button>
+                </div>
+            </div>
+            <div class="tbl-wrap">
+                <table class="log">
+                    <thead><tr id="logHead">
+                        <th scope="col" data-k="date"><button type="button">일자</button></th>
+                        <th scope="col" data-k="level"><button type="button">판정</button></th>
+                        <th scope="col" data-k="type"><button type="button">유형</button></th>
+                        <th scope="col" data-k="brand"><button type="button">브랜드</button></th>
+                        <th scope="col" data-k="atyp"><button type="button">기종</button></th>
+                        <th scope="col" data-k="block"><button type="button">블럭</button></th>
+                        <th scope="col" data-k="hogi"><button type="button">호기</button></th>
+                        <th scope="col" data-k="pick"><button type="button">PICK</button></th>
+                        <th scope="col"><span class="th">이전 자재</span></th>
+                        <th scope="col"><span class="th">현재 자재</span></th>
+                        <th scope="col" class="r" data-k="delta"><button type="button">수량 증감</button></th>
+                        <th scope="col"><span class="th">주석</span></th>
+                    </tr></thead>
+                    <tbody id="logBody"></tbody>
+                </table>
+                <div class="empty" id="logEmpty" hidden>조건에 맞는 변동이 없습니다.</div>
+            </div>
+            <div class="foot">
+                <span id="logCount" role="status">-</span>
+                <div class="pager" id="pager">
+                    <button type="button" id="pgPrev">이전</button>
+                    <span class="tnum" id="pgText">-</span>
+                    <button type="button" id="pgNext">다음</button>
+                </div>
+            </div>
+        </section>
+    </div>
 </main>
 
 <script src="/resources/dist/js/highcharts.js"></script>
@@ -425,301 +572,297 @@
 
     const $ = id => document.getElementById(id);
     const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    const fmt = n => Number(n).toLocaleString('ko-KR', { maximumFractionDigits: 1 });
+    const fmt = n => Number(n).toLocaleString('ko-KR', { maximumFractionDigits: 2 });
     const signed = n => (n > 0 ? '+' : n < 0 ? '−' : '') + fmt(Math.abs(n));
-    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-    const ymd = d => d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
-    const isoDate = d => ymd(d).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const pad = n => String(n).padStart(2, '0');
+    const ymd = d => d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+    const iso = s => s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6, 8);
     const WEEK = '일월화수목금토';
-    const dayLabel = d => (d.getMonth() + 1) + '월 ' + d.getDate() + '일(' + WEEK.charAt(d.getDay()) + ')';
+    const toDate = s => new Date(Number(s.slice(0, 4)), Number(s.slice(4, 6)) - 1, Number(s.slice(6, 8)));
+    const shortDay = s => Number(s.slice(4, 6)) + '/' + Number(s.slice(6, 8));
+    const longDay = s => s.slice(0, 4) + '.' + s.slice(4, 6) + '.' + s.slice(6, 8) + '(' + WEEK.charAt(toDate(s).getDay()) + ')';
+    const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isFinite(n) ? n : null; };
     const ARROW = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+    const NONE = '(미지정)';
 
     const TYPES = {
-        qty:  { label: '수량 변경', color: css('--t-qty'),  rank: 3 },
         swap: { label: '자재 교체', color: css('--t-swap'), rank: 0 },
         add:  { label: '신규 수배', color: css('--t-add'),  rank: 1 },
-        del:  { label: '수배 제외', color: css('--t-del'),  rank: 2 }
+        del:  { label: '수배 제외', color: css('--t-del'),  rank: 2 },
+        qty:  { label: '수량 변경', color: css('--t-qty'),  rank: 3 }
     };
-    const TYPE_KEYS = ['qty', 'swap', 'add', 'del'];
-    const INC = css('--inc'), DEC = css('--dec');
-
-    /* ════════════ 샘플 데이터 (나중에 API 로 교체) ════════════ */
-    const BRANDS = [
-        { code: 'NEX_MR',    units: 18, activity: 1.0 },
-        { code: 'NEX_MRL',   units: 14, activity: .75 },
-        { code: 'LUXEN_2',   units: 9,  activity: 1.1 },
-        { code: 'NEX_MR_G',  units: 11, activity: .5 },
-        { code: 'NEX_MRL_G', units: 7,  activity: .6 },
-        { code: 'LUXEN_G',   units: 5,  activity: .4 }
-    ];
-    const BLOCKS = {
-        CAR:  { name: '카 프레임',  weight: 9,  parts: ['카 상부 프레임', '카 바닥판', '방진 고무'] },
-        DOOR: { name: '도어 장치',  weight: 8,  parts: ['도어 행거', '도어 모터', '인터록 스위치'] },
-        CTRL: { name: '제어반',     weight: 10, parts: ['메인 보드', 'INV 유닛', '배선 하네스'] },
-        TM:   { name: '권상기',     weight: 3,  parts: ['브레이크 라이닝', '엔코더'] },
-        RAIL: { name: '가이드 레일', weight: 4,  parts: ['T형 레일', '레일 브라켓'], uom: 'M' },
-        CWT:  { name: '균형추',     weight: 2,  parts: ['균형추 블록', '균형추 프레임'] },
-        HALL: { name: '승강장',     weight: 6,  parts: ['승강장 버튼', '홀 랜턴', '실 앵글'] },
-        ROPE: { name: '로프',       weight: 3,  parts: ['메인 로프', '보상 체인'], uom: 'M' },
-        SAFE: { name: '안전장치',   weight: 4,  parts: ['조속기', '완충기'] },
-        PIT:  { name: '피트',       weight: 2,  parts: ['피트 사다리', '피트 스위치'] },
-        SIG:  { name: '신호 장치',  weight: 6,  parts: ['인디케이터', 'COP 패널'] },
-        DECO: { name: '카 의장',    weight: 8,  parts: ['천장 조명', '핸드레일', '카 벽판 마감'] }
-    };
-    const BLOCK_KEYS = Object.keys(BLOCKS);
-    const BLOCK_WEIGHT = {};
-    BLOCK_KEYS.forEach(k => { BLOCK_WEIGHT[k] = BLOCKS[k].weight; });
-
-    /* 시드가 같으면 같은 값이 나오는 난수 (같은 날짜면 같은 샘플) */
-    function rng(seed) {
-        let s = seed % 2147483647; if (s <= 0) s += 2147483646;
-        const next = () => (s = s * 16807 % 2147483647) / 2147483647;
-        next(); next(); next();
-        return next;
-    }
-    function tools(r) {
-        const ri = (a, b) => a + Math.floor(r() * (b - a + 1));
-        return {
-            ri,
-            pick: arr => arr.at(ri(0, arr.length - 1)),
-            pickW: weights => {
-                const keys = Object.keys(weights);
-                let x = r() * keys.reduce((a, k) => a + weights[k], 0);
-                for (const k of keys) { x -= weights[k]; if (x <= 0) return k; }
-                return keys.at(-1);
-            }
-        };
-    }
-
-    /* 호기 · 자재 기준 정보는 날짜와 상관없이 고정 */
-    const FLEET = (function () {
-        const r = rng(20261107), t = tools(r), out = [];
-        BRANDS.forEach(b => {
-            for (let i = 0; i < b.units; i++) {
-                const lines = t.ri(360, 640);
-                out.push({
-                    brand: b.code,
-                    hogi: 'H' + t.ri(24, 26) + String.fromCharCode(65 + t.ri(0, 11)) + String(t.ri(1000, 9999)),
-                    lines,
-                    qty: Math.round(lines * (5 + r() * 4))
-                });
-            }
-        });
-        return out;
-    })();
-    const CATALOG = (function () {
-        const out = {};
-        BLOCK_KEYS.forEach((blk, bi) => {
-            out[blk] = BLOCKS[blk].parts.map((name, pi) => ({
-                name, block: blk, uom: BLOCKS[blk].uom || 'EA',
-                base: blk.slice(0, 2) + '-' + (100 + bi) + (10 + pi * 7)
-            }));
-        });
-        return out;
-    })();
-    const partNo = (part, variant) => part.base + String.fromCharCode(65 + variant);
-    function pickPart(t) {
-        const block = t.pickW(BLOCK_WEIGHT);
-        return t.pick(CATALOG[block]);
-    }
-
-    function makeItem(t, hogi, type, part, delta) {
-        const mul = part.uom === 'M' ? 2.5 : 1;
-        const base = t.ri(2, 24);
-        let prev = base, next = base;
-        if (type === 'qty') { next = Math.max(1, base + delta); if (next === base) next = base + 1; }
-        if (type === 'swap' && Math.abs(delta) > 4) next = Math.max(1, base + delta);
-        if (type === 'add') prev = 0;
-        if (type === 'del') next = 0;
-        const v0 = delta > 0 ? 0 : 1;
-        return {
-            brand: hogi.brand, hogi: hogi.hogi, block: part.block, type, uom: part.uom,
-            prevNo: type === 'add' ? null : partNo(part, v0),
-            prevName: type === 'add' ? null : part.name,
-            nextNo: type === 'del' ? null : partNo(part, type === 'swap' ? v0 + 1 : v0),
-            nextName: type === 'del' ? null : part.name,
-            prevQty: prev * mul, nextQty: next * mul
-        };
-    }
-
-    const dayCache = new Map();
-    function makeDay(date) {
-        const key = ymd(date);
-        if (dayCache.has(key)) return dayCache.get(key);
-        const items = [], active = [], excluded = [];
-
-        BRANDS.forEach((b, bi) => {
-            const r = rng(Number(key) * 31 + bi * 7919 + 1), t = tools(r);
-            const fleet = FLEET.filter(h => h.brand === b.code);
-            const ok = [];
-            fleet.forEach(h => (r() < .03 ? excluded : ok).push(h));
-            active.push(...ok);
-            if (!ok.length) return;
-
-            /* 설계 변경 한 건이 같은 브랜드의 여러 호기에 함께 나타난다 */
-            const events = Math.round(b.activity * t.ri(1, 6));
-            for (let e = 0; e < events; e++) {
-                const type = t.pickW({ qty: 5, swap: 3, add: 2, del: 1 });
-                const part = pickPart(t);
-                const delta = t.ri(1, 8) * (r() < .55 ? 1 : -1);
-                const share = .12 + r() * .4;
-                const targets = ok.filter(() => r() < share);
-                if (!targets.length) targets.push(t.pick(ok));
-                targets.forEach(h => items.push(makeItem(t, h, type, part, delta)));
-            }
-            /* 호기 하나에만 나타나는 개별 변경 */
-            ok.forEach(h => {
-                if (r() < .1) {
-                    items.push(makeItem(t, h, 'qty', pickPart(t), t.ri(1, 4) * (r() < .5 ? 1 : -1)));
-                }
-            });
-        });
-
-        const day = { date, items, active, excluded };
-        dayCache.set(key, day);
-        return day;
-    }
-
-    /* ════════════ 집계 ════════════ */
-    const deltaOf = it => it.nextQty - it.prevQty;
-
-    function summarize(day, brand) {
-        const match = x => !brand || x.brand === brand;
-        const items = day.items.filter(match);
-        const active = day.active.filter(match);
-        const s = {
-            hogis: active.length,
-            excluded: day.excluded.filter(match),
-            changed: new Set(items.map(x => x.hogi)).size,
-            lines: active.reduce((a, h) => a + h.lines, 0),
-            qtyPrev: active.reduce((a, h) => a + h.qty, 0),
-            qty: 0, swap: 0, add: 0, del: 0, inc: 0, dec: 0
-        };
-        items.forEach(it => {
-            s[it.type]++;
-            const d = deltaOf(it);
-            if (d > 0) s.inc += d; else s.dec += d;
-        });
-        s.net = s.inc + s.dec;
-        s.qtyNow = s.qtyPrev + s.net;
-        s.mat = s.swap + s.add + s.del;
-        s.total = s.qty + s.mat;
-        s.match = s.lines ? (s.lines - s.total) / s.lines * 100 : 100;
-        return s;
-    }
-
-    /* 배치는 평일에만 돈다 (CopService cron 1-5 기준) */
-    function lastBizDay(d) {
-        const x = new Date(d);
-        while (x.getDay() === 0 || x.getDay() === 6) x.setDate(x.getDate() - 1);
-        return x;
-    }
-    function prevBizDay(d) {
-        const x = new Date(d);
-        x.setDate(x.getDate() - 1);
-        return lastBizDay(x);
-    }
-    function recentDays(date, n) {
-        const days = [date];
-        while (days.length < n) days.unshift(prevBizDay(days.at(0)));
-        return days;
-    }
+    const TYPE_KEYS = ['swap', 'add', 'del', 'qty'];
+    const LV = { 3: '높음', 2: '중간', 1: '낮음' };
+    const STATUS = { 3: '이상', 2: '주의', 0: '안정' };
+    const SCORE = { 3: 5, 2: 3, 1: 1 };
+    const QTY_JUMP = 0.5;   // 수량 50% 이상 바뀌면 급변
+    const TRK_PAGE = 40, LOG_PAGE = 15, MAX_DATES = 31;
 
     /* ════════════ 상태 ════════════ */
-    const PAGE_SIZE = 12;
     const state = {
-        date: lastBizDay(new Date()), brand: '', block: '', type: 'all', q: '',
-        view: 'rows', ledK: 'total', ledDir: -1, detK: 'type', detDir: 1, page: 1
+        from: '', to: '', brand: '', atyp: '', block: '', q: '',
+        trk: 'changed', trkLimit: TRK_PAGE, group: '', hogi: '', pk: 'changed',
+        type: 'all', lv: 'all', logDate: '', logK: 'date', logDir: -1, page: 1
     };
-    let day, sum, prevSum, brandRows;
+    let DATA = null;      // build() 결과
+    let VIEW = null;      // 필터 적용 결과
 
-    function select(patch, scroll) {
-        Object.assign(state, patch, { page: 1 });
-        render();
-        if (scroll) {
-            const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-            $('detail').scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
-        }
+    /* ════════════ 데이터 → 시계열 · 변동 · 그룹 ════════════ */
+    function build(res) {
+        const ci = {};
+        res.columns.forEach((c, i) => { ci[c] = i; });
+        const series = new Map();
+
+        res.rows.forEach(r => {
+            const hogi = r.at(ci.HOGI), block = r.at(ci.BLOCKNO), date = r.at(ci.BATCHDATE), pick = r.at(ci.PICK);
+            if (!hogi || !block || !date || !pick) return;
+            const key = hogi + '|' + block;
+            let s = series.get(key);
+            if (!s) { s = { key, hogi, block, snaps: new Map(), events: [] }; series.set(key, s); }
+            let sn = s.snaps.get(date);
+            if (!sn) {
+                sn = { date, brand: r.at(ci.BRAND), atyp: r.at(ci.ATYP), speed: r.at(ci.SPEED), acapa: r.at(ci.ACAPA), picks: new Map() };
+                s.snaps.set(date, sn);
+            }
+            if (!sn.picks.has(pick)) sn.picks.set(pick, { partNo: r.at(ci.PARTNO), qty: r.at(ci.QTY), cmt: r.at(ci.CMT) });
+        });
+
+        const events = [], groups = new Map();
+        series.forEach(s => {
+            s.dates = Array.from(s.snaps.keys()).sort();
+            const last = s.snaps.get(s.dates.at(-1));
+            s.brand = last.brand || NONE;
+            s.atyp = last.atyp || NONE;
+            s.spec = last;
+            s.gkey = s.brand + '|' + s.atyp + '|' + s.block;
+            for (let i = 1; i < s.dates.length; i++) diffSnap(s, s.snaps.get(s.dates.at(i - 1)), s.snaps.get(s.dates.at(i)));
+            markUnstable(s);
+            s.events.forEach(e => events.push(e));
+
+            let g = groups.get(s.gkey);
+            if (!g) { g = { key: s.gkey, brand: s.brand, atyp: s.atyp, block: s.block, series: [] }; groups.set(s.gkey, g); }
+            g.series.push(s);
+        });
+
+        groups.forEach(g => {
+            g.events = [];
+            g.byDate = new Map();
+            g.series.forEach(s => {
+                s.events.forEach(e => g.events.push(e));
+                s.snaps.forEach((sn, d) => {
+                    let x = g.byDate.get(d);
+                    if (!x) { x = { date: d, changes: 0, bad: 0, qty: 0, parts: new Set(), hogis: 0, lines: 0 }; g.byDate.set(d, x); }
+                    x.hogis++;
+                    sn.picks.forEach(p => {
+                        if (!p.partNo) return;
+                        x.lines++;
+                        x.parts.add(p.partNo);
+                        x.qty += num(p.qty) || 0;
+                    });
+                });
+            });
+            g.events.forEach(e => {
+                const x = g.byDate.get(e.date);
+                x.changes++;
+                if (e.level === 3) x.bad++;
+            });
+            g.dates = Array.from(g.byDate.keys()).sort();
+            g.score = g.events.reduce((a, e) => a + SCORE[e.level], 0);
+            g.status = g.events.some(e => e.level === 3) ? 3 : g.events.length ? 2 : 0;
+            g.count = countTypes(g.events);
+            g.unstable = new Set(g.events.filter(e => e.unstable).map(e => e.hogi + '|' + e.pick)).size;
+            g.lastDate = g.dates.at(-1);
+        });
+
+        const dates = new Set();
+        series.forEach(s => s.dates.forEach(d => dates.add(d)));
+        return { series, events, groups: Array.from(groups.values()), dates: Array.from(dates).sort(), rows: res.rows.length };
     }
-    const toggleBrand = code => select({ brand: state.brand === code ? '' : code, block: '' });
+
+    /* 앞 일자(a) → 이번 일자(b) PICK 단위 비교 */
+    function diffSnap(s, a, b) {
+        const picks = new Set(Array.from(a.picks.keys()).concat(Array.from(b.picks.keys())));
+        picks.forEach(pick => {
+            const p = a.picks.get(pick), c = b.picks.get(pick);
+            const pPart = p ? p.partNo : '', cPart = c ? c.partNo : '';
+            if (!pPart && !cPart) return;
+            const pQty = pPart ? p.qty : '', cQty = cPart ? c.qty : '';
+            const pn = num(pQty), cn = num(cQty);
+            let type;
+            if (!pPart) type = 'add';
+            else if (!cPart) type = 'del';
+            else if (pPart !== cPart) type = 'swap';
+            else if (pn != null && cn != null ? pn !== cn : String(pQty) !== String(cQty)) type = 'qty';
+            else return;
+
+            const delta = (cPart ? cn || 0 : 0) - (pPart ? pn || 0 : 0);
+            let level = 1;
+            if (type === 'swap') level = 3;
+            else if (type === 'add' || type === 'del') level = 2;
+            else if (pn == null || cn == null || Math.abs(delta) / Math.max(Math.abs(pn), 1) >= QTY_JUMP) level = 2;
+
+            s.events.push({
+                series: s, hogi: s.hogi, block: s.block, pick, type, level, delta,
+                prevDate: a.date, date: b.date,
+                prevNo: pPart, nextNo: cPart, prevQty: pQty, nextQty: cQty,
+                cmt: (c && c.cmt) || (p && p.cmt) || '',
+                jump: type === 'qty' && level === 2
+            });
+        });
+    }
+
+    /* 같은 PICK 이 2번 이상 변동 → 반복 변동, 예전 자재로 돌아가면 → 되돌림 (둘 다 높음) */
+    function markUnstable(s) {
+        const byPick = new Map();
+        s.events.forEach(e => {
+            if (!byPick.has(e.pick)) byPick.set(e.pick, []);
+            byPick.get(e.pick).push(e);
+        });
+        byPick.forEach(list => {
+            if (list.length >= 2) list.forEach(e => { e.unstable = true; e.level = 3; });
+            const seen = new Set();
+            if (list.at(0).prevNo) seen.add(list.at(0).prevNo);
+            list.forEach(e => {
+                if (e.nextNo && e.nextNo !== e.prevNo && seen.has(e.nextNo)) { e.revert = true; e.level = 3; }
+                if (e.nextNo) seen.add(e.nextNo);
+            });
+        });
+    }
+
+    function countTypes(events) {
+        const n = { qty: 0, swap: 0, add: 0, del: 0, l3: 0, l2: 0, l1: 0, jump: 0, revert: 0 };
+        events.forEach(e => {
+            n[e.type]++;
+            n['l' + e.level]++;
+            if (e.jump) n.jump++;
+            if (e.revert) n.revert++;
+        });
+        n.mat = n.swap + n.add + n.del;
+        n.total = n.mat + n.qty;
+        return n;
+    }
+
+    /* ════════════ 필터 ════════════ */
+    function matchQ(g, e) {
+        const q = state.q.trim().toLowerCase();
+        if (!q) return true;
+        if (g.block.toLowerCase().includes(q)) return true;
+        if (e) return [e.hogi, e.pick, e.prevNo, e.nextNo].some(v => v && v.toLowerCase().includes(q));
+        return g.series.some(s => s.hogi.toLowerCase().includes(q)) || g.events.some(x => [x.pick, x.prevNo, x.nextNo].some(v => v && v.toLowerCase().includes(q)));
+    }
+    function applyFilter() {
+        const groups = DATA.groups.filter(g =>
+            (!state.brand || g.brand === state.brand) && (!state.atyp || g.atyp === state.atyp) &&
+            (!state.block || g.block === state.block) && matchQ(g));
+        const events = [];
+        groups.forEach(g => g.events.forEach(e => { if (matchQ(g, e)) events.push(e); }));
+        const dates = new Set();
+        groups.forEach(g => g.dates.forEach(d => dates.add(d)));
+        VIEW = { groups, events, count: countTypes(events), dates: Array.from(dates).sort(), hogis: new Set() };
+        groups.forEach(g => g.series.forEach(s => VIEW.hogis.add(s.hogi)));
+    }
+    const groupOf = key => DATA.groups.find(g => g.key === key);
+    const groupLabel = g => g.brand + ' · ' + g.atyp + ' · ' + g.block;
+    /* 판정 배지 : 색 + 아이콘 + 글자 (색만으로 구분하지 않는다) */
+    const LV_ICON = {
+        3: '<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/>',
+        2: '<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/>',
+        1: '<circle cx="12" cy="12" r="9"/><path d="M8 12h8"/>',
+        0: '<path d="M5 12.5l4.5 4.5L19 7.5"/>'
+    };
+    const lvIcon = l => '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + LV_ICON[l] + '</svg>';
+    const lvBadge = l => '<span class="lv l' + l + '">' + lvIcon(l) + (LV[l] || '') + '</span>';
+    const statusBadge = st => '<span class="lv l' + st + '">' + lvIcon(st) + STATUS[st] + '</span>';
 
     /* ════════════ 결론 · 지표 ════════════ */
     function renderHero() {
-        const prev = prevBizDay(state.date);
-        $('periodText').textContent = dayLabel(prev) + ' → ' + dayLabel(state.date);
-        const scope = state.brand ? state.brand + ' ' : '';
-        const changedBrands = brandRows.filter(x => x.total > 0);
+        $('periodText').textContent = longDay(state.from) + ' ~ ' + longDay(state.to) + ' · 저장 일자 ' + VIEW.dates.length + '개 · 이력 ' + fmt(DATA.rows) + '행';
+        const n = VIEW.count, gs = VIEW.groups;
+        const bad = gs.filter(g => g.status === 3), warn = gs.filter(g => g.status === 2);
+        const scope = [state.brand, state.atyp, state.block].filter(Boolean).join(' · ');
+        const pre = scope ? esc(scope) + ' ' : '';
 
-        if (!sum.total) {
-            $('heroTitle').innerHTML = esc(scope) + '비교한 <b>' + sum.hogis + '대</b>의 BOM 이 전일과 같습니다';
-            $('heroSub').textContent = '수량이 달라지거나 다른 자재가 수배된 호기가 없습니다.';
+        if (!n.total) {
+            $('heroTitle').innerHTML = pre + '추적 중인 <b>' + gs.length + '개 그룹</b>의 BOM 이 기간 내내 같습니다';
+            $('heroSub').textContent = VIEW.dates.length < 2
+                ? '비교하려면 같은 호기 · 블럭이 2개 이상의 일자로 저장되어 있어야 합니다. 기간을 넓히거나 이력을 더 저장하세요.'
+                : '수량이 달라지거나 다른 자재가 수배된 PICK 이 없습니다.';
             return;
         }
-        if (state.brand) {
-            $('heroTitle').innerHTML = '<b>' + esc(state.brand) + '</b> ' + sum.hogis + '대 중 <b>' + sum.changed + '대</b>의 BOM 이 전일과 달라졌습니다';
-        } else {
-            $('heroTitle').innerHTML = '<b>' + changedBrands.length + '개 브랜드, ' + sum.changed + '대</b>의 BOM 이 전일과 달라졌습니다';
-        }
-        const lead = state.brand ? '' : '변경이 가장 많은 브랜드는 ' + changedBrands.slice().sort((a, b) => b.total - a.total).at(0).code + ' 입니다. ';
-        $('heroSub').textContent = lead + '다른 자재 수배 ' + fmt(sum.mat) + '건, 수량 변경 ' + fmt(sum.qty) + '건이 확인되었고 자재 수량은 전일보다 ' +
-            (sum.net === 0 ? '변동이 없습니다.' : fmt(Math.abs(sum.net)) + (sum.net > 0 ? ' 늘었습니다.' : ' 줄었습니다.'));
+        $('heroTitle').innerHTML = pre + gs.length + '개 그룹 중 <b class="' + (bad.length ? 'bad' : '') + '">' + bad.length + '개 그룹에서 이상</b>, ' +
+            '<b>' + warn.length + '개 그룹</b>에서 변동이 감지되었습니다';
+        const top = gs.slice().sort((a, b) => b.score - a.score).at(0);
+        $('heroSub').textContent = '자재 변동 ' + fmt(n.mat) + '건(교체 ' + n.swap + ' · 신규 ' + n.add + ' · 제외 ' + n.del + '), 수량 변경 ' + fmt(n.qty) + '건. ' +
+            '이상 점수가 가장 높은 곳은 ' + groupLabel(top) + ' 입니다 (' + top.count.total + '건).';
     }
 
     function renderWatch() {
-        const items = day.items.filter(x => !state.brand || x.brand === state.brand);
         const rows = [];
+        const ev = VIEW.events;
 
-        const swaps = groupParts(items.filter(x => x.type === 'swap')).at(0);
-        if (swaps) {
-            rows.push('<li><button type="button" class="watch-row" data-q="' + esc(swaps.nextNo) + '" data-t="swap"><b>' + esc(swaps.name) + ' 품번 교체</b>' +
-                '<small><span class="mono">' + esc(swaps.prevNo) + ' → ' + esc(swaps.nextNo) + '</span> · ' + swaps.hogis.size + '대</small>' + ARROW + '</button></li>');
-        }
-        const swing = (state.brand ? brandRows.filter(x => x.code === state.brand) : brandRows.slice())
-            .filter(x => x.net !== 0).sort((a, b) => Math.abs(b.net) - Math.abs(a.net)).at(0);
-        if (swing) {
-            rows.push('<li><button type="button" class="watch-row" data-b="' + esc(swing.code) + '" data-t="qty"><b>' + esc(swing.code) + ' 수량 ' + signed(swing.net) + '</b>' +
-                '<small>증가 ' + signed(swing.inc) + ' · 감소 ' + signed(swing.dec) + '</small>' + ARROW + '</button></li>');
-        }
-        if (sum.excluded.length) {
-            const names = sum.excluded.map(x => x.hogi);
-            rows.push('<li><div class="watch-row"><b>비교하지 못한 호기 ' + names.length + '대</b>' +
-                '<small><span class="mono">' + names.slice(0, 3).map(esc).join(', ') + '</span>' + (names.length > 3 ? ' 외 ' + (names.length - 3) + '대' : '') + ' · BOM 없음</small></div></li>');
-        }
-        $('watchList').innerHTML = rows.length ? rows.join('') : '<li><div class="watch-row"><small>확인이 필요한 항목이 없습니다.</small></div></li>';
+        // 1) 반복 변동 / 되돌림 PICK
+        const flap = new Map();
+        ev.filter(e => e.unstable || e.revert).forEach(e => {
+            const k = e.series.key + '|' + e.pick;
+            const x = flap.get(k) || { e, n: 0, revert: false };
+            x.n++; x.revert = x.revert || !!e.revert; x.e = e;
+            flap.set(k, x);
+        });
+        Array.from(flap.values()).sort((a, b) => b.n - a.n).slice(0, 2).forEach(x => {
+            rows.push(watchRow(3, x.e, esc(x.e.hogi) + ' ' + esc(x.e.block) + ' PICK ' + esc(x.e.pick) + (x.revert ? ' 자재 되돌림' : ' 반복 변동'),
+                x.n + '회 변동 · 마지막 ' + shortDay(x.e.date) + ' <span class="mono">' + esc(x.e.prevNo || '없음') + ' → ' + esc(x.e.nextNo || '없음') + '</span>'));
+        });
+
+        // 2) 가장 최근 자재 교체
+        const swap = ev.filter(e => e.type === 'swap' && !flap.has(e.series.key + '|' + e.pick)).sort((a, b) => b.date.localeCompare(a.date)).at(0);
+        if (swap) rows.push(watchRow(3, swap, esc(swap.series.brand) + ' ' + esc(swap.block) + ' 자재 교체',
+            shortDay(swap.date) + ' · ' + esc(swap.hogi) + ' · <span class="mono">' + esc(swap.prevNo) + ' → ' + esc(swap.nextNo) + '</span>'));
+
+        // 3) 수량 급변 최대
+        const jump = ev.filter(e => e.jump).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).at(0);
+        if (jump) rows.push(watchRow(2, jump, esc(jump.block) + ' PICK ' + esc(jump.pick) + ' 수량 ' + signed(jump.delta),
+            shortDay(jump.date) + ' · ' + esc(jump.hogi) + ' · ' + esc(jump.prevQty || 0) + ' → ' + esc(jump.nextQty || 0)));
+
+        $('watchList').innerHTML = rows.length ? rows.slice(0, 4).join('')
+            : '<li><div class="watch-row"><span class="lv l0">안정</span><b>확인이 필요한 이상 항목이 없습니다</b><small>기간 안의 변동은 모두 낮음 단계입니다.</small></div></li>';
     }
-
-    function compare(cur, prev, unit) {
-        const d = cur - prev;
-        return '직전 비교 대비 ' + (d === 0 ? '같음' : (d > 0 ? '▲ ' : '▼ ') + fmt(Math.abs(d)) + unit);
+    function watchRow(level, e, title, sub) {
+        return '<li><button type="button" class="watch-row" data-g="' + esc(e.series.gkey) + '" data-h="' + esc(e.hogi) + '">' +
+            lvBadge(level) + '<b>' + title + '</b><small>' + sub + '</small>' + ARROW + '</button></li>';
     }
 
     function renderKpis() {
-        const go = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+        const n = VIEW.count, gs = VIEW.groups;
+        const bad = gs.filter(g => g.status === 3).length, warn = gs.filter(g => g.status === 2).length;
+        const unstable = new Set(VIEW.events.filter(e => e.unstable).map(e => e.series.key + '|' + e.pick)).size;
+        const go = ARROW;
         $('kpis').innerHTML =
             '<div class="kpi">' +
-                '<div class="kpi-l">변동 호기</div>' +
-                '<div class="kpi-v"><b>' + fmt(sum.changed) + '</b><small>/ ' + fmt(sum.hogis) + '대</small></div>' +
-                '<div class="kpi-d">' + compare(sum.changed, prevSum.changed, '대') + '</div>' +
-                '<div class="kpi-s">비교 제외 ' + sum.excluded.length + '대</div>' +
+                '<div class="kpi-l">추적 그룹</div>' +
+                '<div class="kpi-v"><b>' + fmt(gs.length) + '</b><small>개</small></div>' +
+                '<div class="kpi-s">브랜드 · 기종 · 블럭 기준 · 호기 ' + VIEW.hogis.size + '대</div>' +
             '</div>' +
-            '<button type="button" class="kpi" data-t="qty">' +
-                '<div class="kpi-l"><i class="dot" style="background:var(--t-qty)"></i>수량 변경' + go + '</div>' +
-                '<div class="kpi-v"><b>' + fmt(sum.qty) + '</b><small>건</small></div>' +
-                '<div class="kpi-d">' + compare(sum.qty, prevSum.qty, '건') + '</div>' +
-                '<div class="kpi-s">전체 수량 순증감 ' + (signed(sum.net) || '0') + '</div>' +
+            '<button type="button" class="kpi" data-lv="3">' +
+                '<div class="kpi-l"><i class="dot" style="background:var(--lv3)"></i>이상 그룹' + go + '</div>' +
+                '<div class="kpi-v"><b class="' + (bad ? 'bad' : '') + '">' + bad + '</b><small>/ 주의 ' + warn + '</small></div>' +
+                '<div class="kpi-s">높음 판정 ' + n.l3 + '건 포함</div>' +
             '</button>' +
             '<button type="button" class="kpi" data-t="mat">' +
-                '<div class="kpi-l"><i class="dot" style="background:var(--t-swap)"></i>다른 자재 수배' + go + '</div>' +
-                '<div class="kpi-v"><b>' + fmt(sum.mat) + '</b><small>건</small></div>' +
-                '<div class="kpi-d">' + compare(sum.mat, prevSum.mat, '건') + '</div>' +
-                '<div class="kpi-s">교체 ' + sum.swap + ' · 신규 ' + sum.add + ' · 제외 ' + sum.del + '</div>' +
+                '<div class="kpi-l"><i class="dot" style="background:var(--t-swap)"></i>자재 변동' + go + '</div>' +
+                '<div class="kpi-v"><b>' + fmt(n.mat) + '</b><small>건</small></div>' +
+                '<div class="kpi-s">교체 ' + n.swap + ' · 신규 ' + n.add + ' · 제외 ' + n.del + '</div>' +
             '</button>' +
-            '<div class="kpi">' +
-                '<div class="kpi-l">BOM 일치율</div>' +
-                '<div class="kpi-v"><b>' + sum.match.toFixed(1) + '</b><small>%</small></div>' +
-                '<div class="kpi-d">' + compare(Number(sum.match.toFixed(1)), Number(prevSum.match.toFixed(1)), 'pt') + '</div>' +
-                '<div class="kpi-s">' + fmt(sum.lines) + '개 라인 중 ' + fmt(sum.total) + '건 변경</div>' +
-            '</div>';
+            '<button type="button" class="kpi" data-t="qty">' +
+                '<div class="kpi-l"><i class="dot" style="background:var(--t-qty)"></i>수량 변경' + go + '</div>' +
+                '<div class="kpi-v"><b>' + fmt(n.qty) + '</b><small>건</small></div>' +
+                '<div class="kpi-s">50% 이상 급변 ' + n.jump + '건</div>' +
+            '</button>' +
+            '<button type="button" class="kpi" data-lv="3">' +
+                '<div class="kpi-l"><i class="dot" style="background:var(--lv3)"></i>반복 변동 PICK' + go + '</div>' +
+                '<div class="kpi-v"><b class="' + (unstable ? 'bad' : '') + '">' + unstable + '</b><small>개</small></div>' +
+                '<div class="kpi-s">예전 자재로 되돌림 ' + n.revert + '건</div>' +
+            '</button>';
     }
 
     /* ════════════ 차트 ════════════ */
@@ -731,306 +874,415 @@
         if (none) none.hidden = hasData;
         if (hasData) charts[id] = Highcharts.chart(id, opt);
     }
-    const fade = (color, code) => Highcharts.color(color).setOpacity(!state.brand || state.brand === code ? 1 : .22).get();
 
-    function brandOrder() {
-        return brandRows.slice().sort((a, b) => b.total - a.total);
-    }
-    const pointClick = { click: function () { toggleBrand(this.category); } };
-
-    function renderMix() {
-        const rows = brandOrder();
-        const top = rows.slice().sort((a, b) => b.mat - a.mat).at(0);
-        $('mixDesc').textContent = top.mat ? '다른 자재 수배가 가장 많은 브랜드는 ' + top.code + ' (' + top.mat + '건)' : '다른 자재 수배가 없습니다';
-        $('chMix').setAttribute('aria-label', '브랜드별 변경 건수. ' + rows.map(x => x.code + ' ' + x.total + '건').join(', '));
-        drawChart('chMix', rows.some(x => x.total > 0), {
-            chart: { type: 'bar' },
-            xAxis: { categories: rows.map(x => x.code), labels: { style: { fontFamily: 'var(--mono)', fontWeight: '700' } } },
-            yAxis: { title: { text: null }, allowDecimals: false, reversedStacks: false,
-                stackLabels: { enabled: true, style: { fontWeight: '700', color: css('--ink'), textOutline: 'none' } } },
+    function renderTrend() {
+        const dates = VIEW.dates.slice(-MAX_DATES);
+        const by = {};
+        dates.forEach(d => { by[d] = { qty: 0, swap: 0, add: 0, del: 0, bad: 0 }; });
+        VIEW.events.forEach(e => {
+            const x = by[e.date];
+            if (!x) return;
+            x[e.type]++;
+            if (e.level === 3) x.bad++;
+        });
+        const totals = dates.map(d => TYPE_KEYS.reduce((a, k) => a + by[d][k], 0));
+        const peak = Math.max(0, ...totals);
+        const peakDay = dates.at(totals.indexOf(peak));
+        $('trendDesc').textContent = peak
+            ? '변동이 가장 많았던 일자는 ' + longDay(peakDay) + ' (' + peak + '건) · 막대를 누르면 그 일자의 변동 내역을 봅니다' + (VIEW.dates.length > MAX_DATES ? ' · 최근 ' + MAX_DATES + '개 일자' : '')
+            : '기간 안에 변동이 없습니다';
+        $('chTrend').setAttribute('aria-label', '일자별 변동 건수. ' + dates.map((d, i) => shortDay(d) + ' ' + totals.at(i) + '건').join(', '));
+        drawChart('chTrend', dates.length > 1, {
+            chart: { type: 'column' },
+            xAxis: { categories: dates.map(shortDay), labels: { style: { fontSize: '11px' } } },
+            yAxis: [
+                { title: { text: null }, allowDecimals: false, reversedStacks: false,
+                  stackLabels: { enabled: true, formatter: function () { return this.total || ''; }, style: { fontWeight: '700', color: css('--ink'), textOutline: 'none', fontSize: '11px' } } }
+            ],
             tooltip: { shared: true, headerFormat: '<b>{point.key}</b><br/>', pointFormat: '<span style="color:{series.color}">●</span> {series.name}: <b>{point.y}건</b><br/>' },
-            plotOptions: { bar: { stacking: 'normal', pointWidth: 18, borderWidth: 1, borderColor: '#fff', borderRadius: 3 }, series: { cursor: 'pointer', point: { events: pointClick } } },
-            series: TYPE_KEYS.map(k => ({
-                name: TYPES[k].label, color: TYPES[k].color,
-                data: rows.map(x => ({ y: x[k], color: fade(TYPES[k].color, x.code) }))
-            }))
+            plotOptions: { column: { stacking: 'normal', borderWidth: 1, borderColor: '#fff', borderRadius: 2, pointPadding: .08, groupPadding: .06 },
+                series: { cursor: 'pointer', point: { events: { click: function () { pickLogDate(dates.at(this.index)); } } } } },
+            series: TYPE_KEYS.map(k => ({ name: TYPES[k].label, color: TYPES[k].color,
+                    data: dates.map(d => ({ y: by[d][k], color: state.logDate && state.logDate !== d ? Highcharts.color(TYPES[k].color).setOpacity(.3).get() : TYPES[k].color })) }))
+                .concat([{ type: 'line', name: '높음 판정', color: css('--lv3'), stacking: undefined, lineWidth: 2, marker: { radius: 3 },
+                           data: dates.map(d => by[d].bad) }])
         });
     }
 
-    function renderNet() {
-        const rows = brandOrder();
-        const top = rows.slice().sort((a, b) => Math.abs(b.net) - Math.abs(a.net)).at(0);
-        $('netDesc').textContent = top.net ? '순증감이 가장 큰 브랜드는 ' + top.code + ' (' + signed(top.net) + ')' : '전일과 수량 합계가 같습니다';
-        $('chNet').setAttribute('aria-label', '브랜드별 수량 증감. ' + rows.map(x => x.code + ' 증가 ' + fmt(x.inc) + ', 감소 ' + fmt(Math.abs(x.dec))).join(', '));
-        const label = {
-            enabled: true,
-            formatter: function () { return this.y ? signed(this.y) : null; },
-            style: { fontWeight: '600', color: css('--ink-2'), textOutline: 'none' }
-        };
-        drawChart('chNet', rows.some(x => x.inc || x.dec), {
-            chart: { type: 'bar' },
-            xAxis: { categories: rows.map(x => x.code), labels: { style: { fontFamily: 'var(--mono)', fontWeight: '700' } } },
-            yAxis: { title: { text: null }, minPadding: .14, maxPadding: .14, labels: { formatter: function () { return signed(this.value) || '0'; } },
-                plotLines: [{ value: 0, width: 1, color: css('--ink-3'), zIndex: 4 }] },
-            tooltip: { shared: true, headerFormat: '<b>{point.key}</b><br/>',
-                pointFormatter: function () { return '<span style="color:' + this.series.color + '">●</span> ' + this.series.name + ': <b>' + signed(this.y) + '</b><br/>'; } },
-            plotOptions: { bar: { grouping: false, pointWidth: 18, borderWidth: 0, borderRadius: 3, dataLabels: label }, series: { cursor: 'pointer', point: { events: pointClick } } },
+    /* ════════════ 브랜드 x 기종 ════════════ */
+    const heatClass = n => n === 0 ? 'zero' : n <= 2 ? 'h1' : n <= 5 ? 'h2' : n <= 10 ? 'h3' : n <= 20 ? 'h4' : 'h5';
+
+    function renderBx() {
+        // 브랜드 / 기종 필터는 무시하고 블럭 · 검색어만 적용해서 전체 지도를 보여준다
+        const groups = DATA.groups.filter(g => (!state.block || g.block === state.block) && matchQ(g));
+        const brands = new Map(), atyps = new Map(), cell = new Map();
+        groups.forEach(g => {
+            const n = g.events.filter(e => matchQ(g, e));
+            const k = g.brand + '|' + g.atyp;
+            const c = cell.get(k) || { n: 0, bad: 0, groups: 0 };
+            c.n += n.length; c.bad += n.filter(e => e.level === 3).length; c.groups++;
+            cell.set(k, c);
+            brands.set(g.brand, (brands.get(g.brand) || 0) + n.length);
+            atyps.set(g.atyp, (atyps.get(g.atyp) || 0) + n.length);
+        });
+        const bs = Array.from(brands.keys()).sort((a, b) => brands.get(b) - brands.get(a) || a.localeCompare(b));
+        const as = Array.from(atyps.keys()).sort((a, b) => atyps.get(b) - atyps.get(a) || a.localeCompare(b));
+        if (!bs.length) { $('bx').innerHTML = '<tbody><tr><td class="none">데이터가 없습니다.</td></tr></tbody>'; return; }
+
+        $('bx').innerHTML = '<caption class="sr">브랜드와 기종별 변동 건수</caption><thead><tr><th scope="col">브랜드 \\ 기종</th>' +
+            as.map(a => '<th scope="col" class="mono">' + esc(a) + '</th>').join('') + '<th scope="col">합계</th></tr></thead><tbody>' +
+            bs.map(b => '<tr><th scope="row">' + esc(b) + '</th>' + as.map(a => {
+                const c = cell.get(b + '|' + a);
+                if (!c) return '<td><button type="button" class="heat-c nil" disabled aria-label="' + esc(b) + ' ' + esc(a) + ' 데이터 없음">-</button></td>';
+                const sel = state.brand === b && state.atyp === a;
+                return '<td><button type="button" class="heat-c tnum ' + heatClass(c.n) + (c.bad ? ' bad' : '') + (sel ? ' sel' : '') + '" data-b="' + esc(b) + '" data-a="' + esc(a) + '"' +
+                    ' title="' + esc(b) + ' · ' + esc(a) + ' : 그룹 ' + c.groups + '개, 변동 ' + c.n + '건, 높음 ' + c.bad + '건"' +
+                    ' aria-label="' + esc(b) + ' ' + esc(a) + ' 변동 ' + c.n + '건">' + (c.n || '·') + '</button></td>';
+            }).join('') + '<td class="r tnum" style="font-weight:700;padding:0 6px">' + brands.get(b) + '</td></tr>').join('') + '</tbody>';
+    }
+
+    /* ════════════ 그룹 x 일자 추적표 ════════════ */
+    function trackGroups() {
+        const list = VIEW.groups.filter(g => state.trk === 'all' || g.events.length);
+        return list.sort((a, b) => b.status - a.status || b.score - a.score || a.key.localeCompare(b.key));
+    }
+
+    function renderTrack() {
+        const list = trackGroups();
+        const dates = VIEW.dates.slice(-MAX_DATES);
+        const shown = list.slice(0, state.trkLimit);
+        const changed = VIEW.groups.filter(g => g.events.length).length;
+        $('trkDesc').textContent = '전체 ' + VIEW.groups.length + '개 그룹 중 변동 ' + changed + '개 · 이상 점수 순 · 행을 누르면 아래 상세가 바뀝니다' +
+            (VIEW.dates.length > MAX_DATES ? ' · 최근 ' + MAX_DATES + '개 일자' : '');
+        document.querySelectorAll('[data-trk]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.trk === state.trk)));
+        $('trkNone').hidden = list.length > 0;
+        $('trk').hidden = !list.length;
+        $('trkMore').hidden = list.length <= shown.length;
+        $('btnMore').textContent = '더 보기 (' + (list.length - shown.length) + '개 남음)';
+        if (!list.length) return;
+
+        $('trk').innerHTML = '<caption class="sr">브랜드 · 기종 · 블럭별 일자 변동 건수</caption><thead><tr><th scope="col" class="g">브랜드 · 기종 · 블럭</th>' +
+            dates.map((d, i) => '<th scope="col"' + (i === dates.length - 1 ? ' class="last"' : '') + ' title="' + longDay(d) + '">' + shortDay(d) + '</th>').join('') +
+            '<th scope="col" class="r" style="padding-right:12px">변동</th><th scope="col" class="r" style="padding-right:12px">점수</th></tr></thead><tbody>' +
+            shown.map(g => {
+                const hogis = g.series.map(s => s.hogi);
+                return '<tr class="' + (state.group === g.key ? 'on' : '') + '" data-g="' + esc(g.key) + '">' +
+                    '<td class="g"><span class="g-name">' + statusBadge(g.status) + '<b>' + esc(g.block) + '</b><span>' + esc(g.brand) + ' · ' + esc(g.atyp) + '</span></span>' +
+                    '<span class="g-sub">호기 ' + hogis.length + '대 (' + esc(hogis.slice(0, 2).join(', ')) + (hogis.length > 2 ? ' 외' : '') + ')' +
+                    (g.count.total ? ' · 자재 ' + g.count.mat + ' · 수량 ' + g.count.qty : '') + (g.unstable ? ' · 반복 ' + g.unstable : '') + '</span></td>' +
+                    dates.map(d => {
+                        const x = g.byDate.get(d);
+                        if (!x) return '<td><span class="heat-c nil" style="display:block" title="' + longDay(d) + ' 저장 안 됨"></span></td>';
+                        const t = longDay(d) + ' · 호기 ' + x.hogis + '대 · 자재 ' + x.parts.size + '종 · 수량 합계 ' + fmt(x.qty) + ' · 변동 ' + x.changes + '건' + (x.bad ? ' (높음 ' + x.bad + ')' : '');
+                        return '<td><span class="heat-c tnum ' + heatClass(x.changes) + (x.bad ? ' bad' : '') + '" style="display:flex;align-items:center;justify-content:center" title="' + esc(t) + '">' + (x.changes || '·') + '</span></td>';
+                    }).join('') +
+                    '<td class="sum tnum">' + g.count.total + '</td><td class="sum tnum">' + g.score + '</td></tr>';
+            }).join('') + '</tbody>';
+    }
+
+    /* ════════════ 그룹 상세 ════════════ */
+    function ensureSelection() {
+        const list = trackGroups();
+        let g = state.group && VIEW.groups.find(x => x.key === state.group);
+        if (!g) g = list.at(0) || VIEW.groups.at(0);
+        state.group = g ? g.key : '';
+        if (!g) return null;
+        let s = g.series.find(x => x.hogi === state.hogi);
+        if (!s) s = g.series.slice().sort((a, b) => b.events.length - a.events.length || a.hogi.localeCompare(b.hogi)).at(0);
+        state.hogi = s.hogi;
+        return { g, s };
+    }
+
+    function renderDetail() {
+        const sel = ensureSelection();
+        $('detail').hidden = !sel;
+        if (!sel) return;
+        const { g, s } = sel;
+        $('gdTitle').innerHTML = '<span class="mono">' + esc(g.block) + '</span> · ' + esc(g.brand) + ' · ' + esc(g.atyp);
+        $('gdLv').innerHTML = statusBadge(g.status);
+        const nav = navList(), pos = nav.findIndex(x => x.key === g.key);
+        $('gdPos').textContent = pos >= 0 ? (pos + 1) + ' / ' + nav.length : '-';
+        $('gdPrev').disabled = pos <= 0;
+        $('gdNext').disabled = pos < 0 || pos >= nav.length - 1;
+        $('gdDesc').textContent = '호기 ' + g.series.length + '대 · 저장 일자 ' + g.dates.length + '개 (' + shortDay(g.dates.at(0)) + ' ~ ' + shortDay(g.lastDate) + ')' +
+            ' · 변동 ' + g.count.total + '건 (교체 ' + g.count.swap + ' · 신규 ' + g.count.add + ' · 제외 ' + g.count.del + ' · 수량 ' + g.count.qty + ')';
+
+        $('hogis').innerHTML = g.series.slice().sort((a, b) => b.events.length - a.events.length || a.hogi.localeCompare(b.hogi)).map(x =>
+            '<button type="button" class="chip mono" data-h="' + esc(x.hogi) + '" aria-pressed="' + (x.hogi === s.hogi) + '">' + esc(x.hogi) +
+            ' <span class="n">' + x.events.length + '건</span></button>').join('');
+
+        renderGroupChart(g, s);
+        renderPickTable(s);
+    }
+
+    function renderGroupChart(g, s) {
+        const dates = s.dates;
+        const qty = [], parts = [], lines = [], changes = [];
+        dates.forEach(d => {
+            const sn = s.snaps.get(d);
+            let q = 0, l = 0;
+            const ps = new Set();
+            sn.picks.forEach(p => { if (p.partNo) { l++; ps.add(p.partNo); q += num(p.qty) || 0; } });
+            qty.push(q); parts.push(ps.size); lines.push(l);
+            changes.push(s.events.filter(e => e.date === d).length);
+        });
+        $('chGroup').setAttribute('aria-label', s.hogi + ' 일자별 자재 종류 수와 수량 합계');
+        drawChart('chGroup', dates.length > 0, {
+            chart: { type: 'column' },
+            xAxis: { categories: dates.map(shortDay), crosshair: true },
+            yAxis: [
+                { title: { text: '자재 종류', style: { color: css('--ink-3') } }, allowDecimals: false, min: 0 },
+                { title: { text: '수량 합계', style: { color: css('--ink-3') } }, opposite: true, gridLineWidth: 0 }
+            ],
+            tooltip: { shared: true, headerFormat: '<b>' + esc(s.hogi) + ' · {point.key}</b><br/>',
+                pointFormatter: function () { return '<span style="color:' + this.series.color + '">●</span> ' + this.series.name + ': <b>' + fmt(this.y) + '</b><br/>'; } },
+            plotOptions: { column: { borderRadius: 2, borderWidth: 0, pointPadding: .12, groupPadding: .1 } },
             series: [
-                { name: '증가', color: INC, data: rows.map(x => ({ y: x.inc, color: fade(INC, x.code) })) },
-                { name: '감소', color: DEC, data: rows.map(x => ({ y: x.dec, color: fade(DEC, x.code) })) }
+                { name: '자재 종류 수', color: css('--heat-2'), data: parts.map((v, i) => ({ y: v, color: changes.at(i) ? css('--heat-3') : css('--heat-2') })) },
+                { name: '변동 PICK', color: css('--t-swap'), data: changes },
+                { type: 'line', name: '수량 합계', yAxis: 1, color: css('--brand'), lineWidth: 2, marker: { radius: 3.5 }, data: qty }
             ]
         });
     }
 
-    function renderTrend() {
-        const days = recentDays(state.date, 14);
-        const rows = days.map(d => summarize(makeDay(d), state.brand));
-        const avg = rows.reduce((a, x) => a + x.total, 0) / rows.length;
-        const last = rows.at(-1);
-        $('trendDesc').textContent = (state.brand ? state.brand + ' · ' : '전체 브랜드 · ') + '이번 ' + last.total + '건, 14회 평균 ' + fmt(avg) + '건';
-        $('chTrend').setAttribute('aria-label', '최근 14회 변경 건수 추이. 이번 ' + last.total + '건, 평균 ' + fmt(avg) + '건');
-        const lastX = rows.length - 1;
-        drawChart('chTrend', true, {
-            chart: { type: 'column' },
-            xAxis: { categories: days.map(d => (d.getMonth() + 1) + '/' + d.getDate()), labels: { style: { fontSize: '11px' } } },
-            yAxis: { title: { text: null }, allowDecimals: false, reversedStacks: false,
-                stackLabels: { enabled: true, formatter: function () { return this.x === lastX ? this.total : ''; }, style: { fontWeight: '700', color: css('--ink'), textOutline: 'none' } } },
-            tooltip: { shared: true, headerFormat: '<b>{point.key}</b><br/>', pointFormat: '<span style="color:{series.color}">●</span> {series.name}: <b>{point.y}건</b><br/>' },
-            plotOptions: { column: { stacking: 'normal', borderWidth: 1, borderColor: '#fff', borderRadius: 2, pointPadding: .1, groupPadding: .08 } },
-            series: TYPE_KEYS.map(k => ({ name: TYPES[k].label, color: TYPES[k].color, data: rows.map(x => x[k]) }))
-        });
+    function renderPickTable(s) {
+        const changedPicks = new Set(s.events.map(e => e.pick));
+        const evAt = new Map();
+        s.events.forEach(e => evAt.set(e.pick + '|' + e.date, e));
+        const all = new Set();
+        s.snaps.forEach(sn => sn.picks.forEach((p, k) => all.add(k)));
+        const picks = Array.from(all).filter(p => state.pk === 'all' || changedPicks.has(p))
+            .sort((a, b) => (changedPicks.has(b) - changedPicks.has(a)) || a.localeCompare(b, 'ko', { numeric: true }));
+        document.querySelectorAll('[data-pk]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pk === state.pk)));
+        $('pkDesc').textContent = s.hogi + ' · ' + s.block + ' · PICK ' + all.size + '개 중 변동 ' + changedPicks.size + '개 · 영업사양은 마지막 일자 기준';
+        const specs = { BRAND: s.spec.brand, ATYP: s.spec.atyp, SPEED: s.spec.speed, ACAPA: s.spec.acapa };
+        $('pkSpec').innerHTML = Object.keys(specs)
+            .map(k => '<span class="spec">' + k + ' <b>' + esc(specs[k] || '-') + '</b></span>').join('');
+        $('pkEmpty').hidden = picks.length > 0;
+        $('pk').hidden = !picks.length;
+        if (!picks.length) return;
+
+        const unstable = new Set(s.events.filter(e => e.unstable).map(e => e.pick));
+        const reverted = new Set(s.events.filter(e => e.revert).map(e => e.pick));
+        $('pk').innerHTML = '<caption class="sr">' + esc(s.hogi) + ' PICK 별 일자 자재와 수량</caption><thead><tr><th scope="col" class="p">PICK</th>' +
+            s.dates.map((d, i) => '<th scope="col"' + (i === s.dates.length - 1 ? ' class="last"' : '') + ' title="' + longDay(d) + '">' + shortDay(d) + '</th>').join('') + '</tr></thead><tbody>' +
+            picks.map(pick => '<tr><td class="p">' + esc(pick) +
+                (reverted.has(pick) ? '<small>되돌림</small>' : unstable.has(pick) ? '<small>반복 변동</small>' : '') + '</td>' +
+                s.dates.map(d => {
+                    const p = s.snaps.get(d).picks.get(pick);
+                    const e = evAt.get(pick + '|' + d);
+                    const tip = e ? TYPES[e.type].label + ' · ' + shortDay(e.prevDate) + ' : ' + (e.prevNo || '없음') + ' / ' + (e.prevQty || '-') + ' → ' + (e.nextNo || '없음') + ' / ' + (e.nextQty || '-') : '';
+                    const cls = e ? ' c-' + e.type : '';
+                    if (!p || !p.partNo) return '<td><span class="cell empty' + cls + '" title="' + esc(tip || '자재 없음') + '"><span class="no">—</span><span class="q">없음</span></span></td>';
+                    return '<td><span class="cell' + cls + '" title="' + esc(tip || (p.cmt ? '주석 : ' + p.cmt : '')) + '"><span class="no">' + esc(p.partNo) + '</span>' +
+                        '<span class="q">수량 ' + esc(p.qty || '-') + (e && e.type === 'qty' ? ' (' + signed(e.delta) + ')' : '') + '</span></span></td>';
+                }).join('') + '</tr>').join('') + '</tbody>';
     }
 
-    /* ════════════ 브랜드 비교표 ════════════ */
-    function sparkline(values, max) {
-        const w = 5, gap = 2, h = 24;
-        const bars = values.map((v, i) => {
-            const bh = v ? Math.max(2, v / (max || 1) * h) : 1;
-            const fill = i === values.length - 1 ? css('--brand') : css('--heat-2');
-            return '<rect x="' + i * (w + gap) + '" y="' + (h - bh) + '" width="' + w + '" height="' + bh + '" rx="1" fill="' + fill + '"/>';
-        }).join('');
-        return '<svg class="spark" width="' + (values.length * (w + gap) - gap) + '" height="' + h + '" role="img" aria-label="최근 14회 변경 건수, 이번 ' + values.at(-1) + '건"><title>' + values.join(', ') + '</title>' + bars + '</svg>';
+    /* ════════════ 변동 내역 ════════════ */
+    function logItems() {
+        return VIEW.events.filter(e =>
+            (state.type === 'all' || (state.type === 'mat' ? e.type !== 'qty' : e.type === state.type)) &&
+            (state.lv === 'all' || String(e.level) === state.lv) &&
+            (!state.logDate || e.date === state.logDate));
     }
-
-    function renderLedger() {
-        const days = recentDays(state.date, 14);
-        const hist = {};
-        let histMax = 0;
-        BRANDS.forEach(b => {
-            hist[b.code] = days.map(d => summarize(makeDay(d), b.code).total);
-            histMax = Math.max(histMax, ...hist[b.code]);
-        });
-        const netMax = Math.max(1, ...brandRows.map(x => Math.max(x.inc, Math.abs(x.dec))));
-        const k = state.ledK, dir = state.ledDir;
-        const rows = brandRows.slice().sort((a, b) => {
-            const av = a[k], bv = b[k];
-            return (typeof av === 'string' ? av.localeCompare(bv) : av - bv) * dir;
-        });
-
-        $('ledBody').innerHTML = rows.map(x => {
-            const incW = x.inc / netMax * 50, decW = Math.abs(x.dec) / netMax * 50;
-            return '<tr class="' + (state.brand === x.code ? 'on' : '') + '" data-b="' + esc(x.code) + '">' +
-                '<td><button type="button" class="brand-btn" aria-pressed="' + (state.brand === x.code) + '">' + esc(x.code) + '</button></td>' +
-                '<td class="r tnum">' + x.changed + ' / ' + x.hogis + '대' + (x.excluded.length ? '<span class="sub">비교 제외 ' + x.excluded.length + '대</span>' : '') + '</td>' +
-                '<td class="r tnum">' + fmt(x.qtyPrev) + ' → <b>' + fmt(x.qtyNow) + '</b></td>' +
-                '<td class="r"><span class="diverge"><span class="dv" aria-hidden="true"><span class="dec" style="width:' + decW + '%"></span><span class="inc" style="width:' + incW + '%"></span></span>' +
-                    '<b class="tnum ' + (x.net > 0 ? 'up' : x.net < 0 ? 'down' : '') + '">' + (signed(x.net) || '0') + '</b></span></td>' +
-                '<td class="r tnum">' + x.qty + '건</td>' +
-                '<td class="r tnum"><b>' + x.mat + '건</b><span class="sub">교체 ' + x.swap + ' · 신규 ' + x.add + ' · 제외 ' + x.del + '</span></td>' +
-                '<td class="r tnum">' + x.match.toFixed(1) + '%</td>' +
-                '<td>' + sparkline(hist[x.code], histMax) + '</td>' +
-                '</tr>';
-        }).join('');
-
-        const all = summarize(day, '');
-        $('ledFoot').innerHTML = '<tr><td>전체</td>' +
-            '<td class="r tnum">' + all.changed + ' / ' + all.hogis + '대</td>' +
-            '<td class="r tnum">' + fmt(all.qtyPrev) + ' → ' + fmt(all.qtyNow) + '</td>' +
-            '<td class="r tnum ' + (all.net > 0 ? 'up' : all.net < 0 ? 'down' : '') + '">' + (signed(all.net) || '0') + '</td>' +
-            '<td class="r tnum">' + all.qty + '건</td>' +
-            '<td class="r tnum">' + all.mat + '건</td>' +
-            '<td class="r tnum">' + all.match.toFixed(1) + '%</td><td></td></tr>';
-
-        document.querySelectorAll('#ledHead th[data-k]').forEach(th => {
-            if (th.dataset.k === k) th.setAttribute('aria-sort', dir > 0 ? 'ascending' : 'descending');
-            else th.removeAttribute('aria-sort');
-        });
+    function pickLogDate(d) {
+        state.logDate = state.logDate === d ? '' : d;
+        state.page = 1;
+        renderTrend();
+        renderLog();
+        if (state.logDate) $('logCard').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     }
-
-    /* ════════════ 브랜드 x 블록 분포 ════════════ */
-    const heatClass = n => n === 0 ? 'zero' : n <= 2 ? 'h1' : n <= 5 ? 'h2' : n <= 10 ? 'h3' : n <= 20 ? 'h4' : 'h5';
-
-    function renderHeat() {
-        const blockTotal = {};
-        BLOCK_KEYS.forEach(k => { blockTotal[k] = 0; });
-        const cell = {};
-        day.items.forEach(it => {
-            const key = it.brand + '|' + it.block;
-            cell[key] = (cell[key] || 0) + 1;
-            blockTotal[it.block]++;
-        });
-        const cols = BLOCK_KEYS.slice().sort((a, b) => blockTotal[b] - blockTotal[a]);
-        const rows = brandOrder();
-
-        const topKey = Object.keys(cell).sort((a, b) => cell[b] - cell[a]).at(0);
-        if (topKey) {
-            const parts = topKey.split('|');
-            const topBlock = parts.at(1);
-            $('heatDesc').textContent = '가장 많이 달라진 곳은 ' + parts.at(0) + ' ' + BLOCKS[topBlock].name + ' (' + cell[topKey] + '건) · 칸을 누르면 상세 내역으로 이동합니다';
-        } else {
-            $('heatDesc').textContent = '달라진 블록이 없습니다';
-        }
-
-        $('heat').innerHTML = '<caption class="sr">브랜드와 블록별 변경 건수</caption><thead><tr><th scope="col">브랜드</th>' +
-            cols.map(k => '<th scope="col">' + esc(BLOCKS[k].name) + '</th>').join('') + '<th scope="col">합계</th></tr></thead><tbody>' +
-            rows.map(x => {
-                const dim = state.brand && state.brand !== x.code;
-                return '<tr class="' + (dim ? 'dim' : '') + '"><th scope="row">' + esc(x.code) + '</th>' + cols.map(k => {
-                    const n = cell[x.code + '|' + k] || 0;
-                    const sel = state.brand === x.code && state.block === k;
-                    return '<td><button type="button" class="heat-c tnum ' + heatClass(n) + (sel ? ' sel' : '') + '"' +
-                        (n ? ' data-b="' + esc(x.code) + '" data-k="' + k + '"' : ' disabled') +
-                        ' aria-label="' + esc(x.code) + ' ' + esc(BLOCKS[k].name) + ' ' + n + '건">' + (n || '·') + '</button></td>';
-                }).join('') + '<td class="heat-sum tnum">' + x.total + '</td></tr>';
-            }).join('') + '</tbody>';
+    /* 그룹 이전 / 다음 : 추적표 순서. 지금 그룹이 목록에 없으면(안정 그룹) 전체 그룹 순서 */
+    function navList() {
+        const list = trackGroups();
+        if (list.some(g => g.key === state.group)) return list;
+        return VIEW.groups.slice().sort((a, b) => b.status - a.status || b.score - a.score || a.key.localeCompare(b.key));
     }
-
-    /* ════════════ 상세 ════════════ */
-    function matchesType(it) {
-        if (state.type === 'all') return true;
-        if (state.type === 'mat') return it.type !== 'qty';
-        return it.type === state.type;
+    function moveGroup(step) {
+        const list = navList(), i = list.findIndex(g => g.key === state.group);
+        const g = list.at(i + step);
+        if (i < 0 || !g || i + step < 0) return;
+        state.group = g.key; state.hogi = '';
+        renderTrack(); renderDetail();
     }
-    function scopedItems() {
-        const q = state.q.trim().toLowerCase();
-        return day.items.filter(it => {
-            if (state.brand && it.brand !== state.brand) return false;
-            if (state.block && it.block !== state.block) return false;
-            if (!q) return true;
-            return [it.hogi, it.brand, it.prevNo, it.nextNo, it.prevName, it.nextName].some(v => v && v.toLowerCase().includes(q));
+    function downloadCsv() {
+        const list = sortLog(logItems());
+        const head = ['이전일자', '일자', '판정', '표시', '유형', '브랜드', '기종', '블럭', '호기', 'PICK', '이전 품번', '이전 수량', '현재 품번', '현재 수량', '수량 증감', '주석'];
+        const cell = v => { const t = String(v == null ? '' : v); return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+        const lines = list.map(e => [e.prevDate, e.date, LV[e.level], e.revert ? '되돌림' : e.unstable ? '반복 변동' : '', TYPES[e.type].label,
+            e.series.brand, e.series.atyp, e.block, e.hogi, e.pick, e.prevNo, e.prevQty, e.nextNo, e.nextQty, e.delta, e.cmt].map(cell).join(','));
+        const blob = new Blob(['﻿' + head.join(',') + '\r\n' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'BOM_이상감지_' + state.from + '_' + state.to + (state.logDate ? '_' + state.logDate : '') + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+    function renderChips() {
+        const n = VIEW.count;
+        const tc = [{ k: 'all', l: '전체', n: n.total }, { k: 'mat', l: '자재 변동', n: n.mat }]
+            .concat(TYPE_KEYS.map(k => ({ k, l: TYPES[k].label, n: n[k] })));
+        $('typeChips').innerHTML = tc.map(c => '<button type="button" class="chip" data-t="' + c.k + '" aria-pressed="' + (state.type === c.k) + '">' + c.l + ' <span class="n">' + c.n + '</span></button>').join('');
+        const lc = [{ k: 'all', l: '판정 전체' }, { k: '3', l: '높음', n: n.l3 }, { k: '2', l: '중간', n: n.l2 }, { k: '1', l: '낮음', n: n.l1 }];
+        $('lvChips').innerHTML = lc.map(c => '<button type="button" class="chip" data-lv="' + c.k + '" aria-pressed="' + (state.lv === c.k) + '">' + c.l + (c.n != null ? ' <span class="n">' + c.n + '</span>' : '') + '</button>').join('');
+    }
+    function sortLog(items) {
+        const k = state.logK, dir = state.logDir;
+        const val = e => k === 'type' ? TYPES[e.type].rank : k === 'brand' ? e.series.brand : k === 'atyp' ? e.series.atyp : e[k];
+        return items.slice().sort((a, b) => {
+            const av = val(a), bv = val(b);
+            const c = typeof av === 'string' ? av.localeCompare(bv, 'ko', { numeric: true }) : av - bv;
+            return c * dir || b.level - a.level || b.date.localeCompare(a.date) || a.pick.localeCompare(b.pick, 'ko', { numeric: true });
         });
     }
-    function groupParts(items) {
-        const map = new Map();
-        items.forEach(it => {
-            const key = it.type + '|' + it.prevNo + '|' + it.nextNo;
-            let g = map.get(key);
-            if (!g) {
-                g = { type: it.type, prevNo: it.prevNo, nextNo: it.nextNo, name: it.nextName || it.prevName, prevName: it.prevName, nextName: it.nextName,
-                      block: it.block, uom: it.uom, brands: new Set(), hogis: new Set(), net: 0 };
-                map.set(key, g);
-            }
-            g.brands.add(it.brand);
-            g.hogis.add(it.hogi);
-            g.net += deltaOf(it);
-        });
-        return Array.from(map.values()).sort((a, b) => b.hogis.size - a.hogis.size || Math.abs(b.net) - Math.abs(a.net));
-    }
-
-    const partCell = (no, name) => no
-        ? '<td class="pn"><span class="pn-no">' + esc(no) + '</span><span class="pn-nm">' + esc(name) + '</span></td>'
+    const partCell = (no, qty) => no
+        ? '<td class="pn"><span class="pn-no">' + esc(no) + '</span><span class="pn-q">수량 ' + esc(qty || '-') + '</span></td>'
         : '<td class="pn nil">없음</td>';
-    const netCell = n => '<td class="r tnum"><b class="' + (n > 0 ? 'up' : n < 0 ? 'down' : '') + '">' + (signed(n) || '0') + '</b></td>';
 
-    function renderChips(items) {
-        const n = { all: items.length, qty: 0, mat: 0, swap: 0, add: 0, del: 0 };
-        items.forEach(it => { n[it.type]++; if (it.type !== 'qty') n.mat++; });
-        const chips = [
-            { k: 'all', l: '전체' }, { k: 'qty', l: '수량 변경' }, { k: 'mat', l: '다른 자재 전체' },
-            { k: 'swap', l: '교체' }, { k: 'add', l: '신규' }, { k: 'del', l: '제외' }
-        ];
-        $('chips').innerHTML = chips.map(c => '<button type="button" class="chip" data-t="' + c.k + '" aria-pressed="' + (state.type === c.k) + '">' + c.l + ' <span class="n">' + n[c.k] + '</span></button>').join('');
-    }
-
-    function renderScope() {
-        const parts = [];
-        if (state.brand) parts.push('<button type="button" data-clear="brand" aria-label="브랜드 필터 해제">' + esc(state.brand) + ' <span aria-hidden="true">×</span></button>');
-        if (state.block) parts.push('<button type="button" data-clear="block" aria-label="블록 필터 해제">' + esc(BLOCKS[state.block].name) + ' <span aria-hidden="true">×</span></button>');
-        $('scope').hidden = !parts.length;
-        $('scope').innerHTML = parts.length ? '<span>적용 중</span>' + parts.join('') : '';
-    }
-
-    function renderDetail() {
-        const scoped = scopedItems();
-        renderChips(scoped);
-        renderScope();
-        const items = scoped.filter(matchesType);
-        const parts = state.view === 'parts';
-        $('detRows').hidden = parts || !items.length;
-        $('detParts').hidden = !parts || !items.length;
-        $('detEmpty').hidden = items.length > 0;
-        document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
-
-        const list = parts ? groupParts(items) : sortRows(items);
-        const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+    function renderLog() {
+        renderChips();
+        const list = sortLog(logItems());
+        const pages = Math.max(1, Math.ceil(list.length / LOG_PAGE));
         state.page = Math.min(state.page, pages);
-        const slice = list.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE);
-
-        if (parts) {
-            $('partBody').innerHTML = slice.map(g => '<tr>' +
-                '<td><span class="tag ' + g.type + '">' + TYPES[g.type].label + '</span></td>' +
-                partCell(g.prevNo, g.prevName) + partCell(g.nextNo, g.nextName) +
-                '<td>' + esc(BLOCKS[g.block].name) + '</td>' +
-                '<td class="mono">' + Array.from(g.brands).map(esc).join(', ') + '</td>' +
-                '<td class="r tnum"><b>' + g.hogis.size + '대</b></td>' + netCell(g.net) + '</tr>').join('');
-            $('detCount').textContent = '자재 ' + fmt(list.length) + '종 (변경 ' + fmt(items.length) + '건)';
-        } else {
-            $('detBody').innerHTML = slice.map(it => '<tr>' +
-                '<td><span class="tag ' + it.type + '">' + TYPES[it.type].label + '</span></td>' +
-                '<td class="mono">' + esc(it.brand) + '</td>' +
-                '<td class="mono">' + esc(it.hogi) + '</td>' +
-                '<td>' + esc(BLOCKS[it.block].name) + '</td>' +
-                partCell(it.prevNo, it.prevName) + partCell(it.nextNo, it.nextName) +
-                '<td class="r tnum">' + fmt(it.prevQty) + '</td>' +
-                '<td class="r tnum">' + fmt(it.nextQty) + '</td>' +
-                netCell(deltaOf(it)) +
-                '<td>' + esc(it.uom) + '</td></tr>').join('');
-            $('detCount').textContent = '변경 ' + fmt(list.length) + '건';
-        }
-
+        const slice = list.slice((state.page - 1) * LOG_PAGE, state.page * LOG_PAGE);
+        $('logEmpty').hidden = list.length > 0;
+        $('logBody').innerHTML = slice.map(e => '<tr data-g="' + esc(e.series.gkey) + '" data-h="' + esc(e.hogi) + '">' +
+            '<td class="tnum">' + shortDay(e.prevDate) + ' → <b>' + shortDay(e.date) + '</b></td>' +
+            '<td>' + lvBadge(e.level) + (e.revert ? '<span class="flag">되돌림</span>' : e.unstable ? '<span class="flag">반복</span>' : '') + '</td>' +
+            '<td><span class="tag ' + e.type + '">' + TYPES[e.type].label + '</span></td>' +
+            '<td class="mono">' + esc(e.series.brand) + '</td>' +
+            '<td class="mono">' + esc(e.series.atyp) + '</td>' +
+            '<td class="mono"><b>' + esc(e.block) + '</b></td>' +
+            '<td class="mono">' + esc(e.hogi) + '</td>' +
+            '<td class="mono">' + esc(e.pick) + '</td>' +
+            partCell(e.prevNo, e.prevQty) + partCell(e.nextNo, e.nextQty) +
+            '<td class="r tnum"><b class="' + (e.delta > 0 ? 'up' : e.delta < 0 ? 'down' : '') + '">' + (signed(e.delta) || '0') + '</b></td>' +
+            '<td class="cmt" title="' + esc(e.cmt) + '">' + esc(e.cmt) + '</td></tr>').join('');
+        $('logCount').textContent = '변동 ' + fmt(list.length) + '건';
+        $('btnCsv').disabled = !list.length;
+        $('logDateChip').innerHTML = state.logDate
+            ? '<button type="button" class="filter-on" aria-label="일자 필터 해제">' + longDay(state.logDate) + ' <span aria-hidden="true">×</span></button>' : '';
         $('pager').hidden = pages <= 1;
         $('pgText').textContent = state.page + ' / ' + pages;
         $('pgPrev').disabled = state.page <= 1;
         $('pgNext').disabled = state.page >= pages;
-        document.querySelectorAll('#detHead th[data-k]').forEach(th => {
-            if (th.dataset.k === state.detK) th.setAttribute('aria-sort', state.detDir > 0 ? 'ascending' : 'descending');
+        document.querySelectorAll('#logHead th[data-k]').forEach(th => {
+            if (th.dataset.k === state.logK) th.setAttribute('aria-sort', state.logDir > 0 ? 'ascending' : 'descending');
             else th.removeAttribute('aria-sort');
         });
     }
 
-    function sortRows(items) {
-        const k = state.detK, dir = state.detDir;
-        const value = it => k === 'type' ? TYPES[it.type].rank
-            : k === 'delta' ? deltaOf(it)
-            : k === 'block' ? BLOCKS[it.block].name
-            : it[k];
-        return items.slice().sort((a, b) => {
-            const av = value(a), bv = value(b);
-            const c = typeof av === 'string' ? av.localeCompare(bv) : av - bv;
-            return c * dir || Math.abs(deltaOf(b)) - Math.abs(deltaOf(a));
-        });
+    /* ════════════ 전체 그리기 ════════════ */
+    function fillSelects() {
+        const brands = Array.from(new Set(DATA.groups.map(g => g.brand))).sort();
+        const atyps = Array.from(new Set(DATA.groups.filter(g => !state.brand || g.brand === state.brand).map(g => g.atyp))).sort();
+        if (state.brand && !brands.includes(state.brand)) state.brand = '';
+        if (state.atyp && !atyps.includes(state.atyp)) state.atyp = '';
+        // 블럭 목록은 고른 브랜드 · 기종 안에서만 보여준다 (변동 건수를 함께 표시)
+        const blockN = new Map();
+        DATA.groups.filter(g => (!state.brand || g.brand === state.brand) && (!state.atyp || g.atyp === state.atyp))
+            .forEach(g => blockN.set(g.block, (blockN.get(g.block) || 0) + g.events.length));
+        const blocks = Array.from(blockN.keys()).sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+        if (state.block && !blockN.has(state.block)) state.block = '';
+        const opt = (v, label) => '<option value="' + esc(v) + '">' + esc(label) + '</option>';
+        $('inBrand').innerHTML = opt('', '전체') + brands.map(b => opt(b, b)).join('');
+        $('inAtyp').innerHTML = opt('', '전체') + atyps.map(a => opt(a, a)).join('');
+        $('inBlock').innerHTML = opt('', '전체 (' + blocks.length + ')') + blocks.map(b => opt(b, b + (blockN.get(b) ? '  · 변동 ' + blockN.get(b) : ''))).join('');
+        $('inBrand').value = state.brand;
+        $('inAtyp').value = state.atyp;
+        $('inBlock').value = state.block;
     }
 
-    /* ════════════ 전체 그리기 ════════════ */
+    function renderFilterSum() {
+        const on = [state.brand, state.atyp, state.block, state.q].filter(Boolean).length;
+        $('btnReset').disabled = !on;
+        $('fSum').innerHTML = '그룹 <b>' + fmt(VIEW.groups.length) + '</b> · 호기 <b>' + fmt(VIEW.hogis.size) + '</b> · 변동 <b>' + fmt(VIEW.count.total) + '</b>건' +
+            (DATA.dates.length ? ' · 마지막 저장 <b>' + shortDay(DATA.dates.at(-1)) + '</b>' : '');
+    }
+
     function render() {
-        day = makeDay(state.date);
-        sum = summarize(day, state.brand);
-        prevSum = summarize(makeDay(prevBizDay(state.date)), state.brand);
-        brandRows = BRANDS.map(b => Object.assign({ code: b.code }, summarize(day, b.code)));
-
-        $('inDate').value = isoDate(state.date);
-        $('inBrand').value = state.brand;
-        if ($('inSearch').value !== state.q) $('inSearch').value = state.q;
-
+        fillSelects();
+        applyFilter();
+        if (state.logDate && !VIEW.dates.includes(state.logDate)) state.logDate = '';
+        renderFilterSum();
         renderHero();
         renderWatch();
         renderKpis();
-        renderMix();
-        renderNet();
-        renderLedger();
-        renderHeat();
         renderTrend();
+        renderBx();
+        renderTrack();
         renderDetail();
+        renderLog();
+        syncUrl();
+    }
+
+    function select(patch, target) {
+        Object.assign(state, patch, { page: 1 });
+        render();
+        if (target) {
+            const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            $(target).scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+        }
+    }
+
+    function syncUrl() {
+        const p = new URLSearchParams();
+        p.set('from', state.from); p.set('to', state.to);
+        if (state.brand) p.set('brand', state.brand);
+        if (state.atyp) p.set('atyp', state.atyp);
+        if (state.block) p.set('block', state.block);
+        if (state.q) p.set('q', state.q);
+        try { history.replaceState(null, '', location.pathname + '?' + p.toString()); } catch (e) { /* 무시 */ }
+    }
+
+    /* ════════════ 불러오기 ════════════ */
+    function showState(html, cls) {
+        $('dash').hidden = true;
+        $('skel').hidden = true;
+        $('fSum').textContent = '';
+        $('stateCard').hidden = false;
+        $('stateBox').className = 'state-box ' + (cls || '');
+        $('stateBox').innerHTML = html;
+    }
+
+    async function load() {
+        const from = $('inFrom').value.replace(/-/g, ''), to = $('inTo').value.replace(/-/g, '');
+        if (!from || !to) return;
+        if (from > to) { alert('시작일이 종료일보다 늦습니다.'); return; }
+        state.from = from; state.to = to;
+        $('btnLoad').disabled = true;
+        $('dash').hidden = true;
+        $('stateCard').hidden = true;
+        $('skel').hidden = false;
+        $('fSum').textContent = longDay(from) + ' ~ ' + longDay(to) + ' 불러오는 중…';
+        try {
+            const r = await fetch('/cop/dashboard/brand/history?from=' + from + '&to=' + to, { headers: { Accept: 'application/json' } });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok || !d.success) throw new Error(d.message || ('HTTP ' + r.status));
+            DATA = build(d);
+            if (!DATA.groups.length) {
+                showState('<h2>기간 안에 저장된 BOM 이력이 없습니다</h2>' +
+                    '<p>' + longDay(from) + ' ~ ' + longDay(to) + ' · 일자별 수량 계산 화면에서 "이력 저장" 을 하면 PLM_SIMUL_HOGIBOM 에 쌓이고, 이 화면에서 일자별 변화를 추적합니다.</p>' +
+                    '<a class="btn" href="/simulateup/blockQtyCompare">일자별 수량 계산으로 이동</a>');
+                syncUrl();
+                return;
+            }
+            $('stateCard').hidden = true;
+            $('skel').hidden = true;
+            $('dash').hidden = false;
+            $('truncNotice').hidden = !d.truncated;
+            state.page = 1;
+            state.trkLimit = TRK_PAGE;
+            render();
+        } catch (e) {
+            showState('<h2>BOM 이력을 불러오지 못했습니다</h2><p>' + esc(e.message) + '</p><button type="button" class="btn" id="btnRetry">다시 시도</button>', 'err');
+            $('btnRetry').addEventListener('click', load);
+        } finally {
+            $('btnLoad').disabled = false;
+        }
     }
 
     /* ════════════ 이벤트 ════════════ */
@@ -1041,92 +1293,105 @@
         accessibility: { enabled: false },
         legend: { align: 'left', verticalAlign: 'top', margin: 8, itemStyle: { fontSize: '13px', fontWeight: '600', color: css('--ink-2') }, symbolRadius: 2 },
         tooltip: { backgroundColor: '#fff', borderColor: css('--line-2'), borderRadius: 8, style: { fontSize: '13px', color: css('--ink') } },
-        xAxis: { lineColor: css('--line-2'), tickLength: 0, labels: { style: { fontSize: '12.5px', color: css('--ink-2') } } },
+        xAxis: { lineColor: css('--line-2'), tickLength: 0, labels: { style: { fontSize: '12px', color: css('--ink-2') } } },
         yAxis: { gridLineColor: css('--line'), labels: { style: { fontSize: '12px', color: css('--ink-3') } } },
         plotOptions: { series: { animation: false, states: { inactive: { opacity: 1 } } } }
     });
 
-    $('inBrand').innerHTML = '<option value="">전체</option>' + BRANDS.map(b => '<option value="' + esc(b.code) + '">' + esc(b.code) + '</option>').join('');
-    $('inDate').max = isoDate(lastBizDay(new Date()));
-
-    $('inDate').addEventListener('change', e => {
-        if (!e.target.value) { render(); return; }
-        const p = e.target.value.split('-').map(Number);
-        select({ date: lastBizDay(new Date(p.at(0), p.at(1) - 1, p.at(2))), block: '' });
+    $('fForm').addEventListener('submit', e => { e.preventDefault(); load(); });
+    $('inBrand').addEventListener('change', e => select({ brand: e.target.value, atyp: '', block: '', group: '', hogi: '' }));
+    $('inAtyp').addEventListener('change', e => select({ atyp: e.target.value, block: '', group: '', hogi: '' }));
+    $('inBlock').addEventListener('change', e => select({ block: e.target.value, group: '', hogi: '' }));
+    $('btnReset').addEventListener('click', () => {
+        $('inQ').value = '';
+        if (DATA) select({ brand: '', atyp: '', block: '', q: '', logDate: '', group: '', hogi: '' });
     });
-    $('inBrand').addEventListener('change', e => select({ brand: e.target.value, block: '' }));
+    $('gdPrev').addEventListener('click', () => moveGroup(-1));
+    $('gdNext').addEventListener('click', () => moveGroup(1));
+    $('btnCsv').addEventListener('click', downloadCsv);
+    $('logDateChip').addEventListener('click', e => { if (e.target.closest('button')) pickLogDate(state.logDate); });
 
-    $('watchList').addEventListener('click', e => {
-        const b = e.target.closest('button');
-        if (!b) return;
-        const patch = { type: b.dataset.t, block: '', q: b.dataset.q || '' };
-        if (b.dataset.b) patch.brand = b.dataset.b;
-        select(patch, true);
+    /* 섹션 이동 : 화면에 보이는 섹션을 표시 */
+    if ('IntersectionObserver' in window) {
+        const links = Array.from(document.querySelectorAll('#jump a'));
+        const io = new IntersectionObserver(entries => {
+            entries.forEach(en => {
+                if (!en.isIntersecting) return;
+                links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id));
+            });
+        }, { rootMargin: '-160px 0px -60% 0px' });
+        links.forEach(a => { const t = document.querySelector(a.getAttribute('href')); if (t) io.observe(t); });
+    }
+    let timer;
+    $('inQ').addEventListener('input', e => {
+        clearTimeout(timer);
+        timer = setTimeout(() => { if (DATA) select({ q: e.target.value }); else state.q = e.target.value; }, 200);
     });
+
+    const pickGroup = el => {
+        const g = el.dataset.g, h = el.dataset.h || '';
+        select({ group: g, hogi: h }, 'detail');
+    };
+    $('watchList').addEventListener('click', e => { const b = e.target.closest('button[data-g]'); if (b) pickGroup(b); });
     $('kpis').addEventListener('click', e => {
         const b = e.target.closest('button');
-        if (b) select({ type: b.dataset.t }, true);
+        if (!b) return;
+        select(b.dataset.t ? { type: b.dataset.t, lv: 'all' } : { lv: b.dataset.lv, type: 'all' }, 'logCard');
     });
-
-    $('ledBody').addEventListener('click', e => {
-        const tr = e.target.closest('tr');
-        if (tr) toggleBrand(tr.dataset.b);
+    $('bx').addEventListener('click', e => {
+        const b = e.target.closest('button[data-b]');
+        if (!b) return;
+        const same = state.brand === b.dataset.b && state.atyp === b.dataset.a;
+        select(same ? { brand: '', atyp: '', group: '' } : { brand: b.dataset.b, atyp: b.dataset.a, group: '' });
     });
-    $('ledHead').addEventListener('click', e => {
+    document.querySelectorAll('[data-trk]').forEach(b => b.addEventListener('click', () => { state.trk = b.dataset.trk; state.trkLimit = TRK_PAGE; renderTrack(); }));
+    $('btnMore').addEventListener('click', () => { state.trkLimit += TRK_PAGE; renderTrack(); });
+    $('trk').addEventListener('click', e => {
+        const tr = e.target.closest('tr[data-g]');
+        if (!tr) return;
+        state.group = tr.dataset.g; state.hogi = '';
+        renderTrack(); renderDetail();
+    });
+    $('hogis').addEventListener('click', e => {
+        const b = e.target.closest('button[data-h]');
+        if (b) { state.hogi = b.dataset.h; renderDetail(); }
+    });
+    document.querySelectorAll('[data-pk]').forEach(b => b.addEventListener('click', () => { state.pk = b.dataset.pk; renderDetail(); }));
+    $('typeChips').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { state.type = b.dataset.t; state.page = 1; renderLog(); } });
+    $('lvChips').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { state.lv = b.dataset.lv; state.page = 1; renderLog(); } });
+    $('logHead').addEventListener('click', e => {
         const th = e.target.closest('th[data-k]');
         if (!th) return;
         const k = th.dataset.k;
-        state.ledDir = state.ledK === k ? -state.ledDir : (k === 'code' ? 1 : -1);
-        state.ledK = k;
-        renderLedger();
-    });
-
-    $('heat').addEventListener('click', e => {
-        const b = e.target.closest('button[data-k]');
-        if (b) select({ brand: b.dataset.b, block: b.dataset.k }, true);
-    });
-
-    $('chips').addEventListener('click', e => {
-        const b = e.target.closest('.chip');
-        if (!b) return;
-        state.type = b.dataset.t;
+        state.logDir = state.logK === k ? -state.logDir : (k === 'date' || k === 'level' || k === 'delta' ? -1 : 1);
+        state.logK = k;
         state.page = 1;
-        renderDetail();
+        renderLog();
     });
-    $('scope').addEventListener('click', e => {
-        const b = e.target.closest('button');
-        if (!b) return;
-        select(b.dataset.clear === 'brand' ? { brand: '', block: '' } : { block: '' });
+    $('logBody').addEventListener('click', e => {
+        const tr = e.target.closest('tr[data-g]');
+        if (!tr) return;
+        state.group = tr.dataset.g; state.hogi = tr.dataset.h;
+        renderTrack(); renderDetail();
+        $('detail').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     });
-    document.querySelector('.seg').addEventListener('click', e => {
-        const b = e.target.closest('button');
-        if (!b) return;
-        state.view = b.dataset.view;
-        state.page = 1;
-        renderDetail();
-    });
-    $('detHead').addEventListener('click', e => {
-        const th = e.target.closest('th[data-k]');
-        if (!th) return;
-        const k = th.dataset.k;
-        state.detDir = state.detK === k ? -state.detDir : (k === 'delta' ? -1 : 1);
-        state.detK = k;
-        state.page = 1;
-        renderDetail();
-    });
-    let timer;
-    $('inSearch').addEventListener('input', e => {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-            state.q = e.target.value;
-            state.page = 1;
-            renderDetail();
-        }, 150);
-    });
-    $('pgPrev').addEventListener('click', () => { state.page--; renderDetail(); });
-    $('pgNext').addEventListener('click', () => { state.page++; renderDetail(); });
+    $('pgPrev').addEventListener('click', () => { state.page--; renderLog(); });
+    $('pgNext').addEventListener('click', () => { state.page++; renderLog(); });
 
-    render();
+    /* 초기값 : URL ?from&to&brand&atyp&q, 없으면 최근 30일 */
+    const qs = new URLSearchParams(location.search);
+    const today = new Date(), before = new Date();
+    before.setDate(before.getDate() - 30);
+    const okDate = v => /^\d{8}$/.test((v || '').replace(/-/g, '')) ? v.replace(/-/g, '') : '';
+    $('inFrom').value = iso(okDate(qs.get('from')) || ymd(before));
+    $('inTo').value = iso(okDate(qs.get('to')) || ymd(today));
+    $('inTo').max = iso(ymd(today));
+    state.brand = qs.get('brand') || '';
+    state.atyp = qs.get('atyp') || '';
+    state.block = qs.get('block') || '';
+    state.q = qs.get('q') || '';
+    $('inQ').value = state.q;
+    load();
 })();
 </script>
 </body>
