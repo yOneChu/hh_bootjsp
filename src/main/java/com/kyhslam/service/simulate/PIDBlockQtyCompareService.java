@@ -2,6 +2,7 @@ package com.kyhslam.service.simulate;
 
 import com.kyhslam.MasterDataCache;
 import com.kyhslam.dto.CodeInfoDTO;
+import com.kyhslam.util.cop.CopUtil;
 import com.kyhslam.util.pidSimulatorUp.PIDBlockQtyOverrideSimul;
 import com.kyhslam.util.pidSimulatorUp.PIDBlockQtySimul;
 import com.kyhslam.util.pidSimulatorUp.SimDb;
@@ -17,9 +18,10 @@ import java.util.*;
  *
  *  1) extract : 일자마다 공사값으로 수량 계산을 실행해, 실행된 PID 의 SPEC 열 중 영업사양 코드만 모은다 (일자 합집합).
  *  2) run     : 일자마다 (지정값이 있으면 적용해) 수량 계산을 실행한다.
+ *  3) saveHistory : 일자별 실행 결과(PICK / 자재 / 수량 / 주석)를 PLM_SIMUL_HOGIBOM 에 이력으로 저장한다 (BATCHDATE = 일자).
  *
  * 일자 = 기준일 (yyyy-MM-dd, 모든 PID 를 기준일 이전 가장 가까운 버전으로 실행). 비우면 최신 버전.
- * DB 에는 쓰지 않는다 (pid.simul.errorlog=true 일 때 PID 오류 로그만 기존 시뮬레이터와 같이 저장).
+ * extract / run 은 DB 에 쓰지 않는다 (pid.simul.errorlog=true 일 때 PID 오류 로그만 기존 시뮬레이터와 같이 저장).
  */
 @Slf4j
 @Service
@@ -147,6 +149,7 @@ public class PIDBlockQtyCompareService {
                     }
                     col.put("success", true);
                     col.put("applied", applied);
+                    col.put("spec", historySpec(run));
                     col.put("result", run.result);
                 } catch (Exception e) {
                     log.warn("[PIDBlockQtyCompare] run {} / {} date={} 실패 : {}", project, pid, c.date, e.getMessage());
@@ -166,7 +169,78 @@ public class PIDBlockQtyCompareService {
         return res;
     }
 
+    /** 이력 저장 1건 (일자 1개) */
+    public static class HistoryColumn {
+        public String batchDate;   // yyyyMMdd
+        public String brand, speed, acapa;
+        public List<HistoryItem> items = new ArrayList<>();
+    }
+
+    /** 이력 저장 PICK 1건 */
+    public static class HistoryItem {
+        public String pick, partNo, qty, cmt;
+    }
+
+    /** 일자별 실행 결과 이력 저장 (PLM_SIMUL_HOGIBOM). 같은 호기 / 블럭 / 일자의 기존 이력은 지우고 다시 넣는다 */
+    public Map<String, Object> saveHistory(String hogi, String blockNo, List<HistoryColumn> cols) throws Exception {
+        if (hogi.isEmpty())
+            throw new IllegalArgumentException("호기번호가 없습니다.");
+        if (blockNo.isEmpty())
+            throw new IllegalArgumentException("블럭 PID 가 없습니다.");
+        if (cols.isEmpty())
+            throw new IllegalArgumentException("저장할 일자 결과가 없습니다.");
+        Set<String> seen = new HashSet<>();
+        for (HistoryColumn c : cols) {
+            if (c.batchDate == null || !c.batchDate.matches("\\d{8}"))
+                throw new IllegalArgumentException("일자 형식이 올바르지 않습니다 : " + c.batchDate);
+            // HOGI + BLOCKNO + BATCHDATE 는 한 벌만 저장한다
+            if (!seen.add(c.batchDate))
+                throw new IllegalArgumentException("같은 일자(" + c.batchDate + ")가 여러 번 있습니다. 호기 / 블럭 / 일자별로 한 결과만 저장할 수 있습니다.");
+        }
+        // HOGI + BLOCKNO + BATCHDATE + PICK 도 한 건만 저장한다 (같은 PICK 이 또 나오면 처음 것만 남긴다)
+        List<String> skipped = new ArrayList<>();
+        for (HistoryColumn c : cols) {
+            Map<String, HistoryItem> byPick = new LinkedHashMap<>();
+            for (HistoryItem it : c.items) {
+                if (it.pick == null || it.pick.isEmpty())
+                    throw new IllegalArgumentException("PICK 이 비어 있는 결과가 있습니다. (일자 " + c.batchDate + ")");
+                if (byPick.putIfAbsent(it.pick, it) != null)
+                    skipped.add(c.batchDate + " " + it.pick);
+            }
+            c.items = new ArrayList<>(byPick.values());
+        }
+        if (!skipped.isEmpty())
+            log.warn("[PIDBlockQtyCompare] saveHistory {} / {} 중복 PICK 제외 : {}", hogi, blockNo, skipped);
+        int saved = CopUtil.saveHogiBomHistory(hogi, blockNo, cols);
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("success", true);
+        res.put("saved", saved);
+        res.put("skipped", skipped);
+        res.put("dates", cols.stream().map(c -> c.batchDate).distinct().toList());
+        log.info("[PIDBlockQtyCompare] saveHistory {} / {} 일자 {}개 : {}건", hogi, blockNo, cols.size(), saved);
+        return res;
+    }
+
     // ------------------------------------------------------------------ 내부
+
+    /** 이력 저장용 영업사양 (지정값 적용 후) : brand = EL_ABRAND, speed = EL_ASPD, acapa = EL_ACAPA */
+    private static Map<String, String> historySpec(PIDBlockQtyOverrideSimul.Run run) {
+        Map<String, Object> eff = new HashMap<>(run.baseSpec);
+        eff.putAll(run.applied);
+        Map<String, String> m = new LinkedHashMap<>();
+        m.put("brand", specValue(eff, "EL_ABRAND"));
+        m.put("speed", specValue(eff, "EL_ASPD"));
+        m.put("acapa", specValue(eff, "EL_ACAPA"));
+        return m;
+    }
+
+    private static String specValue(Map<String, Object> spec, String code) {
+        Object v = spec.get(code);
+        if (v == null)
+            for (Map.Entry<String, Object> e : spec.entrySet())
+                if (code.equalsIgnoreCase(e.getKey())) { v = e.getValue(); break; }
+        return v == null ? "" : String.valueOf(v).trim();
+    }
 
     private static void checkCount(int n) {
         if (n <= 0)

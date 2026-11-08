@@ -19,6 +19,8 @@ import java.util.Map;
  *   GET  /simulateup/blockQtyCompare          : 화면
  *   POST /simulateup/blockQtyCompare/extract  : { project, pid, floor, beforePid, pickCmt, dates: ["yyyy-MM-dd" | ""] }
  *   POST /simulateup/blockQtyCompare/run      : { project, pid, floor, beforePid, pickCmt, columns: [{ date, overrides: {코드: 값} }] }
+ *   POST /simulateup/blockQtyCompare/saveHistory : { project, pid, columns: [{ batchDate: "yyyyMMdd", brand, speed, acapa, items: [{ pick, partNo, qty, cmt }] }] }
+ *                                                  → PLM_SIMUL_HOGIBOM 이력 저장 (같은 호기 / 블럭 / 일자는 바꿔 씀)
  *   pickCmt : true 면 PICK 마다 BLOCKNO$SF 의 주석 PID(CMTn) 실행 결과를 PickRun.cmt 에 넣는다
  *
  * 일자는 최대 5개, "" 은 최신 버전. 실패 시 { success: false, message }
@@ -84,6 +86,45 @@ public class PIDBlockQtyCompareController {
                     Boolean.TRUE.equals(req.get("pickCmt"))));
         } catch (Exception e) {
             log.error("blockQtyCompare run error project:{}, pid:{}", project, pid, e);
+            return ResponseEntity.ok(fail(e));
+        }
+    }
+
+    @Description("일자별 수량 계산 결과 이력 저장 (PLM_SIMUL_HOGIBOM)")
+    @PostMapping("/saveHistory")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> saveHistory(@RequestBody Map<String, Object> req) {
+        String hogi = str(req.get("project")), pid = str(req.get("pid")).toUpperCase();
+        List<PIDBlockQtyCompareService.HistoryColumn> cols = new ArrayList<>();
+        if (req.get("columns") instanceof List<?> list) {
+            for (Object o : list) {
+                if (!(o instanceof Map<?, ?> m))
+                    continue;
+                PIDBlockQtyCompareService.HistoryColumn c = new PIDBlockQtyCompareService.HistoryColumn();
+                c.batchDate = str(m.get("batchDate"));
+                c.brand = str(m.get("brand"));
+                c.speed = str(m.get("speed"));
+                c.acapa = str(m.get("acapa"));
+                if (m.get("items") instanceof List<?> items) {
+                    for (Object io : items) {
+                        if (!(io instanceof Map<?, ?> im))
+                            continue;
+                        PIDBlockQtyCompareService.HistoryItem it = new PIDBlockQtyCompareService.HistoryItem();
+                        it.pick = str(im.get("pick"));
+                        it.partNo = str(im.get("partNo"));
+                        it.qty = str(im.get("qty"));
+                        it.cmt = str(im.get("cmt"));
+                        c.items.add(it);
+                    }
+                }
+                cols.add(c);
+            }
+        }
+        log.info("blockQtyCompare saveHistory hogi:{}, pid:{}, columns:{}", hogi, pid, cols.size());
+        try {
+            return ResponseEntity.ok(service.saveHistory(hogi, pid, cols));
+        } catch (Exception e) {
+            log.error("blockQtyCompare saveHistory error hogi:{}, pid:{}", hogi, pid, e);
             return ResponseEntity.ok(fail(e));
         }
     }

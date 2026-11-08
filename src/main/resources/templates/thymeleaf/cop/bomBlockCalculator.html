@@ -74,6 +74,7 @@
         button.primary:hover:not(:disabled) { background: var(--primary-dark); }
         button.run { background: var(--run); border-color: var(--run); color: #fff; font-weight: 700; min-height: 38px; padding: 6px 18px; font-size: 13.5px; }
         button.run:hover:not(:disabled) { background: var(--run-dark); }
+        button.save { min-height: 38px; padding: 6px 16px; font-size: 13.5px; font-weight: 700; border-color: var(--run); color: var(--run); }
         button.ghost { background: transparent; border-color: transparent; }
         button.ghost:hover:not(:disabled) { background: #e9edf3; }
         button.icon { padding: 4px 7px; min-height: 28px; }
@@ -284,7 +285,7 @@
     <div class="inner">
         <div>
             <h1>일자별 수량 계산 비교
-                <span class="head-chip"><svg class="ico sm" aria-hidden="true"><use href="#i-db"/></svg>DB 미반영 · 조회 전용</span>
+                <span class="head-chip"><svg class="ico sm" aria-hidden="true"><use href="#i-db"/></svg>계산은 DB 미반영 · 이력 저장 시에만 저장</span>
             </h1>
             <p>기준일마다 그 날짜의 PID 버전으로 블럭 수량을 계산해, 어떤 자재가 몇 개 수배되는지 일자별로 비교합니다. 일자마다 영업사양 값을 바꿔 볼 수도 있습니다.</p>
         </div>
@@ -411,6 +412,9 @@
             <button type="button" id="btnRun" class="run" disabled>
                 <svg class="ico" aria-hidden="true" style="fill:currentColor;stroke:none"><use href="#i-play"/></svg><span>일자별 수량 계산</span>
             </button>
+            <button type="button" id="btnSave" class="save" disabled title="계산한 일자별 결과(PICK / 자재 / 수량 / 주석)를 PLM_SIMUL_HOGIBOM 에 저장합니다.">
+                <svg class="ico" aria-hidden="true"><use href="#i-db"/></svg><span>이력 저장</span>
+            </button>
         </div>
     </div>
 </div>
@@ -445,7 +449,8 @@
         onlyDiff: true,
         resKeyword: '',
         detailCol: 0,
-        running: false
+        running: false,
+        saving: false
     };
 
     /* ---------- 공통 ---------- */
@@ -754,6 +759,7 @@
         $('fBlank').textContent = state.rows.filter(isBlank).length;
         $('btnResetAll').disabled = !ex || !state.rows.some((r) => r.vals.some((v) => v));
         $('btnRun').disabled = !ex || state.stale || state.running;
+        $('btnSave').disabled = !state.result || state.running || state.saving;
         // 조건이 바뀐 상태에서는 표의 열(일자)이 실제 일자와 다를 수 있어 다시 추출할 때까지 입력을 막는다
         document.querySelectorAll('#specBody input, #specBody button').forEach((el) => {
             if (state.stale) { el.dataset.lock = '1'; el.disabled = true; }
@@ -847,6 +853,7 @@
             return { date, overrides };
         });
         state.running = true;
+        state.result = null;   // 이전 결과가 저장되지 않도록
         const btn = $('btnRun');
         busy(btn, true, '계산 중');
         renderCounts();
@@ -864,6 +871,7 @@
             return;
         }
         state.result = d;
+        renderCounts();   // 결과가 생긴 뒤 [이력 저장] 버튼 활성화
         state.resTab = 'pick';
         state.onlyDiff = true;
         state.resKeyword = '';
@@ -873,6 +881,54 @@
         $('resultCard').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     }
     $('btnRun').addEventListener('click', run);
+
+    /* ---------- 이력 저장 (PLM_SIMUL_HOGIBOM) ---------- */
+    // 일자 → BATCHDATE(yyyymmdd). 최신('')은 오늘 날짜로 저장
+    const batchDateOf = (date) => (date || ymd(new Date())).replace(/-/g, '');
+
+    async function saveHistory() {
+        if (!state.result || state.running || state.saving) return;
+        const q = state.query;
+        const columns = okCols().map((c) => ({
+            batchDate: batchDateOf(c.date),
+            brand: (c.spec && c.spec.brand) || '',
+            speed: (c.spec && c.spec.speed) || '',
+            acapa: (c.spec && c.spec.acapa) || '',
+            items: runsOf(c).map((r) => {
+                const part = noPart(r) ? '' : nvl(r.pickValue).trim();
+                const cm = part ? cmtOf(r) : null;
+                return { pick: r.pick, partNo: part, qty: part ? (qtyOf(r) || '') : '', cmt: cm ? cm.text : '' };
+            })
+        }));
+        if (!columns.length) { toast('저장할 일자 결과가 없습니다. (모든 일자가 실패)', true); return; }
+        const dates = columns.map((c) => c.batchDate);
+        const dup = dates.filter((d, i) => dates.indexOf(d) !== i);
+        if (dup.length) {
+            toast('같은 일자(' + [...new Set(dup)].join(', ') + ')가 여러 번 있어 저장할 수 없습니다. 호기 / 블럭 / 일자별로 한 결과만 저장됩니다. (최신 = 오늘 날짜)', true);
+            return;
+        }
+        const failed = (state.result.columns || []).length - columns.length;
+        const msg = '호기 ' + q.project + ' / 블럭 ' + q.pid + ' 의 일자별 결과를 저장합니다.\n'
+            + '일자 : ' + [...new Set(dates)].join(', ') + '\n'
+            + 'PICK : ' + columns.reduce((s, c) => s + c.items.length, 0) + '건\n\n'
+            + '같은 호기 / 블럭 / 일자로 저장된 이력은 지우고 다시 저장합니다.'
+            + (failed ? '\n계산에 실패한 일자 ' + failed + '개는 저장하지 않습니다.' : '')
+            + '\n\n계속할까요?';
+        if (!confirm(msg)) return;
+
+        state.saving = true;
+        const btn = $('btnSave');
+        busy(btn, true, '저장 중');
+        const d = await api('/saveHistory', { project: q.project, pid: q.pid, columns });
+        state.saving = false;
+        busy(btn, false);
+        renderCounts();
+        if (!d.success) { toast('이력을 저장하지 못했습니다. ' + (d.message || ''), true); return; }
+        const sk = d.skipped || [];
+        toast('이력 저장 완료 : ' + d.saved + '건 (' + (d.dates || []).join(', ') + ')'
+            + (sk.length ? ' · 중복 PICK ' + sk.length + '건 제외 (' + sk.slice(0, 3).join(', ') + (sk.length > 3 ? ' 외' : '') + ')' : ''));
+    }
+    $('btnSave').addEventListener('click', saveHistory);
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !$('btnRun').disabled) { e.preventDefault(); run(); }
     });

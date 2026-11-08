@@ -162,6 +162,118 @@ public class CopUtil {
     }
 
 
+    // 일자별 수량 계산 결과 이력 저장 (화면 : 일자별 수량 계산 비교 > 이력 저장)
+    // 같은 호기 / 블럭 / BATCHDATE 의 기존 이력은 지우고 다시 넣는다 (다른 일자 이력은 그대로 쌓인다).
+    // 한 건이라도 실패하면 모두 되돌린다. 저장된 건수를 돌려준다
+    public static int saveHogiBomHistory(String hogi, String blockNo,
+                                         List<com.kyhslam.service.simulate.PIDBlockQtyCompareService.HistoryColumn> cols) throws Exception {
+
+        Connection con = null;
+        PreparedStatement pstmt = null;
+
+        try {
+            con = connect();
+            checkHistoryLength(con, hogi, blockNo, cols);
+            con.setAutoCommit(false);
+
+            // HOGI + BLOCKNO + BATCHDATE 는 한 벌만 유지 : 기존 이력을 지우고 다시 넣는다.
+            // HOLDLOCK : 커밋까지 해당 키 범위를 잠가, 동시에 저장해도 같은 키로 두 벌이 쌓이지 않게 한다
+            try (PreparedStatement delete = con.prepareStatement(
+                    "DELETE FROM PLM_SIMUL_HOGIBOM WITH (HOLDLOCK) WHERE HOGI = ? AND BLOCKNO = ? AND BATCHDATE = ?")) {
+                for (String batchDate : cols.stream().map(c -> c.batchDate).distinct().toList()) {
+                    delete.setString(1, hogi);
+                    delete.setNString(2, blockNo);
+                    delete.setNString(3, batchDate);
+                    delete.addBatch();
+                }
+                delete.executeBatch();
+            }
+
+            String sql = """
+                    INSERT INTO PLM_SIMUL_HOGIBOM
+                        (HOGI, BLOCKNO, BRAND, SPEED, ACAPA, PICK, PARTNO, QTY, CMT, CREDATE, BATCHDATE)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?)
+                    """;
+
+            pstmt = con.prepareStatement(sql);
+
+            int count = 0;
+            for (var col : cols) {
+                for (var item : col.items) {
+                    pstmt.setString(1, hogi);
+                    pstmt.setNString(2, blockNo);
+                    pstmt.setNString(3, col.brand);
+                    pstmt.setNString(4, col.speed);
+                    pstmt.setNString(5, col.acapa);
+                    pstmt.setNString(6, item.pick);
+                    pstmt.setString(7, item.partNo);
+                    pstmt.setNString(8, item.qty);
+                    pstmt.setNString(9, item.cmt);
+                    pstmt.setNString(10, col.batchDate);
+                    pstmt.addBatch();
+                    count++;
+                }
+            }
+
+            pstmt.executeBatch();
+            con.commit();
+
+            System.out.println("[PLM_SIMUL_HOGIBOM 이력 저장] hogi = " + hogi + ", blockNo = " + blockNo
+                    + ", 일자 = " + cols.size() + ", 저장 = " + count);
+            return count;
+
+        } catch (Exception e) {
+            if (con != null) {
+                con.rollback();
+            }
+            throw e;
+        } finally {
+            VaultDBConnection.disconnect(con, pstmt, null);
+        }
+    }
+
+
+    // 이력 저장 전 컬럼 길이 검사 : 넘치는 값이 있으면 "문자열이나 이진 데이터는 잘립니다" 대신 컬럼 / 값 / 길이를 알려준다
+    private static void checkHistoryLength(Connection con, String hogi, String blockNo,
+                                           List<com.kyhslam.service.simulate.PIDBlockQtyCompareService.HistoryColumn> cols) throws SQLException {
+        Map<String, Integer> size = new HashMap<>();
+        try (ResultSet rs = con.getMetaData().getColumns(null, null, "PLM_SIMUL_HOGIBOM", null)) {
+            while (rs.next())
+                size.put(rs.getString("COLUMN_NAME").toUpperCase(), rs.getInt("COLUMN_SIZE"));
+        }
+        if (size.isEmpty())
+            return;   // 메타데이터를 못 읽으면 DB 오류에 맡긴다
+
+        List<String> over = new ArrayList<>();
+        java.util.function.BiConsumer<String, String> check = (col, v) -> {
+            Integer max = size.get(col);
+            if (v != null && max != null && max > 0 && v.length() > max) {
+                String msg = col + "(최대 " + max + "자) ← " + v.length() + "자 : " + (v.length() > 40 ? v.substring(0, 40) + "…" : v);
+                if (!over.contains(msg) && over.size() < 5)
+                    over.add(msg);
+            }
+        };
+        check.accept("HOGI", hogi);
+        check.accept("BLOCKNO", blockNo);
+        for (var col : cols) {
+            check.accept("BATCHDATE", col.batchDate);
+            check.accept("BRAND", col.brand);
+            check.accept("SPEED", col.speed);
+            check.accept("ACAPA", col.acapa);
+            for (var item : col.items) {
+                check.accept("PICK", item.pick);
+                check.accept("PARTNO", item.partNo);
+                check.accept("QTY", item.qty);
+                check.accept("CMT", item.cmt);
+            }
+        }
+        if (!over.isEmpty()) {
+            System.out.println("[PLM_SIMUL_HOGIBOM 이력 저장] 컬럼 길이 초과 : " + over);
+            throw new IllegalArgumentException("컬럼 길이보다 긴 값이 있어 저장하지 못했습니다. " + String.join(" / ", over));
+        }
+    }
+
+
     // 관리대상 호기 전체 조회 (관리 화면에서 실패를 알 수 있도록 예외를 던진다)
     public static ArrayList<HashMap<String, String>> findManagedHogi() throws Exception {
 
