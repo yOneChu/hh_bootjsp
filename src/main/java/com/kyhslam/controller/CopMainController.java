@@ -79,6 +79,22 @@ public class CopMainController {
         return "thymeleaf/cop/copDashboard";
     }
 
+    /** COP 배치 변경 요약 (임원 · 경진대회 발표용, 데이터는 /cop/dashboard/brand/history 와 같음) */
+    @GetMapping("/cop/dashboard/preview")
+    public String dashboardPreview() {
+        return "thymeleaf/cop/copDashboardPreView";
+    }
+
+    /**
+     * BOM 변동 원인 추적 : 같은 호기 · 블럭의 두 저장 일자를 기준일 버전으로 다시 실행해 PID 버전 · 라인 차이를 찾는다
+     * ?hogi=호기&date=yyyyMMdd(바뀐 날)&prev=yyyyMMdd(앞 저장일)&block=블럭 PID&pick=PICK (block · pick · prev 는 생략 가능)
+     * 데이터 : /cop/dashboard/brand/history, /simulateup/calcBlockQty · simulatePid · simulatePidPick
+     */
+    @GetMapping("/cop/trace/cause")
+    public String traceCause() {
+        return "thymeleaf/cop/copTraceCause";
+    }
+
     /** BOM 이상감지 : 브랜드 · 기종 · 블럭별 일자(BATCHDATE) 수량 · 자재 변동 추적 (PLM_SIMUL_HOGIBOM 이력) */
     @GetMapping("/cop/dashboard/brand")
     public String brandDashboard() {

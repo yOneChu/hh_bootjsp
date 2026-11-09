@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>BOM 변동 요약 · SENTINEL</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        SENTINEL · BOM 변동 요약 (임원 · 경진대회 발표용)   GET /cop/dashboard/preview
+
+        데이터 : copDashboard 와 같은 API  GET /cop/dashboard/brand/history?from=yyyyMMdd&to=yyyyMMdd  (PLM_SIMUL_HOGIBOM)
+        비교   : 같은 호기 + BLOCKNO 를 바로 앞 저장 일자와 PICK 단위로 비교 (copDashboard 와 같은 규칙)
+
+        구성 (한 화면 = 한 층, 키보드 ↑↓ / PageUp · PageDown 으로 이동, 인쇄 시 층마다 가로 한 장)
+          1층 결론        : 기간 동안 몇 대의 BOM 이 바뀌었나 + 핵심 숫자 3개
+          2층 브랜드      : 브랜드별 관리 규모와 변동 정도
+          3층 수량 추이    : 고른 블럭의 수량을 브랜드별 선으로, 바뀐 날 표시
+          4층 개선 여부    : 일자별 변동 호기 비율, 전반 vs 후반
+          5층 실제 사례    : 자재가 바뀌었다가 되돌아간 PICK 하나를 시간순으로
+          6층 방법        : 저장 → 비교 → 감지
+    -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+    <style>
+        :root {
+            --steel:   #E8ECF0;
+            --panel:   #F7F9FB;
+            --ink:     #13202F;
+            --graphite:#5A6878;
+            --rule:    #C7D0D9;
+            --signal:  #E0960F;   /* 켜진 호출 버튼 : '바뀜' 에만 쓴다 */
+            --signal-bg:#FCF1DC;
+            --signal-ink:#8A5A00;
+            --up:      #1F4FA3;
+            --down:    #C2361F;
+            --display: #1B2633;   /* 홀 랜턴 표시창 */
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        html { background: var(--steel); scroll-behavior: smooth; }
+        @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+        body { margin: 0; font-family: var(--sans); font-size: 17px; line-height: 1.6; color: var(--ink); background: var(--steel); word-break: keep-all; -webkit-font-smoothing: antialiased; }
+        h1, h2, h3, p, ol, ul, dl, dd, figure { margin: 0; }
+        ol, ul { padding: 0; list-style: none; }
+        button, select, input { font: inherit; color: inherit; }
+        a { color: inherit; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 3px solid var(--up); outline-offset: 3px; border-radius: 6px; }
+        .num { font-variant-numeric: tabular-nums; }
+
+        /* ── 상단 조작 막대 : 발표 중에는 눈에 띄지 않게 ── */
+        .bar { position: fixed; top: 0; left: 0; right: 0; z-index: 30; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 24px; background: rgba(232,236,240,.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule); font-size: 14px; }
+        .bar b { font-weight: 800; letter-spacing: .02em; }
+        .bar .sp { flex: 1; }
+        .bar label { color: var(--graphite); font-weight: 600; }
+        .ctl { min-height: 34px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); font-size: 14px; font-weight: 600; }
+        .btn { min-height: 34px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+        .btn:hover { border-color: var(--graphite); }
+        .btn[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+        .quick { display: inline-flex; gap: 4px; }
+        @media (max-width: 760px) { .bar { position: static; padding: 10px 16px; } .bar .hide-sm { display: none; } }
+
+        /* ── 층 버튼 레일 ── */
+        .rail { position: fixed; left: 28px; top: 50%; transform: translateY(-50%); z-index: 20; display: flex; flex-direction: column-reverse; gap: 10px; padding: 12px 9px; border-radius: 999px; background: #D5DCE3; box-shadow: inset 0 1px 2px rgba(19,32,47,.18); }
+        .rail a { position: relative; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; text-decoration: none; font-weight: 800; font-size: 15px; color: var(--graphite); background: radial-gradient(circle at 35% 30%, #fff, #E3E8ED 70%); border: 1px solid #B6C0CA; box-shadow: 0 1px 1px rgba(19,32,47,.2); }
+        .rail a[aria-current="true"] { color: var(--signal-ink); border-color: var(--signal); box-shadow: 0 0 0 3px rgba(224,150,15,.28), 0 0 14px rgba(224,150,15,.55); background: radial-gradient(circle at 35% 30%, #FFF6E2, #F6D58F 75%); }
+        .rail a span { position: absolute; left: calc(100% + 12px); white-space: nowrap; font-size: 13px; font-weight: 700; color: var(--ink); background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 2px 8px; opacity: 0; pointer-events: none; transition: opacity .15s; }
+        .rail a:hover span, .rail a:focus-visible span { opacity: 1; }
+        @media (max-width: 1100px) { .rail { display: none; } }
+
+        /* ── 층 ── */
+        .floor { min-height: 100vh; padding: 96px 64px 56px 132px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid var(--rule); scroll-margin-top: 0; }
+        .floor > .in { width: 100%; max-width: 1240px; }
+        @media (max-width: 1100px) { .floor { padding: 72px 32px 48px; } }
+        @media (max-width: 640px) { .floor { min-height: 0; padding: 48px 16px; } }
+        .fl-no { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--ink); font-weight: 800; font-size: 15px; margin-bottom: 18px; }
+        .floor h2 { font-size: clamp(28px, 3.4vw, 44px); line-height: 1.25; font-weight: 800; letter-spacing: -.025em; max-width: 26ch; }
+        .lede { margin-top: 12px; font-size: clamp(16px, 1.4vw, 19px); color: var(--graphite); max-width: 62ch; }
+        .note { margin-top: 18px; font-size: 13.5px; color: var(--graphite); }
+
+        /* 1층 : 결론 + 홀 랜턴 */
+        .cover h1 { font-size: clamp(34px, 4.6vw, 64px); line-height: 1.2; font-weight: 800; letter-spacing: -.035em; max-width: 22ch; }
+        .cover .when { font-size: 16px; font-weight: 700; color: var(--graphite); margin-bottom: 18px; }
+        .lantern { margin-top: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: var(--display); border-radius: 14px; padding: 6px; box-shadow: inset 0 2px 10px rgba(0,0,0,.45), 0 1px 0 #fff; max-width: 1040px; }
+        .lantern div { padding: 22px 26px 20px; border-right: 1px solid rgba(255,255,255,.08); }
+        .lantern div:last-child { border-right: 0; }
+        .lantern b { display: block; font-size: clamp(40px, 5vw, 72px); line-height: 1; font-weight: 800; letter-spacing: -.02em; color: #FFB938; text-shadow: 0 0 18px rgba(255,185,56,.35); font-variant-numeric: tabular-nums; }
+        .lantern b small { font-size: .42em; margin-left: 4px; color: #D9A44A; text-shadow: none; }
+        .lantern span { display: block; margin-top: 10px; font-size: 15px; color: #C4CDD7; font-weight: 600; }
+        @media (max-width: 760px) { .lantern { grid-template-columns: minmax(0, 1fr); } .lantern div { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.08); } }
+        .verdict { margin-top: 26px; display: flex; gap: 14px; align-items: flex-start; max-width: 62ch; font-size: 18px; }
+        .verdict i { flex: none; width: 14px; height: 14px; margin-top: 8px; border-radius: 50%; background: var(--signal); box-shadow: 0 0 10px rgba(224,150,15,.7); }
+        .verdict i.calm { background: var(--up); box-shadow: none; }
+
+        /* 2층 : 브랜드 표 */
+        .brand-tbl { margin-top: 34px; width: 100%; border-collapse: collapse; font-size: 16px; }
+        .brand-tbl th { text-align: right; font-size: 13.5px; font-weight: 700; color: var(--graphite); padding: 0 14px 10px; border-bottom: 2px solid var(--ink); white-space: nowrap; }
+        .brand-tbl th:first-child, .brand-tbl td:first-child { text-align: left; padding-left: 0; }
+        .brand-tbl td { padding: 16px 14px; border-bottom: 1px solid var(--rule); text-align: right; font-variant-numeric: tabular-nums; vertical-align: middle; }
+        .brand-tbl td.b { font-size: 20px; font-weight: 800; }
+        .brand-tbl td.b i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 10px; vertical-align: 1px; }
+        .brand-tbl td.b small { display: block; font-size: 13px; font-weight: 500; color: var(--graphite); margin-left: 22px; }
+        .brand-tbl .big { font-size: 22px; font-weight: 800; }
+        .brand-tbl td.spec { font-weight: 700; white-space: nowrap; }
+        .brand-tbl td.spec small { display: block; font-size: 12.5px; font-weight: 500; color: var(--graphite); }
+        .rate { display: inline-flex; align-items: center; gap: 10px; justify-content: flex-end; }
+        .rate .track { width: 120px; height: 10px; border-radius: 99px; background: #DCE2E8; overflow: hidden; }
+        .rate .track span { display: block; height: 100%; background: var(--signal); }
+        .spark { display: block; margin-left: auto; }
+        .tbl-wrap { overflow-x: auto; }
+        @media (max-width: 760px) { .brand-tbl .hide-sm { display: none; } }
+
+        /* 3 · 4층 : 차트 */
+        .fig { margin-top: 28px; background: var(--panel); border: 1px solid var(--rule); border-radius: 14px; padding: 18px 18px 12px; }
+        .fig-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 8px; font-size: 14px; }
+        .fig-tools label { font-weight: 700; color: var(--graphite); }
+        .seg { display: inline-flex; padding: 3px; border-radius: 9px; background: var(--steel); border: 1px solid var(--rule); }
+        .seg button { min-height: 30px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--graphite); }
+        .seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(19,32,47,.15); }
+        .chart { height: 440px; }
+        .chart.sm { height: 380px; }
+        .legend-x { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 8px; font-size: 14px; color: var(--graphite); }
+        .legend-x b { color: var(--ink); }
+        .legend-x .chg { color: var(--signal-ink); font-weight: 700; }
+        .legend-x em { font-style: normal; font-weight: 800; }
+        .legend-x em.up { color: var(--up); } .legend-x em.down { color: var(--down); }
+        .halves { margin-top: 26px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; max-width: 760px; border-top: 2px solid var(--ink); }
+        .halves div { padding: 16px 0 0; }
+        .halves div + div { padding-left: 28px; border-left: 1px solid var(--rule); }
+        .halves span { display: block; font-size: 14px; color: var(--graphite); font-weight: 600; }
+        .halves b { font-size: 34px; font-weight: 800; letter-spacing: -.02em; }
+        .none { padding: 48px 0; text-align: center; color: var(--graphite); }
+
+        /* 5층 : 사례 타임라인 */
+        .case-head { margin-top: 30px; display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 16px; color: var(--graphite); }
+        .case-head b { color: var(--ink); font-weight: 800; }
+        .timeline { margin-top: 26px; display: flex; gap: 0; overflow-x: auto; padding-bottom: 8px; }
+        .tl { flex: 1 0 128px; position: relative; padding: 0 10px 0 0; }
+        .tl::before { content: ""; position: absolute; left: 0; right: 0; top: 13px; height: 3px; background: var(--rule); }
+        .tl:last-child::before { right: 50%; }
+        .tl .pt { position: relative; width: 28px; height: 28px; border-radius: 50%; background: var(--panel); border: 3px solid var(--rule); }
+        .tl.chg .pt { border-color: var(--signal); background: var(--signal); box-shadow: 0 0 0 5px var(--signal-bg); }
+        .tl.back .pt { border-color: var(--down); background: var(--down); box-shadow: 0 0 0 5px #F8DCD6; }
+        .tl .d { margin-top: 12px; font-size: 14px; font-weight: 700; color: var(--graphite); }
+        .tl .p { margin-top: 4px; font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .tl .q { font-size: 14px; color: var(--graphite); }
+        .tl .t { margin-top: 6px; display: inline-block; font-size: 12.5px; font-weight: 800; padding: 2px 8px; border-radius: 6px; background: var(--signal-bg); color: var(--signal-ink); }
+        .tl.back .t { background: #F8DCD6; color: var(--down); }
+        .case-go { margin-top: 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; font-size: 15px; color: var(--graphite); }
+        .case-go .go { display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border-radius: 10px; background: var(--ink); color: #fff; font-weight: 800; text-decoration: none; }
+        .case-go .go:hover { background: #24364C; }
+        a.tl { text-decoration: none; color: inherit; border-radius: 8px; }
+        a.tl:hover .p { text-decoration: underline; text-underline-offset: 3px; }
+        @media print { .case-go .go { background: none; color: var(--ink); border: 1px solid var(--ink); } }
+        .case-why { margin-top: 30px; max-width: 64ch; font-size: 18px; padding-left: 18px; border-left: 4px solid var(--signal); }
+
+        /* 6층 : 방법 */
+        .steps { margin-top: 36px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; counter-reset: s; }
+        .steps li { counter-increment: s; padding: 0 28px 0 0; }
+        .steps li + li { padding-left: 28px; border-left: 1px solid var(--rule); }
+        .steps li::before { content: counter(s); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: #fff; font-weight: 800; margin-bottom: 14px; }
+        .steps h3 { font-size: 21px; font-weight: 800; }
+        .steps p { margin-top: 6px; color: var(--graphite); font-size: 16px; }
+        .types { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .types span { padding: 6px 12px; border-radius: 8px; background: var(--panel); border: 1px solid var(--rule); font-size: 15px; }
+        .types b { margin-right: 6px; }
+        @media (max-width: 760px) { .steps { grid-template-columns: minmax(0, 1fr); gap: 24px; } .steps li + li { padding-left: 0; border-left: 0; } }
+
+        .state { min-height: 70vh; display: grid; place-items: center; text-align: center; padding: 120px 24px; }
+        .state h2 { font-size: 26px; font-weight: 800; }
+        .state p { margin-top: 8px; color: var(--graphite); }
+        .state.err h2 { color: var(--down); }
+
+        @media print {
+            @page { size: A4 landscape; margin: 12mm; }
+            html, body { background: #fff; }
+            *, *::before, *::after { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .bar, .rail, .fig-tools { display: none !important; }
+            .floor { min-height: 0; padding: 0; border: 0; break-after: page; }
+            .floor:last-child { break-after: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bar" role="toolbar" aria-label="조회 조건">
+    <b>SENTINEL</b><span class="hide-sm" style="color:var(--graphite)">BOM 변동 요약</span>
+    <span class="sp"></span>
+    <label for="inFrom">기간</label>
+    <input class="ctl" type="date" id="inFrom"> <span>~</span> <input class="ctl" type="date" id="inTo">
+    <span class="quick" role="group" aria-label="빠른 기간">
+        <button type="button" class="btn" data-range="14">2주</button>
+        <button type="button" class="btn" data-range="30">1개월</button>
+        <button type="button" class="btn" data-range="90">3개월</button>
+    </span>
+    <button type="button" class="btn" id="btnLoad">조회</button>
+    <a class="btn hide-sm" id="lnkDash" href="/cop/dashboard">상세 대시보드</a>
+    <button type="button" class="btn hide-sm" id="btnPrint">인쇄</button>
+</div>
+
+<nav class="rail" aria-label="발표 순서" id="rail"></nav>
+
+<main id="main">
+    <div class="state" id="state"><div><h2>BOM 저장 이력을 불러오는 중입니다</h2><p>PLM_SIMUL_HOGIBOM</p></div></div>
+
+    <div id="deck" hidden>
+        <!-- 1층 -->
+        <section class="floor cover" id="f1" data-label="결론">
+            <div class="in">
+                <p class="when" id="cWhen">-</p>
+                <h1 id="cTitle">-</h1>
+                <div class="lantern" role="group" aria-label="핵심 숫자">
+                    <div><b id="cHogi">-</b><span id="cHogiL">관리 중인 호기</span></div>
+                    <div><b id="cRate">-</b><span>BOM 이 바뀐 호기 비율</span></div>
+                    <div><b id="cSwap">-</b><span id="cSwapL">자재가 다른 번호로 바뀐 건수</span></div>
+                </div>
+                <p class="verdict"><i id="cDot"></i><span id="cVerdict">-</span></p>
+            </div>
+        </section>
+
+        <!-- 2층 -->
+        <section class="floor" id="f2" data-label="브랜드">
+            <div class="in">
+                <span class="fl-no" aria-hidden="true">2</span>
+                <h2 id="bTitle">-</h2>
+                <p class="lede" id="bLede">-</p>
+                <div class="tbl-wrap">
+                    <table class="brand-tbl">
+                        <thead><tr>
+                            <th scope="col">브랜드</th><th scope="col">호기</th><th scope="col">속도 (m/min)</th><th scope="col">용량</th><th scope="col" class="hide-sm">블럭</th><th scope="col" class="hide-sm">자재 종류</th>
+                            <th scope="col">바뀐 호기 비율</th><th scope="col" class="hide-sm">자재 교체</th><th scope="col">일자별 변동</th>
+                        </tr></thead>
+                        <tbody id="bBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3층 -->
+        <section class="floor" id="f3" data-label="수량 추이">
+            <div class="in">
+                <span class="fl-no" aria-hidden="true">3</span>
+                <h2 id="qTitle">-</h2>
+                <p class="lede" id="qLede">-</p>
+                <figure class="fig">
+                    <div class="fig-tools">
+                        <label for="inBlock">블럭</label><select class="ctl" id="inBlock"></select>
+                        <div class="seg" role="group" aria-label="수량 기준">
+                            <button type="button" data-tq="sum" aria-pressed="true">수량 합계</button>
+                            <button type="button" data-tq="avg" aria-pressed="false">호기 1대당</button>
+                        </div>
+                    </div>
+                    <div class="chart" id="chQty" role="img"></div>
+                    <div class="none" id="chQtyNone" hidden>이 블럭의 수량 데이터가 없습니다.</div>
+                    <figcaption class="legend-x" id="qLegend"></figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <!-- 4층 -->
+        <section class="floor" id="f4" data-label="개선 여부">
+            <div class="in">
+                <span class="fl-no" aria-hidden="true">4</span>
+                <h2 id="tTitle">-</h2>
+                <p class="lede" id="tLede">-</p>
+                <figure class="fig"><div class="chart sm" id="chDaily" role="img"></div></figure>
+                <div class="halves" id="tHalves"></div>
+            </div>
+        </section>
+
+        <!-- 5층 -->
+        <section class="floor" id="f5" data-label="실제 사례">
+            <div class="in">
+                <span class="fl-no" aria-hidden="true">5</span>
+                <h2 id="kTitle">-</h2>
+                <p class="lede" id="kLede">-</p>
+                <div class="case-head" id="kHead"></div>
+                <div class="timeline" id="kLine"></div>
+                <p class="case-why" id="kWhy">-</p>
+                <div class="case-go" id="kGo" hidden>
+                    <a class="go" id="kTrace" href="/cop/trace/cause">원인 추적 보기</a>
+                    <span id="kGoSub">-</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6층 -->
+        <section class="floor" id="f6" data-label="방법">
+            <div class="in">
+                <span class="fl-no" aria-hidden="true">6</span>
+                <h2>시뮬레이션 결과를 매일 저장하고, 전날 결과와 PICK 하나하나를 맞대어 봅니다</h2>
+                <ol class="steps">
+                    <li><h3>저장</h3><p>호기 · 블럭별 자재 수배 결과(PICK · 자재번호 · 수량)를 날짜별로 PLM_SIMUL_HOGIBOM 에 쌓습니다.</p></li>
+                    <li><h3>비교</h3><p>같은 호기 · 블럭을 바로 앞에 저장된 날과 PICK 단위로 비교합니다.</p></li>
+                    <li><h3>감지</h3><p>달라진 PICK 을 네 가지로 나누고, 예전 자재로 되돌아간 경우는 따로 표시합니다.</p></li>
+                </ol>
+                <div class="types">
+                    <span><b>수량 변경</b>같은 자재, 수량만 바뀜</span>
+                    <span><b>자재 교체</b>자재번호가 다른 번호로 바뀜</span>
+                    <span><b>신규 수배</b>없던 PICK 이 생김</span>
+                    <span><b>수배 제외</b>있던 PICK 이 사라짐</span>
+                </div>
+                <p class="note" id="mNote">-</p>
+            </div>
+        </section>
+    </div>
+</main>
+
+<script src="/resources/dist/js/highcharts.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    const LOOKBACK = 14;
+    const NONE = '(미지정)';
+    const COLORS = ['#1F4FA3', '#D9731A', '#18936A', '#7C4DCC', '#B8860B', '#0E8AA0', '#C23B7A', '#5A6878'];
+    const UP = '#1F4FA3', DOWN = '#C2361F', SIGNAL = '#E0960F';
+    const TYPE_LABEL = { qty: '수량 변경', swap: '자재 교체', add: '신규 수배', del: '수배 제외' };
+
+    const $ = id => document.getElementById(id);
+    const fmt = n => Number(n).toLocaleString('ko-KR', { maximumFractionDigits: 1 });
+    const pct = n => (Number.isFinite(n) ? n : 0).toFixed(1);
+    const signed = n => (n > 0 ? '+' : '') + fmt(n);
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const pad = n => String(n).padStart(2, '0');
+    const ymd = d => d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+    const toDate = s => new Date(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8));
+    const iso = s => s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6, 8);
+    const addDays = (s, n) => { const d = toDate(s); d.setDate(d.getDate() + n); return ymd(d); };
+    const wk = s => '일월화수목금토'.charAt(toDate(s).getDay());
+    const md = s => +s.slice(4, 6) + '월 ' + +s.slice(6, 8) + '일';
+    const sd = s => +s.slice(4, 6) + '/' + +s.slice(6, 8);
+    const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isFinite(n) ? n : null; };
+    const calm = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+    /* ════════════ 데이터 ════════════ */
+    /*
+        series : 호기 + 블럭의 일자별 스냅샷 (PICK → 자재번호 / 수량)
+        res    : 블럭의 그 일자 결과 (앞 저장 일자와 비교한 이벤트, 전체 수량)
+    */
+    function build(r) {
+        const ci = {};
+        r.columns.forEach((c, i) => { ci[c] = i; });
+        const series = new Map();
+        r.rows.forEach(x => {
+            const hogi = x[ci.HOGI], block = x[ci.BLOCKNO], date = x[ci.BATCHDATE], pick = x[ci.PICK];
+            if (!hogi || !block || !date || !pick) return;
+            const key = hogi + '|' + block;
+            let s = series.get(key);
+            if (!s) { s = { hogi, block, snaps: new Map() }; series.set(key, s); }
+            let sn = s.snaps.get(date);
+            if (!sn) { sn = { date, brand: x[ci.BRAND] || NONE, atyp: x[ci.ATYP] || NONE, speed: x[ci.SPEED], acapa: x[ci.ACAPA], picks: new Map() }; s.snaps.set(date, sn); }
+            if (!sn.picks.has(pick)) sn.picks.set(pick, { partNo: x[ci.PARTNO], qty: x[ci.QTY] });
+        });
+
+        const hogis = new Map(), events = [];
+        series.forEach(s => {
+            let h = hogis.get(s.hogi);
+            if (!h) { h = { key: s.hogi, brand: NONE, atyp: NONE, speed: '', acapa: '', last: '', blocks: new Map() }; hogis.set(s.hogi, h); }
+            const ds = Array.from(s.snaps.keys()).sort();
+            const list = [];
+            h.blocks.set(s.block, { series: s, list });
+            const sEv = [];
+            ds.forEach((d, i) => {
+                const sn = s.snaps.get(d), prev = i ? s.snaps.get(ds[i - 1]) : null;
+                if (d >= h.last) { h.last = d; h.brand = sn.brand; h.atyp = sn.atyp; h.speed = sn.speed; h.acapa = sn.acapa; }
+                const res = { date: d, base: !prev, qty: 0, picks: 0, cmpPicks: 0, parts: new Set(), events: [] };
+                sn.picks.forEach(p => { if (p.partNo) { res.picks++; res.parts.add(p.partNo); res.qty += num(p.qty) || 0; } });
+                list.push(res);
+                if (!prev) return;
+                new Set([...prev.picks.keys(), ...sn.picks.keys()]).forEach(pick => {
+                    const a = prev.picks.get(pick), c = sn.picks.get(pick);
+                    const pNo = a ? a.partNo : '', cNo = c ? c.partNo : '';
+                    if (!pNo && !cNo) return;
+                    res.cmpPicks++;
+                    const pQ = pNo ? a.qty : '', cQ = cNo ? c.qty : '', pn = num(pQ), cn = num(cQ);
+                    let type;
+                    if (!pNo) type = 'add';
+                    else if (!cNo) type = 'del';
+                    else if (pNo !== cNo) type = 'swap';
+                    else if (pn != null && cn != null ? pn !== cn : String(pQ) !== String(cQ)) type = 'qty';
+                    else return;
+                    const e = { hogi: s.hogi, block: s.block, pick, type, date: d, prevDate: prev.date, prevNo: pNo, nextNo: cNo, prevQty: pQ, nextQty: cQ,
+                                delta: (cNo ? cn || 0 : 0) - (pNo ? pn || 0 : 0) };
+                    res.events.push(e); sEv.push(e); events.push(e);
+                });
+            });
+            /* 예전 자재로 되돌아감 */
+            const byPick = new Map();
+            sEv.forEach(e => { if (!byPick.has(e.pick)) byPick.set(e.pick, []); byPick.get(e.pick).push(e); });
+            byPick.forEach(l => {
+                const seen = new Set();
+                if (l[0].prevNo) seen.add(l[0].prevNo);
+                l.forEach(e => { if (e.nextNo && e.nextNo !== e.prevNo && seen.has(e.nextNo)) e.revert = true; if (e.nextNo) seen.add(e.nextNo); });
+            });
+        });
+        const brands = Array.from(new Set(Array.from(hogis.values()).map(h => h.brand))).sort();
+        const color = new Map(brands.map((b, i) => [b, COLORS[i % COLORS.length]]));
+        return { hogis, events, brands, color };
+    }
+
+    const latestAt = (list, d) => { for (let i = list.length - 1; i >= 0; i--) if (list[i].date <= d) return list[i]; return null; };
+
+    /* 조회 기간 집계 */
+    function analyze() {
+        const all = new Set();
+        DATA.hogis.forEach(h => h.blocks.forEach(b => b.list.forEach(r => all.add(r.date))));
+        const dates = Array.from(all).filter(d => d >= state.from && d <= state.to).sort();
+        const last = dates.at(-1);
+        const inP = new Set(dates);
+
+        /* 일자별 : 비교한 호기 / 바뀐 호기 */
+        const daily = dates.map(d => ({ date: d, cmp: 0, changed: 0, events: 0, swap: 0 }));
+        const di = new Map(dates.map((d, i) => [d, i]));
+        const brandAgg = new Map(DATA.brands.map(b => [b, { brand: b, hogis: 0, atyps: new Set(), speeds: new Map(), acapas: new Map(), blocks: new Set(), parts: new Set(), cmpH: new Set(), chgH: new Set(), swap: 0, revert: 0, events: 0, daily: dates.map(() => 0) }]));
+        const tot = { hogis: 0, cmpH: new Set(), chgH: new Set(), swap: 0, revert: 0, events: 0, cmpPicks: 0 };
+
+        DATA.hogis.forEach(h => {
+            const B = brandAgg.get(h.brand);
+            let alive = false;
+            const perDay = new Map();
+            h.blocks.forEach((b, blk) => {
+                const r = latestAt(b.list, last);
+                if (r) { alive = true; B.blocks.add(blk); r.parts.forEach(p => B.parts.add(p)); }
+                b.list.forEach(x => {
+                    if (!inP.has(x.date) || x.base) return;
+                    const o = perDay.get(x.date) || { n: 0 };
+                    o.n += x.events.length;
+                    perDay.set(x.date, o);
+                    tot.cmpPicks += x.cmpPicks;
+                    x.events.forEach(e => {
+                        tot.events++; B.events++;
+                        if (e.type === 'swap') { tot.swap++; B.swap++; daily[di.get(x.date)].swap++; }
+                        if (e.revert) { tot.revert++; B.revert++; }
+                    });
+                    B.daily[di.get(x.date)] += x.events.length;
+                    daily[di.get(x.date)].events += x.events.length;
+                });
+            });
+            if (!alive) return;
+            tot.hogis++; B.hogis++; B.atyps.add(h.atyp);
+            const sp = String(h.speed == null ? '' : h.speed).trim(), ac = String(h.acapa == null ? '' : h.acapa).trim();
+            if (sp) B.speeds.set(sp, (B.speeds.get(sp) || 0) + 1);
+            if (ac) B.acapas.set(ac, (B.acapas.get(ac) || 0) + 1);
+            perDay.forEach((o, d) => {
+                const dd = daily[di.get(d)];
+                dd.cmp++; tot.cmpH.add(h.key); B.cmpH.add(h.key);
+                if (o.n) { dd.changed++; tot.chgH.add(h.key); B.chgH.add(h.key); }
+            });
+        });
+        daily.forEach(d => { d.rate = d.cmp ? d.changed / d.cmp * 100 : null; });
+        tot.match = tot.cmpPicks ? (tot.cmpPicks - tot.events) / tot.cmpPicks * 100 : null;
+        const brands = Array.from(brandAgg.values()).filter(b => b.hogis).sort((a, b) => b.hogis - a.hogis);
+        return { dates, last, daily, brands, tot };
+    }
+
+    /* ════════════ 상태 ════════════ */
+    let DATA = null, A = null;
+    const state = { from: '', to: '', block: '', tq: 'sum' };
+    const charts = {};
+    function draw(id, has, opt) {
+        if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+        $(id).hidden = !has;
+        if ($(id + 'None')) $(id + 'None').hidden = has;
+        if (has) charts[id] = Highcharts.chart(id, opt);
+    }
+
+    /* ════════════ 1층 결론 ════════════ */
+    function halves() {
+        const v = A.daily.filter(d => d.rate != null);
+        if (v.length < 4) return null;
+        const m = Math.floor(v.length / 2), avg = l => l.reduce((a, d) => a + d.rate, 0) / l.length;
+        return { a: avg(v.slice(0, m)), b: avg(v.slice(m)), aFrom: v[0].date, aTo: v[m - 1].date, bFrom: v[m].date, bTo: v.at(-1).date };
+    }
+
+    function renderCover() {
+        const t = A.tot, days = Math.round((toDate(state.to) - toDate(state.from)) / 864e5) + 1;
+        const rate = t.cmpH.size ? t.chgH.size / t.cmpH.size * 100 : 0;
+        $('cWhen').textContent = md(state.from) + ' ~ ' + md(state.to) + ' (' + days + '일, 저장 ' + A.dates.length + '회)';
+        $('cTitle').textContent = t.cmpH.size
+            ? days + '일 동안 비교한 호기 ' + fmt(t.cmpH.size) + '대 중 ' + fmt(t.chgH.size) + '대의 BOM 이 한 번 이상 바뀌었습니다'
+            : '이 기간에는 비교할 수 있는 저장 이력이 아직 없습니다';
+        $('cHogi').innerHTML = fmt(t.hogis) + '<small>대</small>';
+        $('cHogiL').textContent = '관리 중인 호기 (브랜드 ' + A.brands.length + '개)';
+        $('cRate').innerHTML = pct(rate) + '<small>%</small>';
+        $('cSwap').innerHTML = fmt(t.swap) + '<small>건</small>';
+        $('cSwapL').textContent = '자재가 다른 번호로 바뀐 건수' + (t.revert ? ' (되돌아감 ' + t.revert + '건)' : '');
+        const h = halves();
+        let txt, warn = true;
+        if (!h) txt = '저장 횟수가 적어 추세를 판단하기 어렵습니다. 기간을 늘려 보세요.';
+        else {
+            const diff = h.b - h.a;
+            if (Math.abs(diff) < 3) { txt = '기간 후반의 변동 비율(' + pct(h.b) + '%)이 전반(' + pct(h.a) + '%)과 비슷합니다. BOM 이 아직 자리 잡는 중입니다.'; }
+            else if (diff < 0) { warn = false; txt = '기간 후반의 변동 비율이 ' + pct(h.a) + '% 에서 ' + pct(h.b) + '% 로 줄었습니다. BOM 이 안정되고 있습니다.'; }
+            else txt = '기간 후반의 변동 비율이 ' + pct(h.a) + '% 에서 ' + pct(h.b) + '% 로 늘었습니다. 원인 확인이 필요합니다.';
+        }
+        if (t.revert) txt += ' 자재가 바뀌었다가 예전 번호로 돌아간 경우가 ' + t.revert + '건 있어 5번 화면에서 사례로 보여드립니다.';
+        $('cVerdict').textContent = txt;
+        $('cDot').className = warn ? '' : 'calm';
+    }
+
+    /* ════════════ 2층 브랜드 ════════════ */
+    function spark(vals, color) {
+        const w = 150, h = 34, max = Math.max(1, ...vals), n = vals.length;
+        if (n < 2) return '';
+        const x = i => (i / (n - 1) * (w - 4) + 2).toFixed(1), y = v => (h - 3 - v / max * (h - 8)).toFixed(1);
+        const pts = vals.map((v, i) => x(i) + ',' + y(v)).join(' ');
+        const peak = vals.indexOf(Math.max(...vals));
+        return '<svg class="spark" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true">' +
+            '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+            (vals[peak] ? '<circle cx="' + x(peak) + '" cy="' + y(vals[peak]) + '" r="3.5" fill="' + SIGNAL + '"/>' : '') + '</svg>';
+    }
+
+    /* 속도 · 용량 : 3종 이하면 값 나열, 많으면 범위 (마우스를 올리면 값별 호기 수) */
+    function specCell(m, unit) {
+        const v = Array.from(m.keys()).sort((a, b) => (num(a) ?? Infinity) - (num(b) ?? Infinity) || a.localeCompare(b));
+        if (!v.length) return '<td class="spec">-</td>';
+        const nums = v.map(num).filter(x => x != null);
+        const main = v.length <= 3 ? v.join(', ') : nums.length === v.length ? fmt(nums[0]) + ' ~ ' + fmt(nums.at(-1)) : v.slice(0, 3).join(', ') + ' 외';
+        const tip = v.map(k => k + unit + ' ' + m.get(k) + '대').join(', ');
+        return '<td class="spec" title="' + esc(tip) + '">' + esc(main) + (v.length > 3 ? '<small>' + v.length + '종</small>' : '') + '</td>';
+    }
+
+    function renderBrands() {
+        const list = A.brands;
+        const rateOf = b => b.cmpH.size ? b.chgH.size / b.cmpH.size * 100 : 0;
+        const top = list.slice().sort((a, b) => rateOf(b) - rateOf(a))[0];
+        $('bTitle').textContent = list.length > 1 && top
+            ? '브랜드 ' + list.length + '개 중 ' + top.brand + ' 의 BOM 이 가장 자주 바뀝니다'
+            : (top ? top.brand + ' 브랜드 ' + top.hogis + '대를 관리하고 있습니다' : '관리 중인 브랜드가 없습니다');
+        $('bLede').textContent = '호기 수 · 속도 · 용량은 ' + md(A.last) + '까지 저장된 기준이고, 바뀐 호기 비율은 기간 동안 앞 저장일과 비교한 호기 중 한 번이라도 바뀐 호기의 비율입니다.';
+        $('bBody').innerHTML = list.map(b => {
+            const r = rateOf(b), c = DATA.color.get(b.brand);
+            return '<tr><td class="b"><i style="background:' + c + '"></i>' + esc(b.brand) + '<small>기종 ' + b.atyps.size + '개</small></td>' +
+                '<td class="big">' + fmt(b.hogis) + '</td>' +
+                specCell(b.speeds, ' m/min') + specCell(b.acapas, '') +
+                '<td class="hide-sm">' + fmt(b.blocks.size) + '</td>' +
+                '<td class="hide-sm">' + fmt(b.parts.size) + '</td>' +
+                '<td><span class="rate"><span class="track"><span style="width:' + r.toFixed(1) + '%"></span></span><b class="num">' + pct(r) + '%</b></span></td>' +
+                '<td class="hide-sm">' + fmt(b.swap) + (b.revert ? ' <small style="color:var(--down);font-weight:700">(되돌아감 ' + b.revert + ')</small>' : '') + '</td>' +
+                '<td>' + spark(b.daily, c) + '</td></tr>';
+        }).join('');
+    }
+
+    /* ════════════ 3층 수량 추이 ════════════ */
+    function fillBlocks() {
+        const n = new Map();
+        DATA.hogis.forEach(h => h.blocks.forEach((b, blk) => {
+            b.list.forEach(r => { if (r.date >= state.from && r.date <= state.to) n.set(blk, (n.get(blk) || 0) + r.events.filter(e => e.delta).length); });
+        }));
+        const blocks = Array.from(n.keys()).sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+        if (state.block && !n.has(state.block)) state.block = '';
+        $('inBlock').innerHTML = '<option value="">전체 블럭</option>' + blocks.map(b => '<option value="' + esc(b) + '">' + esc(b) + (n.get(b) ? ' (수량 변동 ' + n.get(b) + ')' : '') + '</option>').join('');
+        $('inBlock').value = state.block;
+    }
+
+    function renderQty() {
+        document.querySelectorAll('[data-tq]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.tq === state.tq)));
+        const ds = A.dates, avg = state.tq === 'avg', blkTxt = state.block ? '블럭 ' + state.block : '전체 블럭';
+        const lines = A.brands.map(b => {
+            const pts = ds.map(() => ({ qty: 0, hogis: 0 }));
+            DATA.hogis.forEach(h => {
+                if (h.brand !== b.brand) return;
+                const ls = state.block ? (h.blocks.has(state.block) ? [h.blocks.get(state.block).list] : []) : Array.from(h.blocks.values()).map(x => x.list);
+                if (!ls.length) return;
+                ds.forEach((d, i) => {
+                    let has = false;
+                    ls.forEach(l => { const r = latestAt(l, d); if (r) { has = true; pts[i].qty += r.qty; } });
+                    if (has) pts[i].hogis++;
+                });
+            });
+            const vals = pts.map(p => p.hogis ? Math.round((avg ? p.qty / p.hogis : p.qty) * 10) / 10 : null);
+            const diffs = vals.map((v, i) => i && v != null && vals[i - 1] != null ? Math.round((v - vals[i - 1]) * 10) / 10 : 0);
+            return { brand: b.brand, pts, vals, diffs };
+        }).filter(l => l.pts.some(p => p.hogis));
+
+        const chgDays = ds.map((d, i) => lines.some(l => l.diffs[i]));
+        const nChg = chgDays.filter(Boolean).length;
+        const moved = lines.map(l => { const i0 = l.vals.findIndex(v => v != null); return { l, a: l.vals[i0], b: l.vals.at(-1) }; }).filter(x => x.a != null && x.b != null);
+        const big = moved.slice().sort((x, y) => Math.abs((y.b - y.a) / (y.a || 1)) - Math.abs((x.b - x.a) / (x.a || 1)))[0];
+
+        $('qTitle').textContent = !lines.length ? blkTxt + ' 의 수량 이력이 없습니다'
+            : nChg ? blkTxt + ' 수량은 ' + ds.length + '번 저장 중 ' + nChg + '번 바뀌었습니다'
+            : blkTxt + ' 수량은 기간 내내 그대로였습니다';
+        $('qLede').textContent = big && big.b !== big.a
+            ? big.l.brand + ' 는 ' + fmt(big.a) + ' 에서 ' + fmt(big.b) + ' 로 ' + pct(Math.abs((big.b - big.a) / (big.a || 1) * 100)) + '% ' + (big.b > big.a ? '늘었습니다' : '줄었습니다') + '. 노란 띠가 수량이 바뀐 날이고, ▲는 늘어남, ▼는 줄어듦입니다.'
+            : '선 하나가 브랜드 하나입니다. 노란 띠가 수량이 바뀐 날이고, ▲는 늘어남, ▼는 줄어듦입니다.';
+
+        draw('chQty', lines.length > 0, {
+            chart: { type: 'line' },
+            xAxis: {
+                categories: ds.map((d, i) => chgDays[i] ? '<span style="color:#8A5A00;font-weight:800">' + sd(d) + '</span>' : sd(d)),
+                labels: { style: { fontSize: '13px' } },
+                plotBands: chgDays.map((c, i) => c ? { from: i - .5, to: i + .5, color: 'rgba(224,150,15,.13)' } : null).filter(Boolean)
+            },
+            yAxis: { title: { text: avg ? '호기 1대당 수량' : '수량 합계' }, labels: { style: { fontSize: '13px' } } },
+            legend: { itemStyle: { fontSize: '15px', fontWeight: '700' } },
+            tooltip: { shared: true, formatter: function () {
+                const i = this.points[0].point.index;
+                return '<b>' + md(ds[i]) + '(' + wk(ds[i]) + ')</b> · ' + esc(blkTxt) + '<br/>' + this.points.map(p => {
+                    const d = p.point.diff;
+                    return '<span style="color:' + p.color + '">●</span> ' + esc(p.series.name) + ': <b>' + fmt(p.y) + '</b>' +
+                        (d ? ' <b style="color:' + (d > 0 ? UP : DOWN) + '">' + (d > 0 ? '▲ ' : '▼ ') + fmt(Math.abs(d)) + '</b>' : '') + ' (호기 ' + p.point.h + '대)';
+                }).join('<br/>');
+            } },
+            plotOptions: { line: { lineWidth: 3, marker: { radius: 3, symbol: 'circle' },
+                dataLabels: { enabled: lines.length <= 4, crop: false, overflow: 'allow', y: -8,
+                    formatter: function () { const d = this.point.diff; return d ? '<span style="color:' + (d > 0 ? UP : DOWN) + '">' + signed(d) + '</span>' : null; },
+                    style: { fontSize: '13px', fontWeight: '800', textOutline: '3px #F7F9FB' } } } },
+            series: lines.map(l => ({
+                name: l.brand, color: DATA.color.get(l.brand),
+                data: l.vals.map((v, i) => ({ y: v, diff: l.diffs[i], h: l.pts[i].hogis,
+                    marker: l.diffs[i] ? { radius: 8, symbol: l.diffs[i] > 0 ? 'triangle' : 'triangle-down', fillColor: l.diffs[i] > 0 ? UP : DOWN, lineWidth: 2, lineColor: '#fff' } : undefined }))
+            }))
+        });
+        $('chQty').setAttribute('aria-label', blkTxt + ' 브랜드별 수량 추이. ' + moved.map(x => x.l.brand + ' ' + fmt(x.a) + '에서 ' + fmt(x.b)).join(', '));
+        $('qLegend').innerHTML = moved.map(x => {
+            const df = Math.round((x.b - x.a) * 10) / 10;
+            return '<span><b style="color:' + DATA.color.get(x.l.brand) + '">●</b> ' + esc(x.l.brand) + ' <b class="num">' + fmt(x.a) + ' → ' + fmt(x.b) + '</b> <em class="' + (df > 0 ? 'up' : df < 0 ? 'down' : '') + '">' + (df ? signed(df) : '변동 없음') + '</em></span>';
+        }).join('') + (nChg ? '<span class="chg">수량이 바뀐 날 ' + nChg + '일</span>' : '') +
+            '<span>단위가 다른 자재의 수량을 그대로 더한 값이라 규모 비교용입니다</span>';
+    }
+
+    /* ════════════ 4층 개선 여부 ════════════ */
+    function renderDaily() {
+        const d = A.daily, h = halves();
+        const avg = d.filter(x => x.rate != null);
+        const mean = avg.length ? avg.reduce((a, x) => a + x.rate, 0) / avg.length : 0;
+        if (!h) { $('tTitle').textContent = '추세를 말하기에는 아직 저장 횟수가 부족합니다'; }
+        else if (h.b < h.a - 3) $('tTitle').textContent = '변동이 줄고 있습니다. 후반 변동 비율이 ' + pct(h.a - h.b) + '%p 낮아졌습니다';
+        else if (h.b > h.a + 3) $('tTitle').textContent = '변동이 늘고 있습니다. 후반 변동 비율이 ' + pct(h.b - h.a) + '%p 높아졌습니다';
+        else $('tTitle').textContent = '변동 비율이 기간 내내 비슷한 수준입니다';
+        $('tLede').textContent = '막대는 그날 비교한 호기 중 BOM 이 바뀐 호기의 비율입니다. 점선은 기간 평균(' + pct(mean) + '%)이고, 자재 교체가 있었던 날은 막대가 주황색입니다.';
+        draw('chDaily', d.length > 0, {
+            chart: { type: 'column' },
+            xAxis: { categories: d.map(x => sd(x.date)), labels: { style: { fontSize: '13px' } },
+                plotBands: h ? [{ from: d.findIndex(x => x.date === h.bFrom) - .5, to: d.length - .5, color: 'rgba(19,32,47,.04)',
+                    label: { text: '후반', align: 'left', x: 8, y: 16, style: { color: '#5A6878', fontWeight: '700' } } }] : [] },
+            yAxis: { title: { text: '바뀐 호기 비율 (%)' }, max: 100, min: 0, labels: { format: '{value}%', style: { fontSize: '13px' } },
+                plotLines: [{ value: mean, color: '#13202F', dashStyle: 'Dash', width: 1.5, zIndex: 5, label: { text: '평균 ' + pct(mean) + '%', align: 'right', style: { fontWeight: '700', color: '#13202F' } } }] },
+            legend: { enabled: false },
+            tooltip: { formatter: function () {
+                const x = d[this.point.index];
+                return '<b>' + md(x.date) + '(' + wk(x.date) + ')</b><br/>비교 ' + x.cmp + '대 중 ' + x.changed + '대 변동 (' + pct(x.rate) + '%)<br/>바뀐 PICK ' + x.events + '건 · 자재 교체 ' + x.swap + '건';
+            } },
+            plotOptions: { column: { borderWidth: 0, borderRadius: 3, pointPadding: .08, groupPadding: .06 } },
+            series: [{ name: '바뀐 호기 비율', data: d.map(x => ({ y: x.rate == null ? null : Math.round(x.rate * 10) / 10, color: x.swap ? SIGNAL : '#8C9AAB' })) }]
+        });
+        $('chDaily').setAttribute('aria-label', '일자별 바뀐 호기 비율. ' + d.map(x => sd(x.date) + ' ' + pct(x.rate) + '%').join(', '));
+        $('tHalves').innerHTML = h
+            ? '<div><span>전반 ' + sd(h.aFrom) + ' ~ ' + sd(h.aTo) + '</span><b class="num">' + pct(h.a) + '%</b></div>' +
+              '<div><span>후반 ' + sd(h.bFrom) + ' ~ ' + sd(h.bTo) + '</span><b class="num" style="color:' + (h.b < h.a - 3 ? UP : h.b > h.a + 3 ? DOWN : 'inherit') + '">' + pct(h.b) + '%</b></div>'
+            : '';
+    }
+
+    /* ════════════ 5층 사례 ════════════ */
+    function pickCase() {
+        const inP = e => e.date >= state.from && e.date <= state.to;
+        const groups = new Map();
+        DATA.events.forEach(e => {
+            const k = e.hogi + '|' + e.block + '|' + e.pick;
+            const g = groups.get(k) || { hogi: e.hogi, block: e.block, pick: e.pick, ev: [], score: 0 };
+            g.ev.push(e);
+            if (inP(e)) g.score += (e.revert ? 100 : 0) + (e.type === 'swap' ? 10 : 0) + 1;
+            groups.set(k, g);
+        });
+        return Array.from(groups.values()).filter(g => g.score > 0).sort((a, b) => b.score - a.score)[0] || null;
+    }
+
+    /* 원인 추적 화면 주소 (copTraceCause) */
+    const traceHref = (g, e) => '/cop/trace/cause?' + new URLSearchParams({ hogi: g.hogi, date: e.date, prev: e.prevDate, block: g.block, pick: g.pick });
+
+    function renderCase() {
+        const g = pickCase();
+        if (!g) {
+            $('kTitle').textContent = '이 기간에는 자재가 바뀐 사례가 없습니다';
+            $('kLede').textContent = '모든 PICK 이 같은 자재번호를 유지했습니다.';
+            ['kHead', 'kLine'].forEach(id => { $(id).innerHTML = ''; });
+            $('kWhy').hidden = true;
+            $('kGo').hidden = true;
+            return;
+        }
+        const h = DATA.hogis.get(g.hogi), s = h.blocks.get(g.block).series;
+        const ds = Array.from(s.snaps.keys()).sort().filter(d => d <= state.to);
+        const start = Math.max(0, ds.findIndex(d => d >= state.from) - 1);
+        const shown = ds.slice(start);
+        const evBy = new Map(g.ev.map(e => [e.date, e]));
+        const reverts = g.ev.filter(e => e.revert && e.date >= state.from).length;
+        const swaps = g.ev.filter(e => e.type === 'swap' && e.date >= state.from).length;
+        const nos = new Set(shown.map(d => (s.snaps.get(d).picks.get(g.pick) || {}).partNo).filter(Boolean));
+        $('kTitle').textContent = reverts
+            ? '같은 자리의 자재가 ' + nos.size + '개 번호 사이를 오가다 예전 번호로 ' + reverts + '번 되돌아갔습니다'
+            : swaps ? '한 PICK 의 자재번호가 기간 중 ' + swaps + '번 바뀌었습니다' : '한 PICK 의 수배 내용이 기간 중 ' + g.ev.length + '번 바뀌었습니다';
+        $('kLede').textContent = '사람이 매일 BOM 을 비교했다면 놓치기 쉬운 경우입니다. 시스템이 저장일마다 자동으로 비교해 찾았습니다.';
+        $('kHead').innerHTML = '<span>호기 <b>' + esc(g.hogi) + '</b></span><span>브랜드 <b>' + esc(h.brand) + '</b></span><span>기종 <b>' + esc(h.atyp) + '</b></span>' +
+            '<span>블럭 <b>' + esc(g.block) + '</b></span><span>PICK <b>' + esc(g.pick) + '</b></span>';
+        $('kLine').innerHTML = shown.map(d => {
+            const p = s.snaps.get(d).picks.get(g.pick), e = evBy.get(d);
+            const cls = e ? (e.revert ? 'tl back' : 'tl chg') : 'tl';
+            const tag = e ? (e.revert ? '예전 번호로 복귀' : TYPE_LABEL[e.type]) : '';
+            const inner = '<div class="pt"></div><div class="d">' + sd(d) + '(' + wk(d) + ')</div>' +
+                '<div class="p">' + esc(p && p.partNo ? p.partNo : '없음') + '</div><div class="q">수량 ' + esc(p ? p.qty : '-') + '</div>' +
+                (tag ? '<span class="t">' + tag + '</span>' : '');
+            return e ? '<a class="' + cls + '" href="' + esc(traceHref(g, e)) + '" title="' + esc(sd(e.prevDate) + ' → ' + sd(d) + ' 변동 원인 추적') + '">' + inner + '</a>'
+                     : '<div class="' + cls + '">' + inner + '</div>';
+        }).join('');
+        /* 원인 추적 : 기간 안의 마지막 복귀 → 마지막 교체 → 마지막 변동 */
+        const inP = g.ev.filter(e => e.date >= state.from && e.date <= state.to);
+        const key = inP.filter(e => e.revert).at(-1) || inP.filter(e => e.type === 'swap').at(-1) || inP.at(-1);
+        $('kGo').hidden = !key;
+        if (key) {
+            $('kTrace').href = traceHref(g, key);
+            $('kGoSub').textContent = sd(key.prevDate) + ' → ' + sd(key.date) + ' 변동을 PID 로직까지 거슬러 올라가 어느 버전 · 어느 라인이 바뀌었는지 보여줍니다. 타임라인의 다른 점을 눌러도 됩니다.';
+        }
+        $('kWhy').hidden = false;
+        $('kWhy').textContent = reverts
+            ? '자재가 바뀌었다가 원래대로 돌아오면 그 사이에 수배한 부품이 남거나 모자랄 수 있습니다. 이런 PICK 을 바로 짚어 담당자가 확정 전에 확인하도록 합니다.'
+            : '자재번호가 자주 바뀌는 PICK 은 설계가 아직 확정되지 않았다는 신호입니다. 확정 전 수배를 미루거나 담당자에게 알려 불필요한 발주를 막습니다.';
+    }
+
+    /* ════════════ 그리기 · 불러오기 ════════════ */
+    function render() {
+        A = analyze();
+        if (!A.dates.length) { showState('이 기간에 저장된 BOM 이 없습니다', '기간을 늘리거나 일자별 수량 계산 화면에서 이력을 저장해 주세요.'); return; }
+        $('state').hidden = true; $('deck').hidden = false;
+        renderCover(); renderBrands(); fillBlocks(); renderQty(); renderDaily(); renderCase();
+        $('mNote').textContent = '데이터: PLM_SIMUL_HOGIBOM 시뮬레이션 저장 이력 · ' + md(state.from) + ' ~ ' + md(state.to) + ' · 저장 ' + A.dates.length + '회 · 호기 ' + fmt(A.tot.hogis) + '대 · 바뀐 PICK ' + fmt(A.tot.events) + '건' +
+            (A.tot.match != null ? ' · PICK 유지율 ' + pct(A.tot.match) + '%' : '');
+        syncUrl();
+    }
+    function showState(h, p, err) {
+        $('deck').hidden = true; $('state').hidden = false;
+        $('state').className = 'state' + (err ? ' err' : '');
+        $('state').innerHTML = '<div><h2>' + esc(h) + '</h2><p>' + esc(p) + '</p></div>';
+    }
+    function syncUrl() {
+        const p = new URLSearchParams({ from: state.from, to: state.to });
+        if (state.block) p.set('block', state.block);
+        try { history.replaceState(null, '', location.pathname + '?' + p); } catch (e) { /* 무시 */ }
+        $('lnkDash').href = '/cop/dashboard?' + p;
+    }
+    async function load() {
+        const from = $('inFrom').value.replace(/-/g, ''), to = $('inTo').value.replace(/-/g, '');
+        if (!from || !to || from > to) { showState('기간을 다시 골라 주세요', '시작일이 종료일보다 늦습니다.', true); return; }
+        state.from = from; state.to = to;
+        document.querySelectorAll('[data-range]').forEach(b => b.setAttribute('aria-pressed', String(to === ymd(new Date()) && Math.round((toDate(to) - toDate(from)) / 864e5) + 1 === +b.dataset.range)));
+        showState('BOM 저장 이력을 불러오는 중입니다', md(from) + ' ~ ' + md(to));
+        try {
+            const r = await fetch('/cop/dashboard/brand/history?from=' + addDays(from, -LOOKBACK) + '&to=' + to, { headers: { Accept: 'application/json' } });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok || !d.success) throw new Error(d.message || ('HTTP ' + r.status));
+            DATA = build(d);
+            render();
+        } catch (e) {
+            showState('BOM 이력을 불러오지 못했습니다', e.message + ' · 조회 버튼으로 다시 시도해 주세요.', true);
+        }
+    }
+
+    /* ════════════ 층 이동 ════════════ */
+    const floors = () => Array.from(document.querySelectorAll('.floor'));
+    $('rail').innerHTML = floors().map((f, i) => '<a href="#' + f.id + '" aria-label="' + (i + 1) + '. ' + f.dataset.label + '">' + (i + 1) + '<span>' + f.dataset.label + '</span></a>').join('');
+    let cur = 0;
+    const light = i => { cur = i; document.querySelectorAll('.rail a').forEach((a, j) => a.setAttribute('aria-current', String(i === j))); };
+    light(0);
+    if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) light(floors().indexOf(e.target)); }), { threshold: .55 });
+        floors().forEach(f => io.observe(f));
+    }
+    const go = i => { const f = floors()[i]; if (f) f.scrollIntoView({ behavior: calm() ? 'auto' : 'smooth', block: 'start' }); };
+    document.addEventListener('keydown', e => {
+        if ($('deck').hidden || e.altKey || e.ctrlKey || e.metaKey) return;
+        if (e.target.closest && e.target.closest('input, select, textarea')) return;
+        if (['ArrowDown', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); go(Math.min(cur + 1, floors().length - 1)); }
+        if (['ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); go(Math.max(cur - 1, 0)); }
+        if (e.key === 'Home') { e.preventDefault(); go(0); }
+        if (e.key === 'End') { e.preventDefault(); go(floors().length - 1); }
+    });
+
+    /* ════════════ 이벤트 ════════════ */
+    $('btnLoad').addEventListener('click', load);
+    document.querySelectorAll('[data-range]').forEach(b => b.addEventListener('click', () => {
+        const to = ymd(new Date());
+        $('inTo').value = iso(to); $('inFrom').value = iso(addDays(to, -(+b.dataset.range - 1)));
+        load();
+    }));
+    $('btnPrint').addEventListener('click', () => window.print());
+    $('inBlock').addEventListener('change', e => { state.block = e.target.value; renderQty(); syncUrl(); });
+    document.querySelectorAll('[data-tq]').forEach(b => b.addEventListener('click', () => { state.tq = b.dataset.tq; renderQty(); }));
+
+    Highcharts.setOptions({
+        lang: { thousandsSep: ',', numericSymbols: null },
+        chart: { backgroundColor: 'transparent', style: { fontFamily: getComputedStyle(document.body).fontFamily }, animation: !calm() },
+        title: { text: null }, credits: { enabled: false }, exporting: { enabled: false }, accessibility: { enabled: false },
+        xAxis: { lineColor: '#C7D0D9', tickColor: '#C7D0D9', labels: { style: { color: '#5A6878' } } },
+        yAxis: { gridLineColor: '#E1E6EB', labels: { style: { color: '#5A6878' } }, title: { style: { color: '#5A6878', fontWeight: '700', fontSize: '13px' } } },
+        tooltip: { backgroundColor: '#FFFFFF', borderColor: '#C7D0D9', borderRadius: 8, style: { fontSize: '14px', color: '#13202F' } },
+        plotOptions: { series: { animation: calm() ? false : { duration: 600 }, states: { inactive: { opacity: 1 } } } }
+    });
+
+    /* 첫 화면 : URL ?from&to&block, 없으면 최근 30일 */
+    const qs = new URLSearchParams(location.search);
+    const ok = v => { const s = (v || '').replace(/-/g, ''); return /^\d{8}$/.test(s) ? s : ''; };
+    const today = ymd(new Date()), to0 = ok(qs.get('to')) || today;
+    $('inTo').value = iso(to0); $('inTo').max = iso(today);
+    $('inFrom').value = iso(ok(qs.get('from')) || addDays(to0, -29));
+    state.block = qs.get('block') || '';
+    load();
+})();
+</script>
+</body>
+</html>

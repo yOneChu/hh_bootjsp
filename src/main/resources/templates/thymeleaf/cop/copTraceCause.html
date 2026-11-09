@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>BOM 변동 원인 추적 · SENTINEL</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        SENTINEL · BOM 변동 원인 추적 (CopMainController : GET /cop/trace/cause)
+
+        주소 : /cop/trace/cause?hogi=호기&date=yyyyMMdd&prev=yyyyMMdd&block=블럭PID&pick=PICK
+               date  = 변동이 난 저장 일자 (필수)
+               prev  = 앞 저장 일자 (없으면 블럭마다 바로 앞 저장 일자)
+               block · pick = 처음 고를 블럭 / PICK (없으면 첫 변동)
+               copDashboard 의 "호기별 비교 결과" · 상세 드로어의 [원인추적] 버튼으로 들어온다.
+
+        역추적 순서 (copTraceSales 와 같은 단계식 추적)
+          1. 저장 이력 : PLM_SIMUL_HOGIBOM 에서 두 일자의 PICK · 자재번호 · 수량 차이   (/cop/dashboard/brand/history)
+          2. 다시 실행 : 두 일자를 기준일로 블럭 수량 계산 재실행 → 저장 값과 같은지(재현)   (/simulateup/calcBlockQty?asOfDate=)
+          3. PID 버전  : 기준일마다 실제로 고른 PID 버전 (asOfVersions) 비교 → 버전이 바뀐 PID
+          4. 로직 라인 : 자재번호 변동 → 자재수배 PID(EL_P+블럭), 수량 변동 → 블럭 PID(해당 PICK) 를
+                         두 일자 버전으로 실행해 라인을 내용으로 맞춰 비교 (추가 · 삭제 · 수정 · 판정 변경)
+                         (/simulateup/simulatePid , /simulateup/simulatePidPick  + version · subVersions)
+          5. 결과값    : 그 PID 의 최종 결과값 차이
+        원인 판정
+          PID 버전이 바뀌고 라인 차이가 있으면 → 로직 변경 (해당 라인)
+          버전이 모두 같으면 → 지금 다시 실행하면 두 일자 결과가 같으므로, 저장 당시 영업사양(공사값) · 지정값 차이로 추정
+        참고 : 다시 실행은 현재 영업사양을 쓴다. PICK 실행(simulatePidPick)의 자재수배 PID 는 최신 버전으로 실행된다.
+    -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+    <style>
+        :root {
+            --bg: #F6F7F9; --surface: #FFFFFF; --surface-2: #F9FAFB; --line: #E4E7EC; --line-2: #D0D5DD;
+            --ink: #0B1220; --ink-2: #3F4A5C; --ink-3: #667085;
+            --brand: #1E40AF; --brand-2: #2F5BEA; --brand-bg: #EEF2FF;
+            --alert: #D92D20; --alert-bg: #FEF3F2; --ok: #067647; --ok-bg: #ECFDF3; --warn: #B54708; --warn-bg: #FFFAEB;
+            --a: #B45309; --a-bg: #FFFBEB; --b: #1D4ED8; --b-bg: #EFF6FF;
+            --t-qty: #2A78D6; --t-swap: #EB6834; --t-add: #1BAF7A; --t-del: #EDA100;
+            --radius: 14px; --shadow: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+            --mono: "D2Coding", Consolas, "SF Mono", Menlo, monospace;
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        html { background: var(--bg); }
+        body { margin: 0; font-family: var(--sans); font-size: 15px; line-height: 1.55; color: var(--ink); background: var(--bg); word-break: keep-all; overflow-wrap: anywhere; -webkit-font-smoothing: antialiased; }
+        h1, h2, h3, p, ol, ul, dl, dd { margin: 0; }
+        ol, ul { padding: 0; list-style: none; }
+        a { color: inherit; text-decoration: none; }
+        button, select, input { font: inherit; color: inherit; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 3px solid var(--brand-2); outline-offset: 2px; border-radius: 6px; }
+        .mono { font-family: var(--mono); }
+        .tnum { font-variant-numeric: tabular-nums; }
+        .wrap { max-width: 1440px; margin: 0 auto; padding: 0 16px; }
+        @media (min-width: 900px) { .wrap { padding: 0 32px; } }
+
+        .nav { position: sticky; top: 0; z-index: 30; background: rgba(255,255,255,.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+        .nav-in { min-height: 58px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding-top: 8px; padding-bottom: 8px; }
+        .nav b { font-weight: 800; letter-spacing: .2em; font-size: 14px; }
+        .nav .crumb { color: var(--ink-3); font-size: 14px; }
+        .nav .crumb strong { color: var(--ink); }
+        .nav .sp { flex: 1; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 13px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; font-size: 14px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+        .btn:hover { border-color: var(--ink-3); color: var(--ink); }
+        .btn:disabled { opacity: .45; cursor: default; }
+        .btn-solid { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .btn-solid:hover { background: var(--brand-2); color: #fff; }
+        .btn-sm { min-height: 30px; padding: 0 10px; font-size: 13px; }
+
+        main.wrap { padding-top: 22px; padding-bottom: 64px; display: flex; flex-direction: column; gap: 18px; }
+        .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; }
+
+        /* 결론 */
+        .verdict { padding: 22px 26px; border-left: 5px solid var(--ink-3); }
+        .verdict.root { border-left-color: var(--alert); }
+        .verdict.ok { border-left-color: var(--ok); }
+        .verdict .kick { font-size: 13px; font-weight: 700; color: var(--ink-3); }
+        .verdict h1 { margin-top: 6px; font-size: clamp(20px, 2.2vw, 27px); line-height: 1.35; font-weight: 800; letter-spacing: -.02em; max-width: 60ch; }
+        .verdict h1 em { font-style: normal; font-family: var(--mono); background: var(--alert-bg); color: var(--alert); padding: 0 6px; border-radius: 6px; }
+        .verdict p { margin-top: 8px; color: var(--ink-2); max-width: 90ch; }
+        .tags { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
+        .tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; color: var(--ink-3); }
+        .tag b { color: var(--ink); font-family: var(--mono); }
+        .tag.hot { background: var(--alert-bg); border-color: #FBD5D1; color: var(--alert); font-weight: 700; }
+
+        .layout { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+        @media (min-width: 1100px) { .layout { grid-template-columns: 320px minmax(0, 1fr); } }
+
+        /* 바뀐 PICK 목록 */
+        .side { position: sticky; top: 76px; max-height: calc(100vh - 96px); display: flex; flex-direction: column; }
+        @media (max-width: 1099px) { .side { position: static; max-height: 420px; } }
+        .side-hd { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+        .side-hd h2 { font-size: 15px; font-weight: 750; }
+        .side-hd p { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+        .side-bd { overflow: auto; }
+        .blk { padding: 8px 16px 4px; font: 700 12.5px var(--mono); color: var(--ink-3); background: var(--surface-2); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; position: sticky; top: 0; }
+        .pk { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; width: 100%; padding: 10px 16px; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; cursor: pointer; }
+        .pk:hover { background: #F5F8FF; }
+        .pk[aria-current="true"] { background: var(--brand-bg); box-shadow: inset 3px 0 0 var(--brand); }
+        .pk .tp { grid-row: 1 / span 2; align-self: center; }
+        .pk b { font: 700 13px var(--mono); }
+        .pk small { font: 12px var(--mono); color: var(--ink-3); }
+        .ty { display: inline-flex; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 750; white-space: nowrap; }
+        .ty.qty { background: #E8F1FC; color: var(--t-qty); } .ty.swap { background: #FDEEE7; color: #C2410C; }
+        .ty.add { background: #E5F6EF; color: #067A52; } .ty.del { background: #FDF5E0; color: #A15C00; }
+        .ty.rev { background: var(--alert-bg); color: var(--alert); }
+
+        /* 추적 단계 */
+        .chain { display: flex; flex-direction: column; }
+        .step { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 0 14px; }
+        .step .rail { display: flex; flex-direction: column; align-items: center; }
+        .step .dot { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 2px solid var(--line-2); font-weight: 800; font-size: 14px; color: var(--ink-3); flex: none; }
+        .step .wire { flex: 1; width: 2px; background: var(--line-2); margin: 4px 0; min-height: 18px; }
+        .step:last-child .wire { display: none; }
+        .step.done .dot { border-color: var(--ink-2); color: var(--ink); }
+        .step.root .dot { background: var(--alert); border-color: var(--alert); color: #fff; box-shadow: 0 0 0 5px var(--alert-bg); }
+        .step.run .dot { border-color: var(--brand-2); color: var(--brand); animation: pulse 1.2s ease-in-out infinite; }
+        @keyframes pulse { 50% { box-shadow: 0 0 0 6px var(--brand-bg); } }
+        @media (prefers-reduced-motion: reduce) { .step.run .dot { animation: none; } }
+        .box { margin-bottom: 16px; padding: 16px 20px 18px; }
+        .step.root .box { border-color: #F5B5AE; box-shadow: 0 0 0 3px var(--alert-bg); }
+        .box-hd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+        .box-hd .k { font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
+        .box-hd .root-b { display: none; padding: 1px 9px; border-radius: 999px; background: var(--alert); color: #fff; font-size: 12px; font-weight: 800; }
+        .step.root .box-hd .root-b { display: inline-flex; }
+        .box h3 { flex-basis: 100%; margin-top: 2px; font-size: 17px; font-weight: 750; letter-spacing: -.01em; }
+        .box .q { flex-basis: 100%; font-size: 13px; color: var(--ink-3); }
+        .kv { margin-top: 12px; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+        .kv div { padding: 8px 11px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--line); }
+        .kv dt { font-size: 12px; color: var(--ink-3); font-weight: 600; }
+        .kv dd { font: 700 14px var(--mono); margin-top: 1px; }
+        .kv dd.hot { color: var(--alert); }
+        .note { margin-top: 12px; padding: 10px 12px; border-radius: 9px; background: var(--warn-bg); color: var(--warn); font-size: 13.5px; font-weight: 600; }
+        .note.info { background: var(--brand-bg); color: var(--brand); }
+        .note.err { background: var(--alert-bg); color: var(--alert); }
+        .loading { margin-top: 12px; color: var(--ink-3); font-size: 14px; }
+
+        .pair { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: stretch; }
+        .pair > div { padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); }
+        .pair .A { background: var(--a-bg); border-color: #FCD9A0; }
+        .pair .B { background: var(--b-bg); border-color: #BFD3FB; }
+        .pair small { display: block; font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
+        .pair b { display: block; margin-top: 2px; font: 800 18px var(--mono); }
+        .pair span.q2 { font-size: 13px; color: var(--ink-2); font-family: var(--mono); }
+        .pair .neq { align-self: center; font-size: 22px; font-weight: 800; color: var(--alert); }
+
+        .tbl-wrap { margin-top: 12px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; max-height: 560px; }
+        table.t { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+        table.t th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); text-align: left; font-size: 12px; font-weight: 700; color: var(--ink-3); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+        table.t td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+        table.t tr:last-child td { border-bottom: 0; }
+        table.t tr.hot td { background: #FFF6F5; }
+        table.t td.m { font-family: var(--mono); }
+        table.t td.nw { white-space: nowrap; }
+        table.t .A { color: var(--a); font-weight: 700; }
+        table.t .B { color: var(--b); font-weight: 700; }
+        table.t s { color: var(--ink-3); }
+        .st { display: inline-flex; padding: 1px 8px; border-radius: 6px; font: 700 12px var(--mono); background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-3); }
+        .st.T { background: var(--ok-bg); border-color: #ABEFC6; color: var(--ok); }
+        .st.F { background: #F2F4F7; color: var(--ink-3); }
+        .kind { display: inline-flex; padding: 1px 8px; border-radius: 6px; font-size: 12px; font-weight: 750; white-space: nowrap; }
+        .kind.add { background: #E5F6EF; color: #067A52; } .kind.del { background: var(--alert-bg); color: var(--alert); }
+        .kind.mod { background: var(--warn-bg); color: var(--warn); } .kind.state { background: var(--brand-bg); color: var(--brand); }
+        .cap { margin-top: 6px; font-size: 12.5px; color: var(--ink-3); }
+        .cond { font-family: var(--mono); font-size: 12.5px; }
+        .cond i { font-style: normal; color: var(--ink-3); }
+        .links { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+
+        .todo-card { padding: 16px 20px; }
+        .todo-card h2 { font-size: 16px; font-weight: 750; }
+        .todo { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+        .todo label { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; cursor: pointer; }
+        .todo input { margin-top: 4px; }
+
+        .state-box { padding: 56px 24px; text-align: center; color: var(--ink-2); }
+        .state-box h2 { font-size: 18px; font-weight: 750; color: var(--ink); }
+        .state-box p { margin-top: 8px; color: var(--ink-3); }
+        .state-box.err h2 { color: var(--alert); }
+        .state-box .btn { margin-top: 14px; }
+
+        @media print { .nav, .side, .links { display: none !important; } .layout { grid-template-columns: minmax(0, 1fr); } .tbl-wrap { max-height: none; overflow: visible; } }
+    </style>
+</head>
+<body>
+
+<header class="nav">
+    <div class="wrap nav-in">
+        <b>SENTINEL</b>
+        <span class="crumb">BOM 변동 대시보드 › <strong>원인 추적</strong></span>
+        <span class="sp"></span>
+        <a class="btn" id="lnkBack" href="/cop/dashboard">대시보드로</a>
+        <a class="btn" id="lnkCalc" href="/simulateup/blockQtyCompare">일자별 수량 계산</a>
+        <button type="button" class="btn" id="btnPrint">인쇄</button>
+    </div>
+</header>
+
+<main class="wrap">
+    <section class="card verdict" id="verdict" aria-live="polite">
+        <p class="kick" id="vKick">원인 추적</p>
+        <h1 id="vTitle">저장 이력을 불러오는 중입니다</h1>
+        <p id="vSub">PLM_SIMUL_HOGIBOM</p>
+        <div class="tags" id="vTags"></div>
+    </section>
+
+    <div class="layout" id="layout" hidden>
+        <aside class="card side" aria-labelledby="sideTitle">
+            <div class="side-hd"><h2 id="sideTitle">바뀐 PICK</h2><p id="sideSub">-</p></div>
+            <div class="side-bd" id="picks"></div>
+        </aside>
+        <div>
+            <ol class="chain" id="chain"></ol>
+            <section class="card todo-card" id="todoCard" hidden>
+                <h2>확인할 일</h2>
+                <ul class="todo" id="todo"></ul>
+            </section>
+        </div>
+    </div>
+
+    <section class="card" id="stateCard" hidden><div class="state-box" id="stateBox"></div></section>
+</main>
+
+<script>
+(function () {
+    'use strict';
+
+    const API = {
+        hist: '/cop/dashboard/brand/history',
+        qty:  '/simulateup/calcBlockQty',
+        sim:  '/simulateup/simulatePid',
+        pick: '/simulateup/simulatePidPick',
+        page: '/simulateup/pidSimulatorUp'
+    };
+    const LOOKBACK = 45;          // prev 가 없을 때 앞 저장 일자를 찾는 범위 (일)
+    const MAX_LINES = 40;         // 라인 비교 표 최대 행
+    const LCS_LIMIT = 4e6;        // 라인 맞춤(LCS) 계산 한도 (라인 수 곱)
+    const TYPES = { swap: '자재 교체', add: '신규 수배', del: '수배 제외', qty: '수량 변경' };
+    const RANK = { swap: 0, add: 1, del: 2, qty: 3 };
+
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const pad = n => String(n).padStart(2, '0');
+    const ymd = d => d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+    const toDate = s => new Date(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8));
+    const iso = s => s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6, 8);
+    const addDays = (s, n) => { const d = toDate(s); d.setDate(d.getDate() + n); return ymd(d); };
+    const wk = s => '일월화수목금토'.charAt(toDate(s).getDay());
+    const day = s => s ? s.slice(0, 4) + '.' + s.slice(4, 6) + '.' + s.slice(6, 8) + '(' + wk(s) + ')' : '-';
+    const sd = s => s ? +s.slice(4, 6) + '/' + +s.slice(6, 8) : '-';
+    const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isFinite(n) ? n : null; };
+    const str = v => v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v).trim();
+    const vtxt = v => v == null || v === '' ? '(없음)' : v;
+    const keyOf = (m, k) => Object.keys(m || {}).find(x => x.toUpperCase() === k);
+    const qtyOf = run => { if (!run) return null; const k = keyOf(run.resultMap, 'QTY'); return k === undefined ? null : str(run.resultMap[k]); };
+    const partOf = run => run ? str(run.pickValue) : '';
+
+    /* ════════════ 주소 ════════════ */
+    const qs = new URLSearchParams(location.search);
+    const okD = v => { const s = (v || '').replace(/-/g, ''); return /^\d{8}$/.test(s) ? s : ''; };
+    const P = { hogi: (qs.get('hogi') || '').trim(), date: okD(qs.get('date')), prev: okD(qs.get('prev')), block: (qs.get('block') || '').trim(), pick: (qs.get('pick') || '').trim() };
+
+    let H = null;               // 저장 이력 (블럭 → 일자 → PICK)
+    let SEL = null;             // 고른 변동 이벤트
+    const cache = new Map();    // 같은 블럭 · 일자 쌍의 재실행 결과
+    let runId = 0;
+
+    async function getJson(url) {
+        const r = await fetch(url, { headers: { Accept: 'application/json' } });
+        const j = await r.json().catch(() => null);
+        if (!r.ok || !j || j.error || j.success === false) throw new Error((j && (j.error || j.message)) || 'HTTP ' + r.status);
+        return j;
+    }
+
+    /* ════════════ 1. 저장 이력 ════════════ */
+    async function loadHistory() {
+        const from = P.prev && P.prev < P.date ? P.prev : addDays(P.date, -LOOKBACK);
+        const res = await getJson(API.hist + '?from=' + from + '&to=' + P.date);
+        const ci = {}; res.columns.forEach((c, i) => { ci[c] = i; });
+        const blocks = new Map();
+        let spec = null;
+        res.rows.forEach(x => {
+            if (x[ci.HOGI] !== P.hogi) return;
+            const b = x[ci.BLOCKNO], d = x[ci.BATCHDATE], pick = x[ci.PICK];
+            if (!b || !d || !pick) return;
+            if (!blocks.has(b)) blocks.set(b, new Map());
+            const snaps = blocks.get(b);
+            if (!snaps.has(d)) snaps.set(d, new Map());
+            if (!snaps.get(d).has(pick)) snaps.get(d).set(pick, { partNo: x[ci.PARTNO], qty: x[ci.QTY], cmt: x[ci.CMT] });
+            if (d === P.date || !spec) spec = { brand: x[ci.BRAND], atyp: x[ci.ATYP], speed: x[ci.SPEED], acapa: x[ci.ACAPA] };
+        });
+
+        const events = [];
+        blocks.forEach((snaps, b) => {
+            const cur = snaps.get(P.date);
+            if (!cur) return;
+            const ds = Array.from(snaps.keys()).filter(d => d < P.date).sort();
+            const prevDate = P.prev && snaps.has(P.prev) ? P.prev : ds.at(-1);
+            if (!prevDate) return;
+            const prev = snaps.get(prevDate);
+            /* 앞 일자들에서 쓰였던 자재번호 (예전 자재 복귀 판단) */
+            const seen = new Map();
+            ds.filter(d => d < prevDate).forEach(d => snaps.get(d).forEach((p, k) => { if (p.partNo) { if (!seen.has(k)) seen.set(k, new Set()); seen.get(k).add(p.partNo); } }));
+            new Set([...prev.keys(), ...cur.keys()]).forEach(pick => {
+                const a = prev.get(pick), c = cur.get(pick);
+                const pNo = a ? a.partNo : '', cNo = c ? c.partNo : '';
+                if (!pNo && !cNo) return;
+                const pQ = pNo ? a.qty : '', cQ = cNo ? c.qty : '', pn = num(pQ), cn = num(cQ);
+                let type;
+                if (!pNo) type = 'add'; else if (!cNo) type = 'del'; else if (pNo !== cNo) type = 'swap';
+                else if (pn != null && cn != null ? pn !== cn : String(pQ) !== String(cQ)) type = 'qty'; else return;
+                events.push({ block: b, pick, type, prevDate, date: P.date, prevNo: pNo, nextNo: cNo, prevQty: pQ, nextQty: cQ,
+                              delta: (cNo ? cn || 0 : 0) - (pNo ? pn || 0 : 0), revert: !!(cNo && cNo !== pNo && seen.has(pick) && seen.get(pick).has(cNo)),
+                              cmt: (c && c.cmt) || (a && a.cmt) || '' });
+            });
+        });
+        events.sort((a, b) => a.block.localeCompare(b.block, 'ko', { numeric: true }) || RANK[a.type] - RANK[b.type] || a.pick.localeCompare(b.pick, 'ko', { numeric: true }));
+        return { blocks, events, spec, truncated: !!res.truncated };
+    }
+
+    function renderPicks() {
+        const byB = new Map();
+        H.events.forEach(e => { if (!byB.has(e.block)) byB.set(e.block, []); byB.get(e.block).push(e); });
+        $('sideSub').textContent = day(P.date) + ' · 블럭 ' + byB.size + '개 · ' + H.events.length + '건 · 누르면 그 PICK 을 추적합니다';
+        $('picks').innerHTML = Array.from(byB.entries()).map(([b, list]) =>
+            '<div class="blk"><span>' + esc(b) + '</span><span>앞 저장 ' + sd(list[0].prevDate) + ' · ' + list.length + '건</span></div>' +
+            list.map(e => '<button type="button" class="pk" data-b="' + esc(e.block) + '" data-p="' + esc(e.pick) + '" aria-current="' + (e === SEL) + '">' +
+                '<span class="tp"><span class="ty ' + (e.revert ? 'rev' : e.type) + '">' + (e.revert ? '복귀' : TYPES[e.type]) + '</span></span>' +
+                '<b>' + esc(e.pick) + '</b><small>' + esc(change(e)) + '</small></button>').join('')).join('');
+    }
+    const change = e => e.type === 'qty' ? '수량 ' + vtxt(e.prevQty) + ' → ' + vtxt(e.nextQty)
+        : vtxt(e.prevNo) + ' → ' + vtxt(e.nextNo) + (e.type !== 'swap' ? '' : '');
+
+    /* ════════════ 단계 그리기 ════════════ */
+    const STEPS = [
+        { k: '저장 이력', q: '무엇이 바뀌었나?' },
+        { k: '다시 실행', q: '지금 다시 계산해도 같은 결과가 나오나?' },
+        { k: 'PID 버전', q: '두 날짜에 어떤 로직 버전이 쓰였나?' },
+        { k: '로직 라인', q: '어느 라인이 달라졌나?' },
+        { k: '결과값', q: 'PID 가 계산한 값은 무엇이 다른가?' }
+    ];
+    function initChain() {
+        $('chain').innerHTML = STEPS.map((s, i) => '<li class="step" id="st' + i + '"><div class="rail"><span class="dot">' + (i + 1) + '</span><span class="wire"></span></div>' +
+            '<div class="card box"><div class="box-hd"><span class="k">STEP ' + (i + 1) + ' · ' + s.k + '</span><span class="root-b">원인</span>' +
+            '<h3 id="st' + i + 'h">대기 중</h3><p class="q">' + s.q + '</p></div><div id="st' + i + 'b"></div></div></li>').join('');
+    }
+    function step(i, cls, title, body) {
+        const el = $('st' + i);
+        el.className = 'step ' + (cls || 'done');
+        $('st' + i + 'h').textContent = title;
+        $('st' + i + 'b').innerHTML = body || '';
+    }
+    const kv = items => '<dl class="kv">' + items.map(x => '<div><dt>' + esc(x[0]) + '</dt><dd' + (x[2] ? ' class="hot"' : '') + '>' + esc(x[1]) + '</dd></div>').join('') + '</dl>';
+    const note = (t, cls) => '<p class="note ' + (cls || '') + '">' + t + '</p>';
+    const stc = s => '<span class="st ' + (s === 'TRUE' ? 'T' : s === 'FALSE' ? 'F' : '') + '">' + (s === 'TRUE' ? 'TRUE' : s === 'FALSE' ? 'FALSE' : s ? '미실행' : '없음') + '</span>';
+    const simLink = (pid, ver, subs, label) => '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + API.page + '?' +
+        esc(new URLSearchParams(Object.assign({ project: P.hogi, pid }, ver != null ? { version: ver } : {}, subs ? { subVersions: subs } : {})).toString()) + '">' + esc(label) + '</a>';
+
+    function setVerdict(cls, kick, title, sub) {
+        $('verdict').className = 'card verdict ' + (cls || '');
+        $('vKick').textContent = kick;
+        $('vTitle').innerHTML = title;
+        $('vSub').textContent = sub;
+    }
+    function setTags(e) {
+        const sp = H.spec || {};
+        $('vTags').innerHTML = [['호기', P.hogi], ['브랜드', sp.brand], ['기종', sp.atyp], ['속도', sp.speed], ['용량', sp.acapa], ['블럭', e && e.block], ['PICK', e && e.pick],
+            ['비교', e ? sd(e.prevDate) + ' → ' + sd(e.date) : day(P.date)]]
+            .filter(x => x[1]).map(x => '<span class="tag">' + x[0] + ' <b>' + esc(x[1]) + '</b></span>').join('') +
+            (e ? '<span class="tag hot">' + (e.revert ? '예전 자재 복귀' : TYPES[e.type]) + '</span>' : '');
+    }
+
+    /* ════════════ 추적 ════════════ */
+    function calcPair(e) {
+        const k = e.block + '|' + e.prevDate + '|' + e.date;
+        if (!cache.has(k)) {
+            const one = d => getJson(API.qty + '?' + new URLSearchParams({ project: P.hogi, pid: e.block, asOfDate: iso(d) }));
+            const p = Promise.all([one(e.prevDate), one(e.date)]);
+            p.catch(() => cache.delete(k));
+            cache.set(k, p);
+        }
+        return cache.get(k);
+    }
+
+    async function trace(e) {
+        const id = ++runId;
+        SEL = e;
+        renderPicks();
+        setTags(e);
+        const url = new URLSearchParams({ hogi: P.hogi, date: P.date, prev: P.prev || e.prevDate, block: e.block, pick: e.pick });
+        try { history.replaceState(null, '', location.pathname + '?' + url); } catch (x) { /* 무시 */ }
+        initChain();
+        $('todoCard').hidden = true;
+        setVerdict('', e.block + ' · PICK ' + e.pick, '두 날짜를 기준일로 다시 계산하는 중입니다…', 'PLM DB 에서 기준일 버전 PID 를 읽어 실행합니다. 블럭 PICK 수에 따라 시간이 걸릴 수 있습니다.');
+
+        /* STEP 1 */
+        const isPart = e.type !== 'qty';
+        step(0, 'done', e.type === 'qty' ? 'PICK ' + e.pick + ' 의 수량이 ' + vtxt(e.prevQty) + ' → ' + vtxt(e.nextQty) + ' 로 바뀌었습니다'
+            : e.type === 'swap' ? 'PICK ' + e.pick + ' 의 자재번호가 ' + e.prevNo + ' → ' + e.nextNo + ' 로 바뀌었습니다' + (e.revert ? ' (예전 자재로 복귀)' : '')
+            : e.type === 'add' ? 'PICK ' + e.pick + ' 이(가) 새로 수배되었습니다' : 'PICK ' + e.pick + ' 이(가) 수배에서 빠졌습니다',
+            '<div class="pair"><div class="A"><small>앞 저장 ' + day(e.prevDate) + '</small><b>' + esc(vtxt(e.prevNo)) + '</b><span class="q2">수량 ' + esc(vtxt(e.prevQty)) + '</span></div>' +
+            '<span class="neq" aria-label="다름">≠</span>' +
+            '<div class="B"><small>바뀐 날 ' + day(e.date) + '</small><b>' + esc(vtxt(e.nextNo)) + '</b><span class="q2">수량 ' + esc(vtxt(e.nextQty)) + '</span></div></div>' +
+            (e.cmt ? note('주석 : ' + esc(e.cmt), 'info') : ''));
+
+        /* STEP 2 · 3 : 두 기준일로 다시 실행 */
+        step(1, 'run', '두 날짜를 기준일로 블럭 ' + e.block + ' 수량 계산을 다시 실행하는 중…', '<p class="loading">calcBlockQty · asOfDate ' + iso(e.prevDate) + ' / ' + iso(e.date) + '</p>');
+        let A, B;
+        try { [A, B] = await calcPair(e); }
+        catch (x) {
+            if (id !== runId) return;
+            step(1, 'root', '다시 실행하지 못했습니다', note(esc(x.message), 'err'));
+            ['기준일 실행 실패로 비교할 수 없습니다'].forEach(t => { step(2, 'done', t); step(3, 'done', t); step(4, 'done', t); });
+            setVerdict('root', '추적 실패', '블럭 <em>' + esc(e.block) + '</em> 을(를) 기준일로 다시 실행하지 못했습니다', x.message);
+            todo(['일자별 수량 계산 화면에서 ' + P.hogi + ' / ' + e.block + ' 가 실행되는지 확인', '블럭 PID 이름(BLOCKNO)이 맞는지 확인']);
+            return;
+        }
+        if (id !== runId) return;
+
+        const ra = A.runs.find(r => r.pick === e.pick), rb = B.runs.find(r => r.pick === e.pick);
+        const reA = { part: partOf(ra), qty: partOf(ra) ? qtyOf(ra) : '' }, reB = { part: partOf(rb), qty: partOf(rb) ? qtyOf(rb) : '' };
+        const same = (x, y) => str(x) === str(y) || (num(x) != null && num(x) === num(y));
+        const okA = same(reA.part, e.prevNo) && same(reA.qty, e.prevQty), okB = same(reB.part, e.nextNo) && same(reB.qty, e.nextQty);
+        const reDiff = !same(reA.part, reB.part) || !same(reA.qty, reB.qty);
+        const row = (d, saved, re, ok, run) => '<tr' + (ok ? '' : ' class="hot"') + '><td class="nw">' + day(d) + '</td>' +
+            '<td class="m">' + esc(vtxt(saved.part)) + '</td><td class="m">' + esc(vtxt(saved.qty)) + '</td>' +
+            '<td class="m">' + (run ? esc(vtxt(re.part)) : '<i>PICK 없음</i>') + '</td><td class="m">' + esc(vtxt(re.qty)) + '</td>' +
+            '<td>' + (ok ? '<span class="kind add">같음</span>' : '<span class="kind del">다름</span>') + (run && run.error ? '<div class="cap">' + esc(run.error) + '</div>' : '') + '</td></tr>';
+        const s2body = '<div class="tbl-wrap"><table class="t"><thead><tr><th>기준일</th><th>저장된 자재번호</th><th>저장된 수량</th><th>다시 실행 자재번호</th><th>다시 실행 수량</th><th>재현</th></tr></thead><tbody>' +
+            row(e.prevDate, { part: e.prevNo, qty: e.prevQty }, reA, okA, ra) + row(e.date, { part: e.nextNo, qty: e.nextQty }, reB, okB, rb) + '</tbody></table></div>' +
+            '<p class="cap">다시 실행은 현재 영업사양(공사값)으로, PID 는 기준일 이전 가장 늦게 등록된 버전으로 계산합니다.</p>';
+
+        /* PID 버전 비교 */
+        const vA = A.asOfVersions || {}, vB = B.asOfVersions || {};
+        const pids = Array.from(new Set([...Object.keys(vA), ...Object.keys(vB)]));
+        const ver = (m, p) => m[p] ? m[p].version : null;
+        const verDiff = pids.filter(p => ver(vA, p) !== ver(vB, p));
+        const elp = A.elpPid || B.elpPid || ('EL_P' + e.block);
+        const target = isPart ? elp : (A.blockPid || e.block);
+        verDiff.sort((x, y) => (y === target) - (x === target) || (y === elp) - (x === elp) || x.localeCompare(y));
+        const vt = (m, p) => m[p] ? (m[p].version == null ? '<i>그 날 버전 없음</i>' : 'v' + m[p].version + '<div class="cap">' + esc((m[p].regDate || '').slice(0, 16)) + '</div>') : '<i>실행 안 됨</i>';
+        const s3body = (pids.length ? kv([['실행된 PID', pids.length + '개'], ['버전이 바뀐 PID', verDiff.length + '개', verDiff.length > 0], ['추적 대상', target + (isPart ? ' (자재수배)' : ' (블럭 · 수량)')]]) : '') +
+            (verDiff.length ? '<div class="tbl-wrap"><table class="t"><thead><tr><th>PID</th><th>역할</th><th>' + sd(e.prevDate) + ' 버전</th><th>' + sd(e.date) + ' 버전</th></tr></thead><tbody>' +
+                verDiff.map(p => '<tr' + (p === target ? ' class="hot"' : '') + '><td class="m">' + esc(p) + '</td><td>' + (p === elp ? '자재수배 (자재번호 선택)' : p === (A.blockPid || e.block) ? '블럭 (수량 계산)' : '전처리 · 하위 PID') + '</td>' +
+                    '<td class="m A">' + vt(vA, p) + '</td><td class="m B">' + vt(vB, p) + '</td></tr>').join('') + '</tbody></table></div>' +
+                '<p class="cap">버전이 같은 PID ' + (pids.length - verDiff.length) + '개는 표에서 뺐습니다.</p>' : '');
+
+        /* 원인 판정 1 : 버전이 모두 같음 → 로직 차이가 아님 */
+        if (!verDiff.length) {
+            step(1, 'root', reDiff ? '다시 실행해도 결과가 다릅니다 (버전은 같음)' : '지금 다시 실행하면 두 날짜 결과가 같습니다',
+                s2body + note(reDiff
+                    ? '로직 버전이 같은데 결과가 다르면 실행 조건(층 · 전처리)이 다르거나 PID 가 날짜를 직접 읽는 경우입니다.'
+                    : '두 기준일에 쓰인 PID 버전이 모두 같아 로직은 바뀌지 않았습니다. 저장 당시 영업사양(공사값)이나 지정값이 달랐던 것으로 추정됩니다.'));
+            step(2, 'done', '두 날짜에 쓰인 PID ' + pids.length + '개의 버전이 모두 같습니다', s3body);
+            step(3, 'done', '로직이 같아 라인 비교를 건너뜁니다', note('같은 버전 · 같은 영업사양이면 모든 라인의 판정이 같습니다.', 'info') +
+                '<div class="links">' + simLink(target, ver(vB, target), '', 'PID 시뮬레이터에서 ' + target + ' 열기') + '</div>');
+            step(4, 'done', '결과값 비교를 건너뜁니다');
+            setVerdict('root', e.block + ' · PICK ' + e.pick, '로직은 같습니다. <em>영업사양 · 지정값</em> 차이로 추정됩니다',
+                sd(e.prevDate) + ' · ' + sd(e.date) + ' 두 날짜에 쓰인 PID ' + pids.length + '개의 버전이 모두 같습니다. 지금 다시 계산하면 두 날짜 결과가 ' + (reDiff ? '다르므로 실행 조건을 확인하세요.' : '같으므로, 저장할 때의 공사값이나 일자별 수량 계산의 지정값이 달랐을 가능성이 큽니다.'));
+            todo(['영업사양 변경 이력에서 ' + P.hogi + ' 의 ' + sd(e.prevDate) + ' ~ ' + sd(e.date) + ' 사이 변경 확인',
+                  '일자별 수량 계산에서 두 날짜에 지정값을 넣어 저장했는지 확인',
+                  '같은 조건으로 다시 계산해 ' + e.pick + ' 결과 재확인']);
+            return;
+        }
+
+        step(1, 'done', okA && okB ? '두 날짜 모두 저장된 값이 그대로 재현됩니다' : '저장된 값과 다시 실행한 값이 일부 다릅니다',
+            s2body + (okA && okB ? '' : note('저장 이후 영업사양이 바뀌었거나 지정값이 있었을 수 있습니다. 아래 로직 비교는 현재 영업사양 기준입니다.')));
+        step(2, 'done', 'PID ' + pids.length + '개 중 ' + verDiff.length + '개의 버전이 두 날짜에 다릅니다', s3body);
+
+        /* STEP 4 : 라인 비교 */
+        const tv = { a: ver(vA, target), b: ver(vB, target) };
+        const subs = m => Object.keys(m).filter(p => p !== target && m[p] && m[p].version != null).map(p => p + ':' + m[p].version).join(',');
+        const sA = subs(vA), sB = subs(vB);
+        step(3, 'run', target + ' 를 두 날짜 버전으로 실행해 라인을 비교하는 중…', '<p class="loading">' + esc(target) + ' v' + tv.a + ' / v' + tv.b + (isPart ? '' : ' · PICK ' + esc(e.pick)) + '</p>');
+        const runSim = (v, s) => {
+            const q = new URLSearchParams({ project: P.hogi, pid: target });
+            if (v != null) q.set('version', v);
+            if (s) q.set('subVersions', s);
+            if (!isPart) q.set('pick', e.pick);
+            return getJson((isPart ? API.sim : API.pick) + '?' + q);
+        };
+        let LA, LB;
+        try {
+            if (tv.a == null || tv.b == null) throw new Error(target + ' 이(가) ' + (tv.a == null ? sd(e.prevDate) : sd(e.date)) + ' 에는 등록된 버전이 없습니다.');
+            [LA, LB] = await Promise.all([runSim(tv.a, sA), runSim(tv.b, sB)]);
+        } catch (x) {
+            if (id !== runId) return;
+            const root = verDiff.includes(target);
+            step(3, root ? 'root' : 'done', target + ' 라인 비교를 하지 못했습니다', note(esc(x.message), 'err') +
+                '<div class="links">' + simLink(target, tv.a, sA, sd(e.prevDate) + ' 버전 열기') + simLink(target, tv.b, sB, sd(e.date) + ' 버전 열기') + '</div>');
+            step(4, 'done', '결과값 비교를 건너뜁니다');
+            if (!root) $('st2').className = 'step root';
+            setVerdict('root', e.block + ' · PICK ' + e.pick, '<em>' + esc(verDiff[0]) + '</em> 의 버전이 v' + esc(ver(vA, verDiff[0])) + ' → v' + esc(ver(vB, verDiff[0])) + ' 로 바뀌었습니다',
+                '라인 단위 비교는 실패했습니다 (' + x.message + '). PID 시뮬레이터에서 두 버전을 직접 비교하세요.');
+            todo(['PID 시뮬레이터에서 ' + target + ' v' + tv.a + ' 와 v' + tv.b + ' 비교', 'PID 변경 이력에서 ' + verDiff.join(', ') + ' 변경 사유 확인']);
+            return;
+        }
+        if (id !== runId) return;
+
+        const D = diffLines(LA.lines || [], LB.lines || []);
+        const javaPid = LA.javaMethod || LB.javaMethod;
+        const parts = [e.prevNo, e.nextNo, e.pick].filter(Boolean);
+        const touches = d => parts.some(p => (d.outA + d.outB + d.resA + d.resB).includes(p));
+        D.rows.forEach(d => { d.hit = touches(d) || d.sA === 'TRUE' || d.sB === 'TRUE'; });
+        D.rows.sort((x, y) => (y.hit - x.hit) || (x.order - y.order));
+        const top = D.rows.find(d => d.hit) || D.rows[0];
+        const cnt = k => D.rows.filter(d => d.kind === k).length;
+        const KIND = { add: '추가된 라인', del: '삭제된 라인', mod: '수정된 라인', state: '판정 변경' };
+        const condCell = (c, cls) => c ? '<div class="cond ' + cls + '">' + esc(c) + '</div>' : '';
+        const s4body = javaPid ? note('JAVA 방식 PID 라 라인 정보가 없습니다. 결과값만 비교합니다.', 'info') :
+            kv([['라인 수', (LA.lines || []).length + ' → ' + (LB.lines || []).length], ['추가', cnt('add') + '개', cnt('add') > 0], ['삭제', cnt('del') + '개', cnt('del') > 0],
+                ['수정', cnt('mod') + '개', cnt('mod') > 0], ['판정 변경', cnt('state') + '개', cnt('state') > 0]]) +
+            (D.rows.length ? '<div class="tbl-wrap"><table class="t"><thead><tr><th>구분</th><th>라인</th><th>ADDR</th><th>조건</th><th>출력 · 이동</th><th>' + sd(e.prevDate) + '</th><th>' + sd(e.date) + '</th></tr></thead><tbody>' +
+                D.rows.slice(0, MAX_LINES).map(d => '<tr' + (d === top ? ' class="hot"' : '') + '><td><span class="kind ' + d.kind + '">' + KIND[d.kind] + '</span></td>' +
+                    '<td class="m nw">' + (d.noA != null ? '<span class="A">' + d.noA + '</span>' : '-') + ' → ' + (d.noB != null ? '<span class="B">' + d.noB + '</span>' : '-') + '</td>' +
+                    '<td class="m nw">' + esc(d.addrB || d.addrA || '-') + '</td>' +
+                    '<td>' + (d.kind === 'mod' && d.condA !== d.condB ? condCell(d.condA, 'A') + condCell(d.condB, 'B') : condCell(d.condB || d.condA, '')) + '</td>' +
+                    '<td>' + (d.kind === 'mod' && d.outA !== d.outB ? condCell(d.outA, 'A') + condCell(d.outB, 'B') : condCell(d.outB || d.outA, '')) + '</td>' +
+                    '<td>' + (d.noA != null ? stc(d.sA) : '-') + '</td><td>' + (d.noB != null ? stc(d.sB) : '-') + '</td></tr>').join('') +
+                '</tbody></table></div><p class="cap">주황 = ' + sd(e.prevDate) + ' 버전, 파랑 = ' + sd(e.date) + ' 버전. 실행된(TRUE) 라인과 이 PICK · 자재번호가 나오는 라인을 먼저 보여줍니다' +
+                (D.rows.length > MAX_LINES ? ' · 외 ' + (D.rows.length - MAX_LINES) + '개' : '') + (D.approx ? ' · 라인이 많아 순서대로 맞춰 비교했습니다' : '') + '</p>' : '') +
+            (isPart ? '' : '<p class="cap">PICK 실행은 자재수배 PID(' + esc(elp) + ')를 최신 버전으로 돌립니다. 자재수배 PID 버전이 바뀐 경우 STEP 3 표를 함께 보세요.</p>') +
+            '<div class="links">' + simLink(target, tv.a, sA, sd(e.prevDate) + ' 버전 (v' + tv.a + ') 열기') + simLink(target, tv.b, sB, sd(e.date) + ' 버전 (v' + tv.b + ') 열기') + '</div>';
+
+        /* STEP 5 : 결과값 */
+        const mA = LA.resultMap || {}, mB = LB.resultMap || {};
+        const keys = Array.from(new Set([...Object.keys(mA), ...Object.keys(mB)])).filter(k => k.indexOf('OUTPUT') !== 0);
+        const rd = keys.filter(k => str(mA[k]) !== str(mB[k]));
+        const hasP = k => parts.some(p => str(mA[k]).includes(p) || str(mB[k]).includes(p)) || k.toUpperCase() === e.pick.toUpperCase() || k.toUpperCase() === 'QTY';
+        rd.sort((x, y) => hasP(y) - hasP(x));
+        step(4, 'done', rd.length ? '결과값 ' + keys.length + '개 중 ' + rd.length + '개가 다릅니다' : '결과값 ' + keys.length + '개가 모두 같습니다',
+            rd.length ? '<div class="tbl-wrap"><table class="t"><thead><tr><th>KEY</th><th>' + sd(e.prevDate) + ' (v' + tv.a + ')</th><th>' + sd(e.date) + ' (v' + tv.b + ')</th></tr></thead><tbody>' +
+                rd.slice(0, 20).map(k => '<tr' + (hasP(k) ? ' class="hot"' : '') + '><td class="m">' + esc(k) + '</td><td class="m A">' + esc(vtxt(str(mA[k]))) + '</td><td class="m B">' + esc(vtxt(str(mB[k]))) + '</td></tr>').join('') +
+                '</tbody></table></div>' + (rd.length > 20 ? '<p class="cap">외 ' + (rd.length - 20) + '개</p>' : '') : '');
+
+        /* 원인 판정 2 : 로직 변경 */
+        const targetChanged = tv.a !== tv.b;
+        if (D.rows.length || javaPid) {
+            step(3, 'root', javaPid ? 'JAVA 방식 PID 라 라인은 비교할 수 없습니다'
+                : (top ? KIND[top.kind] + ' 등 ' + D.rows.length + '개 라인이 두 버전에서 다릅니다' : ''), s4body);
+            const where = top && !javaPid ? '라인 <em>' + esc(top.noB != null ? top.noB : top.noA) + '</em>' + (top.addrB || top.addrA ? ' (ADDR ' + esc(top.addrB || top.addrA) + ')' : '') + ' 이(가) ' + { add: '추가되었습니다', del: '삭제되었습니다', mod: '수정되었습니다', state: '다르게 판정되었습니다' }[top.kind] : '';
+            setVerdict('root', e.block + ' · PICK ' + e.pick + ' · 로직 변경',
+                '<em>' + esc(target) + '</em> 이(가) v' + esc(tv.a) + ' → v' + esc(tv.b) + (targetChanged ? ' 로 바뀌면서 ' : ' (하위 PID 버전 변경) 에서 ') + (where || '결과가 달라졌습니다'),
+                (isPart ? '자재번호를 고르는 자재수배 PID' : '수량을 계산하는 블럭 PID') + ' 를 두 날짜 버전으로 실행해 비교했습니다. 버전이 바뀐 PID ' + verDiff.length + '개 · 다른 라인 ' + D.rows.length + '개 · 다른 결과값 ' + rd.length + '개.');
+            todo([target + ' v' + tv.b + ' 의 ' + (top ? '라인 ' + (top.noB != null ? top.noB : top.noA) : '변경 라인') + ' 변경 의도 확인 (PID 변경 이력 · 담당자)',
+                  'PID 시뮬레이터에서 두 버전을 열어 ' + e.pick + ' 결과 확인',
+                  '의도된 변경이면 다른 호기 영향 범위 확인, 아니면 PID 수정 후 다시 계산']);
+        } else {
+            step(3, 'done', '두 버전의 라인 내용과 판정이 같습니다', s4body + note('이 PID 자체는 같게 동작합니다. 버전이 바뀐 하위 · 전처리 PID 쪽을 확인하세요.'));
+            $('st2').className = 'step root';
+            setVerdict('root', e.block + ' · PICK ' + e.pick, '<em>' + esc(verDiff[0]) + '</em> 의 버전이 v' + esc(ver(vA, verDiff[0])) + ' → v' + esc(ver(vB, verDiff[0])) + ' 로 바뀌었습니다',
+                target + ' 의 라인 판정은 같아, 버전이 바뀐 다른 PID(' + verDiff.join(', ') + ')가 원인일 가능성이 큽니다.');
+            todo(verDiff.slice(0, 3).map(p => 'PID 시뮬레이터에서 ' + p + ' v' + ver(vA, p) + ' ↔ v' + ver(vB, p) + ' 비교').concat(['다시 계산해 ' + e.pick + ' 결과 재확인']));
+        }
+    }
+
+    /* ════════════ 라인 비교 ════════════ */
+    /* 두 버전의 라인을 내용(ADDR · 조건 · 출력 · 이동)으로 맞춘다 (LCS). 맞은 라인은 판정만 비교, 남은 라인은 추가 · 삭제 · 수정 */
+    function lineInfo(l) {
+        const cond = (l.conditions || []).filter(c => str(c.spec)).map(c => str(c.spec) + ' ' + (str(c.compare) || '=') + ' ' + str(c.con) + (c.specValue != null ? ' [' + str(c.specValue) + ']' : '')).join('  ·  ');
+        const sig = str(l.addr) + '|' + (l.conditions || []).filter(c => str(c.spec)).map(c => str(c.spec) + (str(c.compare) || '=') + str(c.con)).join('&') + '|' + str(l.output) + '|' + str(l.gotoAddr);
+        const out = [str(l.output), l.gotoAddr ? '→ ' + str(l.gotoAddr) : ''].filter(Boolean).join('  ');
+        return { no: l.no, addr: str(l.addr), state: l.state, cond, out, res: l.resultMap ? JSON.stringify(l.resultMap) : '', sig };
+    }
+    function diffLines(la, lb) {
+        const A = la.map(lineInfo), B = lb.map(lineInfo), n = A.length, m = B.length;
+        const pairs = [];   // [i, j] (i 또는 j 가 -1 이면 한쪽만)
+        let approx = false;
+        if (n * m <= LCS_LIMIT) {
+            const L = new Uint32Array((n + 1) * (m + 1)), W = m + 1;
+            for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+                L[i * W + j] = A[i].sig === B[j].sig ? L[(i + 1) * W + j + 1] + 1 : Math.max(L[(i + 1) * W + j], L[i * W + j + 1]);
+            let i = 0, j = 0;
+            while (i < n && j < m) {
+                if (A[i].sig === B[j].sig) { pairs.push([i++, j++]); }
+                else if (L[(i + 1) * W + j] >= L[i * W + j + 1]) pairs.push([i++, -1]);
+                else pairs.push([-1, j++]);
+            }
+            while (i < n) pairs.push([i++, -1]);
+            while (j < m) pairs.push([-1, j++]);
+        } else {
+            approx = true;
+            for (let k = 0; k < Math.max(n, m); k++) pairs.push([k < n ? k : -1, k < m ? k : -1]);
+        }
+        /* 연속된 삭제 · 추가 묶음은 같은 순서끼리 "수정" 으로 짝짓는다 */
+        const rows = [];
+        let k = 0, order = 0;
+        while (k < pairs.length) {
+            const [i, j] = pairs[k];
+            if (i >= 0 && j >= 0) {
+                const a = A[i], b = B[j];
+                if (a.sig !== b.sig) rows.push(mk('mod', a, b, order++));
+                else if (a.state !== b.state) rows.push(mk('state', a, b, order++));
+                k++; continue;
+            }
+            const dels = [], adds = [];
+            while (k < pairs.length && (pairs[k][0] < 0 || pairs[k][1] < 0)) { if (pairs[k][0] >= 0) dels.push(A[pairs[k][0]]); else adds.push(B[pairs[k][1]]); k++; }
+            for (let x = 0; x < Math.max(dels.length, adds.length); x++) {
+                const a = dels[x], b = adds[x];
+                rows.push(mk(a && b ? 'mod' : a ? 'del' : 'add', a, b, order++));
+            }
+        }
+        return { rows, approx };
+        function mk(kind, a, b, o) {
+            return { kind, order: o, noA: a ? a.no : null, noB: b ? b.no : null, addrA: a ? a.addr : '', addrB: b ? b.addr : '',
+                     condA: a ? a.cond : '', condB: b ? b.cond : '', outA: a ? a.out : '', outB: b ? b.out : '', resA: a ? a.res : '', resB: b ? b.res : '',
+                     sA: a ? a.state : '', sB: b ? b.state : '' };
+        }
+    }
+
+    function todo(list) {
+        $('todoCard').hidden = false;
+        $('todo').innerHTML = list.map(t => '<li><label><input type="checkbox"><span>' + esc(t) + '</span></label></li>').join('');
+    }
+
+    /* ════════════ 시작 ════════════ */
+    function showState(h, p, err, retry) {
+        $('layout').hidden = true;
+        $('stateCard').hidden = false;
+        $('stateBox').className = 'state-box' + (err ? ' err' : '');
+        $('stateBox').innerHTML = '<h2>' + esc(h) + '</h2><p>' + esc(p) + '</p>' + (retry ? '<button type="button" class="btn btn-solid" id="btnRetry">다시 시도</button>' : '');
+        if (retry) $('btnRetry').addEventListener('click', start);
+    }
+
+    async function start() {
+        const back = new URLSearchParams({ from: addDays(P.date || ymd(new Date()), -29), to: P.date || ymd(new Date()) });
+        if (P.date) back.set('date', P.date);
+        if (P.block) back.set('block', P.block);
+        $('lnkBack').href = '/cop/dashboard?' + back;
+        if (!P.hogi || !P.date) {
+            setVerdict('', '원인 추적', '추적할 호기와 날짜가 없습니다', '대시보드의 "호기별 비교 결과" 에서 [원인추적] 버튼으로 들어오세요.');
+            showState('호기 · 날짜를 지정해 주세요', '/cop/trace/cause?hogi=호기&date=yyyyMMdd');
+            return;
+        }
+        $('stateCard').hidden = true;
+        setVerdict('', P.hogi + ' · ' + day(P.date), '저장 이력을 불러오는 중입니다', 'PLM_SIMUL_HOGIBOM');
+        try { H = await loadHistory(); }
+        catch (x) {
+            setVerdict('root', '불러오기 실패', '저장 이력을 불러오지 못했습니다', x.message);
+            showState('저장 이력을 불러오지 못했습니다', x.message, true, true);
+            return;
+        }
+        setTags(null);
+        if (!H.events.length) {
+            setVerdict('ok', P.hogi + ' · ' + day(P.date), '이 날짜에는 앞 저장일과 달라진 PICK 이 없습니다', H.blocks.size ? '저장된 블럭 ' + H.blocks.size + '개를 앞 저장일과 비교했습니다.' : '이 호기의 저장 이력이 없습니다.');
+            showState('추적할 변동이 없습니다', '다른 날짜를 고르거나 대시보드로 돌아가세요.');
+            return;
+        }
+        $('layout').hidden = false;
+        const first = H.events.find(e => e.block === P.block && e.pick === P.pick)
+            || H.events.filter(e => !P.block || e.block === P.block).sort((a, b) => (b.revert - a.revert) || RANK[a.type] - RANK[b.type])[0]
+            || H.events[0];
+        trace(first);
+    }
+
+    $('picks').addEventListener('click', ev => {
+        const b = ev.target.closest('.pk');
+        if (!b) return;
+        const e = H.events.find(x => x.block === b.dataset.b && x.pick === b.dataset.p);
+        if (e && e !== SEL) { trace(e); if (window.innerWidth < 1100) $('chain').scrollIntoView({ block: 'start' }); }
+    });
+    $('btnPrint').addEventListener('click', () => window.print());
+    start();
+})();
+</script>
+</body>
+</html>

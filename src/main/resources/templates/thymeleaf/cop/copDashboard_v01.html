@@ -1,11 +1,1772 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Document</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>COP 배치 변경 대시보드 · SENTINEL</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        SENTINEL · COP 배치 변경 대시보드 (임원 보고용, 일자별)
+
+        CopService.runBatch() 결과를 기간(일자별)로 본다.
+          배치 : 관리대상 호기(PLM_SIMUL_HOGI)의 각 호기(이전호기)에 대해 평일마다
+                 WIP 생성 → 동일정보 생성 → 속성값 변경(EL_ZFDA~D = 배치일) → 종속사양 산출 → BOM 계산
+          비교 : 이전호기 BOM ↔ 그날의 시뮬호기 BOM 을 자재번호 기준으로 맞춰
+                 추가(시뮬에만) / 삭제(이전에만) / 수량변경 / 일치 로 나눈다.
+          일자별 : 같은 이전호기를 배치일마다 추적한다 (호기 x 일자).
+
+        화면 구성
+          0. 상단 바     : 기간(from ~ to) 조회 · 빠른 기간(1주 / 2주 / 4주) · 기준 배치일 이동(‹ ›)
+          1. 요약        : 기준일 핵심 메시지 + BOM 일치율
+          2. KPI         : 기준일 수치 (직전 배치일 대비)
+          3. 기간 추이   : 일자별 변경 건수 · 변경 발생률 (막대를 누르면 기준일 변경)
+          4. 차트        : 호기별 변경 / 변경 유형 비율 / 블록별 변경 Top (기준일 · 기간) / 기간 요약
+          5. 호기 x 일자 : 같은 이전호기의 일자별 변경 건수(또는 일치율) 추적표
+          6. 인사이트    : 기준일 + 기간 수치에서 자동으로 뽑은 문장
+          7. 호기 목록   : "기준 일자" / "기간 전체" 두 가지 보기, 행 클릭 시 드로어
+                          드로어 : 그 호기의 기간 추이 · 반복 변경 자재 · 일자별 변경 자재 상세
+
+        지금은 서버 로직 없이 화면 안의 샘플 데이터(makeRows)를 쓴다. 모든 수치는 DEMO.
+        나중에 makeRows(yyyyMMdd) 를 API 호출(배치일별 결과)로 바꾸면 된다.
+    -->
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <style>
+        /* ════════════ 토큰 (cop2 임원 보고용과 같음) ════════════ */
+        :root {
+            --bg:       #F6F7F9;
+            --surface:  #FFFFFF;
+            --surface-2:#F9FAFB;
+            --line:     #E4E7EC;
+            --line-2:   #D0D5DD;
+
+            --ink:      #0B1220;
+            --ink-2:    #3F4A5C;
+            --ink-3:    #667085;
+
+            --brand:    #1E40AF;
+            --brand-2:  #2F5BEA;
+            --brand-bg: #EEF2FF;
+            --alert:    #D92D20;
+            --alert-bg: #FEF3F2;
+            --ok:       #067647;
+            --ok-bg:    #ECFDF3;
+            --warn:     #B54708;
+            --warn-bg:  #FFFAEB;
+
+            /* 변경 유형 (차트 · 배지 공통) */
+            --t-add:    #2F5BEA;
+            --t-del:    #D92D20;
+            --t-qty:    #F79009;
+            --t-same:   #D0D5DD;
+
+            /* 호기 x 일자 히트맵 */
+            --heat-1: #DCEAFB;
+            --heat-2: #B7D3F6;
+            --heat-3: #6DA7EC;
+            --heat-4: #256ABF;
+            --heat-5: #104281;
+
+            --radius:   16px;
+            --shadow:   0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+            --shadow-lg: 0 24px 48px -12px rgba(16,24,40,.22);
+
+            --mono: "D2Coding", Consolas, "SF Mono", Menlo, monospace;
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+            --ease-out: cubic-bezier(.16,1,.3,1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; background: var(--bg); }
+        body {
+            margin: 0; min-height: 100vh; overflow-x: hidden;
+            font-family: var(--sans); font-size: 15px; line-height: 1.55; color: var(--ink); background: var(--bg);
+            word-break: keep-all; overflow-wrap: anywhere;
+        }
+        h1, h2, h3, p, ol, ul, dl, dd { margin: 0; }
+        ol, ul { padding: 0; list-style: none; }
+        a { color: inherit; text-decoration: none; }
+        button, input, select { font: inherit; color: inherit; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 3px solid var(--brand-2); outline-offset: 2px; border-radius: 8px; }
+        .tnum { font-variant-numeric: tabular-nums; }
+        .mono { font-family: var(--mono); }
+        .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        .wrap { width: 100%; max-width: 1440px; margin: 0 auto; padding: 0 16px; }
+        @media (min-width: 900px) { .wrap { padding: 0 32px; } }
+        .demo { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; background: var(--warn-bg); color: var(--warn); font: 700 11px/1.5 var(--mono); letter-spacing: .1em; }
+
+        /* ════════════ 상단 바 ════════════ */
+        .nav { position: sticky; top: 0; z-index: 40; background: rgba(255,255,255,.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+        .nav-in { min-height: 60px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding-top: 8px; padding-bottom: 8px; }
+        .brand { display: flex; align-items: center; gap: 10px; flex: none; }
+        .brand-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--brand); display: grid; place-items: center; color: #fff; }
+        .brand b { font: 800 14px/1 var(--sans); letter-spacing: .24em; }
+        .crumb { display: none; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-3); }
+        .crumb b { color: var(--ink); font-weight: 700; }
+        @media (min-width: 1100px) { .crumb { display: flex; } }
+        .nav-tools { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .period-f { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+        .period-f .lbl { font-size: 13px; color: var(--ink-3); font-weight: 600; }
+        .ctl { min-height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); font: 600 14px var(--mono); max-width: 100%; }
+        .ctl:focus { outline: none; border-color: var(--brand-2); box-shadow: 0 0 0 3px var(--brand-bg); }
+        @media (max-width: 560px) { .period-f .lbl { display: none; } .period-f .ctl { width: 136px; } }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            min-height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer;
+            font-size: 14px; font-weight: 600; color: var(--ink-2); white-space: nowrap;
+            transition: background .15s, border-color .15s, color .15s, transform .15s var(--ease-out);
+        }
+        .btn:hover { background: var(--surface-2); color: var(--ink); border-color: var(--ink-3); }
+        .btn:active { transform: scale(.97); }
+        .btn:disabled { opacity: .45; cursor: default; transform: none; }
+        .btn-solid { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .btn-solid:hover { background: var(--brand-2); border-color: var(--brand-2); color: #fff; }
+        .btn-sm { min-height: 34px; padding: 0 10px; font-size: 13px; }
+        @media (max-width: 560px) { .btn-hide-sm { display: none; } }
+
+        /* 기준 배치일 바 */
+        .daybar { border-top: 1px solid var(--line); background: var(--surface-2); }
+        .daybar-in { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 50px; padding-top: 7px; padding-bottom: 7px; }
+        .daybar .lbl { font-size: 13px; font-weight: 700; color: var(--ink-3); }
+        .day-nav { display: flex; align-items: center; gap: 6px; }
+        .icon-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--ink-2); flex: none; }
+        .icon-btn:hover { background: var(--surface); border-color: var(--ink-3); color: var(--ink); }
+        .icon-btn:disabled { opacity: .4; cursor: default; }
+        .day-nav select { min-height: 34px; min-width: 220px; font-size: 13.5px; }
+        @media (max-width: 560px) { .day-nav select { min-width: 0; width: 190px; } }
+        .day-sum { margin-left: auto; font-size: 13px; color: var(--ink-3); }
+        .day-sum b { color: var(--ink); font-weight: 700; }
+
+        .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; }
+        .card-hd { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 12px; padding: 18px 20px 0; }
+        .card-hd h2 { font-size: 16px; font-weight: 750; letter-spacing: -.01em; }
+        .card-hd p { margin-top: 2px; font-size: 13px; color: var(--ink-3); }
+        .card-bd { padding: 12px 20px 18px; }
+        .eyebrow { display: block; margin-bottom: 4px; font: 700 11.5px var(--mono); letter-spacing: .12em; color: var(--brand); }
+
+        main.wrap { padding-top: 24px; padding-bottom: 64px; display: flex; flex-direction: column; gap: 20px; }
+        section, article { scroll-margin-top: 130px; }
+        .notice { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: 13.5px; font-weight: 600; }
+
+        /* ════════════ 1. 요약 ════════════ */
+        .hero {
+            position: relative; overflow: hidden; padding: 28px; display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr);
+            background: linear-gradient(135deg, #0F1E4A 0%, #1E40AF 62%, #2F5BEA 100%); border: 0; color: #fff;
+        }
+        .hero::after { content: ""; position: absolute; right: -120px; top: -120px; width: 380px; height: 380px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,255,255,.14), transparent); pointer-events: none; }
+        @media (min-width: 1000px) { .hero { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 32px 36px; } }
+        .hero-eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,.75); font-weight: 600; }
+        .hero-eyebrow .pill { padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.14); color: #fff; font-family: var(--mono); }
+        .hero h1 { margin-top: 12px; font-size: clamp(22px, 2.6vw, 30px); line-height: 1.35; font-weight: 800; letter-spacing: -.02em; text-wrap: balance; }
+        .hero h1 em { font-style: normal; color: #FFD58A; }
+        .hero-sub { margin-top: 10px; font-size: 14.5px; color: rgba(255,255,255,.8); max-width: 72ch; }
+        .hero-flow { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; color: rgba(255,255,255,.8); }
+        .hero-flow span { padding: 4px 10px; border-radius: 8px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); }
+        .hero-flow i { font-style: normal; opacity: .5; }
+
+        .hero-ring { position: relative; display: flex; align-items: center; gap: 20px; z-index: 1; }
+        .ring {
+            flex: none; position: relative; width: 140px; height: 140px; border-radius: 50%;
+            background: conic-gradient(#FFD58A calc(var(--p, 0) * 1%), rgba(255,255,255,.16) 0);
+        }
+        .ring::before { content: ""; position: absolute; inset: 12px; border-radius: 50%; background: #17338F; }
+        .ring div { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .ring b { font: 800 32px/1 var(--sans); letter-spacing: -.02em; }
+        .ring small { margin-top: 6px; font-size: 12px; color: rgba(255,255,255,.75); font-weight: 600; }
+        .ring-legend { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+        .ring-legend div { display: flex; justify-content: space-between; gap: 18px; color: rgba(255,255,255,.8); }
+        .ring-legend b { color: #fff; font-family: var(--mono); }
+
+        /* ════════════ 2. KPI ════════════ */
+        .kpis { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 640px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 1200px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .kpi { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+        .kpi-hd { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 650; color: var(--ink-2); }
+        .kpi-ic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: var(--brand-bg); color: var(--brand); flex: none; }
+        .kpi-val { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+        .kpi-val b { font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+        .kpi-val small { font-size: 14px; color: var(--ink-3); font-weight: 600; }
+        .delta { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+        .delta.up   { background: var(--brand-bg); color: var(--brand); }
+        .delta.down { background: var(--alert-bg); color: var(--alert); }
+        .delta.zero { background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--line); }
+        .kpi-cmp { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 6px 10px; font-size: 12.5px; color: var(--ink-3); }
+        .kpi-cmp .bar { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+        .kpi-cmp .bar span { display: block; height: 100%; border-radius: 99px; transition: width .8s var(--ease-out); }
+        .kpi-cmp .v { font-family: var(--mono); color: var(--ink-2); font-weight: 600; text-align: right; }
+        .kpi-foot { font-size: 12.5px; color: var(--ink-3); }
+        .stack { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--surface-2); gap: 2px; }
+        .stack span { display: block; height: 100%; transition: width .8s var(--ease-out); }
+        .stack-lg { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--ink-3); }
+        .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: 1px; }
+
+        /* ════════════ 3~4. 차트 ════════════ */
+        .charts { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 1100px) { .charts { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
+        .chart { height: 320px; }
+        .chart-sm { height: 300px; }
+        .chart-trend { height: 280px; }
+        .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); flex: none; }
+        .seg button { min-height: 30px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-3); }
+        .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+        /* 기간 요약 */
+        .psum { display: flex; flex-direction: column; }
+        .psum div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+        .psum div:last-child { border-bottom: 0; }
+        .psum dt { color: var(--ink-3); font-weight: 600; }
+        .psum dd { text-align: right; font-weight: 700; }
+        .psum dd small { display: block; font-size: 12px; font-weight: 500; color: var(--ink-3); }
+        .linkish { border: 0; padding: 0; background: none; cursor: pointer; font: inherit; color: var(--brand); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+        /* ════════════ 5. 호기 x 일자 ════════════ */
+        .mx-wrap { max-height: 620px; overflow: auto; border-top: 1px solid var(--line); margin-top: 12px; }
+        .mx { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; }
+        .mx thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); border-bottom: 1px solid var(--line); padding: 0; font-size: 12px; font-weight: 650; color: var(--ink-3); text-align: center; white-space: nowrap; }
+        .mx thead th button { min-height: 40px; width: 100%; padding: 2px 3px; border: 0; background: transparent; cursor: pointer; font: inherit; color: inherit; line-height: 1.2; }
+        .mx thead th button small { display: block; font-size: 10.5px; font-weight: 500; }
+        .mx thead th button:hover { color: var(--ink); }
+        .mx thead th.sel { color: var(--brand); box-shadow: inset 0 -2px 0 var(--brand); }
+        .mx thead th.sel button { font-weight: 800; }
+        .mx th.g, .mx td.g { position: sticky; left: 0; z-index: 2; background: var(--surface); box-shadow: 1px 0 0 var(--line); text-align: left; }
+        .mx thead th.g { background: var(--surface-2); z-index: 3; padding: 0 12px; }
+        .mx tbody td { padding: 3px 2px; border-bottom: 1px solid var(--line); }
+        .mx tbody td.sel { background: rgba(47,91,234,.07); }
+        .mx td.g { padding: 0; min-width: 210px; }
+        .mx td.g button { display: block; width: 100%; padding: 6px 12px; border: 0; background: transparent; cursor: pointer; text-align: left; font: inherit; }
+        .mx td.g button:hover { background: #F5F8FF; }
+        .mx td.g b { font: 700 13px var(--mono); }
+        .mx td.g small { display: block; font-size: 12px; color: var(--ink-3); }
+        .mx td.sum, .mx th.sum { padding: 3px 12px; text-align: right; font-weight: 700; white-space: nowrap; }
+
+        .heat-c { display: flex; align-items: center; justify-content: center; width: 100%; min-width: 34px; height: 32px; border: 0; border-radius: 5px; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; background: var(--surface-2); color: var(--ink); position: relative; }
+        .heat-c:hover { box-shadow: inset 0 0 0 2px var(--ink); }
+        .heat-c.zero { color: var(--ink-3); font-weight: 400; }
+        .heat-c.nil { background: repeating-linear-gradient(45deg, transparent 0 4px, var(--line) 4px 5px); color: transparent; cursor: default; }
+        .heat-c.nil:hover { box-shadow: none; }
+        .heat-c.fail { background: var(--alert-bg); color: var(--alert); }
+        .heat-c.h1 { background: var(--heat-1); }
+        .heat-c.h2 { background: var(--heat-2); }
+        .heat-c.h3 { background: var(--heat-3); }
+        .heat-c.h4 { background: var(--heat-4); color: #fff; }
+        .heat-c.h5 { background: var(--heat-5); color: #fff; }
+        .heat-c.sm { font-size: 11px; }
+        .scale { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 10px 20px 14px; font-size: 12.5px; color: var(--ink-3); }
+        .scale span { display: inline-flex; align-items: center; gap: 5px; }
+        .scale i { width: 14px; height: 14px; border-radius: 3px; }
+
+        /* ════════════ 6. 인사이트 ════════════ */
+        .insights { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+        @media (min-width: 900px) { .insights { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        .ins { display: flex; gap: 12px; padding: 14px 16px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+        .ins-ic { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; flex: none; }
+        .ins-ic.info  { background: var(--brand-bg); color: var(--brand); }
+        .ins-ic.warn  { background: var(--warn-bg);  color: var(--warn); }
+        .ins-ic.alert { background: var(--alert-bg); color: var(--alert); }
+        .ins-ic.ok    { background: var(--ok-bg);    color: var(--ok); }
+        .ins h3 { font-size: 14px; font-weight: 700; }
+        .ins p { margin-top: 2px; font-size: 13px; color: var(--ink-2); }
+        .ins b { color: var(--ink); }
+
+        /* ════════════ 7. 호기 목록 ════════════ */
+        .tbl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .chip { min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+        .chip .n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+        .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+        .chip[aria-pressed="true"] .n { color: rgba(255,255,255,.7); }
+        .search { margin-left: auto; position: relative; min-width: 200px; flex: 1 1 200px; max-width: 300px; }
+        .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
+        .search input { width: 100%; min-height: 36px; padding: 0 12px 0 34px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); font-size: 14px; }
+        .search input:focus { outline: none; border-color: var(--brand-2); box-shadow: 0 0 0 3px var(--brand-bg); }
+
+        .tbl-wrap { overflow-x: auto; }
+        table.list { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 1180px; }
+        table.list thead th { position: sticky; top: 0; background: var(--surface-2); text-align: left; font-size: 12.5px; font-weight: 650; color: var(--ink-3); padding: 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+        table.list thead th button { width: 100%; min-height: 40px; padding: 0 14px; border: 0; background: transparent; cursor: pointer; font: inherit; color: inherit; text-align: inherit; display: inline-flex; align-items: center; gap: 4px; }
+        table.list thead th.r button { justify-content: flex-end; }
+        table.list thead th button:hover { color: var(--ink); }
+        table.list thead th[aria-sort="ascending"] button::after  { content: "▲"; font-size: 9px; color: var(--brand); }
+        table.list thead th[aria-sort="descending"] button::after { content: "▼"; font-size: 9px; color: var(--brand); }
+        table.list thead th span.th { display: inline-flex; min-height: 40px; align-items: center; padding: 0 14px; }
+        table.list thead th.r span.th { justify-content: flex-end; width: 100%; }
+        table.list tbody td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+        table.list tbody tr { cursor: pointer; transition: background .12s; }
+        table.list tbody tr:hover { background: #F5F8FF; }
+        table.list tbody tr:focus-visible { outline: 2px solid var(--brand-2); outline-offset: -2px; }
+        td.r, th.r { text-align: right; }
+        .hogi { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-weight: 600; }
+        .hogi .arrow { color: var(--ink-3); }
+        .hogi .to { color: var(--brand); }
+        .spec { font-size: 12.5px; color: var(--ink-3); }
+        .status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+        .status.ok   { background: var(--ok-bg); color: var(--ok); }
+        .status.fail { background: var(--alert-bg); color: var(--alert); }
+        .status.chg  { background: var(--warn-bg); color: var(--warn); }
+        .status.none { background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--line); }
+        .cmp { font-family: var(--mono); font-size: 13px; }
+        .cmp .from { color: var(--ink-3); }
+        .cmp .d { margin-left: 6px; font-size: 12px; font-weight: 700; }
+        .cmp .d.up { color: var(--brand); }
+        .cmp .d.down { color: var(--alert); }
+        .dd { font-family: var(--mono); font-weight: 700; font-size: 13px; }
+        .dd.up { color: var(--alert); }
+        .dd.down { color: var(--ok); }
+        .dd.zero, .dd.nil { color: var(--ink-3); font-weight: 500; }
+        .mini { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+        .mini .stack { width: 90px; height: 6px; }
+        .rate { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+        .rate .bar { width: 64px; height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+        .rate .bar span { display: block; height: 100%; background: var(--brand-2); border-radius: 99px; }
+        .rate b { font-family: var(--mono); font-weight: 600; min-width: 48px; text-align: right; }
+        .streak { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font: 700 12px var(--mono); background: var(--warn-bg); color: var(--warn); }
+        .spark { display: block; margin-left: auto; }
+        .empty { padding: 48px 20px; text-align: center; color: var(--ink-3); font-size: 14px; }
+        .tbl-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; padding: 12px 20px; font-size: 12.5px; color: var(--ink-3); }
+
+        /* ════════════ 드로어 (호기 상세) ════════════ */
+        .scrim { position: fixed; inset: 0; z-index: 90; background: rgba(11,18,32,.42); opacity: 0; transition: opacity .2s; }
+        .scrim.on { opacity: 1; }
+        .drawer {
+            position: fixed; top: 0; right: 0; bottom: 0; z-index: 100; width: min(720px, 100%);
+            background: var(--surface); box-shadow: var(--shadow-lg); display: flex; flex-direction: column;
+            transform: translateX(100%); transition: transform .28s var(--ease-out);
+        }
+        .drawer.on { transform: none; }
+        .dr-hd { padding: 20px 22px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; gap: 12px; }
+        .dr-hd h2 { font-size: 18px; font-weight: 800; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .dr-hd p { margin-top: 4px; font-size: 13px; color: var(--ink-3); }
+        .dr-x { margin-left: auto; width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--ink-2); flex: none; }
+        .dr-x:hover { background: var(--surface-2); }
+        .dr-bd { padding: 18px 22px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 18px; }
+        .dr-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        @media (min-width: 520px) { .dr-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .dr-stat { padding: 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+        .dr-stat small { display: block; font-size: 12px; color: var(--ink-3); font-weight: 600; }
+        .dr-stat b { display: block; margin-top: 4px; font-size: 20px; font-weight: 800; font-family: var(--mono); }
+        .dr-sec h3 { font-size: 14px; font-weight: 750; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .dr-sec h3 small { font-size: 12.5px; font-weight: 500; color: var(--ink-3); }
+        .chart-dr { height: 220px; }
+        .dchips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+        .dchip { flex: none; min-width: 52px; padding: 5px 6px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; text-align: center; line-height: 1.2; }
+        .dchip small { display: block; font-size: 11px; color: var(--ink-3); }
+        .dchip b { display: block; font: 700 13px var(--mono); }
+        .dchip.chg b { color: var(--warn); }
+        .dchip.fail b { color: var(--alert); }
+        .dchip.ok b { color: var(--ok); }
+        .dchip.none { background: repeating-linear-gradient(45deg, transparent 0 4px, var(--surface-2) 4px 8px); }
+        .dchip[aria-pressed="true"] { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); background: var(--brand-bg); }
+        .chg-list { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+        .chg-row { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 13px; }
+        .chg-row:last-child { border-bottom: 0; }
+        .tag { display: inline-flex; justify-content: center; padding: 2px 0; border-radius: 6px; font-size: 11.5px; font-weight: 700; }
+        .tag.add { background: var(--brand-bg); color: var(--t-add); }
+        .tag.del { background: var(--alert-bg); color: var(--t-del); }
+        .tag.qty { background: var(--warn-bg); color: var(--warn); }
+        .flag { display: inline-flex; margin-left: 6px; padding: 1px 6px; border-radius: 5px; font: 700 11px var(--sans); background: var(--alert-bg); color: var(--alert); vertical-align: 1px; }
+        .chg-row .pn { font-family: var(--mono); font-weight: 600; }
+        .chg-row .nm { font-size: 12.5px; color: var(--ink-3); }
+        .chg-row .q { font-family: var(--mono); text-align: right; white-space: nowrap; }
+        .chg-row .q s { color: var(--ink-3); }
+        .rep-row { grid-template-columns: minmax(0, 1fr) auto; }
+        .rep-days { display: flex; gap: 2px; justify-content: flex-end; margin-top: 4px; }
+        .rep-days i { width: 6px; height: 12px; border-radius: 2px; background: var(--line); }
+        .rep-days i.on { background: var(--t-qty); }
+        .dr-ft { padding: 14px 22px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; }
+        .fail-box { padding: 14px 16px; border-radius: 12px; background: var(--alert-bg); color: var(--alert); font-size: 13.5px; }
+        .fail-box b { display: block; margin-bottom: 4px; }
+        .fail-box.ok { background: var(--ok-bg); color: var(--ok); }
+        .fail-box.none { background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--line); }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+        }
+
+        /* ════════════ 인쇄 (A4 가로 보고서) ════════════ */
+        @page { size: A4 landscape; margin: 10mm; }
+        @media print {
+            *, *::before, *::after { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            html, body { background: #fff; }
+            .nav, .scrim, .drawer, .seg, .tbl-tools, .no-print { display: none !important; }
+            main.wrap { padding-top: 0; padding-bottom: 0; gap: 12px; }
+            .wrap { max-width: none; padding: 0; }
+            .card { box-shadow: none; break-inside: avoid; }
+            .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .charts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .chart, .chart-sm, .chart-trend { height: auto; }
+            .highcharts-container, .highcharts-root { width: 100% !important; height: auto !important; }
+            .tbl-wrap, .mx-wrap { overflow: visible; max-height: none; }
+            table.list { min-width: 0; font-size: 11px; }
+            table.list tbody td { padding: 6px 8px; }
+            tbody tr { break-inside: avoid; }
+        }
+    </style>
 </head>
 <body>
 
+<header class="nav">
+    <div class="wrap nav-in">
+        <a class="brand" href="/cop2/main" aria-label="SENTINEL 메인으로">
+            <span class="brand-mark" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 12l5-3"/></svg>
+            </span><b>SENTINEL</b>
+        </a>
+        <div class="crumb" aria-label="현재 위치">
+            <span aria-hidden="true">/</span><b>COP 배치 변경 대시보드</b><span class="demo">DEMO</span>
+        </div>
+        <div class="nav-tools">
+            <form class="period-f" id="fForm">
+                <span class="lbl" id="lblPeriod">기간</span>
+                <label for="inFrom" class="sr">시작일</label>
+                <input class="ctl" type="date" id="inFrom" required>
+                <span aria-hidden="true">~</span>
+                <label for="inTo" class="sr">종료일</label>
+                <input class="ctl" type="date" id="inTo" required>
+                <button type="submit" class="btn btn-solid" id="btnLoad">조회</button>
+            </form>
+            <div class="seg" role="group" aria-label="빠른 기간">
+                <button type="button" data-range="5" aria-pressed="false">1주</button>
+                <button type="button" data-range="10" aria-pressed="false">2주</button>
+                <button type="button" data-range="20" aria-pressed="false">4주</button>
+            </div>
+            <a class="btn btn-hide-sm" href="/cop/dashboard/brand">BOM 이상감지</a>
+            <button type="button" class="btn" id="btnPrint" aria-label="보고서 인쇄">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
+                <span class="btn-hide-sm">인쇄</span>
+            </button>
+        </div>
+    </div>
+    <div class="daybar">
+        <div class="wrap daybar-in">
+            <span class="lbl" id="lblDay">기준 배치일</span>
+            <div class="day-nav" role="group" aria-labelledby="lblDay">
+                <button type="button" class="icon-btn" id="dayPrev" aria-label="이전 배치일">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+                </button>
+                <label for="inDay" class="sr">기준 배치일 선택</label>
+                <select class="ctl" id="inDay"></select>
+                <button type="button" class="icon-btn" id="dayNext" aria-label="다음 배치일">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                </button>
+                <button type="button" class="btn btn-sm" id="dayLast">최근</button>
+            </div>
+            <span class="day-sum" id="daySum" role="status">-</span>
+        </div>
+    </div>
+</header>
+
+<main class="wrap" id="main">
+    <div class="notice" id="truncNotice" hidden>조회 기간이 길어 최근 31개 배치일만 표시합니다. 기간을 줄여 다시 조회하세요.</div>
+
+    <!-- ═══════════ 1. 요약 (기준일) ═══════════ -->
+    <section class="card hero" aria-labelledby="heroTitle">
+        <div style="position:relative;z-index:1">
+            <div class="hero-eyebrow">
+                <span class="pill" id="heroDate">-</span>
+                <span id="heroPeriod">-</span>
+            </div>
+            <h1 id="heroTitle">-</h1>
+            <p class="hero-sub" id="heroSub">-</p>
+            <div class="hero-flow" aria-label="배치 처리 단계">
+                <span>WIP 생성</span><i aria-hidden="true">›</i>
+                <span>동일정보 생성</span><i aria-hidden="true">›</i>
+                <span>최초설계일 변경 (EL_ZFDA~D)</span><i aria-hidden="true">›</i>
+                <span>종속사양 산출</span><i aria-hidden="true">›</i>
+                <span>BOM 계산</span><i aria-hidden="true">›</i>
+                <span>이전 ↔ 시뮬 비교</span>
+            </div>
+        </div>
+        <div class="hero-ring">
+            <div class="ring" id="ring" role="img" aria-label="BOM 일치율">
+                <div><b class="tnum" id="ringVal">-</b><small>BOM 일치율</small></div>
+            </div>
+            <div class="ring-legend">
+                <div><span>성공 호기</span><b id="lgOk">-</b></div>
+                <div><span>변경 발생</span><b id="lgChg">-</b></div>
+                <div><span>배치 실패</span><b id="lgFail">-</b></div>
+                <div><span>기간 평균 일치율</span><b id="lgAvg">-</b></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 2. KPI (기준일, 직전 배치일 대비) ═══════════ -->
+    <section class="kpis" aria-label="핵심 지표">
+        <article class="card kpi">
+            <div class="kpi-hd"><span class="kpi-ic" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 3v18M3 12h18"/></svg>
+            </span>배치 대상 호기</div>
+            <div class="kpi-val"><b class="tnum" id="kTotal">-</b><small>대</small><span class="delta zero" id="kTotalD">-</span></div>
+            <div class="stack" id="kTotalBar" aria-hidden="true"></div>
+            <div class="stack-lg" id="kTotalLg"></div>
+        </article>
+
+        <article class="card kpi">
+            <div class="kpi-hd"><span class="kpi-ic" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>
+            </span>자재 종류 수 (전체 합)</div>
+            <div class="kpi-val"><b class="tnum" id="kPart">-</b><small>종</small><span class="delta" id="kPartD">-</span></div>
+            <div class="kpi-cmp" id="kPartCmp"></div>
+        </article>
+
+        <article class="card kpi">
+            <div class="kpi-hd"><span class="kpi-ic" aria-hidden="true">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+            </span>자재 수량 총합</div>
+            <div class="kpi-val"><b class="tnum" id="kQty">-</b><small>EA</small><span class="delta" id="kQtyD">-</span></div>
+            <div class="kpi-cmp" id="kQtyCmp"></div>
+        </article>
+
+        <article class="card kpi">
+            <div class="kpi-hd"><span class="kpi-ic" aria-hidden="true" style="background:var(--warn-bg);color:var(--warn)">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            </span>변경 자재 건수</div>
+            <div class="kpi-val"><b class="tnum" id="kChg">-</b><small>건</small><span class="delta" id="kChgD">-</span></div>
+            <div class="stack" id="kChgBar" aria-hidden="true"></div>
+            <div class="stack-lg" id="kChgLg"></div>
+        </article>
+    </section>
+
+    <!-- ═══════════ 3. 기간 추이 ═══════════ -->
+    <section class="card" id="secTrend" aria-labelledby="trendTitle">
+        <div class="card-hd">
+            <div><span class="eyebrow">01 · TREND</span><h2 id="trendTitle">일자별 배치 변경 추이</h2><p id="trendDesc">-</p></div>
+        </div>
+        <div class="card-bd"><div class="chart-trend" id="chTrend" role="img"></div></div>
+    </section>
+
+    <!-- ═══════════ 4. 차트 ═══════════ -->
+    <section class="charts" aria-label="변경 현황 차트">
+        <article class="card">
+            <div class="card-hd">
+                <div><span class="eyebrow">02 · HOGI</span><h2>호기별 변경 현황</h2><p id="chHogiDesc">변경 건수가 많은 호기 순</p></div>
+                <div class="seg" role="group" aria-label="호기별 차트 보기">
+                    <button type="button" data-view="chg" aria-pressed="true">변경 유형</button>
+                    <button type="button" data-view="qty" aria-pressed="false">수량 비교</button>
+                    <button type="button" data-view="period" aria-pressed="false">기간 누적</button>
+                </div>
+            </div>
+            <div class="card-bd"><div class="chart" id="chHogi" role="img" aria-label="호기별 변경 차트"></div></div>
+        </article>
+
+        <article class="card">
+            <div class="card-hd"><div><span class="eyebrow">03 · MIX</span><h2>변경 유형 비율</h2><p id="chMixDesc">기준일 변경 자재 기준</p></div></div>
+            <div class="card-bd"><div class="chart" id="chMix" role="img" aria-label="변경 유형 비율 차트"></div></div>
+        </article>
+
+        <article class="card">
+            <div class="card-hd">
+                <div><span class="eyebrow">04 · BLOCK</span><h2>블록별 변경 Top 8</h2><p id="chBlockDesc">변경이 몰린 BOM 블록</p></div>
+                <div class="seg" role="group" aria-label="블록 차트 범위">
+                    <button type="button" data-blk="day" aria-pressed="true">기준일</button>
+                    <button type="button" data-blk="period" aria-pressed="false">기간 전체</button>
+                </div>
+            </div>
+            <div class="card-bd"><div class="chart-sm" id="chBlock" role="img" aria-label="블록별 변경 차트"></div></div>
+        </article>
+
+        <article class="card">
+            <div class="card-hd"><div><span class="eyebrow">05 · PERIOD</span><h2>기간 요약</h2><p id="psumDesc">-</p></div></div>
+            <div class="card-bd"><dl class="psum" id="psum"></dl></div>
+        </article>
+    </section>
+
+    <!-- ═══════════ 5. 호기 x 일자 추적 ═══════════ -->
+    <section class="card" id="secMx" aria-labelledby="mxTitle">
+        <div class="card-hd">
+            <div><span class="eyebrow">06 · TRACKING</span><h2 id="mxTitle">호기별 일자 추적</h2><p id="mxDesc">-</p></div>
+            <div class="seg" role="group" aria-label="추적 지표">
+                <button type="button" data-mx="chg" aria-pressed="true">변경 건수</button>
+                <button type="button" data-mx="match" aria-pressed="false">일치율</button>
+            </div>
+        </div>
+        <div class="mx-wrap"><table class="mx" id="mx"></table></div>
+        <div class="scale" id="mxScale" aria-hidden="true"></div>
+    </section>
+
+    <!-- ═══════════ 6. 인사이트 ═══════════ -->
+    <section class="card" aria-labelledby="insTitle">
+        <div class="card-hd"><div><h2 id="insTitle">주요 인사이트</h2><p>기준일과 기간 수치에서 자동으로 추출</p></div></div>
+        <div class="card-bd"><ul class="insights" id="insights"></ul></div>
+    </section>
+
+    <!-- ═══════════ 7. 호기 목록 ═══════════ -->
+    <section class="card" id="secTbl" aria-labelledby="tblTitle">
+        <div class="card-hd">
+            <div><span class="eyebrow">07 · RESULT</span><h2 id="tblTitle">호기별 비교 결과</h2><p id="tblDesc">행을 누르면 그 호기의 일자별 변경 상세를 볼 수 있습니다</p></div>
+            <div class="seg" role="group" aria-label="비교 결과 보기">
+                <button type="button" data-mode="day" aria-pressed="true">기준 일자</button>
+                <button type="button" data-mode="period" aria-pressed="false">기간 전체</button>
+            </div>
+        </div>
+        <div class="tbl-tools" style="margin-top:12px;border-top:1px solid var(--line)">
+            <div class="chips" role="group" aria-label="결과 필터" id="chips"></div>
+            <div class="search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <label for="inSearch" class="sr">호기번호 검색</label>
+                <input id="inSearch" type="search" placeholder="호기번호 · 브랜드 검색" autocomplete="off">
+            </div>
+            <button type="button" class="btn btn-sm" id="btnCsv">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>CSV
+            </button>
+        </div>
+        <div class="tbl-wrap">
+            <table class="list">
+                <thead><tr id="thead"></tr></thead>
+                <tbody id="tbody"></tbody>
+            </table>
+            <div class="empty" id="tblEmpty" hidden>조건에 맞는 호기가 없습니다. 필터나 검색어를 바꿔 보세요.</div>
+        </div>
+        <div class="tbl-foot"><span id="tblCount">-</span><span>DEMO 데이터 · PLM_SIMUL_HOGI 기준</span></div>
+    </section>
+</main>
+
+<!-- ═══════════ 드로어 ═══════════ -->
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drTitle" hidden>
+    <div class="dr-hd">
+        <div>
+            <h2 id="drTitle">-</h2>
+            <p id="drSub">-</p>
+        </div>
+        <button type="button" class="dr-x" id="drClose" aria-label="상세 닫기">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+    </div>
+    <div class="dr-bd" id="drBody"></div>
+    <div class="dr-ft">
+        <button type="button" class="btn" id="drClose2">닫기</button>
+        <a class="btn btn-solid" id="drDiff" href="/cop/diff">BOM 비교 화면에서 보기</a>
+    </div>
+</aside>
+
+<script src="/resources/dist/js/highcharts.js"></script>
+<script>
+    (function () {
+        'use strict';
+
+        /* ════════════ 상수 ════════════ */
+        const TYPES = {
+            add: { label: '추가',     color: '#2F5BEA' },
+            del: { label: '삭제',     color: '#D92D20' },
+            qty: { label: '수량변경', color: '#F79009' }
+        };
+        const TYPE_KEYS = ['add', 'del', 'qty'];
+        const BLOCKS = {
+            'CAR':  '카 프레임',  'DOOR': '도어 장치', 'CTRL': '제어반',     'TM':   '권상기',
+            'RAIL': '가이드레일', 'CWT':  '균형추',    'HALL': '승강장 장치', 'ROPE': '로프',
+            'SAFE': '안전장치',   'PIT':  '피트 장치', 'SIG':  '신호 장치',   'DECO': '카 의장'
+        };
+        const BLOCK_WEIGHT = { CAR: 9, DOOR: 7, CTRL: 10, TM: 3, RAIL: 4, CWT: 2, HALL: 6, ROPE: 3, SAFE: 4, PIT: 2, SIG: 6, DECO: 8 };
+        const PART_NAMES = {
+            CAR: ['카 상부 프레임', '카 바닥판', '방진 고무', '카 측판 브라켓'],
+            DOOR: ['도어 행거', '도어 슈', '도어 모터', '인터록 스위치'],
+            CTRL: ['메인 보드', 'INV 유닛', '릴레이', '배선 하네스', '퓨즈 블록'],
+            TM: ['권상기 본체', '브레이크 라이닝', '엔코더'],
+            RAIL: ['T형 레일', '레일 브라켓', '피시 플레이트'],
+            CWT: ['균형추 블록', '균형추 프레임'],
+            HALL: ['승강장 버튼', '홀 랜턴', '실 앵글'],
+            ROPE: ['메인 로프', '로프 소켓', '보상 체인'],
+            SAFE: ['비상 정지 장치', '조속기', '완충기'],
+            PIT: ['피트 사다리', '피트 스위치'],
+            SIG: ['인디케이터', 'COP 패널', '음성 안내 모듈'],
+            DECO: ['천장 조명', '핸드레일', '거울', '카 벽판 마감']
+        };
+        const SPECS = [
+            { brand: '표준형',   speed: 60,  acapa: 15 },
+            { brand: '표준형',   speed: 90,  acapa: 17 },
+            { brand: '프리미엄', speed: 105, acapa: 20 },
+            { brand: '프리미엄', speed: 150, acapa: 24 },
+            { brand: '고속형',   speed: 240, acapa: 24 },
+            { brand: '화물용',   speed: 60,  acapa: 30 }
+        ];
+        const FAIL_MSG = ['종속사양 산출 실패 : 필수 특성값(EL_DRTY) 누락', 'BOM 계산 시간 초과 (180s)', 'WIP 생성 실패 : 영업사양 잠금 상태'];
+        const POOL_N = 16;          // 관리대상 호기 수 (DEMO)
+        const MAX_DAYS = 31;        // 한 번에 보여줄 배치일 수
+        const STATUS = { ok: ['ok', '완전 일치'], chg: ['chg', '변경 있음'], fail: ['fail', '배치 실패'], none: ['none', '미실행'] };
+
+        const $ = id => document.getElementById(id);
+        const fmt = n => Number(n).toLocaleString('ko-KR');
+        const pct = (n, d = 1) => (Number.isFinite(n) ? n : 0).toFixed(d);
+        const signed = n => (n > 0 ? '+' : '') + fmt(n);
+        const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+        const pad = n => String(n).padStart(2, '0');
+        const ymd = d => d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+        const toDate = s => new Date(Number(s.slice(0, 4)), Number(s.slice(4, 6)) - 1, Number(s.slice(6, 8)));
+        const iso = s => s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6, 8);
+        const WEEK = '일월화수목금토';
+        const wk = s => WEEK.charAt(toDate(s).getDay());
+        const shortDay = s => Number(s.slice(4, 6)) + '/' + Number(s.slice(6, 8));
+        const longDay = s => s.slice(0, 4) + '.' + s.slice(4, 6) + '.' + s.slice(6, 8) + '(' + wk(s) + ')';
+        const calm = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        /* 씨앗 난수 (같은 씨앗이면 같은 샘플) */
+        function rng(seed) {
+            let s = seed % 2147483647; if (s <= 0) s += 2147483646;
+            const next = () => (s = s * 16807 % 2147483647) / 2147483647;
+            next(); next(); next();
+            return next;
+        }
+        const pickW = (r, weights) => {
+            const keys = Object.keys(weights);
+            const sum = keys.reduce((a, k) => a + weights[k], 0);
+            let x = r() * sum;
+            for (const k of keys) { x -= weights[k]; if (x <= 0) return k; }
+            return keys[keys.length - 1];
+        };
+
+        /* 배치는 평일에만 돈다 (CopService cron 1-5 기준) */
+        const isBiz = d => d.getDay() !== 0 && d.getDay() !== 6;
+        function lastBizDay(d) {
+            const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            while (!isBiz(x)) x.setDate(x.getDate() - 1);
+            return x;
+        }
+        function prevBiz(s) { const x = toDate(s); x.setDate(x.getDate() - 1); return ymd(lastBizDay(x)); }
+        function bizDays(from, to) {
+            const out = [], x = toDate(from), end = toDate(to);
+            while (x <= end) { if (isBiz(x)) out.push(ymd(x)); x.setDate(x.getDate() + 1); }
+            return out;
+        }
+        function bizBack(to, n) {           // to 를 포함해 n 번째 앞 평일
+            let s = ymd(lastBizDay(toDate(to)));
+            for (let i = 1; i < n; i++) s = prevBiz(s);
+            return s;
+        }
+
+        /* ════════════ 샘플 데이터 (나중에 API 로 교체) ════════════ */
+        /* 관리대상 호기 : 날짜가 바뀌어도 같은 호기를 매 배치일 추적한다 */
+        const POOL = (function () {
+            const r = rng(20260101);
+            const ri = (a, b) => a + Math.floor(r() * (b - a + 1));
+            const used = new Set(), list = [];
+            while (list.length < POOL_N) {
+                const before = 'H' + ri(23, 25) + String.fromCharCode(65 + ri(0, 11)) + String(ri(1000, 9999));
+                if (used.has(before)) continue;
+                used.add(before);
+                const spec = SPECS[ri(0, SPECS.length - 1)];
+                const partsBase = ri(360, 640);
+                const cand = [], nc = ri(12, 28);
+                for (let k = 0; k < nc; k++) {
+                    const block = pickW(r, BLOCK_WEIGHT);
+                    const type = pickW(r, { add: 3, del: 2, qty: 6 });
+                    const names = PART_NAMES[block];
+                    cand.push({
+                        block, type, name: names[ri(0, names.length - 1)],
+                        partNo: block.slice(0, 2) + '-' + String(ri(100000, 999999)),
+                        bq: type === 'add' ? 0 : ri(1, 24), aq: type === 'add' ? ri(1, 24) : 0,
+                        w: r()      // 높을수록 매일 반복해서 바뀌는 자재
+                    });
+                }
+                list.push({
+                    key: before, before, spec, partsBase,
+                    qtyBase: Math.round(partsBase * (5 + r() * 4)),
+                    sameP: [0.05, 0.2, 0.35, 0.6, 0.85][ri(0, 4)],
+                    failP: r() < .2 ? .12 : .02,
+                    msBase: ri(50000, 140000),
+                    cand
+                });
+            }
+            return list;
+        })();
+
+        /* 배치일(yyyyMMdd) 하루치 결과. API : GET /cop/dashboard/batch?date=yyyyMMdd 로 바꾸면 된다 */
+        function makeRows(day) {
+            const rows = [];
+            POOL.forEach((h, i) => {
+                const r = rng(Number(day) * 131 + i * 7919 + 17);
+                const ri = (a, b) => a + Math.floor(r() * (b - a + 1));
+                if (r() < .04) return;                       // 그날 배치 대상에서 빠짐
+                const base = {
+                    key: h.key, before: h.before, spec: h.spec, date: day,
+                    after: 'S' + day.slice(2) + pad(i + 1),
+                    partsBefore: h.partsBase, qtyBefore: h.qtyBase,
+                    ms: Math.round(h.msBase * (.75 + r() * .5))
+                };
+                if (r() < h.failP) {
+                    rows.push(Object.assign(base, {
+                        after: '-', status: 'fail', partsAfter: null, qtyAfter: null,
+                        chg: 0, add: 0, del: 0, qtyc: 0, match: null, msg: FAIL_MSG[ri(0, 2)], items: []
+                    }));
+                    return;
+                }
+                let items = [];
+                if (r() >= h.sameP) {
+                    items = h.cand.filter(c => r() < .12 + c.w * .55).map(c => {
+                        let aq = c.type === 'del' ? 0 : c.type === 'add' ? c.aq : c.bq + (r() < .5 ? -1 : 1) * ri(1, 4);
+                        if (c.type === 'qty' && aq <= 0) aq = c.bq + ri(1, 4);
+                        return { type: c.type, block: c.block, partNo: c.partNo, name: c.name, bq: c.bq, aq };
+                    });
+                }
+                const add = items.filter(x => x.type === 'add').length;
+                const del = items.filter(x => x.type === 'del').length;
+                const qtyc = items.length - add - del;
+                const chg = items.length;
+                const union = base.partsBefore + add;
+                rows.push(Object.assign(base, {
+                    status: chg ? 'chg' : 'ok',
+                    partsAfter: base.partsBefore + add - del,
+                    qtyAfter: base.qtyBefore + items.reduce((a, x) => a + x.aq - x.bq, 0),
+                    chg, add, del, qtyc, match: (union - chg) / union * 100, msg: 'BOM 계산 완료', items
+                }));
+            });
+            return rows;
+        }
+        const rowCache = new Map();
+        function getRows(day) {
+            if (!rowCache.has(day)) rowCache.set(day, makeRows(day));
+            return rowCache.get(day);
+        }
+
+        /* ════════════ 집계 ════════════ */
+        function summarize(rows) {
+            const ok = rows.filter(x => x.status !== 'fail');
+            const sum = (arr, k) => arr.reduce((a, x) => a + (x[k] || 0), 0);
+            const s = {
+                total: rows.length, ok: ok.length, fail: rows.length - ok.length,
+                changed: ok.filter(x => x.chg > 0).length,
+                same: ok.filter(x => x.chg === 0).length,
+                partsBefore: sum(ok, 'partsBefore'), partsAfter: sum(ok, 'partsAfter'),
+                qtyBefore: sum(ok, 'qtyBefore'),     qtyAfter: sum(ok, 'qtyAfter'),
+                add: sum(ok, 'add'), del: sum(ok, 'del'), qtyc: sum(ok, 'qtyc'),
+                avgMs: sum(rows, 'ms') / (rows.length || 1)
+            };
+            s.chg = s.add + s.del + s.qtyc;
+            const union = s.partsBefore + s.add;
+            s.match = union ? (union - s.chg) / union * 100 : 100;
+            s.rate = s.ok ? s.changed / s.ok * 100 : 0;
+            s.blocks = blockCount(ok);
+            return s;
+        }
+        function blockCount(rows) {
+            const b = {};
+            rows.forEach(x => x.items.forEach(it => {
+                const o = b[it.block] || (b[it.block] = { add: 0, del: 0, qty: 0, n: 0 });
+                o[it.type]++; o.n++;
+            }));
+            return b;
+        }
+
+        /* 기간 : 일자별 결과 + 호기별 일자 추적 */
+        function buildPeriod(from, to) {
+            let dates = bizDays(from, to);
+            const truncated = dates.length > MAX_DAYS;
+            if (truncated) dates = dates.slice(-MAX_DAYS);
+            const byDate = new Map(dates.map(d => [d, getRows(d)]));
+            const sums = new Map(dates.map(d => [d, summarize(byDate.get(d))]));
+
+            const hogis = POOL.map(h => {
+                const rows = new Map();
+                dates.forEach(d => { const x = byDate.get(d).find(r => r.key === h.key); if (x) rows.set(d, x); });
+                const list = Array.from(rows.values());
+                const ok = list.filter(x => x.status !== 'fail');
+                const hp = {
+                    key: h.key, before: h.before, spec: h.spec, rows,
+                    runs: list.length,
+                    failDays: list.length - ok.length,
+                    chgDays: ok.filter(x => x.chg).length,
+                    sameDays: ok.filter(x => !x.chg).length,
+                    chgSum: ok.reduce((a, x) => a + x.chg, 0),
+                    add: ok.reduce((a, x) => a + x.add, 0),
+                    del: ok.reduce((a, x) => a + x.del, 0),
+                    qtyc: ok.reduce((a, x) => a + x.qtyc, 0),
+                    maxChg: ok.reduce((a, x) => Math.max(a, x.chg), 0),
+                    matchAvg: ok.length ? ok.reduce((a, x) => a + x.match, 0) / ok.length : null,
+                    lastChg: dates.slice().reverse().find(d => rows.has(d) && rows.get(d).chg > 0) || ''
+                };
+                /* 같은 자재가 여러 배치일에 반복해서 바뀌는지 */
+                const parts = new Map();
+                ok.forEach(x => x.items.forEach(it => {
+                    const p = parts.get(it.partNo) || { partNo: it.partNo, name: it.name, block: it.block, type: it.type, dates: [] };
+                    p.dates.push(x.date);
+                    parts.set(it.partNo, p);
+                }));
+                hp.parts = parts;
+                hp.repeat = Array.from(parts.values()).filter(p => p.dates.length >= 2).sort((a, b) => b.dates.length - a.dates.length || a.partNo.localeCompare(b.partNo));
+                return hp;
+            });
+
+            const all = [];
+            byDate.forEach(rows => rows.forEach(x => all.push(x)));
+            const ps = summarize(all);
+            return { from, to, dates, byDate, sums, hogis, truncated, ps };
+        }
+
+        /* 기준일까지 연속으로 변경이 난 배치일 수 */
+        function streakAt(hp, date) {
+            let i = P.dates.indexOf(date), n = 0;
+            while (i >= 0) {
+                const x = hp.rows.get(P.dates[i]);
+                if (!x || x.status !== 'chg') break;
+                n++; i--;
+            }
+            return n;
+        }
+
+        /* ════════════ 상태 ════════════ */
+        let P = null;                         // 기간 데이터
+        let D = null;                         // 기준일 데이터 { date, rows, sum, prevDate, prevRows, prevSum }
+        const state = {
+            date: '', filter: 'all', q: '', mode: 'day',
+            sortK: 'chg', sortDir: -1, psortK: 'chgSum', psortDir: -1,
+            hogiView: 'chg', blk: 'day', mx: 'chg'
+        };
+
+        function setDay(date) {
+            const rows = P.byDate.get(date);
+            const i = P.dates.indexOf(date);
+            const prevDate = i > 0 ? P.dates[i - 1] : prevBiz(date);
+            const prevRows = i > 0 ? P.byDate.get(prevDate) : getRows(prevDate);
+            D = { date, idx: i, rows, sum: P.sums.get(date), prevDate, prevRows, prevSum: i > 0 ? P.sums.get(prevDate) : summarize(prevRows) };
+            state.date = date;
+        }
+
+        /* ════════════ 렌더 : 상단 바 ════════════ */
+        function renderDayBar() {
+            $('inDay').innerHTML = P.dates.slice().reverse().map(d => {
+                const s = P.sums.get(d);
+                return '<option value="' + d + '">' + longDay(d) + ' · 변경 ' + fmt(s.chg) + '건 · ' + s.changed + '대</option>';
+            }).join('');
+            $('inDay').value = state.date;
+            $('dayPrev').disabled = D.idx <= 0;
+            $('dayNext').disabled = D.idx >= P.dates.length - 1;
+            $('dayLast').disabled = D.idx === P.dates.length - 1;
+            $('daySum').innerHTML = '기간 <b>' + shortDay(P.dates[0]) + ' ~ ' + shortDay(P.dates.at(-1)) + '</b> · 배치일 <b>' + P.dates.length + '</b>일 · ' +
+                '누적 변경 <b>' + fmt(P.ps.chg) + '</b>건 · 평균 일치율 <b>' + pct(avgMatch()) + '%</b>';
+            const n = bizDays(P.from, P.to).length;
+            document.querySelectorAll('[data-range]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.range) === n && P.to === ymd(lastBizDay(new Date())))));
+        }
+        function avgMatch() {
+            const v = P.dates.map(d => P.sums.get(d)).filter(s => s.ok);
+            return v.length ? v.reduce((a, s) => a + s.match, 0) / v.length : 100;
+        }
+
+        /* ════════════ 렌더 : 요약 · KPI ════════════ */
+        function deltaBadge(el, cur, prev, unit) {
+            const d = cur - prev;
+            const p = prev ? d / prev * 100 : 0;
+            el.className = 'delta ' + (d > 0 ? 'up' : d < 0 ? 'down' : 'zero');
+            el.textContent = d === 0 ? '변동 없음' : (d > 0 ? '▲ ' : '▼ ') + fmt(Math.abs(d)) + (unit || '') + ' (' + (p > 0 ? '+' : '') + pct(p, 2) + '%)';
+        }
+        function cmpBars(el, before, after) {
+            const max = Math.max(before, after) || 1;
+            el.innerHTML =
+                '<span>이전</span><div class="bar"><span style="width:' + (before / max * 100) + '%;background:#98A2B3"></span></div><span class="v">' + fmt(before) + '</span>' +
+                '<span>시뮬</span><div class="bar"><span style="width:' + (after / max * 100) + '%;background:var(--brand-2)"></span></div><span class="v">' + fmt(after) + '</span>';
+        }
+        function stackBar(barEl, lgEl, parts) {
+            const tot = parts.reduce((a, p) => a + p.v, 0) || 1;
+            barEl.innerHTML = parts.map(p => '<span style="width:' + (p.v / tot * 100) + '%;background:' + p.c + '"></span>').join('');
+            lgEl.innerHTML = parts.map(p => '<span><i class="dot" style="background:' + p.c + '"></i>' + p.l + ' <b class="tnum">' + fmt(p.v) + '</b></span>').join('');
+        }
+
+        function renderHero() {
+            const s = D.sum;
+            $('heroDate').textContent = iso(D.date) + '(' + wk(D.date) + ') 배치';
+            $('heroPeriod').textContent = '조회 기간 ' + P.dates.length + '개 배치일 중 ' + (D.idx + 1) + '번째 · 직전 배치 ' + longDay(D.prevDate);
+            $('heroTitle').innerHTML = '배치 대상 <em>' + s.total + '대</em> 중 <em>' + s.changed + '대</em>에서 BOM 변경이 감지되었습니다';
+            const avgChg = P.ps.chg / P.dates.length;
+            const vs = avgChg ? (s.chg - avgChg) / avgChg * 100 : 0;
+            $('heroSub').textContent =
+                '이전호기와 동일정보로 생성한 시뮬호기 ' + s.ok + '대를 비교한 결과, 자재 ' + fmt(s.chg) + '건이 달라졌습니다 ' +
+                '(추가 ' + s.add + ' · 삭제 ' + s.del + ' · 수량변경 ' + s.qtyc + '). 변경 발생률 ' + pct(s.rate) + '%, ' +
+                '기간 일평균(' + pct(avgChg) + '건) 대비 ' + (vs >= 0 ? '+' : '') + pct(vs) + '% 입니다.';
+            $('ring').style.setProperty('--p', s.match.toFixed(1));
+            $('ring').setAttribute('aria-label', 'BOM 일치율 ' + pct(s.match) + '%');
+            $('ringVal').textContent = pct(s.match) + '%';
+            $('lgOk').textContent = s.ok + '대';
+            $('lgChg').textContent = s.changed + '대';
+            $('lgFail').textContent = s.fail + '대';
+            $('lgAvg').textContent = pct(avgMatch()) + '%';
+        }
+
+        function renderKpis() {
+            const s = D.sum, p = D.prevSum, pd = shortDay(D.prevDate);
+            $('kTotal').textContent = s.total;
+            const dt = s.total - p.total;
+            const kd = $('kTotalD');
+            kd.className = 'delta ' + (dt > 0 ? 'up' : dt < 0 ? 'down' : 'zero');
+            kd.textContent = pd + ' 대비 ' + (dt === 0 ? '동일' : signed(dt) + '대');
+            stackBar($('kTotalBar'), $('kTotalLg'), [
+                { l: '변경', v: s.changed, c: 'var(--t-qty)' },
+                { l: '일치', v: s.same,    c: '#12B76A' },
+                { l: '실패', v: s.fail,    c: 'var(--t-del)' }
+            ]);
+
+            $('kPart').textContent = fmt(s.partsAfter);
+            deltaBadge($('kPartD'), s.partsAfter, s.partsBefore, '종');
+            cmpBars($('kPartCmp'), s.partsBefore, s.partsAfter);
+
+            $('kQty').textContent = fmt(s.qtyAfter);
+            deltaBadge($('kQtyD'), s.qtyAfter, s.qtyBefore, '');
+            cmpBars($('kQtyCmp'), s.qtyBefore, s.qtyAfter);
+
+            $('kChg').textContent = fmt(s.chg);
+            const kc = $('kChgD');
+            const dc = s.chg - p.chg;
+            kc.className = 'delta ' + (dc > 0 ? 'down' : dc < 0 ? 'up' : 'zero');
+            kc.textContent = pd + ' 대비 ' + (dc === 0 ? '동일' : signed(dc) + '건');
+            stackBar($('kChgBar'), $('kChgLg'), [
+                { l: '추가',     v: s.add,  c: TYPES.add.color },
+                { l: '삭제',     v: s.del,  c: TYPES.del.color },
+                { l: '수량변경', v: s.qtyc, c: TYPES.qty.color }
+            ]);
+        }
+
+        /* ════════════ 렌더 : 차트 ════════════ */
+        const charts = {};
+        function chart(id, opt) {
+            if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+            charts[id] = Highcharts.chart(id, opt);
+            return charts[id];
+        }
+        const fade = (c, on) => on ? c : Highcharts.color(c).setOpacity(.28).get();
+
+        function renderTrend() {
+            const ds = P.dates, t = ds.map(d => P.sums.get(d));
+            const peakI = t.reduce((m, s, i) => s.chg > t[m].chg ? i : m, 0);
+            $('trendDesc').textContent = '평일 배치 ' + ds.length + '회 · 최다 변경 ' + longDay(ds[peakI]) + ' (' + fmt(t[peakI].chg) + '건) · 막대를 누르면 그 일자를 기준일로 봅니다';
+            $('chTrend').setAttribute('aria-label', '일자별 변경 건수. ' + ds.map((d, i) => shortDay(d) + ' ' + t[i].chg + '건').join(', '));
+            chart('chTrend', {
+                chart: { alignTicks: false },
+                xAxis: {
+                    categories: ds.map(d => shortDay(d) + '<br/><span style="font-size:10px;color:#98A2B3">' + wk(d) + '</span>'),
+                    labels: { useHTML: false, style: { fontSize: '11px' } },
+                    plotBands: [{ from: D.idx - .5, to: D.idx + .5, color: 'rgba(47,91,234,.08)' }]
+                },
+                yAxis: [
+                    { title: { text: '변경 건수 (건)' }, allowDecimals: false, reversedStacks: false,
+                        stackLabels: { enabled: ds.length <= 22, style: { fontWeight: '700', color: '#3F4A5C', textOutline: 'none', fontSize: '11px' } } },
+                    { title: { text: '변경 발생률 (%)' }, opposite: true, max: 100, min: 0, tickInterval: 25, gridLineWidth: 0, labels: { format: '{value}%' } }
+                ],
+                tooltip: { shared: true, formatter: function () {
+                        const i = this.points[0].point.index, s = t[i];
+                        return '<b>' + longDay(ds[i]) + '</b><br/>' +
+                            TYPE_KEYS.map(k => '<span style="color:' + TYPES[k].color + '">●</span> ' + TYPES[k].label + ': <b>' + (k === 'qty' ? s.qtyc : s[k]) + '건</b>').join('<br/>') +
+                            '<br/>변경 발생 ' + s.changed + ' / ' + s.ok + '대 (' + pct(s.rate) + '%) · 일치율 ' + pct(s.match, 2) + '%' + (s.fail ? '<br/><span style="color:#D92D20">실패 ' + s.fail + '대</span>' : '');
+                    } },
+                plotOptions: {
+                    column: { stacking: 'normal', borderWidth: 0, borderRadius: 2, pointPadding: .08, groupPadding: .06 },
+                    series: { cursor: 'pointer', point: { events: { click: function () { goDay(ds[this.index]); } } } }
+                },
+                series: TYPE_KEYS.map(k => ({
+                    type: 'column', name: TYPES[k].label, color: TYPES[k].color,
+                    data: t.map((s, i) => ({ y: k === 'qty' ? s.qtyc : s[k], color: fade(TYPES[k].color, i === D.idx) }))
+                })).concat([{
+                    type: 'spline', name: '변경 발생률', yAxis: 1, color: '#0B1220', lineWidth: 2, dashStyle: 'ShortDot',
+                    marker: { radius: 3.5, lineWidth: 2, lineColor: '#fff' },
+                    data: t.map((s, i) => ({ y: Math.round(s.rate * 10) / 10, marker: i === D.idx ? { radius: 6, fillColor: '#2F5BEA' } : undefined }))
+                }])
+            });
+        }
+
+        function renderHogiChart() {
+            document.querySelectorAll('[data-view]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.view === state.hogiView)));
+            const ok = D.rows.filter(x => x.status !== 'fail');
+            if (state.hogiView === 'chg') {
+                const rows = ok.slice().sort((a, b) => b.chg - a.chg);
+                $('chHogiDesc').textContent = shortDay(D.date) + ' · 변경 건수가 많은 호기 순 (이전호기 기준)';
+                chart('chHogi', {
+                    chart: { type: 'column' },
+                    xAxis: { categories: rows.map(x => x.before), labels: { rotation: -40, style: { fontSize: '11px' } } },
+                    yAxis: { title: { text: '변경 건수 (건)' }, allowDecimals: false, stackLabels: { enabled: true, style: { fontWeight: '700', color: '#3F4A5C', textOutline: 'none' } } },
+                    tooltip: { shared: true, headerFormat: '<b>{point.key}</b><br/>', pointFormat: '<span style="color:{series.color}">●</span> {series.name}: <b>{point.y}건</b><br/>' },
+                    plotOptions: { column: { stacking: 'normal', borderWidth: 0, borderRadius: 3, pointPadding: .08, groupPadding: .1 },
+                        series: { cursor: 'pointer', point: { events: { click: function () { openDrawer(rows[this.index].key, D.date); } } } } },
+                    series: TYPE_KEYS.map(t => ({ name: TYPES[t].label, color: TYPES[t].color, data: rows.map(x => t === 'qty' ? x.qtyc : x[t]) }))
+                });
+            } else if (state.hogiView === 'qty') {
+                const rows = ok.slice().sort((a, b) => Math.abs(b.qtyAfter - b.qtyBefore) - Math.abs(a.qtyAfter - a.qtyBefore));
+                $('chHogiDesc').textContent = shortDay(D.date) + ' · 이전호기 vs 시뮬호기 자재 수량 총합 (증감 큰 순)';
+                chart('chHogi', {
+                    chart: { type: 'column' },
+                    xAxis: { categories: rows.map(x => x.before), labels: { rotation: -40, style: { fontSize: '11px' } } },
+                    yAxis: [
+                        { title: { text: '수량 총합 (EA)' } },
+                        { title: { text: '증감 (EA)' }, opposite: true, plotLines: [{ value: 0, width: 1, color: '#98A2B3' }] }
+                    ],
+                    tooltip: { shared: true, headerFormat: '<b>{point.key}</b><br/>', valueSuffix: ' EA' },
+                    plotOptions: { column: { borderWidth: 0, borderRadius: 3, pointPadding: .05, groupPadding: .14 },
+                        series: { cursor: 'pointer', point: { events: { click: function () { openDrawer(rows[this.index].key, D.date); } } } } },
+                    series: [
+                        { name: '이전호기', color: '#C7CEDB', data: rows.map(x => x.qtyBefore) },
+                        { name: '시뮬호기', color: '#2F5BEA', data: rows.map(x => x.qtyAfter) },
+                        { name: '증감', type: 'spline', yAxis: 1, color: '#F79009', lineWidth: 2.5, marker: { radius: 4, lineWidth: 2, lineColor: '#fff' },
+                            data: rows.map(x => x.qtyAfter - x.qtyBefore) }
+                    ]
+                });
+            } else {
+                const rows = P.hogis.filter(h => h.runs).sort((a, b) => b.chgSum - a.chgSum);
+                $('chHogiDesc').textContent = '기간 ' + shortDay(P.dates[0]) + ' ~ ' + shortDay(P.dates.at(-1)) + ' 누적 변경 건수 · 점 = 변경 발생일 수';
+                chart('chHogi', {
+                    chart: { type: 'column', alignTicks: false },
+                    xAxis: { categories: rows.map(x => x.before), labels: { rotation: -40, style: { fontSize: '11px' } } },
+                    yAxis: [
+                        { title: { text: '누적 변경 (건)' }, allowDecimals: false },
+                        { title: { text: '변경 발생일 (일)' }, opposite: true, min: 0, max: P.dates.length, allowDecimals: false, gridLineWidth: 0 }
+                    ],
+                    tooltip: { shared: true, headerFormat: '<b>{point.key}</b><br/>' },
+                    plotOptions: { column: { stacking: 'normal', borderWidth: 0, borderRadius: 3, pointPadding: .08, groupPadding: .1 },
+                        series: { cursor: 'pointer', point: { events: { click: function () { openDrawer(rows[this.index].key, D.date); } } } } },
+                    series: TYPE_KEYS.map(t => ({ name: TYPES[t].label, color: TYPES[t].color, data: rows.map(x => x[t === 'qty' ? 'qtyc' : t]), tooltip: { valueSuffix: '건' } }))
+                        .concat([{ type: 'scatter', name: '변경 발생일', yAxis: 1, color: '#0B1220', marker: { symbol: 'circle', radius: 4.5, lineWidth: 2, lineColor: '#fff' },
+                            data: rows.map(x => x.chgDays), tooltip: { pointFormat: '<span style="color:{series.color}">●</span> {series.name}: <b>{point.y}일</b> / ' + P.dates.length + '일<br/>' } }])
+                });
+            }
+        }
+
+        function renderMix() {
+            const s = D.sum;
+            $('chMixDesc').textContent = longDay(D.date) + ' 변경 자재 기준';
+            chart('chMix', {
+                chart: { type: 'pie' },
+                title: {
+                    text: '<span style="font-size:26px;font-weight:800;color:#0B1220">' + fmt(s.chg) + '</span><br/><span style="font-size:12px;color:#667085">변경 건수</span>',
+                    verticalAlign: 'middle', floating: true, y: -22
+                },
+                tooltip: { pointFormat: '<b>{point.y:,.0f}건</b> ({point.percentage:.2f}%)' },
+                plotOptions: { pie: { innerSize: '68%', borderWidth: 2, borderColor: '#fff', dataLabels: { enabled: false }, showInLegend: true } },
+                legend: { labelFormatter: function () { return this.name + '  <b>' + Highcharts.numberFormat(this.y, 0) + '</b>'; } },
+                series: [{ name: '자재', data: [
+                        { name: '추가',     y: s.add,  color: TYPES.add.color },
+                        { name: '삭제',     y: s.del,  color: TYPES.del.color },
+                        { name: '수량변경', y: s.qtyc, color: TYPES.qty.color }
+                    ] }]
+            });
+        }
+
+        function renderBlock() {
+            document.querySelectorAll('[data-blk]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.blk === state.blk)));
+            const src = state.blk === 'day' ? D.sum.blocks : P.ps.blocks;
+            $('chBlockDesc').textContent = state.blk === 'day' ? longDay(D.date) + ' 변경이 몰린 BOM 블록' : '기간 ' + P.dates.length + '개 배치일 누적';
+            const blk = Object.keys(src).map(k => Object.assign({ k }, src[k])).sort((a, b) => b.n - a.n).slice(0, 8);
+            chart('chBlock', {
+                chart: { type: 'bar' },
+                xAxis: { categories: blk.map(x => BLOCKS[x.k] + ' (' + x.k + ')') },
+                yAxis: { title: { text: null }, allowDecimals: false, stackLabels: { enabled: true, style: { fontWeight: '700', color: '#3F4A5C', textOutline: 'none' } } },
+                tooltip: { shared: true, pointFormat: '<span style="color:{series.color}">●</span> {series.name}: <b>{point.y}건</b><br/>' },
+                plotOptions: { bar: { stacking: 'normal', borderWidth: 0, borderRadius: 2, pointPadding: .1, groupPadding: .08 } },
+                series: TYPE_KEYS.map(tp => ({ name: TYPES[tp].label, color: TYPES[tp].color, data: blk.map(x => x[tp]) }))
+            });
+        }
+
+        function renderPeriodSum() {
+            const ds = P.dates, t = ds.map(d => P.sums.get(d));
+            const peakI = t.reduce((m, s, i) => s.chg > t[m].chg ? i : m, 0);
+            const lowI = t.reduce((m, s, i) => s.chg < t[m].chg ? i : m, 0);
+            const daily = P.hogis.filter(h => h.runs >= 2 && h.chgDays === h.runs - h.failDays && h.chgDays > 0);
+            const streaks = P.hogis.map(h => ({ h, n: streakAt(h, D.date) })).filter(x => x.n >= 3);
+            const never = P.hogis.filter(h => h.runs && h.chgSum === 0 && !h.failDays);
+            $('psumDesc').textContent = longDay(ds[0]) + ' ~ ' + longDay(ds.at(-1));
+            const row = (k, v, sub) => '<div><dt>' + k + '</dt><dd>' + v + (sub ? '<small>' + sub + '</small>' : '') + '</dd></div>';
+            const dayBtn = i => '<button type="button" class="linkish" data-day="' + ds[i] + '">' + longDay(ds[i]) + '</button>';
+            $('psum').innerHTML =
+                row('배치일', ds.length + '일', '관리대상 호기 ' + POOL.length + '대') +
+                row('누적 변경', fmt(P.ps.chg) + '건', '일평균 ' + pct(P.ps.chg / ds.length) + '건 · 추가 ' + P.ps.add + ' · 삭제 ' + P.ps.del + ' · 수량 ' + P.ps.qtyc) +
+                row('평균 BOM 일치율', pct(avgMatch(), 2) + '%', '변경 발생률 평균 ' + pct(t.reduce((a, s) => a + s.rate, 0) / ds.length) + '%') +
+                row('최다 변경일', dayBtn(peakI), fmt(t[peakI].chg) + '건 · ' + t[peakI].changed + '대') +
+                row('최소 변경일', dayBtn(lowI), fmt(t[lowI].chg) + '건 · ' + t[lowI].changed + '대') +
+                row('매 배치 변경 호기', daily.length + '대', daily.length ? daily.slice(0, 3).map(h => h.before).join(', ') + (daily.length > 3 ? ' 외' : '') : '없음') +
+                row(shortDay(D.date) + ' 기준 3일+ 연속 변경', streaks.length + '대', streaks.length ? streaks.sort((a, b) => b.n - a.n).slice(0, 3).map(x => x.h.before + ' ' + x.n + '일').join(', ') : '없음') +
+                row('기간 내내 일치', never.length + '대', '누적 실패 ' + P.ps.fail + '건');
+        }
+
+        /* ════════════ 렌더 : 호기 x 일자 ════════════ */
+        const heatChg = n => n === 0 ? 'zero' : n <= 2 ? 'h1' : n <= 5 ? 'h2' : n <= 10 ? 'h3' : n <= 15 ? 'h4' : 'h5';
+        const heatMatch = m => m >= 100 ? 'zero' : m >= 99 ? 'h1' : m >= 98 ? 'h2' : m >= 97 ? 'h3' : m >= 95 ? 'h4' : 'h5';
+
+        function renderMatrix() {
+            document.querySelectorAll('[data-mx]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.mx === state.mx)));
+            const ds = P.dates, metric = state.mx;
+            const q = state.q.trim().toLowerCase();
+            const list = P.hogis.filter(h => h.runs && (!q || (h.before + ' ' + h.spec.brand).toLowerCase().includes(q)))
+                .sort((a, b) => b.chgSum - a.chgSum || a.before.localeCompare(b.before));
+            $('mxDesc').textContent = '같은 이전호기를 배치일마다 비교한 결과 · 누적 변경 많은 순 · 날짜를 누르면 기준일, 칸을 누르면 그 일자의 변경 자재를 봅니다';
+
+            $('mx').innerHTML = '<caption class="sr">호기별 배치일 변경 건수</caption><thead><tr><th scope="col" class="g">이전호기 · 사양</th>' +
+                ds.map(d => '<th scope="col" class="' + (d === D.date ? 'sel' : '') + '"><button type="button" data-day="' + d + '" title="' + longDay(d) + ' 기준일로 보기">' + shortDay(d) + '<small>' + wk(d) + '</small></button></th>').join('') +
+                '<th scope="col" class="sum">누적</th><th scope="col" class="sum">변경일</th><th scope="col" class="sum">평균 일치율</th></tr></thead><tbody>' +
+                list.map(h => '<tr><td class="g"><button type="button" data-k="' + esc(h.key) + '"><b>' + esc(h.before) + '</b>' +
+                    '<small>' + esc(h.spec.brand) + ' · ' + h.spec.speed + 'm/min · ' + h.spec.acapa + '인승</small></button></td>' +
+                    ds.map(d => {
+                        const x = h.rows.get(d), sel = d === D.date ? ' class="sel"' : '';
+                        if (!x) return '<td' + sel + '><span class="heat-c nil" title="' + longDay(d) + ' 배치 대상 아님"></span></td>';
+                        const tip = esc(h.before + ' · ' + longDay(d) + ' · ' + (x.status === 'fail' ? '배치 실패 : ' + x.msg
+                            : '변경 ' + x.chg + '건 (추가 ' + x.add + ' · 삭제 ' + x.del + ' · 수량 ' + x.qtyc + ') · 일치율 ' + pct(x.match, 2) + '%'));
+                        let cls, txt;
+                        if (x.status === 'fail') { cls = 'fail'; txt = '✕'; }
+                        else if (metric === 'chg') { cls = heatChg(x.chg); txt = x.chg || '·'; }
+                        else { cls = heatMatch(x.match) + ' sm'; txt = x.match >= 100 ? '100' : pct(x.match, 1); }
+                        return '<td' + sel + '><button type="button" class="heat-c tnum ' + cls + '" data-k="' + esc(h.key) + '" data-d="' + d + '" title="' + tip + '" aria-label="' + tip + '">' + txt + '</button></td>';
+                    }).join('') +
+                    '<td class="sum tnum">' + h.chgSum + '</td><td class="sum tnum">' + h.chgDays + '/' + h.runs + '</td>' +
+                    '<td class="sum tnum">' + (h.matchAvg == null ? '-' : pct(h.matchAvg, 2) + '%') + '</td></tr>').join('') + '</tbody>';
+
+            const sw = c => '<i style="background:var(' + c + ')"></i>';
+            $('mxScale').innerHTML = (metric === 'chg'
+                    ? '<span>변경 건수</span><span><i style="background:var(--surface-2);border:1px solid var(--line)"></i>0</span><span>' + sw('--heat-1') + '1–2</span><span>' + sw('--heat-2') + '3–5</span><span>' + sw('--heat-3') + '6–10</span><span>' + sw('--heat-4') + '11–15</span><span>' + sw('--heat-5') + '16+</span>'
+                    : '<span>일치율</span><span><i style="background:var(--surface-2);border:1px solid var(--line)"></i>100%</span><span>' + sw('--heat-1') + '99%+</span><span>' + sw('--heat-2') + '98%+</span><span>' + sw('--heat-3') + '97%+</span><span>' + sw('--heat-4') + '95%+</span><span>' + sw('--heat-5') + '95% 미만</span>') +
+                '<span><i style="background:var(--alert-bg);border:1px solid #FECDCA"></i>배치 실패</span>' +
+                '<span><i style="background:repeating-linear-gradient(45deg,transparent 0 4px,var(--line) 4px 5px);border:1px solid var(--line)"></i>배치 대상 아님</span>';
+        }
+
+        /* ════════════ 렌더 : 인사이트 ════════════ */
+        const ICON = {
+            info:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+            warn:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M14 7h7v7"/></svg>',
+            alert: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>',
+            ok:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>'
+        };
+
+        function renderInsights() {
+            const s = D.sum, ok = D.rows.filter(x => x.status !== 'fail');
+            const out = [];
+
+            const top = ok.slice().sort((a, b) => b.chg - a.chg)[0];
+            if (top && top.chg) {
+                const hp = P.hogis.find(h => h.key === top.key);
+                out.push({ k: 'warn', h: shortDay(D.date) + ' 변경 최다 호기 · ' + top.before,
+                    p: '시뮬호기 <b class="mono">' + esc(top.after) + '</b> 에서 <b>' + top.chg + '건</b> 변경 (그날 전체의 ' + pct(top.chg / s.chg * 100) + '%). ' +
+                        '기간 중 <b>' + hp.chgDays + '/' + hp.runs + '일</b> 변경이 났습니다.' });
+            }
+
+            const streaks = P.hogis.map(h => ({ h, n: streakAt(h, D.date) })).filter(x => x.n >= 3).sort((a, b) => b.n - a.n);
+            if (streaks.length) {
+                out.push({ k: 'alert', h: '연속 변경 호기 ' + streaks.length + '대',
+                    p: streaks.slice(0, 3).map(x => '<b class="mono">' + esc(x.h.before) + '</b> ' + x.n + '일').join(', ') + (streaks.length > 3 ? ' 외' : '') +
+                        ' 이 ' + shortDay(D.date) + ' 까지 연속으로 BOM 이 달라졌습니다. 일시 현상이 아닌 기준 변경일 가능성이 큽니다.' });
+            }
+
+            /* 기간 동안 여러 호기 · 여러 일자에 반복해서 바뀐 자재 */
+            const parts = new Map();
+            P.hogis.forEach(h => h.parts.forEach(p => {
+                const o = parts.get(p.partNo) || { p, days: new Set(), hogis: new Set() };
+                p.dates.forEach(d => o.days.add(d)); o.hogis.add(h.before);
+                parts.set(p.partNo, o);
+            }));
+            const rep = Array.from(parts.values()).sort((a, b) => b.days.size - a.days.size).at(0);
+            if (rep && rep.days.size >= 2) {
+                out.push({ k: 'warn', h: '반복 변경 자재 · ' + rep.p.partNo,
+                    p: '<b>' + esc(BLOCKS[rep.p.block]) + ' · ' + esc(rep.p.name) + '</b> 이(가) 기간 ' + P.dates.length + '일 중 <b>' + rep.days.size + '일</b> 변경되었습니다 (' + TYPES[rep.p.type].label + ').' });
+            }
+
+            const blk = Object.keys(s.blocks).sort((a, b) => s.blocks[b].n - s.blocks[a].n);
+            if (blk.length) {
+                const b0 = blk[0], share = s.blocks[b0].n / s.chg * 100;
+                const pb = P.ps.blocks[b0], pshare = pb ? pb.n / P.ps.chg * 100 : 0;
+                out.push({ k: 'info', h: '변경 집중 블록 · ' + BLOCKS[b0],
+                    p: shortDay(D.date) + ' <b>' + BLOCKS[b0] + ' (' + b0 + ')</b> 블록에 변경 <b>' + s.blocks[b0].n + '건</b>(' + pct(share) + '%). 기간 전체로는 ' + pct(pshare) + '% 입니다.' });
+            }
+
+            const dq = s.qtyAfter - s.qtyBefore;
+            out.push({ k: dq >= 0 ? 'info' : 'alert', h: '자재 수량 총합 ' + (dq >= 0 ? '증가' : '감소'),
+                p: '시뮬호기 수량 총합이 이전 대비 <b>' + signed(dq) + ' EA</b> (' + (dq >= 0 ? '+' : '') + pct(dq / (s.qtyBefore || 1) * 100, 2) + '%). ' +
+                    '직전 배치(' + shortDay(D.prevDate) + ')는 ' + signed(D.prevSum.qtyAfter - D.prevSum.qtyBefore) + ' EA 였습니다.' });
+
+            const newly = ok.filter(x => x.chg && (() => { const p = D.prevRows.find(y => y.key === x.key); return p && p.status === 'ok'; })());
+            const fixed = ok.filter(x => !x.chg && (() => { const p = D.prevRows.find(y => y.key === x.key); return p && p.status === 'chg'; })());
+            if (newly.length || fixed.length) {
+                out.push({ k: newly.length > fixed.length ? 'warn' : 'ok', h: '직전 배치 대비 상태 변화',
+                    p: '일치 → 변경 <b>' + newly.length + '대</b>' + (newly.length ? ' (' + newly.slice(0, 3).map(x => '<span class="mono">' + esc(x.before) + '</span>').join(', ') + (newly.length > 3 ? ' 외' : '') + ')' : '') +
+                        ', 변경 → 일치 <b>' + fixed.length + '대</b>.' });
+            }
+
+            if (s.fail) {
+                const f = D.rows.filter(x => x.status === 'fail');
+                out.push({ k: 'alert', h: '배치 실패 ' + s.fail + '대',
+                    p: f.map(x => '<b class="mono">' + esc(x.before) + '</b> ' + esc(x.msg)).join('<br/>') });
+            } else if (s.same) {
+                out.push({ k: 'ok', h: '완전 일치 ' + s.same + '대',
+                    p: '시뮬호기 ' + s.ok + '대 중 <b>' + pct(s.same / s.ok * 100) + '%</b>는 BOM 이 이전호기와 완전히 같습니다.' });
+            }
+
+            $('insights').innerHTML = out.map(x =>
+                '<li class="ins"><span class="ins-ic ' + x.k + '" aria-hidden="true">' + ICON[x.k] + '</span><div><h3>' + esc(x.h) + '</h3><p>' + x.p + '</p></div></li>'
+            ).join('');
+        }
+
+        /* ════════════ 렌더 : 호기 목록 ════════════ */
+        function cmpCell(a, b) {
+            if (b == null) return '<span class="cmp from">' + fmt(a) + ' → -</span>';
+            const d = b - a;
+            return '<span class="cmp"><span class="from">' + fmt(a) + '</span> → <b>' + fmt(b) + '</b>' +
+                (d ? '<span class="d ' + (d > 0 ? 'up' : 'down') + '">' + signed(d) + '</span>' : '') + '</span>';
+        }
+        function miniStack(x, tot) {
+            return '<div class="stack" aria-hidden="true"><span style="width:' + (x.add / tot * 100) + '%;background:' + TYPES.add.color + '"></span><span style="width:' + (x.del / tot * 100) + '%;background:' + TYPES.del.color + '"></span><span style="width:' + (x.qtyc / tot * 100) + '%;background:' + TYPES.qty.color + '"></span></div>';
+        }
+        const rateCell = m => m == null ? '<span class="spec">-</span>' : '<div class="rate"><div class="bar"><span style="width:' + m + '%"></span></div><b>' + pct(m) + '%</b></div>';
+
+        /* 기간 일자별 변경 건수 미니 막대 (선택 일자는 진하게) */
+        let sparkMax = 1;
+        function spark(hp) {
+            const ds = P.dates, n = ds.length, H = 22;
+            const bw = Math.max(3, Math.min(8, Math.floor(150 / n) - 1)), W = n * (bw + 1);
+            const bars = ds.map((d, i) => {
+                const x = hp.rows.get(d), X = i * (bw + 1);
+                if (!x) return '<rect x="' + X + '" y="' + (H - 1) + '" width="' + bw + '" height="1" fill="#E4E7EC"/>';
+                if (x.status === 'fail') return '<rect x="' + X + '" y="' + (H - 6) + '" width="' + bw + '" height="6" rx="1" fill="#F97066"/>';
+                const h = x.chg ? Math.max(3, x.chg / sparkMax * H) : 2;
+                const c = !x.chg ? '#A6F4C5' : d === D.date ? '#1E40AF' : '#9DB4F7';
+                return '<rect x="' + X + '" y="' + (H - h) + '" width="' + bw + '" height="' + h + '" rx="1" fill="' + c + '"/>';
+            }).join('');
+            const si = ds.indexOf(D.date);
+            const mark = si >= 0 ? '<rect x="' + (si * (bw + 1)) + '" y="' + (H + 2) + '" width="' + bw + '" height="2" fill="#1E40AF"/>' : '';
+            return '<svg class="spark" width="' + W + '" height="' + (H + 4) + '" viewBox="0 0 ' + W + ' ' + (H + 4) + '" role="img" aria-label="' + esc(hp.before) + ' 기간 변경 추이 : ' +
+                ds.map(d => { const x = hp.rows.get(d); return shortDay(d) + ' ' + (!x ? '미실행' : x.status === 'fail' ? '실패' : x.chg + '건'); }).join(', ') + '">' + bars + mark + '</svg>';
+        }
+
+        const COLS = {
+            day: [
+                { k: 'before', l: '이전호기 → 시뮬호기' }, { l: '사양' }, { k: 'status', l: '결과' },
+                { k: 'partsAfter', l: '자재 종류 (이전 → 시뮬)', r: 1 }, { k: 'qtyAfter', l: '수량 총합 (이전 → 시뮬)', r: 1 },
+                { k: 'chg', l: '변경 건수', r: 1 }, { k: 'dchg', l: '직전 대비', r: 1 }, { k: 'match', l: '일치율', r: 1 },
+                { k: 'streak', l: '연속 변경', r: 1 }, { l: '기간 추이', r: 1 }, { k: 'ms', l: '수행시간', r: 1 }
+            ],
+            period: [
+                { k: 'before', l: '이전호기' }, { l: '사양' }, { k: 'runs', l: '실행', r: 1 },
+                { k: 'chgDays', l: '변경 발생일', r: 1 }, { k: 'failDays', l: '실패', r: 1 }, { k: 'chgSum', l: '누적 변경', r: 1 },
+                { k: 'avgChg', l: '일평균', r: 1 }, { k: 'matchAvg', l: '평균 일치율', r: 1 }, { k: 'repeatN', l: '반복 변경 자재', r: 1 },
+                { k: 'lastChg', l: '최근 변경일', r: 1 }, { l: '일자별 추이', r: 1 }
+            ]
+        };
+
+        function dayList() {
+            return D.rows.map(x => {
+                const p = D.prevRows.find(y => y.key === x.key);
+                const hp = P.hogis.find(h => h.key === x.key);
+                const dchg = x.status !== 'fail' && p && p.status !== 'fail' ? x.chg - p.chg : null;
+                return { x, hp, dchg, streak: streakAt(hp, D.date) };
+            });
+        }
+        function periodList() {
+            return P.hogis.filter(h => h.runs).map(h => ({ h, avgChg: (h.runs - h.failDays) ? h.chgSum / (h.runs - h.failDays) : 0 }));
+        }
+
+        function renderTable() {
+            document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.mode === state.mode)));
+            const day = state.mode === 'day';
+            const q = state.q.trim().toLowerCase();
+            sparkMax = Math.max(1, ...P.hogis.map(h => h.maxChg));
+            $('tblDesc').textContent = day
+                ? longDay(D.date) + ' 배치 결과 · 직전 대비는 ' + shortDay(D.prevDate) + ' 같은 호기와의 변경 건수 차이 · 행을 누르면 일자별 상세'
+                : '기간 ' + shortDay(P.dates[0]) + ' ~ ' + shortDay(P.dates.at(-1)) + ' (' + P.dates.length + '일) 호기별 누적 · 행을 누르면 일자별 상세';
+
+            /* 칩 */
+            let chips, rows;
+            if (day) {
+                const all = dayList();
+                chips = [
+                    { f: 'all', l: '전체', n: all.length },
+                    { f: 'chg', l: '변경 있음', n: all.filter(r => r.x.status === 'chg').length },
+                    { f: 'up', l: '직전보다 증가', n: all.filter(r => r.dchg > 0).length },
+                    { f: 'same', l: '완전 일치', n: all.filter(r => r.x.status === 'ok').length },
+                    { f: 'fail', l: '배치 실패', n: all.filter(r => r.x.status === 'fail').length }
+                ];
+                const F = { all: () => true, chg: r => r.x.status === 'chg', up: r => r.dchg > 0, same: r => r.x.status === 'ok', fail: r => r.x.status === 'fail' };
+                if (!F[state.filter]) state.filter = 'all';
+                const val = (r, k) => k === 'dchg' ? r.dchg : k === 'streak' ? r.streak : r.x[k];
+                rows = all.filter(F[state.filter])
+                    .filter(r => !q || (r.x.before + ' ' + r.x.after + ' ' + r.x.spec.brand).toLowerCase().includes(q))
+                    .sort((a, b) => cmpVal(val(a, state.sortK), val(b, state.sortK)) * state.sortDir);
+            } else {
+                const all = periodList();
+                chips = [
+                    { f: 'all', l: '전체', n: all.length },
+                    { f: 'chg', l: '변경 발생', n: all.filter(r => r.h.chgDays).length },
+                    { f: 'every', l: '매 배치 변경', n: all.filter(r => r.h.chgDays && r.h.chgDays === r.h.runs - r.h.failDays).length },
+                    { f: 'same', l: '기간 내내 일치', n: all.filter(r => !r.h.chgSum && !r.h.failDays).length },
+                    { f: 'fail', l: '실패 이력', n: all.filter(r => r.h.failDays).length }
+                ];
+                const F = { all: () => true, chg: r => r.h.chgDays > 0, every: r => r.h.chgDays && r.h.chgDays === r.h.runs - r.h.failDays, same: r => !r.h.chgSum && !r.h.failDays, fail: r => r.h.failDays > 0 };
+                if (!F[state.filter]) state.filter = 'all';
+                const val = (r, k) => k === 'avgChg' ? r.avgChg : k === 'repeatN' ? r.h.repeat.length : r.h[k];
+                rows = all.filter(F[state.filter])
+                    .filter(r => !q || (r.h.before + ' ' + r.h.spec.brand).toLowerCase().includes(q))
+                    .sort((a, b) => cmpVal(val(a, state.psortK), val(b, state.psortK)) * state.psortDir);
+            }
+            $('chips').innerHTML = chips.map(c => '<button type="button" class="chip" data-f="' + c.f + '" aria-pressed="' + (state.filter === c.f) + '">' + c.l + ' <span class="n">' + c.n + '</span></button>').join('');
+
+            /* 머리글 */
+            const sk = day ? state.sortK : state.psortK, sd = day ? state.sortDir : state.psortDir;
+            $('thead').innerHTML = COLS[state.mode].map(c => '<th scope="col"' + (c.r ? ' class="r"' : '') + (c.k ? ' data-k="' + c.k + '"' : '') +
+                (c.k && c.k === sk ? ' aria-sort="' + (sd > 0 ? 'ascending' : 'descending') + '"' : '') + '>' +
+                (c.k ? '<button type="button">' + c.l + '</button>' : '<span class="th">' + c.l + '</span>') + '</th>').join('');
+
+            /* 본문 */
+            $('tbody').innerHTML = rows.map(r => day ? dayRow(r) : periodRow(r)).join('');
+            $('tblEmpty').hidden = rows.length > 0;
+            $('tblCount').textContent = (day ? longDay(D.date) + ' · 총 ' + D.rows.length : '기간 · 총 ' + chips[0].n) + '대 중 ' + rows.length + '대 표시';
+            TABLE_ROWS = rows;
+        }
+        let TABLE_ROWS = [];
+        function cmpVal(va, vb) {
+            if (va == null || va === '') va = -Infinity;
+            if (vb == null || vb === '') vb = -Infinity;
+            if (typeof va === 'string' && typeof vb === 'string') return va.localeCompare(vb, 'ko', { numeric: true });
+            return va > vb ? 1 : va < vb ? -1 : 0;
+        }
+
+        function dayRow(r) {
+            const x = r.x, st = STATUS[x.status];
+            const dd = r.dchg == null ? '<span class="dd nil">-</span>'
+                : '<span class="dd ' + (r.dchg > 0 ? 'up' : r.dchg < 0 ? 'down' : 'zero') + '">' + (r.dchg > 0 ? '▲ ' : r.dchg < 0 ? '▼ ' : '') + (r.dchg ? fmt(Math.abs(r.dchg)) : '동일') + '</span>';
+            return '<tr tabindex="0" data-k="' + esc(x.key) + '">' +
+                '<td><span class="hogi"><span>' + esc(x.before) + '</span><span class="arrow" aria-hidden="true">→</span><span class="to">' + esc(x.after) + '</span></span></td>' +
+                '<td><span class="spec">' + esc(x.spec.brand) + ' · ' + x.spec.speed + 'm/min · ' + x.spec.acapa + '인승</span></td>' +
+                '<td><span class="status ' + st[0] + '">' + st[1] + '</span></td>' +
+                '<td class="r">' + cmpCell(x.partsBefore, x.partsAfter) + '</td>' +
+                '<td class="r">' + cmpCell(x.qtyBefore, x.qtyAfter) + '</td>' +
+                '<td class="r"><div class="mini">' + (x.chg ? miniStack(x, x.chg) : '') +
+                '<b class="mono" title="추가 ' + x.add + ' · 삭제 ' + x.del + ' · 수량변경 ' + x.qtyc + '">' + (x.status === 'fail' ? '-' : x.chg) + '</b></div></td>' +
+                '<td class="r">' + dd + '</td>' +
+                '<td class="r">' + rateCell(x.match) + '</td>' +
+                '<td class="r">' + (r.streak >= 2 ? '<span class="streak">' + r.streak + '일</span>' : '<span class="spec">' + (r.streak ? '1일' : '-') + '</span>') + '</td>' +
+                '<td class="r">' + spark(r.hp) + '</td>' +
+                '<td class="r mono">' + (x.ms / 1000).toFixed(1) + 's</td>' +
+                '</tr>';
+        }
+        function periodRow(r) {
+            const h = r.h, tot = h.chgSum || 1;
+            return '<tr tabindex="0" data-k="' + esc(h.key) + '">' +
+                '<td><span class="hogi">' + esc(h.before) + '</span></td>' +
+                '<td><span class="spec">' + esc(h.spec.brand) + ' · ' + h.spec.speed + 'm/min · ' + h.spec.acapa + '인승</span></td>' +
+                '<td class="r mono">' + h.runs + '일</td>' +
+                '<td class="r"><div class="rate"><div class="bar"><span style="width:' + (h.chgDays / (h.runs || 1) * 100) + '%;background:var(--t-qty)"></span></div><b>' + h.chgDays + '일</b></div></td>' +
+                '<td class="r">' + (h.failDays ? '<span class="status fail">' + h.failDays + '일</span>' : '<span class="spec">-</span>') + '</td>' +
+                '<td class="r"><div class="mini">' + (h.chgSum ? miniStack(h, tot) : '') + '<b class="mono" title="추가 ' + h.add + ' · 삭제 ' + h.del + ' · 수량변경 ' + h.qtyc + '">' + fmt(h.chgSum) + '</b></div></td>' +
+                '<td class="r mono">' + pct(r.avgChg) + '</td>' +
+                '<td class="r">' + rateCell(h.matchAvg) + '</td>' +
+                '<td class="r mono">' + (h.repeat.length ? '<b>' + h.repeat.length + '</b>종' : '<span class="spec">-</span>') + '</td>' +
+                '<td class="r mono">' + (h.lastChg ? shortDay(h.lastChg) + '(' + wk(h.lastChg) + ')' : '<span class="spec">-</span>') + '</td>' +
+                '<td class="r">' + spark(h) + '</td>' +
+                '</tr>';
+        }
+
+        function downloadCsv() {
+            const cell = v => { const t = String(v == null ? '' : v); return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+            let head, lines;
+            if (state.mode === 'day') {
+                head = ['배치일', '이전호기', '시뮬호기', '브랜드', '속도', '인승', '결과', '이전 자재종류', '시뮬 자재종류', '이전 수량', '시뮬 수량', '변경', '추가', '삭제', '수량변경', '직전 대비', '일치율', '연속 변경일', '수행시간(s)', '메시지'];
+                lines = TABLE_ROWS.map(r => { const x = r.x; return [x.date, x.before, x.after, x.spec.brand, x.spec.speed, x.spec.acapa, STATUS[x.status][1], x.partsBefore, x.partsAfter, x.qtyBefore, x.qtyAfter,
+                    x.chg, x.add, x.del, x.qtyc, r.dchg, x.match == null ? '' : pct(x.match, 2), r.streak, (x.ms / 1000).toFixed(1), x.msg]; });
+            } else {
+                head = ['이전호기', '브랜드', '속도', '인승', '실행일', '변경 발생일', '실패일', '누적 변경', '추가', '삭제', '수량변경', '평균 일치율', '반복 변경 자재', '최근 변경일'].concat(P.dates);
+                lines = TABLE_ROWS.map(r => { const h = r.h; return [h.before, h.spec.brand, h.spec.speed, h.spec.acapa, h.runs, h.chgDays, h.failDays, h.chgSum, h.add, h.del, h.qtyc,
+                    h.matchAvg == null ? '' : pct(h.matchAvg, 2), h.repeat.length, h.lastChg].concat(P.dates.map(d => { const x = h.rows.get(d); return !x ? '' : x.status === 'fail' ? '실패' : x.chg; })); });
+            }
+            const blob = new Blob(['﻿' + head.map(cell).join(',') + '\r\n' + lines.map(l => l.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'COP_배치비교_' + (state.mode === 'day' ? D.date : P.dates[0] + '_' + P.dates.at(-1)) + '.csv';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        }
+
+        /* ════════════ 드로어 : 호기 일자별 상세 ════════════ */
+        const dr = { key: '', date: '' };
+        let lastFocus = null, closeTimer = null;
+
+        function openDrawer(key, date) {
+            if (!key) return;
+            clearTimeout(closeTimer);
+            const d = $('drawer');
+            if (d.hidden) lastFocus = document.activeElement;
+            dr.key = key; dr.date = date || state.date;
+            renderDrawer();
+            const sc = $('scrim');
+            if (d.hidden) {
+                d.hidden = false; sc.hidden = false;
+                requestAnimationFrame(() => { d.classList.add('on'); sc.classList.add('on'); });
+                $('drClose').focus();
+            }
+        }
+
+        function renderDrawer(focusDay) {
+            const hp = P.hogis.find(h => h.key === dr.key);
+            if (!hp) return;
+            const x = hp.rows.get(dr.date);
+            const st = STATUS[x ? x.status : 'none'];
+            $('drTitle').innerHTML = '<span class="mono">' + esc(hp.before) + '</span><span style="color:var(--ink-3)">→</span><span class="mono" style="color:var(--brand)">' + esc(x ? x.after : '-') + '</span><span class="status ' + st[0] + '">' + st[1] + '</span>';
+            $('drSub').textContent = hp.spec.brand + ' · ' + hp.spec.speed + 'm/min · ' + hp.spec.acapa + '인승 · ' + longDay(dr.date) + (x ? ' · 수행 ' + (x.ms / 1000).toFixed(1) + '초' : '');
+            $('drDiff').href = '/cop/diff?a=' + encodeURIComponent(hp.before) + (x && x.after !== '-' ? '&b=' + encodeURIComponent(x.after) : '');
+
+            const repSet = new Set(hp.repeat.map(p => p.partNo));
+            let html = '';
+
+            /* 일자 선택 */
+            html += '<div class="dr-sec"><h3>배치일 선택 <small>' + P.dates.length + '일 · 숫자 = 변경 건수</small></h3><div class="dchips" id="drDays">' +
+                P.dates.map(d => {
+                    const y = hp.rows.get(d), cls = !y ? 'none' : y.status;
+                    const v = !y ? '-' : y.status === 'fail' ? '✕' : y.chg;
+                    return '<button type="button" class="dchip ' + cls + '" data-d="' + d + '" aria-pressed="' + (d === dr.date) + '" title="' + longDay(d) + ' ' + STATUS[cls][1] + '"><small>' + shortDay(d) + ' ' + wk(d) + '</small><b>' + v + '</b></button>';
+                }).join('') + '</div></div>';
+
+            /* 기간 요약 + 추이 */
+            html += '<div class="dr-stats">' +
+                '<div class="dr-stat"><small>변경 발생일</small><b>' + hp.chgDays + '<span style="font-size:13px;color:var(--ink-3)">/' + hp.runs + '</span></b></div>' +
+                '<div class="dr-stat"><small>누적 변경</small><b>' + fmt(hp.chgSum) + '</b></div>' +
+                '<div class="dr-stat"><small>평균 일치율</small><b>' + (hp.matchAvg == null ? '-' : pct(hp.matchAvg, 2) + '%') + '</b></div>' +
+                '<div class="dr-stat"><small>반복 변경 자재</small><b>' + hp.repeat.length + '</b></div>' +
+                '</div>';
+            html += '<div class="dr-sec"><h3>기간 일자별 변경 <small>막대를 누르면 그 일자 상세</small></h3><div class="chart-dr" id="chDrTrend" role="img" aria-label="' + esc(hp.before) + ' 일자별 변경 차트"></div></div>';
+
+            /* 선택 일자 상세 */
+            html += '<div class="dr-sec"><h3>' + longDay(dr.date) + ' 비교 결과</h3>';
+            if (!x) {
+                html += '<div class="fail-box none"><b>배치 대상이 아니었습니다</b>이 일자에는 이 호기로 배치가 실행되지 않았습니다.</div></div>';
+            } else if (x.status === 'fail') {
+                html += '<div class="fail-box"><b>배치가 완료되지 않았습니다</b>' + esc(x.msg) + '</div></div>';
+            } else {
+                const p = (() => { const i = P.dates.indexOf(dr.date); const pd = i > 0 ? P.dates[i - 1] : prevBiz(dr.date); const pr = hp.rows.get(pd) || getRows(pd).find(y => y.key === hp.key); return pr && pr.status !== 'fail' ? pr : null; })();
+                html += '<div class="dr-stats">' +
+                    '<div class="dr-stat"><small>변경 건수</small><b>' + x.chg + (p ? '<span style="font-size:12px;color:' + (x.chg > p.chg ? 'var(--alert)' : 'var(--ok)') + '"> ' + (x.chg === p.chg ? '' : signed(x.chg - p.chg)) + '</span>' : '') + '</b></div>' +
+                    '<div class="dr-stat"><small>일치율</small><b>' + pct(x.match) + '%</b></div>' +
+                    '<div class="dr-stat"><small>자재 종류</small><b>' + signed(x.partsAfter - x.partsBefore) + '</b></div>' +
+                    '<div class="dr-stat"><small>수량 총합</small><b>' + signed(x.qtyAfter - x.qtyBefore) + '</b></div>' +
+                    '</div></div>';
+                if (x.chg) {
+                    const prevParts = p ? new Set(p.items.map(it => it.partNo)) : new Set();
+                    html += '<div class="dr-sec"><h3>블록별 변경</h3><div class="chart-dr" id="chDrawer" role="img" aria-label="블록별 변경 차트"></div></div>';
+                    const order = { del: 0, add: 1, qty: 2 };
+                    const items = x.items.slice().sort((a, b) => order[a.type] - order[b.type] || a.block.localeCompare(b.block));
+                    const newN = items.filter(it => !prevParts.has(it.partNo)).length;
+                    html += '<div class="dr-sec"><h3>변경 자재 ' + items.length + '건 <small>' + (p ? '직전 배치에 없던 변경 ' + newN + '건 · ' : '') + '<span class="flag" style="margin:0">반복</span> = 기간 중 2일 이상 변경</small></h3><div class="chg-list">' + items.map(it => {
+                        const pdn = hp.parts.get(it.partNo);
+                        return '<div class="chg-row"><span class="tag ' + it.type + '">' + TYPES[it.type].label + '</span>' +
+                            '<div><div class="pn">' + esc(it.partNo) + (repSet.has(it.partNo) ? '<span class="flag">반복 ' + pdn.dates.length + '일</span>' : '') + (p && !prevParts.has(it.partNo) ? '<span class="flag" style="background:var(--brand-bg);color:var(--brand)">신규</span>' : '') + '</div>' +
+                            '<div class="nm">' + esc(BLOCKS[it.block]) + ' · ' + esc(it.name) + '</div></div>' +
+                            '<div class="q">' + (it.type === 'add' ? '<b>' + it.aq + '</b>' : it.type === 'del' ? '<s>' + it.bq + '</s> → 0' : '<s>' + it.bq + '</s> → <b>' + it.aq + '</b>') + '</div></div>';
+                    }).join('') + '</div></div>';
+                } else {
+                    html += '<div class="fail-box ok"><b>BOM 완전 일치</b>이전호기와 시뮬호기의 자재 · 수량이 모두 같습니다.</div>';
+                }
+            }
+
+            /* 반복 변경 자재 */
+            if (hp.repeat.length) {
+                html += '<div class="dr-sec"><h3>기간 중 반복 변경 자재 <small>' + hp.repeat.length + '종 · 칸 = 배치일</small></h3><div class="chg-list">' +
+                    hp.repeat.slice(0, 12).map(p => {
+                        const on = new Set(p.dates);
+                        return '<div class="chg-row rep-row"><div><div class="pn">' + esc(p.partNo) + ' <span class="tag ' + p.type + '" style="padding:1px 6px">' + TYPES[p.type].label + '</span></div>' +
+                            '<div class="nm">' + esc(BLOCKS[p.block]) + ' · ' + esc(p.name) + '</div></div>' +
+                            '<div class="q"><b>' + p.dates.length + '일</b> / ' + hp.runs + '<div class="rep-days" aria-hidden="true">' + P.dates.map(d => '<i class="' + (on.has(d) ? 'on' : '') + '"' + (d === dr.date ? ' style="outline:1px solid var(--brand)"' : '') + '></i>').join('') + '</div></div></div>';
+                    }).join('') + '</div></div>';
+            }
+
+            $('drBody').innerHTML = html;
+
+            /* 차트 */
+            const ds = P.dates;
+            chart('chDrTrend', {
+                chart: { alignTicks: false },
+                xAxis: { categories: ds.map(shortDay), labels: { style: { fontSize: '10.5px' } }, plotBands: [{ from: ds.indexOf(dr.date) - .5, to: ds.indexOf(dr.date) + .5, color: 'rgba(47,91,234,.1)' }] },
+                yAxis: [
+                    { title: { text: null }, allowDecimals: false, min: 0 },
+                    { title: { text: null }, opposite: true, max: 100, gridLineWidth: 0, labels: { format: '{value}%' } }
+                ],
+                legend: { enabled: true },
+                tooltip: { shared: true, formatter: function () {
+                        const d = ds[this.points[0].point.index], y = hp.rows.get(d);
+                        if (!y) return '<b>' + longDay(d) + '</b><br/>배치 대상 아님';
+                        if (y.status === 'fail') return '<b>' + longDay(d) + '</b><br/><span style="color:#D92D20">배치 실패</span> ' + esc(y.msg);
+                        return '<b>' + longDay(d) + '</b> · ' + esc(y.after) + '<br/>변경 ' + y.chg + '건 (추가 ' + y.add + ' · 삭제 ' + y.del + ' · 수량 ' + y.qtyc + ')<br/>일치율 ' + pct(y.match, 2) + '%';
+                    } },
+                plotOptions: { column: { stacking: 'normal', borderWidth: 0, borderRadius: 2, pointPadding: .06, groupPadding: .06 },
+                    series: { cursor: 'pointer', point: { events: { click: function () { dr.date = ds[this.index]; renderDrawer(true); } } } } },
+                series: TYPE_KEYS.map(k => ({ type: 'column', name: TYPES[k].label, color: TYPES[k].color,
+                    data: ds.map(d => { const y = hp.rows.get(d); return y && y.status !== 'fail' ? (k === 'qty' ? y.qtyc : y[k]) : null; }) }))
+                    .concat([{ type: 'line', name: '일치율', yAxis: 1, color: '#0B1220', lineWidth: 1.5, marker: { radius: 3 },
+                        data: ds.map(d => { const y = hp.rows.get(d); return y && y.match != null ? Math.round(y.match * 100) / 100 : null; }) }])
+            });
+
+            if (x && x.chg) {
+                const bl = {};
+                x.items.forEach(it => { const o = bl[it.block] || (bl[it.block] = { add: 0, del: 0, qty: 0 }); o[it.type]++; });
+                const ks = Object.keys(bl).sort((a, b) => (bl[b].add + bl[b].del + bl[b].qty) - (bl[a].add + bl[a].del + bl[a].qty));
+                chart('chDrawer', {
+                    chart: { type: 'bar' },
+                    xAxis: { categories: ks.map(k => BLOCKS[k]) },
+                    yAxis: { title: { text: null }, allowDecimals: false },
+                    legend: { enabled: false },
+                    tooltip: { shared: true, pointFormat: '<span style="color:{series.color}">●</span> {series.name}: <b>{point.y}건</b><br/>' },
+                    plotOptions: { bar: { stacking: 'normal', borderWidth: 0, borderRadius: 2 } },
+                    series: TYPE_KEYS.map(tp => ({ name: TYPES[tp].label, color: TYPES[tp].color, data: ks.map(k => bl[k][tp]) }))
+                });
+            } else if (charts.chDrawer) { charts.chDrawer.destroy(); delete charts.chDrawer; }
+
+            /* 선택한 일자 칩이 보이도록 */
+            const on = $('drDays').querySelector('[aria-pressed="true"]');
+            if (on) {
+                on.scrollIntoView({ block: 'nearest', inline: 'center' });
+                if (focusDay) on.focus();
+            }
+        }
+
+        function closeDrawer() {
+            const d = $('drawer'), sc = $('scrim');
+            if (d.hidden) return;
+            d.classList.remove('on'); sc.classList.remove('on');
+            closeTimer = setTimeout(() => {
+                d.hidden = true; sc.hidden = true;
+                ['chDrawer', 'chDrTrend'].forEach(id => { if (charts[id]) { charts[id].destroy(); delete charts[id]; } });
+            }, 220);
+            if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+        }
+
+        /* ════════════ 전체 그리기 ════════════ */
+        function renderDay() {
+            renderDayBar();
+            renderHero(); renderKpis(); renderTrend();
+            renderHogiChart(); renderMix(); renderBlock(); renderPeriodSum();
+            renderMatrix(); renderInsights(); renderTable();
+            syncUrl();
+        }
+
+        function goDay(date) {
+            if (!P.byDate.has(date) || date === state.date) return;
+            setDay(date);
+            renderDay();
+        }
+
+        function syncUrl() {
+            const p = new URLSearchParams();
+            p.set('from', P.from); p.set('to', P.to); p.set('date', state.date);
+            if (state.mode !== 'day') p.set('mode', state.mode);
+            try { history.replaceState(null, '', location.pathname + '?' + p.toString()); } catch (e) { /* 무시 */ }
+        }
+
+        function load(wantDate) {
+            let from = $('inFrom').value.replace(/-/g, ''), to = $('inTo').value.replace(/-/g, '');
+            if (!from || !to) return;
+            if (from > to) { alert('시작일이 종료일보다 늦습니다.'); return; }
+            const today = ymd(new Date());
+            if (to > today) { to = today; $('inTo').value = iso(to); }
+            if (!bizDays(from, to).length) { alert('기간 안에 평일 배치일이 없습니다.'); return; }
+            P = buildPeriod(from, to);
+            $('truncNotice').hidden = !P.truncated;
+            setDay(P.dates.includes(wantDate) ? wantDate : P.dates.at(-1));
+            renderDay();
+        }
+
+        /* ════════════ 이벤트 ════════════ */
+        $('fForm').addEventListener('submit', e => { e.preventDefault(); load(state.date); });
+        document.querySelectorAll('[data-range]').forEach(b => b.addEventListener('click', () => {
+            const to = ymd(lastBizDay(new Date()));
+            $('inTo').value = iso(to);
+            $('inFrom').value = iso(bizBack(to, Number(b.dataset.range)));
+            load(state.date);
+        }));
+        $('btnPrint').addEventListener('click', () => window.print());
+
+        $('inDay').addEventListener('change', e => goDay(e.target.value));
+        $('dayPrev').addEventListener('click', () => goDay(P.dates[D.idx - 1]));
+        $('dayNext').addEventListener('click', () => goDay(P.dates[D.idx + 1]));
+        $('dayLast').addEventListener('click', () => goDay(P.dates.at(-1)));
+        document.addEventListener('keydown', e => {
+            if (!$('drawer').hidden || e.altKey || e.ctrlKey || e.metaKey) return;
+            if (e.target.closest('input, select, textarea')) return;
+            if (e.key === '[' && D.idx > 0) goDay(P.dates[D.idx - 1]);
+            if (e.key === ']' && D.idx < P.dates.length - 1) goDay(P.dates[D.idx + 1]);
+        });
+
+        document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => { state.hogiView = b.dataset.view; renderHogiChart(); }));
+        document.querySelectorAll('[data-blk]').forEach(b => b.addEventListener('click', () => { state.blk = b.dataset.blk; renderBlock(); }));
+        document.querySelectorAll('[data-mx]').forEach(b => b.addEventListener('click', () => { state.mx = b.dataset.mx; renderMatrix(); }));
+        document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
+            if (state.mode === b.dataset.mode) return;
+            state.mode = b.dataset.mode; state.filter = 'all';
+            renderTable(); syncUrl();
+        }));
+
+        $('psum').addEventListener('click', e => { const b = e.target.closest('[data-day]'); if (b) goDay(b.dataset.day); });
+        $('mx').addEventListener('click', e => {
+            const h = e.target.closest('thead [data-day]');
+            if (h) { goDay(h.dataset.day); return; }
+            const c = e.target.closest('[data-k]');
+            if (!c) return;
+            if (c.dataset.d && c.dataset.d !== state.date) goDay(c.dataset.d);
+            openDrawer(c.dataset.k, c.dataset.d || state.date);
+        });
+
+        $('chips').addEventListener('click', e => {
+            const b = e.target.closest('.chip'); if (!b) return;
+            state.filter = b.dataset.f;
+            renderTable();
+        });
+        let qt;
+        $('inSearch').addEventListener('input', e => { clearTimeout(qt); qt = setTimeout(() => { state.q = e.target.value; renderTable(); renderMatrix(); }, 150); });
+        $('btnCsv').addEventListener('click', downloadCsv);
+
+        $('thead').addEventListener('click', e => {
+            const th = e.target.closest('th'); if (!th || !th.dataset.k) return;
+            const k = th.dataset.k, asc = k === 'before' || k === 'status';
+            if (state.mode === 'day') {
+                if (state.sortK === k) state.sortDir *= -1; else { state.sortK = k; state.sortDir = asc ? 1 : -1; }
+            } else {
+                if (state.psortK === k) state.psortDir *= -1; else { state.psortK = k; state.psortDir = asc ? 1 : -1; }
+            }
+            renderTable();
+        });
+
+        const rowOpen = tr => { if (tr) openDrawer(tr.dataset.k, state.date); };
+        $('tbody').addEventListener('click', e => rowOpen(e.target.closest('tr')));
+        $('tbody').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); rowOpen(e.target.closest('tr')); } });
+
+        $('drBody').addEventListener('click', e => {
+            const b = e.target.closest('[data-d]');
+            if (b) { dr.date = b.dataset.d; renderDrawer(true); }
+        });
+        $('drBody').addEventListener('keydown', e => {
+            const b = e.target.closest('.dchip');
+            if (!b || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+            e.preventDefault();
+            const i = P.dates.indexOf(dr.date) + (e.key === 'ArrowLeft' ? -1 : 1);
+            if (i >= 0 && i < P.dates.length) { dr.date = P.dates[i]; renderDrawer(true); }
+        });
+        $('drClose').addEventListener('click', closeDrawer);
+        $('drClose2').addEventListener('click', closeDrawer);
+        $('scrim').addEventListener('click', closeDrawer);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+        /* 드로어가 열려 있는 동안 Tab 포커스를 드로어 안에 가둔다 */
+        $('drawer').addEventListener('keydown', e => {
+            if (e.key !== 'Tab') return;
+            const items = Array.from($('drawer').querySelectorAll('button, a[href]'));
+            const first = items.at(0), last = items.at(-1);
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        });
+
+        /* ════════════ Highcharts 공통 ════════════ */
+        const reduce = calm();
+        Highcharts.setOptions({
+            lang: { thousandsSep: ',', numericSymbols: null },
+            chart: { backgroundColor: 'transparent', style: { fontFamily: getComputedStyle(document.body).fontFamily }, spacing: [8, 4, 4, 4], animation: !reduce },
+            title: { text: null },
+            credits: { enabled: false },
+            exporting: { enabled: false },
+            legend: { itemStyle: { fontWeight: '600', color: '#3F4A5C', fontSize: '12px' }, itemHoverStyle: { color: '#0B1220' }, symbolRadius: 3 },
+            xAxis: { lineColor: '#E4E7EC', tickColor: '#E4E7EC', labels: { style: { color: '#667085' } } },
+            yAxis: { gridLineColor: '#F2F4F7', labels: { style: { color: '#667085' } }, title: { style: { color: '#667085', fontWeight: '600' } } },
+            tooltip: { backgroundColor: '#FFFFFF', borderColor: '#E4E7EC', borderRadius: 10, shadow: { color: 'rgba(16,24,40,.12)', width: 8, offsetY: 4 }, style: { fontSize: '12.5px', color: '#0B1220' } },
+            plotOptions: { series: { animation: reduce ? false : { duration: 500 } } }
+        });
+
+        /* 첫 화면 : URL ?from&to&date&mode, 없으면 최근 4주(20 배치일) */
+        const qs = new URLSearchParams(location.search);
+        const okDate = v => { const s = (v || '').replace(/-/g, ''); return /^\d{8}$/.test(s) ? s : ''; };
+        const last = ymd(lastBizDay(new Date()));
+        const to0 = okDate(qs.get('to')) || last;
+        $('inTo').value = iso(to0);
+        $('inFrom').value = iso(okDate(qs.get('from')) || bizBack(to0, 20));
+        $('inTo').max = iso(ymd(new Date()));
+        if (qs.get('mode') === 'period') state.mode = 'period';
+        load(okDate(qs.get('date')));
+    })();
+</script>
 </body>
 </html>
