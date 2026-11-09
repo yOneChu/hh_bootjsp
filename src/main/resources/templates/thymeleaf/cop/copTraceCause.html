@@ -134,6 +134,18 @@
         .note.info { background: var(--brand-bg); color: var(--brand); }
         .note.err { background: var(--alert-bg); color: var(--alert); }
         .loading { margin-top: 12px; color: var(--ink-3); font-size: 14px; }
+        /* 주석 (CMT) : 줄마다 한 줄씩, 칸 맞춤 유지 */
+        .cmt { margin-top: 12px; border: 1px solid #C7D2FE; border-radius: 9px; background: var(--brand-bg); overflow: hidden; }
+        .cmt-hd { padding: 6px 12px; font-size: 12.5px; font-weight: 700; color: var(--brand); border-bottom: 1px solid #C7D2FE; }
+        .cmt ol { counter-reset: ln; max-height: 320px; overflow: auto; padding: 6px 0; background: var(--surface); }
+        .cmt li { counter-increment: ln; display: grid; grid-template-columns: 34px minmax(0, 1fr); padding: 1px 12px 1px 0; font: 13px/1.6 var(--mono); color: var(--ink-2); }
+        .cmt li::before { content: counter(ln); text-align: right; padding-right: 10px; color: var(--ink-3); opacity: .6; user-select: none; }
+        .cmt li span { white-space: pre-wrap; overflow-wrap: anywhere; }
+        .cmt li:hover { background: var(--surface-2); }
+        .cmt.in { margin-top: 0; min-width: 260px; border-color: var(--line); }
+        .cmt.in ol { padding: 4px 0; max-height: 260px; background: transparent; }
+        .cmt.in li { font-weight: 400; }
+        table.t td.A .cmt.in li, table.t td.B .cmt.in li { color: inherit; }
 
         .pair { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: stretch; }
         .pair > div { padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); }
@@ -219,7 +231,7 @@
     <section class="card" id="stateCard" hidden><div class="state-box" id="stateBox"></div></section>
 </main>
 
-<script>
+<script th:inline="none">
 (function () {
     'use strict';
 
@@ -350,6 +362,21 @@
     }
     const kv = items => '<dl class="kv">' + items.map(x => '<div><dt>' + esc(x[0]) + '</dt><dd' + (x[2] ? ' class="hot"' : '') + '>' + esc(x[1]) + '</dd></div>').join('') + '</dl>';
     const note = (t, cls) => '<p class="note ' + (cls || '') + '">' + t + '</p>';
+    /* 주석 : 줄바꿈 기준으로 한 줄씩 (앞뒤 빈 줄 · 줄 끝 공백 제거, 들여쓰기는 유지) */
+    const cmtLines = c => {
+        const lines = String(c == null ? '' : c).replace(/&#160;|&nbsp;/g, ' ').replace(/\r\n?/g, '\n').split('\n').map(l => l.replace(/\s+$/, ''));
+        while (lines.length && !lines[0]) lines.shift();
+        while (lines.length && !lines.at(-1)) lines.pop();
+        return lines;
+    };
+    const cmtOl = lines => '<ol>' + lines.map(l => '<li><span>' + (l ? esc(l) : '&#8203;') + '</span></li>').join('') + '</ol>';
+    const cmtBox = c => {
+        const lines = cmtLines(c);
+        return lines.length ? '<div class="cmt"><div class="cmt-hd">주석 · ' + lines.length + '줄</div>' + cmtOl(lines) + '</div>' : '';
+    };
+    /* 표 칸 안의 주석 (STEP 5 결과값의 CMT) */
+    const isCmtKey = k => String(k).toUpperCase() === 'CMT';
+    const cmtCell = v => { const lines = cmtLines(v); return lines.length ? '<div class="cmt in">' + cmtOl(lines) + '</div>' : esc(vtxt('')); };
     const stc = s => '<span class="st ' + (s === 'TRUE' ? 'T' : s === 'FALSE' ? 'F' : '') + '">' + (s === 'TRUE' ? 'TRUE' : s === 'FALSE' ? 'FALSE' : s ? '미실행' : '없음') + '</span>';
     const simLink = (pid, ver, subs, label) => '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + API.page + '?' +
         esc(new URLSearchParams(Object.assign({ project: P.hogi, pid }, ver != null ? { version: ver } : {}, subs ? { subVersions: subs } : {})).toString()) + '">' + esc(label) + '</a>';
@@ -362,8 +389,8 @@
     }
     function setTags(e) {
         const sp = H.spec || {};
-        $('vTags').innerHTML = [['호기', P.hogi], ['브랜드', sp.brand], ['기종', sp.atyp], ['속도', sp.speed], ['용량', sp.acapa], ['블럭', e && e.block], ['PICK', e && e.pick],
-            ['비교', e ? sd(e.prevDate) + ' → ' + sd(e.date) : day(P.date)]]
+        $('vTags').innerHTML = [ ['호기', P.hogi], ['브랜드', sp.brand], ['기종', sp.atyp], ['속도', sp.speed], ['용량', sp.acapa], ['블럭', e && e.block], ['PICK', e && e.pick],
+            ['비교', e ? sd(e.prevDate) + ' → ' + sd(e.date) : day(P.date)] ]
             .filter(x => x[1]).map(x => '<span class="tag">' + x[0] + ' <b>' + esc(x[1]) + '</b></span>').join('') +
             (e ? '<span class="tag hot">' + (e.revert ? '예전 자재 복귀' : TYPES[e.type]) + '</span>' : '');
     }
@@ -399,7 +426,7 @@
             '<div class="pair"><div class="A"><small>앞 저장 ' + day(e.prevDate) + '</small><b>' + esc(vtxt(e.prevNo)) + '</b><span class="q2">수량 ' + esc(vtxt(e.prevQty)) + '</span></div>' +
             '<span class="neq" aria-label="다름">≠</span>' +
             '<div class="B"><small>바뀐 날 ' + day(e.date) + '</small><b>' + esc(vtxt(e.nextNo)) + '</b><span class="q2">수량 ' + esc(vtxt(e.nextQty)) + '</span></div></div>' +
-            (e.cmt ? note('주석 : ' + esc(e.cmt), 'info') : ''));
+            (e.cmt ? cmtBox(e.cmt) : ''));
 
         /* STEP 2 · 3 : 두 기준일로 다시 실행 */
         step(1, 'run', '두 날짜를 기준일로 블럭 ' + e.block + ' 수량 계산을 다시 실행하는 중…', '<p class="loading">calcBlockQty · asOfDate ' + iso(e.prevDate) + ' / ' + iso(e.date) + '</p>');
@@ -437,7 +464,7 @@
         const target = isPart ? elp : (A.blockPid || e.block);
         verDiff.sort((x, y) => (y === target) - (x === target) || (y === elp) - (x === elp) || x.localeCompare(y));
         const vt = (m, p) => m[p] ? (m[p].version == null ? '<i>그 날 버전 없음</i>' : 'v' + m[p].version + '<div class="cap">' + esc((m[p].regDate || '').slice(0, 16)) + '</div>') : '<i>실행 안 됨</i>';
-        const s3body = (pids.length ? kv([['실행된 PID', pids.length + '개'], ['버전이 바뀐 PID', verDiff.length + '개', verDiff.length > 0], ['추적 대상', target + (isPart ? ' (자재수배)' : ' (블럭 · 수량)')]]) : '') +
+        const s3body = (pids.length ? kv([ ['실행된 PID', pids.length + '개'], ['버전이 바뀐 PID', verDiff.length + '개', verDiff.length > 0], ['추적 대상', target + (isPart ? ' (자재수배)' : ' (블럭 · 수량)')] ]) : '') +
             (verDiff.length ? '<div class="tbl-wrap"><table class="t"><thead><tr><th>PID</th><th>역할</th><th>' + sd(e.prevDate) + ' 버전</th><th>' + sd(e.date) + ' 버전</th></tr></thead><tbody>' +
                 verDiff.map(p => '<tr' + (p === target ? ' class="hot"' : '') + '><td class="m">' + esc(p) + '</td><td>' + (p === elp ? '자재수배 (자재번호 선택)' : p === (A.blockPid || e.block) ? '블럭 (수량 계산)' : '전처리 · 하위 PID') + '</td>' +
                     '<td class="m A">' + vt(vA, p) + '</td><td class="m B">' + vt(vB, p) + '</td></tr>').join('') + '</tbody></table></div>' +
@@ -506,8 +533,8 @@
         const KIND = { add: '추가된 라인', del: '삭제된 라인', mod: '수정된 라인', state: '판정 변경' };
         const condCell = (c, cls) => c ? '<div class="cond ' + cls + '">' + esc(c) + '</div>' : '';
         const s4body = javaPid ? note('JAVA 방식 PID 라 라인 정보가 없습니다. 결과값만 비교합니다.', 'info') :
-            kv([['라인 수', (LA.lines || []).length + ' → ' + (LB.lines || []).length], ['추가', cnt('add') + '개', cnt('add') > 0], ['삭제', cnt('del') + '개', cnt('del') > 0],
-                ['수정', cnt('mod') + '개', cnt('mod') > 0], ['판정 변경', cnt('state') + '개', cnt('state') > 0]]) +
+            kv([ ['라인 수', (LA.lines || []).length + ' → ' + (LB.lines || []).length], ['추가', cnt('add') + '개', cnt('add') > 0], ['삭제', cnt('del') + '개', cnt('del') > 0],
+                ['수정', cnt('mod') + '개', cnt('mod') > 0], ['판정 변경', cnt('state') + '개', cnt('state') > 0] ]) +
             (D.rows.length ? '<div class="tbl-wrap"><table class="t"><thead><tr><th>구분</th><th>라인</th><th>ADDR</th><th>조건</th><th>출력 · 이동</th><th>' + sd(e.prevDate) + '</th><th>' + sd(e.date) + '</th></tr></thead><tbody>' +
                 D.rows.slice(0, MAX_LINES).map(d => '<tr' + (d === top ? ' class="hot"' : '') + '><td><span class="kind ' + d.kind + '">' + KIND[d.kind] + '</span></td>' +
                     '<td class="m nw">' + (d.noA != null ? '<span class="A">' + d.noA + '</span>' : '-') + ' → ' + (d.noB != null ? '<span class="B">' + d.noB + '</span>' : '-') + '</td>' +
@@ -528,7 +555,7 @@
         rd.sort((x, y) => hasP(y) - hasP(x));
         step(4, 'done', rd.length ? '결과값 ' + keys.length + '개 중 ' + rd.length + '개가 다릅니다' : '결과값 ' + keys.length + '개가 모두 같습니다',
             rd.length ? '<div class="tbl-wrap"><table class="t"><thead><tr><th>KEY</th><th>' + sd(e.prevDate) + ' (v' + tv.a + ')</th><th>' + sd(e.date) + ' (v' + tv.b + ')</th></tr></thead><tbody>' +
-                rd.slice(0, 20).map(k => '<tr' + (hasP(k) ? ' class="hot"' : '') + '><td class="m">' + esc(k) + '</td><td class="m A">' + esc(vtxt(str(mA[k]))) + '</td><td class="m B">' + esc(vtxt(str(mB[k]))) + '</td></tr>').join('') +
+                rd.slice(0, 20).map(k => '<tr' + (hasP(k) ? ' class="hot"' : '') + '><td class="m">' + esc(k) + '</td><td class="m A">' + (isCmtKey(k) ? cmtCell(mA[k]) : esc(vtxt(str(mA[k])))) + '</td><td class="m B">' + (isCmtKey(k) ? cmtCell(mB[k]) : esc(vtxt(str(mB[k])))) + '</td></tr>').join('') +
                 '</tbody></table></div>' + (rd.length > 20 ? '<p class="cap">외 ' + (rd.length - 20) + '개</p>' : '') : '');
 
         /* 원인 판정 2 : 로직 변경 */

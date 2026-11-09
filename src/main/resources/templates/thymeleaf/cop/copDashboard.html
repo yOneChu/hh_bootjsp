@@ -209,6 +209,20 @@
         }
         .hero::after { content: ""; position: absolute; right: -120px; top: -120px; width: 380px; height: 380px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,255,255,.14), transparent); pointer-events: none; }
         @media (min-width: 1000px) { .hero { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 32px 36px; } }
+
+        /* 접기 · 펼치기 (요약 · 호기별 일자 추적, 기본 접힘) */
+        .fold-btn { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); font-size: 13px; font-weight: 650; cursor: pointer; white-space: nowrap; }
+        .fold-btn:hover { border-color: var(--ink-3); color: var(--ink); }
+        .fold-btn svg { transition: transform .15s; }
+        .fold-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+        .card-hd .hd-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .hero .fold-btn { position: absolute; top: 14px; right: 14px; z-index: 2; background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.28); color: #fff; }
+        .hero .fold-btn:hover { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.5); color: #fff; }
+        .hero.folded { padding: 16px 120px 16px 22px; gap: 0; }
+        .hero.folded .hero-sub, .hero.folded .hero-flow, .hero.folded .hero-ring { display: none; }
+        .hero.folded h1 { margin-top: 6px; font-size: 18px; }
+        .card:not(.hero).folded > .card-hd { padding-bottom: 18px; }
+        .card:not(.hero).folded > :not(.card-hd), .card.folded .hd-tools .seg { display: none; }
         .hero-eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,.75); font-weight: 600; }
         .hero-eyebrow .pill { padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.14); color: #fff; font-family: var(--mono); }
         .hero h1 { margin-top: 12px; font-size: clamp(22px, 2.6vw, 30px); line-height: 1.35; font-weight: 800; letter-spacing: -.02em; text-wrap: balance; }
@@ -456,7 +470,7 @@
         @media print {
             *, *::before, *::after { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             html, body { background: #fff; }
-            .nav, .scrim, .drawer, .seg, .tbl-tools { display: none !important; }
+            .nav, .scrim, .drawer, .seg, .tbl-tools, .fold-btn { display: none !important; }
             main.wrap { padding-top: 0; padding-bottom: 0; gap: 12px; }
             .wrap { max-width: none; padding: 0; }
             .card { box-shadow: none; break-inside: avoid; }
@@ -591,7 +605,8 @@
         </section>
 
         <!-- ═══════════ 1. 요약 ═══════════ -->
-        <section class="card hero" aria-labelledby="heroTitle">
+        <section class="card hero folded" id="heroCard" aria-labelledby="heroTitle">
+            <button type="button" class="fold-btn" data-fold="heroCard" aria-expanded="false" aria-controls="heroCard"><span>펼치기</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
             <div style="position:relative;z-index:1">
                 <div class="hero-eyebrow">
                     <span class="pill" id="heroDate">-</span>
@@ -620,12 +635,15 @@
         </section>
 
         <!-- ═══════════ 5. 호기 x 일자 ═══════════ -->
-        <section class="card" aria-labelledby="mxTitle">
+        <section class="card folded" id="mxCard" aria-labelledby="mxTitle">
             <div class="card-hd">
                 <div><span class="eyebrow">03 · TRACKING</span><h2 id="mxTitle">호기별 일자 추적<span class="scope period">조회 기간</span><button type="button" class="help" aria-label="설명" data-tip="한 줄 = 한 호기, 한 칸 = 그 날 바뀐 PICK 수입니다. 진할수록 많이 바뀜 · 빨간 점 = 자재 교체 포함 · 점선 칸 = 첫 저장 · 줄무늬 = 그 날 저장 안 됨. 날짜를 누르면 기준일이, 칸을 누르면 상세가 바뀝니다.">?</button></h2><p id="mxDesc">-</p></div>
-                <div class="seg" role="group" aria-label="추적 지표">
-                    <button type="button" data-mx="chg" aria-pressed="true">변동 건수</button>
-                    <button type="button" data-mx="match" aria-pressed="false">PICK 유지율</button>
+                <div class="hd-tools">
+                    <div class="seg" role="group" aria-label="추적 지표">
+                        <button type="button" data-mx="chg" aria-pressed="true">변동 건수</button>
+                        <button type="button" data-mx="match" aria-pressed="false">PICK 유지율</button>
+                    </div>
+                    <button type="button" class="fold-btn" data-fold="mxCard" aria-expanded="false" aria-controls="mxCard"><span>펼치기</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
                 </div>
             </div>
             <div class="mx-wrap"><table class="mx" id="mx"></table></div>
@@ -1464,7 +1482,7 @@
         if (prev) q.set('prev', prev);
         if (block || state.block) q.set('block', block || state.block);
         if (pick) q.set('pick', pick);
-        return '<a class="btn-trace" href="/cop/trace/cause?' + esc(q.toString()) + '" title="' + esc(hogi + ' ' + longDay(date) + ' 변동의 원인을 PID 로직에서 추적') + '">원인추적</a>';
+        return '<a class="btn-trace" target="_blank" rel="noopener" href="/cop/trace/cause?' + esc(q.toString()) + '" title="' + esc(hogi + ' ' + longDay(date) + ' 변동의 원인을 PID 로직에서 추적') + '">원인추적</a>';
     }
 
     function dayRow(r) {
@@ -1776,6 +1794,12 @@
         load(state.date);
     }));
     $('btnPrint').addEventListener('click', () => window.print());
+    /* 접기 · 펼치기 : 요약 · 호기별 일자 추적 (기본 접힘) */
+    document.querySelectorAll('[data-fold]').forEach(b => b.addEventListener('click', () => {
+        const open = !$(b.dataset.fold).classList.toggle('folded');
+        b.setAttribute('aria-expanded', String(open));
+        b.querySelector('span').textContent = open ? '접기' : '펼치기';
+    }));
 
     $('inDay').addEventListener('change', e => goDay(e.target.value));
     $('dayPrev').addEventListener('click', () => goDay(P.dates[D.idx - 1]));
