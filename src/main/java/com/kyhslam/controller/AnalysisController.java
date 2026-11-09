@@ -120,4 +120,13 @@ public class AnalysisController {
         return "thymeleaf/logic/readDBFile";
     }
 
+    @GetMapping("/dash/balance")
+    @CrossOrigin
+    public String balance(String key) {
+        //http://localhost:8070/dash/viewLogic
+        //https://vault-in.hdel.co.kr:8070/apiv2/getPIDMetaInfo?key=subae
+
+        return "thymeleaf/balance/balanceManual";
+    }
+
 }
