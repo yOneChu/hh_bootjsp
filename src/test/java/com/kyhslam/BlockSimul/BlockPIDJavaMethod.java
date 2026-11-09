@@ -1,6 +1,8 @@
 package com.kyhslam.BlockSimul;
 
 import com.kyhslam.BlockSimul.BlockExceptions.InputValueUnvalidException;
+import com.kyhslam.util.simulate.PidUtil;
+import com.kyhslam.util.simulate.PidVariantMap;
 
 import java.lang.reflect.Method;
 import java.sql.Connection;
@@ -3274,6 +3276,32 @@ public class BlockPIDJavaMethod {
               return resultMap;
     }
 
-   
+	public PidVariantMap FUNCTION_FLOOR_COUNT(Map elvEnt, List<Map> floorMasterList, Map partInfo) {
+		partInfo = null; // partInfo는 input에 없음. 명시적으로 넣음.
+		PidVariantMap result = new PidVariantMap();
+
+		int O_MAIN = 0;
+		int O_UNDER = 0;
+		int O_ETC = 0;
+
+		if (floorMasterList != null) {
+			for (Map floorInfo : floorMasterList) {
+				String EL_EFPO = PidUtil.NVL(floorInfo.get("EL_EFPO"), "");
+
+				if ("MAIN".equals(EL_EFPO))
+					O_MAIN++;
+				else if ("UNDER".equals(EL_EFPO))
+					O_UNDER++;
+				else if ("ETC".equals(EL_EFPO))
+					O_ETC++;
+			}
+		}
+
+		result.put("O_MAIN", String.valueOf(O_MAIN));
+		result.put("O_UNDER", String.valueOf(O_UNDER));
+		result.put("O_ETC", String.valueOf(O_ETC));
+
+		return result;
+	}
 
 }
