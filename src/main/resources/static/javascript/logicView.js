@@ -584,6 +584,16 @@ document.getElementById('searchInput').addEventListener('keypress', function(e) 
 });
 // --- END MODIFIED ---
 
+// PID 입력 : 영어 소문자는 입력하는 즉시 대문자로 (커서 위치 유지, 한글 조합 중에는 건드리지 않음)
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    if (e.isComposing) return;
+    const upper = this.value.toUpperCase();
+    if (upper === this.value) return;
+    const start = this.selectionStart, end = this.selectionEnd;
+    this.value = upper;
+    this.setSelectionRange(start, end);
+});
+
 // Toolbar functions remain the same
 function addRow() {
     const selected = hot.getSelected();
@@ -649,14 +659,12 @@ function insertChart() {
     //logicViewMaptify.jsp
     //EL_PB126A01
 
-    let pid = document.getElementById('searchInput').value.trim();
-    //팝업
-    let url = '/subae/logicViewMaptify?'; // Relative path is usually best
-    url += "pid=" + pid;
+    // PID 관계 분석 화면 (logicViewRelation.html) : 이 PID 를 호출하는 PID / 이 PID 가 호출하는 PID
+    // 예전 화면(/subae/logicViewMaptify)은 logicViewV2 가 계속 쓰므로 그대로 둔다
+    let pid = document.getElementById('searchInput').value.trim().toUpperCase();
+    let url = '/subae/logicRelation' + (pid ? '?pid=' + encodeURIComponent(pid) : '');
 
-    //const features = 'width=800,height=600,top=100,left=100,resizable=yes,scrollbars=yes';
-
-    window.open(url,'secondPopup','width=700, height=700, top=50, left=50');
+    window.open(url, 'logicRelationPopup', 'width=1500,height=900,top=40,left=40,resizable=yes,scrollbars=yes');
 
 }
 

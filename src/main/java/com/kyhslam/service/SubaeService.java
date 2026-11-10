@@ -2,6 +2,7 @@ package com.kyhslam.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kyhslam.MasterDataCache;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.dto.PartWhere;
 import com.kyhslam.dto.ProductDto;
@@ -30,6 +31,8 @@ public class SubaeService {
     private final SubaeRepository subaeRepository;
 
     private final SubaeMapper subaeMapper;
+
+    private final MasterDataCache masterDataCache;
 
     /**
      * PLM에 등록된 법인자재 조회
@@ -232,7 +235,7 @@ public class SubaeService {
      * @return
      */
     public ArrayList<ArrayList<String>> findPIDLineView(String pidName) {
-        ArrayList<ArrayList<String>> result = PIDCommonUtil.findPIDLineView(pidName);
+        ArrayList<ArrayList<String>> result = PIDCommonUtil.findPIDLineView(pidName, masterDataCache::getSpecName);
         return result;
     }
 

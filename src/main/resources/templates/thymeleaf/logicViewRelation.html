@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <title>PID 관계 분석</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+    <style>
+        /* 계통도처럼 읽는 화면 : 왼쪽 = 이 PID 를 호출하는 쪽(남색), 가운데 = 분석 대상, 오른쪽 = 이 PID 가 호출하는 쪽(녹색)
+           호출은 언제나 왼쪽에서 오른쪽으로 흐른다 */
+        :root {
+            --paper: #eef1ee;
+            --surface: #ffffff;
+            --ink: #17211c;
+            --ink-2: #38463e;
+            --muted: #5d6b63;
+            --line: #cfd6d0;
+            --line-soft: #e2e7e3;
+            --up: #3b4cc0;
+            --up-soft: #e6e9fb;
+            --down: #0f7a52;
+            --down-soft: #def3e9;
+            --warn: #a85d00;
+            --warn-soft: #fdf0d9;
+            --hit: #fff1b8;
+            --danger: #b3261e;
+            --sans: "Pretendard Variable", "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+            --code: "D2Coding", Consolas, "Cascadia Mono", monospace;
+            --panel-w: 380px;
+        }
+        * { box-sizing: border-box; }
+        [hidden] { display: none !important; }
+        html, body { height: 100%; }
+        body {
+            margin: 0; display: flex; flex-direction: column; overflow: hidden;
+            font-family: var(--sans); font-size: 13.5px; line-height: 1.5; color: var(--ink); background: var(--paper);
+        }
+        button, input { font: inherit; color: inherit; }
+        button {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            min-height: 34px; padding: 5px 12px; white-space: nowrap; cursor: pointer;
+            border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink-2);
+        }
+        button:hover:not(:disabled) { border-color: var(--ink); color: var(--ink); }
+        button:disabled { opacity: .45; cursor: not-allowed; }
+        button.go { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 700; }
+        button.go:hover:not(:disabled) { background: #000; color: #fff; }
+        :focus-visible { outline: 2px solid var(--up); outline-offset: 2px; }
+
+        /* ===== 머리 ===== */
+        header { flex: none; background: var(--surface); border-bottom: 1px solid var(--line); }
+        .top { display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; padding: 12px 20px; }
+        h1 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -.02em; white-space: nowrap; }
+        .ask { display: flex; gap: 6px; }
+        .ask input {
+            width: 220px; min-height: 34px; padding: 5px 10px;
+            border: 1px solid var(--line); border-radius: 4px; background: var(--surface);
+            font-family: var(--code); font-size: 14px; text-transform: uppercase;
+        }
+        .ask input::placeholder { font-family: var(--sans); text-transform: none; color: var(--muted); }
+        /* 한 줄 요약 : 상위 몇 개 → 대상 → 하위 몇 개. 그림과 같은 방향, 같은 색 */
+        .flow { display: flex; align-items: center; gap: 10px; margin-left: auto; color: var(--muted); }
+        .flow:empty { display: none; }
+        .flow b { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .flow .u b { color: var(--up); }
+        .flow .d b { color: var(--down); }
+        .flow .me { padding: 2px 10px; border-radius: 4px; background: var(--ink); color: #fff; font-family: var(--code); font-weight: 700; }
+        .flow svg { width: 22px; height: 10px; flex: none; stroke: var(--muted); fill: none; stroke-width: 1.5; }
+        .tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 20px; border-top: 1px solid var(--line-soft); background: #f8faf8; }
+        .tools input[type=search] { width: 230px; min-height: 34px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+        .tools .gap { flex: 1; }
+        .tools .sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+        #qCount, #stamp { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        #zoomVal { min-width: 58px; font-variant-numeric: tabular-nums; }
+
+        /* ===== 본문 ===== */
+        main { flex: 1; min-height: 0; display: flex; }
+        .stage { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+        #map { display: block; width: 100%; height: 100%; cursor: grab; user-select: none; touch-action: none; }
+        #map.panning { cursor: grabbing; }
+
+        /* 상자 */
+        .n { cursor: pointer; outline: none; }
+        .n .card { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+        .n .stripe { fill: var(--muted); }
+        .n.up .stripe { fill: var(--up); }
+        .n.down .stripe { fill: var(--down); }
+        .n .pid { font-family: var(--code); font-size: 13.5px; font-weight: 700; fill: var(--ink); }
+        .n .nm { font-family: var(--sans); font-size: 11.5px; fill: var(--muted); }
+        .n .tag { font-family: var(--sans); font-size: 10.5px; font-weight: 700; fill: var(--muted); }
+        .n:hover .card { stroke: var(--ink); }
+        .n.root .card { fill: var(--ink); stroke: var(--ink); }
+        .n.root .pid { fill: #fff; font-size: 15px; }
+        .n.root .nm, .n.root .tag { fill: #c9d3cd; }
+        .n.root .stripe { display: none; }
+        /* 같은 PID 가 다른 위치에 이미 펼쳐져 있음 */
+        .n.ref .card { stroke-dasharray: 4 3; fill: #f8faf8; }
+        .n.ref .pid { fill: var(--ink-2); font-weight: 400; }
+        /* CALL 은 있는데 로직이 없는 PID */
+        .n.missing .card { fill: var(--warn-soft); stroke: var(--warn); stroke-dasharray: 4 3; }
+        .n.missing .stripe { fill: var(--warn); }
+        .n.missing .tag { fill: var(--warn); }
+        .n.hit .card { fill: var(--hit); }
+        .n.sel .card { stroke: var(--ink); stroke-width: 2.5; }
+        .n.root.sel .card { stroke: var(--up); }
+        .n:focus-visible .card { stroke: var(--up); stroke-width: 2.5; }
+        /* 호출 선 */
+        .e { fill: none; stroke-width: 1.4; }
+        .e.up { stroke: var(--up); }
+        .e.down { stroke: var(--down); }
+        .e.ref { stroke-dasharray: 4 3; opacity: .7; }
+        .cnt { font-family: var(--sans); font-size: 10.5px; font-weight: 700; paint-order: stroke; stroke: var(--paper); stroke-width: 4px; }
+        .cnt.up { fill: var(--up); }
+        .cnt.down { fill: var(--down); }
+        /* 접기 / 펼치기 */
+        .tg { cursor: pointer; }
+        .tg circle { fill: var(--surface); stroke: var(--line); }
+        .tg text { font-family: var(--sans); font-size: 10.5px; font-weight: 700; fill: var(--ink-2); text-anchor: middle; }
+        .tg.closed.up circle { fill: var(--up); stroke: var(--up); }
+        .tg.closed.down circle { fill: var(--down); stroke: var(--down); }
+        .tg.closed text { fill: #fff; }
+        .tg:hover circle { stroke: var(--ink); }
+        .col { font-family: var(--sans); font-size: 12px; font-weight: 600; fill: var(--muted); text-anchor: middle; }
+        .col.up { fill: var(--up); }
+        .col.down { fill: var(--down); }
+        .rail { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 5; }
+
+        .note {
+            position: absolute; top: 12px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px);
+            padding: 7px 14px; border-radius: 4px; background: var(--warn-soft); border: 1px solid var(--warn); color: #5c3400; font-size: 12.5px;
+        }
+        .note[hidden], .blank[hidden], .key[hidden] { display: none; }
+        .blank { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 24px clamp(24px, 10vw, 140px); background: var(--paper); }
+        .blank h2 { margin: 0 0 8px; font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+        .blank p { margin: 0 0 6px; max-width: 58ch; color: var(--ink-2); }
+        .blank.err h2 { color: var(--danger); }
+        .key {
+            position: absolute; left: 12px; bottom: 12px; display: flex; gap: 6px 16px; flex-wrap: wrap; max-width: calc(100% - 24px);
+            padding: 7px 12px; border: 1px solid var(--line); border-radius: 4px; background: rgba(255, 255, 255, .92); font-size: 12px; color: var(--ink-2);
+        }
+        .key span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .key i { display: inline-block; width: 18px; height: 10px; border: 1px solid var(--line); background: var(--surface); }
+        .key .k-up { border-left: 4px solid var(--up); }
+        .key .k-down { border-left: 4px solid var(--down); }
+        .key .k-ref { border-style: dashed; }
+        .key .k-miss { border: 1px dashed var(--warn); background: var(--warn-soft); }
+
+        /* ===== 상세 패널 ===== */
+        aside { flex: none; width: var(--panel-w); min-height: 0; overflow: auto; background: var(--surface); border-left: 1px solid var(--line); padding: 20px 20px 32px; }
+        aside h2 { margin: 0; font-family: var(--code); font-size: 21px; font-weight: 700; word-break: break-all; }
+        aside .sub { margin: 2px 0 0; color: var(--ink-2); }
+        .facts { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 10px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: 12.5px; }
+        .facts b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+        .facts .warn b { color: var(--warn); }
+        .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+        aside h3 { display: flex; align-items: baseline; gap: 8px; margin: 26px 0 8px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); font-size: 13.5px; font-weight: 800; }
+        aside h3.up { border-color: var(--up); color: var(--up); }
+        aside h3.down { border-color: var(--down); color: var(--down); }
+        aside h3 small { margin-left: auto; font-size: 12.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+        .list { margin: 0; padding: 0; list-style: none; }
+        .list li { border-bottom: 1px solid var(--line-soft); }
+        .list button, .list .row {
+            display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto; align-items: baseline; gap: 10px;
+            width: 100%; min-height: 34px; padding: 6px 4px; border: 0; border-radius: 0; background: transparent; text-align: left;
+        }
+        .list button:hover { background: var(--paper); }
+        .list .c { font-family: var(--code); font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+        .list .t { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .list .x { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .list .miss .c { color: var(--warn); }
+        .none { margin: 0; color: var(--muted); }
+        .more { margin-top: 6px; min-height: 30px; padding: 3px 10px; font-size: 12.5px; }
+        aside input[type=search] { width: 100%; min-height: 32px; margin-bottom: 4px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 4px; }
+        .fail { margin: 12px 0 0; padding: 8px 10px; border-left: 3px solid var(--danger); background: #fdecea; color: #6e1711; }
+
+        @media (max-width: 900px) {
+            main { flex-direction: column; }
+            aside { width: auto; height: 44%; border-left: 0; border-top: 1px solid var(--line); }
+            .flow { margin-left: 0; }
+            .key { display: none; }
+            .ask input { width: 160px; }
+        }
+        @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="top">
+        <h1>PID 관계 분석</h1>
+        <form class="ask" id="ask" autocomplete="off">
+            <input id="pid" name="pid" placeholder="PID 입력" spellcheck="false" aria-label="분석할 PID">
+            <button type="submit" class="go">분석</button>
+        </form>
+        <div class="flow" id="flow" aria-live="polite"></div>
+    </div>
+    <div class="tools" id="tools" hidden>
+        <input type="search" id="q" placeholder="그림에서 PID / 이름 찾기" spellcheck="false" aria-label="그림에서 PID 또는 이름 찾기">
+        <span id="qCount" aria-live="polite"></span>
+        <span class="sep" aria-hidden="true"></span>
+        <button type="button" id="btnOpen" title="접힌 가지를 모두 펼칩니다">모두 펼치기</button>
+        <button type="button" id="btnNear" title="대상 PID 와 바로 붙은 PID 만 남기고 접습니다">바로 위아래만</button>
+        <span class="gap"></span>
+        <span id="stamp"></span>
+        <button type="button" id="btnRefresh" title="로직이 바뀌었으면 DB 에서 호출 관계를 다시 읽습니다 (몇 초 걸릴 수 있습니다)">최신 로직 다시 읽기</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button type="button" id="zoomOut" aria-label="축소" title="축소">−</button>
+        <button type="button" id="zoomVal" title="100% 로 보기">100%</button>
+        <button type="button" id="zoomIn" aria-label="확대" title="확대">+</button>
+        <button type="button" id="btnFit" title="전체가 한 화면에 들어오게 맞춥니다">화면 맞춤</button>
+    </div>
+</header>
+
+<main>
+    <div class="stage">
+        <svg id="map" role="tree" aria-label="PID 호출 관계">
+            <defs>
+                <marker id="arUp" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#3b4cc0"/></marker>
+                <marker id="arDown" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#0f7a52"/></marker>
+            </defs>
+            <g id="vp"></g>
+        </svg>
+        <div class="note" id="note" hidden></div>
+        <div class="key" id="key" hidden>
+            <span><i class="k-up"></i>이 PID 를 호출하는 쪽</span>
+            <span><i class="k-down"></i>이 PID 가 호출하는 쪽</span>
+            <span><i class="k-ref"></i>다른 위치에 이미 펼쳐진 PID</span>
+            <span><i class="k-miss"></i>CALL 은 있지만 로직이 없는 PID</span>
+            <span>화살표 = 호출 방향, ×N = CALL 라인 수</span>
+        </div>
+        <div class="blank" id="blank">
+            <h2 id="blankTitle">어떤 PID 와 엮여 있는지 봅니다</h2>
+            <p id="blankText">PID 를 입력하면 그 PID 를 호출하는 PID 와 그 PID 가 호출하는 PID 를 끝까지 따라가서 한 장에 그립니다.</p>
+            <p id="blankHint">로직을 실행하지 않고 최신 버전 로직에 적힌 CALL 을 그대로 읽습니다. 조건에 따라 실제로는 호출되지 않는 CALL 도 포함됩니다.</p>
+        </div>
+    </div>
+    <aside aria-label="선택한 PID 상세"><div id="panel"><p class="none">상자를 누르면 그 PID 의 호출 관계와 로직에서 쓰는 사양을 여기에 보여줍니다.</p></div></aside>
+</main>
+
+<script>
+    // 주의 : 이 파일은 Thymeleaf 템플릿이라 스크립트 안에 여는 대괄호 두 개를 붙여 쓰지 않는다 (인라인 표현식으로 해석됨)
+    const API = '/subae/logicRelationData';
+    const DETAIL_API = '/subae/logicRelationDetail';
+    const NODE = { w: 200, h: 46, gx: 76, gy: 10 };
+    const ZOOM_MIN = 0.15, ZOOM_MAX = 2.5;
+    const AUTO_FOLD = 120;      // 한쪽 PID 가 이보다 많으면 처음에는 바로 붙은 단계만 펼친다
+    const LIST_MAX = 40;        // 패널 목록에서 처음 보여주는 줄 수
+
+    const $ = (id) => document.getElementById(id);
+    const svg = $('map'), vp = $('vp');
+    const state = {
+        root: '', info: new Map(), down: new Map(), up: new Map(),
+        trees: null, nodes: new Map(), byPid: new Map(),
+        sel: '', hits: new Set(), hitList: [], hitIdx: -1,
+        view: { k: 1, x: 0, y: 0 }, bounds: null, details: new Map(), busy: false,
+    };
+    let seq = 0;
+
+    function esc(v) {
+        return v === null || v === undefined ? '' : String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    const ctx = document.createElement('canvas').getContext('2d');
+    function fit(text, font, maxW) {
+        text = text || '';
+        ctx.font = font;
+        if (ctx.measureText(text).width <= maxW) return text;
+        let lo = 0, hi = text.length;
+        while (lo < hi) {
+            const mid = (lo + hi + 1) >> 1;
+            if (ctx.measureText(text.slice(0, mid) + '…').width <= maxW) lo = mid; else hi = mid - 1;
+        }
+        return text.slice(0, lo) + '…';
+    }
+    const infoOf = (pid) => state.info.get(pid) || { pid: pid, name: '', exists: false };
+    const isJava = (i) => /java/i.test(i.method || '');
+    function tagOf(i) {
+        if (i.exists === false) return '로직 없음';
+        if (isJava(i)) return 'JAVA';
+        return i.version !== '' && i.version !== undefined ? 'v' + i.version : '';
+    }
+
+    // ---------- 데이터 ----------
+    async function getJson(url) {
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        let body = null;
+        try { body = await res.json(); } catch (e) { /* JSON 이 아닌 오류 응답 */ }
+        if (!res.ok) throw new Error((body && body.message) || ('서버 응답 ' + res.status));
+        return body;
+    }
+
+    function addAdj(map, key, item) {
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(item);
+    }
+
+    async function load(pid, opts) {
+        opts = opts || {};
+        pid = (pid || '').trim().toUpperCase();
+        $('pid').value = pid;
+        if (!pid) { showBlank('어떤 PID 와 엮여 있는지 봅니다', 'PID 를 입력하면 그 PID 를 호출하는 PID 와 그 PID 가 호출하는 PID 를 끝까지 따라가서 한 장에 그립니다.'); return; }
+        if (state.busy) return;
+        state.busy = true;
+        document.querySelectorAll('header button').forEach((b) => { b.disabled = true; });
+        if (!state.trees) showBlank(pid + ' 의 호출 관계를 읽는 중입니다', opts.refresh ? 'DB 에서 전체 로직의 CALL 을 다시 읽고 있습니다.' : '처음 열 때는 전체 로직의 CALL 을 한 번 훑느라 몇 초 걸릴 수 있습니다.');
+        try {
+            const data = await getJson(API + '?pid=' + encodeURIComponent(pid) + (opts.refresh ? '&refresh=true' : ''));
+            if (opts.refresh) state.details.clear();
+            if (!opts.keepUrl) history.pushState({ pid: pid }, '', '?pid=' + encodeURIComponent(pid));
+            document.title = pid + ' 관계 분석';
+            apply(data);
+        } catch (e) {
+            showBlank('호출 관계를 읽지 못했습니다', e.message || String(e), true);
+        } finally {
+            state.busy = false;
+            document.querySelectorAll('header button').forEach((b) => { b.disabled = false; });
+        }
+    }
+
+    function apply(data) {
+        state.root = data.root;
+        state.info = new Map(Object.entries(data.nodes || {}));
+        state.down = new Map(); state.up = new Map();
+        (data.down || []).forEach((e) => addAdj(state.down, e.from, { pid: e.to, count: e.count }));
+        (data.up || []).forEach((e) => addAdj(state.up, e.to, { pid: e.from, count: e.count }));
+
+        const lonely = !state.down.has(state.root) && !state.up.has(state.root);
+        if (!data.found && lonely) {
+            state.trees = null;
+            showBlank(data.root + ' 의 로직을 찾지 못했습니다', 'PID 철자를 확인해 주세요. 최신 버전 로직이 있는 PID 만 분석할 수 있고, 이 PID 를 CALL 하는 로직도 없습니다.', true);
+            return;
+        }
+
+        state.nodes = new Map(); state.byPid = new Map(); seq = 0;
+        state.trees = { down: build('down'), up: build('up') };
+        state.sel = ''; state.hits = new Set(); state.hitList = []; state.hitIdx = -1;
+        $('q').value = ''; $('qCount').textContent = '';
+
+        $('blank').hidden = true;
+        $('tools').hidden = false;
+        $('key').hidden = false;
+        const notes = [];
+        if (!data.found) notes.push('이 PID 는 로직이 없습니다. CALL 하는 쪽만 보여줍니다.');
+        if (lonely) notes.push('이 PID 는 다른 PID 를 호출하지 않고, 이 PID 를 호출하는 PID 도 없습니다.');
+        if (data.truncated) notes.push('연결된 PID 가 너무 많아 일부만 그렸습니다.');
+        $('note').textContent = notes.join(' ');
+        $('note').hidden = !notes.length;
+
+        const d = new Date(data.loadedAt);
+        $('stamp').textContent = '로직 기준 ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        renderFlow();
+        draw();
+        fitView();
+        select(state.root);
+    }
+
+    // 한쪽 방향의 표시 트리. 같은 PID 는 가장 얕은 위치에서만 펼치고, 나머지 위치는 참조 상자로 둔다 (순환 호출도 여기서 끊긴다)
+    function build(side) {
+        const adj = side === 'down' ? state.down : state.up;
+        const mk = (pid, depth, count, parent) => {
+            const n = { id: ++seq, pid: pid, side: side, depth: depth, count: count, parent: parent, children: [], ref: false, open: true, x: 0, y: 0 };
+            state.nodes.set(n.id, n);
+            addAdj(state.byPid, pid, n);
+            return n;
+        };
+        const root = mk(state.root, 0, 0, null);
+        const seen = new Set();
+        seen.add(state.root);
+        const queue = [];
+        queue.push(root);
+        let total = 0, maxDepth = 0;
+        for (let qi = 0; qi < queue.length; qi++) {
+            const n = queue[qi];
+            (adj.get(n.pid) || []).forEach((e) => {
+                const c = mk(e.pid, n.depth + 1, e.count, n);
+                n.children.push(c);
+                total++;
+                if (c.depth > maxDepth) maxDepth = c.depth;
+                if (seen.has(e.pid)) c.ref = true; else { seen.add(e.pid); queue.push(c); }
+            });
+        }
+        root.pidCount = seen.size - 1;
+        root.maxDepth = maxDepth;
+        if (total > AUTO_FOLD) queue.forEach((n) => { if (n.depth >= 1) n.open = false; });
+        return root;
+    }
+
+    const kidsOf = (n) => (n.open ? n.children : []);
+    function walk(n, fn) { fn(n); kidsOf(n).forEach((c) => walk(c, fn)); }
+
+    // ---------- 배치 ----------
+    function layout(root, sign) {
+        let cursor = 0;
+        const place = (n) => {
+            n.x = sign * n.depth * (NODE.w + NODE.gx);
+            const kids = kidsOf(n);
+            if (!kids.length) { n.y = cursor; cursor += NODE.h + NODE.gy; return; }
+            kids.forEach(place);
+            n.y = (kids[0].y + kids[kids.length - 1].y) / 2;
+        };
+        place(root);
+        const off = root.y;
+        walk(root, (n) => { n.y -= off; });
+    }
+
+    // ---------- 그리기 ----------
+    function edgePath(x1, y1, x2, y2, mx) {
+        if (Math.abs(y2 - y1) < 0.5) return 'M' + x1 + ' ' + y1 + 'H' + x2;
+        const s = y2 > y1 ? 1 : -1, r = Math.min(7, Math.abs(y2 - y1) / 2);
+        return 'M' + x1 + ' ' + y1 + 'H' + (mx - r) + 'Q' + mx + ' ' + y1 + ' ' + mx + ' ' + (y1 + s * r)
+            + 'V' + (y2 - s * r) + 'Q' + mx + ' ' + y2 + ' ' + (mx + r) + ' ' + y2 + 'H' + x2;
+    }
+
+    function nodeSvg(n) {
+        const i = infoOf(n.pid), isRoot = n.depth === 0;
+        const cls = ['n', isRoot ? 'root' : n.side];
+        if (n.ref) cls.push('ref');
+        if (i.exists === false) cls.push('missing');
+        if (n.pid === state.sel) cls.push('sel');
+        if (state.hits.has(n.pid)) cls.push('hit');
+        const tag = tagOf(i);
+        const tagW = tag ? 16 + tag.length * 7 : 0;
+        const pidText = fit(n.pid, '700 13.5px Consolas', NODE.w - 24 - tagW);
+        const name = n.ref ? '다른 위치에 펼쳐져 있음' : (i.name || '');
+        const nmText = fit(name, '11.5px "Malgun Gothic"', NODE.w - 24);
+        const tip = n.pid + (i.name ? '\n' + i.name : '') + (n.count > 1 ? '\nCALL 라인 ' + n.count + '개' : '');
+        let s = '<g class="' + cls.join(' ') + '" data-id="' + n.id + '" tabindex="0" role="treeitem" aria-label="' + esc(n.pid + ' ' + (i.name || '')) + '"'
+            + ' transform="translate(' + (n.x - NODE.w / 2) + ' ' + (n.y - NODE.h / 2) + ')">'
+            + '<title>' + esc(tip) + '</title>'
+            + '<rect class="card" width="' + NODE.w + '" height="' + NODE.h + '" rx="4"/>'
+            + '<rect class="stripe" width="4" height="' + NODE.h + '" rx="2"/>'
+            + '<text class="pid" x="14" y="' + (nmText ? 19 : 28) + '">' + esc(pidText) + '</text>'
+            + (nmText ? '<text class="nm" x="14" y="36">' + esc(nmText) + '</text>' : '')
+            + (tag ? '<text class="tag" x="' + (NODE.w - 10) + '" y="18" text-anchor="end">' + esc(tag) + '</text>' : '')
+            + '</g>';
+        if (!isRoot && n.children.length) {
+            const tx = n.x + (n.side === 'down' ? 1 : -1) * (NODE.w / 2 + 14);
+            s += '<g class="tg ' + n.side + (n.open ? '' : ' closed') + '" data-tg="' + n.id + '" transform="translate(' + tx + ' ' + n.y + ')">'
+                + '<title>' + (n.open ? '접기' : n.children.length + '개 펼치기') + '</title>'
+                + '<circle r="10"/><text y="4">' + (n.open ? '−' : n.children.length) + '</text></g>';
+        }
+        return s;
+    }
+
+    function draw() {
+        const t = state.trees;
+        if (!t) return;
+        layout(t.down, 1);
+        layout(t.up, -1);
+
+        const edges = [], nodes = [], labels = [];
+        const b = { x1: -NODE.w / 2, x2: NODE.w / 2, y1: -NODE.h / 2, y2: NODE.h / 2 };
+        const depths = { up: 0, down: 0 };
+        const visit = (n) => {
+            if (n.depth > 0 || n.side === 'down') nodes.push(nodeSvg(n));
+            b.x1 = Math.min(b.x1, n.x - NODE.w / 2); b.x2 = Math.max(b.x2, n.x + NODE.w / 2);
+            b.y1 = Math.min(b.y1, n.y - NODE.h / 2); b.y2 = Math.max(b.y2, n.y + NODE.h / 2);
+            if (n.depth > depths[n.side]) depths[n.side] = n.depth;
+            kidsOf(n).forEach((c) => {
+                // 호출은 언제나 왼쪽(호출하는 PID) → 오른쪽(호출되는 PID)
+                const from = n.side === 'down' ? n : c, to = n.side === 'down' ? c : n;
+                // 접기 단추가 붙는 쪽(대상 PID 가 아닌 상위 상자)은 단추 자리만큼 비켜서 꺾는다
+                const hasToggle = n.depth > 0;
+                const x1 = from.x + NODE.w / 2;
+                const x2 = to.x - NODE.w / 2 - (n.side === 'up' && hasToggle ? 26 : 2);
+                const mx = n.side === 'down' ? x1 + (hasToggle ? 34 : 24) : to.x - NODE.w / 2 - (hasToggle ? 40 : 24);
+                edges.push('<path class="e ' + n.side + (c.ref ? ' ref' : '') + '" marker-end="url(#' + (n.side === 'down' ? 'arDown' : 'arUp') + ')" d="'
+                    + edgePath(x1, from.y, x2, to.y, mx) + '"/>');
+                if (c.count > 1) {
+                    const lx = n.side === 'down' ? x2 - 20 : x1 + 30;
+                    edges.push('<text class="cnt ' + n.side + '" x="' + lx + '" y="' + (c.y - 4) + '" text-anchor="middle">×' + c.count + '</text>');
+                }
+                visit(c);
+            });
+        };
+        visit(t.down);
+        visit(t.up);
+
+        // 단계 이름 (세로 열마다)
+        const top = b.y1 - 22, step = NODE.w + NODE.gx;
+        labels.push('<text class="col" x="0" y="' + top + '">분석 대상</text>');
+        for (let d = 1; d <= depths.up; d++) labels.push('<text class="col up" x="' + (-d * step) + '" y="' + top + '">' + d + '단계 위에서 호출</text>');
+        for (let d = 1; d <= depths.down; d++) labels.push('<text class="col down" x="' + (d * step) + '" y="' + top + '">' + d + '단계 아래로 호출</text>');
+        b.y1 = top - 16;
+        b.x1 -= 30; b.x2 += 30; b.y2 += 10;
+        state.bounds = b;
+
+        vp.innerHTML = labels.join('') + edges.join('') + nodes.join('');
+        applyView();
+    }
+
+    function renderFlow() {
+        const t = state.trees;
+        const arrow = '<svg viewBox="0 0 22 10" aria-hidden="true"><path d="M0 5h20M15 1l5 4-5 4"/></svg>';
+        $('flow').innerHTML = '<span class="u"><b>' + t.up.pidCount + '</b> 개 PID 가 호출</span>' + arrow
+            + '<span class="me">' + esc(state.root) + '</span>' + arrow
+            + '<span class="d"><b>' + t.down.pidCount + '</b> 개 PID 를 호출</span>';
+    }
+
+    // ---------- 화면 이동 / 확대 ----------
+    function applyView() {
+        const v = state.view;
+        vp.setAttribute('transform', 'translate(' + v.x + ' ' + v.y + ') scale(' + v.k + ')');
+        $('zoomVal').textContent = Math.round(v.k * 100) + '%';
+    }
+    function fitView() {
+        const b = state.bounds, r = svg.getBoundingClientRect();
+        if (!b || !r.width) return;
+        const k = Math.min(1, (r.width - 40) / (b.x2 - b.x1), (r.height - 40) / (b.y2 - b.y1));
+        if (k < 0.3) {
+            // 너무 작아지면 글자를 못 읽으니 대상 PID 를 가운데 두고 읽을 수 있는 크기로
+            state.view = { k: 0.6, x: r.width / 2, y: r.height / 2 };
+        } else {
+            state.view = { k: k, x: r.width / 2 - k * (b.x1 + b.x2) / 2, y: r.height / 2 - k * (b.y1 + b.y2) / 2 };
+        }
+        applyView();
+    }
+    function zoomAt(factor, cx, cy) {
+        const v = state.view, k = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, v.k * factor));
+        v.x = cx - (cx - v.x) * (k / v.k);
+        v.y = cy - (cy - v.y) * (k / v.k);
+        v.k = k;
+        applyView();
+    }
+    function zoomCenter(factor) {
+        const r = svg.getBoundingClientRect();
+        zoomAt(factor, r.width / 2, r.height / 2);
+    }
+    function centerOn(n) {
+        const r = svg.getBoundingClientRect(), v = state.view;
+        if (v.k < 0.5) v.k = 0.8;
+        v.x = r.width / 2 - v.k * n.x;
+        v.y = r.height / 2 - v.k * n.y;
+        applyView();
+    }
+
+    // ---------- 선택 / 상세 패널 ----------
+    function select(pid) {
+        state.sel = pid;
+        vp.querySelectorAll('.n').forEach((g) => {
+            const n = state.nodes.get(Number(g.dataset.id));
+            g.classList.toggle('sel', !!n && n.pid === pid);
+        });
+        renderPanel(pid);
+    }
+
+    // 그림에서 그 PID 를 찾아 보여준다 (접혀 있으면 펼친다). 그림에 없으면 그 PID 기준으로 다시 분석
+    function reveal(pid) {
+        const list = state.byPid.get(pid);
+        if (!list || !list.length) { load(pid); return; }
+        const n = list.find((x) => !x.ref) || list[0];
+        for (let p = n.parent; p; p = p.parent) p.open = true;
+        draw();
+        select(pid);
+        centerOn(n);
+    }
+
+    function listHtml(items, kind) {
+        if (!items.length) return '<p class="none">없습니다.</p>';
+        const rows = items.map((it, idx) => {
+            const hide = idx >= LIST_MAX ? ' hidden' : '';
+            if (kind === 'pid') {
+                return '<li class="' + (it.exists === false ? 'miss' : '') + '"' + hide + '><button type="button" data-go="' + esc(it.pid) + '" title="그림에서 보기">'
+                    + '<span class="c">' + esc(it.pid) + '</span><span class="t">' + esc(it.exists === false ? '로직 없음' : it.name) + '</span>'
+                    + '<span class="x">' + (it.count > 1 ? 'CALL ' + it.count + '줄' : '') + '</span></button></li>';
+            }
+            if (kind === 'spec') {
+                const use = [];
+                if (it.cond) use.push('조건 ' + it.cond);
+                if (it.ref) use.push('계산식 ' + it.ref);
+                return '<li data-f="' + esc((it.code + ' ' + (it.name || '')).toLowerCase()) + '"' + hide + '><div class="row">'
+                    + '<span class="c">' + esc(it.code) + '</span><span class="t" title="' + esc(it.name) + '">' + esc(it.name) + '</span>'
+                    + '<span class="x">' + use.join(', ') + '</span></div></li>';
+            }
+            return '<li' + hide + '><div class="row"><span class="c">' + esc(it.key) + '</span><span class="t"></span>'
+                + '<span class="x">' + it.count + '줄</span></div></li>';
+        }).join('');
+        return '<ul class="list">' + rows + '</ul>'
+            + (items.length > LIST_MAX ? '<button type="button" class="more" data-more>나머지 ' + (items.length - LIST_MAX) + '개 더 보기</button>' : '');
+    }
+
+    function renderPanel(pid) {
+        const i = infoOf(pid), d = state.details.get(pid);
+        const facts = [];
+        if (i.exists === false) facts.push('<li class="warn"><b>로직 없음</b></li>');
+        else {
+            if (i.version !== '' && i.version !== undefined) facts.push('<li>최신 버전 <b>v' + esc(i.version) + '</b></li>');
+            if (isJava(i)) facts.push('<li>실행 방식 <b>JAVA</b></li>');
+            if (d && !d.error) facts.push('<li>로직 <b>' + d.lines + '</b>줄</li>');
+        }
+        let html = '<h2>' + esc(pid) + '</h2>'
+            + (i.name ? '<p class="sub">' + esc(i.name) + '</p>' : '')
+            + '<ul class="facts">' + facts.join('') + '</ul>'
+            + '<div class="acts">'
+            + (pid !== state.root ? '<button type="button" class="go" data-root="' + esc(pid) + '">이 PID 기준으로 분석</button>' : '')
+            + '<button type="button" data-copy="' + esc(pid) + '">PID 복사</button></div>';
+
+        if (!d) {
+            html += '<p class="none" style="margin-top:22px">로직을 읽는 중입니다.</p>';
+            loadDetail(pid);
+        } else if (d.error) {
+            html += '<p class="fail">상세를 읽지 못했습니다. ' + esc(d.error) + '</p>';
+        } else {
+            html += '<h3 class="up">이 PID 를 호출하는 PID<small>' + d.callers.length + '개</small></h3>' + listHtml(d.callers, 'pid')
+                + '<h3 class="down">이 PID 가 호출하는 PID<small>' + d.callees.length + '개</small></h3>' + listHtml(d.callees, 'pid')
+                + '<h3>로직에서 쓰는 사양<small>' + d.specs.length + '개</small></h3>'
+                + (d.specs.length > 8 ? '<input type="search" data-filter placeholder="사양 코드 / 이름으로 거르기" aria-label="사양 거르기">' : '')
+                + listHtml(d.specs, 'spec')
+                + '<h3>만드는 결과 KEY<small>' + d.keys.length + '개</small></h3>' + listHtml(d.keys, 'key');
+        }
+        $('panel').innerHTML = html;
+    }
+
+    async function loadDetail(pid) {
+        let d;
+        try { d = await getJson(DETAIL_API + '?pid=' + encodeURIComponent(pid)); }
+        catch (e) { d = { error: e.message || String(e) }; }
+        state.details.set(pid, d);
+        if (state.sel === pid) renderPanel(pid);
+    }
+
+    // ---------- 찾기 ----------
+    function search() {
+        const q = $('q').value.trim().toLowerCase();
+        state.hits = new Set(); state.hitList = []; state.hitIdx = -1;
+        if (q) {
+            state.byPid.forEach((list, pid) => {
+                if (pid.toLowerCase().includes(q) || (infoOf(pid).name || '').toLowerCase().includes(q)) { state.hits.add(pid); state.hitList.push(pid); }
+            });
+        }
+        $('qCount').textContent = q ? (state.hitList.length ? state.hitList.length + '개 찾음 (Enter 로 이동)' : '찾는 PID 가 그림에 없습니다') : '';
+        draw();
+    }
+    function nextHit() {
+        if (!state.hitList.length) return;
+        state.hitIdx = (state.hitIdx + 1) % state.hitList.length;
+        reveal(state.hitList[state.hitIdx]);
+        $('qCount').textContent = (state.hitIdx + 1) + ' / ' + state.hitList.length;
+    }
+
+    function showBlank(title, text, isError) {
+        $('blankTitle').textContent = title;
+        $('blankText').textContent = text;
+        $('blankHint').hidden = !!isError;
+        $('blank').classList.toggle('err', !!isError);
+        $('blank').hidden = false;
+        $('note').hidden = true;
+        $('key').hidden = true;
+        $('tools').hidden = true;
+        $('flow').innerHTML = '';
+    }
+
+    // ---------- 이벤트 ----------
+    $('ask').addEventListener('submit', (e) => { e.preventDefault(); load($('pid').value); });
+    $('btnRefresh').addEventListener('click', () => load(state.root, { refresh: true, keepUrl: true }));
+    $('btnFit').addEventListener('click', fitView);
+    $('zoomIn').addEventListener('click', () => zoomCenter(1.25));
+    $('zoomOut').addEventListener('click', () => zoomCenter(0.8));
+    $('zoomVal').addEventListener('click', () => zoomCenter(1 / state.view.k));
+    $('btnOpen').addEventListener('click', () => { state.nodes.forEach((n) => { n.open = true; }); draw(); fitView(); });
+    $('btnNear').addEventListener('click', () => { state.nodes.forEach((n) => { n.open = n.depth === 0; }); draw(); fitView(); });
+    $('q').addEventListener('input', search);
+    $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); nextHit(); } });
+
+    let drag = null;
+    svg.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        drag = { x: e.clientX, y: e.clientY, vx: state.view.x, vy: state.view.y, moved: false, target: e.target };
+        svg.setPointerCapture(e.pointerId);
+    });
+    svg.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+        if (!drag.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+        drag.moved = true;
+        svg.classList.add('panning');
+        state.view.x = drag.vx + dx; state.view.y = drag.vy + dy;
+        applyView();
+    });
+    const endDrag = (e) => {
+        if (!drag) return;
+        const d = drag;
+        drag = null;
+        svg.classList.remove('panning');
+        if (d.moved || e.type === 'pointercancel') return;
+        const tg = d.target.closest && d.target.closest('.tg');
+        if (tg) {
+            const n = state.nodes.get(Number(tg.dataset.tg));
+            if (n) { n.open = !n.open; draw(); }
+            return;
+        }
+        const g = d.target.closest && d.target.closest('.n');
+        if (g) {
+            const n = state.nodes.get(Number(g.dataset.id));
+            if (n) select(n.pid);
+        }
+    };
+    svg.addEventListener('pointerup', endDrag);
+    svg.addEventListener('pointercancel', endDrag);
+    svg.addEventListener('dblclick', (e) => {
+        const g = e.target.closest('.n');
+        const n = g && state.nodes.get(Number(g.dataset.id));
+        if (n && n.pid !== state.root) load(n.pid);
+    });
+    svg.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const r = svg.getBoundingClientRect();
+        zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top);
+    }, { passive: false });
+    svg.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const g = e.target.closest('.n');
+        const n = g && state.nodes.get(Number(g.dataset.id));
+        if (n) { e.preventDefault(); select(n.pid); }
+    });
+
+    $('panel').addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        if (b.dataset.go) reveal(b.dataset.go);
+        else if (b.dataset.root) load(b.dataset.root);
+        else if (b.dataset.copy) {
+            const done = () => { b.textContent = '복사했습니다'; setTimeout(() => { b.textContent = 'PID 복사'; }, 1200); };
+            if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(b.dataset.copy).then(done, () => {});
+            else {
+                const ta = document.createElement('textarea');
+                ta.value = b.dataset.copy; document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); done(); } catch (err) { /* 복사 불가 */ }
+                ta.remove();
+            }
+        } else if (b.hasAttribute('data-more')) {
+            b.previousElementSibling.querySelectorAll('li[hidden]').forEach((li) => { li.hidden = false; });
+            b.remove();
+        }
+    });
+    $('panel').addEventListener('input', (e) => {
+        if (!e.target.hasAttribute('data-filter')) return;
+        const q = e.target.value.trim().toLowerCase();
+        const ul = e.target.nextElementSibling;
+        ul.querySelectorAll('li').forEach((li, idx) => { li.hidden = q ? !li.dataset.f.includes(q) : idx >= LIST_MAX; });
+        const more = ul.nextElementSibling;
+        if (more && more.hasAttribute('data-more')) more.hidden = !!q;
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName) && !$('tools').hidden) { e.preventDefault(); $('q').focus(); }
+    });
+    window.addEventListener('popstate', () => load(new URLSearchParams(location.search).get('pid'), { keepUrl: true }));
+
+    load(new URLSearchParams(location.search).get('pid'), { keepUrl: true });
+</script>
+</body>
+</html>

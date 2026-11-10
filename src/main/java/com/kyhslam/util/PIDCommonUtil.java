@@ -962,8 +962,10 @@ public class PIDCommonUtil {
     /**
      * @apiNote PID코드의 라인 출력
      * @param paramPid
+     * @param specNameFinder 특성 CODE -> 사양명 (MasterDataCache::getSpecName)
      */
-    public static ArrayList<ArrayList<String>> findPIDLineView(String paramPid) {
+    public static ArrayList<ArrayList<String>> findPIDLineView(String paramPid,
+                                                               java.util.function.Function<String, String> specNameFinder) {
 
         Connection con 			= null;
         PreparedStatement pstmt = null;
@@ -971,9 +973,6 @@ public class PIDCommonUtil {
 
         ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
 
-        HashSet<String> dupCheck = new HashSet<>();
-
-        HashMap<String, String> codeMap = new HashMap<>();
         try {
 
             con = PLMDBConnection.getConnection();
@@ -1067,50 +1066,12 @@ public class PIDCommonUtil {
                         s = s.replace("-", "");
                     }
 
-                    if (dupCheck.contains(s)) {
-                        if(!"".equals(s)) {
-                            String temp = codeMap.get(s.trim());
-                            if(temp != null && !"".equals(temp) && !"null".equals(temp)) {
-                                s += " \n" + "(" + codeMap.get(s.trim()) + ")";
-                            }
+                    // SPEC 한글명 : 기동 시 로딩한 MasterDataCache 에서 조회 (SPEC 마다 DB 조회하지 않음)
+                    if (s != null && !"".equals(s)) {
+                        String name = specNameFinder.apply(s);
+                        if (name != null && !"".equals(name)) {
+                            s += " \n" + "(" + name + ")";
                         }
-
-                    } else {
-
-                        if(!"".equals(s)) {
-
-
-                            //System.out.println("s = " + s);
-                            if (codeMap.containsKey(s.trim())) {
-                                String temp = codeMap.get(s.trim());
-
-                                //이미 있으면
-                                if(temp != null && !"null".equals(temp) && !"".equals(temp)) {
-                                    //System.out.println(s + "  111 codeMap = " + temp);
-                                    s += " \n" + "(" + temp + ")";
-
-                                }
-
-                            } else {
-
-                                //없으면
-                                String val = "";
-                                if (s.startsWith("EL_")) {
-                                    val = SubaeCommonUtil.findCodeName(s); // 영업사양 코드 값 조회
-                                    codeMap.put(s.trim(), val.trim());
-                                }
-
-
-                                if(val != null && !"null".equals(val) && !"".equals(val)) {
-                                    //System.out.println(s + "  2222 = " + val);
-                                    s += " \n" + "(" + val + ")";
-                                }
-
-                            }
-                        }
-
-                        dupCheck.add(s.trim());
-                        //System.out.println("codeMap = " + codeMap);
                     }
 
 

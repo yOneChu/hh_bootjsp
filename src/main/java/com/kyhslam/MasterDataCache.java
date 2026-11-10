@@ -34,6 +34,9 @@ public class MasterDataCache {
 
     private volatile HashMap<String, String> saleMap = new HashMap<>();
 
+    // 특성 CODE(대문자) -> 사양명 (육상 우선, 없으면 선박용. 로직 Viewer 의 SPEC 한글명)
+    private volatile Map<String, String> specNameIndex = Collections.emptyMap();
+
     // 서버 기동이 끝난 뒤 1회 실행
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
@@ -53,6 +56,8 @@ public class MasterDataCache {
         List<CodeInfoDTO> list03 = MLBCommonUtil.getShipCodeList();
         this.codeShipList = Collections.unmodifiableList(new ArrayList<>(list03));
         log.info("선박용 특성코드 마스터 로딩 완료: {}건", codeShipList.size());
+
+        this.specNameIndex = indexSpecName(codeElvList, codeShipList);
 
         List<CodeInfoDTO> list04 = MLBCommonUtil.getShipCodeValueList();
         this.codeShipValueList = Collections.unmodifiableList(new ArrayList<>(list04));
@@ -74,6 +79,27 @@ public class MasterDataCache {
         }
         index.replaceAll((k, v) -> Collections.unmodifiableList(v));
         return Collections.unmodifiableMap(index);
+    }
+
+    /** 특성 CODE(대문자) -> 사양명. 앞에 넘긴 목록이 우선 */
+    @SafeVarargs
+    private static Map<String, String> indexSpecName(List<CodeInfoDTO>... lists) {
+        Map<String, String> index = new HashMap<>();
+        for (List<CodeInfoDTO> list : lists) {
+            for (CodeInfoDTO dto : list) {
+                if (dto.getCode() == null || dto.getCodeName() == null) continue;
+                String name = dto.getCodeName().trim();
+                if (name.isEmpty() || "null".equals(name)) continue;
+                index.putIfAbsent(dto.getCode().trim().toUpperCase(), name);
+            }
+        }
+        return Collections.unmodifiableMap(index);
+    }
+
+    /** 특성 CODE 의 사양명 (DB 조회 없음, 없으면 빈 문자열) */
+    public String getSpecName(String code) {
+        if (code == null) return "";
+        return specNameIndex.getOrDefault(code.trim().toUpperCase(), "");
     }
 
     public List<CodeInfoDTO> getCodeList() {
