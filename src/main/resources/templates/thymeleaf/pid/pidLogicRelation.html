@@ -1,0 +1,1384 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <title>PID 관계 분석</title>
+    <script>
+        // 깜빡임 없이 테마 먼저 적용
+        (function () {
+            var t = null;
+            try { t = localStorage.getItem('pidLogicRelation.theme'); } catch (e) { /* 저장소 없이 진행 */ }
+            if (t !== 'light' && t !== 'dark')
+                t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+    <style>
+        /* PID 관계 분석 워크벤치
+           가운데 = 분석 대상, 왼쪽 = 이 PID 를 호출하는 쪽(상위, 남색), 오른쪽 = 이 PID 가 호출하는 쪽(하위, 청록)
+           호출은 언제나 왼쪽에서 오른쪽으로 흐른다 */
+        :root {
+            --bg: #f3f5f9; --dot: #d5dbe6;
+            --surface: #ffffff; --surface-2: #f6f7fb; --glass: rgba(255, 255, 255, .86);
+            --ink: #0f172a; --ink-2: #334155; --muted: #586377;
+            --line: #d9dee8; --line-soft: #e8ecf2;
+            --up: #4338ca; --up-soft: #eef0ff; --up-line: #a5acf0;
+            --down: #0f766e; --down-soft: #e2f5f2; --down-line: #7fcfc4;
+            --root: #0f172a; --root-2: #1e293b; --root-ink: #ffffff; --root-sub: #b8c2d6;
+            --accent: #f59e0b;
+            --warn: #b45309; --warn-soft: #fff3d9;
+            --hit: #fde68a; --danger: #b91c1c;
+            --shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 6px 20px rgba(15, 23, 42, .07);
+            --sans: "Pretendard Variable", "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+            --code: "D2Coding", Consolas, "Cascadia Mono", monospace;
+            --side-w: 400px;
+        }
+        :root[data-theme="dark"] {
+            --bg: #0a0f1c; --dot: #1c2640;
+            --surface: #121a2c; --surface-2: #18223a; --glass: rgba(18, 26, 44, .86);
+            --ink: #e8ecf6; --ink-2: #c5cddd; --muted: #96a3ba;
+            --line: #27334d; --line-soft: #1d2740;
+            --up: #a5b4fc; --up-soft: #1d2350; --up-line: #4c56a8;
+            --down: #5eead4; --down-soft: #0e3535; --down-line: #1f7a70;
+            --root: #f8fafc; --root-2: #dbe2ee; --root-ink: #0f172a; --root-sub: #475569;
+            --warn: #fbbf24; --warn-soft: #3a2b08;
+            --hit: #7a4a0c; --danger: #fca5a5;
+            --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
+        }
+        * { box-sizing: border-box; }
+        [hidden] { display: none !important; }
+        html, body { height: 100%; }
+        body {
+            margin: 0; display: flex; flex-direction: column; overflow: hidden;
+            font-family: var(--sans); font-size: 14px; line-height: 1.5; color: var(--ink); background: var(--bg);
+        }
+        button, input { font: inherit; color: inherit; }
+        button { cursor: pointer; }
+        button:disabled { opacity: .45; cursor: not-allowed; }
+        :focus-visible { outline: 2px solid var(--up); outline-offset: 2px; }
+        .ico { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+        .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        .mono { font-family: var(--code); }
+
+        /* ===== 머리 ===== */
+        .bar {
+            flex: none; display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap;
+            padding: 10px 18px; background: var(--surface); border-bottom: 1px solid var(--line);
+        }
+        .brand { display: flex; align-items: center; gap: 10px; }
+        .brand-mark {
+            width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center;
+            background: linear-gradient(135deg, var(--up), var(--down)); color: #fff;
+        }
+        :root[data-theme="dark"] .brand-mark { color: #0a0f1c; }
+        .brand h1 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.02em; line-height: 1.2; }
+        .brand p { margin: 0; font-size: 12px; color: var(--muted); }
+        .ask { display: flex; gap: 6px; }
+        .ask input {
+            width: 240px; height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px;
+            background: var(--surface-2); font-family: var(--code); font-size: 14px; text-transform: uppercase;
+        }
+        .ask input::placeholder { text-transform: none; font-family: var(--sans); color: var(--muted); }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; padding: 0 12px;
+            white-space: nowrap; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink-2);
+            transition: border-color .15s, background-color .15s, color .15s;
+        }
+        .btn:hover:not(:disabled) { border-color: var(--ink-2); color: var(--ink); }
+        .btn.go { background: var(--root); border-color: var(--root); color: var(--root-ink); font-weight: 700; padding: 0 16px; }
+        .btn.go:hover:not(:disabled) { background: var(--root-2); color: var(--root-ink); }
+        .btn.sq { width: 38px; padding: 0; }
+        .bar-r { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        #stamp { font-size: 12px; color: var(--muted); margin-right: 4px; }
+        #btnTheme .i-sun, :root[data-theme="dark"] #btnTheme .i-moon { display: none; }
+        :root[data-theme="dark"] #btnTheme .i-sun { display: block; }
+
+        /* ===== 요약 지표 ===== */
+        .kpis {
+            flex: none; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px;
+            background: var(--line); border-bottom: 1px solid var(--line);
+        }
+        .kpi {
+            display: flex; flex-direction: column; align-items: flex-start; gap: 0; padding: 9px 18px 10px; min-width: 0;
+            border: 0; background: var(--surface); text-align: left; transition: background-color .15s;
+        }
+        .kpi:hover { background: var(--surface-2); }
+        .kpi-l { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+        .kpi-l i { width: 8px; height: 8px; border-radius: 2px; background: var(--muted); }
+        .kpi.up .kpi-l i { background: var(--up); }
+        .kpi.down .kpi-l i { background: var(--down); }
+        .kpi.warn .kpi-l i { background: var(--warn); }
+        .kpi-v { font-size: 22px; font-weight: 800; letter-spacing: -.02em; line-height: 1.25; font-variant-numeric: tabular-nums; }
+        .kpi-v small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 6px; letter-spacing: 0; }
+        .kpi.warn.has .kpi-v { color: var(--warn); }
+
+        /* ===== 본문 ===== */
+        main { flex: 1; min-height: 0; display: flex; }
+        .stage {
+            position: relative; flex: 1; min-width: 0; overflow: hidden; cursor: grab; touch-action: none;
+            background-color: var(--bg);
+            background-image: radial-gradient(var(--dot) 1.1px, transparent 1.3px);
+            background-size: 24px 24px;
+        }
+        .stage.drag { cursor: grabbing; }
+        .world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; will-change: transform; }
+        .world.glide { transition: transform .32s cubic-bezier(.2, .8, .2, 1); }
+        #wires { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; }
+        .w { fill: none; stroke-width: 1.5; transition: opacity .15s; }
+        .w.u { stroke: var(--up-line); }
+        .w.d { stroke: var(--down-line); }
+        .w.more { stroke-dasharray: 3 4; }
+        .w.x { stroke: var(--muted); stroke-width: 1.1; stroke-dasharray: 5 4; opacity: .55; }
+        .w.on { stroke-width: 2.4; stroke-dasharray: 7 6; animation: flow .7s linear infinite; }
+        .w.u.on { stroke: var(--up); }
+        .w.d.on { stroke: var(--down); }
+        @keyframes flow { to { stroke-dashoffset: -13; } }
+        .m-u { fill: var(--up-line); } .m-d { fill: var(--down-line); } .m-x { fill: var(--muted); }
+        .world.focus .w:not(.on) { opacity: .16; }
+        .world.focus .nd:not(.on) { opacity: .42; }
+
+        /* 노드 */
+        .nd { position: absolute; width: 208px; height: 46px; transition: opacity .15s; animation: pop .18s ease-out; }
+        @keyframes pop { from { opacity: 0; } }
+        .nd-b {
+            display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; padding: 0 12px 0 14px;
+            border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-align: left; overflow: hidden;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .05); position: relative;
+            transition: border-color .15s, box-shadow .15s, background-color .15s;
+        }
+        .nd-b::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+        .nd.u .nd-b::before { background: var(--up); }
+        .nd.d .nd-b::before { background: var(--down); }
+        .nd.u .nd-b:hover, .nd.u.on .nd-b { border-color: var(--up); }
+        .nd.d .nd-b:hover, .nd.d.on .nd-b { border-color: var(--down); }
+        .nd.u.sel .nd-b { border-color: var(--up); background: var(--up-soft); box-shadow: 0 0 0 3px var(--up-soft), var(--shadow); }
+        .nd.d.sel .nd-b { border-color: var(--down); background: var(--down-soft); box-shadow: 0 0 0 3px var(--down-soft), var(--shadow); }
+        .nd-r1 { display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .nd-pid { font-family: var(--code); font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .nd-nm { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.35; }
+        .fl { flex: none; margin-left: auto; padding: 0 5px; border-radius: 4px; font-size: 11px; font-weight: 700; line-height: 16px; background: var(--surface-2); color: var(--ink-2); }
+        .fl + .fl { margin-left: 0; }
+        .fl.miss { background: var(--warn-soft); color: var(--warn); }
+        .fl.cyc { background: var(--warn-soft); color: var(--warn); }
+        .nd.miss .nd-b { border-style: dashed; border-color: var(--warn); }
+        .nd.miss .nd-b::before { background: var(--warn); }
+        .nd.hit .nd-b { background: var(--hit); }
+        .nd.pulse .nd-b { animation: pulse .9s ease-out; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 var(--accent); } 100% { box-shadow: 0 0 0 16px transparent; } }
+        .nd-tg {
+            position: absolute; top: 50%; width: 26px; height: 26px; margin-top: -13px; padding: 0; border-radius: 13px;
+            border: 1px solid var(--line); background: var(--surface); color: var(--ink-2);
+            font-size: 11px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+        }
+        .nd.d .nd-tg { right: -13px; } .nd.u .nd-tg { left: -13px; }
+        .nd.d .nd-tg:hover { border-color: var(--down); color: var(--down); }
+        .nd.u .nd-tg:hover { border-color: var(--up); color: var(--up); }
+        .nd.d .nd-tg[aria-expanded="false"] { background: var(--down); border-color: var(--down); color: var(--surface); }
+        .nd.u .nd-tg[aria-expanded="false"] { background: var(--up); border-color: var(--up); color: var(--surface); }
+        .nd.more { height: 30px; }
+        .nd-more {
+            width: 100%; height: 100%; border: 1px dashed var(--line); border-radius: 15px; background: var(--surface-2);
+            color: var(--ink-2); font-size: 12px; font-weight: 600;
+        }
+        .nd-more:hover { border-color: var(--ink-2); color: var(--ink); }
+        /* 분석 대상 */
+        .nd.root { width: 248px; height: 76px; }
+        .nd.root .nd-b {
+            padding: 0 16px; border: 0; border-radius: 14px; color: var(--root-ink);
+            background: linear-gradient(135deg, var(--root), var(--root-2));
+            box-shadow: 0 0 0 4px var(--surface), 0 0 0 5px var(--line), var(--shadow);
+        }
+        .nd.root .nd-b::before { display: none; }
+        .nd.root.sel .nd-b { box-shadow: 0 0 0 4px var(--surface), 0 0 0 6px var(--accent), var(--shadow); }
+        .nd.root .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--accent); }
+        .nd.root .nd-pid { font-size: 16px; }
+        .nd.root .nd-nm { color: var(--root-sub); }
+
+        /* 무대 위 도구 */
+        .float {
+            position: absolute; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px;
+            background: var(--glass); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
+            backdrop-filter: blur(8px); cursor: default;
+        }
+        .float.tl { left: 14px; top: 14px; right: 14px; width: fit-content; max-width: calc(100% - 28px); }
+        .float.br { right: 14px; bottom: 14px; gap: 2px; }
+        .seg { display: inline-flex; padding: 2px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line-soft); }
+        .seg button {
+            min-width: 34px; height: 30px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent;
+            color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap;
+        }
+        .seg button:hover { color: var(--ink); }
+        .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(15, 23, 42, .12); }
+        .lbl { font-size: 12px; color: var(--muted); padding-left: 6px; white-space: nowrap; }
+        .tog { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border: 1px solid var(--line-soft); border-radius: 8px; background: var(--surface-2); color: var(--ink-2); font-size: 13px; font-weight: 600; }
+        .tog i { width: 26px; height: 14px; border-radius: 7px; background: var(--line); position: relative; transition: background-color .15s; }
+        .tog i::after { content: ""; position: absolute; left: 2px; top: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--surface); transition: transform .15s; }
+        .tog[aria-pressed="true"] i { background: var(--down); }
+        .tog[aria-pressed="true"] i::after { transform: translateX(12px); }
+        .find { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 8px 0 10px; border: 1px solid var(--line-soft); border-radius: 8px; background: var(--surface-2); color: var(--muted); }
+        .find:focus-within { border-color: var(--up); }
+        .find input { width: 150px; border: 0; outline: 0; background: transparent; font-size: 13px; color: var(--ink); }
+        .find span { font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .zb { width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-2); display: grid; place-items: center; }
+        .zb:hover { background: var(--surface-2); color: var(--ink); }
+        #zoomVal { width: 52px; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+        #mini { position: absolute; left: 14px; bottom: 14px; width: 190px; height: 122px; border: 1px solid var(--line); border-radius: 12px; background: var(--glass); box-shadow: var(--shadow); cursor: crosshair; }
+        .legend { position: absolute; left: 218px; bottom: 14px; display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); pointer-events: none; max-width: calc(100% - 420px); }
+        .legend span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .legend i { width: 14px; height: 4px; border-radius: 2px; }
+        .legend .k-u { background: var(--up); } .legend .k-d { background: var(--down); }
+        .legend .k-m { background: transparent; border: 1px dashed var(--warn); height: 10px; border-radius: 3px; }
+
+        .blank { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; cursor: default; background: var(--bg); background-image: inherit; background-size: inherit; }
+        .blank-in { max-width: 520px; text-align: center; }
+        .blank-art { width: 220px; height: 92px; margin: 0 auto 14px; color: var(--muted); }
+        .blank h2 { margin: 0 0 8px; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+        .blank p { margin: 0 0 6px; color: var(--ink-2); }
+        .blank .sub { font-size: 13px; color: var(--muted); }
+        .blank.err h2 { color: var(--danger); }
+        .chips { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+        .chip { height: 30px; padding: 0 12px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface); font-family: var(--code); font-size: 12.5px; color: var(--ink-2); }
+        .chip:hover { border-color: var(--ink-2); color: var(--ink); }
+        .spin { width: 28px; height: 28px; margin: 0 auto 14px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--up); animation: rot .8s linear infinite; }
+        @keyframes rot { to { transform: rotate(360deg); } }
+        .toast {
+            position: absolute; left: 50%; top: 70px; transform: translateX(-50%); padding: 8px 14px; border-radius: 8px;
+            background: var(--root); color: var(--root-ink); font-size: 13px; box-shadow: var(--shadow); pointer-events: none;
+        }
+
+        /* ===== 오른쪽 패널 ===== */
+        aside { flex: none; width: var(--side-w); display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--line); min-height: 0; }
+        .tabs { flex: none; display: flex; border-bottom: 1px solid var(--line); padding: 0 8px; }
+        .tabs button { flex: 1; height: 44px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); font-weight: 700; font-size: 13.5px; }
+        .tabs button:hover { color: var(--ink); }
+        .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+        .pane { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 18px 28px; }
+        .none { color: var(--muted); font-size: 13px; }
+        .d-pid { font-family: var(--code); font-size: 18px; font-weight: 800; letter-spacing: -.01em; overflow-wrap: anywhere; }
+        .d-nm { color: var(--ink-2); margin: 2px 0 8px; overflow-wrap: anywhere; }
+        .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+        .tag { padding: 1px 8px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--line-soft); font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+        .tag.u { background: var(--up-soft); color: var(--up); border-color: transparent; }
+        .tag.d { background: var(--down-soft); color: var(--down); border-color: transparent; }
+        .tag.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+        .acts { display: flex; gap: 6px; margin: 12px 0 4px; flex-wrap: wrap; }
+        .acts .btn { height: 34px; font-size: 13px; }
+        .path { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); font-size: 12px; color: var(--muted); }
+        .path button { padding: 1px 6px; border: 0; border-radius: 4px; background: transparent; font-family: var(--code); font-size: 12px; color: var(--ink-2); }
+        .path button:hover { background: var(--surface); color: var(--ink); }
+        .path button.me { font-weight: 700; color: var(--ink); }
+        .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+        .duo div { padding: 10px 12px; border-radius: 10px; }
+        .duo .u { background: var(--up-soft); color: var(--up); } .duo .d { background: var(--down-soft); color: var(--down); }
+        .duo b { display: block; font-size: 22px; font-weight: 800; line-height: 1.2; font-variant-numeric: tabular-nums; }
+        .duo span { font-size: 12px; }
+        h3 { display: flex; align-items: center; gap: 6px; margin: 20px 0 8px; font-size: 13px; font-weight: 800; }
+        h3 em { font-style: normal; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+        h3 .h-r { margin-left: auto; font-weight: 500; font-size: 12px; color: var(--muted); }
+        .rows { display: flex; flex-direction: column; gap: 2px; }
+        .rw {
+            display: flex; align-items: center; gap: 8px; width: 100%; min-height: 34px; padding: 4px 8px; border: 0; border-radius: 7px;
+            background: transparent; text-align: left; min-width: 0;
+        }
+        .rw:hover { background: var(--surface-2); }
+        .rw i { flex: none; width: 4px; height: 18px; border-radius: 2px; background: var(--line); }
+        .rw.u i { background: var(--up); } .rw.d i { background: var(--down); } .rw.r i { background: var(--accent); } .rw.miss i { background: var(--warn); }
+        .rw .p { flex: none; font-family: var(--code); font-size: 12.5px; font-weight: 700; }
+        .rw .n { flex: 1; min-width: 0; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rw .c { flex: none; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .more-note { padding: 6px 8px; font-size: 12px; color: var(--muted); }
+        .inp { width: 100%; height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); font-size: 13px; }
+        .spec { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+        .spec th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+        .spec td { padding: 5px 6px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+        .spec td.num, .spec th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .spec .code { font-family: var(--code); font-weight: 700; overflow-wrap: anywhere; }
+        .spec .nm { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+        .keys { display: flex; gap: 6px; flex-wrap: wrap; }
+        .keys span { padding: 2px 8px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--line-soft); font-family: var(--code); font-size: 12px; overflow-wrap: anywhere; }
+        .keys span b { font-family: var(--sans); font-weight: 600; color: var(--muted); margin-left: 4px; }
+        .sk { height: 14px; margin: 10px 0; border-radius: 4px; background: linear-gradient(90deg, var(--surface-2), var(--line-soft), var(--surface-2)); background-size: 200% 100%; animation: sk 1.2s linear infinite; }
+        @keyframes sk { to { background-position: -200% 0; } }
+        .lead { padding: 12px 14px; border-radius: 10px; background: var(--surface-2); color: var(--ink-2); font-size: 13.5px; line-height: 1.65; }
+        .lead b { color: var(--ink); }
+        .lead .u { color: var(--up); font-weight: 700; } .lead .d { color: var(--down); font-weight: 700; } .lead .wn { color: var(--warn); font-weight: 700; }
+        .list-top { display: flex; gap: 6px; margin-bottom: 10px; }
+        .list-top .inp { flex: 1; }
+
+        @media (max-width: 1280px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } :root { --side-w: 340px; } }
+        @media (max-width: 900px) {
+            main { flex-direction: column; }
+            aside { width: auto; height: 44%; border-left: 0; border-top: 1px solid var(--line); }
+            .legend, #mini { display: none; }
+            .ask input { width: 170px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<svg hidden aria-hidden="true">
+    <symbol id="i-graph" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="5" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M7.5 12h4l5-6M11.5 12l5 6"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6.3M20 4v7h-7"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+</svg>
+
+<header class="bar">
+    <div class="brand">
+        <div class="brand-mark"><svg class="ico" aria-hidden="true" style="width:20px;height:20px"><use href="#i-graph"/></svg></div>
+        <div>
+            <h1>PID 관계 분석</h1>
+            <p>최신 버전 로직의 CALL 을 따라 상위 · 하위 PID 를 한 장에</p>
+        </div>
+    </div>
+    <form class="ask" id="ask" autocomplete="off">
+        <label class="sr" for="pid">분석할 PID</label>
+        <input type="text" id="pid" list="recent" placeholder="PID 입력 (예: EL_PB126A01)" spellcheck="false" required>
+        <datalist id="recent"></datalist>
+        <button type="submit" class="btn go" id="btnGo">분석</button>
+    </form>
+    <div class="bar-r">
+        <span id="stamp" aria-live="polite"></span>
+        <button type="button" class="btn" id="btnRefresh" disabled title="로직이 바뀌었으면 DB 에서 호출 관계를 다시 읽습니다 (몇 초 걸릴 수 있습니다)">
+            <svg class="ico" aria-hidden="true"><use href="#i-refresh"/></svg>최신 로직 다시 읽기</button>
+        <button type="button" class="btn" id="btnCsv" disabled title="상위 · 하위 PID 전체를 CSV 로 내려받습니다">
+            <svg class="ico" aria-hidden="true"><use href="#i-down"/></svg>CSV</button>
+        <button type="button" class="btn sq" id="btnTheme" aria-label="밝은 화면 / 어두운 화면 전환" title="밝은 화면 / 어두운 화면 전환">
+            <svg class="ico i-moon" aria-hidden="true"><use href="#i-moon"/></svg><svg class="ico i-sun" aria-hidden="true"><use href="#i-sun"/></svg></button>
+    </div>
+</header>
+
+<section class="kpis" id="kpis" hidden aria-label="요약 지표">
+    <button type="button" class="kpi up" data-jump="g-entry" title="이 PID 를 호출하는 PID (직접 + 거슬러 올라간 전체)">
+        <span class="kpi-l"><i></i>상위 PID (호출하는 쪽)</span><span class="kpi-v" id="kUp">0</span></button>
+    <button type="button" class="kpi down" data-jump="g-leaf" title="이 PID 가 호출하는 PID (직접 + 따라 내려간 전체)">
+        <span class="kpi-l"><i></i>하위 PID (호출되는 쪽)</span><span class="kpi-v" id="kDown">0</span></button>
+    <button type="button" class="kpi" data-jump="g-lead" title="분석 대상에서 가장 먼 PID 까지의 단계 수">
+        <span class="kpi-l"><i></i>호출 깊이</span><span class="kpi-v" id="kDepth">0</span></button>
+    <button type="button" class="kpi up" data-jump="g-entry" title="더 이상 호출하는 PID 가 없는 최상위 PID">
+        <span class="kpi-l"><i></i>최상위 진입 PID</span><span class="kpi-v" id="kEntry">0</span></button>
+    <button type="button" class="kpi" data-jump="g-hub" title="이 관계도 안에서 호출 관계가 가장 많이 몰린 PID">
+        <span class="kpi-l"><i></i>허브 PID</span><span class="kpi-v mono" id="kHub" style="font-size:16px;line-height:30px">-</span></button>
+    <button type="button" class="kpi warn" id="kpiWarn" data-jump="g-miss" title="CALL 은 있지만 최신 로직이 없는 PID, 서로 물고 도는 순환 호출">
+        <span class="kpi-l"><i></i>점검 필요 (미등록 · 순환)</span><span class="kpi-v" id="kWarn">0</span></button>
+</section>
+
+<main>
+    <div class="stage" id="stage">
+        <div class="world" id="world" role="tree" aria-label="PID 호출 관계도">
+            <svg id="wires" aria-hidden="true">
+                <defs>
+                    <marker id="mU" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path class="m-u" d="M0 0L8 4L0 8z"/></marker>
+                    <marker id="mD" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path class="m-d" d="M0 0L8 4L0 8z"/></marker>
+                    <marker id="mX" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" markerUnits="userSpaceOnUse" orient="auto"><path class="m-x" d="M0 0L8 4L0 8z"/></marker>
+                </defs>
+                <g id="wireG"></g>
+            </svg>
+            <div id="nodes"></div>
+        </div>
+
+        <div class="float tl" id="tools" hidden>
+            <span class="lbl" id="lblDepth">펼침 단계</span>
+            <div class="seg" id="segDepth" role="group" aria-labelledby="lblDepth">
+                <button type="button" data-depth="1" aria-pressed="false">1</button>
+                <button type="button" data-depth="2" aria-pressed="true">2</button>
+                <button type="button" data-depth="3" aria-pressed="false">3</button>
+                <button type="button" data-depth="99" aria-pressed="false">전체</button>
+            </div>
+            <div class="seg" id="segDir" role="group" aria-label="보는 방향">
+                <button type="button" data-dir="u" aria-pressed="false" title="이 PID 를 호출하는 쪽만">상위만</button>
+                <button type="button" data-dir="both" aria-pressed="true">양쪽</button>
+                <button type="button" data-dir="d" aria-pressed="false" title="이 PID 가 호출하는 쪽만">하위만</button>
+            </div>
+            <button type="button" class="tog" id="togCross" aria-pressed="false" title="가지로 그린 호출 말고, 펼쳐진 PID 끼리의 나머지 CALL 도 점선으로 그립니다">
+                <i aria-hidden="true"></i>교차 호출<span id="crossCnt"></span></button>
+            <label class="find" title="관계도 안에서 PID · 이름으로 찾기 (Enter : 다음 결과)">
+                <svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>
+                <span class="sr">관계도에서 찾기</span>
+                <input type="text" id="find" placeholder="관계도에서 찾기" spellcheck="false">
+                <span id="findCnt" aria-live="polite"></span>
+            </label>
+        </div>
+
+        <canvas id="mini" hidden aria-label="전체 지도 (누르면 그 위치로 이동)"></canvas>
+        <div class="legend" id="legend" hidden>
+            <span><i class="k-u"></i>이 PID 를 호출하는 쪽</span>
+            <span><i class="k-d"></i>이 PID 가 호출하는 쪽</span>
+            <span><i class="k-m"></i>CALL 은 있지만 로직이 없는 PID</span>
+            <span>화살표 = 호출 방향 · ×N = CALL 라인 수 · 더블클릭 = 그 PID 기준으로 다시 분석</span>
+        </div>
+        <div class="float br" id="zoomBox" hidden>
+            <button type="button" class="zb" id="zoomOut" aria-label="축소" title="축소 (-)"><svg class="ico" aria-hidden="true"><use href="#i-minus"/></svg></button>
+            <button type="button" class="zb" id="zoomVal" title="100% 로 보기 (0)">100%</button>
+            <button type="button" class="zb" id="zoomIn" aria-label="확대" title="확대 (+)"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
+            <button type="button" class="zb" id="btnFit" aria-label="화면 맞춤" title="전체가 한 화면에 들어오게 맞춤 (F)"><svg class="ico" aria-hidden="true"><use href="#i-fit"/></svg></button>
+            <button type="button" class="zb" id="btnHome" aria-label="분석 대상으로 이동" title="분석 대상으로 이동 (H)"><svg class="ico" aria-hidden="true"><use href="#i-target"/></svg></button>
+        </div>
+
+        <div class="blank" id="blank"></div>
+        <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    </div>
+
+    <aside aria-label="분석 패널">
+        <div class="tabs" role="tablist">
+            <button type="button" role="tab" id="tab-detail" data-tab="detail" aria-selected="true" aria-controls="pane-detail">상세</button>
+            <button type="button" role="tab" id="tab-insight" data-tab="insight" aria-selected="false" aria-controls="pane-insight">인사이트</button>
+            <button type="button" role="tab" id="tab-list" data-tab="list" aria-selected="false" aria-controls="pane-list">목록</button>
+        </div>
+        <div class="pane" id="pane-detail" role="tabpanel" aria-labelledby="tab-detail">
+            <p class="none">PID 를 분석한 뒤 상자를 누르면 그 PID 의 호출 관계, 로직에서 쓰는 사양, 결과 KEY 를 여기에 보여줍니다.</p>
+        </div>
+        <div class="pane" id="pane-insight" role="tabpanel" aria-labelledby="tab-insight" hidden>
+            <p class="none">분석 결과가 여기에 정리됩니다.</p>
+        </div>
+        <div class="pane" id="pane-list" role="tabpanel" aria-labelledby="tab-list" hidden>
+            <div class="list-top">
+                <label class="sr" for="listQ">목록에서 찾기</label>
+                <input type="text" class="inp" id="listQ" placeholder="PID · 이름으로 걸러 보기" spellcheck="false">
+                <div class="seg" id="segList" role="group" aria-label="목록 범위">
+                    <button type="button" data-side="all" aria-pressed="true">전체</button>
+                    <button type="button" data-side="u" aria-pressed="false">상위</button>
+                    <button type="button" data-side="d" aria-pressed="false">하위</button>
+                </div>
+            </div>
+            <div id="listBody"><p class="none">분석한 PID 가 없습니다.</p></div>
+        </div>
+    </aside>
+</main>
+
+<script>
+(function () {
+    'use strict';
+
+    // 주의 : Thymeleaf 가 인라인 식으로 읽으므로 이 스크립트에는 대괄호 두 개가 붙은 표기를 쓰지 않는다
+    const $ = (id) => document.getElementById(id);
+    const API = { rel: '/subae/logicRelationData', detail: '/subae/logicRelationDetail' };
+    const KEY = { theme: 'pidLogicRelation.theme', recent: 'pidLogicRelation.recent' };
+    const G = { W: 208, H: 46, RW: 248, RH: 76, GX: 96, ROW: 58, MOREH: 30, KIDS: 40, MAXVIS: 600 };
+    const SIDE_NAME = { u: '상위', d: '하위' };
+
+    const store = {
+        get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+        set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* 저장 없이 진행 */ } }
+    };
+
+    const stage = $('stage'), world = $('world'), nodesEl = $('nodes'), wireG = $('wireG'), mini = $('mini');
+    const R = { id: 'r', pid: '', side: 'r', depth: 0, parent: null, u: [], d: [], x: 0, y: 0 };
+    const S = {
+        loaded: false, data: null, info: {}, adj: { u: {}, d: {} }, all: { u: [], d: [] },
+        byId: new Map(), byPid: new Map(), fanIn: {}, fanOut: {},
+        open: new Set(), limit: new Map(), dir: 'both', cross: false,
+        sel: null, hover: null, hot: [], vis: [], tops: { u: [], d: [] },
+        els: new Map(), wires: new Map(), view: { x: 0, y: 0, k: 1 },
+        hits: [], hitIdx: -1, detail: new Map(), listSide: 'all', busy: false
+    };
+
+    // ---------- 공통 ----------
+    const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ESC[c]); }
+    function num(v) { return Number(v || 0).toLocaleString('ko-KR'); }
+    function nameOf(pid) { const i = S.info[pid]; return i && i.name ? i.name : ''; }
+    function existsOf(pid) { const i = S.info[pid]; return !i || i.exists !== false; }
+    function kidsOf(n, side) { return n === R ? R[side] : n.kids; }
+    function limitKey(n, side) { return n === R ? 'r' + side : n.id; }
+    function inGraph(pid) { return pid === R.pid || S.byPid.has(pid); }
+
+    async function getJson(url) {
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        let body = null;
+        try { body = await res.json(); } catch (e) { /* 본문 없음 */ }
+        if (!res.ok) throw new Error(body && body.message ? body.message : '서버 오류 (' + res.status + ')');
+        return body || {};
+    }
+
+    let toastTimer = null;
+    function toast(msg) {
+        const t = $('toast');
+        t.textContent = msg; t.hidden = false;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { t.hidden = true; }, 3800);
+    }
+
+    // ---------- 빈 화면 / 로딩 / 오류 ----------
+    const ART = '<svg class="blank-art" viewBox="0 0 220 92" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">'
+        + '<rect x="4" y="12" width="48" height="18" rx="5"/><rect x="4" y="62" width="48" height="18" rx="5"/>'
+        + '<rect x="80" y="33" width="60" height="26" rx="7" stroke-width="2.2"/>'
+        + '<rect x="168" y="4" width="48" height="18" rx="5"/><rect x="168" y="37" width="48" height="18" rx="5"/><rect x="168" y="70" width="48" height="18" rx="5"/>'
+        + '<path d="M52 21C68 21 64 46 80 46M52 71C68 71 64 46 80 46M140 46C156 46 152 13 168 13M140 46h28M140 46C156 46 152 79 168 79"/></svg>';
+
+    function recents() {
+        try { const a = JSON.parse(store.get(KEY.recent) || 'null'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+    }
+    function pushRecent(pid) {
+        const list = recents().filter((p) => p !== pid);
+        list.unshift(pid);
+        store.set(KEY.recent, JSON.stringify(list.slice(0, 8)));
+        syncRecent();
+    }
+    function syncRecent() {
+        $('recent').innerHTML = recents().map((p) => '<option value="' + esc(p) + '"></option>').join('');
+    }
+
+    function showBlank(kind, text) {
+        const b = $('blank');
+        b.className = 'blank' + (kind === 'error' ? ' err' : '');
+        let html = '';
+        if (kind === 'loading') {
+            html = '<div class="spin" aria-hidden="true"></div><h2>호출 관계를 읽고 있습니다</h2>'
+                + '<p class="sub">처음 한 번은 전체 로직의 CALL 을 훑기 때문에 몇 초 걸릴 수 있습니다.</p>';
+        } else if (kind === 'error') {
+            html = ART + '<h2>관계를 읽지 못했습니다</h2><p>' + esc(text) + '</p>'
+                + '<div class="chips"><button type="button" class="btn" data-retry="1">다시 시도</button></div>';
+        } else if (kind === 'none') {
+            html = ART + '<h2>' + esc(text) + ' 를 찾지 못했습니다</h2>'
+                + '<p>최신 버전 로직이 있는 PID 가 아니고, 이 이름을 CALL 하는 로직도 없습니다.</p><p class="sub">PID 철자를 다시 확인해 주세요.</p>';
+        } else {
+            const rc = recents();
+            html = ART + '<h2>이 PID, 어디와 엮여 있을까요?</h2>'
+                + '<p>PID 를 입력하면 그 PID 를 호출하는 PID 와 그 PID 가 호출하는 PID 를 끝까지 따라가 한 장에 그립니다.</p>'
+                + '<p class="sub">로직을 실행하지 않고 최신 버전 로직에 적힌 CALL 을 그대로 읽습니다. 조건에 따라 실제로는 호출되지 않는 CALL 도 포함됩니다.</p>'
+                + (rc.length ? '<div class="chips" aria-label="최근 분석한 PID">' + rc.map((p) => '<button type="button" class="chip" data-pid="' + esc(p) + '">' + esc(p) + '</button>').join('') + '</div>' : '');
+        }
+        b.innerHTML = '<div class="blank-in">' + html + '</div>';
+        b.hidden = false;
+        ['tools', 'zoomBox', 'mini', 'legend'].forEach((id) => { $(id).hidden = true; });
+        if (kind !== 'loading') $('kpis').hidden = true;
+    }
+    function hideBlank() {
+        $('blank').hidden = true;
+        ['tools', 'zoomBox', 'mini', 'legend', 'kpis'].forEach((id) => { $(id).hidden = false; });
+    }
+    function setBusy(on) {
+        S.busy = on;
+        $('btnGo').disabled = on;
+        $('btnRefresh').disabled = on || !S.loaded;
+        $('btnCsv').disabled = on || !S.loaded;
+    }
+
+    // ---------- 조회 ----------
+    async function analyze(pidRaw, opts) {
+        const o = opts || {};
+        const pid = String(pidRaw || '').trim().toUpperCase();
+        if (!pid) { S.loaded = false; setBusy(false); showBlank(); return; }
+        if (S.busy) return;
+        $('pid').value = pid;
+        setBusy(true);
+        showBlank('loading');
+        try {
+            const data = await getJson(API.rel + '?pid=' + encodeURIComponent(pid) + (o.refresh ? '&refresh=true' : ''));
+            if (!o.keepUrl) history.pushState({ pid: pid }, '', '?pid=' + encodeURIComponent(pid));
+            const edges = (data.down || []).length + (data.up || []).length;
+            if (!data.found && !edges) {
+                S.loaded = false;
+                showBlank('none', pid);
+                return;
+            }
+            apply(data);
+            pushRecent(pid);
+            if (o.refresh) toast('DB 에서 호출 관계를 다시 읽었습니다.');
+        } catch (e) {
+            S.loaded = false;
+            S.retry = { pid: pid, opts: o };
+            showBlank('error', e.message || String(e));
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    function push(map, key, item) { (map[key] || (map[key] = [])).push(item); }
+
+    function apply(data) {
+        S.loaded = true;
+        S.data = data;
+        S.info = data.nodes || {};
+        S.adj = { u: {}, d: {} };
+        S.byId = new Map(); S.byPid = new Map();
+        S.open = new Set(); S.limit = new Map();
+        S.sel = null; S.hover = null; S.hot = [];
+        S.hits = []; S.hitIdx = -1; S.dir = 'both';
+        $('find').value = ''; $('findCnt').textContent = ''; $('listQ').value = '';
+
+        R.pid = data.root; R.u = []; R.d = [];
+        S.byId.set('r', R);
+
+        const inSet = {}, outSet = {}, seenEdge = new Set();
+        const count = (e) => {
+            const k = e.from + '>' + e.to;
+            if (seenEdge.has(k)) return;
+            seenEdge.add(k);
+            (outSet[e.from] || (outSet[e.from] = new Set())).add(e.to);
+            (inSet[e.to] || (inSet[e.to] = new Set())).add(e.from);
+        };
+        (data.down || []).forEach((e) => { push(S.adj.d, e.from, { pid: e.to, count: e.count }); count(e); });
+        (data.up || []).forEach((e) => { push(S.adj.u, e.to, { pid: e.from, count: e.count }); count(e); });
+        S.fanIn = {}; S.fanOut = {};
+        Object.keys(inSet).forEach((k) => { S.fanIn[k] = inSet[k].size; });
+        Object.keys(outSet).forEach((k) => { S.fanOut[k] = outSet[k].size; });
+
+        S.all.u = buildSide('u');
+        S.all.d = buildSide('d');
+
+        document.title = R.pid + ' · PID 관계 분석';
+        const at = data.loadedAt ? new Date(data.loadedAt) : null;
+        $('stamp').textContent = at ? '호출 관계 기준 ' + String(at.getHours()).padStart(2, '0') + ':' + String(at.getMinutes()).padStart(2, '0') : '';
+
+        hideBlank();
+        syncSeg('segDir', 'dir', 'both');
+        setDepth(2, true);
+        renderKpi();
+        renderInsight();
+        renderList();
+        render();
+        fitView(false);
+        select('r', true);
+        if (data.truncated) toast('PID 가 너무 많아 일부만 가져왔습니다. 하위 PID 를 기준으로 다시 분석해 보세요.');
+    }
+
+    /** 한 방향을 너비 우선으로 훑어 나무로 만든다 (PID 는 가장 가까운 단계에 한 번만) */
+    function buildSide(side) {
+        const adj = S.adj[side], seen = new Set();
+        seen.add(R.pid);
+        const q = [R], out = [];
+        let i = 0;
+        while (i < q.length) {
+            const cur = q[i++];
+            const list = adj[cur.pid] || [];
+            for (const e of list) {
+                if (seen.has(e.pid)) continue;
+                seen.add(e.pid);
+                const n = { id: side + ':' + e.pid, pid: e.pid, side: side, depth: cur.depth + 1, parent: cur, count: e.count, kids: [], desc: 0, x: 0, y: 0 };
+                S.byId.set(n.id, n);
+                if (!S.byPid.has(e.pid)) S.byPid.set(e.pid, []);
+                S.byPid.get(e.pid).push(n);
+                kidsOf(cur, side).push(n);
+                q.push(n); out.push(n);
+            }
+        }
+        for (let j = out.length - 1; j >= 0; j--) {
+            const n = out[j];
+            if (n.parent !== R) n.parent.desc += n.desc + 1;
+        }
+        return out;
+    }
+
+    function isCycle(pid) {
+        const list = S.byPid.get(pid);
+        return !!list && list.length > 1;
+    }
+
+    // ---------- 펼침 ----------
+    function setDepth(want, silent) {
+        const maxD = Math.max(1, S.all.u.concat(S.all.d).reduce((m, n) => Math.max(m, n.depth), 1));
+        let d = Math.min(want, maxD);
+        const countAt = (dd) => S.all.u.concat(S.all.d).filter((n) => n.depth <= dd).length;
+        while (d > 1 && countAt(d) > G.MAXVIS) d--;
+        S.open = new Set();
+        S.all.u.concat(S.all.d).forEach((n) => { if (n.depth < d && n.kids.length) S.open.add(n.id); });
+        S.limit = new Map();
+        syncSeg('segDepth', 'depth', want >= 99 && d === maxD ? '99' : String(d));
+        if (!silent && d < Math.min(want, maxD)) toast('PID 가 많아 ' + d + '단계까지만 펼쳤습니다. 더 보려면 상자 옆 숫자를 눌러 펼치세요.');
+    }
+    function syncSeg(id, attr, val) {
+        $(id).querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset[attr] === val)));
+    }
+
+    /** 지금 보이는 자식 (접혔으면 없음, 많으면 일부 + 더 보기) */
+    function shown(n, side) {
+        if (n !== R && !S.open.has(n.id)) return [];
+        const all = kidsOf(n, side);
+        const lim = S.limit.get(limitKey(n, side)) || G.KIDS;
+        if (all.length <= lim) return all;
+        const part = all.slice(0, lim);
+        part.push({ more: true, id: 'more:' + limitKey(n, side), side: side, parent: n, rest: all.length - lim, lk: limitKey(n, side), x: 0, y: 0 });
+        return part;
+    }
+
+    function layoutSide(side) {
+        const sign = side === 'd' ? 1 : -1;
+        const out = [];
+        let cur = 0;
+        const place = (n, depth) => {
+            n.x = sign * (G.RW / 2 + G.GX + G.W / 2 + (depth - 1) * (G.W + G.GX));
+            const ks = n.more ? [] : shown(n, side);
+            n.ks = ks;
+            if (!ks.length) { n.y = cur; cur += n.more ? 42 : G.ROW; }
+            else { ks.forEach((k) => place(k, depth + 1)); n.y = (ks[0].y + ks[ks.length - 1].y) / 2; }
+            out.push(n);
+        };
+        const tops = shown(R, side);
+        tops.forEach((t) => place(t, 1));
+        const mid = tops.length ? (tops[0].y + tops[tops.length - 1].y) / 2 : 0;
+        out.forEach((n) => { n.y -= mid; });
+        S.tops[side] = tops;
+        return out;
+    }
+
+    // ---------- 그리기 ----------
+    function curve(x1, y1, x2, y2) {
+        const dx = Math.max(40, Math.abs(x2 - x1) / 2);
+        return 'M' + x1 + ' ' + y1 + 'C' + (x1 + dx) + ' ' + y1 + ' ' + (x2 - dx) + ' ' + y2 + ' ' + x2 + ' ' + y2;
+    }
+
+    function nodeHtml(n) {
+        if (n === R) {
+            const nm = nameOf(R.pid);
+            return '<div class="nd root" data-id="r" role="treeitem" style="left:' + (-G.RW / 2) + 'px;top:' + (-G.RH / 2) + 'px">'
+                + '<button type="button" class="nd-b" data-act="sel" title="' + esc(R.pid + (nm ? '\n' + nm : '')) + '">'
+                + '<span class="eyebrow">분석 대상</span>'
+                + '<span class="nd-r1"><span class="nd-pid">' + esc(R.pid) + '</span>' + (existsOf(R.pid) ? '' : '<span class="fl miss">미등록</span>') + '</span>'
+                + '<span class="nd-nm">' + esc(nm || (existsOf(R.pid) ? '이름 없음' : '최신 로직이 없는 PID')) + '</span>'
+                + '</button></div>';
+        }
+        if (n.more) {
+            return '<div class="nd more ' + n.side + '" data-id="' + esc(n.id) + '" style="left:' + (n.x - G.W / 2) + 'px;top:' + (n.y - G.MOREH / 2) + 'px">'
+                + '<button type="button" class="nd-more" data-act="more" data-lk="' + esc(n.lk) + '">+ ' + num(n.rest) + '개 더 보기</button></div>';
+        }
+        const nm = nameOf(n.pid), ok = existsOf(n.pid), open = S.open.has(n.id);
+        const tip = n.pid + (nm ? '\n' + nm : '') + '\n' + SIDE_NAME[n.side] + ' ' + n.depth + '단계'
+            + (n.count > 1 ? ' · CALL ' + n.count + '라인' : '') + (ok ? '' : '\nCALL 은 있지만 최신 로직이 없습니다');
+        let h = '<div class="nd ' + n.side + (ok ? '' : ' miss') + '" data-id="' + esc(n.id) + '" role="treeitem" style="left:' + (n.x - G.W / 2) + 'px;top:' + (n.y - G.H / 2) + 'px">'
+            + '<button type="button" class="nd-b" data-act="sel" title="' + esc(tip) + '">'
+            + '<span class="nd-r1"><span class="nd-pid">' + esc(n.pid) + '</span>'
+            + (n.count > 1 ? '<span class="fl">×' + n.count + '</span>' : '')
+            + (ok ? '' : '<span class="fl miss">미등록</span>')
+            + (isCycle(n.pid) ? '<span class="fl cyc">순환</span>' : '')
+            + '</span><span class="nd-nm">' + esc(nm || (ok ? '-' : '로직 없음')) + '</span></button>';
+        if (n.kids.length) {
+            const what = n.side === 'd' ? '이 PID 가 호출하는 PID' : '이 PID 를 호출하는 PID';
+            const label = what + ' ' + n.kids.length + '개 (전체 ' + n.desc + '개) ' + (open ? '접기' : '펼치기');
+            h += '<button type="button" class="nd-tg" data-act="tg" aria-expanded="' + open + '" aria-label="' + esc(label) + '" title="' + esc(label) + '">'
+                + (open ? '−' : (n.kids.length > 99 ? '99+' : n.kids.length)) + '</button>';
+        }
+        return h + '</div>';
+    }
+
+    function render() {
+        const act = document.activeElement && document.activeElement.closest ? document.activeElement.closest('.nd') : null;
+        const focusId = act ? act.dataset.id : null;
+        const focusTg = act && document.activeElement.classList.contains('nd-tg');
+
+        let vis = [R];
+        ['u', 'd'].forEach((side) => {
+            if (S.dir !== 'both' && S.dir !== side) { S.tops[side] = []; return; }
+            vis = vis.concat(layoutSide(side));
+        });
+        S.vis = vis;
+
+        const html = [], paths = [];
+        const visPid = { u: new Map(), d: new Map() };
+        vis.forEach((n) => {
+            html.push(nodeHtml(n));
+            if (n === R) return;
+            if (!n.more) visPid[n.side].set(n.pid, n);
+            const p = n.parent, pw = p === R ? G.RW : G.W;
+            let d;
+            if (n.side === 'd') d = curve(p.x + pw / 2, p.y, n.x - G.W / 2 - (n.more ? 0 : 3), n.y);
+            else d = curve(n.x + G.W / 2, n.y, p.x - pw / 2 - (n.more ? 0 : 3), p.y);
+            paths.push('<path class="w ' + n.side + (n.more ? ' more' : '') + '" data-id="' + esc(n.id) + '" d="' + d + '"'
+                + (n.more ? '' : ' marker-end="url(#m' + (n.side === 'd' ? 'D' : 'U') + ')"') + '/>');
+        });
+
+        // 가지로 그리지 않은 나머지 CALL
+        let cross = 0;
+        if (S.cross) {
+            vis.forEach((a) => {
+                if (a === R || a.more) return;
+                (S.adj[a.side][a.pid] || []).forEach((e) => {
+                    const b = visPid[a.side].get(e.pid);
+                    if (!b || b.parent === a || b === a) return;
+                    cross++;
+                    const from = a.side === 'd' ? a : b, to = a.side === 'd' ? b : a;
+                    paths.push('<path class="w x" d="' + curve(from.x + G.W / 2, from.y, to.x - G.W / 2 - 3, to.y) + '" marker-end="url(#mX)"/>');
+                });
+            });
+        }
+        $('crossCnt').textContent = S.cross ? ' ' + num(cross) : '';
+
+        nodesEl.innerHTML = html.join('');
+        wireG.innerHTML = paths.join('');
+        S.els = new Map(); S.wires = new Map();
+        nodesEl.querySelectorAll('.nd').forEach((el) => S.els.set(el.dataset.id, el));
+        wireG.querySelectorAll('path[data-id]').forEach((el) => S.wires.set(el.dataset.id, el));
+
+        S.hot = [];
+        applyHot();
+        markHits();
+        if (focusId && S.els.has(focusId)) {
+            const el = S.els.get(focusId).querySelector(focusTg ? '.nd-tg' : '.nd-b, .nd-more') || S.els.get(focusId).querySelector('button');
+            if (el) el.focus({ preventScroll: true });
+        }
+        drawMini();
+    }
+
+    function chain(id) {
+        const out = [];
+        let n = S.byId.get(id);
+        while (n) { out.push(n.id); n = n.parent; }
+        return out;
+    }
+    function applyHot() {
+        S.hot.forEach((i) => {
+            const el = S.els.get(i), w = S.wires.get(i);
+            if (el) el.classList.remove('on');
+            if (w) w.classList.remove('on');
+        });
+        S.hot = [];
+        const id = S.hover || S.sel;
+        const on = !!id && id !== 'r' && S.byId.has(id) && S.els.has(id);
+        world.classList.toggle('focus', on);
+        if (on) {
+            chain(id).forEach((i) => {
+                const el = S.els.get(i), w = S.wires.get(i);
+                if (el) el.classList.add('on');
+                if (w) w.classList.add('on');
+                S.hot.push(i);
+            });
+        }
+        S.els.forEach((el, i) => el.classList.toggle('sel', i === S.sel));
+    }
+
+    // ---------- 보기 (이동 / 확대) ----------
+    let miniRaf = 0;
+    function applyView(glide) {
+        const v = S.view;
+        world.classList.toggle('glide', !!glide);
+        world.style.transform = 'translate(' + v.x + 'px,' + v.y + 'px) scale(' + v.k + ')';
+        const g = 24 * v.k;
+        stage.style.backgroundSize = g + 'px ' + g + 'px';
+        stage.style.backgroundPosition = v.x + 'px ' + v.y + 'px';
+        $('zoomVal').textContent = Math.round(v.k * 100) + '%';
+        if (!miniRaf) miniRaf = requestAnimationFrame(() => { miniRaf = 0; drawMini(); });
+    }
+    function bounds() {
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        S.vis.forEach((n) => {
+            const w = n === R ? G.RW : G.W, h = n === R ? G.RH : G.H;
+            x0 = Math.min(x0, n.x - w / 2); x1 = Math.max(x1, n.x + w / 2);
+            y0 = Math.min(y0, n.y - h / 2); y1 = Math.max(y1, n.y + h / 2);
+        });
+        return { x0: x0, y0: y0, x1: x1, y1: y1, w: x1 - x0, h: y1 - y0 };
+    }
+    function fitView(glide) {
+        if (!S.vis.length) return;
+        const b = bounds(), sw = stage.clientWidth, sh = stage.clientHeight;
+        const padX = 60, padTop = 78, padBot = 60;
+        const k = Math.max(.12, Math.min((sw - padX * 2) / b.w, (sh - padTop - padBot) / b.h, 1));
+        S.view.k = k;
+        S.view.x = sw / 2 - (b.x0 + b.w / 2) * k;
+        S.view.y = padTop + (sh - padTop - padBot) / 2 - (b.y0 + b.h / 2) * k;
+        applyView(glide);
+    }
+    function zoomAt(factor, cx, cy) {
+        const v = S.view, k = Math.max(.12, Math.min(2, v.k * factor));
+        v.x = cx - (cx - v.x) * (k / v.k);
+        v.y = cy - (cy - v.y) * (k / v.k);
+        v.k = k;
+        applyView(false);
+    }
+    function zoomCenter(factor) { zoomAt(factor, stage.clientWidth / 2, stage.clientHeight / 2); }
+    function centerOn(n, glide) {
+        const v = S.view;
+        if (v.k < .6) v.k = .9;
+        v.x = stage.clientWidth / 2 - n.x * v.k;
+        v.y = stage.clientHeight / 2 - n.y * v.k;
+        applyView(glide);
+    }
+
+    function drawMini() {
+        if (!S.loaded || mini.hidden || !S.vis.length) return;
+        const dpr = window.devicePixelRatio || 1, cw = mini.clientWidth, ch = mini.clientHeight;
+        if (!cw) return;
+        if (mini.width !== cw * dpr) { mini.width = cw * dpr; mini.height = ch * dpr; }
+        const ctx = mini.getContext('2d'), cs = getComputedStyle(document.documentElement);
+        const col = (name) => cs.getPropertyValue(name).trim();
+        const b = bounds(), pad = 10;
+        const k = Math.min((cw - pad * 2) / b.w, (ch - pad * 2) / b.h);
+        const ox = (cw - b.w * k) / 2 - b.x0 * k, oy = (ch - b.h * k) / 2 - b.y0 * k;
+        S.mini = { k: k, ox: ox, oy: oy };
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, cw, ch);
+        const cu = col('--up'), cd = col('--down'), cr = col('--accent');
+        S.vis.forEach((n) => {
+            const w = (n === R ? G.RW : G.W) * k, h = Math.max(1.5, (n === R ? G.RH : G.H) * k);
+            ctx.fillStyle = n === R ? cr : n.side === 'u' ? cu : cd;
+            ctx.globalAlpha = n.more ? .35 : .85;
+            ctx.fillRect(n.x * k + ox - w / 2, n.y * k + oy - h / 2, Math.max(2, w), h);
+        });
+        ctx.globalAlpha = 1;
+        const v = S.view;
+        ctx.strokeStyle = col('--ink'); ctx.lineWidth = 1.2;
+        ctx.strokeRect((-v.x / v.k) * k + ox, (-v.y / v.k) * k + oy, (stage.clientWidth / v.k) * k, (stage.clientHeight / v.k) * k);
+    }
+    function miniGo(ev) {
+        if (!S.mini) return;
+        const r = mini.getBoundingClientRect(), m = S.mini, v = S.view;
+        const wx = (ev.clientX - r.left - m.ox) / m.k, wy = (ev.clientY - r.top - m.oy) / m.k;
+        v.x = stage.clientWidth / 2 - wx * v.k;
+        v.y = stage.clientHeight / 2 - wy * v.k;
+        applyView(false);
+    }
+
+    // ---------- 선택 / 찾아가기 ----------
+    function select(id, quiet) {
+        S.sel = id;
+        applyHot();
+        if (!quiet) showTab('detail');
+        renderDetail();
+    }
+    function toggle(id) {
+        if (S.open.has(id)) S.open.delete(id); else S.open.add(id);
+        render();
+    }
+    /** 접혀 있거나 '더 보기' 뒤에 있어도 보이게 만든다 */
+    function reveal(n) {
+        if (n === R) return;
+        if (S.dir !== 'both' && S.dir !== n.side) { S.dir = 'both'; syncSeg('segDir', 'dir', 'both'); }
+        let c = n, p = n.parent;
+        while (p) {
+            if (p !== R) S.open.add(p.id);
+            const idx = kidsOf(p, n.side).indexOf(c), k = limitKey(p, n.side);
+            if (idx >= (S.limit.get(k) || G.KIDS)) S.limit.set(k, Math.ceil((idx + 1) / G.KIDS) * G.KIDS);
+            c = p; p = p.parent;
+        }
+    }
+    function goNode(n) {
+        reveal(n);
+        render();
+        select(n.id, true);
+        centerOn(n, true);
+        const el = S.els.get(n.id);
+        if (el) { el.classList.add('pulse'); setTimeout(() => el.classList.remove('pulse'), 950); }
+    }
+    function locate(pid, side) {
+        if (pid === R.pid) { goNode(R); return; }
+        const list = S.byPid.get(pid);
+        if (!list) { analyze(pid); return; }
+        goNode(list.find((n) => n.side === side) || list[0]);
+    }
+
+    // ---------- 관계도에서 찾기 ----------
+    function runFind() {
+        const q = $('find').value.trim().toUpperCase();
+        S.hits = []; S.hitIdx = -1;
+        if (q) {
+            S.all.u.concat(S.all.d).forEach((n) => {
+                if (n.pid.indexOf(q) >= 0 || nameOf(n.pid).toUpperCase().indexOf(q) >= 0) S.hits.push(n);
+            });
+        }
+        $('findCnt').textContent = q ? (S.hits.length ? '0/' + S.hits.length : '없음') : '';
+        markHits();
+    }
+    function markHits() {
+        const set = new Set(S.hits.map((n) => n.id));
+        S.els.forEach((el, id) => el.classList.toggle('hit', set.has(id)));
+    }
+    function nextHit(step) {
+        if (!S.hits.length) return;
+        S.hitIdx = (S.hitIdx + step + S.hits.length) % S.hits.length;
+        $('findCnt').textContent = (S.hitIdx + 1) + '/' + S.hits.length;
+        goNode(S.hits[S.hitIdx]);
+        renderDetail();
+    }
+
+    // ---------- 요약 지표 / 인사이트 ----------
+    function facts() {
+        const u = S.all.u, d = S.all.d;
+        const maxOf = (a) => a.reduce((m, n) => Math.max(m, n.depth), 0);
+        const entries = u.filter((n) => !(S.adj.u[n.pid] || []).length);
+        const leaves = d.filter((n) => !(S.adj.d[n.pid] || []).length);
+        const seenMiss = new Set(), miss = [];
+        u.concat(d).forEach((n) => { if (!existsOf(n.pid) && !seenMiss.has(n.pid)) { seenMiss.add(n.pid); miss.push(n); } });
+        const cyc = d.filter((n) => isCycle(n.pid));
+        const selfCall = (S.adj.d[R.pid] || []).some((e) => e.pid === R.pid);
+        const seenHub = new Set(), hubs = [];
+        u.concat(d).forEach((n) => {
+            if (seenHub.has(n.pid)) return;
+            seenHub.add(n.pid);
+            hubs.push({ n: n, i: S.fanIn[n.pid] || 0, o: S.fanOut[n.pid] || 0 });
+        });
+        hubs.sort((a, b) => (b.i + b.o) - (a.i + a.o));
+        return { u: u, d: d, upDepth: maxOf(u), downDepth: maxOf(d), entries: entries, leaves: leaves, miss: miss, cyc: cyc, selfCall: selfCall, hubs: hubs.slice(0, 8) };
+    }
+
+    function renderKpi() {
+        const f = facts();
+        $('kUp').innerHTML = num(f.u.length) + '<small>직접 ' + num(R.u.length) + '</small>';
+        $('kDown').innerHTML = num(f.d.length) + '<small>직접 ' + num(R.d.length) + '</small>';
+        $('kDepth').innerHTML = (f.upDepth + f.downDepth) + '<small>상위 ' + f.upDepth + ' · 하위 ' + f.downDepth + '</small>';
+        $('kEntry').innerHTML = f.u.length ? num(f.entries.length) : '<small style="margin:0">이 PID 가 최상위</small>';
+        $('kHub').textContent = f.hubs.length ? f.hubs[0].n.pid : '-';
+        const warn = f.miss.length + f.cyc.length + (f.selfCall ? 1 : 0);
+        $('kWarn').innerHTML = num(warn) + '<small>미등록 ' + f.miss.length + ' · 순환 ' + (f.cyc.length + (f.selfCall ? 1 : 0)) + '</small>';
+        $('kpiWarn').classList.toggle('has', warn > 0);
+    }
+
+    function rowHtml(pid, side, right, extraCls) {
+        const ok = existsOf(pid), out = !inGraph(pid);
+        return '<button type="button" class="rw ' + (pid === R.pid ? 'r' : side) + (ok ? '' : ' miss') + (extraCls || '') + '" data-loc="' + esc(pid) + '" data-side="' + side + '"'
+            + ' title="' + esc(out ? pid + ' 기준으로 새로 분석합니다' : pid + ' 위치로 이동') + '">'
+            + '<i aria-hidden="true"></i><span class="p">' + esc(pid) + '</span>'
+            + '<span class="n">' + esc(nameOf(pid) || (ok ? '' : '로직 없음')) + '</span>'
+            + '<span class="c">' + (right || '') + (out ? ' ↗' : '') + '</span></button>';
+    }
+    function groupHtml(id, title, items, toRow, emptyText, cap) {
+        const max = cap || 40;
+        let h = '<h3 id="' + id + '">' + esc(title) + ' <em>' + num(items.length) + '</em></h3>';
+        if (!items.length) return h + '<p class="none">' + esc(emptyText) + '</p>';
+        h += '<div class="rows">' + items.slice(0, max).map(toRow).join('') + '</div>';
+        if (items.length > max) h += '<p class="more-note">외 ' + num(items.length - max) + '개는 목록 탭에서 볼 수 있습니다.</p>';
+        return h;
+    }
+
+    function renderInsight() {
+        const f = facts(), p = '<b class="mono">' + esc(R.pid) + '</b>';
+        let lead = '';
+        if (f.u.length) lead += p + ' 은(는) <span class="u">상위 ' + num(f.u.length) + '개 PID</span>(직접 ' + num(R.u.length) + '개)에서 호출됩니다. 이 로직을 고치면 그 PID 들의 결과가 함께 달라질 수 있습니다. ';
+        else lead += p + ' 을(를) 호출하는 PID 가 없습니다. 이 PID 가 호출의 출발점입니다. ';
+        if (f.d.length) lead += '아래로는 <span class="d">하위 ' + num(f.d.length) + '개 PID</span>(직접 ' + num(R.d.length) + '개)를 최대 ' + f.downDepth + '단계까지 호출합니다. ';
+        else lead += '다른 PID 를 호출하지 않는 말단 로직입니다. ';
+        if (f.miss.length) lead += '<span class="wn">최신 로직이 없는 CALL 대상이 ' + f.miss.length + '개</span> 있습니다. ';
+        if (f.cyc.length || f.selfCall) lead += '<span class="wn">서로 물고 도는 순환 호출</span>이 있습니다. ';
+
+        let h = '<div class="lead" id="g-lead">' + lead + '</div>';
+        h += groupHtml('g-hub', '허브 PID (관계가 많이 몰린 곳)', f.hubs,
+            (x) => rowHtml(x.n.pid, x.n.side, '호출받음 ' + x.i + ' · 호출함 ' + x.o), '상위 · 하위 PID 가 없습니다.');
+        h += groupHtml('g-entry', '최상위 진입 PID', f.entries,
+            (n) => rowHtml(n.pid, 'u', '상위 ' + n.depth + '단계'), f.u.length ? '최상위를 찾지 못했습니다 (일부만 가져온 경우).' : '이 PID 를 호출하는 PID 가 없습니다.');
+        h += groupHtml('g-miss', '점검 필요 : 로직이 없는 CALL 대상', f.miss,
+            (n) => rowHtml(n.pid, n.side, SIDE_NAME[n.side] + ' ' + n.depth + '단계'), '모든 CALL 대상에 최신 로직이 있습니다.');
+        h += groupHtml('g-cyc', '점검 필요 : 순환 호출', f.selfCall ? [R].concat(f.cyc) : f.cyc,
+            (n) => rowHtml(n.pid, 'd', n === R ? '자기 자신을 CALL' : '상위이면서 하위'), '순환 호출이 없습니다.');
+        h += groupHtml('g-leaf', '말단 PID (더 호출하지 않는 곳)', f.leaves,
+            (n) => rowHtml(n.pid, 'd', '하위 ' + n.depth + '단계'), '하위 PID 가 없습니다.', 30);
+        $('pane-insight').innerHTML = h;
+    }
+
+    function renderList() {
+        const box = $('listBody');
+        if (!S.loaded) { box.innerHTML = '<p class="none">분석한 PID 가 없습니다.</p>'; return; }
+        const q = $('listQ').value.trim().toUpperCase();
+        let rows = S.listSide === 'u' ? S.all.u : S.listSide === 'd' ? S.all.d : S.all.u.concat(S.all.d);
+        if (q) rows = rows.filter((n) => n.pid.indexOf(q) >= 0 || nameOf(n.pid).toUpperCase().indexOf(q) >= 0);
+        if (!rows.length) { box.innerHTML = '<p class="none">' + (q ? '조건에 맞는 PID 가 없습니다.' : 'PID 가 없습니다.') + '</p>'; return; }
+        const cap = 300;
+        box.innerHTML = '<div class="rows">' + rows.slice(0, cap).map((n) => rowHtml(n.pid, n.side, SIDE_NAME[n.side] + ' ' + n.depth)).join('') + '</div>'
+            + (rows.length > cap ? '<p class="more-note">' + num(rows.length) + '개 중 ' + cap + '개만 표시했습니다. 검색어로 좁혀 보세요.</p>' : '<p class="more-note">' + num(rows.length) + '개</p>');
+    }
+
+    // ---------- 상세 ----------
+    function headHtml(n, d) {
+        const pid = n.pid, info = d || S.info[pid] || {}, ok = existsOf(pid);
+        const tags = [];
+        if (n === R) tags.push('<span class="tag">분석 대상</span>');
+        else tags.push('<span class="tag ' + n.side + '">' + SIDE_NAME[n.side] + ' ' + n.depth + '단계</span>');
+        if (!ok) tags.push('<span class="tag warn">최신 로직 없음</span>');
+        if (info.version !== undefined && info.version !== '') tags.push('<span class="tag">v' + esc(info.version) + '</span>');
+        if (info.floorSpec === 'Y') tags.push('<span class="tag">층별 PID</span>');
+        if (info.method) tags.push('<span class="tag" title="JAVA METHOD">' + esc(info.method) + '</span>');
+        if (d && d.lines !== undefined) tags.push('<span class="tag">로직 ' + num(d.lines) + '라인</span>');
+        if (isCycle(pid)) tags.push('<span class="tag warn">순환 호출</span>');
+
+        let path = '';
+        if (n !== R) {
+            const ids = chain(n.id);
+            if (n.side === 'd') ids.reverse();
+            path = '<div class="path" aria-label="분석 대상까지의 호출 경로">' + ids.map((id) => {
+                const x = S.byId.get(id);
+                return '<button type="button" data-loc="' + esc(x.pid) + '" data-side="' + n.side + '"' + (x === n ? ' class="me"' : '') + '>' + esc(x.pid) + '</button>';
+            }).join('<span aria-hidden="true">→</span>') + '</div>';
+        }
+        return '<div class="d-pid">' + esc(pid) + '</div><div class="d-nm">' + esc(info.name || nameOf(pid) || (ok ? '이름 없음' : '')) + '</div>'
+            + '<div class="tags">' + tags.join('') + '</div>' + path
+            + '<div class="acts">'
+            + (n === R ? '' : '<button type="button" class="btn" data-root="' + esc(pid) + '"><svg class="ico" aria-hidden="true"><use href="#i-target"/></svg>이 PID 기준으로 분석</button>')
+            + '<button type="button" class="btn" data-copy="' + esc(pid) + '"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg>PID 복사</button></div>';
+    }
+
+    function bodyHtml(d) {
+        const callers = d.callers || [], callees = d.callees || [], specs = d.specs || [], keys = d.keys || [];
+        let h = '<div class="duo"><div class="u"><b>' + num(callers.length) + '</b><span>이 PID 를 호출하는 PID</span></div>'
+            + '<div class="d"><b>' + num(callees.length) + '</b><span>이 PID 가 호출하는 PID</span></div></div>';
+        const rel = (title, list, side, empty) => {
+            let s = '<h3>' + title + ' <em>' + num(list.length) + '</em></h3>';
+            if (!list.length) return s + '<p class="none">' + empty + '</p>';
+            return s + '<div class="rows">' + list.map((x) => rowHtml(x.pid, side, x.count > 1 ? '×' + x.count : '')).join('') + '</div>';
+        };
+        h += rel('이 PID 를 호출하는 PID', callers, 'u', '호출하는 PID 가 없습니다.');
+        h += rel('이 PID 가 호출하는 PID', callees, 'd', '호출하는 PID 가 없습니다.');
+
+        h += '<h3>로직에서 쓰는 사양 <em>' + num(specs.length) + '</em><span class="h-r">조건 = SPEC 열 · 참조 = 계산식</span></h3>';
+        if (!specs.length) h += '<p class="none">사양을 쓰지 않습니다.</p>';
+        else {
+            if (specs.length > 8) h += '<label class="sr" for="specQ">사양 걸러 보기</label><input type="text" class="inp" id="specQ" placeholder="사양 코드 · 이름으로 걸러 보기" spellcheck="false">';
+            h += '<table class="spec"><thead><tr><th scope="col">사양</th><th scope="col" class="num">조건</th><th scope="col" class="num">참조</th></tr></thead><tbody>'
+                + specs.map((s) => '<tr data-q="' + esc((s.code + ' ' + (s.name || '')).toUpperCase()) + '"><td><div class="code">' + esc(s.code) + '</div>'
+                    + (s.name ? '<div class="nm">' + esc(s.name) + '</div>' : '') + '</td><td class="num">' + (s.cond || '') + '</td><td class="num">' + (s.ref || '') + '</td></tr>').join('')
+                + '</tbody></table>';
+        }
+        h += '<h3>만드는 결과 KEY <em>' + num(keys.length) + '</em></h3>';
+        h += keys.length ? '<div class="keys">' + keys.map((k) => '<span>' + esc(k.key) + (k.count > 1 ? '<b>×' + k.count + '</b>' : '') + '</span>').join('') + '</div>'
+            : '<p class="none">결과 KEY 가 없습니다.</p>';
+        return h;
+    }
+
+    async function renderDetail() {
+        const box = $('pane-detail'), n = S.byId.get(S.sel);
+        if (!n) { box.innerHTML = '<p class="none">상자를 누르면 그 PID 의 호출 관계, 로직에서 쓰는 사양, 결과 KEY 를 여기에 보여줍니다.</p>'; return; }
+        const key = n.id;
+        let d = S.detail.get(n.pid);
+        if (!d) {
+            box.innerHTML = headHtml(n) + '<div class="sk" style="margin-top:20px"></div><div class="sk" style="width:70%"></div><div class="sk" style="width:85%"></div>';
+            try {
+                d = await getJson(API.detail + '?pid=' + encodeURIComponent(n.pid));
+                S.detail.set(n.pid, d);
+            } catch (e) {
+                if (S.sel === key) box.innerHTML = headHtml(n) + '<p class="none" role="alert" style="margin-top:16px;color:var(--danger)">상세를 읽지 못했습니다. ' + esc(e.message || '') + '</p>'
+                    + '<div class="acts"><button type="button" class="btn" data-redetail="1">다시 시도</button></div>';
+                return;
+            }
+        }
+        if (S.sel !== key) return;
+        box.innerHTML = headHtml(n, d) + bodyHtml(d);
+        box.scrollTop = 0;
+    }
+
+    function showTab(name) {
+        ['detail', 'insight', 'list'].forEach((t) => {
+            $('tab-' + t).setAttribute('aria-selected', String(t === name));
+            $('pane-' + t).hidden = t !== name;
+        });
+    }
+
+    // ---------- CSV ----------
+    function exportCsv() {
+        const q = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+        const lines = [ ['방향', '단계', 'PID', '이름', '버전', '바로 앞 PID', 'CALL 라인 수', '최신 로직'].map(q).join(',') ];
+        lines.push(['대상', 0, R.pid, nameOf(R.pid), (S.info[R.pid] || {}).version, '', '', existsOf(R.pid) ? 'Y' : 'N'].map(q).join(','));
+        S.all.u.concat(S.all.d).forEach((n) => {
+            lines.push([SIDE_NAME[n.side], n.depth, n.pid, nameOf(n.pid), (S.info[n.pid] || {}).version, n.parent.pid, n.count, existsOf(n.pid) ? 'Y' : 'N'].map(q).join(','));
+        });
+        const csv = String.fromCharCode(0xFEFF) + lines.join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'PID관계_' + R.pid + '.csv';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    // ---------- 이벤트 ----------
+    $('ask').addEventListener('submit', (ev) => { ev.preventDefault(); analyze($('pid').value); });
+    $('btnRefresh').addEventListener('click', () => analyze(R.pid, { refresh: true, keepUrl: true }));
+    $('btnCsv').addEventListener('click', exportCsv);
+    $('btnTheme').addEventListener('click', () => {
+        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        store.set(KEY.theme, next);
+        drawMini();
+    });
+    $('blank').addEventListener('click', (ev) => {
+        const chip = ev.target.closest('[data-pid]');
+        if (chip) analyze(chip.dataset.pid);
+        else if (ev.target.closest('[data-retry]') && S.retry) analyze(S.retry.pid, S.retry.opts);
+    });
+
+    $('segDepth').addEventListener('click', (ev) => {
+        const b = ev.target.closest('button');
+        if (!b) return;
+        setDepth(Number(b.dataset.depth));
+        render(); fitView(true);
+    });
+    $('segDir').addEventListener('click', (ev) => {
+        const b = ev.target.closest('button');
+        if (!b) return;
+        S.dir = b.dataset.dir;
+        syncSeg('segDir', 'dir', S.dir);
+        render(); fitView(true);
+    });
+    $('togCross').addEventListener('click', () => {
+        S.cross = !S.cross;
+        $('togCross').setAttribute('aria-pressed', String(S.cross));
+        render();
+    });
+    $('find').addEventListener('input', runFind);
+    $('find').addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); nextHit(ev.shiftKey ? -1 : 1); }
+        if (ev.key === 'Escape') { $('find').value = ''; runFind(); }
+    });
+    $('zoomIn').addEventListener('click', () => zoomCenter(1.2));
+    $('zoomOut').addEventListener('click', () => zoomCenter(1 / 1.2));
+    $('zoomVal').addEventListener('click', () => zoomCenter(1 / S.view.k));
+    $('btnFit').addEventListener('click', () => fitView(true));
+    $('btnHome').addEventListener('click', () => goNode(R));
+
+    // 노드 : 누르기 / 펼치기 / 더 보기 / 올려놓기 / 더블클릭
+    let dragged = false;
+    nodesEl.addEventListener('click', (ev) => {
+        if (dragged) return;
+        const b = ev.target.closest('[data-act]');
+        if (!b) return;
+        const id = b.closest('.nd').dataset.id;
+        if (b.dataset.act === 'sel') select(id);
+        else if (b.dataset.act === 'tg') toggle(id);
+        else if (b.dataset.act === 'more') {
+            S.limit.set(b.dataset.lk, (S.limit.get(b.dataset.lk) || G.KIDS) + G.KIDS);
+            render();
+        }
+    });
+    nodesEl.addEventListener('dblclick', (ev) => {
+        const b = ev.target.closest('.nd-b');
+        if (!b) return;
+        const n = S.byId.get(b.closest('.nd').dataset.id);
+        if (n && n !== R) analyze(n.pid);
+    });
+    nodesEl.addEventListener('mouseover', (ev) => {
+        const el = ev.target.closest('.nd');
+        const id = el ? el.dataset.id : null;
+        if (id === S.hover) return;
+        S.hover = id; applyHot();
+    });
+    nodesEl.addEventListener('mouseleave', () => { if (S.hover) { S.hover = null; applyHot(); } });
+    nodesEl.addEventListener('keydown', (ev) => {
+        const el = ev.target.closest('.nd');
+        if (!el || ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(ev.key) < 0) return;
+        const n = S.byId.get(el.dataset.id);
+        if (!n) return;
+        ev.preventDefault();
+        let to = null;
+        if (ev.key === 'ArrowUp' || ev.key === 'ArrowDown') {
+            if (n === R) return;
+            const sib = n.parent === R ? S.tops[n.side] : (n.parent.ks || []);
+            const at = sib.indexOf(n) + (ev.key === 'ArrowUp' ? -1 : 1);
+            to = sib[at];
+        } else {
+            const dirSide = ev.key === 'ArrowRight' ? 'd' : 'u';
+            if (n === R) to = S.tops[dirSide][0];
+            else if (n.side !== dirSide) to = n.parent;
+            else if (n.kids.length && !S.open.has(n.id)) { toggle(n.id); return; }
+            else to = (n.ks || [])[0];
+        }
+        if (to && S.els.has(to.id)) {
+            const btn = S.els.get(to.id).querySelector('button');
+            if (btn) btn.focus();
+            centerOn(to, true);
+        }
+    });
+
+    // 무대 : 끌어서 이동, 휠로 확대
+    let pan = null;
+    stage.addEventListener('pointerdown', (ev) => {
+        if (ev.button !== 0 || !S.loaded || ev.target.closest('.float, #mini, .blank')) return;
+        pan = { x: ev.clientX, y: ev.clientY, vx: S.view.x, vy: S.view.y, id: ev.pointerId, moved: false };
+    });
+    stage.addEventListener('pointermove', (ev) => {
+        if (!pan || ev.pointerId !== pan.id) return;
+        const dx = ev.clientX - pan.x, dy = ev.clientY - pan.y;
+        if (!pan.moved) {
+            if (Math.abs(dx) + Math.abs(dy) < 5) return;
+            pan.moved = true;
+            stage.classList.add('drag');
+            try { stage.setPointerCapture(pan.id); } catch (e) { /* 캡처 없이 진행 */ }
+        }
+        S.view.x = pan.vx + dx; S.view.y = pan.vy + dy;
+        applyView(false);
+    });
+    const endPan = () => {
+        if (!pan) return;
+        if (pan.moved) { dragged = true; setTimeout(() => { dragged = false; }, 0); }
+        stage.classList.remove('drag');
+        pan = null;
+    };
+    stage.addEventListener('pointerup', endPan);
+    stage.addEventListener('pointercancel', endPan);
+    stage.addEventListener('wheel', (ev) => {
+        if (!S.loaded || ev.target.closest('.float, .blank')) return;
+        ev.preventDefault();
+        const r = stage.getBoundingClientRect();
+        zoomAt(Math.exp(-ev.deltaY * .0015), ev.clientX - r.left, ev.clientY - r.top);
+    }, { passive: false });
+
+    let miniDown = false;
+    mini.addEventListener('pointerdown', (ev) => { miniDown = true; try { mini.setPointerCapture(ev.pointerId); } catch (e) { /* 캡처 없이 진행 */ } miniGo(ev); });
+    mini.addEventListener('pointermove', (ev) => { if (miniDown) miniGo(ev); });
+    mini.addEventListener('pointerup', () => { miniDown = false; });
+    mini.addEventListener('pointercancel', () => { miniDown = false; });
+
+    // 패널
+    document.querySelector('.tabs').addEventListener('click', (ev) => {
+        const b = ev.target.closest('[data-tab]');
+        if (b) showTab(b.dataset.tab);
+    });
+    document.querySelector('aside').addEventListener('click', (ev) => {
+        const loc = ev.target.closest('[data-loc]');
+        if (loc) { locate(loc.dataset.loc, loc.dataset.side); return; }
+        const root = ev.target.closest('[data-root]');
+        if (root) { analyze(root.dataset.root); return; }
+        if (ev.target.closest('[data-redetail]')) { renderDetail(); return; }
+        const cp = ev.target.closest('[data-copy]');
+        if (cp) {
+            const text = cp.dataset.copy;
+            const done = () => toast(text + ' 을(를) 복사했습니다.');
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => toast('복사하지 못했습니다.'));
+            else toast('이 브라우저에서는 복사할 수 없습니다.');
+        }
+    });
+    $('pane-detail').addEventListener('input', (ev) => {
+        if (ev.target.id !== 'specQ') return;
+        const q = ev.target.value.trim().toUpperCase();
+        $('pane-detail').querySelectorAll('.spec tbody tr').forEach((tr) => { tr.hidden = !!q && tr.dataset.q.indexOf(q) < 0; });
+    });
+    $('listQ').addEventListener('input', renderList);
+    $('segList').addEventListener('click', (ev) => {
+        const b = ev.target.closest('button');
+        if (!b) return;
+        S.listSide = b.dataset.side;
+        syncSeg('segList', 'side', S.listSide);
+        renderList();
+    });
+    $('kpis').addEventListener('click', (ev) => {
+        const b = ev.target.closest('[data-jump]');
+        if (!b) return;
+        showTab('insight');
+        const t = $(b.dataset.jump);
+        if (t) t.scrollIntoView({ block: 'start' });
+    });
+
+    // 단축키
+    document.addEventListener('keydown', (ev) => {
+        const tag = (ev.target.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+        if (ev.key === '/') { ev.preventDefault(); $('pid').focus(); $('pid').select(); return; }
+        if (!S.loaded) return;
+        if (ev.key === 'f' || ev.key === 'F') fitView(true);
+        else if (ev.key === 'h' || ev.key === 'H') goNode(R);
+        else if (ev.key === '+' || ev.key === '=') zoomCenter(1.2);
+        else if (ev.key === '-') zoomCenter(1 / 1.2);
+        else if (ev.key === '0') zoomCenter(1 / S.view.k);
+        else if (ev.key === 'Escape' && S.sel && S.sel !== 'r') select('r', true);
+    });
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(drawMini, 120); });
+    window.addEventListener('popstate', () => analyze(new URLSearchParams(location.search).get('pid'), { keepUrl: true }));
+
+    // ---------- 시작 ----------
+    syncRecent();
+    showBlank();
+    analyze(new URLSearchParams(location.search).get('pid'), { keepUrl: true });
+})();
+</script>
+</body>
+</html>

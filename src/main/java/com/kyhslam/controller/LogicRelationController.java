@@ -29,6 +29,12 @@ public class LogicRelationController {
         return "thymeleaf/logicViewRelation";
     }
 
+    /** 화면 : /subae/pidLogicRelation?pid=EL_PB126A01 (PID 관계 분석 워크벤치. 데이터는 아래 두 API 를 같이 쓴다) */
+    @GetMapping("/subae/pidLogicRelation")
+    public String pidLogicRelationView() {
+        return "thymeleaf/pid/pidLogicRelation";
+    }
+
     /** 기준 PID 의 상위 / 하위 호출 관계 */
     @GetMapping("/subae/logicRelationData")
     @ResponseBody
