@@ -53,8 +53,18 @@ public class PIDSimulatorUpController {
      */
     @GetMapping("/pidSimulatorMindMap")
     public String pidSimulatorMindMapView() {
-        //http://localhost:8070/simulateup/pidSimulatorMindMap
-        return "thymeleaf/pid/pidSimulatorMindMap";
+        //http://localhost:8070/simulateup/pidSimulator MindMap
+        return "thymeleaf/pid/pidSimulatorMindMap_v03";
+    }
+
+    /**
+     * @apiNote PID 호출 관계 v03 : PID 하나를 가운데 놓고 호출하는 쪽 / 호출되는 쪽을 읽는 화면 (기존 관계도와 같은 데이터를 opener 에서 읽는다)
+     * @return
+     */
+    @GetMapping("/pidSimulatorMindMapV03")
+    public String pidSimulatorMindMapV03View() {
+        //http://localhost:8070/simulateup/pidSimulatorMindMapV03
+        return "thymeleaf/pid/pidSimulatorMindMap_v03";
     }
 
     /**

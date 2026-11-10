@@ -55,14 +55,19 @@
             --head-text: #f8fafc;
             --head-muted: #a5b4c8;     /* 어두운 헤더 대비 4.5:1 이상 */
 
-            --true-bg: #e7f6ec;
+            /* 결과 표 배경색 : 옅게 조정 (2026-11-10).
+               되돌리려면 → true-bg #e7f6ec / false-bg #fdecec / unread-bg #eef0f3 / cell-true #b9e8c8 / cell-false #f7c1c1
+                            chip-true-border #86d3a0 / chip-false-border #eb9a9a */
+            --true-bg: #f4faf6;
             --true-strong: #15803d;
-            --false-bg: #fdecec;
+            --false-bg: #fdf6f6;
             --false-strong: #b91c1c;
-            --unread-bg: #eef0f3;
+            --unread-bg: #f6f7f9;
             --unread-text: #6b7480;
-            --cell-true: #b9e8c8;
-            --cell-false: #f7c1c1;
+            --cell-true: #dcf3e4;
+            --cell-false: #fbdfdf;
+            --chip-true-border: #b9e3c7;
+            --chip-false-border: #f1c0c0;
 
             --mono: Consolas, "D2Coding", "Cascadia Mono", "Courier New", monospace;
             --sans: "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
@@ -353,8 +358,8 @@
         }
         .chip .k { color: #475569; }
         .chip .v { font-weight: bold; }
-        .chip.cellTrue { background: var(--cell-true); border-color: #86d3a0; }
-        .chip.cellFalse { background: var(--cell-false); border-color: #eb9a9a; }
+        .chip.cellTrue { background: var(--cell-true); border-color: var(--chip-true-border); }
+        .chip.cellFalse { background: var(--cell-false); border-color: var(--chip-false-border); }
         .chip.res .k { color: #4338ca; font-weight: bold; }
         tr.unreaded .chip { background: transparent; color: var(--unread-text); border-color: #dde1e6; }
         tr.unreaded .chip .k { color: var(--unread-text); }

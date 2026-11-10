@@ -462,6 +462,181 @@
         .info-box.ok { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
         .info-box.ok b { color: var(--ok); }
 
+        /* ════════════ [APPLE 스타일 시작] 2026-11-10 ════════════
+           위쪽 원래 스타일은 한 줄도 고치지 않고, 여기서 색 · 모서리 · 그림자 · 컨트롤 모양만 덮어쓴다.
+           원복 : [APPLE 스타일 시작] ~ [APPLE 스타일 끝] 사이만 지우면 예전 디자인으로 돌아간다.
+           원칙 : 테두리 대신 옅은 회색 면, 알약 모양 버튼, 한 가지 파랑(#0071E3), 넉넉한 여백, 숫자는 본문 글꼴 */
+        :root {
+            --bg:       #F5F5F7;
+            --surface:  #FFFFFF;
+            --surface-2:#F5F5F7;
+            --line:     #E8E8ED;
+            --line-2:   #D2D2D7;
+            --ink:      #1D1D1F;
+            --ink-2:    #424245;
+            --ink-3:    #6E6E73;
+            --brand:    #0071E3;
+            --brand-2:  #0077ED;
+            --brand-bg: #E8F2FF;
+            --alert:    #D70015;
+            --alert-bg: #FFF1F2;
+            --ok:       #1D7A3E;
+            --ok-bg:    #EAF7EE;
+            --warn:     #B25000;
+            --warn-bg:  #FFF6E8;
+            --heat-1: #E3F0FF;
+            --heat-2: #BBD9FF;
+            --heat-3: #7DB6FF;
+            --heat-4: #0071E3;
+            --heat-5: #004A99;
+            --radius:   20px;
+            --shadow:   0 0 0 1px rgba(0,0,0,.03), 0 2px 12px rgba(0,0,0,.04);
+            --shadow-lg: 0 24px 64px rgba(0,0,0,.18);
+            --fill:   rgba(118,118,128,.10);
+            --fill-2: rgba(118,118,128,.17);
+            --hair:   #F0F0F3;
+        }
+        body { letter-spacing: -.011em; }
+        :focus-visible { outline: 3px solid rgba(0,113,227,.5); }
+
+        /* 상단 바 : 반투명 유리, 테두리 없는 컨트롤 */
+        .nav { background: rgba(255,255,255,.72); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom-color: rgba(0,0,0,.08); }
+        .brand-mark { background: var(--ink); border-radius: 9px; }
+        .brand b { font-size: 13px; font-weight: 700; letter-spacing: .14em; }
+        .daybar { background: transparent; border-top-color: rgba(0,0,0,.06); }
+        .ctl { border-color: transparent; background-color: var(--fill); font-weight: 500; }
+        .ctl:hover { background-color: var(--fill-2); }
+        .ctl:focus { background-color: var(--surface); border-color: var(--brand); box-shadow: 0 0 0 4px rgba(0,113,227,.18); }
+        .btn { border-radius: 999px; border-color: transparent; background: var(--fill); color: var(--ink); font-weight: 500; padding: 0 16px; }
+        .btn:hover { background: var(--fill-2); border-color: transparent; }
+        .btn-solid { background: var(--brand); color: #fff; }
+        .btn-solid:hover { background: var(--brand-2); color: #fff; }
+        .btn-sm { padding: 0 12px; }
+        .icon-btn, .dr-x { border-radius: 50%; border-color: transparent; background: var(--fill); }
+        .icon-btn:hover, .dr-x:hover { background: var(--fill-2); border-color: transparent; }
+        .fold-btn { border-radius: 999px; border-color: transparent; background: var(--fill); font-weight: 500; }
+        .fold-btn:hover { background: var(--fill-2); border-color: transparent; }
+        .seg { padding: 2px; border: 0; border-radius: 9px; background: var(--fill); }
+        .seg button { border-radius: 7px; font-weight: 500; color: var(--ink); }
+        .seg button[aria-pressed="true"] { font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.04); }
+
+        /* 카드 : 테두리 없이 넓은 여백 */
+        main.wrap { padding-top: 28px; gap: 24px; }
+        #dash { gap: 24px; }
+        .card, .guide { border: 0; }
+        .card-hd { padding: 24px 28px 0; }
+        .card-hd h2 { font-size: 19px; font-weight: 700; letter-spacing: -.022em; }
+        .card-hd p { margin-top: 4px; font-size: 13.5px; }
+        .card-bd { padding: 14px 28px 24px; }
+        .card:not(.hero).folded > .card-hd { padding-bottom: 24px; }
+        .eyebrow { display: none; }
+        .sec-hd { font-size: 15px; color: var(--ink); }
+        .notice { border-radius: 14px; }
+        .brands { padding: 14px 28px 26px; }
+        .scale { padding: 10px 28px 18px; }
+        .tbl-tools { padding: 16px 28px; }
+        .tbl-foot { padding: 14px 28px; }
+
+        .guide summary { padding: 18px 28px; }
+        .guide summary::after { content: "펼치기"; font-weight: 500; }
+        .guide[open] summary::after { content: "접기"; }
+        .guide summary .qm { background: var(--fill); color: var(--ink-2); }
+        .guide-bd { padding: 0 28px 24px; }
+        .steps li::before { background: var(--fill); color: var(--ink); font-family: var(--sans); }
+        .terms div { padding: 10px 14px; border: 0; border-radius: 12px; }
+
+        .help { border-color: transparent; background: var(--fill); }
+        .help::after { border-radius: 10px; background: rgba(29,29,31,.94); }
+        .scope, .lv, .status, .delta, .flag, .tag { font-weight: 600; }
+        .scope.period, .delta.zero, .status.none { border: 0; background: var(--fill); }
+        .tag { border-radius: 999px; }
+        .sk { border: 0; background: linear-gradient(90deg, #ECECEF 0%, #F7F7F9 50%, #ECECEF 100%); background-size: 200% 100%; }
+        .state-box h2 { font-size: 21px; font-weight: 700; letter-spacing: -.02em; }
+
+        /* 요약 : 파란 그라데이션 대신 검정 한 면, 유지율 고리는 녹색 */
+        .hero { background: #1D1D1F; }
+        .hero::after { display: none; }
+        .hero h1 { font-weight: 700; letter-spacing: -.03em; line-height: 1.25; }
+        .hero h1 em { color: #2997FF; }
+        .hero-sub { color: rgba(255,255,255,.72); }
+        .hero-eyebrow .pill { font-family: var(--sans); font-variant-numeric: tabular-nums; }
+        .hero-flow span { padding: 4px 12px; border: 0; border-radius: 999px; }
+        .hero .fold-btn { background: rgba(255,255,255,.14); border-color: transparent; }
+        .hero .fold-btn:hover { background: rgba(255,255,255,.24); border-color: transparent; }
+        .ring { background: conic-gradient(#30D158 calc(var(--p, 0) * 1%), rgba(255,255,255,.14) 0); }
+        .ring::before { inset: 10px; background: #1D1D1F; }
+        .ring b { font-weight: 700; }
+
+        /* 브랜드 타일 : 두꺼운 윗줄 대신 색 점 */
+        .b-tile { padding: 16px 18px; border: 0; border-radius: 16px; background: var(--surface-2); transition: background .15s, box-shadow .15s; }
+        .b-tile:hover { background: #EDEDF0; box-shadow: none; }
+        .b-tile[aria-pressed="true"] { background: var(--surface); box-shadow: 0 0 0 2px var(--bc, var(--brand)), 0 6px 20px rgba(0,0,0,.08); }
+        .b-name b { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; }
+        .b-name b::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--bc, var(--brand)); }
+        .b-big b { font-size: 30px; font-weight: 700; letter-spacing: -.03em; }
+        .b-sel { border: 0; background: var(--surface); }
+        .tr-sum span { padding: 5px 12px; border: 0; border-radius: 999px; }
+        .tr-day { border-color: transparent; }
+        .tr-day.on { background: var(--brand); border-color: transparent; color: #fff; }
+        .tr-day.on i { color: #fff; }
+        .btn-trace { border-color: transparent; background: var(--brand-bg); font-weight: 600; }
+
+        /* 호기 x 일자 */
+        .mx thead th { background: var(--surface); font-weight: 600; }
+        .mx thead th.g { background: var(--surface); padding: 0 28px; }
+        .mx tbody td { border-bottom-color: var(--hair); }
+        .mx tbody td.sel { background: rgba(0,113,227,.06); }
+        .mx td.g button { padding: 6px 28px; }
+        .mx td.g button:hover { background: var(--surface-2); }
+        .mx td.sum, .mx th.sum { padding-right: 28px; }
+        .heat-c { height: 30px; border-radius: 8px; font-weight: 600; }
+        .heat-c:hover { box-shadow: inset 0 0 0 2px var(--brand); }
+        .scale i { border-radius: 4px; }
+
+        .ins { padding: 16px 18px; border: 0; border-radius: 16px; }
+        .ins-ic { width: 32px; height: 32px; border-radius: 50%; }
+
+        /* 호기 목록 */
+        .chip { border-color: transparent; background: var(--fill); font-weight: 500; color: var(--ink); }
+        .chip:hover { background: var(--fill-2); }
+        .chip[aria-pressed="true"] { background: var(--ink); color: #fff; }
+        .search input { border-color: transparent; background: var(--fill); }
+        .search input:focus { background: var(--surface); border-color: var(--brand); box-shadow: 0 0 0 4px rgba(0,113,227,.18); }
+        table.list thead th { background: var(--surface); font-size: 12px; font-weight: 600; }
+        table.list thead th:first-child button, table.list thead th:first-child span.th, table.list tbody td:first-child { padding-left: 28px; }
+        table.list thead th:last-child button, table.list thead th:last-child span.th, table.list tbody td:last-child { padding-right: 28px; }
+        table.list tbody td { padding-top: 13px; padding-bottom: 13px; border-bottom-color: var(--hair); }
+        table.list tbody tr:hover { background: var(--surface-2); }
+        .rate .bar span { background: var(--brand); }
+
+        /* 드로어 */
+        .scrim { background: rgba(0,0,0,.32); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+        .drawer { border-radius: 24px 0 0 24px; }
+        .dr-hd { padding: 24px 28px; }
+        .dr-hd h2 { font-size: 21px; font-weight: 700; letter-spacing: -.022em; }
+        .dr-x { width: 34px; height: 34px; }
+        .dr-bd { padding: 22px 28px; gap: 24px; }
+        .dr-ft { padding: 16px 28px; }
+        .dr-stat { padding: 14px 16px; border: 0; border-radius: 16px; }
+        .dr-stat b { font: 700 24px/1.2 var(--sans); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+        .dr-sec h3 { font-size: 15px; font-weight: 700; }
+        .dchip { border-color: transparent; background-color: var(--fill); border-radius: 10px; }
+        .dchip[aria-pressed="true"] { border-color: transparent; background: var(--brand-bg); box-shadow: inset 0 0 0 1.5px var(--brand); }
+        .chg-list { border-radius: 16px; }
+        .info-box { border: 0; border-radius: 16px; }
+
+        /* 숫자는 고정폭 대신 본문 글꼴 + 자릿수 맞춤 (호기 · 자재번호 · 블럭 같은 코드는 고정폭 그대로) */
+        .ring-legend b, .rate b, .dd, .cmp, .streak, .tr-sum b, .b-sel b, .dchip b, .chip .n { font-family: var(--sans); font-variant-numeric: tabular-nums; }
+        @media (max-width: 760px) {
+            .drawer { border-radius: 0; }
+            .card-hd { padding: 20px 18px 0; }
+            .card-bd { padding: 12px 18px 20px; }
+            .brands { padding: 12px 18px 20px; }
+            .tbl-tools, .guide summary { padding-left: 18px; padding-right: 18px; }
+            .guide-bd { padding: 0 18px 20px; }
+        }
+        /* ════════════ [APPLE 스타일 끝] ════════════ */
+
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
         }
