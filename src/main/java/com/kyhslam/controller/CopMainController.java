@@ -82,7 +82,8 @@ public class CopMainController {
     /** COP 배치 변경 요약 (임원 · 경진대회 발표용, 데이터는 /cop/dashboard/brand/history 와 같음) */
     @GetMapping("/cop/dashboard/preview")
     public String dashboardPreview() {
-        return "thymeleaf/cop/copDashboardPreView";
+        //return "thymeleaf/cop/copDashboardPreView";
+        return "thymeleaf/cop/copDashboardPreView_v01";
     }
 
     /**
