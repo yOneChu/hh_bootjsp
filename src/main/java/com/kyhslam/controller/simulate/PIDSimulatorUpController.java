@@ -217,6 +217,26 @@ public class PIDSimulatorUpController {
         }
     }
 
+    @Description("기준일 PID 실행 API : 호기번호 + 일자 + PID → 그 일자 이전 가장 가까운 버전(하위 PID 포함)으로 실행한 최종 OUTPUT")
+    @PostMapping("/simulatePidAsOf")
+    @ResponseBody
+    @CrossOrigin
+    public ResponseEntity<Object> simulatePidAsOf(@RequestParam String hogi,
+                                                  @RequestParam String date,
+                                                  @RequestParam String pid) {
+        //POST http://localhost:8070/simulateup/simulatePidAsOf   (hogi=206663L01, date=20261001, pid=EL_A101A)
+        log.info("simulatePidAsOf hogi:{}, date:{}, pid:{}", hogi, date, pid);
+        try {
+            return ResponseEntity.ok(pidSimulatorUpService.simulateAsOf(hogi, date, pid));
+        } catch (Exception e) {
+            log.error("simulatePidAsOf error hogi:{}, date:{}, pid:{}", hogi, date, pid, e);
+
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
     @Description("PID 버전 목록 (TEST 버전 먼저, 그 다음 최신순 / 항목 {version, latest})")
     @GetMapping("/pidVersions")
     @ResponseBody

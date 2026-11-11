@@ -1,5 +1,6 @@
 package com.kyhslam.service.simulate;
 
+import com.kyhslam.util.pidSimulatorUp.PIDAsOfSimul;
 import com.kyhslam.util.pidSimulatorUp.PIDBlockQtySimul;
 import com.kyhslam.util.pidSimulatorUp.PIDPickSimul;
 import com.kyhslam.util.pidSimulatorUp.PIDShipBlockQtySimul;
@@ -149,6 +150,26 @@ public class PIDSimulatorUpService {
         log.info("[PIDSimul PICK] {} / {} v{} PICK={} 완료 : {}ms, {}행", project, pid, result.runVersion, pick,
                 System.currentTimeMillis() - start, result.lines.size());
         return result;
+    }
+
+    /**
+     * 기준일 PID 실행 : 대상 PID 와 CALL 하위 PID 모두 기준일 이전(당일 포함) 가장 가까운 버전으로 실행한 최종 OUTPUT
+     * @param hogi 호기번호(공사번호) ex) 206663L01
+     * @param date 기준일 yyyyMMdd
+     * @param pid  실행할 PID ex) EL_A101A
+     * @return 최종 OUTPUT (KEY → 값)
+     */
+    public Map<String, Object> simulateAsOf(String hogi, String date, String pid) throws Exception {
+        long start = System.currentTimeMillis();
+        PIDAsOfSimul.Result result;
+        try (SimDb db = SimDb.open()) {
+            result = PIDAsOfSimul.run(db, hogi, date, pid, saveErrorLog);
+        }
+        log.info("[PIDSimul AsOf] {} / {} v{} 기준일={} 완료 : {}ms, OUTPUT {}건, 버전 {}", hogi, pid, result.runVersion,
+                result.asOfDate, System.currentTimeMillis() - start, result.output.size(), result.versions);
+        for (String w : result.warnings)
+            log.warn("[PIDSimul AsOf] {} / {} : {}", hogi, pid, w);
+        return result.output;
     }
 
     /**
