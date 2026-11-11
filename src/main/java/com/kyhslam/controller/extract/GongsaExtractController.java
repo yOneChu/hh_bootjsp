@@ -2,7 +2,9 @@ package com.kyhslam.controller.extract;
 
 import com.kyhslam.MasterDataCache;
 import com.kyhslam.dto.CodeInfoDTO;
+import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.service.GongSaExtractService;
+import com.kyhslam.util.ProductCommonUtil;
 import com.kyhslam.util.gongsaExtract.GongSaCsvWriter;
 import com.kyhslam.util.gongsaExtract.GongSaExtractResult;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -27,6 +30,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,6 +55,9 @@ public class GongsaExtractController {
 
     private final GongSaExtractService gongSaExtractService;
     private final MasterDataCache masterDataCache;
+
+    /** blockParts 한 번 호출에 받을 수 있는 공사번호 수 */
+    private static final int BLOCK_PARTS_MAX = 50;
 
     /**
      * 공사번호 추출 화면
@@ -137,6 +144,49 @@ public class GongsaExtractController {
             resultMap.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(resultMap);
         }
+    }
+
+    /**
+     * 호기(공사번호)별 BlockNo 자재 조회 (ProductCommonUtil.findBomPartAsBlockNo)
+     * 화면에서 추출 결과의 공사번호를 나눠서 여러 번 호출한다 (한 번에 최대 BLOCK_PARTS_MAX 건)
+     * 예) POST /extract/gongsa/blockParts  blockNo=A100&productNos=123456L01,123456L02
+     *     -> { "parts": { "123456L01": [{ "partNo": "...", "partName": "...", "ucheck": "..." }] } }  (자재가 없는 호기는 빠짐)
+     */
+    @PostMapping("/extract/gongsa/blockParts")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> blockParts(@RequestParam String blockNo,
+                                                          @RequestParam List<String> productNos) {
+        Map<String, Object> resultMap = new HashMap<String, Object>();
+        String block = blockNo.trim();
+        if (block.isEmpty()) {
+            resultMap.put("error", "BlockNo 를 입력하세요.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resultMap);
+        }
+        if (productNos.size() > BLOCK_PARTS_MAX) {
+            resultMap.put("error", "한 번에 " + BLOCK_PARTS_MAX + "건까지만 조회할 수 있습니다.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resultMap);
+        }
+
+        Map<String, List<Map<String, String>>> parts = new LinkedHashMap<>();
+        for (String productNo : productNos) {
+            String no = productNo == null ? "" : productNo.trim();
+            if (no.isEmpty() || parts.containsKey(no)) continue;
+
+            List<PartInfoDTO> list = ProductCommonUtil.findBomPartAsBlockNo(no, block);
+            if (list.isEmpty()) continue;
+
+            List<Map<String, String>> rows = new ArrayList<>(list.size());
+            for (PartInfoDTO dto : list) {
+                Map<String, String> m = new HashMap<>();
+                m.put("partNo", dto.getPartNo() == null ? "" : dto.getPartNo());
+                m.put("partName", dto.getPartName() == null ? "" : dto.getPartName());
+                m.put("ucheck", dto.getUCheck() == null ? "" : dto.getUCheck());
+                rows.add(m);
+            }
+            parts.put(no, rows);
+        }
+        resultMap.put("parts", parts);
+        return ResponseEntity.ok(resultMap);
     }
 
     /**

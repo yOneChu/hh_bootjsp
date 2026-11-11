@@ -879,6 +879,131 @@ public class ProductCommonUtil {
         return result;
     }
 
+
+
+    /**
+     * @apiNote 제품하위에 해당 blockNo의 부품 조회
+     * @param productNo
+     * @param blockNo
+     * @return
+     */
+    public static ArrayList<PartInfoDTO> findBomPartAsBlockNo(String productNo, String blockNo) {
+        System.out.println("PartCommonUtil findBomPartAsBlockNo start ==-" + productNo );
+
+        ArrayList<PartInfoDTO> result = new ArrayList<>();
+
+        //PartInfoDTO result = new PartInfoDTO();
+
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        try {
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                with ouid as
+              ( select vf$ouid AS VFOID from product$vf, product$id
+                where vf$identity = id$ouid and vf$ouid = id$wip
+                and (
+                      md$number = ?
+                    )
+              )
+             SELECT
+                         PE.ASSOOUID ASSOOUID
+                         , PE.SEQ
+                         , NP.MD$NUMBER AS PARTNO
+                         , CODN(NP.NATION) AS NATION
+                         , NP.MD$DESC AS PARTNAME
+                         , NP.VF$VERSION AS VERSION
+                         , NVL(NP.G_L_CODE, '') AS GLCODE
+                         , NVL(NP.SPEC, '') AS SPEC
+                         , NVL(NP.PART_SIZE, '') AS PART_SIZE
+                         , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCKNO
+                         , (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCK_OPT
+                         , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.UPPERBLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.UPPERBLOCKNO, 12))))) UPPERBLOCKNO
+                         , NVL(COD(NP.UOM), '') AS UOM
+                         , PE.QTY
+                         , VP.WORK_QTY
+                         , PE.CMT
+                         , VP.WORK_CMT
+                         , PE.COLOR
+                         , VP.WORK_COLOR
+                         , NVL(CODN(NP.ORIGIN_DIV), '') DIV
+                         , NVL(COD(NP.PART_MBOM), '') PART_MBOM
+                         , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = NP.MD$USER) USERNAME
+                         , NP.MD$USER USERID
+                         , COD(NP.PARTMPCHECK) PARTMPCHECK
+                         , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = PE.CUSER) CUSERNAME
+                         , PE.CUSER CUSERID
+                         , 1 LEV
+                         , 'F' ISLEAF
+                         , VP.UCHECK
+                         , VP.MCHECK
+                         , NVL(COD(NP.PART_DIVISION), '') AS PART_DIVISION
+                         , PE.CDATE
+                         , VP.MDATE
+                    FROM
+                 PARTOFEBOM PE
+                INNER JOIN NORMALPART$VF NP ON PE.PARTOUID = NP.VF$OUID
+                LEFT OUTER JOIN VARIABLEPART_NEW VP ON VP.PRODUCTOUID = PE.PRODUCTOUID AND VP.ASSOOUID = PE.ASSOOUID
+                WHERE
+                 PE.PRODUCTOUID = (SELECT VFOID FROM ouid)
+                 AND (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) = ?
+                ORDER BY TO_NUMBER(PE.SEQ)
+        """;
+
+
+            stmt = con.prepareStatement(sql.toString());
+            stmt.setString(1, productNo);
+            stmt.setString(2, blockNo);
+            rs = stmt.executeQuery();
+
+            while(rs.next()) {
+
+                // SELECT 절에 있는 컬럼만 읽는다 (없는 컬럼을 읽으면 SQLException 으로 결과가 항상 비게 됨)
+                String SEQ = rs.getString("SEQ");
+                String PARTNO = rs.getString("PARTNO"); // 자재번호
+                String PARTNAME = rs.getString("PARTNAME"); //자재명
+                String VERSION = rs.getString("VERSION"); //버전
+
+                String BLOCKNO = rs.getString("BLOCKNO");
+                String BLOCK_OPT = rs.getString("BLOCK_OPT"); //내작외작
+                String GLCODE = rs.getString("GLCODE");
+
+                String NATION = rs.getString("NATION");
+                String SPEC = rs.getString("SPEC");
+                String PART_SIZE = rs.getString("PART_SIZE");
+
+                String QTY = rs.getString("QTY");
+                String CMT = rs.getString("CMT");
+                String UCHECK = rs.getString("UCHECK");
+                String USERNAME = rs.getString("USERNAME");
+                String USERID = rs.getString("USERID");
+
+                PartInfoDTO dto = new PartInfoDTO();
+
+                dto.setPartNo(PARTNO);
+                dto.setPartName(PARTNAME);
+                dto.setSpec(SPEC);
+                dto.setBlockNo(BLOCKNO);
+                dto.setQty(QTY);
+                dto.setNation(NATION);
+                dto.setUCheck(UCHECK);
+                dto.setCmt(CMT);
+
+                result.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, stmt, rs);
+        }
+        return result;
+    }
+
+
+
     // 제품의 OID로  해당 1레벨 BOM 조회
     /**
      * 제품의 OID로  해당 1레벨 BOM 조회
