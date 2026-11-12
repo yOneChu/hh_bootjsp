@@ -96,6 +96,12 @@ public class CopMainController {
         return "thymeleaf/cop/copTraceCause";
     }
 
+    /** BOM 변동 원인 분석 보고서 (원인 추적 결과를 문서 형식으로, 파라미터는 /cop/trace/cause 와 동일) */
+    @GetMapping("/cop/trace/report")
+    public String traceReport() {
+        return "thymeleaf/cop/copTraceReport";
+    }
+
     /** BOM 이상감지 : 브랜드 · 기종 · 블럭별 일자(BATCHDATE) 수량 · 자재 변동 추적 (PLM_SIMUL_HOGIBOM 이력) */
     @GetMapping("/cop/dashboard/brand")
     public String brandDashboard() {

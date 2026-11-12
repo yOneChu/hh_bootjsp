@@ -202,6 +202,7 @@
         <span class="sp"></span>
         <a class="btn" id="lnkBack" href="/cop/dashboard">대시보드로</a>
         <a class="btn" id="lnkCalc" href="/simulateup/blockQtyCompare">일자별 수량 계산</a>
+        <a class="btn btn-solid" id="lnkReport" href="/cop/trace/report">보고서로 보기</a>
         <button type="button" class="btn" id="btnPrint">인쇄</button>
     </div>
 </header>
@@ -414,6 +415,7 @@
         setTags(e);
         const url = new URLSearchParams({ hogi: P.hogi, date: P.date, prev: P.prev || e.prevDate, block: e.block, pick: e.pick });
         try { history.replaceState(null, '', location.pathname + '?' + url); } catch (x) { /* 무시 */ }
+        $('lnkReport').href = '/cop/trace/report?' + url;
         initChain();
         $('todoCard').hidden = true;
         setVerdict('', e.block + ' · PICK ' + e.pick, '두 날짜를 기준일로 다시 계산하는 중입니다…', 'PLM DB 에서 기준일 버전 PID 를 읽어 실행합니다. 블럭 PICK 수에 따라 시간이 걸릴 수 있습니다.');

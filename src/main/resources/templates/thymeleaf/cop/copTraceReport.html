@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>BOM 변동 원인 분석 보고서 · SENTINEL</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        SENTINEL · BOM 변동 원인 분석 보고서 (CopMainController : GET /cop/trace/report)
+
+        주소 : /cop/trace/report?hogi=호기&date=yyyyMMdd&prev=yyyyMMdd&block=블럭PID&pick=PICK
+               copTraceCause(원인 추적) 와 같은 파라미터 · 같은 추적 순서를 쓰고, 결과를 문서(보고서) 형식으로 보여준다.
+               원인 추적 화면의 [보고서로 보기] 버튼으로 들어온다.
+
+        분석 순서 (copTraceCause 와 동일)
+          1. 저장 이력 (/cop/dashboard/brand/history)            2. 기준일 재실행 (/simulateup/calcBlockQty?asOfDate=)
+          3. PID 버전 비교 (asOfVersions)                         4. 로직 라인 비교 (/simulateup/simulatePid , simulatePidPick)
+          5. 결과값 비교
+        보고서 구성
+          핵심 요약 → 1. 변동 내용 → 2. 분석 근거(2.1 ~ 2.4) → 3. 원인 판정 · 신뢰도 → 4. 권고 조치 → 5. 분석의 한계 → 부록
+        참고 : 문장은 추적 결과를 규칙으로 조합해 자동 작성한다 (LLM 호출 없음). 신뢰도는 재현 여부 · 라인 일치 여부로 매긴 기준값이다.
+    -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+    <style>
+        :root {
+            --bg: #EEF0F4; --paper: #FFFFFF; --surface-2: #F8F9FB; --line: #E4E7EC; --line-2: #D0D5DD;
+            --ink: #0B1220; --ink-2: #344054; --ink-3: #5D6B82;
+            --brand: #1E40AF; --brand-2: #2F5BEA; --brand-bg: #EEF2FF; --brand-line: #C7D2FE;
+            --alert: #B42318; --alert-bg: #FEF3F2; --alert-line: #FBD5D1;
+            --ok: #067647; --ok-bg: #ECFDF3; --warn: #B54708; --warn-bg: #FFFAEB;
+            --a: #B45309; --a-bg: #FFFBEB; --a-line: #FCD9A0; --b: #1D4ED8; --b-bg: #EFF6FF; --b-line: #BFD3FB;
+            --mono: "D2Coding", Consolas, "SF Mono", Menlo, monospace;
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        html { background: var(--bg); }
+        body { margin: 0; font-family: var(--sans); font-size: 15.5px; line-height: 1.7; color: var(--ink); background: var(--bg); word-break: keep-all; overflow-wrap: anywhere; -webkit-font-smoothing: antialiased; }
+        h1, h2, h3, p, ol, ul, dl, dd, figure { margin: 0; }
+        ol, ul { padding: 0; list-style: none; }
+        a { color: inherit; text-decoration: none; }
+        button, select, input { font: inherit; color: inherit; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 3px solid var(--brand-2); outline-offset: 2px; border-radius: 6px; }
+        .mono { font-family: var(--mono); }
+
+        /* 도구 막대 */
+        .bar { position: sticky; top: 0; z-index: 30; background: rgba(255,255,255,.96); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+        .bar-in { max-width: 1040px; margin: 0 auto; min-height: 58px; padding: 8px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+        .bar b { font-weight: 800; letter-spacing: .2em; font-size: 14px; }
+        .bar .crumb { color: var(--ink-3); font-size: 14px; }
+        .bar .crumb strong { color: var(--ink); }
+        .bar .sp { flex: 1; }
+        .bar label { font-size: 13px; font-weight: 600; color: var(--ink-3); }
+        .bar select { min-height: 36px; max-width: 280px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--paper); font-size: 14px; cursor: pointer; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 13px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--paper); cursor: pointer; font-size: 14px; font-weight: 600; color: var(--ink-2); white-space: nowrap; transition: border-color .15s, color .15s, background .15s; }
+        .btn:hover { border-color: var(--ink-3); color: var(--ink); }
+        .btn:disabled { opacity: .45; cursor: default; }
+        .btn-solid { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .btn-solid:hover { background: var(--brand-2); border-color: var(--brand-2); color: #fff; }
+        .btn-sm { min-height: 30px; padding: 0 10px; font-size: 13px; }
+        .btn svg { width: 16px; height: 16px; flex: none; }
+
+        /* 용지 */
+        .sheet { max-width: 920px; margin: 28px auto 72px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 1px 3px rgba(16,24,40,.06), 0 12px 32px -12px rgba(16,24,40,.14); padding: 28px 20px 36px; }
+        @media (min-width: 760px) { .sheet { padding: 56px 64px 56px; } }
+        @media (max-width: 960px) { .sheet { margin: 16px 12px 56px; } }
+
+        /* 머리 */
+        .doc-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 16px; padding-bottom: 14px; border-bottom: 2px solid var(--ink); font-size: 12.5px; color: var(--ink-3); }
+        .doc-top .org { font-weight: 800; letter-spacing: .2em; color: var(--ink); font-size: 13px; }
+        .gen { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--brand-bg); border: 1px solid var(--brand-line); color: var(--brand); font-weight: 700; font-size: 12.5px; }
+        .gen svg { width: 14px; height: 14px; }
+        .doc-kind { margin-top: 30px; font-size: 13px; font-weight: 700; letter-spacing: .08em; color: var(--brand); }
+        .doc-title { margin-top: 8px; font-size: clamp(23px, 3vw, 31px); line-height: 1.35; font-weight: 800; letter-spacing: -.025em; text-wrap: balance; }
+        .doc-title em { font-style: normal; font-family: var(--mono); font-size: .9em; background: var(--alert-bg); color: var(--alert); padding: 0 6px; border-radius: 6px; }
+        .meta { margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--line); gap: 1px; }
+        .meta div { background: var(--paper); padding: 9px 14px; }
+        .meta dt { font-size: 12px; font-weight: 600; color: var(--ink-3); }
+        .meta dd { font: 700 14px/1.5 var(--mono); }
+
+        /* 핵심 요약 */
+        .brief { margin-top: 26px; border: 1px solid var(--brand-line); border-radius: 12px; background: linear-gradient(180deg, #F5F7FF, #FFFFFF 70%); padding: 20px 22px 22px; }
+        .brief-hd { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+        .brief-hd h2 { font-size: 16px; font-weight: 800; color: var(--brand); display: inline-flex; align-items: center; gap: 7px; }
+        .brief-hd h2 svg { width: 18px; height: 18px; }
+        .brief-hd .sp { flex: 1; }
+        .badge { display: inline-flex; align-items: center; padding: 3px 11px; border-radius: 999px; font-size: 13px; font-weight: 750; border: 1px solid var(--line-2); background: var(--paper); color: var(--ink-2); white-space: nowrap; }
+        .badge.logic { background: var(--alert-bg); border-color: var(--alert-line); color: var(--alert); }
+        .badge.spec { background: var(--warn-bg); border-color: #FEDF89; color: var(--warn); }
+        .badge.none { background: #F2F4F7; color: var(--ink-3); }
+        .conf { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
+        .conf i { display: inline-flex; gap: 3px; }
+        .conf i span { width: 18px; height: 7px; border-radius: 2px; background: var(--line-2); }
+        .conf i span.on { background: var(--brand); }
+        .brief dl { margin-top: 14px; display: grid; gap: 10px; }
+        .brief dl div { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 12px; }
+        .brief dt { font-size: 13px; font-weight: 750; color: var(--ink-3); padding-top: 2px; }
+        .brief dd { color: var(--ink); }
+        .brief dd b, .prose b { font-family: var(--mono); font-weight: 700; font-size: .94em; }
+
+        /* 본문 */
+        .sec { margin-top: 40px; }
+        .sec > h2 { display: flex; align-items: baseline; gap: 10px; font-size: 20px; font-weight: 800; letter-spacing: -.02em; padding-bottom: 8px; border-bottom: 1px solid var(--line-2); }
+        .sec > h2 .n { font: 800 15px var(--mono); color: var(--brand); }
+        .sub { margin-top: 26px; }
+        .sub > h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; font-size: 16.5px; font-weight: 750; }
+        .sub > h3 .n { font: 700 13.5px var(--mono); color: var(--ink-3); }
+        .sub > h3 .res { margin-left: auto; }
+        .prose { margin-top: 12px; color: var(--ink-2); max-width: 72ch; }
+        .prose + .prose { margin-top: 8px; }
+        .prose strong { color: var(--ink); }
+        .res { display: inline-flex; padding: 1px 9px; border-radius: 6px; font-size: 12.5px; font-weight: 750; white-space: nowrap; background: #F2F4F7; color: var(--ink-3); }
+        .res.bad { background: var(--alert-bg); color: var(--alert); } .res.good { background: var(--ok-bg); color: var(--ok); } .res.mid { background: var(--warn-bg); color: var(--warn); }
+
+        .pair { margin-top: 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: stretch; }
+        .pair > div { padding: 13px 16px; border-radius: 10px; border: 1px solid var(--line); }
+        .pair .A { background: var(--a-bg); border-color: var(--a-line); }
+        .pair .B { background: var(--b-bg); border-color: var(--b-line); }
+        .pair small { display: block; font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
+        .pair b { display: block; margin-top: 2px; font: 800 19px/1.4 var(--mono); }
+        .pair span.q2 { font: 13px var(--mono); color: var(--ink-2); }
+        .pair .arrow { align-self: center; color: var(--ink-3); }
+        .pair .arrow svg { width: 22px; height: 22px; display: block; }
+        @media (max-width: 560px) { .pair { grid-template-columns: minmax(0, 1fr); } .pair .arrow { justify-self: center; transform: rotate(90deg); } }
+
+        figure.tb { margin-top: 14px; }
+        figure.tb figcaption { font-size: 12.5px; font-weight: 700; color: var(--ink-3); margin-bottom: 6px; }
+        .tbl-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 10px; max-height: 520px; }
+        table.t { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; line-height: 1.55; }
+        table.t th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); text-align: left; font-size: 12px; font-weight: 700; color: var(--ink-3); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+        table.t td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+        table.t tr:last-child td { border-bottom: 0; }
+        table.t tr.hot td { background: #FFF6F5; }
+        table.t td.m { font-family: var(--mono); }
+        table.t td.nw { white-space: nowrap; }
+        table.t .A { color: var(--a); font-weight: 700; }
+        table.t .B { color: var(--b); font-weight: 700; }
+        table.t i { font-style: normal; color: var(--ink-3); }
+        .st { display: inline-flex; padding: 1px 8px; border-radius: 6px; font: 700 12px var(--mono); background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-3); }
+        .st.T { background: var(--ok-bg); border-color: #ABEFC6; color: var(--ok); }
+        .kind { display: inline-flex; padding: 1px 8px; border-radius: 6px; font-size: 12px; font-weight: 750; white-space: nowrap; }
+        .kind.add { background: #E5F6EF; color: #067A52; } .kind.del { background: var(--alert-bg); color: var(--alert); }
+        .kind.mod { background: var(--warn-bg); color: var(--warn); } .kind.state { background: var(--brand-bg); color: var(--brand); }
+        .kind.qty { background: #E8F1FC; color: #1F5FAF; } .kind.swap { background: #FDEEE7; color: #C2410C; } .kind.rev { background: var(--alert-bg); color: var(--alert); }
+        .cap { margin-top: 6px; font-size: 12.5px; color: var(--ink-3); }
+        .cond { font-family: var(--mono); font-size: 12.5px; }
+        .links { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+
+        .stats { margin-top: 14px; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+        .stats div { padding: 9px 12px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--line); }
+        .stats dt { font-size: 12px; color: var(--ink-3); font-weight: 600; }
+        .stats dd { font: 700 15px var(--mono); }
+        .stats dd.hot { color: var(--alert); }
+
+        .cmt { margin-top: 14px; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+        .cmt-hd { padding: 6px 12px; font-size: 12.5px; font-weight: 700; color: var(--ink-3); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+        .cmt ol { counter-reset: ln; max-height: 260px; overflow: auto; padding: 6px 0; }
+        .cmt li { counter-increment: ln; display: grid; grid-template-columns: 34px minmax(0, 1fr); padding: 1px 12px 1px 0; font: 13px/1.6 var(--mono); color: var(--ink-2); }
+        .cmt li::before { content: counter(ln); text-align: right; padding-right: 10px; color: var(--ink-3); opacity: .6; user-select: none; }
+        .cmt li span { white-space: pre-wrap; }
+        .cmt.in { margin-top: 0; min-width: 240px; }
+        .cmt.in li { font-weight: 400; color: inherit; }
+
+        .callout { margin-top: 14px; padding: 14px 18px; border-radius: 10px; border-left: 4px solid var(--ink-3); background: var(--surface-2); }
+        .callout.logic { border-left-color: var(--alert); background: var(--alert-bg); }
+        .callout.spec { border-left-color: var(--warn); background: var(--warn-bg); }
+        .callout p { font-size: 16.5px; font-weight: 700; line-height: 1.6; }
+        .callout p em { font-style: normal; font-family: var(--mono); }
+        .basis { margin-top: 14px; display: grid; gap: 8px; }
+        .basis li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; color: var(--ink-2); }
+        .basis svg { width: 20px; height: 20px; margin-top: 3px; color: var(--ok); }
+        .basis li.weak svg { color: var(--warn); }
+        .acts { margin-top: 14px; counter-reset: act; display: grid; gap: 8px; }
+        .acts li { counter-increment: act; }
+        .acts label { display: grid; grid-template-columns: auto 26px minmax(0, 1fr); gap: 10px; align-items: start; padding: 11px 14px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+        .acts label:hover { border-color: var(--line-2); background: var(--surface-2); }
+        .acts label::after { content: counter(act); grid-column: 2; grid-row: 1; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--brand-bg); color: var(--brand); font: 800 12.5px var(--mono); margin-top: 1px; }
+        .acts input { grid-column: 1; grid-row: 1; width: 17px; height: 17px; margin: 5px 0 0; accent-color: var(--brand); }
+        .acts span { grid-column: 3; grid-row: 1; }
+        .acts input:checked ~ span { color: var(--ink-3); text-decoration: line-through; }
+        .limits { margin-top: 12px; display: grid; gap: 6px; color: var(--ink-2); font-size: 14.5px; }
+        .limits li { padding-left: 16px; position: relative; }
+        .limits li::before { content: ""; position: absolute; left: 2px; top: .72em; width: 5px; height: 5px; border-radius: 50%; background: var(--ink-3); }
+
+        .doc-foot { margin-top: 44px; padding-top: 14px; border-top: 1px solid var(--line-2); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; font-size: 12.5px; color: var(--ink-3); }
+
+        /* 분석 진행 */
+        .prog-box { margin-top: 26px; border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; }
+        .prog-box h2 { font-size: 16px; font-weight: 750; }
+        .prog-box > p { font-size: 13.5px; color: var(--ink-3); }
+        .prog { margin-top: 14px; display: grid; gap: 10px; }
+        .prog li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: center; color: var(--ink-3); font-size: 14.5px; }
+        .prog li::before { content: ""; width: 14px; height: 14px; margin: 0 4px; border-radius: 50%; border: 2px solid var(--line-2); }
+        .prog li.on { color: var(--ink); font-weight: 700; }
+        .prog li.on::before { border-color: var(--brand-2); border-top-color: transparent; animation: spin .8s linear infinite; }
+        .prog li.ok { color: var(--ink-2); }
+        .prog li.ok::before { border-color: var(--ok); background: var(--ok); box-shadow: inset 0 0 0 3px #fff; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .state { margin-top: 26px; padding: 48px 24px; text-align: center; border: 1px dashed var(--line-2); border-radius: 12px; }
+        .state h2 { font-size: 18px; font-weight: 750; }
+        .state p { margin-top: 8px; color: var(--ink-3); }
+        .state.err h2 { color: var(--alert); }
+        .state .btn { margin-top: 14px; }
+
+        .rise { animation: rise .45s cubic-bezier(.2,.7,.2,1) both; }
+        @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+        @media (prefers-reduced-motion: reduce) { .rise { animation: none; } .prog li.on::before { animation: none; border-top-color: var(--brand-2); } }
+
+        .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50; padding: 10px 18px; border-radius: 10px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(16,24,40,.25); }
+
+        @page { size: A4; margin: 15mm 14mm; }
+        @media print {
+            html, body { background: #fff; font-size: 11pt; }
+            .bar, .links, .toast, .no-print { display: none !important; }
+            .sheet { max-width: none; margin: 0; padding: 0; border: 0; box-shadow: none; border-radius: 0; }
+            .rise { animation: none; }
+            .tbl-wrap, .cmt ol { max-height: none; overflow: visible; }
+            table.t th { position: static; }
+            .brief, .pair, .callout, .acts li, .basis li, table.t tr, .stats, .meta { break-inside: avoid; }
+            .sec > h2, .sub > h3 { break-after: avoid; }
+            .brief { background: #F5F7FF; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="bar">
+    <div class="bar-in">
+        <b>SENTINEL</b>
+        <span class="crumb">원인 추적 › <strong>분석 보고서</strong></span>
+        <span class="sp"></span>
+        <label for="selPick">대상 PICK</label>
+        <select id="selPick" disabled><option>불러오는 중</option></select>
+        <a class="btn" id="lnkTrace" href="/cop/trace/cause">추적 화면</a>
+        <button type="button" class="btn" id="btnCopy" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>요약 복사
+        </button>
+        <button type="button" class="btn btn-solid" id="btnPrint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V4h10v5"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 14h10v6H7z"/></svg>인쇄 · PDF
+        </button>
+    </div>
+</header>
+
+<main class="sheet" id="sheet">
+    <div class="doc-top">
+        <span class="org">SENTINEL</span>
+        <span class="gen">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 5.6a3 3 0 0 0 1.9 1.9L21.4 11.4l-5.6 1.9a3 3 0 0 0-1.9 1.9L12 20.8l-1.9-5.6a3 3 0 0 0-1.9-1.9L2.6 11.4l5.6-1.9a3 3 0 0 0 1.9-1.9z"/></svg>
+            자동 분석 보고서
+        </span>
+        <span id="docNo">-</span>
+    </div>
+    <p class="doc-kind">BOM 변동 원인 분석 보고서</p>
+    <h1 class="doc-title" id="docTitle" aria-live="polite">저장 이력을 불러오는 중입니다</h1>
+    <dl class="meta" id="docMeta"></dl>
+    <div id="body"></div>
+    <footer class="doc-foot">
+        <span>이 보고서는 SENTINEL 이 저장 이력과 PID 재실행 결과를 규칙으로 분석해 자동 작성했습니다. 최종 판단은 담당자 확인이 필요합니다.</span>
+        <span id="docTime">-</span>
+    </footer>
+</main>
+
+<script th:inline="none">
+(function () {
+    'use strict';
+
+    const API = {
+        hist: '/cop/dashboard/brand/history',
+        qty:  '/simulateup/calcBlockQty',
+        sim:  '/simulateup/simulatePid',
+        pick: '/simulateup/simulatePidPick',
+        page: '/simulateup/pidSimulatorUp',
+        trace: '/cop/trace/cause'
+    };
+    const LOOKBACK = 45;          // prev 가 없을 때 앞 저장 일자를 찾는 범위 (일)
+    const MAX_LINES = 15;         // 보고서 라인 비교 표 최대 행 (전체는 추적 화면)
+    const MAX_RESULTS = 12;       // 결과값 비교 표 최대 행
+    const MAX_OTHERS = 30;        // 부록 : 다른 변동 PICK 최대 행
+    const LCS_LIMIT = 4e6;
+    const TYPES = { swap: '자재 교체', add: '신규 수배', del: '수배 제외', qty: '수량 변경' };
+    const RANK = { swap: 0, add: 1, del: 2, qty: 3 };
+    const KIND = { add: '추가된 라인', del: '삭제된 라인', mod: '수정된 라인', state: '판정 변경' };
+    const KIND_V = { add: '추가되었습니다', del: '삭제되었습니다', mod: '수정되었습니다', state: '다르게 판정되었습니다' };
+    const VERDICT = {
+        logic:    { cls: 'logic', label: 'PID 로직 변경' },
+        subLogic: { cls: 'logic', label: '하위 PID 로직 변경 (추정)' },
+        simFail:  { cls: 'logic', label: 'PID 버전 변경 (라인 미확인)' },
+        spec:     { cls: 'spec',  label: '영업사양 · 지정값 차이 (추정)' },
+        cond:     { cls: 'spec',  label: '실행 조건 차이 (추정)' },
+        calcFail: { cls: 'none',  label: '판정 불가' }
+    };
+    const CONF = { 3: '높음', 2: '보통', 1: '낮음', 0: '판정 불가' };
+    const PROG = ['저장 이력에서 변동 확인', '두 기준일로 블럭 수량 계산 재실행', 'PID 버전 비교', '로직 라인 비교', '결과값 비교 · 보고서 작성'];
+
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const pad = n => String(n).padStart(2, '0');
+    const ymd = d => d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+    const toDate = s => new Date(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8));
+    const iso = s => s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6, 8);
+    const addDays = (s, n) => { const d = toDate(s); d.setDate(d.getDate() + n); return ymd(d); };
+    const wk = s => '일월화수목금토'.charAt(toDate(s).getDay());
+    const day = s => s ? s.slice(0, 4) + '.' + s.slice(4, 6) + '.' + s.slice(6, 8) + '(' + wk(s) + ')' : '-';
+    const sd = s => s ? +s.slice(4, 6) + '/' + +s.slice(6, 8) : '-';
+    const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isFinite(n) ? n : null; };
+    const str = v => v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v).trim();
+    const vtxt = v => v == null || v === '' ? '(없음)' : v;
+    const keyOf = (m, k) => Object.keys(m || {}).find(x => x.toUpperCase() === k);
+    const qtyOf = run => { if (!run) return null; const k = keyOf(run.resultMap, 'QTY'); return k === undefined ? null : str(run.resultMap[k]); };
+    const partOf = run => run ? str(run.pickValue) : '';
+    const same = (x, y) => str(x) === str(y) || (num(x) != null && num(x) === num(y));
+    /* 조사 : 받침 유무 (한글 · 숫자 · 영문 끝소리 어림) */
+    const jong = w => { const c = String(w).trim().slice(-1), k = c.charCodeAt(0);
+        if (k >= 0xAC00 && k <= 0xD7A3) return (k - 0xAC00) % 28 > 0;
+        return /[013678lmnrLMNR]/.test(c); };
+    const pp = (w, a, b) => jong(w) ? a : b;
+    const b = v => '<b>' + esc(v) + '</b>';
+    const ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16 9.5"/></svg>';
+    const ICON_Q = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16.5v.01"/></svg>';
+    const ICON_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>';
+
+    /* ════════════ 주소 ════════════ */
+    const qs = new URLSearchParams(location.search);
+    const okD = v => { const s = (v || '').replace(/-/g, ''); return /^\d{8}$/.test(s) ? s : ''; };
+    const P = { hogi: (qs.get('hogi') || '').trim(), date: okD(qs.get('date')), prev: okD(qs.get('prev')), block: (qs.get('block') || '').trim(), pick: (qs.get('pick') || '').trim() };
+
+    let H = null, SEL = null, LAST = null, runId = 0;
+    const cache = new Map();
+
+    async function getJson(url) {
+        const r = await fetch(url, { headers: { Accept: 'application/json' } });
+        const j = await r.json().catch(() => null);
+        if (!r.ok || !j || j.error || j.success === false) throw new Error((j && (j.error || j.message)) || 'HTTP ' + r.status);
+        return j;
+    }
+
+    /* ════════════ 저장 이력 (copTraceCause 와 동일) ════════════ */
+    async function loadHistory() {
+        const from = P.prev && P.prev < P.date ? P.prev : addDays(P.date, -LOOKBACK);
+        const res = await getJson(API.hist + '?from=' + from + '&to=' + P.date);
+        const ci = {}; res.columns.forEach((c, i) => { ci[c] = i; });
+        const blocks = new Map();
+        let spec = null;
+        res.rows.forEach(x => {
+            if (x[ci.HOGI] !== P.hogi) return;
+            const bk = x[ci.BLOCKNO], d = x[ci.BATCHDATE], pick = x[ci.PICK];
+            if (!bk || !d || !pick) return;
+            if (!blocks.has(bk)) blocks.set(bk, new Map());
+            const snaps = blocks.get(bk);
+            if (!snaps.has(d)) snaps.set(d, new Map());
+            if (!snaps.get(d).has(pick)) snaps.get(d).set(pick, { partNo: x[ci.PARTNO], qty: x[ci.QTY], cmt: x[ci.CMT] });
+            if (d === P.date || !spec) spec = { brand: x[ci.BRAND], atyp: x[ci.ATYP], speed: x[ci.SPEED], acapa: x[ci.ACAPA] };
+        });
+        const events = [];
+        blocks.forEach((snaps, bk) => {
+            const cur = snaps.get(P.date);
+            if (!cur) return;
+            const ds = Array.from(snaps.keys()).filter(d => d < P.date).sort();
+            const prevDate = P.prev && snaps.has(P.prev) ? P.prev : ds.at(-1);
+            if (!prevDate) return;
+            const prev = snaps.get(prevDate);
+            const seen = new Map();
+            ds.filter(d => d < prevDate).forEach(d => snaps.get(d).forEach((p, k) => { if (p.partNo) { if (!seen.has(k)) seen.set(k, new Set()); seen.get(k).add(p.partNo); } }));
+            new Set([...prev.keys(), ...cur.keys()]).forEach(pick => {
+                const a = prev.get(pick), c = cur.get(pick);
+                const pNo = a ? a.partNo : '', cNo = c ? c.partNo : '';
+                if (!pNo && !cNo) return;
+                const pQ = pNo ? a.qty : '', cQ = cNo ? c.qty : '', pn = num(pQ), cn = num(cQ);
+                let type;
+                if (!pNo) type = 'add'; else if (!cNo) type = 'del'; else if (pNo !== cNo) type = 'swap';
+                else if (pn != null && cn != null ? pn !== cn : String(pQ) !== String(cQ)) type = 'qty'; else return;
+                events.push({ block: bk, pick, type, prevDate, date: P.date, prevNo: pNo, nextNo: cNo, prevQty: pQ, nextQty: cQ,
+                              revert: !!(cNo && cNo !== pNo && seen.has(pick) && seen.get(pick).has(cNo)),
+                              cmt: (c && c.cmt) || (a && a.cmt) || '' });
+            });
+        });
+        events.sort((x, y) => x.block.localeCompare(y.block, 'ko', { numeric: true }) || RANK[x.type] - RANK[y.type] || x.pick.localeCompare(y.pick, 'ko', { numeric: true }));
+        return { blocks, events, spec };
+    }
+    const typeName = e => e.revert ? '예전 자재 복귀' : TYPES[e.type];
+    const change = e => e.type === 'qty' ? '수량 ' + vtxt(e.prevQty) + ' → ' + vtxt(e.nextQty) : vtxt(e.prevNo) + ' → ' + vtxt(e.nextNo);
+
+    /* ════════════ 분석 (화면과 분리 : 결과 객체 R 만 만든다) ════════════ */
+    function calcPair(e) {
+        const k = e.block + '|' + e.prevDate + '|' + e.date;
+        if (!cache.has(k)) {
+            const one = d => getJson(API.qty + '?' + new URLSearchParams({ project: P.hogi, pid: e.block, asOfDate: iso(d) }));
+            const p = Promise.all([one(e.prevDate), one(e.date)]);
+            p.catch(() => cache.delete(k));
+            cache.set(k, p);
+        }
+        return cache.get(k);
+    }
+
+    async function analyze(e, onStep) {
+        const R = { e, isPart: e.type !== 'qty', pids: [], verDiff: [], rows: [], rd: [], keys: [] };
+        onStep(1);
+        let A, B;
+        try { const pr = await calcPair(e); A = pr[0]; B = pr[1]; }
+        catch (x) { R.cause = 'calcFail'; R.error = x.message; return R; }
+
+        /* 재현 */
+        const ra = A.runs.find(r => r.pick === e.pick), rb = B.runs.find(r => r.pick === e.pick);
+        R.ra = ra; R.rb = rb;
+        R.reA = { part: partOf(ra), qty: partOf(ra) ? qtyOf(ra) : '' };
+        R.reB = { part: partOf(rb), qty: partOf(rb) ? qtyOf(rb) : '' };
+        R.okA = same(R.reA.part, e.prevNo) && same(R.reA.qty, e.prevQty);
+        R.okB = same(R.reB.part, e.nextNo) && same(R.reB.qty, e.nextQty);
+        R.reDiff = !same(R.reA.part, R.reB.part) || !same(R.reA.qty, R.reB.qty);
+
+        /* PID 버전 */
+        onStep(2);
+        const vA = R.vA = A.asOfVersions || {}, vB = R.vB = B.asOfVersions || {};
+        const ver = R.ver = (m, p) => m[p] ? m[p].version : null;
+        R.pids = Array.from(new Set([...Object.keys(vA), ...Object.keys(vB)]));
+        R.elp = A.elpPid || B.elpPid || ('EL_P' + e.block);
+        R.blockPid = A.blockPid || e.block;
+        const target = R.target = R.isPart ? R.elp : R.blockPid;
+        R.verDiff = R.pids.filter(p => ver(vA, p) !== ver(vB, p));
+        R.verDiff.sort((x, y) => (y === target) - (x === target) || (y === R.elp) - (x === R.elp) || x.localeCompare(y));
+        R.tv = { a: ver(vA, target), b: ver(vB, target) };
+        if (!R.verDiff.length) { R.cause = R.reDiff ? 'cond' : 'spec'; return R; }
+
+        /* 로직 라인 */
+        onStep(3);
+        const subs = m => Object.keys(m).filter(p => p !== target && m[p] && m[p].version != null).map(p => p + ':' + m[p].version).join(',');
+        R.sA = subs(vA); R.sB = subs(vB);
+        const runSim = (v, s) => {
+            const q = new URLSearchParams({ project: P.hogi, pid: target });
+            if (v != null) q.set('version', v);
+            if (s) q.set('subVersions', s);
+            if (!R.isPart) q.set('pick', e.pick);
+            return getJson((R.isPart ? API.sim : API.pick) + '?' + q);
+        };
+        let LA, LB;
+        try {
+            if (R.tv.a == null || R.tv.b == null) throw new Error(target + ' 이(가) ' + (R.tv.a == null ? sd(e.prevDate) : sd(e.date)) + ' 에는 등록된 버전이 없습니다.');
+            const pr = await Promise.all([runSim(R.tv.a, R.sA), runSim(R.tv.b, R.sB)]);
+            LA = pr[0]; LB = pr[1];
+        } catch (x) { R.cause = 'simFail'; R.error = x.message; return R; }
+
+        onStep(4);
+        const D = diffLines(LA.lines || [], LB.lines || []);
+        R.javaPid = !!(LA.javaMethod || LB.javaMethod);
+        R.lineCnt = { a: (LA.lines || []).length, b: (LB.lines || []).length };
+        R.approx = D.approx;
+        const parts = [e.prevNo, e.nextNo, e.pick].filter(Boolean);
+        D.rows.forEach(d => { d.hit = parts.some(p => (d.outA + d.outB + d.resA + d.resB).includes(p)) || d.sA === 'TRUE' || d.sB === 'TRUE'; });
+        D.rows.sort((x, y) => (y.hit - x.hit) || (x.order - y.order));
+        R.rows = D.rows;
+        R.top = D.rows.find(d => d.hit) || D.rows[0] || null;
+
+        /* 결과값 */
+        const mA = R.mA = LA.resultMap || {}, mB = R.mB = LB.resultMap || {};
+        R.keys = Array.from(new Set([...Object.keys(mA), ...Object.keys(mB)])).filter(k => k.indexOf('OUTPUT') !== 0);
+        R.hasP = k => parts.some(p => str(mA[k]).includes(p) || str(mB[k]).includes(p)) || k.toUpperCase() === e.pick.toUpperCase() || k.toUpperCase() === 'QTY';
+        R.rd = R.keys.filter(k => str(mA[k]) !== str(mB[k])).sort((x, y) => R.hasP(y) - R.hasP(x));
+
+        R.cause = (D.rows.length || R.javaPid) ? 'logic' : 'subLogic';
+        return R;
+    }
+
+    /* 라인 맞춤 (LCS) : copTraceCause 와 동일 */
+    function lineInfo(l) {
+        const cs = (l.conditions || []).filter(c => str(c.spec));
+        const cond = cs.map(c => str(c.spec) + ' ' + (str(c.compare) || '=') + ' ' + str(c.con) + (c.specValue != null ? ' (' + str(c.specValue) + ')' : '')).join('  ·  ');
+        const sig = str(l.addr) + '|' + cs.map(c => str(c.spec) + (str(c.compare) || '=') + str(c.con)).join('&') + '|' + str(l.output) + '|' + str(l.gotoAddr);
+        const out = [str(l.output), l.gotoAddr ? '→ ' + str(l.gotoAddr) : ''].filter(Boolean).join('  ');
+        return { no: l.no, addr: str(l.addr), state: l.state, cond, out, res: l.resultMap ? JSON.stringify(l.resultMap) : '', sig };
+    }
+    function diffLines(la, lb) {
+        const A = la.map(lineInfo), B = lb.map(lineInfo), n = A.length, m = B.length;
+        const pairs = [];
+        let approx = false;
+        if (n * m <= LCS_LIMIT) {
+            const L = new Uint32Array((n + 1) * (m + 1)), W = m + 1;
+            for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+                L[i * W + j] = A[i].sig === B[j].sig ? L[(i + 1) * W + j + 1] + 1 : Math.max(L[(i + 1) * W + j], L[i * W + j + 1]);
+            let i = 0, j = 0;
+            while (i < n && j < m) {
+                if (A[i].sig === B[j].sig) pairs.push({ i: i++, j: j++ });
+                else if (L[(i + 1) * W + j] >= L[i * W + j + 1]) pairs.push({ i: i++, j: -1 });
+                else pairs.push({ i: -1, j: j++ });
+            }
+            while (i < n) pairs.push({ i: i++, j: -1 });
+            while (j < m) pairs.push({ i: -1, j: j++ });
+        } else {
+            approx = true;
+            for (let k = 0; k < Math.max(n, m); k++) pairs.push({ i: k < n ? k : -1, j: k < m ? k : -1 });
+        }
+        const mk = (kind, x, y, o) => ({ kind, order: o, noA: x ? x.no : null, noB: y ? y.no : null, addrA: x ? x.addr : '', addrB: y ? y.addr : '',
+            condA: x ? x.cond : '', condB: y ? y.cond : '', outA: x ? x.out : '', outB: y ? y.out : '', resA: x ? x.res : '', resB: y ? y.res : '',
+            sA: x ? x.state : '', sB: y ? y.state : '' });
+        const rows = [];
+        let k = 0, order = 0;
+        while (k < pairs.length) {
+            const p = pairs[k];
+            if (p.i >= 0 && p.j >= 0) {
+                const x = A[p.i], y = B[p.j];
+                if (x.sig !== y.sig) rows.push(mk('mod', x, y, order++));
+                else if (x.state !== y.state) rows.push(mk('state', x, y, order++));
+                k++; continue;
+            }
+            const dels = [], adds = [];
+            while (k < pairs.length && (pairs[k].i < 0 || pairs[k].j < 0)) { const q = pairs[k]; if (q.i >= 0) dels.push(A[q.i]); else adds.push(B[q.j]); k++; }
+            for (let z = 0; z < Math.max(dels.length, adds.length); z++) {
+                const x = dels[z], y = adds[z];
+                rows.push(mk(x && y ? 'mod' : x ? 'del' : 'add', x, y, order++));
+            }
+        }
+        return { rows, approx };
+    }
+
+    /* ════════════ 문장 만들기 ════════════ */
+    /* 판정 · 요약 · 근거 · 조치 · 한계를 추적 결과에서 조합한다 */
+    function compose(R) {
+        const e = R.e, what = R.isPart ? '자재번호' : '수량', span = sd(e.prevDate) + ' → ' + sd(e.date);
+        const t = R.target, tv = R.tv || {}, v = x => 'v' + vtxt(x);
+        const lineNo = R.top ? (R.top.noB != null ? R.top.noB : R.top.noA) : null;
+        const addr = R.top ? (R.top.addrB || R.top.addrA) : '';
+        const C = { title: '', what: '', why: '', next: '', statement: '', basis: [], acts: [], limits: [], conf: 0, confWhy: '' };
+
+        C.what = e.type === 'qty' ? 'PICK ' + b(e.pick) + ' 의 수량이 ' + b(vtxt(e.prevQty)) + ' 에서 ' + b(vtxt(e.nextQty)) + ' (으)로 바뀌었습니다.'
+            : e.type === 'swap' ? 'PICK ' + b(e.pick) + ' 의 자재번호가 ' + b(e.prevNo) + ' 에서 ' + b(e.nextNo) + ' (으)로 바뀌었습니다.' + (e.revert ? ' 바뀐 자재는 그 이전에 쓰였던 자재입니다 (복귀).' : '')
+            : e.type === 'add' ? 'PICK ' + b(e.pick) + ' 이(가) ' + b(e.nextNo) + ' (수량 ' + esc(vtxt(e.nextQty)) + ') (으)로 새로 수배되었습니다.'
+            : 'PICK ' + b(e.pick) + ' (' + esc(e.prevNo) + ') 이(가) 수배에서 빠졌습니다.';
+        C.what = '블럭 ' + b(e.block) + ' 에서 ' + C.what + ' (비교 구간 ' + esc(span) + ')';
+
+        const repro = R.okA && R.okB;
+        const reproBasis = () => repro
+            ? { t: '두 기준일을 다시 실행하면 저장된 자재번호 · 수량이 그대로 재현됩니다. 변동이 계산 로직에서 비롯되었음을 뒷받침합니다.' }
+            : { t: '다시 실행한 값이 저장된 값과 일부 다릅니다. 저장 이후 영업사양이 바뀌었거나 저장 당시 지정값이 있었을 수 있습니다.', weak: true };
+
+        if (R.cause === 'logic') {
+            const changed = tv.a !== tv.b;
+            C.title = changed ? '<em>' + esc(t) + '</em> 로직이 ' + esc(v(tv.a)) + ' → ' + esc(v(tv.b)) + ' 로 바뀌어 PICK ' + esc(e.pick) + ' 의 ' + what + pp(what, '이', '가') + ' 달라졌습니다'
+                : '하위 PID 버전 변경으로 <em>' + esc(t) + '</em> 의 실행 결과가 달라졌습니다';
+            const where = R.javaPid || lineNo == null ? '' : '라인 ' + b(lineNo) + (addr ? ' (ADDR ' + esc(addr) + ')' : '') + ' 이(가) ' + KIND_V[R.top.kind] + '.';
+            C.why = (R.isPart ? '자재번호를 고르는 자재수배 PID ' : '수량을 계산하는 블럭 PID ') + b(t) + pp(t, '이', '가') + ' 두 날짜 사이에 ' +
+                (changed ? esc(v(tv.a)) + ' 에서 ' + esc(v(tv.b)) + ' (으)로 개정되었고, ' : '같은 버전이지만 하위 PID 버전이 달라, ') +
+                (R.javaPid ? '두 버전의 결과값 ' + R.rd.length + '개가 다릅니다.' : '두 버전의 라인 ' + R.rows.length + '개가 다릅니다. ' + where);
+            C.statement = '<em>' + esc(t) + '</em> ' + (changed ? esc(v(tv.a)) + ' → ' + esc(v(tv.b)) + ' 개정' : '의 하위 PID 버전 변경') + '이 이번 ' + what + ' 변동의 원인입니다.';
+            C.basis.push({ t: '두 날짜에 쓰인 PID ' + R.pids.length + '개 중 ' + R.verDiff.length + '개의 버전이 다릅니다 (' + R.verDiff.slice(0, 4).join(', ') + (R.verDiff.length > 4 ? ' 외' : '') + ').' });
+            if (R.javaPid) C.basis.push({ t: 'JAVA 방식 PID 라 라인은 비교하지 못했고, 결과값 ' + R.keys.length + '개 중 ' + R.rd.length + '개가 다른 것을 확인했습니다.', weak: true });
+            else C.basis.push({ t: t + ' 를 두 버전으로 실행해 라인을 맞춰 보면 ' + R.rows.length + '개가 다릅니다' + (R.top && R.top.hit ? ', 그중 라인 ' + lineNo + ' 은(는) 실제로 실행되었거나 이 PICK · 자재번호를 직접 다룹니다.' : '. 다만 이 PICK 을 직접 다루는 라인은 특정하지 못했습니다.'), weak: !(R.top && R.top.hit) });
+            C.basis.push(reproBasis());
+            if (R.rd.length) C.basis.push({ t: '최종 결과값 ' + R.keys.length + '개 중 ' + R.rd.length + '개가 두 버전에서 다릅니다.' });
+            C.conf = changed && repro && (R.javaPid ? R.rd.length > 0 : !!(R.top && R.top.hit)) ? 3 : 2;
+            C.confWhy = C.conf === 3 ? '버전 변경 · 라인 차이 · 저장값 재현이 모두 같은 방향을 가리킵니다.' : '버전과 라인 차이는 확인했지만 ' + (!repro ? '저장값이 완전히 재현되지 않아' : !changed ? '대상 PID 자체는 같은 버전이라' : '이 PICK 과 직접 연결된 라인을 특정하지 못해') + ' 담당자 확인이 필요합니다.';
+            C.next = t + ' ' + v(tv.b) + ' 의 ' + (lineNo != null && !R.javaPid ? '라인 ' + lineNo : '변경 내용') + ' 이 의도된 개정인지 PID 담당자에게 확인하세요.';
+            C.acts = [ t + ' ' + v(tv.b) + ' 의 ' + (lineNo != null && !R.javaPid ? '라인 ' + lineNo : '변경 라인') + ' 변경 의도 확인 (PID 변경 이력 · 담당자)',
+                'PID 시뮬레이터에서 두 버전을 열어 ' + e.pick + ' 결과 확인',
+                '의도된 변경이면 같은 PID 를 쓰는 다른 호기의 영향 범위 확인',
+                '의도하지 않은 변경이면 PID 수정 후 다시 계산' ];
+        } else if (R.cause === 'subLogic') {
+            const p0 = R.verDiff[0];
+            C.title = '<em>' + esc(p0) + '</em> 등 하위 · 전처리 PID 의 버전 변경이 원인으로 추정됩니다';
+            C.why = b(t) + ' 자체는 두 버전의 라인 내용과 판정이 같습니다. 대신 ' + b(p0) + pp(p0, '이', '가') + ' ' + esc(v(R.ver(R.vA, p0))) + ' → ' + esc(v(R.ver(R.vB, p0))) + ' (으)로 바뀌는 등 PID ' + R.verDiff.length + '개의 버전이 달라졌습니다.';
+            C.statement = '<em>' + esc(R.verDiff.slice(0, 3).join(', ')) + '</em> 의 버전 변경이 원인일 가능성이 큽니다.';
+            C.basis.push({ t: '두 날짜에 쓰인 PID ' + R.pids.length + '개 중 ' + R.verDiff.length + '개의 버전이 다릅니다.' });
+            C.basis.push({ t: t + ' 의 라인 내용과 판정은 두 버전에서 같아, 이 PID 가 직접 원인은 아닙니다.', weak: true });
+            C.basis.push(reproBasis());
+            C.conf = 2;
+            C.confWhy = '버전이 바뀐 PID 는 확인했지만, 그중 어느 라인이 결과를 바꿨는지는 특정하지 못했습니다.';
+            C.next = '버전이 바뀐 PID (' + R.verDiff.slice(0, 3).join(', ') + ') 를 PID 시뮬레이터에서 버전별로 비교하세요.';
+            C.acts = R.verDiff.slice(0, 3).map(p => 'PID 시뮬레이터에서 ' + p + ' ' + v(R.ver(R.vA, p)) + ' ↔ ' + v(R.ver(R.vB, p)) + ' 비교').concat(['다시 계산해 ' + e.pick + ' 결과 재확인']);
+        } else if (R.cause === 'simFail') {
+            const p0 = R.verDiff[0];
+            C.title = '<em>' + esc(p0) + '</em> 의 버전이 바뀌었지만 라인 비교는 완료하지 못했습니다';
+            C.why = b(p0) + pp(p0, '이', '가') + ' ' + esc(v(R.ver(R.vA, p0))) + ' → ' + esc(v(R.ver(R.vB, p0))) + ' (으)로 바뀐 것은 확인했습니다. 다만 라인 단위 비교가 실패했습니다 (' + esc(R.error) + ').';
+            C.statement = 'PID 버전 변경이 원인으로 보이지만, 어느 라인인지는 확인하지 못했습니다.';
+            C.basis.push({ t: '두 날짜에 쓰인 PID ' + R.pids.length + '개 중 ' + R.verDiff.length + '개의 버전이 다릅니다.' });
+            C.basis.push({ t: '라인 비교 실행 실패 : ' + R.error, weak: true });
+            C.basis.push(reproBasis());
+            C.conf = 1;
+            C.confWhy = '버전 변경만 확인했고 로직 내용은 비교하지 못했습니다.';
+            C.next = 'PID 시뮬레이터에서 ' + t + ' 의 두 버전을 직접 비교하세요.';
+            C.acts = [ 'PID 시뮬레이터에서 ' + t + ' ' + v(tv.a) + ' 와 ' + v(tv.b) + ' 비교', 'PID 변경 이력에서 ' + R.verDiff.join(', ') + ' 변경 사유 확인' ];
+        } else if (R.cause === 'spec') {
+            C.title = '로직은 그대로입니다. 저장 당시 <em>영업사양 · 지정값</em> 차이로 추정됩니다';
+            C.why = '두 날짜에 쓰인 PID ' + R.pids.length + '개의 버전이 모두 같고, 지금 두 기준일로 다시 계산하면 결과도 같습니다. 로직이 아니라 저장할 때의 입력값(영업사양 · 지정값)이 달랐던 것으로 보입니다.';
+            C.statement = '로직 변경은 없습니다. 저장 당시의 <em>영업사양(공사값)</em> 또는 <em>지정값</em> 차이가 원인으로 추정됩니다.';
+            C.basis.push({ t: '두 날짜에 쓰인 PID ' + R.pids.length + '개의 버전이 모두 같습니다.' });
+            C.basis.push({ t: '현재 영업사양으로 두 기준일을 다시 실행하면 자재번호 · 수량이 서로 같습니다.' });
+            C.basis.push({ t: '저장 당시의 영업사양 값은 이력에 남아 있지 않아 직접 비교하지는 못했습니다.', weak: true });
+            C.conf = 2;
+            C.confWhy = '로직 차이가 없다는 점은 확실하지만, 입력값 차이는 소거법으로 추정한 것입니다.';
+            C.next = '영업사양 변경 이력에서 ' + P.hogi + ' 의 ' + sd(e.prevDate) + ' ~ ' + sd(e.date) + ' 사이 변경을 확인하세요.';
+            C.acts = [ '영업사양 변경 이력에서 ' + P.hogi + ' 의 ' + sd(e.prevDate) + ' ~ ' + sd(e.date) + ' 사이 변경 확인',
+                '일자별 수량 계산에서 두 날짜에 지정값을 넣어 저장했는지 확인',
+                '같은 조건으로 다시 계산해 ' + e.pick + ' 결과 재확인' ];
+        } else if (R.cause === 'cond') {
+            C.title = '로직 버전은 같지만 다시 실행한 결과가 다릅니다. <em>실행 조건</em> 확인이 필요합니다';
+            C.why = '두 날짜에 쓰인 PID ' + R.pids.length + '개의 버전이 모두 같은데도 기준일을 바꿔 다시 실행하면 결과가 달라집니다. 실행 조건(층 · 전처리)이 다르거나 PID 가 날짜를 직접 읽는 경우입니다.';
+            C.statement = '로직 버전 변경은 없으며, <em>실행 조건</em> 또는 날짜 의존 로직이 원인으로 추정됩니다.';
+            C.basis.push({ t: '두 날짜에 쓰인 PID ' + R.pids.length + '개의 버전이 모두 같습니다.' });
+            C.basis.push({ t: '그런데도 두 기준일의 재실행 결과가 서로 다릅니다.', weak: true });
+            C.conf = 1;
+            C.confWhy = '버전으로 설명되지 않는 차이라 원인을 좁히지 못했습니다.';
+            C.next = '일자별 수량 계산 화면에서 두 기준일의 실행 조건을 비교하세요.';
+            C.acts = [ '일자별 수량 계산에서 두 기준일의 실행 조건(층 · 전처리) 비교', t + ' 에 날짜를 직접 읽는 조건이 있는지 확인', '같은 조건으로 다시 계산해 ' + e.pick + ' 결과 재확인' ];
+        } else {
+            C.title = '기준일 재실행에 실패해 원인을 판정하지 못했습니다';
+            C.why = '블럭 ' + b(e.block) + ' 을(를) 두 기준일로 다시 실행하지 못했습니다 (' + esc(R.error) + ').';
+            C.statement = '재실행 실패로 원인을 판정할 수 없습니다.';
+            C.basis.push({ t: '기준일 재실행 실패 : ' + R.error, weak: true });
+            C.conf = 0;
+            C.confWhy = '저장 이력의 변동만 확인했습니다.';
+            C.next = '일자별 수량 계산 화면에서 ' + P.hogi + ' / ' + e.block + ' 이(가) 실행되는지 확인하세요.';
+            C.acts = [ '일자별 수량 계산 화면에서 ' + P.hogi + ' / ' + e.block + ' 실행 확인', '블럭 PID 이름(BLOCKNO)이 맞는지 확인' ];
+        }
+
+        C.limits = [ '다시 실행은 저장 당시가 아니라 현재 영업사양(공사값)을 사용합니다. 저장 이후 영업사양이 바뀌었다면 재현 결과가 달라질 수 있습니다.',
+            'PID 버전은 각 기준일 이전에 가장 늦게 등록된 버전으로 골랐습니다.' ];
+        if (!R.isPart && R.cause !== 'calcFail') C.limits.push('수량 변동의 PICK 실행은 자재수배 PID(' + (R.elp || '') + ')를 최신 버전으로 돌립니다. 자재수배 PID 버전이 바뀐 경우 2.2 표를 함께 보세요.');
+        if (R.approx) C.limits.push('라인 수가 많아 내용 맞춤 대신 순서대로 맞춰 비교했습니다. 추가 · 삭제가 수정으로 보일 수 있습니다.');
+        C.limits.push('문장과 신뢰도는 추적 결과를 규칙으로 조합해 자동 작성한 것입니다. 변경 의도와 타당성은 담당자 확인이 필요합니다.');
+        return C;
+    }
+
+    /* ════════════ 그리기 ════════════ */
+    const cmtLines = c => {
+        const lines = String(c == null ? '' : c).replace(/&#160;|&nbsp;/g, ' ').replace(/\r\n?/g, '\n').split('\n').map(l => l.replace(/\s+$/, ''));
+        while (lines.length && !lines[0]) lines.shift();
+        while (lines.length && !lines.at(-1)) lines.pop();
+        return lines;
+    };
+    const cmtOl = lines => '<ol>' + lines.map(l => '<li><span>' + (l ? esc(l) : '&#8203;') + '</span></li>').join('') + '</ol>';
+    const cmtBox = c => { const l = cmtLines(c); return l.length ? '<div class="cmt"><div class="cmt-hd">주석 (CMT) · ' + l.length + '줄</div>' + cmtOl(l) + '</div>' : ''; };
+    const cmtCell = v => { const l = cmtLines(v); return l.length ? '<div class="cmt in">' + cmtOl(l) + '</div>' : esc(vtxt('')); };
+    const stc = s => '<span class="st ' + (s === 'TRUE' ? 'T' : '') + '">' + (s === 'TRUE' ? 'TRUE' : s === 'FALSE' ? 'FALSE' : s ? '미실행' : '없음') + '</span>';
+    const stats = items => '<dl class="stats">' + items.map(x => '<div><dt>' + esc(x.k) + '</dt><dd' + (x.hot ? ' class="hot"' : '') + '>' + esc(x.v) + '</dd></div>').join('') + '</dl>';
+    const table = (cap, head, rows, foot) => '<figure class="tb"><figcaption>' + esc(cap) + '</figcaption><div class="tbl-wrap"><table class="t"><thead><tr>' +
+        head.map(h => '<th scope="col">' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table></div>' + (foot ? '<p class="cap">' + foot + '</p>' : '') + '</figure>';
+    const simLink = (pid, ver, subs, label) => '<a class="btn btn-sm" target="_blank" rel="noopener" href="' + API.page + '?' +
+        esc(new URLSearchParams(Object.assign({ project: P.hogi, pid }, ver != null ? { version: ver } : {}, subs ? { subVersions: subs } : {})).toString()) + '">' + esc(label) + '</a>';
+    const sub = (no, title, res, resCls, body) => '<section class="sub"><h3><span class="n">' + no + '</span>' + esc(title) + (res ? '<span class="res ' + resCls + '">' + esc(res) + '</span>' : '') + '</h3>' + body + '</section>';
+    const prose = t => '<p class="prose">' + t + '</p>';
+    const traceUrl = e => API.trace + '?' + new URLSearchParams({ hogi: P.hogi, date: P.date, prev: P.prev || e.prevDate, block: e.block, pick: e.pick });
+
+    function renderHead(e, title) {
+        const sp = (H && H.spec) || {}, now = new Date();
+        $('docTitle').innerHTML = title;
+        $('docNo').textContent = e ? '문서 TR-' + e.date + '-' + e.block + '-' + e.pick : '';
+        $('docTime').textContent = '작성 ' + now.getFullYear() + '.' + pad(now.getMonth() + 1) + '.' + pad(now.getDate()) + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+        const items = [ { k: '호기', v: P.hogi }, { k: '브랜드 · 기종', v: [sp.brand, sp.atyp].filter(Boolean).join(' · ') }, { k: '속도 · 용량', v: [sp.speed, sp.acapa].filter(Boolean).join(' · ') },
+            { k: '블럭', v: e && e.block }, { k: 'PICK', v: e && e.pick }, { k: '변동 유형', v: e && typeName(e) },
+            { k: '비교 구간', v: e ? day(e.prevDate) + ' → ' + day(e.date) : (P.date ? day(P.date) : '') } ];
+        $('docMeta').innerHTML = items.filter(x => x.v).map(x => '<div><dt>' + x.k + '</dt><dd>' + esc(x.v) + '</dd></div>').join('');
+    }
+
+    function renderProgress(i) {
+        $('body').innerHTML = '<section class="prog-box" aria-live="polite"><h2>분석하고 있습니다</h2><p>PLM DB 에서 기준일 버전 PID 를 읽어 실행합니다. 블럭의 PICK 수에 따라 시간이 걸릴 수 있습니다.</p><ol class="prog">' +
+            PROG.map((t, k) => '<li class="' + (k < i ? 'ok' : k === i ? 'on' : '') + '">' + t + '</li>').join('') + '</ol></section>';
+    }
+
+    function renderReport(R) {
+        const e = R.e, C = compose(R), V = VERDICT[R.cause], failed = R.cause === 'calcFail';
+        renderHead(e, C.title);
+        const out = [];
+
+        /* 핵심 요약 */
+        out.push('<section class="brief" aria-labelledby="hBrief"><div class="brief-hd">' +
+            '<h2 id="hBrief"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 5.6a3 3 0 0 0 1.9 1.9L21.4 11.4l-5.6 1.9a3 3 0 0 0-1.9 1.9L12 20.8l-1.9-5.6a3 3 0 0 0-1.9-1.9L2.6 11.4l5.6-1.9a3 3 0 0 0 1.9-1.9z"/></svg>핵심 요약</h2><span class="sp"></span>' +
+            '<span class="badge ' + V.cls + '">' + V.label + '</span>' +
+            '<span class="conf" title="' + esc(C.confWhy) + '">신뢰도 <i aria-hidden="true">' + [1, 2, 3].map(n => '<span class="' + (n <= C.conf ? 'on' : '') + '"></span>').join('') + '</i>' + CONF[C.conf] + '</span></div>' +
+            '<dl><div><dt>무엇이</dt><dd>' + C.what + '</dd></div><div><dt>왜</dt><dd>' + C.why + '</dd></div><div><dt>다음 조치</dt><dd>' + esc(C.next) + '</dd></div></dl></section>');
+
+        /* 1. 변동 내용 */
+        out.push('<section class="sec"><h2><span class="n">1</span>변동 내용</h2>' +
+            prose('저장 이력(PLM_SIMUL_HOGIBOM)에서 ' + b(P.hogi) + ' 호기의 ' + esc(day(e.prevDate)) + ' 저장분과 ' + esc(day(e.date)) + ' 저장분을 비교했습니다. ' + C.what) +
+            '<div class="pair"><div class="A"><small>앞 저장 ' + day(e.prevDate) + '</small><b>' + esc(vtxt(e.prevNo)) + '</b><span class="q2">수량 ' + esc(vtxt(e.prevQty)) + '</span></div>' +
+            '<span class="arrow" role="img" aria-label="에서 다음으로 변경">' + ICON_ARROW + '</span>' +
+            '<div class="B"><small>바뀐 날 ' + day(e.date) + '</small><b>' + esc(vtxt(e.nextNo)) + '</b><span class="q2">수량 ' + esc(vtxt(e.nextQty)) + '</span></div></div>' +
+            cmtBox(e.cmt) + '</section>');
+
+        /* 2. 분석 근거 */
+        const ev = [];
+        if (failed) {
+            ev.push(sub('2.1', '재현 검증', '실패', 'bad', prose('두 기준일로 블럭 수량 계산을 다시 실행하지 못했습니다. <strong>' + esc(R.error) + '</strong>') + prose('이후 단계(PID 버전 · 로직 라인 · 결과값 비교)는 진행하지 못했습니다.')));
+        } else {
+            /* 2.1 재현 */
+            const row = (d, saved, re, ok, run) => '<tr' + (ok ? '' : ' class="hot"') + '><td class="nw">' + day(d) + '</td>' +
+                '<td class="m">' + esc(vtxt(saved.part)) + '</td><td class="m">' + esc(vtxt(saved.qty)) + '</td>' +
+                '<td class="m">' + (run ? esc(vtxt(re.part)) : '<i>PICK 없음</i>') + '</td><td class="m">' + esc(vtxt(re.qty)) + '</td>' +
+                '<td>' + (ok ? '<span class="kind add">같음</span>' : '<span class="kind del">다름</span>') + (run && run.error ? '<div class="cap">' + esc(run.error) + '</div>' : '') + '</td></tr>';
+            const repro = R.okA && R.okB;
+            ev.push(sub('2.1', '재현 검증', repro ? '재현됨' : '일부 불일치', repro ? 'good' : 'mid',
+                prose('두 날짜를 기준일로 블럭 ' + b(e.block) + ' 의 수량 계산을 다시 실행해, 저장된 값이 그대로 나오는지 확인했습니다. ' +
+                    (repro ? '두 날짜 모두 저장된 값과 <strong>같은 결과</strong>가 나왔습니다.' : '저장된 값과 <strong>다른 결과</strong>가 나온 날짜가 있습니다. 저장 이후 영업사양이 바뀌었거나 지정값이 있었을 수 있습니다.') +
+                    (R.reDiff ? '' : ' 다만 지금 다시 계산한 두 날짜의 결과는 서로 같습니다.')) +
+                table('표 1. 저장된 값과 다시 실행한 값', ['기준일', '저장된 자재번호', '저장된 수량', '다시 실행 자재번호', '다시 실행 수량', '재현'],
+                    row(e.prevDate, { part: e.prevNo, qty: e.prevQty }, R.reA, R.okA, R.ra) + row(e.date, { part: e.nextNo, qty: e.nextQty }, R.reB, R.okB, R.rb))));
+
+            /* 2.2 PID 버전 */
+            const vt = (m, p) => m[p] ? (m[p].version == null ? '<i>그 날 버전 없음</i>' : 'v' + esc(m[p].version) + '<div class="cap">' + esc((m[p].regDate || '').slice(0, 16)) + '</div>') : '<i>실행 안 됨</i>';
+            const role = p => p === R.elp ? '자재수배 (자재번호 선택)' : p === R.blockPid ? '블럭 (수량 계산)' : '전처리 · 하위 PID';
+            ev.push(sub('2.2', 'PID 버전 비교', R.verDiff.length ? R.verDiff.length + '개 변경' : '변경 없음', R.verDiff.length ? 'bad' : 'good',
+                prose('각 기준일에 실제로 쓰인 PID 버전을 비교했습니다. 실행된 PID ' + b(R.pids.length + '개') + ' 중 ' +
+                    (R.verDiff.length ? '<strong>' + R.verDiff.length + '개의 버전이 두 날짜에 다릅니다.</strong>' : '<strong>버전이 바뀐 PID 는 없습니다.</strong> 로직은 두 날짜에 동일했습니다.') +
+                    ' 이번 ' + (R.isPart ? '자재번호' : '수량') + ' 변동의 추적 대상은 ' + b(R.target) + ' (' + (R.isPart ? '자재수배' : '블럭 · 수량') + ') 입니다.') +
+                (R.verDiff.length ? table('표 2. 버전이 바뀐 PID', ['PID', '역할', sd(e.prevDate) + ' 버전', sd(e.date) + ' 버전'],
+                    R.verDiff.map(p => '<tr' + (p === R.target ? ' class="hot"' : '') + '><td class="m">' + esc(p) + '</td><td>' + role(p) + '</td><td class="m A">' + vt(R.vA, p) + '</td><td class="m B">' + vt(R.vB, p) + '</td></tr>').join(''),
+                    '버전이 같은 PID ' + (R.pids.length - R.verDiff.length) + '개는 표에서 뺐습니다. 붉은 행이 추적 대상입니다.') : '')));
+
+            /* 2.3 로직 라인 */
+            if (!R.verDiff.length) {
+                ev.push(sub('2.3', '로직 라인 비교', '생략', '', prose('모든 PID 의 버전이 같아 라인 비교는 생략했습니다. 같은 버전 · 같은 영업사양이면 모든 라인의 판정이 같습니다.')));
+                ev.push(sub('2.4', '결과값 비교', '생략', '', prose('같은 이유로 결과값 비교도 생략했습니다.')));
+            } else if (R.cause === 'simFail') {
+                ev.push(sub('2.3', '로직 라인 비교', '실패', 'bad', prose(b(R.target) + ' 를 두 날짜 버전으로 실행하지 못했습니다. <strong>' + esc(R.error) + '</strong>') +
+                    '<div class="links">' + simLink(R.target, R.tv.a, R.sA, sd(e.prevDate) + ' 버전 열기') + simLink(R.target, R.tv.b, R.sB, sd(e.date) + ' 버전 열기') + '</div>'));
+                ev.push(sub('2.4', '결과값 비교', '생략', '', prose('라인 비교가 실패해 결과값도 비교하지 못했습니다.')));
+            } else {
+                const cnt = k => R.rows.filter(d => d.kind === k).length;
+                const cc = (c, cls) => c ? '<div class="cond ' + cls + '">' + esc(c) + '</div>' : '';
+                const lineRows = R.rows.slice(0, MAX_LINES).map(d => '<tr' + (d === R.top ? ' class="hot"' : '') + '><td><span class="kind ' + d.kind + '">' + KIND[d.kind] + '</span></td>' +
+                    '<td class="m nw">' + (d.noA != null ? '<span class="A">' + esc(d.noA) + '</span>' : '-') + ' → ' + (d.noB != null ? '<span class="B">' + esc(d.noB) + '</span>' : '-') + '</td>' +
+                    '<td class="m nw">' + esc(d.addrB || d.addrA || '-') + '</td>' +
+                    '<td>' + (d.kind === 'mod' && d.condA !== d.condB ? cc(d.condA, 'A') + cc(d.condB, 'B') : cc(d.condB || d.condA, '')) + '</td>' +
+                    '<td>' + (d.kind === 'mod' && d.outA !== d.outB ? cc(d.outA, 'A') + cc(d.outB, 'B') : cc(d.outB || d.outA, '')) + '</td>' +
+                    '<td class="nw">' + (d.noA != null ? stc(d.sA) : '-') + ' → ' + (d.noB != null ? stc(d.sB) : '-') + '</td></tr>').join('');
+                const links = '<div class="links">' + simLink(R.target, R.tv.a, R.sA, sd(e.prevDate) + ' 버전 (v' + R.tv.a + ') 열기') + simLink(R.target, R.tv.b, R.sB, sd(e.date) + ' 버전 (v' + R.tv.b + ') 열기') +
+                    '<a class="btn btn-sm" href="' + esc(traceUrl(e)) + '">추적 화면에서 전체 라인 보기</a></div>';
+                ev.push(sub('2.3', '로직 라인 비교', R.javaPid ? '라인 정보 없음' : R.rows.length ? R.rows.length + '개 다름' : '차이 없음', R.javaPid ? '' : R.rows.length ? 'bad' : 'good',
+                    R.javaPid ? prose(b(R.target) + ' 은(는) JAVA 방식 PID 라 라인 정보가 없습니다. 결과값만 비교했습니다.') + links :
+                    prose(b(R.target) + ' 를 ' + esc('v' + R.tv.a) + ' 과 ' + esc('v' + R.tv.b) + ' 로 각각 실행한 뒤, 라인을 내용(ADDR · 조건 · 출력 · 이동)으로 맞춰 비교했습니다. ' +
+                        (R.rows.length ? '<strong>' + R.rows.length + '개 라인이 다릅니다.</strong>' + (R.top ? ' 가장 관련이 큰 것은 라인 ' + b(R.top.noB != null ? R.top.noB : R.top.noA) + ' (' + KIND[R.top.kind] + ') 입니다.' : '')
+                            : '<strong>라인 내용과 판정이 모두 같습니다.</strong> 이 PID 자체는 같게 동작하므로, 버전이 바뀐 하위 · 전처리 PID 쪽을 확인해야 합니다.')) +
+                    stats([ { k: '라인 수', v: R.lineCnt.a + ' → ' + R.lineCnt.b }, { k: '추가', v: cnt('add') + '개', hot: cnt('add') > 0 }, { k: '삭제', v: cnt('del') + '개', hot: cnt('del') > 0 },
+                        { k: '수정', v: cnt('mod') + '개', hot: cnt('mod') > 0 }, { k: '판정 변경', v: cnt('state') + '개', hot: cnt('state') > 0 } ]) +
+                    (R.rows.length ? table('표 3. 두 버전에서 다른 라인', ['구분', '라인', 'ADDR', '조건', '출력 · 이동', '판정 (' + sd(e.prevDate) + ' → ' + sd(e.date) + ')'], lineRows,
+                        '주황 = ' + sd(e.prevDate) + ' 버전, 파랑 = ' + sd(e.date) + ' 버전. 실행된(TRUE) 라인과 이 PICK · 자재번호가 나오는 라인을 먼저 실었습니다' +
+                        (R.rows.length > MAX_LINES ? ' · 외 ' + (R.rows.length - MAX_LINES) + '개는 추적 화면에서 볼 수 있습니다' : '') + '.') : '') + links));
+
+                /* 2.4 결과값 */
+                ev.push(sub('2.4', '결과값 비교', R.rd.length ? R.rd.length + '개 다름' : '모두 같음', R.rd.length ? 'bad' : 'good',
+                    prose('두 버전이 계산한 최종 결과값 ' + b(R.keys.length + '개') + ' 를 비교했습니다. ' + (R.rd.length ? '<strong>' + R.rd.length + '개가 다릅니다.</strong>' : '<strong>모두 같습니다.</strong>')) +
+                    (R.rd.length ? table('표 4. 다른 결과값', ['KEY', sd(e.prevDate) + ' (v' + R.tv.a + ')', sd(e.date) + ' (v' + R.tv.b + ')'],
+                        R.rd.slice(0, MAX_RESULTS).map(k => { const cm = String(k).toUpperCase() === 'CMT';
+                            return '<tr' + (R.hasP(k) ? ' class="hot"' : '') + '><td class="m">' + esc(k) + '</td><td class="m A">' + (cm ? cmtCell(R.mA[k]) : esc(vtxt(str(R.mA[k])))) + '</td><td class="m B">' + (cm ? cmtCell(R.mB[k]) : esc(vtxt(str(R.mB[k])))) + '</td></tr>'; }).join(''),
+                        R.rd.length > MAX_RESULTS ? '외 ' + (R.rd.length - MAX_RESULTS) + '개. 붉은 행은 이 PICK · 자재번호 · 수량과 관련된 값입니다.' : '붉은 행은 이 PICK · 자재번호 · 수량과 관련된 값입니다.') : '')));
+            }
+        }
+        out.push('<section class="sec"><h2><span class="n">2</span>분석 근거</h2>' +
+            prose('변동의 원인을 좁히기 위해 재현 검증 → PID 버전 비교 → 로직 라인 비교 → 결과값 비교 순서로 확인했습니다.') + ev.join('') + '</section>');
+
+        /* 3. 원인 판정 */
+        out.push('<section class="sec"><h2><span class="n">3</span>원인 판정</h2>' +
+            '<div class="callout ' + V.cls + '"><p>' + C.statement + '</p></div>' +
+            '<ul class="basis">' + C.basis.map(x => '<li' + (x.weak ? ' class="weak"' : '') + '>' + (x.weak ? ICON_Q : ICON_OK) + '<span>' + esc(x.t) + '</span></li>').join('') + '</ul>' +
+            prose('<strong>신뢰도 ' + CONF[C.conf] + '.</strong> ' + esc(C.confWhy)) + '</section>');
+
+        /* 4. 권고 조치 */
+        out.push('<section class="sec"><h2><span class="n">4</span>권고 조치</h2><ol class="acts">' +
+            C.acts.map(t => '<li><label><input type="checkbox"/><span>' + esc(t) + '</span></label></li>').join('') + '</ol></section>');
+
+        /* 5. 한계 */
+        out.push('<section class="sec"><h2><span class="n">5</span>분석의 한계</h2><ul class="limits">' + C.limits.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul></section>');
+
+        /* 부록 */
+        const others = H.events.filter(x => x !== e);
+        if (others.length) out.push('<section class="sec"><h2><span class="n">부록</span>같은 날 이 호기의 다른 변동</h2>' +
+            prose(esc(day(P.date)) + ' 저장분에서 이 PICK 외에 ' + b(others.length + '건') + ' 의 변동이 더 있습니다. 같은 PID 버전 변경의 영향일 수 있으니 함께 확인하세요.') +
+            table('표 A. 다른 변동 PICK', ['블럭', 'PICK', '유형', '변동', ''],
+                others.slice(0, MAX_OTHERS).map(x => '<tr><td class="m nw">' + esc(x.block) + '</td><td class="m nw">' + esc(x.pick) + '</td><td><span class="kind ' + (x.revert ? 'rev' : x.type) + '">' + typeName(x) + '</span></td>' +
+                    '<td class="m">' + esc(change(x)) + '</td><td class="nw"><button type="button" class="btn btn-sm no-print" data-b="' + esc(x.block) + '" data-p="' + esc(x.pick) + '">보고서 보기</button></td></tr>').join(''),
+                others.length > MAX_OTHERS ? '외 ' + (others.length - MAX_OTHERS) + '건은 위쪽 "대상 PICK" 목록에서 고를 수 있습니다.' : '') + '</section>');
+
+        $('body').innerHTML = out.map((h, i) => h.replace(/^<section class="/, '<section style="animation-delay:' + (i * 70) + 'ms" class="rise ')).join('');
+        LAST = { R, C };
+        $('btnCopy').disabled = false;
+    }
+
+    /* 요약을 일반 텍스트로 (메신저 · 메일 붙여넣기용) */
+    function plainText() {
+        const R = LAST.R, C = LAST.C, e = R.e, strip = h => { const d = document.createElement('div'); d.innerHTML = h; return d.textContent; };
+        return [ '[BOM 변동 원인 분석] ' + P.hogi + ' · ' + e.block + ' · PICK ' + e.pick + ' (' + sd(e.prevDate) + ' → ' + sd(e.date) + ')',
+            '■ 결론 : ' + strip(C.title),
+            '■ 판정 : ' + VERDICT[R.cause].label + ' (신뢰도 ' + CONF[C.conf] + ')',
+            '■ 무엇이 : ' + strip(C.what),
+            '■ 왜 : ' + strip(C.why),
+            '■ 근거', C.basis.map(x => '  - ' + x.t).join('\n'),
+            '■ 권고 조치', C.acts.map((t, i) => '  ' + (i + 1) + '. ' + t).join('\n'),
+            location.href ].join('\n');
+    }
+    function toast(t) {
+        const el = document.createElement('div');
+        el.className = 'toast'; el.setAttribute('role', 'status'); el.textContent = t;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 2600);
+    }
+    async function copyText(t) {
+        try { await navigator.clipboard.writeText(t); return true; } catch (x) { /* http 사내망 : 아래 방식으로 */ }
+        const ta = document.createElement('textarea');
+        ta.value = t; ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+        document.body.appendChild(ta); ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (x) { ok = false; }
+        ta.remove();
+        return ok;
+    }
+
+    /* ════════════ 시작 ════════════ */
+    function showState(h, p, err, retry) {
+        $('body').innerHTML = '<section class="state' + (err ? ' err' : '') + '"><h2>' + esc(h) + '</h2><p>' + esc(p) + '</p>' +
+            (retry ? '<button type="button" class="btn btn-solid" id="btnRetry">다시 시도</button>' : '') + '</section>';
+        if (retry) $('btnRetry').addEventListener('click', start);
+    }
+
+    function fillSelect() {
+        const byB = new Map();
+        H.events.forEach(e => { if (!byB.has(e.block)) byB.set(e.block, []); byB.get(e.block).push(e); });
+        $('selPick').innerHTML = Array.from(byB.entries()).map(g => '<optgroup label="' + esc(g[0]) + ' (' + g[1].length + '건)">' +
+            g[1].map(e => '<option value="' + H.events.indexOf(e) + '">' + esc(e.pick + ' · ' + typeName(e)) + '</option>').join('') + '</optgroup>').join('');
+        $('selPick').disabled = false;
+    }
+
+    async function report(e) {
+        const id = ++runId;
+        SEL = e; LAST = null;
+        $('btnCopy').disabled = true;
+        $('selPick').value = String(H.events.indexOf(e));
+        $('lnkTrace').href = traceUrl(e);
+        const url = new URLSearchParams({ hogi: P.hogi, date: P.date, prev: P.prev || e.prevDate, block: e.block, pick: e.pick });
+        try { history.replaceState(null, '', location.pathname + '?' + url); } catch (x) { /* 무시 */ }
+        renderHead(e, esc(e.block) + ' · PICK ' + esc(e.pick) + ' 의 변동 원인을 분석하고 있습니다');
+        renderProgress(1);
+        const R = await analyze(e, i => { if (id === runId) renderProgress(i); });
+        if (id !== runId) return;
+        renderReport(R);
+    }
+
+    async function start() {
+        if (!P.hogi || !P.date) {
+            renderHead(null, '분석할 호기와 날짜가 없습니다');
+            showState('호기 · 날짜를 지정해 주세요', '원인 추적 화면의 [보고서로 보기] 버튼으로 들어오세요. (/cop/trace/report?hogi=호기&date=yyyyMMdd)');
+            return;
+        }
+        renderHead(null, '저장 이력을 불러오는 중입니다');
+        renderProgress(0);
+        try { H = await loadHistory(); }
+        catch (x) {
+            renderHead(null, '저장 이력을 불러오지 못했습니다');
+            showState('저장 이력을 불러오지 못했습니다', x.message, true, true);
+            return;
+        }
+        if (!H.events.length) {
+            renderHead(null, '이 날짜에는 앞 저장일과 달라진 PICK 이 없습니다');
+            showState('분석할 변동이 없습니다', H.blocks.size ? '저장된 블럭 ' + H.blocks.size + '개를 앞 저장일과 비교했습니다.' : '이 호기의 저장 이력이 없습니다.');
+            return;
+        }
+        fillSelect();
+        const first = H.events.find(e => e.block === P.block && e.pick === P.pick)
+            || H.events.filter(e => !P.block || e.block === P.block).sort((x, y) => (y.revert - x.revert) || RANK[x.type] - RANK[y.type])[0]
+            || H.events[0];
+        report(first);
+    }
+
+    $('selPick').addEventListener('change', ev => { const e = H && H.events[+ev.target.value]; if (e && e !== SEL) report(e); });
+    $('body').addEventListener('click', ev => {
+        const bt = ev.target.closest('button[data-b]');
+        if (!bt) return;
+        const e = H.events.find(x => x.block === bt.dataset.b && x.pick === bt.dataset.p);
+        if (e) { report(e); window.scrollTo({ top: 0 }); }
+    });
+    $('btnCopy').addEventListener('click', async () => { if (LAST) toast(await copyText(plainText()) ? '요약을 복사했습니다' : '복사하지 못했습니다'); });
+    $('btnPrint').addEventListener('click', () => window.print());
+    $('lnkTrace').href = API.trace + location.search;
+    start();
+})();
+</script>
+</body>
+</html>
