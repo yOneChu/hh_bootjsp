@@ -619,7 +619,8 @@
     /* ════════════ 실시간 화면 ════════════ */
     const live = $('live'), frame = $('liveFrame');
     let demo = false, loading = false;
-    const dashUrl = () => DASH + '?' + new URLSearchParams({ from: S.from, to: S.to });
+    /* mode=period : 7장 '호기별 비교 결과' 표를 '기간 전체' 보기로 연다 (이 값은 그 표에만 쓰인다) */
+    const dashUrl = () => DASH + '?' + new URLSearchParams({ from: S.from, to: S.to, mode: 'period' });
     const fdoc = () => { try { return frame.contentDocument; } catch (e) { return null; } };
     const fpath = () => { try { return frame.contentWindow.location.pathname; } catch (e) { return ''; } };
 

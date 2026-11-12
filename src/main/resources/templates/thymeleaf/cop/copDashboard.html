@@ -836,8 +836,8 @@
             <div class="card-hd">
                 <div><span class="eyebrow">04 · RESULT</span><h2 id="tblTitle">호기별 비교 결과<span class="scope day" id="tblScope">-</span><button type="button" class="help" aria-label="설명" data-tip="기준 일자 = 기준일 하루의 호기별 결과 (앞 저장일과 비교). 기간 전체 = 조회 기간 동안의 호기별 합계. 행을 누르면 날짜별로 바뀐 PICK 을 볼 수 있습니다.">?</button></h2><p id="tblDesc">-</p></div>
                 <div class="seg" role="group" aria-label="비교 결과 보기">
-                    <button type="button" data-mode="day" aria-pressed="true">기준 일자</button>
-                    <button type="button" data-mode="period" aria-pressed="false">기간 전체</button>
+                    <button type="button" data-mode="day" aria-pressed="false">기준 일자</button>
+                    <button type="button" data-mode="period" aria-pressed="true">기간 전체</button>
                 </div>
             </div>
             <div class="tbl-tools" style="margin-top:12px;border-top:1px solid var(--line)">
@@ -1150,7 +1150,7 @@
     let DATA = null, P = null, D = null;
     const state = {
         from: '', to: '', date: '', brand: '', atyp: '', block: '',
-        filter: 'all', q: '', mode: 'day',
+        filter: 'all', q: '', mode: 'period',
         sortK: 'chg', sortDir: -1, psortK: 'chgSum', psortDir: -1,
         mx: 'chg', tq: 'sum'
     };
@@ -1912,7 +1912,7 @@
         if (state.brand) p.set('brand', state.brand);
         if (state.atyp) p.set('atyp', state.atyp);
         if (state.block) p.set('block', state.block);
-        if (state.mode !== 'day') p.set('mode', state.mode);
+        if (state.mode !== 'period') p.set('mode', state.mode);
         try { history.replaceState(null, '', location.pathname + '?' + p.toString()); } catch (e) { /* 무시 */ }
         const b = new URLSearchParams({ from: state.from, to: state.to });
         if (state.brand) b.set('brand', state.brand);
@@ -2093,7 +2093,7 @@
     state.brand = qs.get('brand') || '';
     state.atyp = qs.get('atyp') || '';
     state.block = qs.get('block') || '';
-    if (qs.get('mode') === 'period') state.mode = 'period';
+    if (qs.get('mode') === 'day') state.mode = 'day';
     load(okDate(qs.get('date')));
 })();
 </script>
