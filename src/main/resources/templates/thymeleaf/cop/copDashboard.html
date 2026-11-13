@@ -1587,9 +1587,9 @@
             { k: 'streak', l: '연속 변동', r: 1 }, { l: '기간 추이', r: 1 }
         ],
         period: [
-            { k: 'key', l: '호기' }, { l: '사양' }, { k: 'runs', l: '저장', r: 1 }, { k: 'chgDays', l: '변동 발생', r: 1 },
+            { k: 'key', l: '호기' }, { l: '사양' }, { k: 'runs', l: '저장', r: 1 },
             { k: 'chgSum', l: '누적 변동', r: 1 }, { k: 'avgChg', l: '회당 평균', r: 1 }, { k: 'mat', l: '자재 변동', r: 1 },
-            { k: 'matchAvg', l: '평균 유지율', r: 1 }, { k: 'repeatN', l: '자주 바뀌는 PICK', r: 1 },
+            { k: 'repeatN', l: '자주 바뀌는 PICK', r: 1 },
             { k: 'lastChg', l: '최근 변동일', r: 1 }, { l: '일자별 추이', r: 1 }
         ]
     };
@@ -1685,11 +1685,9 @@
             '<td><span class="hogi">' + esc(h.key) + '</span><span class="sub">블럭 ' + h.blocks.size + '개</span></td>' +
             '<td><span class="spec">' + esc(specText(h.spec)) + '</span></td>' +
             '<td class="r mono">' + h.runs + '일' + (h.baseDays ? '<span class="sub">기준 ' + h.baseDays + '</span>' : '') + '</td>' +
-            '<td class="r"><div class="rate"><div class="bar"><span style="width:' + (h.chgDays / (h.cmpDays || 1) * 100) + '%;background:var(--t-swap)"></span></div><b>' + h.chgDays + '/' + h.cmpDays + '</b></div></td>' +
             '<td class="r"><div class="mini">' + (h.chgSum ? miniStack(h, h.chgSum) : '') + '<b class="mono" title="교체 ' + h.swap + ' · 신규 ' + h.add + ' · 제외 ' + h.del + ' · 수량 ' + h.qty + '">' + fmt(h.chgSum) + '</b></div></td>' +
             '<td class="r mono">' + pct(r.avgChg) + '</td>' +
             '<td class="r mono">' + (h.mat ? '<b>' + h.mat + '</b>' + (h.revert ? '<span class="sub">예전 자재 복귀 ' + h.revert + '</span>' : '') : '<span class="spec">-</span>') + '</td>' +
-            '<td class="r">' + rateCell(h.matchAvg) + '</td>' +
             '<td class="r mono">' + (h.repeat.length ? '<b>' + h.repeat.length + '</b>개' : '<span class="spec">-</span>') + '</td>' +
             '<td class="r mono">' + (h.lastChg ? shortDay(h.lastChg) + '(' + wk(h.lastChg) + ')' + traceLink(h.key, h.lastChg, h.rows.get(h.lastChg).prevDate, '') : '<span class="spec">-</span>') + '</td>' +
             '<td class="r">' + spark(h) + '</td></tr>';

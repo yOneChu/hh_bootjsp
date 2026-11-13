@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>BOM FDC 발표 · SENTINEL</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+    <!--
+        SENTINEL · BOM FDC 발표 자료 (실시간 화면 포함)   GET /cop/dashboard/preview
+
+        구성 : 16:9 슬라이드 16장. 본문은 docs/COP/BOM_FDC_발표자료_v04.html 의 장을 그대로 옮긴 것이고 (.v4),
+               7 ~ 11장은 실제 운영 화면을 슬라이드 안에 띄워 그 장에서 설명하는 부분을 보여준다.
+               화면은 그대로 눌러 볼 수 있다.
+           1 표지
+           2 ~ 6  추진 배경 : 로직 연결망 · 나무와 숲 · 발견 시점 · FDC 벤치마킹 · 목표
+           7 실시간 : 브랜드별 관리 현황          (/cop/dashboard)
+           8 실시간 : 브랜드별 블럭 수량 추이      (/cop/dashboard)
+           9 실시간 : 호기별 비교 결과            (/cop/dashboard, [원인추적] 버튼 → 10장)
+          10 실시간 : 원인 추적                  (/cop/trace/cause, [AI 보고서] 버튼 → 11장)
+          11 실시간 : AI 보고서               (/cop/trace/report)
+          12 ~ 14 시스템 구성 : 아키텍처 · 원인 역추적과 AI 보고서 · 운영 방식
+          15 기대 효과 및 향후 계획      16 부록 : 시스템 처리 단계
+
+        실시간 화면 : copDashboard.html 은 고치지 않는다. 같은 출처의 iframe 하나를 미리 불러 두고,
+                     장이 바뀔 때 iframe 문서에 스타일을 넣어 해당 카드만 남긴다 (FOCUS 표 참고).
+                     iframe 은 슬라이드 밖에 고정해 두고 위치만 옮긴다 (DOM 을 옮기면 다시 불러오기 때문).
+        데이터     : 7장의 규모 문구(호기 · 브랜드 · 저장 횟수)는 copDashboard 와 같은 API 로 직접 센다.
+                     GET /cop/dashboard/brand/history?from=yyyyMMdd&to=yyyyMMdd  (PLM_SIMUL_HOGIBOM)
+                     불러오지 못해도 발표는 그대로 진행된다 (기본 문구를 그대로 둔다).
+        기간       : URL ?from=yyyyMMdd&to=yyyyMMdd, 없으면 최근 30일
+
+        단축키 : ← → (PageUp · PageDown) 넘기기 · N 발표 노트 · D 전체 시연 · F 전체 화면 · T 타이머 · 0 타이머 초기화
+        주의   : 이 파일의 스크립트에는 대괄호를 두 번 연달아 쓰지 않는다 (Thymeleaf 가 식으로 해석한다).
+    -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+    <style>
+        :root {
+            --steel:   #E8ECF0;
+            --panel:   #F7F9FB;
+            --ink:     #13202F;
+            --graphite:#5A6878;
+            --rule:    #C7D0D9;
+            --signal:  #E0960F;   /* 켜진 호출 버튼 : '바뀜' 과 '실시간' 에만 쓴다 */
+            --signal-bg:#FCF1DC;
+            --signal-ink:#8A5A00;
+            --lamp:    #FFB938;
+            --up:      #1F4FA3;
+            --down:    #C2361F;
+            --night:   #0F1823;
+            --display: #1B2633;
+            --night-line: #2C3B4D;
+            --night-text: #AFC0D0;
+            --sans: 'Pretendard Variable', 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif;
+            --mono: "D2Coding", Consolas, Menlo, monospace;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; background: #080E15; color: var(--ink); font-family: var(--sans); word-break: keep-all; -webkit-font-smoothing: antialiased; }
+        button { font: inherit; color: inherit; cursor: pointer; }
+        a { color: inherit; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 3px solid var(--lamp); outline-offset: 3px; border-radius: 8px; }
+        .num { font-variant-numeric: tabular-nums; }
+        svg text { font-family: inherit; }
+
+        /* ── 무대 : 1600 x 900 을 창 크기에 맞춰 줄이거나 늘린다 ── */
+        #viewport { position: fixed; inset: 0; display: grid; place-items: center; overflow: hidden; }
+        #stage { width: 1600px; height: 900px; position: relative; flex: none; transform-origin: center center; }
+        .slide { position: absolute; inset: 0; display: none; overflow: hidden; background: var(--steel); padding: 64px 96px 0; }
+        .slide.on { display: block; animation: in .35s ease-out; }
+        @keyframes in { from { opacity: 0; } to { opacity: 1; } }
+        .slide.dark { background: var(--night); color: #fff; }
+
+        .sec { font-size: 19px; font-weight: 800; color: var(--signal-ink); margin-bottom: 14px; }
+        h1 { font-size: 50px; font-weight: 800; letter-spacing: -.025em; line-height: 1.25; }
+        .lead { margin-top: 14px; font-size: 24px; line-height: 1.5; color: var(--graphite); max-width: 1300px; }
+        .body { position: absolute; left: 96px; right: 96px; top: 250px; bottom: 150px; }
+        .key { position: absolute; left: 96px; right: 96px; bottom: 92px; padding-left: 22px; border-left: 5px solid var(--signal); font-size: 24px; font-weight: 700; line-height: 1.4; }
+        .foot { position: absolute; left: 96px; bottom: 40px; font-size: 16px; color: var(--graphite); }
+        .card { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 22px 24px; }
+        .row { display: flex; gap: 20px; }
+        .small { font-size: 17px; line-height: 1.5; color: var(--graphite); }
+
+        /* 표지 : 문 열림 */
+        .door { position: absolute; top: 0; bottom: 0; width: 50%; z-index: 5; background: var(--display); border: 1px solid var(--night-line); }
+        .door.l { left: 0; animation: dl 1.1s .35s cubic-bezier(.7,0,.3,1) forwards; }
+        .door.r { right: 0; animation: dr 1.1s .35s cubic-bezier(.7,0,.3,1) forwards; }
+        @keyframes dl { to { transform: translateX(-100%); } }
+        @keyframes dr { to { transform: translateX(100%); } }
+
+        /* v04 발표자료에서 옮긴 장 (.v4) : 그 자료의 초록 계열 색 · 간격을 이 장들 안에서만 쓴다 */
+        .slide.v4 {
+            --ink: #15212F; --ink-2: #2A3847; --muted: #5D6B79; --paper: #F5F7F6; --card: #FFFFFF; --line: #DAE2DE;
+            --green: #0B8A50; --green-d: #08643A; --green-t: #E2F2E9;
+            --amber: #C98A00; --amber-t: #FBF0D3; --red: #C94040; --red-t: #F8E2E2;
+            --night: #101B29;
+            padding: 72px 96px 0; background: var(--paper); color: var(--ink);
+        }
+        .slide.v4.dark { background: var(--night); color: #fff; }
+        .v4 .sec { font-size: 20px; font-weight: 700; color: var(--green); }
+        .v4 h1 { letter-spacing: -.02em; }
+        .v4 .lead, .v4 .foot { color: var(--muted); }
+        .v4 .body { top: 262px; bottom: 118px; }
+        .v4 .key { color: var(--ink); border-left-color: var(--green); }
+        .v4 .card { background: var(--card); border-color: var(--line); border-radius: 18px; padding: 26px 28px; }
+        .v4 .row { gap: 24px; }
+        .v4 .col { display: flex; flex-direction: column; gap: 18px; }
+        .v4 .tag { padding: 5px 12px; border-radius: 99px; font-weight: 700; }
+        .v4 .tag.ok { background: var(--green-t); color: var(--green-d); }
+        .v4 .muted { color: var(--muted); }
+        .v4 .g { color: var(--green); }
+        .v4 .a { color: var(--amber); }
+        .v4 .small { font-size: 16px; line-height: normal; color: var(--muted); }
+        .v4 figcaption { margin-top: 8px; font-size: 16px; color: var(--muted); }
+        .v4 table { border-collapse: collapse; width: 100%; }
+
+        /* 판정 꼬리표 */
+        .tag { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 15px; font-weight: 800; white-space: nowrap; }
+
+        /* 7 ~ 11장 : 실시간 화면 */
+        .slide.live { background: var(--night); color: #fff; padding: 34px 48px 0; }
+        .lv-hd { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; height: 100px; }
+        .lv-tag { display: inline-flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 800; color: var(--lamp); }
+        .lv-tag i { width: 12px; height: 12px; border-radius: 50%; background: var(--lamp); box-shadow: 0 0 0 4px rgba(255,185,56,.22), 0 0 14px rgba(255,185,56,.8); animation: lamp 1.8s ease-in-out infinite; }
+        @keyframes lamp { 50% { opacity: .45; } }
+        .lv-tag span { color: var(--night-text); font-weight: 600; }
+        .slide.live h1 { margin-top: 8px; font-size: 40px; }
+        .lv-say { flex: none; max-width: 520px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; text-align: right; }
+        .lv-say b { font-size: 19px; font-weight: 700; color: #fff; }
+        .lv-say span { font-size: 16px; color: var(--night-text); }
+        .mon { position: absolute; left: 48px; right: 48px; top: 152px; bottom: 84px; display: flex; flex-direction: column; border-radius: 16px; background: #0A1119; border: 1px solid var(--night-line); box-shadow: 0 24px 60px rgba(0,0,0,.45); overflow: hidden; }
+        .mon-bar { flex: none; height: 42px; display: flex; align-items: center; gap: 14px; padding: 0 10px 0 18px; font-size: 15px; color: var(--night-text); border-bottom: 1px solid var(--night-line); }
+        .mon-bar b { color: #fff; font-weight: 700; }
+        .mon-bar code { font: 600 14px var(--mono); color: #8CA0B5; }
+        .mon-bar .sp { flex: 1; }
+        .mon-bar button { min-height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--night-line); background: transparent; font-size: 14px; font-weight: 700; color: #DCE5EE; }
+        .mon-bar button:hover { border-color: var(--lamp); color: var(--lamp); }
+        .mon-view { flex: 1; min-height: 0; display: grid; place-items: center; text-align: center; background: var(--display); color: var(--night-text); font-size: 20px; }
+        .mon-view small { display: block; margin-top: 8px; font: 600 15px var(--mono); color: #6E8297; }
+
+        /* 실시간 iframe (화면마다 하나) : 슬라이드 밖에 고정해 두고 위치만 옮긴다 */
+        .livebox { position: fixed; z-index: 6; left: 0; top: 0; width: 10px; height: 10px; visibility: hidden; overflow: hidden; background: #F5F5F7; border-radius: 0 0 15px 15px; }
+        .livebox.on.ready { visibility: visible; }
+        .livebox iframe { display: block; width: 100%; height: 100%; border: 0; background: #F5F5F7; }
+        .livebox.demo { visibility: visible; z-index: 40; left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; border-radius: 0; }
+        #demoBack { position: fixed; z-index: 41; left: 50%; bottom: 20px; transform: translateX(-50%); min-height: 44px; padding: 0 20px; border: 0; border-radius: 999px; background: var(--ink); color: #fff; font-size: 15px; font-weight: 800; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+        #demoBack:hover { background: #24364C; }
+        #demoBack kbd { margin-left: 8px; font: 700 12px var(--mono); padding: 2px 6px; border-radius: 5px; background: rgba(255,255,255,.16); }
+
+        /* ── 층 표시 · 타이머 · 노트 ── */
+        #floor { position: fixed; right: 24px; bottom: 20px; z-index: 10; display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 14px; background: #0A1119; border: 1px solid var(--night-line); color: var(--lamp); font-variant-numeric: tabular-nums; user-select: none; }
+        #floor button { width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--night-line); background: none; color: #B9C6D3; font-size: 18px; }
+        #floor button:hover { border-color: var(--lamp); color: var(--lamp); }
+        #floor .arr { display: flex; flex-direction: column; gap: 2px; font-size: 11px; line-height: 1; }
+        #floor .arr span { opacity: .25; }
+        #floor .arr span.lit { opacity: 1; }
+        #floor .no { font-size: 26px; font-weight: 800; line-height: 1; min-width: 40px; text-align: right; }
+        #floor .tot { font-size: 12px; color: #6E8297; text-align: right; }
+        .clock { padding-left: 12px; border-left: 1px solid var(--night-line); line-height: 1.15; color: #DCE5EE; }
+        .clock b { display: block; font-size: 20px; font-weight: 800; }
+        .clock span { font-size: 12px; color: #6E8297; }
+        .clock.warn b { color: var(--lamp); }
+        .clock.over b { color: #FF7A66; }
+        #hint { position: fixed; right: 24px; top: 14px; z-index: 10; font-size: 13px; color: #6E8297; transition: opacity .6s; pointer-events: none; }
+        #hint.off { opacity: 0; }
+        #notes { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9; display: none; padding: 16px 330px 20px 28px; background: rgba(8,14,21,.96); border-top: 1px solid var(--night-line); color: #DCE5EE; font-size: 18px; line-height: 1.6; }
+        #notes.on { display: block; }
+        #notes b { margin-right: 10px; color: var(--lamp); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .slide.on, .lv-tag i { animation: none; }
+            .door { display: none !important; }
+        }
+        @media print {
+            @page { size: 1600px 900px; margin: 0; }
+            html, body { height: auto; background: #fff; }
+            #viewport { position: static; display: block; }
+            #stage { transform: none !important; width: auto; height: auto; }
+            .slide { display: block !important; position: relative; width: 1600px; height: 900px; page-break-after: always; animation: none; }
+            #floor, #hint, #notes, .livebox, #demoBack, .door { display: none !important; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="viewport"><div id="stage">
+
+    <!-- ============ 1. TITLE ============ -->
+    <section class="slide v4 dark" data-notes="오늘 말씀드릴 내용은 한 문장입니다. 어제 고친 수배로직이 BOM을 이상하게 바꿨는지, 다음 날 아침에 자동으로 알려주는 시스템입니다.">
+      <div class="door l"></div><div class="door r"></div>
+      <div style="position:absolute;left:96px;top:96px;font-size:20px;font-weight:700;color:#7CF0B0">BOM FDC 시스템 구축</div>
+      <h1 style="position:absolute;left:96px;top:250px;font-size:84px;line-height:1.18;color:#fff">어제 고친 로직,<br>오늘 아침에 확인합니다</h1>
+      <p style="position:absolute;left:96px;top:480px;font-size:26px;color:#AFC0D0;line-height:1.5">수배로직 변경에 따른 BOM 이상 감지(Detection) 및 분류(Classification)</p>
+      <!-- night → morning strip -->
+      <svg style="position:absolute;left:96px;top:590px" width="1000" height="90" viewBox="0 0 1000 90" role="img" aria-label="밤에 로직을 고치면 아침에 결과를 확인">
+        <line x1="40" y1="45" x2="960" y2="45" stroke="#2F4255" stroke-width="2" stroke-dasharray="6 8"/>
+        <circle cx="40" cy="45" r="24" fill="#1C2B3B" stroke="#4A6076"/>
+        <path d="M47 33a14 14 0 1 0 0 24a11 11 0 1 1 0-24z" fill="#AFC0D0"/>
+        <text x="80" y="38" fill="#AFC0D0" font-size="18" font-weight="700">어제</text>
+        <text x="80" y="62" fill="#7E93A8" font-size="16">로직 작성 · 수정</text>
+        <circle cx="960" cy="45" r="24" fill="#0B8A50"/>
+        <circle cx="960" cy="45" r="9" fill="#fff"/>
+        <g stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="960" y1="27" x2="960" y2="31"/><line x1="960" y1="59" x2="960" y2="63"/><line x1="942" y1="45" x2="946" y2="45"/><line x1="974" y1="45" x2="978" y2="45"/></g>
+        <text x="920" y="38" fill="#fff" font-size="18" font-weight="700" text-anchor="end">오늘 아침</text>
+        <text x="920" y="62" fill="#7CF0B0" font-size="16" text-anchor="end">BOM 이상 자동 확인</text>
+      </svg>
+      <div style="position:absolute;left:96px;bottom:70px;font-size:20px;color:#AFC0D0;line-height:1.7">팀명 I'M BOM<br>팀원 김영환 · 서동기 · 이지은 · 안대환 · 김도현</div>
+    </section>
+
+    <!-- ============ 3. LOGIC NETWORK ============ -->
+    <section class="slide v4" data-notes="현재 저희 팀이 관리하는 설계 로직은 3,000개가 넘습니다. 물론 설계자와 담당자들은 로직을 작성하고 수정할 때마다 꼼꼼하게 테스트합니다. 하지만 3,000개가 넘는 로직이 서로 유기적으로 얽혀 있습니다. 그래서 오늘 수정한 로직 하나가 어제, 혹은 일주일 전까지 정상이던 다른 호기들에 어떤 영향을 주었는지, 매번 전수 검증하기는 현실적으로 어렵습니다.">
+      <div class="sec">1  추진 배경</div>
+      <h1>3,000개가 넘는 로직이 서로 얽혀 있습니다</h1>
+      <p class="lead">수정할 때마다 꼼꼼히 테스트하지만, 그 수정이 다른 호기들에 준 영향까지 매번 전수 검증하기는 어렵습니다</p>
+      <div class="body" style="bottom:110px">
+        <div class="row" style="height:100%;gap:40px">
+          <figure style="flex:1.55">
+            <svg viewBox="0 0 900 450" width="100%" role="img" aria-label="오늘 수정한 로직 하나가 연결된 로직을 거쳐 어제, 일주일 전, 다른 조건의 호기에 영향을 줄 수 있다">
+              <!-- logic web -->
+              <g stroke="#C9D3CE" stroke-width="1.6">
+                <line x1="260" y1="225" x2="120" y2="90"/><line x1="260" y1="225" x2="90" y2="230"/><line x1="260" y1="225" x2="130" y2="370"/>
+                <line x1="260" y1="225" x2="270" y2="60"/><line x1="260" y1="225" x2="280" y2="395"/><line x1="260" y1="225" x2="420" y2="120"/>
+                <line x1="260" y1="225" x2="430" y2="320"/><line x1="120" y1="90" x2="270" y2="60"/><line x1="90" y1="230" x2="130" y2="370"/>
+                <line x1="270" y1="60" x2="420" y2="120"/><line x1="280" y1="395" x2="430" y2="320"/><line x1="120" y1="90" x2="90" y2="230"/>
+                <line x1="130" y1="370" x2="280" y2="395"/><line x1="420" y1="120" x2="430" y2="320"/>
+              </g>
+              <g fill="#fff" stroke="#AFBBB5" stroke-width="1.6">
+                <circle cx="120" cy="90" r="22"/><circle cx="90" cy="230" r="22"/><circle cx="130" cy="370" r="22"/>
+                <circle cx="270" cy="60" r="22"/><circle cx="280" cy="395" r="22"/>
+              </g>
+              <g font-size="13" fill="#8796A5" text-anchor="middle">
+                <text x="120" y="95">로직</text><text x="90" y="235">로직</text><text x="130" y="375">로직</text><text x="270" y="65">로직</text><text x="280" y="400">로직</text>
+              </g>
+              <g fill="#FBF0D3" stroke="#C98A00" stroke-width="2">
+                <circle cx="420" cy="120" r="36"/><circle cx="430" cy="320" r="36"/>
+              </g>
+              <g font-size="13" fill="#8A5F00" font-weight="700" text-anchor="middle"><text x="420" y="117">연결</text><text x="420" y="133">로직</text><text x="430" y="317">연결</text><text x="430" y="333">로직</text></g>
+              <circle cx="260" cy="225" r="66" fill="#0B8A50"/>
+              <text x="260" y="218" text-anchor="middle" font-size="19" font-weight="800" fill="#fff">오늘 수정한</text>
+              <text x="260" y="244" text-anchor="middle" font-size="19" font-weight="800" fill="#fff">로직</text>
+              <!-- ripple to units -->
+              <g fill="none" stroke="#C98A00" stroke-width="2.2" stroke-dasharray="6 6">
+                <path d="M456 120 C540 110 560 70 640 70"/>
+                <path d="M456 120 C560 150 560 225 640 225"/>
+                <path d="M466 320 C560 330 560 380 640 380"/>
+              </g>
+              <g>
+                <rect x="640" y="36" width="260" height="68" rx="14" fill="#fff" stroke="#DAE2DE"/>
+                <rect x="640" y="191" width="260" height="68" rx="14" fill="#fff" stroke="#DAE2DE"/>
+                <rect x="640" y="346" width="260" height="68" rx="14" fill="#fff" stroke="#DAE2DE"/>
+              </g>
+              <g font-size="19" font-weight="800" fill="#15212F">
+                <text x="662" y="77">어제 산출된 호기</text><text x="662" y="232">일주일 전 호기</text><text x="662" y="387">다른 조건의 호기</text>
+              </g>
+              <g font-weight="800" font-size="15" fill="#fff">
+                <rect x="836" y="54" width="48" height="32" rx="16" fill="#C98A00"/><text x="860" y="76" text-anchor="middle">?</text>
+                <rect x="836" y="209" width="48" height="32" rx="16" fill="#C98A00"/><text x="860" y="231" text-anchor="middle">?</text>
+                <rect x="836" y="364" width="48" height="32" rx="16" fill="#C98A00"/><text x="860" y="386" text-anchor="middle">?</text>
+              </g>
+            </svg>
+            <figcaption>수정한 로직은 테스트를 거치지만, 연결된 로직을 따라 다른 호기에 번진 영향은 매번 확인하기 어렵습니다</figcaption>
+          </figure>
+          <div class="col" style="flex:.75;gap:16px;justify-content:center">
+            <div class="card"><div style="font-size:52px;font-weight:800;line-height:1.1">3,000+</div><div style="font-size:18px;color:var(--muted);margin-top:6px">팀이 관리하는 설계 로직</div></div>
+            <div class="card" style="padding:22px 28px">
+              <div style="font-size:17px;color:var(--muted);font-weight:700;margin-bottom:12px">지금의 검증 범위</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:19px;padding:8px 0;border-bottom:1px solid var(--line)"><span>수정한 로직</span><span class="tag ok">테스트 완료</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:19px;padding:8px 0"><span>영향받는 전체 호기</span><span class="tag" style="background:var(--amber-t);color:#8A5F00">전수 검증 어려움</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
+    </section>
+
+    <!-- ============ 4. TREE vs FOREST ============ -->
+    <section class="slide v4" data-notes="예를 들어 수량 로직에 작은 오류가 생겨, 특정 자재가 평소보다 많이 나가거나 다른 자재로 바뀌었다고 해 보겠습니다. 호기마다 사양이 제각각이기 때문에, 이런 변화는 당장 눈에 띄지 않습니다. 비유하자면, 저희는 지금 수정하고 있는 '나무' 하나는 집중해서 보았지만, BOM 전체가 어떻게 변하고 있는지 '숲'의 흐름은 보지 못했습니다.">
+      <div class="sec">1  추진 배경</div>
+      <h1>나무는 보았지만, 숲은 보지 못했습니다</h1>
+      <p class="lead">수량 로직의 작은 오류는 호기마다 사양이 달라 당장 눈에 띄지 않습니다</p>
+      <div class="body" style="bottom:170px">
+        <div class="row" style="height:100%;gap:28px">
+          <div class="card" style="flex:.62;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:var(--green-t);border-color:transparent">
+            <div style="font-size:20px;font-weight:800;color:var(--green-d)">나무</div>
+            <svg viewBox="0 0 200 200" width="190" role="img" aria-label="지금 수정하는 로직 하나를 자세히 들여다봄">
+              <circle cx="100" cy="100" r="86" fill="#fff" stroke="#0B8A50" stroke-width="4"/>
+              <polygon points="100,38 58,120 142,120" fill="#0B8A50"/>
+              <polygon points="100,62 68,140 132,140" fill="#0B8A50"/>
+              <rect x="92" y="140" width="16" height="24" fill="#08643A"/>
+              <line x1="162" y1="162" x2="190" y2="190" stroke="#0B8A50" stroke-width="10" stroke-linecap="round"/>
+            </svg>
+            <div style="font-size:22px;font-weight:800;margin-top:6px">지금 수정하는 로직 1개</div>
+            <div style="font-size:18px;color:var(--green-d);margin-top:6px">집중해서 테스트 ✓</div>
+          </div>
+          <div class="card" style="flex:1.38;display:flex;flex-direction:column">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <div style="font-size:20px;font-weight:800">숲 <span style="font-weight:600;color:var(--muted);font-size:18px">— BOM 전체의 변화</span></div>
+              <span class="tag" style="background:var(--amber-t);color:#8A5F00">보지 못했던 부분</span>
+            </div>
+            <div id="forest" style="flex:1;display:flex;align-items:center"></div>
+            <div class="row" style="gap:14px;font-size:18px">
+              <div style="flex:1;background:var(--amber-t);border-radius:12px;padding:12px 16px"><b class="a">①</b> 자재 B 수량 2 → 3 <span class="muted">· 평소보다 많이 나감</span></div>
+              <div style="flex:1;background:var(--amber-t);border-radius:12px;padding:12px 16px"><b class="a">②</b> 자재 C → 자재 D <span class="muted">· 다른 자재로 바뀜</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="small" style="position:absolute;left:96px;bottom:150px;font-size:15px">※ 자재와 수량은 이해를 돕기 위한 예시입니다</div>
+      <div class="key">수정한 로직 하나가 아니라, BOM 전체의 흐름을 봐야 합니다</div>
+      <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
+    </section>
+
+    <!-- ============ 5. WHEN FOUND ============ -->
+    <section class="slide v4" data-notes="문제는 이 오류를 '언제 발견하느냐'입니다. 오류를 모른 채 일주일, 한 달이 지나 현장에 자재가 투입된 뒤에야 발견하면, JQPR 실패 비용이 커질 뿐 아니라 이미 나간 물량을 파악하고 후속 조치하는 데에도 많은 시간과 인력이 들어갑니다.">
+      <div class="sec">1  추진 배경</div>
+      <h1>문제는 '언제 발견하느냐'입니다</h1>
+      <p class="lead">오류를 모른 채 시간이 흘러 현장에 자재가 투입된 뒤 발견하면, 비용과 시간이 함께 커집니다</p>
+      <div class="body">
+        <figure>
+          <svg viewBox="0 0 1408 290" width="100%" role="img" aria-label="로직 수정 후 일주일, 한 달이 지나 현장 투입 후 발견할수록 수습 비용이 커진다">
+            <defs><marker id="ah5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5D6B79"/></marker></defs>
+            <path d="M120 196 C480 192 760 170 960 120 S1250 30 1330 18" fill="none" stroke="#C94040" stroke-width="3" opacity=".35"/>
+            <text x="1250" y="72" text-anchor="end" font-size="16" fill="#C94040">수습 비용 (개념)</text>
+            <line x1="120" y1="200" x2="1340" y2="200" stroke="#5D6B79" stroke-width="2" marker-end="url(#ah5)"/>
+            <line x1="136" y1="200" x2="1084" y2="200" stroke="#C94040" stroke-width="4" stroke-dasharray="10 8"/>
+            <rect x="440" y="214" width="380" height="30" rx="15" fill="#F8E2E2"/>
+            <text x="630" y="235" text-anchor="middle" font-size="17" font-weight="700" fill="#C94040">오류를 모른 채 시간이 흐르는 구간</text>
+            <circle cx="120" cy="200" r="16" fill="#0B8A50" stroke="#fff" stroke-width="4"/>
+            <circle cx="430" cy="200" r="11" fill="#fff" stroke="#8796A5" stroke-width="3"/>
+            <circle cx="760" cy="200" r="11" fill="#fff" stroke="#8796A5" stroke-width="3"/>
+            <circle cx="1100" cy="200" r="18" fill="#C94040" stroke="#fff" stroke-width="4"/>
+            <g text-anchor="middle">
+              <text x="120" y="160" font-size="18" font-weight="700" fill="#0B8A50">오류 발생</text>
+              <text x="120" y="282" font-size="22" font-weight="800" fill="#15212F">로직 수정</text>
+              <text x="430" y="170" font-size="20" font-weight="700" fill="#5D6B79">일주일 뒤</text>
+              <text x="760" y="170" font-size="20" font-weight="700" fill="#5D6B79">한 달 뒤</text>
+              <text x="1100" y="155" font-size="18" font-weight="700" fill="#C94040">이때서야 발견</text>
+              <text x="1100" y="282" font-size="22" font-weight="800" fill="#15212F">현장 자재 투입 후</text>
+            </g>
+          </svg>
+        </figure>
+        <div class="row" style="margin-top:26px;gap:24px">
+          <div class="card" style="flex:1;display:flex;gap:22px;align-items:center;padding:24px 28px">
+            <div style="width:56px;height:56px;border-radius:16px;background:var(--red-t);color:var(--red);display:grid;place-items:center;font-size:28px;font-weight:800;flex:none">₩</div>
+            <div><b style="font-size:23px">JQPR 실패 비용 증가</b><div class="small" style="font-size:18px;margin-top:4px">늦게 발견할수록 수습해야 할 범위가 넓어짐</div></div>
+          </div>
+          <div class="card" style="flex:1;display:flex;gap:22px;align-items:center;padding:24px 28px">
+            <div style="width:56px;height:56px;border-radius:16px;background:var(--red-t);color:var(--red);display:grid;place-items:center;font-size:26px;font-weight:800;flex:none">⏱</div>
+            <div><b style="font-size:23px">후속 조치에 시간 · 인력 소모</b><div class="small" style="font-size:18px;margin-top:4px">이미 나간 물량을 파악하고 대응하는 데 많은 시간이 듦</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="key">발견이 늦을수록, 수습 비용은 커집니다</div>
+      <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
+    </section>
+
+    <!-- ============ 6. FDC BENCHMARK ============ -->
+    <section class="slide v4" data-notes="저희는 이 문제의 해법을 반도체 공장의 이상 감지, FDC 시스템에서 찾았습니다. 반도체 라인은 수율 사고를 막기 위해 설비의 온도, 습도, 압력을 상시 모니터링하다가, 평소와 다른 미세한 패턴이 보이면 즉시 경고를 띄웁니다. 저희는 이 개념을 엘리베이터 BOM에 적용했습니다. 기준이 되는 대표 호기를 정해 두고, 핵심 부품의 자재와 수량이 얼마나 바뀌었는지를 마치 센서처럼 매일 추적합니다.">
+      <div class="sec">1  추진 배경 · 해법</div>
+      <h1>해법은 반도체 공장의 이상 감지(FDC)에서 찾았습니다</h1>
+      <p class="lead">반도체 라인은 수율 사고를 막기 위해 설비를 상시 감시합니다. 이 개념을 엘리베이터 BOM에 적용했습니다</p>
+      <div class="body">
+        <figure>
+          <svg viewBox="0 0 1408 400" width="100%" role="img" aria-label="반도체 FDC와 BOM FDC는 감시 대상, 데이터, 방식, 대응이 같은 구조다">
+            <defs>
+              <marker id="ag6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0B8A50"/></marker>
+              <marker id="an6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8796A5"/></marker>
+            </defs>
+            <g font-size="17" font-weight="700" fill="#5D6B79" text-anchor="middle">
+              <text x="360" y="22">무엇을 지켜보나</text><text x="660" y="22">무엇을 보나</text><text x="960" y="22">어떻게</text><text x="1260" y="22">이상하면</text>
+            </g>
+            <text x="0" y="112" font-size="22" font-weight="800" fill="#5D6B79">반도체 FDC</text>
+            <g fill="#fff" stroke="#DAE2DE">
+              <rect x="250" y="62" width="220" height="80" rx="14"/><rect x="550" y="62" width="220" height="80" rx="14"/><rect x="850" y="62" width="220" height="80" rx="14"/><rect x="1150" y="62" width="220" height="80" rx="14"/>
+            </g>
+            <g font-size="20" fill="#5D6B79" text-anchor="middle">
+              <text x="360" y="109">생산 설비</text><text x="660" y="109">온도 · 습도 · 압력</text><text x="960" y="109">상시 모니터링</text>
+              <text x="1260" y="98">미세한 패턴 감지</text><text x="1260" y="122">→ 즉시 경고</text>
+            </g>
+            <g stroke="#8796A5" stroke-width="2"><line x1="472" y1="102" x2="546" y2="102" marker-end="url(#an6)"/><line x1="772" y1="102" x2="846" y2="102" marker-end="url(#an6)"/><line x1="1072" y1="102" x2="1146" y2="102" marker-end="url(#an6)"/></g>
+            <g fill="#C3CDC8" font-size="30" text-anchor="middle"><text x="360" y="205">↓</text><text x="660" y="205">↓</text><text x="960" y="205">↓</text><text x="1260" y="205">↓</text></g>
+            <text x="0" y="200" font-size="16" fill="#8796A5">벤치마킹</text>
+            <text x="0" y="300" font-size="22" font-weight="800" fill="#0B8A50">BOM FDC</text>
+            <g fill="#E2F2E9" stroke="#0B8A50" stroke-width="2">
+              <rect x="250" y="246" width="220" height="90" rx="14"/><rect x="550" y="246" width="220" height="90" rx="14"/><rect x="850" y="246" width="220" height="90" rx="14"/><rect x="1150" y="246" width="220" height="90" rx="14"/>
+            </g>
+            <g font-size="21" font-weight="800" fill="#08643A" text-anchor="middle">
+              <text x="360" y="298">대표 호기</text><text x="660" y="286">핵심 부품의</text><text x="960" y="286">매일 추적</text><text x="1260" y="286">변동 감지</text>
+            </g>
+            <g font-size="16" fill="#08643A" text-anchor="middle"><text x="660" y="312">자재 · 수량</text><text x="960" y="312">(특정 일자 기준 비교)</text><text x="1260" y="312">→ 다음 날 경고</text></g>
+            <g stroke="#0B8A50" stroke-width="3"><line x1="472" y1="291" x2="546" y2="291" marker-end="url(#ag6)"/><line x1="772" y1="291" x2="846" y2="291" marker-end="url(#ag6)"/><line x1="1072" y1="291" x2="1146" y2="291" marker-end="url(#ag6)"/></g>
+            <text x="250" y="384" font-size="17" fill="#5D6B79">FDC = Fault Detection &amp; Classification  ·  이상을 찾아내고(Detection) 판정하는(Classification) 방식</text>
+          </svg>
+        </figure>
+      </div>
+      <div class="key">설비 대신 대표 호기를, 센서 대신 자재와 수량을 매일 추적합니다</div>
+      <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
+    </section>
+
+    <!-- ============ 6b. GOAL ============ -->
+    <section class="slide v4" data-notes="결국 이 시스템의 목적은 하나, 발견 시점을 앞당기는 것입니다. 한 달 뒤, 일주일 뒤 현장에서 문제가 터진 다음에 아는 것이 아니라, 문제가 생긴 바로 다음 날 시각화된 결과로 즉시 감지하는 것입니다. 설계자는 이상 여부를 한눈에 확인하고, 어떤 로직 변경 때문인지 빠르게 역추적하며, 그 결과는 AI가 보고서로 요약해 줍니다. 이를 통해 품질 리스크를 사전에 차단할 수 있습니다. 이것이 이번 프로젝트의 출발점입니다.">
+      <div class="sec">1  추진 배경 · 목표</div>
+      <h1>목표는 하나, 발견 시점을 앞당기는 것입니다</h1>
+      <p class="lead">현장에서 문제가 터진 뒤가 아니라, 문제가 생긴 바로 다음 날 감지합니다</p>
+      <div class="body">
+        <figure>
+          <svg viewBox="0 0 1408 210" width="100%" role="img" aria-label="발견 시점을 한 달 뒤, 일주일 뒤에서 바로 다음 날로 앞당긴다">
+            <defs><marker id="ag7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0B8A50"/></marker></defs>
+            <line x1="60" y1="120" x2="1350" y2="120" stroke="#C3CDC8" stroke-width="2"/>
+            <circle cx="100" cy="120" r="9" fill="#15212F"/>
+            <text x="100" y="168" text-anchor="middle" font-size="18" fill="#5D6B79">로직 수정</text>
+            <circle cx="320" cy="120" r="26" fill="#0B8A50"/>
+            <text x="320" y="128" text-anchor="middle" font-size="20" fill="#fff" font-weight="800">✓</text>
+            <text x="320" y="178" text-anchor="middle" font-size="24" font-weight="800" fill="#0B8A50">바로 다음 날</text>
+            <g opacity=".55">
+              <circle cx="820" cy="120" r="14" fill="#fff" stroke="#8796A5" stroke-width="3"/>
+              <text x="820" y="170" text-anchor="middle" font-size="20" fill="#5D6B79">일주일 뒤</text>
+              <circle cx="1240" cy="120" r="14" fill="#fff" stroke="#8796A5" stroke-width="3"/>
+              <text x="1240" y="170" text-anchor="middle" font-size="20" fill="#5D6B79">한 달 뒤</text>
+            </g>
+            <path d="M1220 100 C1000 50 600 50 352 100" fill="none" stroke="#0B8A50" stroke-width="3.5" stroke-dasharray="8 7" marker-end="url(#ag7)"/>
+            <text x="780" y="30" text-anchor="middle" font-size="19" font-weight="800" fill="#0B8A50">발견 시점 앞당기기</text>
+          </svg>
+        </figure>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:22px">
+          <div class="card"><div style="font-size:17px;font-weight:800;color:var(--green)">1</div><b style="font-size:24px;display:block;margin:6px 0 8px">한눈에 확인</b><div class="small" style="font-size:18px;line-height:1.5">설계자가 이상 변동 여부를 시각화된 결과로 바로 확인</div></div>
+          <div class="card"><div style="font-size:17px;font-weight:800;color:var(--green)">2</div><b style="font-size:24px;display:block;margin:6px 0 8px">원인 역추적 · AI 보고서</b><div class="small" style="font-size:18px;line-height:1.5">검증 분석으로 원인 로직을 찾고, AI가 보고서로 요약</div></div>
+          <div class="card" style="background:var(--green);border-color:transparent;color:#fff"><div style="font-size:17px;font-weight:800;color:#D5F3E2">3</div><b style="font-size:24px;display:block;margin:6px 0 8px">품질 리스크 사전 차단</b><div style="font-size:18px;line-height:1.5;color:#E7F7EE">현장에 나가기 전에 오류를 바로잡음</div></div>
+        </div>
+      </div>
+      <div class="key">이것이 이번 프로젝트의 출발점입니다</div>
+      <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
+    </section>
+
+    <!-- ═══════════ 7. 실시간 : 브랜드별 관리 현황 ═══════════ -->
+    <section class="slide live" data-live="brand" data-sec="40" data-notes="지금 보시는 것은 캡처가 아니라 실제 운영 화면입니다. 브랜드마다 몇 대의 호기, 몇 개의 블럭과 자재를 매일 지켜보고 있는지 한눈에 보입니다. (브랜드 카드 하나를 눌러) 카드를 누르면 화면 전체가 그 브랜드로 걸러집니다. (다시 눌러 전체로 되돌린 뒤 다음 장)">
+        <div class="lv-hd">
+            <div>
+                <div class="lv-tag"><i aria-hidden="true"></i>실시간 화면 1 / 5 <span>· 무엇을 지켜보나</span></div>
+                <h1>지금 이만큼의 BOM 을 매일 지켜보고 있습니다</h1>
+            </div>
+            <div class="lv-say"><b id="lvScale">브랜드별 호기 · 블럭 · 자재 규모</b><span>브랜드 카드를 누르면 그 브랜드만 걸러집니다</span></div>
+        </div>
+        <div class="mon">
+            <div class="mon-bar"><b>SENTINEL</b><span>COP 배치 변경 대시보드</span><code>/cop/dashboard</code><span class="sp"></span><span>브랜드별 관리 현황</span><button type="button" data-act="reset">처음 상태로</button><button type="button" data-act="demo">전체 화면으로</button></div>
+            <div class="mon-view"><div>실시간 화면을 불러오는 중입니다<small>/cop/dashboard</small></div></div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 8. 실시간 : 브랜드별 블럭 수량 추이 ═══════════ -->
+    <section class="slide live" data-live="trend" data-sec="45" data-notes="선 하나가 브랜드 하나이고, 날마다 저장된 수량 합계입니다. 노란 띠가 쳐진 날이 수량이 바뀐 날입니다. 사람이 찾지 않아도 화면이 먼저 알려줍니다. (블럭을 하나 골라) 블럭을 고르면 그 블럭만 따로 볼 수 있고, (바뀐 날 버튼을 눌러) 날짜를 누르면 그날이 기준일이 됩니다.">
+        <div class="lv-hd">
+            <div>
+                <div class="lv-tag"><i aria-hidden="true"></i>실시간 화면 2 / 5 <span>· 언제 바뀌었나</span></div>
+                <h1>수량이 바뀐 날은 화면이 먼저 알려줍니다</h1>
+            </div>
+            <div class="lv-say"><b>노란 띠 = 수량이 바뀐 날 · ▲ 늘어남 ▼ 줄어듦</b><span>블럭을 바꾸거나 바뀐 날짜를 눌러 봅니다</span></div>
+        </div>
+        <div class="mon">
+            <div class="mon-bar"><b>SENTINEL</b><span>COP 배치 변경 대시보드</span><code>/cop/dashboard</code><span class="sp"></span><span>브랜드별 블럭 수량 추이</span><button type="button" data-act="reset">처음 상태로</button><button type="button" data-act="demo">전체 화면으로</button></div>
+            <div class="mon-view"><div>실시간 화면을 불러오는 중입니다<small>/cop/dashboard</small></div></div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 9. 실시간 : 호기별 비교 결과 ═══════════ -->
+    <section class="slide live" data-live="result" data-sec="50" data-notes="마지막은 '그래서 무엇이 바뀌었나'입니다. (변동 있는 호기 한 줄을 눌러) 호기를 누르면 그날 바뀐 PICK 이 유형별로 나옵니다. 어떤 자재번호가 어떤 번호로 바뀌었는지, 수량이 몇에서 몇으로 바뀌었는지까지 보입니다. (원인 추적 버튼을 가리키며) 여기서 원인 추적으로 넘어가면 어느 PID 의 어느 라인이 바뀌어서 생긴 변동인지 거슬러 올라갑니다. (원인추적 버튼을 눌러) 버튼을 누르면 그 호기의 원인 추적 화면이 다음 장에 열립니다.">
+        <div class="lv-hd">
+            <div>
+                <div class="lv-tag"><i aria-hidden="true"></i>실시간 화면 3 / 5 <span>· 무엇이, 왜 바뀌었나</span></div>
+                <h1>호기를 누르면 바뀐 PICK 과 원인 추적으로 이어집니다</h1>
+            </div>
+            <div class="lv-say"><b>행 클릭 → 바뀐 PICK 상세 → 원인 추적</b><span>[원인추적] 버튼을 누르면 다음 장에 그 호기가 열립니다</span></div>
+        </div>
+        <div class="mon">
+            <div class="mon-bar"><b>SENTINEL</b><span>COP 배치 변경 대시보드</span><code>/cop/dashboard</code><span class="sp"></span><span>호기별 비교 결과</span><button type="button" data-act="reset">처음 상태로</button><button type="button" data-act="demo">전체 화면으로</button></div>
+            <div class="mon-view"><div>실시간 화면을 불러오는 중입니다<small>/cop/dashboard</small></div></div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 10. 실시간 : 원인 추적 ═══════════ -->
+    <section class="slide live" data-live="cause" data-sec="50" data-notes="방금 본 변동을 원인까지 거슬러 올라가는 화면입니다. 왼쪽이 그날 바뀐 PICK 목록이고, 오른쪽이 추적 순서입니다. 저장된 이력에서 차이를 확인하고, 두 날짜를 기준일로 다시 실행해 같은 결과가 나오는지 봅니다. 그다음 날짜마다 실제로 쓰인 PID 버전을 비교해 버전이 바뀐 PID 를 찾고, 그 로직을 라인 단위로 맞대어 어느 라인이 달라졌는지 보여줍니다. 추정이 아니라 실제 로직을 다시 실행해 비교한 결과입니다. (오른쪽 위 AI 보고서 버튼을 눌러 다음 장으로)">
+        <div class="lv-hd">
+            <div>
+                <div class="lv-tag"><i aria-hidden="true"></i>실시간 화면 4 / 5 <span>· 원인 추적</span></div>
+                <h1>바뀐 PICK 을 PID 버전과 로직 라인까지 거슬러 올라갑니다</h1>
+            </div>
+            <div class="lv-say"><b>저장 이력 → 다시 실행 → PID 버전 → 로직 라인 → 결과값</b><span id="lvCause">왼쪽에서 PICK 을 고르면 그 PICK 을 추적합니다</span></div>
+        </div>
+        <div class="mon">
+            <div class="mon-bar"><b>SENTINEL</b><span>BOM 변동 원인 추적</span><code>/cop/trace/cause</code><span class="sp"></span><span>원인 추적</span><button type="button" data-act="reset">처음 상태로</button></div>
+            <div class="mon-view"><div>실시간 화면을 불러오는 중입니다<small>/cop/trace/cause</small></div></div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 11. 실시간 : AI 보고서 ═══════════ -->
+    <section class="slide live" data-live="report" data-sec="40" data-notes="같은 추적 결과를 보고서 형식으로 정리한 화면입니다. 원인 추적 화면의 AI 보고서 버튼으로 들어옵니다. 맨 위 핵심 요약에 무엇이 왜 바뀌었는지가 먼저 나오고, 이어서 변동 내용, 분석 근거, 원인 판정과 신뢰도, 권고 조치 순서로 이어집니다. 담당자는 이 한 장으로 상황을 파악하고, 인쇄하거나 PDF 로 저장해 공유할 수 있습니다. (아래로 내려 원인 판정과 권고 조치를 보여준 뒤 다음 장)">
+        <div class="lv-hd">
+            <div>
+                <div class="lv-tag"><i aria-hidden="true"></i>실시간 화면 5 / 5 <span>· AI 보고서</span></div>
+                <h1>추적 결과를 보고서 한 장으로 정리합니다</h1>
+            </div>
+            <div class="lv-say"><b>핵심 요약 → 변동 내용 → 분석 근거 → 원인 판정 → 권고 조치</b><span id="lvReport">원인 추적 화면의 [AI 보고서] 로 열립니다</span></div>
+        </div>
+        <div class="mon">
+            <div class="mon-bar"><b>SENTINEL</b><span>BOM 변동 원인 분석 보고서</span><code>/cop/trace/report</code><span class="sp"></span><span>AI 보고서</span><button type="button" data-act="reset">처음 상태로</button></div>
+            <div class="mon-view"><div>실시간 화면을 불러오는 중입니다<small>/cop/trace/report</small></div></div>
+        </div>
+    </section>
+
+    <!-- ============ 8a. ARCHITECTURE ============ -->
+    <section class="slide v4" data-notes="시스템 구조입니다. 매일 아침 8시에 배치가 자동으로 실행되어, PLM DB에서 로직 데이터를 가져와 대표 호기의 BOM을 시뮬레이션합니다. 그 결과는 저희가 자체 구축한 서버의 MS-SQL에 이력으로 저장되고, 사용자는 이상감지 시스템 화면에서 이 이력을 바탕으로 이상 여부를 확인합니다.">
+      <div class="sec">2  시스템 구성 · 아키텍처</div>
+      <h1>매일 아침 8시, 자동으로 계산하고 이력을 쌓습니다</h1>
+      <p class="lead">PLM의 로직 데이터로 BOM을 시뮬레이션하고, 자체 서버에 저장한 이력으로 결과를 보여줍니다</p>
+      <div class="body" style="bottom:150px">
+        <figure>
+          <svg viewBox="0 0 1408 440" width="100%" role="img" aria-label="매일 08시 배치가 PLM DB의 로직 데이터로 BOM을 시뮬레이션해 MS-SQL에 이력을 저장하고, 웹 화면이 이력을 조회해 사용자에게 보여준다">
+            <defs>
+              <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0B8A50"/></marker>
+              <marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#15212F"/></marker>
+            </defs>
+            <!-- user -->
+            <rect x="0" y="270" width="210" height="140" rx="18" fill="#15212F"/>
+            <circle cx="105" cy="310" r="18" fill="#7CF0B0"/>
+            <path d="M73 352 a32 22 0 0 1 64 0" fill="#7CF0B0"/>
+            <text x="105" y="380" text-anchor="middle" font-size="21" font-weight="800" fill="#fff">사용자</text>
+            <text x="105" y="400" text-anchor="middle" font-size="14" fill="#AFC0D0">설계자 · 담당자</text>
+            <!-- system -->
+            <rect x="330" y="20" width="560" height="410" rx="22" fill="#fff" stroke="#15212F" stroke-width="2"/>
+            <text x="360" y="62" font-size="23" font-weight="800" fill="#15212F">BOM 이상감지 시스템</text>
+            <rect x="360" y="86" width="500" height="150" rx="14" fill="#E2F2E9" stroke="#0B8A50" stroke-width="2"/>
+            <text x="384" y="130" font-size="22" font-weight="800" fill="#08643A">배치 · BOM 시뮬레이션</text>
+            <text x="384" y="162" font-size="16" fill="#2A3847">PLM 로직으로 대표 호기 BOM 계산 후 이력 저장</text>
+            <rect x="384" y="184" width="196" height="34" rx="17" fill="#0B8A50"/>
+            <text x="482" y="207" text-anchor="middle" font-size="16" font-weight="800" fill="#fff">⏰ 매일 08:00 자동 실행</text>
+            <rect x="360" y="262" width="500" height="148" rx="14" fill="#fff" stroke="#DAE2DE" stroke-width="1.5"/>
+            <text x="384" y="306" font-size="22" font-weight="800" fill="#15212F">웹 화면 · 이상 감지 결과</text>
+            <text x="384" y="338" font-size="16" fill="#5D6B79">저장된 이력으로 정상 · 경고 판정과</text>
+            <text x="384" y="362" font-size="16" fill="#5D6B79">원인 역추적 · AI 보고서를 보여줌</text>
+            <!-- PLM DB -->
+            <path d="M1060 50 v110 a120 20 0 0 0 240 0 v-110" fill="#F2F5F4" stroke="#15212F" stroke-width="2"/>
+            <ellipse cx="1180" cy="50" rx="120" ry="20" fill="#fff" stroke="#15212F" stroke-width="2"/>
+            <text x="1180" y="112" text-anchor="middle" font-size="24" font-weight="800" fill="#15212F">PLM DB</text>
+            <text x="1180" y="142" text-anchor="middle" font-size="16" fill="#5D6B79">로직 데이터</text>
+            <!-- MS-SQL -->
+            <path d="M1060 280 v110 a120 20 0 0 0 240 0 v-110" fill="#E2F2E9" stroke="#0B8A50" stroke-width="2"/>
+            <ellipse cx="1180" cy="280" rx="120" ry="20" fill="#fff" stroke="#0B8A50" stroke-width="2"/>
+            <text x="1180" y="340" text-anchor="middle" font-size="24" font-weight="800" fill="#08643A">MS-SQL</text>
+            <text x="1180" y="370" text-anchor="middle" font-size="16" fill="#08643A">자체 구축 서버 · 이력 저장</text>
+            <!-- flows -->
+            <line x1="1056" y1="120" x2="866" y2="140" stroke="#15212F" stroke-width="2.5" marker-end="url(#ak)"/>
+            <text x="962" y="112" text-anchor="middle" font-size="15" font-weight="700" fill="#15212F">① 로직 데이터 조회</text>
+            <line x1="866" y1="212" x2="1056" y2="300" stroke="#0B8A50" stroke-width="2.5" marker-end="url(#aa)"/>
+            <text x="990" y="236" text-anchor="start" font-size="15" font-weight="700" fill="#0B8A50">② 이력 저장</text>
+            <line x1="1056" y1="370" x2="866" y2="370" stroke="#0B8A50" stroke-width="2.5" marker-end="url(#aa)"/>
+            <text x="962" y="396" text-anchor="middle" font-size="15" font-weight="700" fill="#0B8A50">③ 이력 조회</text>
+            <line x1="356" y1="340" x2="214" y2="340" stroke="#15212F" stroke-width="2.5" marker-end="url(#ak)"/>
+            <text x="285" y="326" text-anchor="middle" font-size="15" font-weight="700" fill="#15212F">④ 결과 확인</text>
+          </svg>
+        </figure>
+      </div>
+      <div class="key">사람이 손대지 않아도, 매일 아침 BOM 변화의 이력이 쌓입니다</div>
+      <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
+    </section>
+
+    <!-- ============ 9b. AI REPORT ============ -->
+    <section class="slide v4" data-notes="역추적에 AI를 그대로 쓰면, AI는 그럴듯한 추정이나 사실과 다른 답, 이른바 할루시네이션을 낼 수 있습니다. BOM은 틀린 원인 하나가 곧 비용이 되는 영역이기 때문에, 저희는 원인 추적을 AI에 맡기지 않고 실제 로직과 영업사양 데이터를 직접 비교하는 실시간 검증 분석 기능을 개발했습니다. 그렇게 검증된 원인을, AI가 사람이 읽기 편한 보고서 형식으로 요약해 보여줍니다. 원인은 데이터로 검증하고, AI는 정리만 맡습니다.">
+      <div class="sec">2  시스템 구성 · 원인 역추적과 AI 보고서</div>
+      <h1>원인은 직접 검증하고, AI는 보고서로 정리합니다</h1>
+      <p class="lead">AI의 추정에 기대지 않고, 직접 개발한 실시간 검증 분석으로 찾은 원인만 AI가 읽기 쉽게 요약합니다</p>
+      <div class="body" style="bottom:150px">
+        <figure>
+          <svg viewBox="0 0 1408 420" width="100%" role="img" aria-label="AI에 원인 추적을 맡기면 할루시네이션 위험이 있어, 실시간 검증 분석으로 원인을 확인한 뒤 AI가 보고서로 요약한다">
+            <defs>
+              <marker id="vg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0B8A50"/></marker>
+              <marker id="vr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#C3CDC8"/></marker>
+            </defs>
+            <!-- Row A: AI only -->
+            <text x="0" y="62" font-size="19" font-weight="800" fill="#8796A5">AI에게</text>
+            <text x="0" y="88" font-size="19" font-weight="800" fill="#8796A5">맡기면</text>
+            <rect x="180" y="20" width="200" height="96" rx="14" fill="#fff" stroke="#DAE2DE"/>
+            <text x="280" y="75" text-anchor="middle" font-size="20" font-weight="700" fill="#8796A5">경고 항목</text>
+            <rect x="430" y="20" width="330" height="96" rx="14" fill="#fff" stroke="#DAE2DE"/>
+            <text x="595" y="75" text-anchor="middle" font-size="20" font-weight="700" fill="#8796A5">AI가 원인을 추정</text>
+            <rect x="810" y="20" width="598" height="96" rx="14" fill="#F8E2E2"/>
+            <circle cx="856" cy="68" r="20" fill="#C94040"/>
+            <path d="M848 60 L864 76 M864 60 L848 76" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
+            <text x="892" y="62" font-size="21" font-weight="800" fill="#C94040">단순 추정 · 할루시네이션 위험</text>
+            <text x="892" y="92" font-size="17" fill="#9A3A3A">그럴듯하지만 틀린 원인을 낼 수 있음</text>
+            <g stroke="#C3CDC8" stroke-width="2.5"><line x1="384" y1="68" x2="424" y2="68" marker-end="url(#vr)"/><line x1="764" y1="68" x2="804" y2="68" marker-end="url(#vr)"/></g>
+            <!-- divider -->
+            <line x1="0" y1="160" x2="1408" y2="160" stroke="#DAE2DE" stroke-dasharray="4 6"/>
+            <!-- Row B: BOM FDC -->
+            <text x="0" y="268" font-size="19" font-weight="800" fill="#0B8A50">BOM FDC</text>
+            <text x="0" y="294" font-size="19" font-weight="800" fill="#0B8A50">방식</text>
+            <rect x="180" y="232" width="200" height="96" rx="14" fill="#FBF0D3"/>
+            <text x="280" y="287" text-anchor="middle" font-size="20" font-weight="800" fill="#8A5F00">경고 항목</text>
+            <rect x="430" y="196" width="330" height="200" rx="16" fill="#0B8A50"/>
+            <rect x="450" y="212" width="92" height="28" rx="14" fill="#fff"/>
+            <text x="496" y="232" text-anchor="middle" font-size="14" font-weight="800" fill="#0B8A50">직접 개발</text>
+            <text x="450" y="276" font-size="23" font-weight="800" fill="#fff">실시간 검증 분석</text>
+            <g font-size="16" fill="#E7F7EE">
+              <text x="450" y="312">✓ 어떤 로직(PID)이 원인인지</text>
+              <text x="450" y="340">✓ 영업사양 값 중 무엇이 다른지</text>
+              <text x="450" y="368">✓ 로직의 어느 부분이 다른지</text>
+            </g>
+            <rect x="810" y="232" width="170" height="96" rx="14" fill="#fff" stroke="#0B8A50" stroke-width="2"/>
+            <text x="895" y="276" text-anchor="middle" font-size="19" font-weight="800" fill="#08643A">검증된</text>
+            <text x="895" y="302" text-anchor="middle" font-size="19" font-weight="800" fill="#08643A">원인</text>
+            <rect x="1030" y="232" width="210" height="96" rx="14" fill="#15212F"/>
+            <rect x="1048" y="244" width="40" height="24" rx="12" fill="#7CF0B0"/>
+            <text x="1068" y="261" text-anchor="middle" font-size="13" font-weight="800" fill="#15212F">AI</text>
+            <text x="1048" y="296" font-size="19" font-weight="800" fill="#fff">보고서 요약</text>
+            <text x="1048" y="318" font-size="14" fill="#AFC0D0">읽기 편한 형식으로</text>
+            <rect x="1290" y="232" width="118" height="96" rx="14" fill="#fff" stroke="#DAE2DE"/>
+            <text x="1349" y="287" text-anchor="middle" font-size="19" font-weight="800" fill="#15212F">담당자</text>
+            <g stroke="#0B8A50" stroke-width="3"><line x1="384" y1="280" x2="424" y2="280" marker-end="url(#vg)"/><line x1="764" y1="280" x2="804" y2="280" marker-end="url(#vg)"/><line x1="984" y1="280" x2="1024" y2="280" marker-end="url(#vg)"/><line x1="1244" y1="280" x2="1284" y2="280" marker-end="url(#vg)"/></g>
+          </svg>
+        </figure>
+      </div>
+      <div class="key">원인은 데이터로 검증하고, AI는 사람이 읽기 쉽게 정리만 합니다</div>
+      <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
+    </section>
+
+    <!-- ============ 10. DAILY CYCLE ============ -->
+    <section class="slide v4" data-notes="매일 아침 8시에 자동으로 돌고, 결과가 바로 나옵니다. 담당자는 경고 항목을 역추적으로 확인한 뒤 승인하거나 로직을 고치면 됩니다. 시험 호기는 사업부별 대표 사양과 수주가 많은 사양부터 고르고 점차 늘립니다.">
+      <div class="sec">2  시스템 구성 · 운영 방식 (안)</div>
+      <h1>매일 아침 자동으로 돌고, 결과를 바로 확인합니다</h1>
+      <p class="lead">아침 8시 배치가 대표 호기를 계산해 이력을 남기고, 담당자는 그 결과를 확인해 조치합니다</p>
+      <div class="body" style="bottom:150px">
+        <figure>
+          <svg viewBox="0 0 1408 300" width="100%" role="img" aria-label="아침 8시 자동 실행, 결과 리포트, 담당자 확인, 기준 갱신, 이력 쌓기의 하루 흐름">
+            <defs><linearGradient id="sky" x1="0" x2="1"><stop offset="0" stop-color="#15212F"/><stop offset=".38" stop-color="#2A3E55"/><stop offset=".5" stop-color="#E2F2E9"/><stop offset="1" stop-color="#F5F7F6"/></linearGradient></defs>
+            <rect x="0" y="0" width="1408" height="64" rx="32" fill="url(#sky)"/>
+            <text x="40" y="40" font-size="19" font-weight="800" fill="#AFC0D0">매일 08:00 · 자동 배치</text>
+            <text x="760" y="40" font-size="19" font-weight="800" fill="#08643A">업무 시간 · 확인과 조치</text>
+            <g>
+              <line x1="140" y1="64" x2="140" y2="96" stroke="#15212F" stroke-width="2"/>
+              <line x1="420" y1="64" x2="420" y2="96" stroke="#15212F" stroke-width="2"/>
+              <line x1="700" y1="64" x2="700" y2="96" stroke="#0B8A50" stroke-width="2"/>
+              <line x1="980" y1="64" x2="980" y2="96" stroke="#0B8A50" stroke-width="2"/>
+              <line x1="1260" y1="64" x2="1260" y2="96" stroke="#0B8A50" stroke-width="2"/>
+            </g>
+          </svg>
+        </figure>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:-196px">
+          <div class="card" style="background:var(--night);color:#fff;border-color:transparent"><div style="font-size:15px;color:#7CF0B0;font-weight:700">1</div><b style="font-size:23px;display:block;margin:6px 0">자동 실행</b><div style="font-size:17px;color:#C9D3E0;line-height:1.5">08:00 배치로 대표 호기 BOM 계산 · 이력 저장</div></div>
+          <div class="card"><div style="font-size:15px;color:var(--green);font-weight:700">2</div><b style="font-size:23px;display:block;margin:6px 0">결과 리포트</b><div class="small" style="font-size:17px;line-height:1.5">정상 · 경고 결과를 화면으로 제공</div></div>
+          <div class="card"><div style="font-size:15px;color:var(--green);font-weight:700">3</div><b style="font-size:23px;display:block;margin:6px 0">담당자 확인</b><div class="small" style="font-size:17px;line-height:1.5">경고는 역추적 · AI 보고서로 원인 확인 → 승인 또는 로직 수정</div></div>
+          <div class="card"><div style="font-size:15px;color:var(--green);font-weight:700">4</div><b style="font-size:23px;display:block;margin:6px 0">기준 갱신</b><div class="small" style="font-size:17px;line-height:1.5">승인된 BOM을 다음 비교의 기준으로 (미확인 변경은 계속 표시)</div></div>
+          <div class="card"><div style="font-size:15px;color:var(--green);font-weight:700">5</div><b style="font-size:23px;display:block;margin:6px 0">이력 쌓기</b><div class="small" style="font-size:17px;line-height:1.5">날짜별 변경 · 조치 이력으로 로직 변경 영향을 한눈에</div></div>
+        </div>
+        <div class="row" style="margin-top:22px;align-items:baseline;gap:30px;font-size:18px">
+          <b style="font-size:19px">어떤 호기로 시험하나요?</b>
+          <span><b class="g">사업부별 대표성</b> <span class="muted">NI · RM · 해외별 브랜드·용량·속도 조합</span></span>
+          <span><b class="g">주력 사양 우선</b> <span class="muted">수주 많은 사양부터</span></span>
+          <span><b class="g">단계적 확대</b> <span class="muted">점검 후 호기 추가</span></span>
+        </div>
+      </div>
+      <div class="key">매일 아침, 어제의 로직 변경이 BOM을 어떻게 바꿨는지 정리되어 있습니다</div>
+      <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
+    </section>
+
+    <!-- ============ 12. EFFECTS ============ -->
+    <section class="slide v4" data-notes="가장 큰 변화는 발견 시점입니다. 일주일, 한 달 뒤에야 드러나던 영향을 로직 수정 다음 날 아침에 찾습니다. 목표 수치는 현재 수준을 먼저 잰 뒤 정하겠습니다. 앞으로는 현재 5개인 이상 감지 품목을 단계적으로 확대하고, 이상이 감지되면 담당자에게 알림 메일이 자동 발송되도록 하겠습니다.">
+      <div class="sec">3  기대 효과 및 향후 계획</div>
+      <h1>BOM 오류를 뒷공정에 가기 전에 막습니다</h1>
+      <p class="lead">가장 큰 변화는 '언제 발견하느냐'입니다</p>
+      <div class="body" style="bottom:150px">
+        <figure>
+          <svg viewBox="0 0 1408 210" width="100%" style="max-height:190px" role="img" aria-label="발견 시점이 일주일·한 달 뒤에서 로직 수정 다음 날 아침으로 앞당겨진다">
+            <defs><marker id="as" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0B8A50"/></marker></defs>
+            <line x1="60" y1="110" x2="1340" y2="110" stroke="#C3CDC8" stroke-width="2"/>
+            <g font-size="18" fill="#5D6B79" text-anchor="middle">
+              <text x="100" y="196">로직 수정</text><text x="330" y="196">다음 날 아침</text><text x="860" y="196">일주일 · 한 달 뒤</text><text x="1240" y="196">현장 자재 투입</text>
+            </g>
+            <circle cx="100" cy="110" r="8" fill="#15212F"/><circle cx="1240" cy="110" r="8" fill="#C3CDC8"/>
+            <circle cx="860" cy="110" r="18" fill="#fff" stroke="#C94040" stroke-width="3"/>
+            <text x="860" y="160" text-anchor="middle" font-size="20" font-weight="800" fill="#C94040">기존 발견 시점</text>
+            <circle cx="330" cy="110" r="18" fill="#0B8A50"/>
+            <text x="330" y="160" text-anchor="middle" font-size="20" font-weight="800" fill="#0B8A50">도입 후 발견</text>
+            <path d="M835 96 C700 40 480 40 356 92" fill="none" stroke="#0B8A50" stroke-width="3" stroke-dasharray="7 6" marker-end="url(#as)"/>
+            <text x="596" y="40" text-anchor="middle" font-size="18" font-weight="700" fill="#0B8A50">발견 시점 앞당기기 (Shift-Left)</text>
+          </svg>
+        </figure>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1.05fr;gap:24px;margin-top:22px">
+          <div>
+            <div style="font-size:19px;font-weight:800;margin-bottom:8px">무엇이 좋아지나</div>
+            <table style="font-size:17px">
+              <tr style="border-bottom:1px solid var(--line)"><td style="padding:10px 0;font-weight:700;width:42%">품질 개선</td><td class="muted">빨리 찾고, 원인 추적 단순화</td></tr>
+              <tr style="border-bottom:1px solid var(--line)"><td style="padding:10px 0;font-weight:700">실패 비용 감소</td><td class="muted">재작업 · 현장 리스크 사전 차단</td></tr>
+              <tr style="border-bottom:1px solid var(--line)"><td style="padding:10px 0;font-weight:700">검증 체계 확보</td><td class="muted">판정 기준 표준화, 근거 확보</td></tr>
+              <tr style="border-bottom:1px solid var(--line)"><td style="padding:10px 0;font-weight:700">업무 부담 경감</td><td class="muted">반복 확인 감소, 핵심 업무 집중</td></tr>
+            </table>
+          </div>
+          <div>
+            <div style="font-size:19px;font-weight:800;margin-bottom:8px">이렇게 측정합니다</div>
+            <table style="font-size:17px">
+              <tr style="border-bottom:1px solid var(--line)"><td style="padding:10px 0;font-weight:700">조기 발견 건수</td><td class="muted">'경고' 판정 · 조치 건수</td></tr>
+              <tr style="border-bottom:1px solid var(--line)"><td style="padding:10px 0;font-weight:700">조치 소요 시간</td><td class="muted">감지부터 로직 수정까지</td></tr>
+              <tr style="border-bottom:1px solid var(--line)"><td style="padding:10px 0;font-weight:700">BOM 오류 · JQPR</td><td class="muted">도입 전후 비교</td></tr>
+            </table>
+            <div class="small" style="margin-top:8px;font-size:14px">※ 목표치는 현재 수준(Baseline)을 잰 뒤 설정</div>
+          </div>
+          <div style="background:var(--night);border-radius:18px;padding:22px 26px;color:#fff">
+            <div style="font-size:19px;font-weight:800;color:#7CF0B0;margin-bottom:12px">향후 계획</div>
+            <div style="display:flex;gap:14px;margin-bottom:16px"><b style="color:#7CF0B0;font-size:18px">1</b><div><b style="font-size:19px">이상 감지 품목 단계적 확대</b><div style="font-size:16px;color:#C9D3E0;margin-top:4px">현재 5개 품목 → 감시 대상 부품을 순차 추가</div></div></div>
+            <div style="display:flex;gap:14px"><b style="color:#7CF0B0;font-size:18px">2</b><div><b style="font-size:19px">담당자 알림 메일</b><div style="font-size:16px;color:#C9D3E0;margin-top:4px">이상 감지 시 담당자에게 자동 발송</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="key">빨리 찾을수록, 고치는 비용은 작아집니다</div>
+      <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
+    </section>
+
+    <!-- ============ 7. WORKFLOW ============ -->
+    <section class="slide v4" id="wf" data-notes="1단계 다섯 개 스텝은 개발을 마쳤습니다. 대표 호기를 복사해 최신 로직으로 BOM을 다시 계산하는 과정입니다. 2단계는 그 BOM을 저장하고 어제와 비교해 판정하고 알려주는 부분으로, 이것도 개발을 마쳤습니다.">
+      <div class="sec">부록 · 시스템 처리 단계</div>
+      <h1>두 단계로 '만들고 → 비교하고 → 알려줍니다'</h1>
+      <p class="lead">1단계에서 BOM을 자동으로 만들고, 2단계에서 어제와 비교해 이상을 찾아 알려줍니다</p>
+      <div class="body" style="bottom:170px">
+        <figure>
+          <svg viewBox="0 0 1408 400" width="100%" role="img" aria-label="1단계 BOM 자동 생성과 2단계 비교·판정, 열 개 스텝 모두 개발 완료">
+            <defs><marker id="aw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8796A5"/></marker></defs>
+            <!-- stage labels -->
+            <rect x="0" y="0" width="200" height="170" rx="16" fill="#0B8A50"/>
+            <text x="24" y="44" font-size="17" fill="#D5F3E2" font-weight="700">1단계</text>
+            <text x="24" y="80" font-size="23" fill="#fff" font-weight="800">BOM 자동으로</text>
+            <text x="24" y="110" font-size="23" fill="#fff" font-weight="800">만들기</text>
+            <rect x="24" y="126" width="98" height="30" rx="15" fill="#fff"/><text x="73" y="147" text-anchor="middle" font-size="15" font-weight="800" fill="#0B8A50">개발 완료</text>
+            <rect x="0" y="210" width="200" height="170" rx="16" fill="#15212F"/>
+            <text x="24" y="254" font-size="17" fill="#AFC0D0" font-weight="700">2단계</text>
+            <text x="24" y="290" font-size="23" fill="#fff" font-weight="800">비교하고</text>
+            <text x="24" y="320" font-size="23" fill="#fff" font-weight="800">알려주기</text>
+            <rect x="24" y="336" width="98" height="30" rx="15" fill="#0B8A50"/><text x="73" y="357" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">개발 완료</text>
+            <!-- steps row1 -->
+            <g>
+              <g font-size="16" fill="#5D6B79">
+              </g>
+            </g>
+          </svg>
+        </figure>
+      </div>
+      <div class="key" style="bottom:92px">'만들기 – 저장 – 비교 – 판정 – 결과 표시'가 매일 자동으로 도는 흐름을 모두 갖췄습니다</div>
+      <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
+    </section>
+
+</div></div>
+
+<!-- 실시간 화면 (슬라이드 밖에 고정, 위치만 옮김) -->
+<div id="live" class="livebox"><iframe title="COP 배치 변경 대시보드 실시간 화면"></iframe></div>
+<div id="liveCause" class="livebox"><iframe title="BOM 변동 원인 추적 실시간 화면"></iframe></div>
+<div id="liveReport" class="livebox"><iframe title="BOM 변동 원인 분석 보고서 실시간 화면"></iframe></div>
+<button type="button" id="demoBack" hidden>발표로 돌아가기<kbd>Esc</kbd></button>
+
+<div id="hint">← → 넘기기 · N 발표 노트 · D 전체 시연 · F 전체 화면 · T 타이머</div>
+<div id="notes" aria-live="off"></div>
+<nav id="floor" aria-label="슬라이드 이동">
+    <button type="button" id="prev" aria-label="이전 슬라이드">‹</button>
+    <div class="arr" aria-hidden="true"><span id="up">▲</span><span id="dn">▼</span></div>
+    <div><div class="no" id="num">01</div><div class="tot" id="tot">/ 16F</div></div>
+    <div class="clock" id="clock" title="T : 시작 · 멈춤 / 0 : 초기화"><b id="clk">0:00</b><span>/ 6:00</span></div>
+    <button type="button" id="next" aria-label="다음 슬라이드">›</button>
+</nav>
+
+<script>
+(function () {
+    'use strict';
+
+    const LOOKBACK = 14;          // 대시보드와 같은 범위를 세도록 기간 앞쪽을 더 불러오는 일수
+    const LIMIT = 360;            // 발표 제한 시간 (초)
+    const DASH = '/cop/dashboard';
+    const NONE = '(미지정)';
+
+    /* 실시간 장마다 남길 카드 : show = 카드 제목 id (그 카드의 section 만 남긴다), open = 접혀 있으면 펼칠 카드 id */
+    const FOCUS = {
+        brand:  { show: ['brTitle'] },
+        trend:  { show: ['trendTitle'] },
+        result: { show: ['tblTitle'] }
+    };
+    /* iframe 문서에 넣는 스타일 : 기간 조회 줄 · 보는 법 · 고르지 않은 카드를 숨긴다 (기준일 · 필터 줄은 남긴다) */
+    const PV_CSS =
+        'body.pv .nav-in, body.pv #guide, body.pv #truncNotice { display: none !important; }' +
+        'body.pv #dash > section:not([data-pv-on]) { display: none !important; }' +
+        'body.pv main.wrap { padding-top: 16px; padding-bottom: 24px; }' +
+        'body.pv .wrap { max-width: none; }';
+
+    const $ = id => document.getElementById(id);
+    const fmt = n => Number(n).toLocaleString('ko-KR');
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const pad = n => String(n).padStart(2, '0');
+    const ymd = d => d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+    const toDate = s => new Date(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8));
+    const addDays = (s, n) => { const d = toDate(s); d.setDate(d.getDate() + n); return ymd(d); };
+    const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isFinite(n) ? n : null; };
+
+    const S = { from: '', to: '' };
+
+    /* ════════════ 데이터 : 7장 규모 문구 · 10 ~ 11장 기본 사례 ════════════ */
+    /* 10 ~ 11장에 띄울 기본 사례 : 기간 안에서 가장 최근에 바뀐 PICK (같은 날이면 자재 교체 > 신규 · 제외 > 수량 변경).
+       비교 규칙은 copDashboard 와 같다 : 같은 호기 · 블럭을 바로 앞 저장일과 PICK 단위로 비교 */
+    function pickCase(series) {
+        let best = null;
+        series.forEach(s => {
+            const ds = Array.from(s.snaps.keys()).sort();
+            for (let i = 1; i < ds.length; i++) {
+                const date = ds[i], prev = ds[i - 1];
+                if (date < S.from || date > S.to) continue;
+                const a = s.snaps.get(prev), c = s.snaps.get(date);
+                new Set(Array.from(a.keys()).concat(Array.from(c.keys()))).forEach(pick => {
+                    const p = a.get(pick), n = c.get(pick), pNo = p ? p.partNo : '', nNo = n ? n.partNo : '';
+                    if (!pNo && !nNo) return;
+                    let rank = 1;
+                    if (!pNo || !nNo) rank = 2;
+                    else if (pNo !== nNo) rank = 3;
+                    else { const x = num(p.qty), y = num(n.qty); if (x != null && y != null ? x === y : String(p.qty) === String(n.qty)) return; }
+                    if (!best || date > best.date || (date === best.date && rank > best.rank)) best = { hogi: s.hogi, block: s.block, pick, date, prev, rank };
+                });
+            }
+        });
+        return best;
+    }
+
+    async function loadData() {
+        try {
+            const r = await fetch('/cop/dashboard/brand/history?from=' + addDays(S.from, -LOOKBACK) + '&to=' + S.to, { headers: { Accept: 'application/json' } });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok || !d.success) throw new Error(d.message || ('HTTP ' + r.status));
+            const ci = {};
+            d.columns.forEach((c, i) => { ci[c] = i; });
+            const dates = new Set(), hogis = new Map();      // hogis : 호기 → 가장 최근 저장일의 브랜드
+            const series = new Map();                        // 호기|블럭 → 저장일 → PICK → 자재번호 · 수량
+            d.rows.forEach(x => {
+                const hogi = x[ci.HOGI], block = x[ci.BLOCKNO], date = x[ci.BATCHDATE], pick = x[ci.PICK];
+                if (!hogi || !block || !date || !pick) return;
+                if (date >= S.from && date <= S.to) dates.add(date);
+                const h = hogis.get(hogi);
+                if (!h || date >= h.last) hogis.set(hogi, { last: date, brand: x[ci.BRAND] || NONE });
+                let s = series.get(hogi + '|' + block);
+                if (!s) { s = { hogi, block, snaps: new Map() }; series.set(hogi + '|' + block, s); }
+                let sn = s.snaps.get(date);
+                if (!sn) { sn = new Map(); s.snaps.set(date, sn); }
+                if (!sn.has(pick)) sn.set(pick, { partNo: x[ci.PARTNO], qty: x[ci.QTY] });
+            });
+            if (!dates.size) return;
+            const brands = new Set(Array.from(hogis.values(), h => h.brand));
+            $('lvScale').textContent = '호기 ' + fmt(hogis.size) + '대 · 브랜드 ' + brands.size + '개 · 저장 ' + dates.size + '회';
+            const k = pickCase(series);
+            if (k && !FRAMES.cause.q) setCase(new URLSearchParams({ hogi: k.hogi, date: k.date, prev: k.prev, block: k.block, pick: k.pick }).toString());
+        } catch (e) {
+            /* 발표는 그대로 진행한다 : 7장은 기본 문구를 두고, 10 ~ 11장은 9장의 [원인추적] 버튼으로 연다 */
+            if (window.console) console.warn('BOM 이력을 불러오지 못했습니다 :', e.message);
+        }
+    }
+
+    /* ════════════ v04 에서 옮긴 그림 ════════════ */
+    /* 3장 : 숲 (수많은 호기 BOM 가운데 두 곳만 달라진 모습) */
+    (function () {
+        const cols = 10, rows = 4, sx = 76, sy = 74, ox = 48, oy = 46;
+        const hi = { '1,6': '1', '3,2': '2' };
+        let g = '';
+        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+            const x = ox + c * sx + (r % 2 ? sx / 2 : 0), y = oy + r * sy, h = hi[r + ',' + c];
+            const col = h ? '#C98A00' : '#9DB8A9', dk = h ? '#8A5F00' : '#6F8C7C';
+            g += `<polygon points="${x},${y - 24} ${x - 17},${y + 10} ${x + 17},${y + 10}" fill="${col}"/><polygon points="${x},${y - 12} ${x - 20},${y + 20} ${x + 20},${y + 20}" fill="${col}"/><rect x="${x - 4}" y="${y + 20}" width="8" height="10" fill="${dk}"/>`;
+            if (h) g += `<circle cx="${x + 22}" cy="${y - 22}" r="13" fill="#fff" stroke="#C98A00" stroke-width="2.5"/><text x="${x + 22}" y="${y - 17}" text-anchor="middle" font-size="14" font-weight="800" fill="#8A5F00">${h}</text>`;
+        }
+        $('forest').innerHTML = `<svg viewBox="0 0 820 300" width="100%" role="img" aria-label="수많은 호기 BOM 가운데 일부 자재 변화가 눈에 띄지 않게 섞여 있음">${g}</svg>`;
+    })();
+    /* 16장 : 시스템 처리 단계 (스텝은 '이름|설명'. 대괄호를 겹쳐 쓰지 않으려고 문자열로 둔다) */
+    (function () {
+        const svg = $('wf').querySelector('svg');
+        const NS = 'http://www.w3.org/2000/svg';
+        const rows = [
+            { y: 0,   steps: ['WIP 생성|대표 호기 작업용 복사본', '동일정보 만들기|원본과 같은 테스트 호기', '속성값 변경|최초 설계 일자 등 갱신', '종속사양 산출|설계사양 입력값 계산', 'BOM 계산|최신 로직으로 BOM 계산'] },
+            { y: 210, steps: ['BOM 저장|날짜별로 BOM 보관', '어제와 비교|자재·수량·주석 변동', '이상 판정|정상 / 경고', '결과 리포트|결과 화면으로 제공', '자동 실행|매일 스케줄러로 수행'] }
+        ];
+        const el = (t, a, txt) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; svg.appendChild(e); return e; };
+        rows.forEach((r, ri) => r.steps.forEach((s, i) => {
+            const x = 236 + i * 236, w = 212, t = s.split('|');
+            el('rect', { x, y: r.y, width: w, height: 170, rx: 16, fill: '#E2F2E9', stroke: '#0B8A50', 'stroke-width': 2 });
+            el('text', { x: x + 20, y: r.y + 38, 'font-size': 17, 'font-weight': 800, fill: '#0B8A50' }, pad(ri * 5 + i + 1));
+            el('text', { x: x + w - 20, y: r.y + 38, 'font-size': 18, 'font-weight': 800, fill: '#0B8A50', 'text-anchor': 'end' }, '✓');
+            el('text', { x: x + 20, y: r.y + 90, 'font-size': 22, 'font-weight': 800, fill: '#15212F' }, t[0]);
+            el('text', { x: x + 20, y: r.y + 126, 'font-size': 16, fill: '#5D6B79' }, t[1]);
+            if (i < 4) el('line', { x1: x + w + 2, y1: r.y + 85, x2: x + 234, y2: r.y + 85, stroke: '#8796A5', 'stroke-width': 2, 'marker-end': 'url(#aw)' });
+        }));
+        /* 1단계 끝 → 2단계 시작 */
+        el('path', { d: 'M1280 172 C1280 192 330 188 330 206', fill: 'none', stroke: '#8796A5', 'stroke-width': 2, 'stroke-dasharray': '4 5', 'marker-end': 'url(#aw)' });
+    })();
+
+    /* ════════════ 실시간 화면 ════════════ */
+    /* 화면마다 iframe 하나 : dash = 대시보드 (7 ~ 9장), cause = 원인 추적 (10장), report = 분석 보고서 (11장)
+       q = 원인 추적 · 보고서에 넘기는 조건 (hogi · date · prev · block · pick), loaded = 마지막으로 불러온 주소 */
+    const FRAMES = {
+        dash:   { box: $('live'),       path: DASH },
+        cause:  { box: $('liveCause'),  path: '/cop/trace/cause',  q: '', css: '#lnkBack, #lnkCalc, #btnPrint { display: none !important; }' },
+        report: { box: $('liveReport'), path: '/cop/trace/report', q: '', css: '#lnkTrace { display: none !important; }' }
+    };
+    const ALL = Object.keys(FRAMES).map(k => { const f = FRAMES[k]; f.key = k; f.frame = f.box.querySelector('iframe'); f.loading = false; f.loaded = ''; return f; });
+    const frameOf = s => s.dataset.live ? (FRAMES[s.dataset.live] || FRAMES.dash) : null;
+    let demo = false;
+    /* mode=period : 9장 '호기별 비교 결과' 표를 '기간 전체' 보기로 연다 (이 값은 그 표에만 쓰인다) */
+    const dashUrl = () => DASH + '?' + new URLSearchParams({ from: S.from, to: S.to, mode: 'period' });
+    const urlOf = f => f === FRAMES.dash ? dashUrl() : (f.q ? f.path + '?' + f.q : '');
+    const fdoc = f => { try { return f.frame.contentDocument; } catch (e) { return null; } };
+    const fpath = f => { try { return f.frame.contentWindow.location.pathname; } catch (e) { return ''; } };
+    const queryOf = href => { const i = String(href || '').indexOf('?'); return i < 0 ? '' : href.slice(i + 1); };
+
+    function ensure(f) {
+        const url = urlOf(f);
+        if (!url || f.loading || (f.loaded === url && fpath(f) === f.path)) return;
+        f.loading = true;
+        f.loaded = url;
+        f.box.classList.remove('ready');
+        f.frame.src = url;
+    }
+
+    /* 원인 추적 · 보고서가 보여줄 변동을 정한다 (기본 사례, 또는 9장에서 누른 [원인추적] 버튼) */
+    function setCase(q) {
+        if (!q) return;
+        FRAMES.cause.q = FRAMES.report.q = q;
+        const p = new URLSearchParams(q), d = p.get('date') || '';
+        const label = '호기 ' + (p.get('hogi') || '-') + (d.length === 8 ? ' · ' + +d.slice(4, 6) + '/' + +d.slice(6, 8) + ' 변동' : '');
+        $('lvCause').textContent = label + ' 을 추적한 결과입니다';
+        $('lvReport').textContent = label + ' 의 분석 보고서입니다';
+    }
+    const goLive = key => { const i = slides.findIndex(s => s.dataset.live === key); if (i >= 0) show(i); };
+
+    /* iframe 문서가 새로 열릴 때마다 : 스타일을 넣고, 넘기기 키를 발표 화면으로 넘겨준다 */
+    function hook(f) {
+        const d = fdoc(f);
+        if (!d || !d.body) return;
+        if (!d.getElementById('pvStyle')) {
+            const st = d.createElement('style');
+            st.id = 'pvStyle'; st.textContent = f === FRAMES.dash ? PV_CSS : f.css;
+            d.head.appendChild(st);
+        }
+        /* 원인 추적 화면의 [보고서로 보기] 버튼은 발표에서 [AI 보고서] 로 보여준다 (원래 화면 파일은 그대로) */
+        if (f === FRAMES.cause) { const b = d.getElementById('lnkReport'); if (b) b.textContent = 'AI 보고서'; }
+        d.addEventListener('keydown', e => {
+            if (e.altKey || e.ctrlKey || e.metaKey) return;
+            if (e.target.closest && e.target.closest('input, select, textarea')) return;
+            const dr = d.getElementById('drawer');
+            if (dr && !dr.hidden) return;                       // 상세가 열려 있으면 대시보드가 키를 쓴다
+            if (e.key === 'Escape') { if (demo) closeDemo(); return; }
+            if (demo) return;
+            if (e.key === 'PageDown' || e.key === 'ArrowRight') { e.preventDefault(); show(cur + 1); }
+            else if (e.key === 'PageUp' || e.key === 'ArrowLeft') { e.preventDefault(); show(cur - 1); }
+        }, true);
+        /* 화면 안의 버튼을 다음 장으로 잇는다 : 대시보드 [원인추적] → 10장, 원인 추적 [AI 보고서] → 11장 */
+        d.addEventListener('click', e => {
+            if (demo || !e.target.closest) return;              // 전체 시연 중에는 원래대로 동작하게 둔다
+            const a = e.target.closest(f === FRAMES.dash ? 'a.btn-trace' : f === FRAMES.cause ? '#lnkReport' : null);
+            if (!a) return;
+            e.preventDefault(); e.stopPropagation();
+            const q = queryOf(a.getAttribute('href'));
+            if (f === FRAMES.dash) { setCase(q); goLive('cause'); }
+            else { if (q) FRAMES.report.q = q; goLive('report'); }
+        }, true);
+    }
+
+    /* 대시보드 : 그 장에서 설명하는 카드만 남긴다 */
+    function applyFocus() {
+        const d = fdoc(FRAMES.dash);
+        if (!d || !d.body || !d.getElementById('dash')) return;
+        const dr = d.getElementById('drawer'), x = d.getElementById('drClose');
+        if (dr && !dr.hidden && x && !demo) x.click();
+        const f = demo ? null : FOCUS[slides[cur].dataset.live || ''];
+        if (!f && !demo) return;                                // 대시보드 장이 아니면 그대로 둔다
+        d.body.classList.toggle('pv', !!f);
+        d.querySelectorAll('[data-pv-on]').forEach(n => n.removeAttribute('data-pv-on'));
+        if (f) {
+            f.show.forEach(id => { const n = d.getElementById(id), sec = n && n.closest('section'); if (sec) sec.setAttribute('data-pv-on', ''); });
+            (f.open || []).forEach(id => {
+                const card = d.getElementById(id), btn = d.querySelector('[data-fold="' + id + '"]');
+                if (card && btn && card.classList.contains('folded')) btn.click();
+            });
+        }
+        const w = FRAMES.dash.frame.contentWindow;
+        w.scrollTo(0, 0);
+        /* 숨겨져 있던 카드의 차트가 제 폭을 다시 잡도록 */
+        w.requestAnimationFrame(() => w.dispatchEvent(new w.Event('resize')));
+    }
+
+    function syncLive() {
+        const slot = slides[cur].querySelector('.mon-view');
+        const act = slot && !demo ? frameOf(slides[cur]) : null;
+        ALL.forEach(f => f.box.classList.toggle('on', f === act));
+        FRAMES.dash.box.classList.toggle('demo', demo);
+        $('demoBack').hidden = !demo;
+        if (act) {
+            const r = slot.getBoundingClientRect(), st = act.box.style;
+            st.left = r.left + 'px'; st.top = r.top + 'px';
+            st.width = r.width + 'px'; st.height = r.height + 'px';
+        }
+        /* 실시간 장에 들어서면 뒤에 나올 원인 추적 · 보고서도 미리 불러 둔다 (추적 계산에 시간이 걸린다) */
+        if (slot && !demo) ALL.forEach(ensure);
+        if (act && act !== FRAMES.dash && !act.q) slot.firstElementChild.innerHTML = '보여줄 변동을 아직 정하지 못했습니다<small>9장 표에서 [원인추적] 버튼을 누르면 그 호기로 열립니다</small>';
+        applyFocus();
+        if (!slot && !demo) { try { ALL.forEach(f => f.frame.blur()); window.focus(); } catch (e) { /* 무시 */ } }
+    }
+
+    function openDemo() {
+        demo = true;
+        ensure(FRAMES.dash);
+        syncLive();
+        try { FRAMES.dash.frame.focus(); } catch (e) { /* 무시 */ }
+    }
+    function closeDemo() {
+        demo = false;
+        ensure(FRAMES.dash);   // 다른 화면으로 갔다면 대시보드로 되돌려 둔다
+        syncLive();
+    }
+    /* [처음 상태로] : 지금 장의 화면을 다시 불러온다 */
+    function resetLive() {
+        const f = frameOf(slides[cur]) || FRAMES.dash;
+        f.loading = false; f.loaded = '';
+        ensure(f);
+    }
+
+    ALL.forEach(f => f.frame.addEventListener('load', () => {
+        const p = fpath(f);
+        if (!p || p === 'blank') return;
+        f.loading = false;
+        f.box.classList.add('ready');
+        hook(f);
+        if (f === FRAMES.dash) applyFocus();
+    }));
+
+    /* ════════════ 타이머 ════════════ */
+    const clock = { run: false, acc: 0, t0: 0, auto: false };
+    function tick() {
+        const s = Math.floor((clock.acc + (clock.run ? Date.now() - clock.t0 : 0)) / 1000);
+        $('clk').textContent = Math.floor(s / 60) + ':' + pad(s % 60);
+        $('clock').className = 'clock' + (s >= LIMIT ? ' over' : s >= LIMIT - 60 ? ' warn' : '');
+    }
+    function toggleClock() {
+        if (clock.run) { clock.acc += Date.now() - clock.t0; clock.run = false; }
+        else { clock.t0 = Date.now(); clock.run = true; }
+        tick();
+    }
+    function resetClock() { clock.run = false; clock.acc = 0; clock.auto = false; tick(); }
+    setInterval(tick, 500);
+
+    /* ════════════ 슬라이드 ════════════ */
+    const slides = Array.from(document.querySelectorAll('.slide')), N = slides.length;
+    const stage = $('stage'), notes = $('notes');
+    let cur = 0, booted = false;
+
+    function fit() {
+        stage.style.transform = 'scale(' + Math.min(innerWidth / 1600, innerHeight / 900) + ')';
+        if (booted) syncLive();
+    }
+    function show(i) {
+        i = Math.max(0, Math.min(N - 1, i));
+        const last = cur;
+        cur = i;
+        slides.forEach((s, k) => s.classList.toggle('on', k === i));
+        $('num').textContent = pad(i + 1);
+        $('tot').textContent = '/ ' + N + 'F';
+        $('up').classList.toggle('lit', cur > last);
+        $('dn').classList.toggle('lit', cur < last);
+        const sec = slides[i].dataset.sec;      // 권장 시간은 기존 장에만 있다
+        notes.innerHTML = '<b>발표 노트' + (sec ? ' · 권장 ' + esc(sec) + '초' : '') + '</b>' + esc(slides[i].dataset.notes || '');
+        try { history.replaceState(null, '', location.pathname + location.search + '#' + (i + 1)); } catch (e) { /* 무시 */ }
+        /* 표지를 처음 넘기는 순간 타이머 시작 */
+        if (booted && i > 0 && !clock.auto) { clock.auto = true; if (!clock.run) toggleClock(); }
+        syncLive();
+    }
+
+    addEventListener('resize', fit);
+    addEventListener('keydown', e => {
+        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        if (e.key === 'Escape') { if (demo) closeDemo(); return; }
+        if (demo) return;
+        const onCtl = e.target.closest && e.target.closest('button, a, input, select, textarea');
+        if (e.key === 'ArrowRight' || e.key === 'PageDown' || (!onCtl && (e.key === ' ' || e.key === 'Enter'))) { e.preventDefault(); show(cur + 1); }
+        else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(cur - 1); }
+        else if (e.key === 'Home') show(0);
+        else if (e.key === 'End') show(N - 1);
+        else if (e.key === 'n' || e.key === 'N') notes.classList.toggle('on');
+        else if (e.key === 'd' || e.key === 'D') openDemo();
+        else if (e.key === 't' || e.key === 'T') toggleClock();
+        else if (e.key === '0') resetClock();
+        else if (e.key === 'f' || e.key === 'F') {
+            if (document.fullscreenElement) document.exitFullscreen();
+            else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+        }
+    });
+    $('prev').addEventListener('click', () => show(cur - 1));
+    $('next').addEventListener('click', () => show(cur + 1));
+    $('demoBack').addEventListener('click', closeDemo);
+    document.addEventListener('click', e => {
+        const act = e.target.closest('[data-act]');
+        if (act) { if (act.dataset.act === 'demo') openDemo(); else resetLive(); }
+    });
+
+    /* 첫 화면 : URL ?from&to, 없으면 최근 30일. 숫자를 먼저 받고 나서 실시간 화면을 미리 불러 둔다 */
+    const qs = new URLSearchParams(location.search);
+    const ok = v => { const s = (v || '').replace(/-/g, ''); return /^\d{8}$/.test(s) ? s : ''; };
+    S.to = ok(qs.get('to')) || ymd(new Date());
+    S.from = ok(qs.get('from')) || addDays(S.to, -29);
+    fit();
+    show((parseInt(location.hash.slice(1), 10) || 1) - 1);
+    booted = true;
+    syncLive();
+    loadData().finally(() => { ensure(FRAMES.dash); syncLive(); });
+    setTimeout(() => $('hint').classList.add('off'), 8000);
+})();
+</script>
+</body>
+</html>

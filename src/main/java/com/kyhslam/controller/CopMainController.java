@@ -83,7 +83,7 @@ public class CopMainController {
     @GetMapping("/cop/dashboard/preview")
     public String dashboardPreview() {
         //return "thymeleaf/cop/copDashboardPreView";
-        return "thymeleaf/cop/copDashboardPreView_v01";
+        return "thymeleaf/cop/copDashboardPreView_v02";
     }
 
     /**
