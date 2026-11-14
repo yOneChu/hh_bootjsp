@@ -26,6 +26,11 @@
           PID 버전이 바뀌고 라인 차이가 있으면 → 로직 변경 (해당 라인)
           버전이 모두 같으면 → 지금 다시 실행하면 두 일자 결과가 같으므로, 저장 당시 영업사양(공사값) · 지정값 차이로 추정
         참고 : 다시 실행은 현재 영업사양을 쓴다. PICK 실행(simulatePidPick)의 자재수배 PID 는 최신 버전으로 실행된다.
+        버전 비고 : PID 버전마다 등록할 때 남긴 VARIANT_H.REMARKS (변경 사유). calcBlockQty 응답 asOfVersions[pid].remarks 로 받는다
+                    (SimPidRepositoryAsOf 가 기준일 버전을 고를 때 함께 읽음). 표시만 하며 원인 판정에는 쓰지 않는다.
+          · STEP 3 버전 표 : 두 날짜 버전마다 비고
+          · STEP 5 결과값 : 추적 대상 PID 의 두 버전 비고를 나란히
+          · 결론 아래 : 원인 PID 의 두 버전 비고
     -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
     <style>
@@ -177,6 +182,13 @@
         .cond { font-family: var(--mono); font-size: 12.5px; }
         .cond i { font-style: normal; color: var(--ink-3); }
         .links { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+        /* PID 버전 비고 (VARIANT_H.REMARKS) */
+        .rmk { margin-top: 4px; font: 500 13px/1.5 var(--sans); color: var(--ink-2); white-space: pre-wrap; overflow-wrap: anywhere; max-width: 420px; }
+        .rmk.A { color: var(--a); } .rmk.B { color: var(--b); }
+        .rmk.rmk-none { color: var(--ink-3); font-weight: 400; }
+        .pair .rmk { max-width: none; font-size: 14px; }
+        .verdict .v-rmk { margin-top: 10px; padding: 10px 14px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); font-size: 14px; white-space: pre-wrap; max-width: 90ch; }
+        .verdict .v-rmk b { display: block; margin-bottom: 2px; font-size: 12.5px; color: var(--ink-3); }
 
         .todo-card { padding: 16px 20px; }
         .todo-card h2 { font-size: 16px; font-weight: 750; }
@@ -212,6 +224,7 @@
         <p class="kick" id="vKick">원인 추적</p>
         <h1 id="vTitle">저장 이력을 불러오는 중입니다</h1>
         <p id="vSub">PLM_SIMUL_HOGIBOM</p>
+        <div class="v-rmk" id="vRemark" hidden></div>
         <div class="tags" id="vTags"></div>
     </section>
 
@@ -387,7 +400,16 @@
         $('vKick').textContent = kick;
         $('vTitle').innerHTML = title;
         $('vSub').textContent = sub;
+        $('vRemark').hidden = true;     // 버전 비고는 로직 변경 판정 때만 setRemark 로 다시 켠다
     }
+    /* 결론 아래 : 원인 PID 의 버전 비고 (label = 어느 PID 인지) */
+    function setRemark(label, text) {
+        $('vRemark').hidden = !text;
+        if (text) $('vRemark').innerHTML = '<b>' + esc(label) + '</b>' + esc(text);
+    }
+    /* 비고 (REMARKS) : 빈 값 · '-' 는 없음으로 본다 */
+    const rmkOf = v => { const s = str(v); return s === '-' ? '' : s; };
+    const rmkCell = (r, cls) => r ? '<div class="rmk ' + (cls || '') + '">' + esc(r) + '</div>' : '';
     function setTags(e) {
         const sp = H.spec || {};
         $('vTags').innerHTML = [ ['호기', P.hogi], ['브랜드', sp.brand], ['기종', sp.atyp], ['속도', sp.speed], ['용량', sp.acapa], ['블럭', e && e.block], ['PICK', e && e.pick],
@@ -465,7 +487,20 @@
         const elp = A.elpPid || B.elpPid || ('EL_P' + e.block);
         const target = isPart ? elp : (A.blockPid || e.block);
         verDiff.sort((x, y) => (y === target) - (x === target) || (y === elp) - (x === elp) || x.localeCompare(y));
-        const vt = (m, p) => m[p] ? (m[p].version == null ? '<i>그 날 버전 없음</i>' : 'v' + m[p].version + '<div class="cap">' + esc((m[p].regDate || '').slice(0, 16)) + '</div>') : '<i>실행 안 됨</i>';
+        /* 버전 비고 (VARIANT_H.REMARKS = 그 버전을 등록할 때 남긴 변경 사유) */
+        const vRm = (m, p) => m[p] && m[p].version != null ? rmkOf(m[p].remarks) : '';
+        const vt = (m, p) => m[p] ? (m[p].version == null ? '<i>그 날 버전 없음</i>' : 'v' + m[p].version + '<div class="cap">' + esc((m[p].regDate || '').slice(0, 16)) + '</div>' +
+            (rmkCell(vRm(m, p), '') || '<div class="rmk rmk-none">비고 없음</div>')) : '<i>실행 안 됨</i>';
+        /* 결론 아래 : 원인 PID 의 두 버전 비고 */
+        const showVerRemark = p => {
+            const a = vRm(vA, p), b = vRm(vB, p);
+            if (a || b) setRemark(p + ' 버전 비고 (VARIANT_H · 변경 사유)', 'v' + ver(vA, p) + ' (' + sd(e.prevDate) + ') : ' + (a || '비고 없음') + '\nv' + ver(vB, p) + ' (' + sd(e.date) + ') : ' + (b || '비고 없음'));
+        };
+        /* STEP 5 위 : 추적 대상 PID 의 두 버전 비고를 나란히 */
+        const verRmkPair = p => '<div class="pair"><div class="A"><small>' + sd(e.prevDate) + ' · ' + esc(p) + ' v' + esc(ver(vA, p)) + ' 비고</small>' + (rmkCell(vRm(vA, p), 'A') || '<div class="rmk rmk-none">비고 없음</div>') + '</div>' +
+            '<span class="neq" aria-hidden="true">→</span>' +
+            '<div class="B"><small>' + sd(e.date) + ' · ' + esc(p) + ' v' + esc(ver(vB, p)) + ' 비고</small>' + (rmkCell(vRm(vB, p), 'B') || '<div class="rmk rmk-none">비고 없음</div>') + '</div></div>' +
+            '<p class="cap">비고 = 그 PID 버전을 등록할 때 남긴 VARIANT_H.REMARKS 입니다. 두 날짜 사이에 건너뛴 중간 버전의 비고는 PID 변경 이력에서 확인하세요.</p>';
         const s3body = (pids.length ? kv([ ['실행된 PID', pids.length + '개'], ['버전이 바뀐 PID', verDiff.length + '개', verDiff.length > 0], ['추적 대상', target + (isPart ? ' (자재수배)' : ' (블럭 · 수량)')] ]) : '') +
             (verDiff.length ? '<div class="tbl-wrap"><table class="t"><thead><tr><th>PID</th><th>역할</th><th>' + sd(e.prevDate) + ' 버전</th><th>' + sd(e.date) + ' 버전</th></tr></thead><tbody>' +
                 verDiff.map(p => '<tr' + (p === target ? ' class="hot"' : '') + '><td class="m">' + esc(p) + '</td><td>' + (p === elp ? '자재수배 (자재번호 선택)' : p === (A.blockPid || e.block) ? '블럭 (수량 계산)' : '전처리 · 하위 PID') + '</td>' +
@@ -519,6 +554,7 @@
             if (!root) $('st2').className = 'step root';
             setVerdict('root', e.block + ' · PICK ' + e.pick, '<em>' + esc(verDiff[0]) + '</em> 의 버전이 v' + esc(ver(vA, verDiff[0])) + ' → v' + esc(ver(vB, verDiff[0])) + ' 로 바뀌었습니다',
                 '라인 단위 비교는 실패했습니다 (' + x.message + '). PID 시뮬레이터에서 두 버전을 직접 비교하세요.');
+            showVerRemark(verDiff[0]);
             todo(['PID 시뮬레이터에서 ' + target + ' v' + tv.a + ' 와 v' + tv.b + ' 비교', 'PID 변경 이력에서 ' + verDiff.join(', ') + ' 변경 사유 확인']);
             return;
         }
@@ -556,9 +592,10 @@
         const hasP = k => parts.some(p => str(mA[k]).includes(p) || str(mB[k]).includes(p)) || k.toUpperCase() === e.pick.toUpperCase() || k.toUpperCase() === 'QTY';
         rd.sort((x, y) => hasP(y) - hasP(x));
         step(4, 'done', rd.length ? '결과값 ' + keys.length + '개 중 ' + rd.length + '개가 다릅니다' : '결과값 ' + keys.length + '개가 모두 같습니다',
-            rd.length ? '<div class="tbl-wrap"><table class="t"><thead><tr><th>KEY</th><th>' + sd(e.prevDate) + ' (v' + tv.a + ')</th><th>' + sd(e.date) + ' (v' + tv.b + ')</th></tr></thead><tbody>' +
+            verRmkPair(target) +
+            (rd.length ? '<div class="tbl-wrap"><table class="t"><thead><tr><th>KEY</th><th>' + sd(e.prevDate) + ' (v' + tv.a + ')</th><th>' + sd(e.date) + ' (v' + tv.b + ')</th></tr></thead><tbody>' +
                 rd.slice(0, 20).map(k => '<tr' + (hasP(k) ? ' class="hot"' : '') + '><td class="m">' + esc(k) + '</td><td class="m A">' + (isCmtKey(k) ? cmtCell(mA[k]) : esc(vtxt(str(mA[k])))) + '</td><td class="m B">' + (isCmtKey(k) ? cmtCell(mB[k]) : esc(vtxt(str(mB[k])))) + '</td></tr>').join('') +
-                '</tbody></table></div>' + (rd.length > 20 ? '<p class="cap">외 ' + (rd.length - 20) + '개</p>' : '') : '');
+                '</tbody></table></div>' + (rd.length > 20 ? '<p class="cap">외 ' + (rd.length - 20) + '개</p>' : '') : ''));
 
         /* 원인 판정 2 : 로직 변경 */
         const targetChanged = tv.a !== tv.b;
@@ -569,6 +606,7 @@
             setVerdict('root', e.block + ' · PICK ' + e.pick + ' · 로직 변경',
                 '<em>' + esc(target) + '</em> 이(가) v' + esc(tv.a) + ' → v' + esc(tv.b) + (targetChanged ? ' 로 바뀌면서 ' : ' (하위 PID 버전 변경) 에서 ') + (where || '결과가 달라졌습니다'),
                 (isPart ? '자재번호를 고르는 자재수배 PID' : '수량을 계산하는 블럭 PID') + ' 를 두 날짜 버전으로 실행해 비교했습니다. 버전이 바뀐 PID ' + verDiff.length + '개 · 다른 라인 ' + D.rows.length + '개 · 다른 결과값 ' + rd.length + '개.');
+            showVerRemark(verDiff.includes(target) ? target : verDiff[0]);
             todo([target + ' v' + tv.b + ' 의 ' + (top ? '라인 ' + (top.noB != null ? top.noB : top.noA) : '변경 라인') + ' 변경 의도 확인 (PID 변경 이력 · 담당자)',
                   'PID 시뮬레이터에서 두 버전을 열어 ' + e.pick + ' 결과 확인',
                   '의도된 변경이면 다른 호기 영향 범위 확인, 아니면 PID 수정 후 다시 계산']);
@@ -577,6 +615,7 @@
             $('st2').className = 'step root';
             setVerdict('root', e.block + ' · PICK ' + e.pick, '<em>' + esc(verDiff[0]) + '</em> 의 버전이 v' + esc(ver(vA, verDiff[0])) + ' → v' + esc(ver(vB, verDiff[0])) + ' 로 바뀌었습니다',
                 target + ' 의 라인 판정은 같아, 버전이 바뀐 다른 PID(' + verDiff.join(', ') + ')가 원인일 가능성이 큽니다.');
+            showVerRemark(verDiff[0]);
             todo(verDiff.slice(0, 3).map(p => 'PID 시뮬레이터에서 ' + p + ' v' + ver(vA, p) + ' ↔ v' + ver(vB, p) + ' 비교').concat(['다시 계산해 ' + e.pick + ' 결과 재확인']));
         }
     }

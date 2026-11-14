@@ -112,7 +112,7 @@ public class CopService {
     /**
      * BOM 이상감지 대시보드 데이터 (PLM_SIMUL_HOGIBOM 일자별 실행결과 이력)
      * from / to : yyyyMMdd (비우면 오늘 기준 최근 30일). 행은 배열로 보내 응답 크기를 줄인다
-     *   columns : HOGI, BLOCKNO, BRAND, ATYP, SPEED, ACAPA, PICK, PARTNO, QTY, CMT, BATCHDATE
+     *   columns : HOGI, BLOCKNO, BRAND, ATYP, SPEED, ACAPA, PICK, PARTNO, QTY, CMT, BATCHDATE, PARTNAME(블럭 명칭)
      */
     public Map<String, Object> findBomHistory(String from, String to) throws Exception {
         DateTimeFormatter f = DateTimeFormatter.BASIC_ISO_DATE;
@@ -135,7 +135,7 @@ public class CopService {
         res.put("success", true);
         res.put("from", start.format(f));
         res.put("to", end.format(f));
-        res.put("columns", List.of("HOGI", "BLOCKNO", "BRAND", "ATYP", "SPEED", "ACAPA", "PICK", "PARTNO", "QTY", "CMT", "BATCHDATE"));
+        res.put("columns", List.of("HOGI", "BLOCKNO", "BRAND", "ATYP", "SPEED", "ACAPA", "PICK", "PARTNO", "QTY", "CMT", "BATCHDATE", "PARTNAME"));
         res.put("rows", rows);
         res.put("truncated", truncated);
         return res;
