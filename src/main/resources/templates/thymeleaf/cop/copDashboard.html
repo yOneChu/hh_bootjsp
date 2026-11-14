@@ -1747,7 +1747,7 @@
         const repSet = new Set(hp.repeat.map(p => p.block + '|' + p.pick));
         let html = '';
 
-        html += '<div class="dr-sec"><h3>저장 일자 선택 <small>' + P.dates.length + '일 · 숫자 = 바뀐 PICK · ← → 로 이동</small></h3><div class="dchips" id="drDays">' +
+        html += '<div class="dr-sec"><h3>저장 일자 선택 <small>' + P.dates.length + '일 · 숫자 = 바뀐 자재 · ← → 로 이동</small></h3><div class="dchips" id="drDays">' +
             P.dates.map(d => {
                 const y = hp.rows.get(d), cls = !y ? 'none' : y.status;
                 const v = !y ? '-' : y.status === 'base' ? '첫' : y.chg;
@@ -1756,53 +1756,53 @@
 
         html += '<div class="dr-stats">' +
             '<div class="dr-stat"><small>변동 발생</small><b>' + hp.chgDays + '<span style="font-size:13px;color:var(--ink-3)">/' + hp.cmpDays + '회</span></b></div>' +
-            '<div class="dr-stat"><small>누적 바뀐 PICK</small><b>' + fmt(hp.chgSum) + '</b></div>' +
+            '<div class="dr-stat"><small>누적 바뀐 자재</small><b>' + fmt(hp.chgSum) + '</b></div>' +
             '<div class="dr-stat"><small>평균 유지율</small><b>' + mtxt(hp.matchAvg, 2) + '</b></div>' +
-            '<div class="dr-stat"><small>자주 바뀌는 PICK</small><b>' + hp.repeat.length + '</b></div>' +
+            '<div class="dr-stat"><small>자주 바뀌는 자재</small><b>' + hp.repeat.length + '</b></div>' +
             '</div>';
-        html += '<div class="dr-sec"><h3>기간 일자별 변동 <small>막대를 누르면 그 일자 상세</small></h3><div class="chart-dr" id="chDrTrend" role="img" aria-label="' + esc(hp.key) + ' 일자별 변동 차트"></div></div>';
+        html += '<div class="dr-sec"><h3>일자별 바뀐 자재 수 <small>막대 높이 = 그날 바뀐 자재 건수 · 파란 막대 = 지금 보는 일자 · 누르면 그 일자 상세</small></h3><div class="chart-dr" id="chDrTrend" role="img" aria-label="' + esc(hp.key) + ' 일자별 변동 차트"></div></div>';
 
         html += '<div class="dr-sec"><h3>' + longDay(dr.date) + ' 비교 결과' + (x && x.prevDate ? ' <small>앞 저장 ' + longDay(x.prevDate) + ' 와 비교</small>' : '') + '</h3>';
         if (!x) {
             html += '<div class="info-box"><b>이 일자에는 저장되지 않았습니다</b>다른 일자를 골라 보세요.</div></div>';
         } else if (x.status === 'base') {
-            html += '<div class="info-box"><b>첫 저장</b>블럭 ' + x.blocks.length + '개 (' + esc(x.blocks.join(', ')) + ') 가 처음 저장되어 비교할 앞 일자가 없습니다. PICK ' + x.picks + '개 · 자재 ' + x.partsAll.size + '종.</div></div>';
+            html += '<div class="info-box"><b>첫 저장</b>블럭 ' + x.blocks.length + '개 (' + esc(x.blocks.join(', ')) + ') 가 처음 저장되어 비교할 앞 일자가 없습니다. 자재 ' + x.picks + '개 · 자재번호 ' + x.partsAll.size + '종.</div></div>';
         } else {
             const p = prevRowOf(hp, dr.date);
             const prevPicks = new Set(p ? p.events.map(e => e.block + '|' + e.pick) : []);
             html += '<div class="dr-stats">' +
-                '<div class="dr-stat"><small>바뀐 PICK</small><b>' + x.chg + (p && p.status !== 'base' && x.chg !== p.chg ? '<span style="font-size:12px;color:' + (x.chg > p.chg ? 'var(--alert)' : 'var(--ok)') + '"> ' + signed(x.chg - p.chg) + '</span>' : '') + '</b></div>' +
-                '<div class="dr-stat"><small>PICK 유지율</small><b>' + mtxt(x.match) + '</b></div>' +
+                '<div class="dr-stat"><small>바뀐 자재</small><b>' + x.chg + (p && p.status !== 'base' && x.chg !== p.chg ? '<span style="font-size:12px;color:' + (x.chg > p.chg ? 'var(--alert)' : 'var(--ok)') + '"> ' + signed(x.chg - p.chg) + '</span>' : '') + '</b></div>' +
+                '<div class="dr-stat"><small>자재 유지율</small><b>' + mtxt(x.match) + '</b></div>' +
                 '<div class="dr-stat"><small>자재 종류</small><b>' + signed(x.partsAfter - x.partsBefore) + '</b></div>' +
                 '<div class="dr-stat"><small>수량 합계</small><b>' + signed(Math.round((x.qtyAfter - x.qtyBefore) * 100) / 100) + '</b></div>' +
                 '</div>' +
-                '<p class="spec" style="margin-top:8px">저장 블럭 ' + x.blocks.length + '개 · 비교 ' + x.cmpBlocks + '개' + (x.baseBlocks.length ? ' · 첫 저장 ' + esc(x.baseBlocks.join(', ')) : '') + ' · 비교 PICK ' + x.cmpPicks + '개</p></div>';
+                '<p class="spec" style="margin-top:8px">저장 블럭 ' + x.blocks.length + '개 · 비교 ' + x.cmpBlocks + '개' + (x.baseBlocks.length ? ' · 첫 저장 ' + esc(x.baseBlocks.join(', ')) : '') + ' · 비교 자재 ' + x.cmpPicks + '개</p></div>';
             if (x.chg) {
                 html += '<div class="dr-sec"><h3>블럭별 변동</h3><div class="chart-dr" id="chDrawer" role="img" aria-label="블럭별 변동 차트"></div></div>';
                 const byBlk = new Map();
                 x.events.slice().sort((a, b) => a.block.localeCompare(b.block) || TYPES[a.type].rank - TYPES[b.type].rank || a.pick.localeCompare(b.pick, 'ko', { numeric: true }))
                     .forEach(e => { if (!byBlk.has(e.block)) byBlk.set(e.block, []); byBlk.get(e.block).push(e); });
-                html += '<div class="dr-sec"><h3>바뀐 PICK ' + x.chg + '건 <small><span class="flag" style="margin:0">자주 바뀜</span> 기간 중 2번 이상 바뀐 PICK · <span class="flag blue" style="margin:0">신규</span> 앞 저장 때는 변동이 없던 PICK</small></h3><div class="chg-list">' +
+                html += '<div class="dr-sec"><h3>바뀐 자재 ' + x.chg + '건 <small><span class="flag" style="margin:0">자주 바뀜</span> 기간 중 2번 이상 바뀐 자재 · <span class="flag blue" style="margin:0">신규</span> 앞 저장 때는 변동이 없던 자재</small></h3><div class="chg-list">' +
                     Array.from(byBlk.entries()).map(([b, list]) => '<div class="blk-hd">' + esc(b) + '<span>' + list.length + '건</span></div>' + list.map(e => {
                         const k = e.block + '|' + e.pick, rp = hp.picks.get(k);
                         const q = e.type === 'add' ? '<b>' + esc(e.nextQty || '-') + '</b>'
                             : e.type === 'del' ? '<s>' + esc(e.prevQty || '-') + '</s> → 0'
                             : '<s>' + esc(e.prevQty || '-') + '</s> → <b>' + esc(e.nextQty || '-') + '</b>' + (e.type === 'qty' ? ' <span style="color:' + (e.delta > 0 ? 'var(--brand)' : 'var(--alert)') + '">(' + signed(e.delta) + ')</span>' : '');
                         return '<div class="chg-row"><span class="tag ' + e.type + '">' + TYPES[e.type].label + '</span>' +
-                            '<div><div class="pn">PICK ' + esc(e.pick) + (repSet.has(k) ? '<span class="flag">자주 바뀜 ' + rp.dates.length + '회</span>' : '') + (p && p.status !== 'base' && !prevPicks.has(k) ? '<span class="flag blue">신규</span>' : '') + (e.revert ? '<span class="flag">예전 자재 복귀</span>' : '') + (e.jump ? '<span class="flag" style="background:var(--warn-bg);color:var(--warn)">수량 50%↑</span>' : '') + '</div>' +
+                            '<div><div class="pn">자재 ' + esc(e.pick) + (repSet.has(k) ? '<span class="flag">자주 바뀜 ' + rp.dates.length + '회</span>' : '') + (p && p.status !== 'base' && !prevPicks.has(k) ? '<span class="flag blue">신규</span>' : '') + (e.revert ? '<span class="flag">예전 자재 복귀</span>' : '') + (e.jump ? '<span class="flag" style="background:var(--warn-bg);color:var(--warn)">수량 50%↑</span>' : '') + '</div>' +
                             '<div class="nm mono">' + (e.type === 'swap' ? esc(e.prevNo) + ' → ' + esc(e.nextNo) : esc(e.nextNo || e.prevNo)) + (e.cmt ? ' · <span style="font-family:var(--sans)">' + esc(e.cmt) + '</span>' : '') + '</div></div>' +
                             '<div class="q">' + q + '<div style="margin-top:4px">' + traceLink(hp.key, e.date, e.prevDate, e.pick, e.block) + '</div></div></div>';
                     }).join('')).join('') + '</div></div>';
             } else {
-                html += '<div class="info-box ok"><b>변동 없음</b>비교한 블럭의 PICK · 자재 · 수량이 앞 저장 일자와 모두 같습니다.</div>';
+                html += '<div class="info-box ok"><b>변동 없음</b>비교한 블럭의 자재 · 수량이 앞 저장 일자와 모두 같습니다.</div>';
             }
         }
 
         if (hp.repeat.length) {
-            html += '<div class="dr-sec"><h3>기간 중 자주 바뀌는 PICK <small>' + hp.repeat.length + '개 · 칸 = 저장 일자</small></h3><div class="chg-list">' +
+            html += '<div class="dr-sec"><h3>기간 중 자주 바뀌는 자재 <small>' + hp.repeat.length + '개 · 칸 = 저장 일자</small></h3><div class="chg-list">' +
                 hp.repeat.slice(0, 15).map(p => {
                     const on = new Set(p.dates);
-                    return '<div class="chg-row rep-row"><div><div class="pn">' + esc(p.block) + ' · PICK ' + esc(p.pick) + ' ' +
+                    return '<div class="chg-row rep-row"><div><div class="pn">' + esc(p.block) + ' · 자재 ' + esc(p.pick) + ' ' +
                         Array.from(p.types).map(t => '<span class="tag ' + t + '" style="padding:1px 6px">' + TYPES[t].label + '</span>').join(' ') + '</div>' +
                         '<div class="nm mono">최근 ' + shortDay(p.last.date) + ' : ' + esc(p.last.prevNo || '없음') + ' / ' + esc(p.last.prevQty || '-') + ' → ' + esc(p.last.nextNo || '없음') + ' / ' + esc(p.last.nextQty || '-') + '</div></div>' +
                         '<div class="q"><b>' + p.dates.length + '회</b><div class="rep-days" aria-hidden="true">' + P.dates.map(d => '<i class="' + (on.has(d) ? 'on' : '') + '"' + (d === dr.date ? ' style="outline:1px solid var(--brand)"' : '') + '></i>').join('') + '</div></div></div>';
@@ -1812,25 +1812,23 @@
         $('drBody').innerHTML = html;
 
         const ds = P.dates, si = ds.indexOf(dr.date);
+        /* 일자별 바뀐 자재 건수만 막대 하나로 보여준다 (유형별 내역은 툴팁과 아래 목록에서 확인) */
         chart('chDrTrend', {
-            chart: { alignTicks: false },
-            xAxis: { categories: ds.map(shortDay), labels: { style: { fontSize: '10.5px' } }, plotBands: [{ from: si - .5, to: si + .5, color: 'rgba(47,91,234,.1)' }] },
-            yAxis: [
-                { title: { text: null }, allowDecimals: false, min: 0, reversedStacks: false },
-                { title: { text: null }, opposite: true, max: 100, gridLineWidth: 0, labels: { format: '{value}%' } }
-            ],
-            tooltip: { shared: true, formatter: function () {
-                const d = ds[this.points[0].point.index], y = hp.rows.get(d);
+            chart: { type: 'column' },
+            xAxis: { categories: ds.map(shortDay), labels: { style: { fontSize: '10.5px' } } },
+            yAxis: { title: { text: null }, allowDecimals: false, min: 0 },
+            legend: { enabled: false },
+            tooltip: { formatter: function () {
+                const d = ds[this.point.index], y = hp.rows.get(d);
                 if (!y) return '<b>' + longDay(d) + '</b><br/>저장 안 됨';
                 if (y.status === 'base') return '<b>' + longDay(d) + '</b><br/>첫 저장 (비교 대상 없음)';
-                return '<b>' + longDay(d) + '</b> ↔ ' + shortDay(y.prevDate) + '<br/>변동 ' + y.chg + '건 (교체 ' + y.swap + ' · 신규 ' + y.add + ' · 제외 ' + y.del + ' · 수량 ' + y.qty + ')<br/>유지율 ' + mtxt(y.match, 2);
+                return '<b>' + longDay(d) + '</b> ↔ ' + shortDay(y.prevDate) + '<br/>바뀐 자재 ' + y.chg + '건<br/>(교체 ' + y.swap + ' · 신규 ' + y.add + ' · 제외 ' + y.del + ' · 수량 ' + y.qty + ')';
             } },
-            plotOptions: { column: { stacking: 'normal', borderWidth: 0, borderRadius: 2, pointPadding: .06, groupPadding: .06 },
+            plotOptions: { column: { borderWidth: 0, borderRadius: 2, pointPadding: .06, groupPadding: .06, minPointLength: 2,
+                    dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: '700', textOutline: 'none' } } },
                 series: { cursor: 'pointer', point: { events: { click: function () { dr.date = ds[this.index]; renderDrawer(true); } } } } },
-            series: TYPE_KEYS.map(k => ({ type: 'column', name: TYPES[k].label, color: TYPES[k].color,
-                    data: ds.map(d => { const y = hp.rows.get(d); return y && y.status !== 'base' ? y[k] : null; }) }))
-                .concat([{ type: 'line', name: '유지율', yAxis: 1, color: '#0B1220', lineWidth: 1.5, marker: { radius: 3 }, connectNulls: true,
-                    data: ds.map(d => { const y = hp.rows.get(d); return y && y.match != null ? Math.round(y.match * 100) / 100 : null; }) }])
+            series: [{ name: '바뀐 자재',
+                data: ds.map((d, i) => { const y = hp.rows.get(d); return { y: y && y.status !== 'base' ? y.chg : null, color: i === si ? '#2F5BEA' : '#B9C3D3' }; }) }]
         });
 
         if (x && x.chg) {

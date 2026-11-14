@@ -18,8 +18,8 @@
            9 실시간 : 호기별 비교 결과            (/cop/dashboard, [원인추적] 버튼 → 10장)
           10 실시간 : 원인 추적                  (/cop/trace/cause, [AI 보고서] 버튼 → 11장)
           11 실시간 : AI 보고서               (/cop/trace/report)
-          12 ~ 14 시스템 구성 : 아키텍처 · 원인 역추적과 AI 보고서 · 운영 방식
-          15 기대 효과 및 향후 계획      16 부록 : 시스템 처리 단계
+          12 ~ 13 시스템 구성 : 아키텍처 · 원인 역추적과 AI 보고서
+          14 기대 효과 및 향후 계획      15 부록 : 운영 방식(안)      16 부록 : 시스템 처리 단계
 
         실시간 화면 : copDashboard.html 은 고치지 않는다. 같은 출처의 iframe 하나를 미리 불러 두고,
                      장이 바뀔 때 iframe 문서에 스타일을 넣어 해당 카드만 남긴다 (FOCUS 표 참고).
@@ -186,7 +186,7 @@
 <div id="viewport"><div id="stage">
 
     <!-- ============ 1. TITLE ============ -->
-    <section class="slide v4 dark" data-notes="안녕하십니까, I&#x27;M BOM 팀입니다. 오늘 말씀드릴 내용은 한 문장으로 요약됩니다. 어제 고친 수배로직이 BOM을 이상하게 바꿨는지, 다음 날 아침에 자동으로 알려주는 시스템입니다. 지금까지는 이런 오류를 한 달 뒤, 현장에 자재가 들어간 다음에야 알았습니다. 저희는 그 시점을 다음 날 아침으로 당겼습니다. 본격적인 시스템 소개에 앞서, 저희가 왜 &#x27;BOM 이상감지 시스템&#x27;을 고민하게 되었는지 그 배경을 먼저 말씀드리겠습니다.">
+    <section class="slide v4 dark" data-notes="안녕하십니까, I&#x27;M BOM 팀입니다. 저희는 로직 수정이 BOM에 준 영향을, 한 달 뒤 현장이 아니라 다음 날 아침에 잡아내는 시스템을 만들었습니다. 먼저 배경부터 말씀드리겠습니다.">
       <div class="door l"></div><div class="door r"></div>
       <div style="position:absolute;left:96px;top:96px;font-size:20px;font-weight:700;color:#7CF0B0">BOM FDC 시스템 구축</div>
       <h1 style="position:absolute;left:96px;top:250px;font-size:84px;line-height:1.18;color:#fff">한 달 뒤 현장이 아니라,<br>다음 날 아침에 잡습니다</h1>
@@ -208,7 +208,7 @@
     </section>
 
     <!-- ============ 3. LOGIC NETWORK ============ -->
-    <section class="slide v4" data-notes="현재 저희 팀에서 관리하고 있는 설계 로직은 3,000개가 넘습니다. 물론 저희 로직 담당자들은 로직을 작성하고 수정할 때마다 꼼꼼하게 테스트를 거칩니다. 하지만 3,000개가 넘는 로직이 서로 유기적으로 얽혀 있다 보니, 오늘 수정한 로직 하나가 어제까지, 혹은 일주일 전까지 정상적으로 산출되던 다른 조건의 자재와 수량에 어떤 영향을 미쳤는지 매번 전수 검증하기란 현실적으로 어렵습니다. (오른쪽 &#x27;지금의 검증 범위&#x27; 카드를 가리키며) 정리하면, 수정한 로직은 테스트를 마치지만, 그 영향을 받는 전체 자재와 수량은 확인되지 않은 채 남아 있습니다.">
+    <section class="slide v4" data-notes="저희 팀이 관리하는 설계 로직은 3,000개가 넘습니다. 담당자들은 수정할 때마다 꼼꼼히 테스트합니다. 하지만 로직이 서로 얽혀 있다 보니, 수정 하나가 다른 조건의 자재와 수량에 어떤 영향을 미쳤는지 매번 전수 검증하기는 현실적으로 어렵습니다.">
       <div class="sec">1  추진 배경</div>
       <h1>3,000개가 넘는 로직이 서로 얽혀 있습니다</h1>
       <p class="lead">수정할 때마다 꼼꼼히 테스트하지만, 그 수정이 어제·일주일 전까지 정상 산출되던 다른 조건의 자재와 수량에 미친 영향까지 매번 전수 검증하기는 어렵습니다</p>
@@ -274,7 +274,7 @@
     </section>
 
     <!-- ============ 4. TREE vs FOREST ============ -->
-    <section class="slide v4" data-notes="특히 수량 계산 로직에 미세한 오류가 생겨, 특정 자재가 평소보다 더 많이 나가거나 다른 자재로 바뀌더라도, 실제 호기들은 현장마다 사양이 제각각이라 당장 눈에 띄지 않습니다. (① ② 예시를 가리키며) 예를 들어 자재 B가 2개에서 3개로 늘거나, 자재 C가 자재 D로 바뀌는 식입니다. 비유하자면, 당장 눈앞에서 수정하는 &#x27;나무&#x27; 하나는 집중해서 보고 있었지만, 전체 BOM 데이터가 어떻게 변하고 있는지 &#x27;숲&#x27; 전체의 흐름은 보지 못했던 것입니다. 그렇다면 이렇게 보이지 않는 오류는 결국 언제 드러날까요?">
+    <section class="slide v4" data-notes="특히 수량 계산 로직에 미세한 오류가 생겨 자재가 더 많이 나가거나 다른 자재로 바뀌어도, 현장마다 사양이 제각각이라 당장 눈에 띄지 않습니다. 수정하는 &#x27;나무&#x27;는 보았지만, 전체 BOM이라는 &#x27;숲&#x27;의 흐름은 보지 못했던 것입니다.">
       <div class="sec">1  추진 배경</div>
       <h1>나무는 보았지만, 숲은 보지 못했습니다</h1>
       <p class="lead">수량 계산 로직의 미세한 오류는, 현장마다 호기 사양이 제각각이라 당장 눈에 띄지 않습니다</p>
@@ -311,7 +311,7 @@
     </section>
 
     <!-- ============ 5. WHEN FOUND ============ -->
-    <section class="slide v4" data-notes="문제는 이 오류를 언제 발견하느냐입니다. (타임라인을 왼쪽에서 오른쪽으로 짚으며) 로직을 수정한 순간 오류는 이미 생겼습니다. 하지만 아무도 모른 채 일주일, 한 달이 흐르고, 현장에 자재가 투입된 뒤에야 발견됩니다. 이때 생기는 손실은 두 가지입니다. 첫째, JQPR 실패 비용이 커집니다. 늦게 발견할수록 수습해야 할 범위가 넓어지기 때문입니다. 둘째, 이미 나간 물량을 파악하고 후속 조치하는 데 많은 시간과 인력이 들어갑니다. 발견이 늦을수록, 수습 비용은 커집니다. 그래서 저희는 &#x27;오류를 없애는 것&#x27;뿐 아니라 &#x27;오류를 빨리 찾는 것&#x27;에 집중했고, 그 해법을 다른 산업에서 찾았습니다.">
+    <section class="slide v4" data-notes="(타임라인을 짚으며) 이런 오류는 일주일, 한 달 뒤 현장에 자재가 투입된 다음에야 드러납니다. 발견이 늦을수록 JQPR 실패 비용도, 후속 조치에 드는 시간과 인력도 커집니다.">
       <div class="sec">1  추진 배경</div>
       <h1>문제는 '언제 발견하느냐'입니다</h1>
       <p class="lead">오류를 모른 채 시간이 흘러 현장에 자재가 투입된 뒤 발견하면, 비용과 시간이 함께 커집니다</p>
@@ -355,7 +355,7 @@
     </section>
 
     <!-- ============ 6. FDC BENCHMARK ============ -->
-    <section class="slide v4" data-notes="저희는 해법을 반도체 공장의 이상 감지 시스템, FDC에서 찾았습니다. 반도체 라인은 수율 사고를 막기 위해 설비의 온도, 습도, 압력을 상시 모니터링합니다. 그러다 평소와 다른 미세한 패턴이 보이면 즉시 경고를 띄웁니다. 저희는 이 개념을 엘리베이터 BOM에 그대로 옮겼습니다. (위아래 줄을 번갈아 가리키며) 생산 설비 대신 → 기준이 되는 대표 호기를 정하고, 온도·압력 대신 → 핵심 부품의 자재와 수량을 보고, 상시 모니터링 대신 → 매일 특정 일자와 비교해 추적하고, 이상이 보이면 → 다음 날 경고합니다. 즉, 설비 대신 대표 호기를, 센서 대신 자재와 수량을 매일 추적합니다.">
+    <section class="slide v4" data-notes="해법은 반도체 공장의 이상 감지, FDC에서 찾았습니다. 반도체 라인이 설비를 상시 감시하듯, 저희는 설비 대신 대표 호기를, 센서 대신 핵심 자재와 수량을 매일 추적해, 평소와 다르면 다음 날 경고합니다.">
       <div class="sec">1  추진 배경 · 해법</div>
       <h1>해법은 반도체 공장의 이상 감지(FDC)에서 찾았습니다</h1>
       <p class="lead">반도체 라인은 수율 사고를 막기 위해 설비를 상시 감시합니다. 이 개념을 엘리베이터 BOM에 적용했습니다</p>
@@ -398,7 +398,7 @@
     </section>
 
     <!-- ============ 6b. GOAL ============ -->
-    <section class="slide v4" data-notes="결국 이 시스템의 목표는 하나, 발견 시점을 앞당기는 것입니다. 한 달 뒤, 일주일 뒤 현장에서 문제가 터진 다음에 아는 것이 아니라, 문제가 생긴 바로 다음 날 감지하는 것입니다. 이를 위해 세 가지를 갖췄습니다. 한눈에 확인 — 설계자가 이상 여부를 시각화된 결과로 바로 확인합니다. 원인 역추적과 AI 보고서 — 어떤 로직 변경 때문인지 검증 분석으로 찾고, AI가 보고서로 요약합니다. 품질 리스크 사전 차단 — 현장에 나가기 전에 오류를 바로잡습니다. 이것이 이번 프로젝트의 출발점입니다. 말씀으로만 설명드리기보다, 지금 실제로 운영 중인 화면을 직접 보여드리겠습니다.">
+    <section class="slide v4" data-notes="목표는 하나, 발견 시점을 앞당기는 것입니다. 지금부터 실제 운영 화면으로 보여드리겠습니다.">
       <div class="sec">1  추진 배경 · 목표</div>
       <h1>목표는 하나, 발견 시점을 앞당기는 것입니다</h1>
       <p class="lead">현장에서 문제가 터진 뒤가 아니라, 문제가 생긴 바로 다음 날 감지합니다</p>
@@ -433,7 +433,7 @@
     </section>
 
     <!-- ═══════════ 7. 실시간 : 브랜드별 관리 현황 ═══════════ -->
-    <section class="slide live" data-live="brand" data-sec="40" data-notes="지금 보시는 것은 캡처가 아니라 실제 운영 화면입니다. 저희는 대표 브랜드 5개를 정하고, 그 브랜드의 핵심 자재를 매일 이상감지하고 있습니다. 브랜드마다 몇 대의 호기와 몇 개의 블럭·자재를 지켜보고 있는지 한눈에 보입니다. (브랜드 카드 하나를 눌러) 카드를 누르면 화면 전체가 그 브랜드 기준으로 걸러집니다. (다시 눌러 전체로 되돌린 뒤) 그럼 이 BOM이 언제 바뀌었는지는 어떻게 알 수 있을까요?">
+    <section class="slide live" data-live="brand" data-sec="40" data-notes="캡처가 아니라 실제 운영 화면입니다. 저희는 대표 브랜드 5개의 핵심 자재를 매일 지켜보고 있습니다. (브랜드 카드는 누르지 않고 바로 다음 장)">
         <div class="lv-hd">
             <div>
                 <div class="lv-tag"><i aria-hidden="true"></i>실시간 화면 1 / 5 <span>· 무엇을 지켜보나</span></div>
@@ -448,7 +448,7 @@
     </section>
 
     <!-- ═══════════ 8. 실시간 : 브랜드별 블럭 수량 추이 ═══════════ -->
-    <section class="slide live" data-live="trend" data-sec="45" data-notes="선 하나가 브랜드 하나이고, 날마다 저장된 수량 합계입니다. (노란 띠를 가리키며) 노란 띠가 쳐진 날이 수량이 바뀐 날입니다. 사람이 찾지 않아도 화면이 먼저 알려줍니다. (블럭을 하나 골라) 블럭을 고르면 그 블럭만 따로 볼 수 있고, (바뀐 날 버튼을 눌러) 날짜를 누르면 그날이 비교 기준일이 됩니다. 바뀐 날을 찾았으니, 이제 &#x27;무엇이&#x27; 바뀌었는지 보겠습니다.">
+    <section class="slide live" data-live="trend" data-sec="45" data-notes="선 하나가 브랜드 하나, 날마다 저장된 수량 합계입니다. (노란 띠를 가리키며) 노란 띠가 수량이 바뀐 날입니다. 사람이 찾지 않아도 화면이 먼저 알려줍니다. (바뀐 날 버튼을 눌러) 날짜를 누르면 그날이 기준일이 됩니다.">
         <div class="lv-hd">
             <div>
                 <div class="lv-tag"><i aria-hidden="true"></i>실시간 화면 2 / 5 <span>· 언제 바뀌었나</span></div>
@@ -463,7 +463,7 @@
     </section>
 
     <!-- ═══════════ 9. 실시간 : 호기별 비교 결과 ═══════════ -->
-    <section class="slide live" data-live="result" data-sec="50" data-notes="(변동 있는 호기 한 줄을 눌러) 호기를 누르면 그날 바뀐 자재가 유형별로 나옵니다. 어떤 자재번호가 어떤 번호로 바뀌었는지, 수량이 몇에서 몇으로 바뀌었는지까지 보입니다. 앞에서 말씀드린 &#x27;숲&#x27;을, 이제 이렇게 숫자로 보게 된 것입니다. (원인 추적 버튼을 가리키며) 그렇다면 왜 바뀌었을까요? 원인 추적 버튼을 누르면 어느 로직이 바뀌어서 생긴 변동인지 거슬러 올라갑니다. (원인 추적 버튼을 눌러 다음 장으로)">
+    <section class="slide live" data-live="result" data-sec="50" data-notes="(변동 있는 호기 한 줄을 눌러) 그날 어떤 자재번호가 어떤 번호로, 수량이 몇에서 몇으로 바뀌었는지 보입니다. 앞에서 말씀드린 &#x27;숲&#x27;을, 이제 숫자로 보는 것입니다. (원인 추적 버튼을 눌러 다음 장으로)">
         <div class="lv-hd">
             <div>
                 <div class="lv-tag"><i aria-hidden="true"></i>실시간 화면 3 / 5 <span>· 무엇이, 왜 바뀌었나</span></div>
@@ -478,7 +478,7 @@
     </section>
 
     <!-- ═══════════ 10. 실시간 : 원인 추적 ═══════════ -->
-    <section class="slide live" data-live="cause" data-sec="50" data-notes="방금 본 변동을 원인까지 거슬러 올라가는 화면입니다. 왼쪽이 그날 바뀐 자재 목록이고, 오른쪽이 추적 순서입니다. 추적은 네 단계로 진행됩니다. 저장된 이력에서 차이를 확인하고, 두 날짜를 기준일로 다시 실행해 같은 결과가 나오는지 확인하고, 날짜마다 실제로 쓰인 PID 버전을 비교해 버전이 바뀐 PID를 찾고, 그 로직을 라인 단위로 맞대어 어느 라인이 달라졌는지 보여줍니다. 중요한 점은, 이것이 추정이 아니라 실제 로직을 다시 실행해 비교한 결과라는 것입니다. (오른쪽 위 AI 보고서 버튼을 눌러 다음 장으로)">
+    <section class="slide live" data-live="cause" data-sec="50" data-notes="이 변동을 원인까지 거슬러 올라갑니다. 두 날짜로 로직을 다시 실행해 결과를 확인하고, 버전이 바뀐 PID를 찾아, 어느 라인이 달라졌는지까지 보여줍니다. 추정이 아니라, 실제 로직을 다시 실행해 비교한 결과입니다. (오른쪽 위 AI 보고서 버튼을 눌러 다음 장으로)">
         <div class="lv-hd">
             <div>
                 <div class="lv-tag"><i aria-hidden="true"></i>실시간 화면 4 / 5 <span>· 원인 추적</span></div>
@@ -493,7 +493,7 @@
     </section>
 
     <!-- ═══════════ 11. 실시간 : AI 보고서 ═══════════ -->
-    <section class="slide live" data-live="report" data-sec="40" data-notes="같은 추적 결과를 보고서 형식으로 정리한 화면입니다. 맨 위 핵심 요약에 무엇이 왜 바뀌었는지가 먼저 나오고, 이어서 변동 내용, 분석 근거, 원인 판정과 신뢰도, 권고 조치 순서로 이어집니다. (아래로 내려 원인 판정과 권고 조치를 보여주며) 담당자는 이 한 장으로 상황을 파악하고, 인쇄하거나 PDF로 저장해 바로 공유할 수 있습니다. 지금까지 화면으로 보신 내용이 뒤에서 어떻게 돌아가는지 간단히 말씀드리겠습니다.">
+    <section class="slide live" data-live="report" data-sec="40" data-notes="이 결과를 보고서 한 장으로 정리합니다. (아래로 내려 원인 판정과 권고 조치를 보여주며) 무엇이 왜 바뀌었는지, 원인 판정과 권고 조치까지 담겨 있어 바로 공유할 수 있습니다.">
         <div class="lv-hd">
             <div>
                 <div class="lv-tag"><i aria-hidden="true"></i>실시간 화면 5 / 5 <span>· AI 보고서</span></div>
@@ -508,7 +508,7 @@
     </section>
 
     <!-- ============ 8a. ARCHITECTURE ============ -->
-    <section class="slide v4" data-notes="(① ~ ④ 순서대로 짚으며) 매일 아침 8시에 배치가 자동으로 실행됩니다. ① PLM DB에서 로직 데이터를 가져와 대표 호기의 BOM을 시뮬레이션하고, ② 그 결과를 저희가 자체 구축한 서버의 MS-SQL에 이력으로 저장합니다. ③ 화면은 이 이력을 불러와, ④ 설계자와 담당자가 이상 여부를 확인합니다. 핵심은 사람이 손대지 않아도, 매일 아침 BOM 변화의 이력이 쌓인다는 점입니다. 이 이력이 있기 때문에 앞에서 보신 비교와 원인 추적이 가능합니다. 그런데 방금 보고서를 AI가 만든다고 말씀드렸습니다. 그렇다면 AI가 틀린 원인을 내놓으면 어떻게 될까요?">
+    <section class="slide v4" data-notes="이 모든 과정은 매일 아침 8시에 자동으로 실행되고, 그 이력이 쌓입니다.">
       <div class="sec">2  시스템 구성 · 아키텍처</div>
       <h1>매일 아침 8시, 자동으로 계산하고 이력을 쌓습니다</h1>
       <p class="lead">PLM의 로직 데이터로 BOM을 시뮬레이션하고, 자체 서버에 저장한 이력으로 결과를 보여줍니다</p>
@@ -564,7 +564,7 @@
     </section>
 
     <!-- ============ 9b. AI REPORT ============ -->
-    <section class="slide v4" data-notes="(윗줄을 가리키며) 원인 추적을 AI에 그대로 맡기면, AI는 그럴듯하지만 사실과 다른 답, 이른바 할루시네이션을 낼 수 있습니다. BOM은 틀린 원인 하나가 곧 비용이 되는 영역입니다. (아랫줄을 가리키며) 그래서 저희는 원인 추적을 AI에 맡기지 않았습니다. 실제 로직과 영업사양 데이터를 직접 비교하는 실시간 검증 분석 기능을 직접 개발했습니다. 이 기능이 어떤 로직(PID)이 원인인지, 영업사양 값 중 무엇이 다른지, 로직의 어느 부분이 다른지를 확인합니다. 이렇게 검증된 원인만 AI에 넘기고, AI는 이를 사람이 읽기 편한 보고서로 요약합니다. 원인은 데이터로 검증하고, AI는 정리만 맡습니다.">
+    <section class="slide v4" data-notes="원인 추적은 AI에 맡기지 않았습니다. AI는 그럴듯하지만 틀린 답을 낼 수 있기 때문입니다. 원인은 직접 개발한 검증 분석으로 데이터로 확정하고, AI는 보고서 정리만 맡습니다.">
       <div class="sec">2  시스템 구성 · 원인 역추적과 AI 보고서</div>
       <h1>원인은 직접 검증하고, AI는 보고서로 정리합니다</h1>
       <p class="lead">AI의 추정에 기대지 않고, 직접 개발한 실시간 검증 분석으로 찾은 원인만 AI가 읽기 쉽게 요약합니다</p>
@@ -622,47 +622,8 @@
       <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
     </section>
 
-    <!-- ============ 10. DAILY CYCLE ============ -->
-    <section class="slide v4" data-notes="이 시스템을 실제 업무에 어떻게 녹일지에 대한 운영 방안입니다. (1 ~ 5 카드를 순서대로 짚으며) 아침 8시 배치가 대표 호기 BOM을 계산해 이력을 남깁니다. 정상·경고 결과가 화면으로 제공됩니다. 담당자는 경고 항목을 역추적과 AI 보고서로 확인한 뒤, 의도한 변경이면 승인하고, 오류면 로직을 고칩니다. 승인된 BOM은 다음 비교의 기준이 됩니다. 확인하지 않은 변경은 계속 표시되어 누락되지 않습니다. 날짜별 변경과 조치 이력이 쌓여, 로직 변경의 영향을 한눈에 볼 수 있습니다. 감시 대상 호기는 세 가지 원칙으로 고릅니다. NI·RM·해외 등 사업부별 대표성을 갖춘 조합, 수주가 많은 주력 사양부터 시작해, 점검 후 단계적으로 확대합니다. 결과적으로, 담당자가 아침에 출근하면 어제의 로직 변경이 BOM을 어떻게 바꿨는지 이미 정리되어 있습니다.">
-      <div class="sec">2  시스템 구성 · 운영 방식 (안)</div>
-      <h1>매일 아침 자동으로 돌고, 결과를 바로 확인합니다</h1>
-      <p class="lead">아침 8시 배치가 대표 호기를 계산해 이력을 남기고, 담당자는 그 결과를 확인해 조치합니다</p>
-      <div class="body" style="bottom:150px">
-        <figure>
-          <svg viewBox="0 0 1408 300" width="100%" role="img" aria-label="아침 8시 자동 실행, 결과 리포트, 담당자 확인, 기준 갱신, 이력 쌓기의 하루 흐름">
-            <defs><linearGradient id="sky" x1="0" x2="1"><stop offset="0" stop-color="#15212F"/><stop offset=".38" stop-color="#2A3E55"/><stop offset=".5" stop-color="#E2F2E9"/><stop offset="1" stop-color="#F5F7F6"/></linearGradient></defs>
-            <rect x="0" y="0" width="1408" height="64" rx="32" fill="url(#sky)"/>
-            <text x="40" y="40" font-size="19" font-weight="800" fill="#AFC0D0">매일 08:00 · 자동 배치</text>
-            <text x="760" y="40" font-size="19" font-weight="800" fill="#08643A">업무 시간 · 확인과 조치</text>
-            <g>
-              <line x1="140" y1="64" x2="140" y2="96" stroke="#15212F" stroke-width="2"/>
-              <line x1="420" y1="64" x2="420" y2="96" stroke="#15212F" stroke-width="2"/>
-              <line x1="700" y1="64" x2="700" y2="96" stroke="#0B8A50" stroke-width="2"/>
-              <line x1="980" y1="64" x2="980" y2="96" stroke="#0B8A50" stroke-width="2"/>
-              <line x1="1260" y1="64" x2="1260" y2="96" stroke="#0B8A50" stroke-width="2"/>
-            </g>
-          </svg>
-        </figure>
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:-196px">
-          <div class="card" style="background:var(--night);color:#fff;border-color:transparent"><div style="font-size:15px;color:#7CF0B0;font-weight:700">1</div><b style="font-size:23px;display:block;margin:6px 0">자동 실행</b><div style="font-size:17px;color:#C9D3E0;line-height:1.5">08:00 배치로 대표 호기 BOM 계산 · 이력 저장</div></div>
-          <div class="card"><div style="font-size:15px;color:var(--green);font-weight:700">2</div><b style="font-size:23px;display:block;margin:6px 0">결과 리포트</b><div class="small" style="font-size:17px;line-height:1.5">정상 · 경고 결과를 화면으로 제공</div></div>
-          <div class="card"><div style="font-size:15px;color:var(--green);font-weight:700">3</div><b style="font-size:23px;display:block;margin:6px 0">담당자 확인</b><div class="small" style="font-size:17px;line-height:1.5">경고는 역추적 · AI 보고서로 원인 확인 → 승인 또는 로직 수정</div></div>
-          <div class="card"><div style="font-size:15px;color:var(--green);font-weight:700">4</div><b style="font-size:23px;display:block;margin:6px 0">기준 갱신</b><div class="small" style="font-size:17px;line-height:1.5">승인된 BOM을 다음 비교의 기준으로 (미확인 변경은 계속 표시)</div></div>
-          <div class="card"><div style="font-size:15px;color:var(--green);font-weight:700">5</div><b style="font-size:23px;display:block;margin:6px 0">이력 쌓기</b><div class="small" style="font-size:17px;line-height:1.5">날짜별 변경 · 조치 이력으로 로직 변경 영향을 한눈에</div></div>
-        </div>
-        <div class="row" style="margin-top:22px;align-items:baseline;gap:30px;font-size:18px">
-          <b style="font-size:19px">어떤 호기로 시험하나요?</b>
-          <span><b class="g">사업부별 대표성</b> <span class="muted">NI · RM · 해외별 브랜드·용량·속도 조합</span></span>
-          <span><b class="g">주력 사양 우선</b> <span class="muted">수주 많은 사양부터</span></span>
-          <span><b class="g">단계적 확대</b> <span class="muted">점검 후 호기 추가</span></span>
-        </div>
-      </div>
-      <div class="key">매일 아침, 어제의 로직 변경이 BOM을 어떻게 바꿨는지 정리되어 있습니다</div>
-      <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
-    </section>
-
     <!-- ============ 12. EFFECTS ============ -->
-    <section class="slide v4" data-notes="가장 큰 변화는 발견 시점입니다. (타임라인을 가리키며) 일주일, 한 달 뒤에야 드러나던 영향을 로직 수정 다음 날 아침에 찾습니다. 이로써 네 가지가 좋아집니다. 품질 개선 — 빨리 찾고, 원인 추적이 단순해집니다. 실패 비용 감소 — 재작업과 현장 리스크를 사전에 차단합니다. 검증 체계 확보 — 판정 기준이 표준화되고, 근거가 남습니다. 업무 부담 경감 — 반복 확인이 줄어 핵심 업무에 집중할 수 있습니다. 효과는 조기 발견 건수, 감지부터 로직 수정까지의 조치 소요 시간, 도입 전후 BOM 오류와 JQPR 건수로 측정하겠습니다. 목표 수치는 현재 수준을 먼저 정확히 잰 뒤 설정하겠습니다. 향후에는 두 가지를 추진합니다. 대표 브랜드 5개를 기준으로, 감시 대상 핵심 자재를 순차적으로 확대하고, 이상이 감지되면 담당자에게 알림 메일이 자동 발송되도록 하겠습니다. 정리하겠습니다. 3,000개가 넘는 로직이 얽혀 있는 한, 로직 수정의 영향을 사람이 매번 전수 검증하기는 어렵습니다. 저희는 그 확인을 시스템이 매일 아침 대신하도록 만들었고, 원인까지 데이터로 검증해 보여드립니다. 빨리 찾을수록, 고치는 비용은 작아집니다. 감사합니다.">
+    <section class="slide v4" data-notes="가장 큰 변화는 발견 시점입니다. 한 달 뒤 현장에서 드러나던 오류를 다음 날 아침에 잡습니다. 효과는 조기 발견 건수, 조치 소요 시간, 도입 전후 JQPR로 측정하겠습니다. 앞으로 대표 브랜드 5개를 기준으로 감시 대상 핵심 자재를 순차 확대하고, 이상이 감지되면 알림 메일을 자동 발송하겠습니다. 빨리 찾을수록, 고치는 비용은 작아집니다. 감사합니다.">
       <div class="sec">3  기대 효과 및 향후 계획</div>
       <h1>BOM 오류, 현장에 나가기 전에 잡습니다</h1>
       <p class="lead">가장 큰 변화는 '언제 발견하느냐'입니다</p>
@@ -710,6 +671,45 @@
         </div>
       </div>
       <div class="key">빨리 찾을수록, 고치는 비용은 작아집니다</div>
+      <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
+    </section>
+
+    <!-- ============ 10. DAILY CYCLE ============ -->
+    <section class="slide v4" data-notes="[부록 · 질문이 나올 때만] 아침 8시 배치가 대표 호기 BOM을 계산하면, 담당자는 경고 항목을 원인 추적과 AI 보고서로 확인합니다. 의도한 변경이면 승인하고, 오류면 로직을 고칩니다. 승인된 BOM은 다음 비교의 기준이 되고, 확인하지 않은 변경은 계속 표시되어 누락되지 않습니다.">
+      <div class="sec">부록 · 운영 방식 (안)</div>
+      <h1>매일 아침 자동으로 돌고, 결과를 바로 확인합니다</h1>
+      <p class="lead">아침 8시 배치가 대표 호기를 계산해 이력을 남기고, 담당자는 그 결과를 확인해 조치합니다</p>
+      <div class="body" style="bottom:150px">
+        <figure>
+          <svg viewBox="0 0 1408 300" width="100%" role="img" aria-label="아침 8시 자동 실행, 결과 리포트, 담당자 확인, 기준 갱신, 이력 쌓기의 하루 흐름">
+            <defs><linearGradient id="sky" x1="0" x2="1"><stop offset="0" stop-color="#15212F"/><stop offset=".38" stop-color="#2A3E55"/><stop offset=".5" stop-color="#E2F2E9"/><stop offset="1" stop-color="#F5F7F6"/></linearGradient></defs>
+            <rect x="0" y="0" width="1408" height="64" rx="32" fill="url(#sky)"/>
+            <text x="40" y="40" font-size="19" font-weight="800" fill="#AFC0D0">매일 08:00 · 자동 배치</text>
+            <text x="760" y="40" font-size="19" font-weight="800" fill="#08643A">업무 시간 · 확인과 조치</text>
+            <g>
+              <line x1="140" y1="64" x2="140" y2="96" stroke="#15212F" stroke-width="2"/>
+              <line x1="420" y1="64" x2="420" y2="96" stroke="#15212F" stroke-width="2"/>
+              <line x1="700" y1="64" x2="700" y2="96" stroke="#0B8A50" stroke-width="2"/>
+              <line x1="980" y1="64" x2="980" y2="96" stroke="#0B8A50" stroke-width="2"/>
+              <line x1="1260" y1="64" x2="1260" y2="96" stroke="#0B8A50" stroke-width="2"/>
+            </g>
+          </svg>
+        </figure>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:-196px">
+          <div class="card" style="background:var(--night);color:#fff;border-color:transparent"><div style="font-size:15px;color:#7CF0B0;font-weight:700">1</div><b style="font-size:23px;display:block;margin:6px 0">자동 실행</b><div style="font-size:17px;color:#C9D3E0;line-height:1.5">08:00 배치로 대표 호기 BOM 계산 · 이력 저장</div></div>
+          <div class="card"><div style="font-size:15px;color:var(--green);font-weight:700">2</div><b style="font-size:23px;display:block;margin:6px 0">결과 리포트</b><div class="small" style="font-size:17px;line-height:1.5">정상 · 경고 결과를 화면으로 제공</div></div>
+          <div class="card"><div style="font-size:15px;color:var(--green);font-weight:700">3</div><b style="font-size:23px;display:block;margin:6px 0">담당자 확인</b><div class="small" style="font-size:17px;line-height:1.5">경고는 역추적 · AI 보고서로 원인 확인 → 승인 또는 로직 수정</div></div>
+          <div class="card"><div style="font-size:15px;color:var(--green);font-weight:700">4</div><b style="font-size:23px;display:block;margin:6px 0">기준 갱신</b><div class="small" style="font-size:17px;line-height:1.5">승인된 BOM을 다음 비교의 기준으로 (미확인 변경은 계속 표시)</div></div>
+          <div class="card"><div style="font-size:15px;color:var(--green);font-weight:700">5</div><b style="font-size:23px;display:block;margin:6px 0">이력 쌓기</b><div class="small" style="font-size:17px;line-height:1.5">날짜별 변경 · 조치 이력으로 로직 변경 영향을 한눈에</div></div>
+        </div>
+        <div class="row" style="margin-top:22px;align-items:baseline;gap:30px;font-size:18px">
+          <b style="font-size:19px">어떤 호기로 시험하나요?</b>
+          <span><b class="g">사업부별 대표성</b> <span class="muted">NI · RM · 해외별 브랜드·용량·속도 조합</span></span>
+          <span><b class="g">주력 사양 우선</b> <span class="muted">수주 많은 사양부터</span></span>
+          <span><b class="g">단계적 확대</b> <span class="muted">점검 후 호기 추가</span></span>
+        </div>
+      </div>
+      <div class="key">매일 아침, 어제의 로직 변경이 BOM을 어떻게 바꿨는지 정리되어 있습니다</div>
       <div class="foot">BOM FDC 시스템 구축 · I'M BOM</div>
     </section>
 
