@@ -290,7 +290,7 @@ public class CopUtil {
             con = connect();
 
             String sql = """
-                    SELECT TOP (?) HOGI, BLOCKNO, BRAND, ATYP, SPEED, ACAPA, PICK, PARTNO, QTY, CMT, BATCHDATE
+                    SELECT TOP (?) HOGI, BLOCKNO, BRAND, ATYP, SPEED, ACAPA, PICK, PARTNO, QTY, CMT, BATCHDATE, PARTNAME
                     FROM PLM_SIMUL_HOGIBOM
                     WHERE BATCHDATE BETWEEN ? AND ?
                       AND PICK IS NOT NULL AND PICK <> ''
@@ -303,7 +303,8 @@ public class CopUtil {
             pstmt.setNString(3, to);
             rs = pstmt.executeQuery();
 
-            String[] columns = {"HOGI", "BLOCKNO", "BRAND", "ATYP", "SPEED", "ACAPA", "PICK", "PARTNO", "QTY", "CMT", "BATCHDATE"};
+            // PARTNAME : 블럭(BLOCKNO) 명칭. 기존 화면이 열 순서에 기대지 않도록 맨 뒤에 붙인다
+            String[] columns = {"HOGI", "BLOCKNO", "BRAND", "ATYP", "SPEED", "ACAPA", "PICK", "PARTNO", "QTY", "CMT", "BATCHDATE", "PARTNAME"};
             while (rs.next()) {
                 String[] row = new String[columns.length];
                 for (int i = 0; i < columns.length; i++) {

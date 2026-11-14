@@ -11,7 +11,8 @@
         데이터 : PLM_SIMUL_HOGIBOM 일자별 실행결과 이력 (copBrandBomDashboard 와 같은 API)
                  GET /cop/dashboard/brand/history?from=yyyyMMdd&to=yyyyMMdd
                  columns : HOGI, BLOCKNO, BRAND(브랜드), ATYP(기종), SPEED(속도), ACAPA(용량),
-                           PICK(자재 수배 PICK), PARTNO(PICK 에 연결된 자재번호), QTY(수량), CMT, BATCHDATE
+                           PICK(자재 수배 PICK), PARTNO(PICK 에 연결된 자재번호), QTY(수량), CMT, BATCHDATE,
+                           PARTNAME(블럭 명칭 : 화면의 블럭번호 옆에 "B128A01 (명칭)" 으로 붙인다. 블럭마다 가장 최근 저장일의 값)
 
         비교 방법
           같은 호기 + BLOCKNO 를 바로 앞 저장 일자(BATCHDATE)와 PICK 단위로 비교한다.
@@ -25,6 +26,9 @@
         화면 구성 (숫자마다 "11/9 기준"(그날 하루) / "조회 기간"(기간 합) 표시를 붙인다)
           0. 상단 바        : 기간 조회 · 빠른 기간 · 기준일 이동 · 브랜드 / 기종 / 블럭(BLOCKNO) 필터
           1. 이 화면 보는 법 : 사용 순서와 용어 설명 (접기 가능, 브라우저에 기억)
+          1-1. 오늘의 판정 : 기준일 하루를 정상 / 주의 / 경고 한 줄로 (#verdict. 발표 화면에서도 보이도록 section 이 아닌 div)
+               정상 = 변동 없음 · 주의 = 수량만 바뀜 · 경고 = 자재가 바뀜(교체 · 신규 · 제외) 또는 수량 50% 이상 변경
+          2-1. 영향 범위 : 같은 날 같은 블럭 · PICK 이 호기 2대 이상에서 함께 바뀐 묶음 (기준일 / 조회 기간)
           2. 브랜드별 관리 현황 : 기준일 시점에 브랜드마다 관리 중인 호기 · 기종 · 블럭 · PICK · 자재 · 수량 (누르면 브랜드 필터)
           3. 브랜드별 블럭 수량 추이 : 고른 블럭(없으면 전체)의 QTY 합계를 브랜드별 선으로. 저장 안 된 날은 앞 저장값 유지
           4. 요약          : 기준일 수치 (직전 저장일 대비)
@@ -637,6 +641,67 @@
         }
         /* ════════════ [APPLE 스타일 끝] ════════════ */
 
+        /* 블럭 명칭 : 블럭번호(고정폭) 옆 괄호 */
+        .bnm { font-family: var(--sans); font-weight: 500; color: var(--ink-3); letter-spacing: 0; }
+
+        /* ════════════ 호기별 비교 결과 : 자재 변경 ════════════ */
+        .tbl-mat { --mc: var(--ok); --mb: var(--ok-bg); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 16px 28px 0; padding: 12px 16px; border-radius: 14px; background: var(--mb); color: var(--ink-2); font-size: 14px; }
+        .tbl-mat.alert { --mc: var(--alert); --mb: var(--alert-bg); }
+        .tbl-mat .ic { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--mc); color: #fff; font-weight: 800; font-size: 14px; }
+        .tbl-mat b { color: var(--mc); font-weight: 700; }
+        .tbl-mat .tag { padding: 1px 9px; }
+        .tbl-mat .sp { flex: 1; }
+        table.list tbody tr.mat-row td:first-child { box-shadow: inset 4px 0 0 var(--alert); }
+        .mat-cell { display: flex; flex-direction: column; gap: 5px; max-width: 520px; }
+        .mat-ln { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12.5px; }
+        .mat-ln .tag { flex: none; padding: 1px 8px; }
+        .mat-ln .dt { flex: none; font-size: 12px; font-weight: 600; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+        .mat-ln .w { flex: 0 1 auto; max-width: 210px; overflow: hidden; text-overflow: ellipsis; font: 600 12.5px var(--mono); }
+        .mat-ln .no { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); color: var(--ink-2); }
+        .mat-ln .no s { color: var(--ink-3); }
+        .mat-ln .no b { color: var(--alert); font-weight: 700; }
+        .mat-more { font-size: 12px; color: var(--ink-3); }
+        .mat-none { font-size: 12.5px; font-weight: 500; color: var(--ink-3); }
+        .chip.chip-mat .n { color: var(--alert); font-weight: 700; }
+        .chip.chip-mat[aria-pressed="true"] { background: var(--alert); }
+        .chip.chip-mat[aria-pressed="true"] .n { color: #fff; }
+
+        /* ════════════ 오늘의 판정 ════════════ */
+        .verdict { --vc: var(--ink-3); --vb: var(--fill); display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px; padding: 18px 28px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); border-left: 6px solid var(--vc); }
+        .verdict.ok    { --vc: var(--ok);    --vb: var(--ok-bg); }
+        .verdict.warn  { --vc: var(--warn);  --vb: var(--warn-bg); }
+        .verdict.alert { --vc: var(--alert); --vb: var(--alert-bg); }
+        .vd-lamp { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--vb); display: grid; place-items: center; }
+        .vd-lamp::before { content: ""; width: 16px; height: 16px; border-radius: 50%; background: var(--vc); }
+        .vd-main { flex: 1 1 340px; min-width: 0; }
+        .vd-lv { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink-3); }
+        .vd-lv b { padding: 2px 12px; border-radius: 999px; background: var(--vb); color: var(--vc); font-size: 14px; font-weight: 700; }
+        .vd-say { margin-top: 4px; font-size: 19px; font-weight: 700; letter-spacing: -.02em; line-height: 1.35; }
+        .vd-say em { font-style: normal; color: var(--vc); }
+        .vd-kpi { display: flex; flex-wrap: wrap; gap: 8px 26px; }
+        .vd-kpi dt { font-size: 12.5px; font-weight: 600; color: var(--ink-3); white-space: nowrap; }
+        .vd-kpi dd { font-size: 24px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .vd-kpi dd small { margin-left: 3px; font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--ink-3); }
+
+        /* ════════════ 영향 범위 ════════════ */
+        .sp-list { display: flex; flex-direction: column; }
+        .sp-row { display: grid; grid-template-columns: 92px minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 8px 18px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--hair); }
+        .sp-row:last-child { border-bottom: 0; }
+        .sp-n b { font-size: 28px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; }
+        .sp-n small { margin-left: 3px; font-size: 12.5px; font-weight: 600; color: var(--ink-3); white-space: nowrap; }
+        .sp-what .pn { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font: 600 13.5px var(--mono); }
+        .sp-what .nm { margin-top: 3px; font-size: 12.5px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sp-who .bar { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+        .sp-who .bar span { display: block; height: 100%; border-radius: 99px; background: var(--brand); }
+        .sp-brands { display: flex; flex-wrap: wrap; gap: 2px 10px; margin-top: 6px; font-size: 12.5px; color: var(--ink-2); }
+        .sp-brands b { font-weight: 600; color: var(--ink-3); }
+        .sp-act { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+        .sp-more { margin-top: 8px; font-size: 12.5px; color: var(--ink-3); }
+        @media (max-width: 900px) {
+            .sp-row { grid-template-columns: 72px minmax(0, 1fr); }
+            .sp-who, .sp-act { grid-column: 2; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
         }
@@ -729,7 +794,7 @@
                     <li><b>브랜드별 관리 현황</b>에서 브랜드마다 무엇이 관리되는지 봅니다. 카드를 누르면 그 브랜드만 봅니다.</li>
                     <li><b>블럭</b>을 고르면 <b>브랜드별 블럭 수량 추이</b>에서 그 블럭 수량이 날마다 어떻게 바뀌었는지 브랜드별로 비교됩니다.</li>
                     <li>카드 제목 옆 표시를 보세요. <span class="scope day">기준일</span> 은 그날 하루, <span class="scope period">조회 기간</span> 은 기간 전체 숫자입니다.</li>
-                    <li><b>호기별 일자 추적</b>에서 같은 호기가 날마다 어떻게 바뀌었는지 확인합니다.</li>
+                    <li hidden><b>호기별 일자 추적</b>에서 같은 호기가 날마다 어떻게 바뀌었는지 확인합니다.</li>
                 </ol>
             </div>
             <div>
@@ -741,6 +806,8 @@
                     <div><dt><span class="tag add" style="padding:1px 8px">신규 수배</span> · <span class="tag del" style="padding:1px 8px">수배 제외</span></dt><dd>앞 날에 없던 PICK 이 생김 / 있던 PICK 이 없어짐</dd></div>
                     <div><dt>PICK 유지율</dt><dd>비교한 PICK 중 앞 날과 똑같은 PICK 의 비율. 100% 면 하나도 안 바뀐 것</dd></div>
                     <div><dt>첫 저장</dt><dd>앞에 저장된 날이 없어 비교하지 못한 경우. 다음 저장부터 비교합니다</dd></div>
+                    <div><dt>오늘의 판정</dt><dd>정상 = 변동 없음 · 주의 = 수량만 바뀜 · 경고 = 자재가 바뀌었거나 수량이 50% 이상 바뀜</dd></div>
+                    <div hidden><dt>영향 범위</dt><dd>같은 날 같은 블럭 · PICK 이 함께 바뀐 호기 수. 로직 하나가 여러 호기에 번진 정도</dd></div>
                     <div><dt>연속 변동</dt><dd>저장할 때마다 연달아 바뀐 횟수. 일시적이 아닌 기준 변경일 수 있습니다</dd></div>
                     <div><dt>자주 바뀌는 PICK · 예전 자재 복귀</dt><dd>기간 중 2번 이상 바뀐 PICK / 바뀌었던 PICK 이 예전 자재번호로 돌아감</dd></div>
                 </dl>
@@ -758,6 +825,9 @@
     <div id="dash" hidden>
         <div class="notice" id="truncNotice" hidden>-</div>
 
+        <!-- ═══════════ 오늘의 판정 (발표 화면에서도 보이도록 section 이 아닌 div) ═══════════ -->
+        <div class="verdict" id="verdict" role="status"></div>
+
         <!-- ═══════════ 0. 브랜드별 관리 현황 ═══════════ -->
         <section class="card" aria-labelledby="brTitle">
             <div class="card-hd"><div><span class="eyebrow">01 · BRAND</span><h2 id="brTitle">브랜드별 관리 현황<span class="scope day" data-scope="day">-</span><button type="button" class="help" aria-label="설명" data-tip="기준일까지 저장된 마지막 BOM 으로, 브랜드마다 관리 중인 호기 · 기종 · 속도 · 용량 · 블럭 · PICK · 자재 · 수량을 셉니다. 카드를 누르면 그 브랜드만 보고, 다시 누르면 전체로 돌아갑니다.">?</button></h2><p id="brDesc">-</p></div></div>
@@ -771,12 +841,25 @@
                 <div class="tr-tools">
                     <label for="inTrBlock" class="lbl">블럭</label><select class="ctl mono" id="inTrBlock"><option value="">전체</option></select>
                     <div class="seg" role="group" aria-label="수량 기준">
-                        <button type="button" data-tq="sum" aria-pressed="true">수량 합계</button>
-                        <button type="button" data-tq="avg" aria-pressed="false">호기당 평균</button>
+                        <button type="button" data-tq="sum" aria-pressed="true">전체 브랜드</button>
+                        <button type="button" data-tq="chg" aria-pressed="false" title="조회 기간에 앞 날짜 대비 수량이 한 번이라도 바뀐 브랜드만 그립니다">수량 바뀐 브랜드만</button>
                     </div>
                 </div>
             </div>
             <div class="card-bd"><div class="chart-trend" id="chTrend" role="img"></div><div class="none" id="chTrendNone" hidden>조건에 맞는 수량 데이터가 없습니다.</div><div class="tr-days" id="trDays"></div><div class="tr-sum" id="trSum"></div></div>
+        </section>
+
+        <!-- ═══════════ 영향 범위 ═══════════ -->
+        <!-- [숨김] 영향 범위 · 호기별 일자 추적 · 주요 인사이트 : 다시 보이려면 이 세 section 과 보는 법의 해당 줄에서 hidden 만 지운다 -->
+        <section class="card" aria-labelledby="spTitle" hidden>
+            <div class="card-hd">
+                <div><h2 id="spTitle">영향 범위<span class="scope day" id="spScope">-</span><button type="button" class="help" aria-label="설명" data-tip="같은 날 같은 블럭 · PICK 이 호기 2대 이상에서 함께 바뀐 경우를 한 묶음으로 봅니다. 로직 하나를 고친 결과가 여러 호기에 동시에 번졌을 가능성이 큰 변동입니다. [호기 보기] 는 그 묶음의 첫 호기 상세를 엽니다.">?</button></h2><p id="spDesc">-</p></div>
+                <div class="seg" role="group" aria-label="영향 범위 보기">
+                    <button type="button" data-sp="day" aria-pressed="true">기준 일자</button>
+                    <button type="button" data-sp="period" aria-pressed="false">기간 전체</button>
+                </div>
+            </div>
+            <div class="card-bd" id="spread"></div>
         </section>
 
         <!-- ═══════════ 1. 요약 ═══════════ -->
@@ -810,7 +893,7 @@
         </section>
 
         <!-- ═══════════ 5. 호기 x 일자 ═══════════ -->
-        <section class="card folded" id="mxCard" aria-labelledby="mxTitle">
+        <section class="card folded" id="mxCard" aria-labelledby="mxTitle" hidden>
             <div class="card-hd">
                 <div><span class="eyebrow">03 · TRACKING</span><h2 id="mxTitle">호기별 일자 추적<span class="scope period">조회 기간</span><button type="button" class="help" aria-label="설명" data-tip="한 줄 = 한 호기, 한 칸 = 그 날 바뀐 PICK 수입니다. 진할수록 많이 바뀜 · 빨간 점 = 자재 교체 포함 · 점선 칸 = 첫 저장 · 줄무늬 = 그 날 저장 안 됨. 날짜를 누르면 기준일이, 칸을 누르면 상세가 바뀝니다.">?</button></h2><p id="mxDesc">-</p></div>
                 <div class="hd-tools">
@@ -826,7 +909,7 @@
         </section>
 
         <!-- ═══════════ 6. 인사이트 ═══════════ -->
-        <section class="card" aria-labelledby="insTitle">
+        <section class="card" aria-labelledby="insTitle" hidden>
             <div class="card-hd"><div><h2 id="insTitle">주요 인사이트<span class="scope day" data-scope="day">-</span></h2><p>기준일 숫자에서 자동으로 뽑은 문장 (연속 · 자주 바뀌는 PICK 은 조회 기간 기준)</p></div></div>
             <div class="card-bd"><ul class="insights" id="insights"></ul></div>
         </section>
@@ -834,12 +917,13 @@
         <!-- ═══════════ 7. 호기 목록 ═══════════ -->
         <section class="card" aria-labelledby="tblTitle">
             <div class="card-hd">
-                <div><span class="eyebrow">04 · RESULT</span><h2 id="tblTitle">호기별 비교 결과<span class="scope day" id="tblScope">-</span><button type="button" class="help" aria-label="설명" data-tip="기준 일자 = 기준일 하루의 호기별 결과 (앞 저장일과 비교). 기간 전체 = 조회 기간 동안의 호기별 합계. 행을 누르면 날짜별로 바뀐 PICK 을 볼 수 있습니다.">?</button></h2><p id="tblDesc">-</p></div>
+                <div><span class="eyebrow">04 · RESULT</span><h2 id="tblTitle">호기별 비교 결과<span class="scope day" id="tblScope">-</span><button type="button" class="help" aria-label="설명" data-tip="기준 일자 = 기준일 하루의 호기별 결과 (앞 저장일과 비교). 기간 전체 = 조회 기간 동안의 호기별 합계. 결과는 자재 바뀜(교체 · 신규 · 제외 포함, 빨간 줄) / 수량만 바뀜 / 변동 없음 / 첫 저장 으로 나뉘고, 자재가 바뀐 호기가 맨 위에 옵니다. 바뀐 자재 칸은 앞 자재번호(취소선) → 새 자재번호(빨강) 입니다. 행을 누르면 날짜별로 바뀐 PICK 을 볼 수 있습니다.">?</button></h2><p id="tblDesc">-</p></div>
                 <div class="seg" role="group" aria-label="비교 결과 보기">
                     <button type="button" data-mode="day" aria-pressed="false">기준 일자</button>
                     <button type="button" data-mode="period" aria-pressed="true">기간 전체</button>
                 </div>
             </div>
+            <div class="tbl-mat" id="tblMat" role="status" hidden></div>
             <div class="tbl-tools" style="margin-top:12px;border-top:1px solid var(--line)">
                 <div class="chips" role="group" aria-label="결과 필터" id="chips"></div>
                 <div class="search">
@@ -917,7 +1001,11 @@
     const num = v => { const n = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isFinite(n) ? n : null; };
     const calm = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
     const ARROW = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
-    const specText = sp => [sp.brand, sp.atyp, sp.speed ? sp.speed + 'm/min' : '', sp.acapa ? sp.acapa + '(용량)' : ''].filter(Boolean).join(' · ');
+    /* 블럭 명칭 (PARTNAME) : blkT = 글자 그대로 "B128A01 (명칭)", blkH = HTML (명칭은 본문 글꼴 · 옅은 색) */
+    const bnm = b => (DATA && DATA.blockName && DATA.blockName.get(b)) || '';
+    const blkT = b => b + (bnm(b) ? ' (' + bnm(b) + ')' : '');
+    const blkH = b => esc(b) + (bnm(b) ? '<span class="bnm"> (' + esc(bnm(b)) + ')</span>' : '');
+    const specText = sp =>[sp.brand, sp.atyp, sp.speed ? sp.speed + 'm/min' : '', sp.acapa ? sp.acapa + '(용량)' : ''].filter(Boolean).join(' · ');
 
     /* ════════════ 데이터 → 호기 x 일자 ════════════ */
     /*
@@ -928,9 +1016,12 @@
         const ci = {};
         res.columns.forEach((c, i) => { ci[c] = i; });
         const series = new Map();
+        const blockName = new Map();     // 블럭 → { date, name } (PARTNAME, 가장 최근 저장일 값)
         res.rows.forEach(r => {
             const hogi = r[ci.HOGI], block = r[ci.BLOCKNO], date = r[ci.BATCHDATE], pick = r[ci.PICK];
             if (!hogi || !block || !date || !pick) return;
+            const nm = ci.PARTNAME == null ? '' : String(r[ci.PARTNAME] || '').trim();
+            if (nm) { const o = blockName.get(block); if (!o || date >= o.date) blockName.set(block, { date, name: nm }); }
             const key = hogi + '|' + block;
             let s = series.get(key);
             if (!s) { s = { key, hogi, block, snaps: new Map() }; series.set(key, s); }
@@ -1006,7 +1097,7 @@
         const brandColor = new Map();
         Array.from(new Set(Array.from(hogis.values()).map(h => h.spec.brand))).sort()
             .forEach((b, i) => brandColor.set(b, BRAND_COLORS[i % BRAND_COLORS.length]));
-        return { hogis, brandColor, rowsN: res.rows.length };
+        return { hogis, brandColor, blockName: new Map(Array.from(blockName, ([b, o]) => [b, o.name])), rowsN: res.rows.length };
     }
 
     /* 그 일자까지 저장된 마지막 블럭 스냅샷 (list 는 일자 오름차순) */
@@ -1127,7 +1218,23 @@
 
         const inRows = [];
         dates.forEach(d => byDate.get(d).forEach(r => inRows.push(r)));
-        P = { dates, allDates, byDate, sums, hogis, hogiMap: new Map(hogis.map(h => [h.key, h])), truncated, ps: summarize(inRows) };
+        P = { dates, allDates, byDate, sums, hogis, hogiMap: new Map(hogis.map(h => [h.key, h])), truncated, ps: summarize(inRows), spread: spreadOf(inRows) };
+    }
+
+    /* 영향 범위 : 같은 날 같은 블럭 · PICK 의 변동을 한 묶음으로 (호기 많은 순).
+       sigs 가 1개면 모든 호기에서 바뀐 내용(자재번호 · 수량)이 같다 */
+    function spreadOf(rows) {
+        const m = new Map();
+        rows.forEach(r => r.events.forEach(e => {
+            const k = e.date + '|' + e.block + '|' + e.pick;
+            let g = m.get(k);
+            if (!g) { g = { date: e.date, block: e.block, pick: e.pick, hogis: new Set(), brands: new Map(), types: new Set(), sigs: new Set(), n: 0, first: e }; m.set(k, g); }
+            if (!g.hogis.has(e.hogi)) { g.hogis.add(e.hogi); g.brands.set(r.spec.brand, (g.brands.get(r.spec.brand) || 0) + 1); }
+            g.types.add(e.type); g.n++;
+            g.sigs.add([e.type, e.prevNo, e.nextNo, e.prevQty, e.nextQty].join('|'));
+        }));
+        return Array.from(m.values()).sort((a, b) => b.hogis.size - a.hogis.size || b.brands.size - a.brands.size ||
+            b.date.localeCompare(a.date) || a.block.localeCompare(b.block) || a.pick.localeCompare(b.pick, 'ko', { numeric: true }));
     }
 
     /* 호기의 그 일자 바로 앞 저장 일자 결과 (기간 앞 LOOKBACK 포함) */
@@ -1151,15 +1258,15 @@
     const state = {
         from: '', to: '', date: '', brand: '', atyp: '', block: '',
         filter: 'all', q: '', mode: 'period',
-        sortK: 'chg', sortDir: -1, psortK: 'chgSum', psortDir: -1,
-        mx: 'chg', tq: 'sum'
+        sortK: 'status', sortDir: -1, psortK: 'mat', psortDir: -1,   // 자재가 바뀐 호기가 맨 위
+        mx: 'chg', tq: 'sum', sp: 'day'
     };
 
     function setDay(date) {
         const i = P.dates.indexOf(date);
         const ai = P.allDates.indexOf(date);
         const prevDate = ai > 0 ? P.allDates[ai - 1] : '';
-        D = { date, idx: i, rows: P.byDate.get(date), sum: P.sums.get(date), prevDate, prevSum: prevDate ? P.sums.get(prevDate) : null };
+        D = { date, idx: i, rows: P.byDate.get(date), sum: P.sums.get(date), prevDate, prevSum: prevDate ? P.sums.get(prevDate) : null, spread: spreadOf(P.byDate.get(date)) };
         state.date = date;
     }
     const avgMatch = () => {
@@ -1169,7 +1276,7 @@
     const matchQ = (hp, row) => {
         const q = state.q.trim().toLowerCase();
         if (!q) return true;
-        if ((hp.key + ' ' + hp.spec.brand + ' ' + hp.spec.atyp + ' ' + Array.from(hp.blocks).join(' ')).toLowerCase().includes(q)) return true;
+        if ((hp.key + ' ' + hp.spec.brand + ' ' + hp.spec.atyp + ' ' + Array.from(hp.blocks).map(blkT).join(' ')).toLowerCase().includes(q)) return true;
         const evs = row ? row.events : Array.from(hp.rows.values()).flatMap(r => r.events);
         return evs.some(e => [e.pick, e.prevNo, e.nextNo].some(v => v && String(v).toLowerCase().includes(q)));
     };
@@ -1193,7 +1300,7 @@
         if (state.block && !blockN.has(state.block)) state.block = '';
         $('inBrand').innerHTML = opt('', '전체') + brands.map(b => opt(b, b)).join('');
         $('inAtyp').innerHTML = opt('', '전체') + atyps.map(a => opt(a, a)).join('');
-        $('inBlock').innerHTML = opt('', '전체 (' + blocks.length + '개)') + blocks.map(b => opt(b, b + (blockN.get(b) ? '  · 변동 ' + blockN.get(b) : ''))).join('');
+        $('inBlock').innerHTML = opt('', '전체 (' + blocks.length + '개)') + blocks.map(b => opt(b, blkT(b) + (blockN.get(b) ? '  · 변동 ' + blockN.get(b) : ''))).join('');
         $('inBrand').value = state.brand;
         $('inAtyp').value = state.atyp;
         $('inBlock').value = state.block;
@@ -1214,6 +1321,74 @@
         $('daySum').innerHTML = '저장 일자 <b>' + P.dates.length + '</b>일 · 호기 <b>' + P.hogis.length + '</b>대 · 누적 변동 <b>' + fmt(P.ps.chg) + '</b>건 · 평균 유지율 <b>' + mtxt(avgMatch(), 2) + '</b>';
         const days = Math.round((toDate(state.to) - toDate(state.from)) / 864e5) + 1;
         document.querySelectorAll('[data-range]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.range) === days && state.to === ymd(new Date()))));
+    }
+
+    /* ════════════ 오늘의 판정 ════════════ */
+    /* 기준일 하루를 한 줄로 : 정상(변동 없음) / 주의(수량만 바뀜) / 경고(자재가 바뀜 또는 수량 50% 이상 변경) */
+    function renderVerdict() {
+        const s = D.sum, top = D.spread.length && D.spread.at(0).hogis.size >= 2 ? D.spread.at(0) : null;
+        let lv, name, say;
+        if (!s.cmp) {
+            lv = 'base'; name = '비교 대상 없음';
+            say = '저장된 호기 <em>' + s.total + '대</em>가 모두 첫 저장이라 다음 저장부터 비교합니다';
+        } else if (!s.chg) {
+            lv = 'ok'; name = '정상';
+            say = '비교한 호기 <em>' + s.cmp + '대</em> 모두 앞 저장일과 BOM 이 같습니다';
+        } else {
+            lv = s.mat || s.jump ? 'alert' : 'warn'; name = lv === 'alert' ? '경고' : '주의';
+            say = '비교한 호기 ' + s.cmp + '대 중 <em>' + s.changed + '대</em>에서 BOM 변동 <em>' + fmt(s.chg) + '건</em>' +
+                (s.mat ? ' · 자재가 바뀐 항목 ' + fmt(s.mat) + '건' : s.jump ? ' · 수량 50% 이상 변경 ' + fmt(s.jump) + '건' : ' · 모두 수량 변경');
+        }
+        const kpi = (t, v, u) => '<div><dt>' + t + '</dt><dd>' + v + (u ? '<small>' + u + '</small>' : '') + '</dd></div>';
+        $('verdict').className = 'verdict ' + lv;
+        $('verdict').innerHTML = '<span class="vd-lamp" aria-hidden="true"></span>' +
+            '<div class="vd-main"><div class="vd-lv"><b>' + name + '</b>' + longDay(D.date) + ' 판정' + (D.prevDate ? ' · 직전 저장 ' + shortDay(D.prevDate) + ' 대비' : '') +
+                '<button type="button" class="help" aria-label="설명" data-tip="기준일 하루의 판정입니다. 정상 = 변동 없음 · 주의 = 수량만 바뀜 · 경고 = 자재가 바뀜(교체 · 신규 · 제외) 또는 수량 50% 이상 변경. 최대 영향 범위 = 같은 날 같은 블럭 · PICK 이 함께 바뀐 호기 수.">?</button></div>' +
+                '<p class="vd-say">' + say + '</p></div>' +
+            '<dl class="vd-kpi">' +
+                kpi('변동 호기', s.changed, '/' + s.cmp + '대') +
+                kpi('변동', fmt(s.chg), '건') +
+                kpi('자재 교체 · 신규 · 제외', fmt(s.mat), '건') +
+                kpi('최대 영향 범위', top ? top.hogis.size : '-', top ? '대 동시 · 브랜드 ' + top.brands.size + '개' : '') +
+            '</dl>';
+    }
+
+    /* ════════════ 영향 범위 ════════════ */
+    const SP_MAX = 8;        // 영향 범위에 보여줄 묶음 수
+    function renderSpread() {
+        document.querySelectorAll('[data-sp]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.sp === state.sp)));
+        const day = state.sp === 'day', all = day ? D.spread : P.spread, multi = all.filter(g => g.hogis.size >= 2);
+        const total = all.reduce((a, g) => a + g.n, 0), inMulti = multi.reduce((a, g) => a + g.n, 0);
+        $('spScope').className = 'scope ' + (day ? 'day' : 'period');
+        $('spScope').textContent = day ? shortDay(D.date) + '(' + wk(D.date) + ') 기준' : '조회 기간';
+        $('spDesc').textContent = !total ? '변동이 없어 묶을 대상이 없습니다'
+            : '변동 ' + fmt(total) + '건을 같은 날 · 같은 블럭 · PICK 으로 묶으면 ' + fmt(all.length) + '묶음 · 그중 ' + fmt(multi.length) + '묶음(' + fmt(inMulti) + '건, ' + pct(inMulti / total * 100) + '%)이 호기 2대 이상에서 함께 바뀌었습니다';
+        if (!multi.length) {
+            $('spread').innerHTML = '<div class="none"><span>' + (day
+                ? shortDay(D.date) + ' 에는 여러 호기에서 함께 바뀐 자재가 없습니다. <button type="button" class="linkish" data-sp-go="period">기간 전체 보기</button>'
+                : '조회 기간에 여러 호기에서 함께 바뀐 자재가 없습니다.') + '</span></div>';
+            return;
+        }
+        $('spread').innerHTML = '<div class="sp-list">' + multi.slice(0, SP_MAX).map(g => {
+            const e = g.first, n = g.hogis.size, hs = Array.from(g.hogis).sort();
+            const cmpN = Math.max((P.sums.get(g.date) || { cmp: 0 }).cmp, n);
+            const what = g.sigs.size > 1 ? '호기마다 바뀐 값이 다릅니다'
+                : e.type === 'swap' ? e.prevNo + ' → ' + e.nextNo
+                : e.type === 'add' ? e.nextNo + ' · 수량 ' + (e.nextQty || '-')
+                : e.type === 'del' ? e.prevNo + ' · 수량 ' + (e.prevQty || '-') + ' → 0'
+                : e.nextNo + ' · 수량 ' + (e.prevQty || '-') + ' → ' + (e.nextQty || '-');
+            return '<div class="sp-row">' +
+                '<div class="sp-n" title="' + esc(hs.join(', ')) + '"><b class="tnum">' + n + '</b><small>대 동시</small></div>' +
+                '<div class="sp-what"><div class="pn">' + blkH(g.block) + ' · PICK ' + esc(g.pick) +
+                    TYPE_KEYS.filter(t => g.types.has(t)).map(t => '<span class="tag ' + t + '" style="padding:1px 8px">' + TYPES[t].label + '</span>').join('') + '</div>' +
+                    '<div class="nm mono" title="' + esc(what) + '">' + (day ? '' : shortDay(g.date) + '(' + wk(g.date) + ') · ') + esc(what) + '</div></div>' +
+                '<div class="sp-who"><div class="bar" aria-hidden="true"><span style="width:' + (n / cmpN * 100) + '%"></span></div>' +
+                    '<div class="sp-brands"><b>비교 ' + cmpN + '대 중 ' + n + '대</b>' +
+                    Array.from(g.brands.entries()).sort((a, b) => b.at(1) - a.at(1)).map(b => '<span><i class="dot" style="background:' + DATA.brandColor.get(b.at(0)) + ';border-radius:50%"></i>' + esc(b.at(0)) + ' ' + b.at(1) + '</span>').join('') + '</div></div>' +
+                '<div class="sp-act"><button type="button" class="btn btn-sm" data-k="' + esc(hs.at(0)) + '" data-d="' + g.date + '">호기 보기</button>' +
+                    traceLink(e.hogi, e.date, e.prevDate, e.pick, e.block) + '</div>' +
+            '</div>';
+        }).join('') + '</div>' + (multi.length > SP_MAX ? '<p class="sp-more">호기가 많은 순으로 ' + SP_MAX + '묶음만 표시 · 외 ' + (multi.length - SP_MAX) + '묶음</p>' : '');
     }
 
     /* ════════════ 요약 · KPI ════════════ */
@@ -1311,7 +1486,7 @@
                     '<dt>수량 합계</dt><dd class="tnum">' + fmt(o.qty) + '</dd>' +
                     '<dt>변동</dt><dd class="tnum">기간 ' + fmt(o.chg) + '건 · 기준일 ' + o.chgHogis + '대</dd>' +
                 '</dl>' +
-                (state.block ? '<div class="b-sel">블럭 <b>' + esc(state.block) + '</b> : ' +
+                (state.block ? '<div class="b-sel">블럭 <b>' + blkH(state.block) + '</b> : ' +
                     (o.selHogis ? '호기 ' + o.selHogis + '대 · 수량 <b class="tnum">' + fmt(o.selQty) + '</b>' : '이 브랜드에는 없음') + '</div>' : '') +
             '</button>';
         }).join('') : '<div class="none">기준일까지 저장된 BOM 이 없습니다.</div>';
@@ -1348,21 +1523,31 @@
     }
 
     function renderTrend() {
-        document.querySelectorAll('[data-tq]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.tq === state.tq)));
-        const ds = P.dates, avg = state.tq === 'avg', list = trendData();
-        const val = pt => pt.hogis ? Math.round((avg ? pt.qty / pt.hogis : pt.qty) * 100) / 100 : null;
-        const blkTxt = state.block ? '블럭 ' + state.block : '전체 블럭';
-        $('trendDesc').textContent = blkTxt + ' · 브랜드 ' + list.length + '개 · ' + (avg ? '호기 1대당 평균 수량' : '수량(QTY) 합계') +
-            (state.atyp ? ' · 기종 ' + state.atyp : '') + ' · 점을 누르면 그 날짜가 기준일이 됩니다';
-        $('chTrend').setAttribute('aria-label', blkTxt + ' 브랜드별 수량 추이. ' + list.map(o => o.brand + ' ' + shortDay(ds[0]) + ' ' + fmt(val(o.pts[0]) || 0) + ' → ' + shortDay(ds.at(-1)) + ' ' + fmt(val(o.pts.at(-1)) || 0)).join(', '));
-        const has = list.length > 0;
+        /* tq : sum = 전체 브랜드, chg = 조회 기간에 앞 날짜 대비 수량이 한 번이라도 바뀐 브랜드만 */
+        if (state.tq !== 'chg') state.tq = 'sum';
+        const onlyChg = state.tq === 'chg';
+        const ds = P.dates, all = trendData();
+        const val = pt => pt.hogis ? Math.round(pt.qty * 100) / 100 : null;
+        const blkTxt = state.block ? '블럭 ' + blkT(state.block) : '전체 블럭';
 
         /* 앞 날짜 대비 수량 증감 : 바뀐 날을 배경 · 날짜 라벨 · 삼각형 점 · 증감 숫자로 표시한다 */
         const UP = '#2F5BEA', DOWN = '#D92D20';
-        list.forEach(o => {
+        all.forEach(o => {
             o.vals = o.pts.map(val);
             o.diffs = o.vals.map((v, i) => i && v != null && o.vals[i - 1] != null ? Math.round((v - o.vals[i - 1]) * 100) / 100 : 0);
+            o.changed = o.diffs.some(Boolean);
         });
+        const nChg = all.filter(o => o.changed).length;
+        const list = onlyChg ? all.filter(o => o.changed) : all;
+        document.querySelectorAll('[data-tq]').forEach(x => {
+            x.setAttribute('aria-pressed', String(x.dataset.tq === state.tq));
+            if (x.dataset.tq === 'chg') x.textContent = '수량 바뀐 브랜드만 ' + nChg;
+        });
+        $('trendDesc').textContent = blkTxt + ' · ' + (onlyChg ? '브랜드 ' + all.length + '개 중 수량이 바뀐 ' + list.length + '개만' : '브랜드 ' + all.length + '개') + ' · 수량(QTY) 합계' +
+            (state.atyp ? ' · 기종 ' + state.atyp : '') + ' · 점을 누르면 그 날짜가 기준일이 됩니다';
+        $('chTrendNone').textContent = onlyChg && all.length ? '조회 기간 동안 앞 날짜 대비 수량이 바뀐 브랜드가 없습니다.' : '조건에 맞는 수량 데이터가 없습니다.';
+        $('chTrend').setAttribute('aria-label', blkTxt + ' 브랜드별 수량 추이. ' + list.map(o => o.brand + ' ' + shortDay(ds[0]) + ' ' + fmt(val(o.pts[0]) || 0) + ' → ' + shortDay(ds.at(-1)) + ' ' + fmt(val(o.pts.at(-1)) || 0)).join(', '));
+        const has = list.length > 0;
         const dayChg = ds.map((d, i) => list.filter(o => o.diffs[i]).map(o => ({ brand: o.brand, diff: o.diffs[i] })));
         const chgIdx = dayChg.map((c, i) => c.length ? i : -1).filter(i => i >= 0);
         const showLabels = list.length <= 4 && ds.length <= 31;
@@ -1378,7 +1563,7 @@
                     .concat([{ from: D.idx - .5, to: D.idx + .5, color: 'rgba(47,91,234,.10)', zIndex: 1,
                                label: { text: '기준일', align: 'center', verticalAlign: 'top', y: 12, style: { color: '#1E40AF', fontSize: '11px', fontWeight: '700' } } }])
             },
-            yAxis: { title: { text: avg ? '호기당 평균 수량' : '수량 합계' } },
+            yAxis: { title: { text: '수량 합계' } },
             tooltip: { shared: true, formatter: function () {
                 const i = this.points[0].point.index;
                 return '<b>' + longDay(ds[i]) + '</b> · ' + esc(blkTxt) +
@@ -1493,7 +1678,7 @@
         if (swaps.length) {
             const e = swaps.find(x => x.revert) || swaps[0];
             out.push({ k: 'alert', h: '자재 교체 ' + swaps.length + '건' + (s.revert ? ' (예전 자재 복귀 ' + s.revert + ')' : ''),
-                p: '예) ' + mono(e.hogi) + ' ' + esc(e.block) + ' PICK ' + esc(e.pick) + ' : <span class="mono">' + esc(e.prevNo) + ' → ' + esc(e.nextNo) + '</span>' + (e.revert ? ' <b>(예전 자재로 되돌아감)</b>' : '') + '.' });
+                p: '예) ' + mono(e.hogi) + ' ' + blkH(e.block) + ' PICK ' + esc(e.pick) + ' : <span class="mono">' + esc(e.prevNo) + ' → ' + esc(e.nextNo) + '</span>' + (e.revert ? ' <b>(예전 자재로 되돌아감)</b>' : '') + '.' });
         }
 
         const streaks = P.hogis.map(h => ({ h, n: streakAt(h, D.date) })).filter(x => x.n >= 3).sort((a, b) => b.n - a.n);
@@ -1508,20 +1693,20 @@
         if (rep.length) {
             const x = rep[0];
             out.push({ k: 'warn', h: '자주 바뀌는 PICK ' + rep.length + '개',
-                p: '가장 잦은 곳은 ' + mono(x.h.key) + ' ' + esc(x.p.block) + ' PICK ' + esc(x.p.pick) + ' 로 기간 중 <b>' + x.p.dates.length + '회</b> 변동 (' + Array.from(x.p.types).map(t => TYPES[t].label).join(' · ') + ').' });
+                p: '가장 잦은 곳은 ' + mono(x.h.key) + ' ' + blkH(x.p.block) + ' PICK ' + esc(x.p.pick) + ' 로 기간 중 <b>' + x.p.dates.length + '회</b> 변동 (' + Array.from(x.p.types).map(t => TYPES[t].label).join(' · ') + ').' });
         }
 
         const jump = ev.filter(e => e.jump).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))[0];
         if (jump) {
             out.push({ k: 'warn', h: '수량 50% 이상 변경 ' + s.jump + '건',
-                p: '최대 ' + mono(jump.hogi) + ' ' + esc(jump.block) + ' PICK ' + esc(jump.pick) + ' : 수량 ' + esc(jump.prevQty || 0) + ' → ' + esc(jump.nextQty || 0) + ' (<b>' + signed(jump.delta) + '</b>).' });
+                p: '최대 ' + mono(jump.hogi) + ' ' + blkH(jump.block) + ' PICK ' + esc(jump.pick) + ' : 수량 ' + esc(jump.prevQty || 0) + ' → ' + esc(jump.nextQty || 0) + ' (<b>' + signed(jump.delta) + '</b>).' });
         }
 
         const blk = Object.keys(s.blocks).sort((a, b) => s.blocks[b].n - s.blocks[a].n);
         if (blk.length) {
             const b0 = blk[0], pb = P.ps.blocks[b0];
-            out.push({ k: 'info', h: '변동 집중 블럭 · ' + b0,
-                p: shortDay(D.date) + ' ' + mono(b0) + ' 에 변동 <b>' + s.blocks[b0].n + '건</b>(' + pct(s.blocks[b0].n / s.chg * 100) + '%). 기간 전체로는 ' + pct(pb ? pb.n / P.ps.chg * 100 : 0) + '% 입니다.' });
+            out.push({ k: 'info', h: '변동 집중 블럭 · ' + blkT(b0),
+                p: shortDay(D.date) + ' <b class="mono">' + blkH(b0) + '</b> 에 변동 <b>' + s.blocks[b0].n + '건</b>(' + pct(s.blocks[b0].n / s.chg * 100) + '%). 기간 전체로는 ' + pct(pb ? pb.n / P.ps.chg * 100 : 0) + '% 입니다.' });
         }
 
         const newly = [], fixed = [];
@@ -1579,16 +1764,58 @@
             ds.map(d => { const x = hp.rows.get(d); return shortDay(d) + ' ' + (!x ? '저장 안 됨' : x.status === 'base' ? '첫' : x.chg + '건'); }).join(', ') + '">' + bars + mark + '</svg>';
     }
 
+    /* ── 자재 변경 (교체 · 신규 · 제외) 을 수량 변경과 따로 드러낸다 ── */
+    /* 결과 : 변동 있음을 '자재 바뀜' / '수량만 바뀜' 으로 나눈다 */
+    const stOf = x => !x ? STATUS.none : x.status !== 'chg' ? STATUS[x.status] : x.mat ? ['bad', '자재 바뀜'] : ['chg', '수량만 바뀜'];
+    const isMat = e => e.type !== 'qty';
+    const matTxt = e => e.type === 'swap' ? e.prevNo + ' → ' + e.nextNo : e.type === 'add' ? e.nextNo + ' 추가' : e.prevNo + ' 빠짐';
+    const matSort = withDate => (a, b) => (withDate ? b.date.localeCompare(a.date) : 0) || TYPES[a.type].rank - TYPES[b.type].rank ||
+        a.block.localeCompare(b.block, 'ko', { numeric: true }) || a.pick.localeCompare(b.pick, 'ko', { numeric: true });
+    const MAT_MAX = 3;       // 표 한 칸에 보여줄 자재 변경 줄 수
+    /* 바뀐 자재 칸 : [유형] 블럭 (명칭) 앞 자재번호 → 새 자재번호. withDate = 기간 전체 보기 (최근 날짜부터) */
+    function matCell(events, withDate) {
+        const m = events.filter(isMat).sort(matSort(withDate));
+        if (!m.length) return events.length ? '<span class="mat-none qty">자재 그대로 · 수량만 바뀜</span>' : '<span class="mat-none">자재 그대로</span>';
+        return '<div class="mat-cell">' + m.slice(0, MAT_MAX).map(e => {
+            const no = e.type === 'swap' ? '<s>' + esc(e.prevNo) + '</s> → <b>' + esc(e.nextNo) + '</b>'
+                : e.type === 'add' ? '<b>' + esc(e.nextNo) + '</b> 추가' : '<s>' + esc(e.prevNo) + '</s> 빠짐';
+            const tip = (withDate ? longDay(e.date) + ' · ' : '') + TYPES[e.type].label + ' · ' + blkT(e.block) + ' · PICK ' + e.pick + ' : ' + matTxt(e) +
+                ' (수량 ' + (e.type === 'add' ? e.nextQty : e.type === 'del' ? e.prevQty : e.prevQty + ' → ' + e.nextQty) + ')' + (e.revert ? ' · 예전 자재로 되돌아감' : '');
+            return '<div class="mat-ln" title="' + esc(tip) + '">' + (withDate ? '<span class="dt">' + shortDay(e.date) + '</span>' : '') +
+                '<span class="tag ' + e.type + '">' + TYPES[e.type].label + '</span><span class="w">' + blkH(e.block) + '</span><span class="no">' + no + '</span>' +
+                (e.revert ? '<span class="flag" style="margin:0">복귀</span>' : '') + '</div>';
+        }).join('') + (m.length > MAT_MAX ? '<span class="mat-more">외 ' + (m.length - MAT_MAX) + '건 · 행을 누르면 전체를 봅니다</span>' : '') + '</div>';
+    }
+    /* 표 위 한 줄 : 자재가 바뀐 호기 수와 유형별 건수 */
+    function renderMatBanner(day) {
+        const s = day ? D.sum : P.ps, el = $('tblMat');
+        const nMat = day ? D.rows.filter(r => r.mat).length : P.hogis.filter(h => h.mat).length;
+        const when = day ? shortDay(D.date) + '(' + wk(D.date) + ')' : '조회 기간';
+        el.hidden = !s.cmp;
+        if (!s.cmp) return;
+        el.className = 'tbl-mat' + (s.mat ? ' alert' : '');
+        if (s.mat) {
+            const on = state.filter === 'mat';
+            el.innerHTML = '<span class="ic" aria-hidden="true">!</span><span>' + when + ' <b>자재가 바뀐 호기 ' + nMat + '대</b> · ' +
+                ['swap', 'add', 'del'].filter(t => s[t]).map(t => '<span class="tag ' + t + '">' + TYPES[t].label + ' ' + s[t] + '</span>').join(' ') +
+                (s.qty ? ' · 수량만 바뀐 PICK ' + fmt(s.qty) + '건' : '') + '</span><span class="sp"></span>' +
+                '<button type="button" class="btn btn-sm" data-f="' + (on ? 'all' : 'mat') + '">' + (on ? '전체 호기 보기' : '자재 바뀐 호기만 보기') + '</button>';
+        } else {
+            el.innerHTML = '<span class="ic" aria-hidden="true">✓</span><span>' + when + ' <b>자재 교체 · 신규 · 제외 없음</b> · ' +
+                (s.chg ? '바뀐 것은 수량 ' + fmt(s.qty) + '건뿐입니다' : '자재와 수량 모두 앞 저장일과 같습니다') + '</span>';
+        }
+    }
+
     const COLS = {
         day: [
-            { k: 'key', l: '호기' }, { l: '사양' }, { k: 'status', l: '결과' }, { k: 'nblk', l: '블럭 (비교/저장)', r: 1 },
-            { k: 'partsAfter', l: '자재 종류 (앞 → 현재)', r: 1 }, { k: 'qtyAfter', l: '수량 합계 (앞 → 현재)', r: 1 },
+            { k: 'key', l: '호기' }, { l: '사양' }, { k: 'status', l: '결과' }, { k: 'mat', l: '바뀐 자재 (앞 → 현재)' },
+            { k: 'qtyAfter', l: '수량 합계 (앞 → 현재)', r: 1 },
             { k: 'chg', l: '바뀐 PICK', r: 1 }, { k: 'dchg', l: '앞 저장 대비', r: 1 }, { k: 'match', l: '유지율', r: 1 },
             { k: 'streak', l: '연속 변동', r: 1 }, { l: '기간 추이', r: 1 }
         ],
         period: [
             { k: 'key', l: '호기' }, { l: '사양' }, { k: 'runs', l: '저장', r: 1 },
-            { k: 'chgSum', l: '누적 변동', r: 1 }, { k: 'avgChg', l: '회당 평균', r: 1 }, { k: 'mat', l: '자재 변동', r: 1 },
+            { k: 'mat', l: '바뀐 자재 (최근부터)' }, { k: 'chgSum', l: '누적 변동', r: 1 }, { k: 'avgChg', l: '회당 평균', r: 1 },
             { k: 'repeatN', l: '자주 바뀌는 PICK', r: 1 },
             { k: 'lastChg', l: '최근 변동일', r: 1 }, { l: '일자별 추이', r: 1 }
         ]
@@ -1616,25 +1843,29 @@
                 const hp = P.hogiMap.get(x.key), p = prevRowOf(hp, x.date);
                 return { x, hp, nblk: x.blocks.length, dchg: x.status !== 'base' && p && p.status !== 'base' ? x.chg - p.chg : null, streak: streakAt(hp, D.date) };
             }).filter(r => matchQ(r.hp, r.x));
-            const F = { all: () => true, chg: r => r.x.status === 'chg', mat: r => r.x.mat > 0, up: r => r.dchg > 0, ok: r => r.x.status === 'ok', base: r => r.x.status === 'base' };
+            const F = { all: () => true, mat: r => r.x.mat > 0, qtyonly: r => r.x.status === 'chg' && !r.x.mat, up: r => r.dchg > 0, ok: r => r.x.status === 'ok', base: r => r.x.status === 'base' };
             chips = [
-                { f: 'all', l: '전체' }, { f: 'chg', l: '변동 있음' }, { f: 'mat', l: '자재 변동' }, { f: 'up', l: '앞 저장보다 증가' },
+                { f: 'all', l: '전체' }, { f: 'mat', l: '자재 바뀜' }, { f: 'qtyonly', l: '수량만 바뀜' }, { f: 'up', l: '앞 저장보다 증가' },
                 { f: 'ok', l: '변동 없음' }, { f: 'base', l: '첫 저장' }
             ].map(c => Object.assign(c, { n: all.filter(F[c.f]).length }));
             if (!F[state.filter]) state.filter = 'all';
-            const val = (r, k) => k === 'dchg' ? r.dchg : k === 'streak' ? r.streak : k === 'nblk' ? r.nblk : k === 'key' ? r.x.key : k === 'status' ? ST_RANK[r.x.status] : r.x[k];
+            /* 결과 정렬 : 자재 바뀜 > 수량만 바뀜 > 변동 없음 > 첫 저장, 같으면 바뀐 PICK 많은 순 */
+            const stRank = x => (x.status === 'chg' ? (x.mat ? 3 : 2) : ST_RANK[x.status]) * 1e6 + x.chg;
+            const val = (r, k) => k === 'dchg' ? r.dchg : k === 'streak' ? r.streak : k === 'nblk' ? r.nblk : k === 'key' ? r.x.key : k === 'status' ? stRank(r.x) : r.x[k];
             rows = all.filter(F[state.filter]).sort((a, b) => cmpVal(val(a, state.sortK), val(b, state.sortK)) * state.sortDir || a.x.key.localeCompare(b.x.key));
         } else {
             const all = P.hogis.filter(h => matchQ(h)).map(h => ({ h, avgChg: h.cmpDays ? h.chgSum / h.cmpDays : 0 }));
-            const F = { all: () => true, chg: r => r.h.chgDays > 0, every: r => r.h.cmpDays >= 2 && r.h.chgDays === r.h.cmpDays, rep: r => r.h.repeat.length > 0, stable: r => r.h.cmpDays && !r.h.chgSum };
+            const F = { all: () => true, mat: r => r.h.mat > 0, chg: r => r.h.chgDays > 0, every: r => r.h.cmpDays >= 2 && r.h.chgDays === r.h.cmpDays, rep: r => r.h.repeat.length > 0, stable: r => r.h.cmpDays && !r.h.chgSum };
             chips = [
-                { f: 'all', l: '전체' }, { f: 'chg', l: '변동 발생' }, { f: 'every', l: '매 저장 변동' }, { f: 'rep', l: '자주 바뀌는 PICK' }, { f: 'stable', l: '기간 내내 변동 없음' }
+                { f: 'all', l: '전체' }, { f: 'mat', l: '자재 바뀜' }, { f: 'chg', l: '변동 발생' }, { f: 'every', l: '매 저장 변동' }, { f: 'rep', l: '자주 바뀌는 PICK' }, { f: 'stable', l: '기간 내내 변동 없음' }
             ].map(c => Object.assign(c, { n: all.filter(F[c.f]).length }));
             if (!F[state.filter]) state.filter = 'all';
-            const val = (r, k) => k === 'avgChg' ? r.avgChg : k === 'repeatN' ? r.h.repeat.length : r.h[k];
+            /* 바뀐 자재 정렬 : 자재 변경 건수, 같으면 누적 변동 */
+            const val = (r, k) => k === 'avgChg' ? r.avgChg : k === 'repeatN' ? r.h.repeat.length : k === 'mat' ? r.h.mat * 1e6 + r.h.chgSum : r.h[k];
             rows = all.filter(F[state.filter]).sort((a, b) => cmpVal(val(a, state.psortK), val(b, state.psortK)) * state.psortDir || a.h.key.localeCompare(b.h.key));
         }
-        $('chips').innerHTML = chips.map(c => '<button type="button" class="chip" data-f="' + c.f + '" aria-pressed="' + (state.filter === c.f) + '">' + c.l + ' <span class="n">' + c.n + '</span></button>').join('');
+        renderMatBanner(day);
+        $('chips').innerHTML = chips.map(c => '<button type="button" class="chip' + (c.f === 'mat' && c.n ? ' chip-mat' : '') + '" data-f="' + c.f + '" aria-pressed="' + (state.filter === c.f) + '">' + c.l + ' <span class="n">' + c.n + '</span></button>').join('');
 
         const sk = day ? state.sortK : state.psortK, sd = day ? state.sortDir : state.psortDir;
         $('thead').innerHTML = COLS[state.mode].map(c => '<th scope="col"' + (c.r ? ' class="r"' : '') + (c.k ? ' data-k="' + c.k + '"' : '') +
@@ -1661,16 +1892,14 @@
     }
 
     function dayRow(r) {
-        const x = r.x, st = STATUS[x.status], on = x.status !== 'base';
+        const x = r.x, st = stOf(x), on = x.status !== 'base';
         const dd = r.dchg == null ? '<span class="dd nil">-</span>'
             : '<span class="dd ' + (r.dchg > 0 ? 'up' : r.dchg < 0 ? 'down' : 'zero') + '">' + (r.dchg > 0 ? '▲ ' : r.dchg < 0 ? '▼ ' : '') + (r.dchg ? fmt(Math.abs(r.dchg)) : '동일') + '</span>';
-        return '<tr tabindex="0" data-k="' + esc(x.key) + '">' +
-            '<td><span class="hogi">' + esc(x.key) + '</span>' + (x.prevDate ? '<span class="sub">앞 저장 ' + shortDay(x.prevDate) + '</span>' : '') + '</td>' +
+        return '<tr tabindex="0" data-k="' + esc(x.key) + '"' + (x.mat ? ' class="mat-row"' : '') + '>' +
+            '<td><span class="hogi">' + esc(x.key) + '</span><span class="sub">' + (x.prevDate ? '앞 저장 ' + shortDay(x.prevDate) + ' · ' : '') + '블럭 ' + x.cmpBlocks + '/' + x.blocks.length + '</span></td>' +
             '<td><span class="spec">' + esc(specText(x.spec)) + '</span></td>' +
-            '<td><span class="status ' + st[0] + '">' + st[1] + '</span>' + (x.swap ? ' <span class="status bad">교체 ' + x.swap + '</span>' : '') +
-                (x.chg ? traceLink(x.key, x.date, x.prevDate, '') : '') + '</td>' +
-            '<td class="r mono">' + x.cmpBlocks + '/' + x.blocks.length + '</td>' +
-            '<td class="r">' + cmpCell(x.partsBefore, x.partsAfter, on) + '</td>' +
+            '<td><span class="status ' + st[0] + '">' + st[1] + '</span>' + (x.chg ? traceLink(x.key, x.date, x.prevDate, '') : '') + '</td>' +
+            '<td>' + (on ? matCell(x.events, false) : '<span class="spec">-</span>') + '</td>' +
             '<td class="r">' + cmpCell(x.qtyBefore, x.qtyAfter, on) + '</td>' +
             '<td class="r"><div class="mini">' + (x.chg ? miniStack(x, x.chg) : '') +
                 '<b class="mono" title="교체 ' + x.swap + ' · 신규 ' + x.add + ' · 제외 ' + x.del + ' · 수량 ' + x.qty + '">' + (on ? x.chg : '-') + '</b></div></td>' +
@@ -1680,14 +1909,14 @@
             '<td class="r">' + spark(r.hp) + '</td></tr>';
     }
     function periodRow(r) {
-        const h = r.h;
-        return '<tr tabindex="0" data-k="' + esc(h.key) + '">' +
+        const h = r.h, evs = Array.from(h.rows.values()).flatMap(x => x.events);
+        return '<tr tabindex="0" data-k="' + esc(h.key) + '"' + (h.mat ? ' class="mat-row"' : '') + '>' +
             '<td><span class="hogi">' + esc(h.key) + '</span><span class="sub">블럭 ' + h.blocks.size + '개</span></td>' +
             '<td><span class="spec">' + esc(specText(h.spec)) + '</span></td>' +
             '<td class="r mono">' + h.runs + '일' + (h.baseDays ? '<span class="sub">기준 ' + h.baseDays + '</span>' : '') + '</td>' +
+            '<td>' + (h.cmpDays ? matCell(evs, true) : '<span class="spec">-</span>') + '</td>' +
             '<td class="r"><div class="mini">' + (h.chgSum ? miniStack(h, h.chgSum) : '') + '<b class="mono" title="교체 ' + h.swap + ' · 신규 ' + h.add + ' · 제외 ' + h.del + ' · 수량 ' + h.qty + '">' + fmt(h.chgSum) + '</b></div></td>' +
             '<td class="r mono">' + pct(r.avgChg) + '</td>' +
-            '<td class="r mono">' + (h.mat ? '<b>' + h.mat + '</b>' + (h.revert ? '<span class="sub">예전 자재 복귀 ' + h.revert + '</span>' : '') : '<span class="spec">-</span>') + '</td>' +
             '<td class="r mono">' + (h.repeat.length ? '<b>' + h.repeat.length + '</b>개' : '<span class="spec">-</span>') + '</td>' +
             '<td class="r mono">' + (h.lastChg ? shortDay(h.lastChg) + '(' + wk(h.lastChg) + ')' + traceLink(h.key, h.lastChg, h.rows.get(h.lastChg).prevDate, '') : '<span class="spec">-</span>') + '</td>' +
             '<td class="r">' + spark(h) + '</td></tr>';
@@ -1696,15 +1925,17 @@
     function downloadCsv() {
         const cell = v => { const t = String(v == null ? '' : v); return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
         let head, lines;
+        const matCsv = (evs, withDate) => evs.filter(isMat).sort(matSort(withDate))
+            .map(e => (withDate ? shortDay(e.date) + ' ' : '') + TYPES[e.type].label + ' ' + blkT(e.block) + ' PICK ' + e.pick + ' : ' + matTxt(e)).join(' / ');
         if (state.mode === 'day') {
             head = ['저장일', '호기', '브랜드', '기종', '속도', '용량', '결과', '앞 저장일', '저장 블럭', '비교 블럭', '앞 자재종류', '현재 자재종류', '앞 수량', '현재 수량',
-                    '바뀐 PICK', '자재 교체', '신규 수배', '수배 제외', '수량 변경', '앞 저장 대비', '유지율', '연속 변동'];
-            lines = TABLE_ROWS.map(r => { const x = r.x, sp = x.spec; return [x.date, x.key, sp.brand, sp.atyp, sp.speed, sp.acapa, STATUS[x.status][1], x.prevDate, x.blocks.length, x.cmpBlocks,
-                x.partsBefore, x.partsAfter, x.qtyBefore, x.qtyAfter, x.chg, x.swap, x.add, x.del, x.qty, r.dchg, x.match == null ? '' : pct(x.match, 2), r.streak]; });
+                    '바뀐 PICK', '자재 교체', '신규 수배', '수배 제외', '수량 변경', '앞 저장 대비', '유지율', '연속 변동', '바뀐 자재'];
+            lines = TABLE_ROWS.map(r => { const x = r.x, sp = x.spec; return [x.date, x.key, sp.brand, sp.atyp, sp.speed, sp.acapa, stOf(x)[1], x.prevDate, x.blocks.length, x.cmpBlocks,
+                x.partsBefore, x.partsAfter, x.qtyBefore, x.qtyAfter, x.chg, x.swap, x.add, x.del, x.qty, r.dchg, x.match == null ? '' : pct(x.match, 2), r.streak, matCsv(x.events, false)]; });
         } else {
-            head = ['호기', '브랜드', '기종', '속도', '용량', '저장일', '비교일', '변동 발생일', '누적 변동', '자재 교체', '신규 수배', '수배 제외', '수량 변경', '평균 유지율', '자주 바뀌는 PICK', '최근 변동일'].concat(P.dates);
+            head = ['호기', '브랜드', '기종', '속도', '용량', '저장일', '비교일', '변동 발생일', '누적 변동', '자재 교체', '신규 수배', '수배 제외', '수량 변경', '평균 유지율', '자주 바뀌는 PICK', '최근 변동일', '바뀐 자재'].concat(P.dates);
             lines = TABLE_ROWS.map(r => { const h = r.h, sp = h.spec; return [h.key, sp.brand, sp.atyp, sp.speed, sp.acapa, h.runs, h.cmpDays, h.chgDays, h.chgSum, h.swap, h.add, h.del, h.qty,
-                h.matchAvg == null ? '' : pct(h.matchAvg, 2), h.repeat.length, h.lastChg].concat(P.dates.map(d => { const x = h.rows.get(d); return !x ? '' : x.status === 'base' ? '첫' : x.chg; })); });
+                h.matchAvg == null ? '' : pct(h.matchAvg, 2), h.repeat.length, h.lastChg, matCsv(Array.from(h.rows.values()).flatMap(x => x.events), true)].concat(P.dates.map(d => { const x = h.rows.get(d); return !x ? '' : x.status === 'base' ? '첫' : x.chg; })); });
         }
         const blob = new Blob(['﻿' + head.map(cell).join(',') + '\r\n' + lines.map(l => l.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
         const a = document.createElement('a');
@@ -1737,7 +1968,7 @@
         const hp = P.hogiMap.get(dr.key);
         if (!hp) return;
         const x = hp.rows.get(dr.date);
-        const st = STATUS[x ? x.status : 'none'];
+        const st = stOf(x);
         $('drTitle').innerHTML = '<span class="mono">' + esc(hp.key) + '</span><span class="status ' + st[0] + '">' + st[1] + '</span>';
         $('drSub').textContent = specText(hp.spec) + ' · ' + longDay(dr.date) + (x && x.prevDate ? ' ↔ 앞 저장 ' + longDay(x.prevDate) : '');
         const q = new URLSearchParams({ from: P.dates[0], to: P.dates.at(-1), q: hp.key });
@@ -1766,7 +1997,7 @@
         if (!x) {
             html += '<div class="info-box"><b>이 일자에는 저장되지 않았습니다</b>다른 일자를 골라 보세요.</div></div>';
         } else if (x.status === 'base') {
-            html += '<div class="info-box"><b>첫 저장</b>블럭 ' + x.blocks.length + '개 (' + esc(x.blocks.join(', ')) + ') 가 처음 저장되어 비교할 앞 일자가 없습니다. 자재 ' + x.picks + '개 · 자재번호 ' + x.partsAll.size + '종.</div></div>';
+            html += '<div class="info-box"><b>첫 저장</b>블럭 ' + x.blocks.length + '개 (' + esc(x.blocks.map(blkT).join(', ')) + ') 가 처음 저장되어 비교할 앞 일자가 없습니다. 자재 ' + x.picks + '개 · 자재번호 ' + x.partsAll.size + '종.</div></div>';
         } else {
             const p = prevRowOf(hp, dr.date);
             const prevPicks = new Set(p ? p.events.map(e => e.block + '|' + e.pick) : []);
@@ -1776,14 +2007,14 @@
                 '<div class="dr-stat"><small>자재 종류</small><b>' + signed(x.partsAfter - x.partsBefore) + '</b></div>' +
                 '<div class="dr-stat"><small>수량 합계</small><b>' + signed(Math.round((x.qtyAfter - x.qtyBefore) * 100) / 100) + '</b></div>' +
                 '</div>' +
-                '<p class="spec" style="margin-top:8px">저장 블럭 ' + x.blocks.length + '개 · 비교 ' + x.cmpBlocks + '개' + (x.baseBlocks.length ? ' · 첫 저장 ' + esc(x.baseBlocks.join(', ')) : '') + ' · 비교 자재 ' + x.cmpPicks + '개</p></div>';
+                '<p class="spec" style="margin-top:8px">저장 블럭 ' + x.blocks.length + '개 · 비교 ' + x.cmpBlocks + '개' + (x.baseBlocks.length ? ' · 첫 저장 ' + esc(x.baseBlocks.map(blkT).join(', ')) : '') + ' · 비교 자재 ' + x.cmpPicks + '개</p></div>';
             if (x.chg) {
                 html += '<div class="dr-sec"><h3>블럭별 변동</h3><div class="chart-dr" id="chDrawer" role="img" aria-label="블럭별 변동 차트"></div></div>';
                 const byBlk = new Map();
                 x.events.slice().sort((a, b) => a.block.localeCompare(b.block) || TYPES[a.type].rank - TYPES[b.type].rank || a.pick.localeCompare(b.pick, 'ko', { numeric: true }))
                     .forEach(e => { if (!byBlk.has(e.block)) byBlk.set(e.block, []); byBlk.get(e.block).push(e); });
                 html += '<div class="dr-sec"><h3>바뀐 자재 ' + x.chg + '건 <small><span class="flag" style="margin:0">자주 바뀜</span> 기간 중 2번 이상 바뀐 자재 · <span class="flag blue" style="margin:0">신규</span> 앞 저장 때는 변동이 없던 자재</small></h3><div class="chg-list">' +
-                    Array.from(byBlk.entries()).map(([b, list]) => '<div class="blk-hd">' + esc(b) + '<span>' + list.length + '건</span></div>' + list.map(e => {
+                    Array.from(byBlk.entries()).map(([b, list]) => '<div class="blk-hd"><div>' + blkH(b) + '</div><span>' + list.length + '건</span></div>' + list.map(e => {
                         const k = e.block + '|' + e.pick, rp = hp.picks.get(k);
                         const q = e.type === 'add' ? '<b>' + esc(e.nextQty || '-') + '</b>'
                             : e.type === 'del' ? '<s>' + esc(e.prevQty || '-') + '</s> → 0'
@@ -1802,7 +2033,7 @@
             html += '<div class="dr-sec"><h3>기간 중 자주 바뀌는 자재 <small>' + hp.repeat.length + '개 · 칸 = 저장 일자</small></h3><div class="chg-list">' +
                 hp.repeat.slice(0, 15).map(p => {
                     const on = new Set(p.dates);
-                    return '<div class="chg-row rep-row"><div><div class="pn">' + esc(p.block) + ' · 자재 ' + esc(p.pick) + ' ' +
+                    return '<div class="chg-row rep-row"><div><div class="pn">' + blkH(p.block) + ' · 자재 ' + esc(p.pick) + ' ' +
                         Array.from(p.types).map(t => '<span class="tag ' + t + '" style="padding:1px 6px">' + TYPES[t].label + '</span>').join(' ') + '</div>' +
                         '<div class="nm mono">최근 ' + shortDay(p.last.date) + ' : ' + esc(p.last.prevNo || '없음') + ' / ' + esc(p.last.prevQty || '-') + ' → ' + esc(p.last.nextNo || '없음') + ' / ' + esc(p.last.nextQty || '-') + '</div></div>' +
                         '<div class="q"><b>' + p.dates.length + '회</b><div class="rep-days" aria-hidden="true">' + P.dates.map(d => '<i class="' + (on.has(d) ? 'on' : '') + '"' + (d === dr.date ? ' style="outline:1px solid var(--brand)"' : '') + '></i>').join('') + '</div></div></div>';
@@ -1837,7 +2068,7 @@
             const ks = Object.keys(bl).sort((a, b) => bl[b].n - bl[a].n);
             chart('chDrawer', {
                 chart: { type: 'bar', height: Math.max(140, 40 + ks.length * 28) },
-                xAxis: { categories: ks },
+                xAxis: { categories: ks.map(blkT) },
                 yAxis: { title: { text: null }, allowDecimals: false, reversedStacks: false },
                 legend: { enabled: false },
                 tooltip: { shared: true, pointFormat: '<span style="color:{series.color}">●</span> {series.name}: <b>{point.y}건</b><br/>' },
@@ -1868,7 +2099,8 @@
     function renderDay() {
         renderDayBar();
         document.querySelectorAll('[data-scope="day"]').forEach(el => { el.textContent = shortDay(D.date) + '(' + wk(D.date) + ') 기준'; });
-        renderBrands(); renderTrend();
+        renderVerdict();
+        renderBrands(); renderTrend(); renderSpread();
         renderHero();
         renderMatrix(); renderInsights(); renderTable();
         syncUrl();
@@ -1890,7 +2122,7 @@
         $('truncNotice').textContent = notes.join(' ');
         if (!P.dates.length) {
             showState('<h2>조건에 맞는 저장 이력이 없습니다</h2><p>' + longDay(state.from) + ' ~ ' + longDay(state.to) +
-                (state.brand || state.atyp || state.block ? ' · ' + esc([state.brand, state.atyp, state.block].filter(Boolean).join(' · ')) + ' (필터를 초기화해 보세요)' : '') +
+                (state.brand || state.atyp || state.block ? ' · ' + esc([state.brand, state.atyp, state.block && blkT(state.block)].filter(Boolean).join(' · ')) + ' (필터를 초기화해 보세요)' : '') +
                 ' · 일자별 수량 계산 화면에서 "이력 저장" 을 하면 PLM_SIMUL_HOGIBOM 에 쌓입니다.</p>' +
                 '<a class="btn btn-solid" href="/simulateup/blockQtyCompare">일자별 수량 계산으로 이동</a>');
             syncUrl();
@@ -2006,6 +2238,17 @@
     });
 
     document.querySelectorAll('[data-mx]').forEach(b => b.addEventListener('click', () => { state.mx = b.dataset.mx; renderMatrix(); }));
+    /* 영향 범위 : 기준 일자 / 기간 전체, [호기 보기] 는 그 날짜로 옮겨 상세를 연다 */
+    document.querySelectorAll('[data-sp]').forEach(b => b.addEventListener('click', () => { if (state.sp === b.dataset.sp) return; state.sp = b.dataset.sp; renderSpread(); }));
+    $('spread').addEventListener('click', e => {
+        if (e.target.closest('a')) return;
+        const go = e.target.closest('[data-sp-go]');
+        if (go) { state.sp = go.dataset.spGo; renderSpread(); return; }
+        const b = e.target.closest('[data-k]');
+        if (!b) return;
+        if (b.dataset.d !== state.date) goDay(b.dataset.d);
+        openDrawer(b.dataset.k, b.dataset.d);
+    });
     document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => {
         if (state.mode === b.dataset.mode) return;
         state.mode = b.dataset.mode; state.filter = 'all';
@@ -2021,6 +2264,7 @@
         openDrawer(c.dataset.k, c.dataset.d || state.date);
     });
     $('chips').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { state.filter = b.dataset.f; renderTable(); } });
+    $('tblMat').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (b) { state.filter = b.dataset.f; renderTable(); } });
     let qt;
     $('inSearch').addEventListener('input', e => { clearTimeout(qt); qt = setTimeout(() => {
         state.q = e.target.value;

@@ -20,7 +20,7 @@ public class SimPidRepositoryAsOf extends SimPidRepository {
 	/** 기준일 yyyy-MM-dd */
 	private final String asOfDate;
 	private final Map<String, Object> asOfCache = new ConcurrentHashMap<String, Object>();
-	/** 실제로 고른 버전 (PID → {version, regDate}), 고른 순서 */
+	/** 실제로 고른 버전 (PID → {version, regDate, remarks}), 고른 순서. remarks = 그 버전의 VARIANT_H.REMARKS (버전 변경 사유) */
 	private final Map<String, Map<String, Object>> picked = Collections.synchronizedMap(new LinkedHashMap<String, Map<String, Object>>());
 
 	public SimPidRepositoryAsOf(String asOfDate) {
@@ -31,7 +31,7 @@ public class SimPidRepositoryAsOf extends SimPidRepository {
 
 	public String getAsOfDate() { return asOfDate; }
 
-	/** 실행 중 고른 PID 별 버전 {version, regDate} (기준일 이전 버전이 없으면 version null) */
+	/** 실행 중 고른 PID 별 버전 {version, regDate, remarks} (기준일 이전 버전이 없으면 version null) */
 	public Map<String, Map<String, Object>> getPicked() {
 		synchronized (picked) {
 			return new LinkedHashMap<String, Map<String, Object>>(picked);
@@ -45,7 +45,7 @@ public class SimPidRepositoryAsOf extends SimPidRepository {
 		if (cached == null) {
 			Map<String, String> row = db.queryForFirst(
 					" SELECT * FROM ( "
-					+ "   SELECT A.VERSION, TO_CHAR(A.REG_DATE, 'YYYY-MM-DD HH24:MI:SS') REG_DATE "
+					+ "   SELECT A.VERSION, TO_CHAR(A.REG_DATE, 'YYYY-MM-DD HH24:MI:SS') REG_DATE, A.REMARKS "
 					+ "   FROM VARIANT_H A "
 					+ "   WHERE A.PID = ? AND A.VERSION <> ? AND A.REG_DATE < TO_DATE(?, 'YYYY-MM-DD') + 1 "
 					+ "   ORDER BY A.REG_DATE DESC, A.VERSION DESC "
@@ -55,6 +55,7 @@ public class SimPidRepositoryAsOf extends SimPidRepository {
 			Map<String, Object> p = new LinkedHashMap<String, Object>();
 			p.put("version", info == null ? null : info.getVersion());
 			p.put("regDate", row == null ? null : row.get("REG_DATE"));
+			p.put("remarks", row == null ? null : row.get("REMARKS"));   // 화면 표시용 (버전 선택에는 쓰지 않음)
 			picked.put(pid, p);
 
 			cached = (info == null) ? NOT_FOUND : info;

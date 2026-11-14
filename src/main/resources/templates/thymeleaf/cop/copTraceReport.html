@@ -20,6 +20,7 @@
           핵심 요약 → 1. 변동 내용 → 2. 분석 근거(2.1 ~ 2.4) → 3. 원인 판정 · 신뢰도 → 4. 권고 조치 → 5. 분석의 한계 → 부록
         참고 : 문장은 추적 결과를 규칙으로 조합해 자동 작성한다 (LLM 호출 없음). 신뢰도는 재현 여부 · 라인 일치 여부로 매긴 기준값이다.
     -->
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
     <style>
         :root {
@@ -145,6 +146,16 @@
         .cap { margin-top: 6px; font-size: 12.5px; color: var(--ink-3); }
         .cond { font-family: var(--mono); font-size: 12.5px; }
         .links { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+
+        /* PID 버전 비고 (VARIANT_H.REMARKS = 그 버전을 등록할 때 남긴 변경 사유) */
+        .rmk { margin-top: 4px; font: 500 13px/1.5 var(--sans); color: var(--ink-2); white-space: pre-wrap; overflow-wrap: anywhere; max-width: 420px; }
+        .rmk.A { color: var(--a); } .rmk.B { color: var(--b); }
+        .rmk.none { color: var(--ink-3); font-weight: 400; }
+        .pair .rmk { max-width: none; font-size: 14.5px; }
+        .vrmk { margin-top: 16px; }
+        .vrmk h4 { font-size: 14px; font-weight: 750; color: var(--ink-2); }
+        .vrmk .pair { margin-top: 8px; }
+        .brief dd .rmk-sub { display: block; margin-top: 2px; font-size: .92em; color: var(--ink-3); }
 
         .stats { margin-top: 14px; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
         .stats div { padding: 9px 12px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--line); }
@@ -660,12 +671,29 @@
         renderHead(e, C.title);
         const out = [];
 
+        /* PID 버전 비고 (VARIANT_H.REMARKS) : 표시만 하고 판정 · 신뢰도에는 쓰지 않는다 */
+        const rmkOf = v => { const s = str(v); return s === '-' ? '' : s; };
+        const vRm = (m, p) => m && m[p] && m[p].version != null ? rmkOf(m[p].remarks) : '';
+        const rmkDiv = (r, cls) => r ? '<div class="rmk ' + cls + '">' + esc(r) + '</div>' : '<div class="rmk none">비고 없음</div>';
+        /* 원인 PID : 추적 대상의 버전이 바뀌었으면 그것, 아니면 버전이 바뀐 첫 PID */
+        const keyPid = R.verDiff.length ? (R.verDiff.includes(R.target) ? R.target : R.verDiff[0]) : null;
+        const hasVerRmk = p => !!(p && (vRm(R.vA, p) || vRm(R.vB, p)));
+        const verPair = (p, cap) => '<div class="vrmk">' + (cap ? '<h4>' + esc(cap) + '</h4>' : '') +
+            '<div class="pair"><div class="A"><small>' + sd(e.prevDate) + ' · ' + esc(p) + ' v' + esc(vtxt(R.ver(R.vA, p))) + '</small>' + rmkDiv(vRm(R.vA, p), 'A') + '</div>' +
+            '<span class="arrow" role="img" aria-label="에서 다음으로 변경">' + ICON_ARROW + '</span>' +
+            '<div class="B"><small>' + sd(e.date) + ' · ' + esc(p) + ' v' + esc(vtxt(R.ver(R.vB, p))) + '</small>' + rmkDiv(vRm(R.vB, p), 'B') + '</div></div>' +
+            '<p class="cap">비고 = 그 PID 버전을 등록할 때 남긴 VARIANT_H.REMARKS 입니다. 두 날짜 사이에 건너뛴 중간 버전의 비고는 PID 변경 이력에서 확인하세요.</p></div>';
+        const showReason = keyPid && hasVerRmk(keyPid) && ['logic', 'subLogic', 'simFail'].includes(R.cause);
+
         /* 핵심 요약 */
         out.push('<section class="brief" aria-labelledby="hBrief"><div class="brief-hd">' +
             '<h2 id="hBrief"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 5.6a3 3 0 0 0 1.9 1.9L21.4 11.4l-5.6 1.9a3 3 0 0 0-1.9 1.9L12 20.8l-1.9-5.6a3 3 0 0 0-1.9-1.9L2.6 11.4l5.6-1.9a3 3 0 0 0 1.9-1.9z"/></svg>핵심 요약</h2><span class="sp"></span>' +
             '<span class="badge ' + V.cls + '">' + V.label + '</span>' +
             '<span class="conf" title="' + esc(C.confWhy) + '">신뢰도 <i aria-hidden="true">' + [1, 2, 3].map(n => '<span class="' + (n <= C.conf ? 'on' : '') + '"></span>').join('') + '</i>' + CONF[C.conf] + '</span></div>' +
-            '<dl><div><dt>무엇이</dt><dd>' + C.what + '</dd></div><div><dt>왜</dt><dd>' + C.why + '</dd></div><div><dt>다음 조치</dt><dd>' + esc(C.next) + '</dd></div></dl></section>');
+            '<dl><div><dt>무엇이</dt><dd>' + C.what + '</dd></div><div><dt>왜</dt><dd>' + C.why + '</dd></div>' +
+            (showReason ? '<div><dt>변경 사유</dt><dd>' + b(keyPid + ' v' + vtxt(R.ver(R.vB, keyPid))) + ' : ' + esc(vRm(R.vB, keyPid) || '비고 없음') +
+                '<span class="rmk-sub">이전 ' + esc('v' + vtxt(R.ver(R.vA, keyPid))) + ' : ' + esc(vRm(R.vA, keyPid) || '비고 없음') + '</span></dd></div>' : '') +
+            '<div><dt>다음 조치</dt><dd>' + esc(C.next) + '</dd></div></dl></section>');
 
         /* 1. 변동 내용 */
         out.push('<section class="sec"><h2><span class="n">1</span>변동 내용</h2>' +
@@ -694,7 +722,7 @@
                     row(e.prevDate, { part: e.prevNo, qty: e.prevQty }, R.reA, R.okA, R.ra) + row(e.date, { part: e.nextNo, qty: e.nextQty }, R.reB, R.okB, R.rb))));
 
             /* 2.2 PID 버전 */
-            const vt = (m, p) => m[p] ? (m[p].version == null ? '<i>그 날 버전 없음</i>' : 'v' + esc(m[p].version) + '<div class="cap">' + esc((m[p].regDate || '').slice(0, 16)) + '</div>') : '<i>실행 안 됨</i>';
+            const vt = (m, p) => m[p] ? (m[p].version == null ? '<i>그 날 버전 없음</i>' : 'v' + esc(m[p].version) + '<div class="cap">' + esc((m[p].regDate || '').slice(0, 16)) + '</div>' + rmkDiv(vRm(m, p), '')) : '<i>실행 안 됨</i>';
             const role = p => p === R.elp ? '자재수배 (자재번호 선택)' : p === R.blockPid ? '블럭 (수량 계산)' : '전처리 · 하위 PID';
             ev.push(sub('2.2', 'PID 버전 비교', R.verDiff.length ? R.verDiff.length + '개 변경' : '변경 없음', R.verDiff.length ? 'bad' : 'good',
                 prose('각 기준일에 실제로 쓰인 PID 버전을 비교했습니다. 실행된 PID ' + b(R.pids.length + '개') + ' 중 ' +
@@ -702,7 +730,7 @@
                     ' 이번 ' + (R.isPart ? '자재번호' : '수량') + ' 변동의 추적 대상은 ' + b(R.target) + ' (' + (R.isPart ? '자재수배' : '블럭 · 수량') + ') 입니다.') +
                 (R.verDiff.length ? table('표 2. 버전이 바뀐 PID', ['PID', '역할', sd(e.prevDate) + ' 버전', sd(e.date) + ' 버전'],
                     R.verDiff.map(p => '<tr' + (p === R.target ? ' class="hot"' : '') + '><td class="m">' + esc(p) + '</td><td>' + role(p) + '</td><td class="m A">' + vt(R.vA, p) + '</td><td class="m B">' + vt(R.vB, p) + '</td></tr>').join(''),
-                    '버전이 같은 PID ' + (R.pids.length - R.verDiff.length) + '개는 표에서 뺐습니다. 붉은 행이 추적 대상입니다.') : '')));
+                    '버전이 같은 PID ' + (R.pids.length - R.verDiff.length) + '개는 표에서 뺐습니다. 붉은 행이 추적 대상입니다. 버전 아래 글은 그 버전의 비고(VARIANT_H.REMARKS)입니다.') : '')));
 
             /* 2.3 로직 라인 */
             if (!R.verDiff.length) {
@@ -737,6 +765,7 @@
                 /* 2.4 결과값 */
                 ev.push(sub('2.4', '결과값 비교', R.rd.length ? R.rd.length + '개 다름' : '모두 같음', R.rd.length ? 'bad' : 'good',
                     prose('두 버전이 계산한 최종 결과값 ' + b(R.keys.length + '개') + ' 를 비교했습니다. ' + (R.rd.length ? '<strong>' + R.rd.length + '개가 다릅니다.</strong>' : '<strong>모두 같습니다.</strong>')) +
+                    verPair(R.target, R.target + ' 두 버전의 비고 (변경 사유)') +
                     (R.rd.length ? table('표 4. 다른 결과값', ['KEY', sd(e.prevDate) + ' (v' + R.tv.a + ')', sd(e.date) + ' (v' + R.tv.b + ')'],
                         R.rd.slice(0, MAX_RESULTS).map(k => { const cm = String(k).toUpperCase() === 'CMT';
                             return '<tr' + (R.hasP(k) ? ' class="hot"' : '') + '><td class="m">' + esc(k) + '</td><td class="m A">' + (cm ? cmtCell(R.mA[k]) : esc(vtxt(str(R.mA[k])))) + '</td><td class="m B">' + (cm ? cmtCell(R.mB[k]) : esc(vtxt(str(R.mB[k])))) + '</td></tr>'; }).join(''),
@@ -749,6 +778,7 @@
         /* 3. 원인 판정 */
         out.push('<section class="sec"><h2><span class="n">3</span>원인 판정</h2>' +
             '<div class="callout ' + V.cls + '"><p>' + C.statement + '</p></div>' +
+            (showReason ? verPair(keyPid, '원인 PID 버전 비고 (VARIANT_H · 변경 사유)') : '') +
             '<ul class="basis">' + C.basis.map(x => '<li' + (x.weak ? ' class="weak"' : '') + '>' + (x.weak ? ICON_Q : ICON_OK) + '<span>' + esc(x.t) + '</span></li>').join('') + '</ul>' +
             prose('<strong>신뢰도 ' + CONF[C.conf] + '.</strong> ' + esc(C.confWhy)) + '</section>');
 
