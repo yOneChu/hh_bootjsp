@@ -750,7 +750,6 @@
                 <button type="button" data-range="30" aria-pressed="false">30일</button>
             </div>
             <a class="btn btn-hide-sm" href="/cop/dashboard/preview" id="lnkExec">발표용 요약</a>
-            <a class="btn btn-hide-sm" href="/cop/dashboard/brand" id="lnkBrand">BOM 이상감지</a>
             <button type="button" class="btn" id="btnPrint" aria-label="보고서 인쇄">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
                 <span class="btn-hide-sm">인쇄</span>
@@ -2138,11 +2137,6 @@
         if (state.block) p.set('block', state.block);
         if (state.mode !== 'period') p.set('mode', state.mode);
         try { history.replaceState(null, '', location.pathname + '?' + p.toString()); } catch (e) { /* 무시 */ }
-        const b = new URLSearchParams({ from: state.from, to: state.to });
-        if (state.brand) b.set('brand', state.brand);
-        if (state.atyp) b.set('atyp', state.atyp);
-        if (state.block) b.set('block', state.block);
-        $('lnkBrand').href = '/cop/dashboard/brand?' + b.toString();
         const x = new URLSearchParams({ from: state.from, to: state.to });
         if (state.block) x.set('block', state.block);
         $('lnkExec').href = '/cop/dashboard/preview?' + x.toString();
