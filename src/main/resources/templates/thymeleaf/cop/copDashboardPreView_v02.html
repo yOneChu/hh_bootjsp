@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>BOM FDC 발표 · SENTINEL</title>
+    <title>BOM FDC 발표</title>
     <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
     <!--
-        SENTINEL · BOM FDC 발표 자료 (실시간 화면 포함)   GET /cop/dashboard/preview
+        BOM FDC 발표 자료 (실시간 화면 포함)   GET /cop/dashboard/preview
 
         구성 : 16:9 슬라이드 17장. 본문은 docs/COP/BOM_FDC_발표자료_v04.html 의 장을 그대로 옮긴 것이고 (.v4),
                7 ~ 12장은 실제 운영 화면을 슬라이드 안에 띄워 그 장에서 설명하는 부분을 보여준다.
@@ -234,7 +234,7 @@
       <div class="door l"></div><div class="door r"></div>
       <div class="lv-tag cv-kick"><i aria-hidden="true"></i>수배로직 변경 영향 자동 검증</div>
       <h1 class="cv-name">BOM <span>이상감지</span><span class="cv-fdc"><b>FDC</b><small>Fault Detection &amp; Classification</small></span></h1>
-      <p class="cv-line">로직을 고친 다음 날 아침, BOM이 먼저 알려줍니다</p>
+      <p class="cv-line">로직 변경의 영향, 다음 날 아침에 확인합니다</p>
       <div class="cv-forest" id="coverForest"></div>
       <div style="position:absolute;left:96px;bottom:70px;font-size:20px;color:#AFC0D0;line-height:1.7">팀명 I'M BOM<br>팀원 김영환 · 서동기 · 이지은 · 안대환 · 김도현</div>
     </section>
@@ -503,7 +503,7 @@
             <div class="lv-say"><b id="lvBrand">브랜드별 대표 호기 · 블럭 · 자재 규모</b><span>브랜드 카드를 누르면 그 브랜드만 걸러집니다</span></div>
         </div>
         <div class="mon">
-            <div class="mon-bar"><b>SENTINEL</b><span>COP 배치 변경 대시보드</span><code>/cop/dashboard</code><span class="sp"></span><span>브랜드별 관리 현황</span><button type="button" data-act="reset">처음 상태로</button><button type="button" data-act="demo">전체 화면으로</button></div>
+            <div class="mon-bar"><b>BOM FDC</b><span>COP 배치 변경 대시보드</span><code>/cop/dashboard</code><span class="sp"></span><span>브랜드별 관리 현황</span><button type="button" data-act="reset">처음 상태로</button><button type="button" data-act="demo">전체 화면으로</button></div>
             <div class="mon-view"><div>실시간 화면을 불러오는 중입니다<small>/cop/dashboard</small></div></div>
         </div>
     </section>
@@ -518,7 +518,7 @@
             <div class="lv-say"><b>노란 띠 = 수량이 바뀐 날 · ▲ 늘어남 ▼ 줄어듦</b><span>블럭을 바꾸거나 바뀐 날짜를 눌러 봅니다</span></div>
         </div>
         <div class="mon">
-            <div class="mon-bar"><b>SENTINEL</b><span>COP 배치 변경 대시보드</span><code>/cop/dashboard</code><span class="sp"></span><span>브랜드별 블럭 수량 추이</span><button type="button" data-act="reset">처음 상태로</button><button type="button" data-act="demo">전체 화면으로</button></div>
+            <div class="mon-bar"><b>BOM FDC</b><span>COP 배치 변경 대시보드</span><code>/cop/dashboard</code><span class="sp"></span><span>브랜드별 블럭 수량 추이</span><button type="button" data-act="reset">처음 상태로</button><button type="button" data-act="demo">전체 화면으로</button></div>
             <div class="mon-view"><div>실시간 화면을 불러오는 중입니다<small>/cop/dashboard</small></div></div>
         </div>
     </section>
@@ -533,7 +533,7 @@
             <div class="lv-say"><b>행 클릭 → 바뀐 자재 상세 → 원인 추적</b><span>[원인추적] 버튼을 누르면 다음 장에 그 호기가 열립니다</span></div>
         </div>
         <div class="mon">
-            <div class="mon-bar"><b>SENTINEL</b><span>COP 배치 변경 대시보드</span><code>/cop/dashboard</code><span class="sp"></span><span>호기별 비교 결과</span><button type="button" data-act="reset">처음 상태로</button><button type="button" data-act="demo">전체 화면으로</button></div>
+            <div class="mon-bar"><b>BOM FDC</b><span>COP 배치 변경 대시보드</span><code>/cop/dashboard</code><span class="sp"></span><span>호기별 비교 결과</span><button type="button" data-act="reset">처음 상태로</button><button type="button" data-act="demo">전체 화면으로</button></div>
             <div class="mon-view"><div>실시간 화면을 불러오는 중입니다<small>/cop/dashboard</small></div></div>
         </div>
     </section>
@@ -548,7 +548,7 @@
             <div class="lv-say"><b>저장 이력 → 다시 실행 → PID 버전 → 로직 라인 → 결과값</b><span id="lvCause">왼쪽에서 자재를 고르면 그 자재를 추적합니다</span></div>
         </div>
         <div class="mon">
-            <div class="mon-bar"><b>SENTINEL</b><span>BOM 변동 원인 추적</span><code>/cop/trace/cause</code><span class="sp"></span><span>원인 추적</span><button type="button" data-act="reset">처음 상태로</button></div>
+            <div class="mon-bar"><b>BOM FDC</b><span>BOM 변동 원인 추적</span><code>/cop/trace/cause</code><span class="sp"></span><span>원인 추적</span><button type="button" data-act="reset">처음 상태로</button></div>
             <div class="mon-view"><div>실시간 화면을 불러오는 중입니다<small>/cop/trace/cause</small></div></div>
         </div>
     </section>
@@ -563,7 +563,7 @@
             <div class="lv-say"><b>핵심 요약 → 변동 내용 → 분석 근거 → 원인 판정 → 권고 조치</b><span id="lvReport">원인 추적 화면의 [AI 보고서] 로 열립니다</span></div>
         </div>
         <div class="mon">
-            <div class="mon-bar"><b>SENTINEL</b><span>BOM 변동 원인 분석 보고서</span><code>/cop/trace/report</code><span class="sp"></span><span>AI 보고서</span><button type="button" data-act="reset">처음 상태로</button></div>
+            <div class="mon-bar"><b>BOM FDC</b><span>BOM 변동 원인 분석 보고서</span><code>/cop/trace/report</code><span class="sp"></span><span>AI 보고서</span><button type="button" data-act="reset">처음 상태로</button></div>
             <div class="mon-view"><div>실시간 화면을 불러오는 중입니다<small>/cop/trace/report</small></div></div>
         </div>
     </section>
@@ -841,7 +841,7 @@
     };
     /* iframe 문서에 넣는 스타일 : 기간 조회 줄 · 보는 법 · 고르지 않은 카드를 숨긴다 (기준일 · 필터 줄은 남긴다) */
     const PV_CSS =
-        'body.pv .nav-in, body.pv #guide, body.pv #truncNotice { display: none !important; }' +
+        'body.pv .nav-in, body.pv #guide, body.pv #truncNotice, body.pv #drLink { display: none !important; }' +
         'body.pv #dash > section:not([data-pv-on]) { display: none !important; }' +
         'body.pv main.wrap { padding-top: 16px; padding-bottom: 24px; }' +
         'body.pv .wrap { max-width: none; }';

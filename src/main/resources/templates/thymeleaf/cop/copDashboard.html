@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>COP 배치 변경 대시보드 · SENTINEL</title>
+    <title>COP 배치 변경 대시보드 · BOM FDC</title>
     <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
     <!--
-        SENTINEL · COP 배치 변경 대시보드 (CopMainController : GET /cop/dashboard)
+        BOM FDC · COP 배치 변경 대시보드 (CopMainController : GET /cop/dashboard)
 
         데이터 : PLM_SIMUL_HOGIBOM 일자별 실행결과 이력 (copBrandBomDashboard 와 같은 API)
                  GET /cop/dashboard/brand/history?from=yyyyMMdd&to=yyyyMMdd
@@ -728,10 +728,10 @@
 
 <header class="nav">
     <div class="wrap nav-in">
-        <a class="brand" href="/cop2/main" aria-label="SENTINEL 메인으로">
+        <a class="brand" href="/cop2/main" aria-label="BOM FDC 메인으로">
             <span class="brand-mark" aria-hidden="true">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 12l5-3"/></svg>
-            </span><b>SENTINEL</b>
+            </span><b>BOM FDC</b>
         </a>
         <div class="crumb" aria-label="현재 위치"><span aria-hidden="true">/</span><b>COP 배치 변경 대시보드</b></div>
         <div class="nav-tools">
@@ -959,7 +959,6 @@
     <div class="dr-bd" id="drBody"></div>
     <div class="dr-ft">
         <button type="button" class="btn" id="drClose2">닫기</button>
-        <a class="btn btn-solid" id="drLink" href="/cop/dashboard/brand">BOM 이상감지에서 보기</a>
     </div>
 </aside>
 
@@ -1971,9 +1970,6 @@
         const st = stOf(x);
         $('drTitle').innerHTML = '<span class="mono">' + esc(hp.key) + '</span><span class="status ' + st[0] + '">' + st[1] + '</span>';
         $('drSub').textContent = specText(hp.spec) + ' · ' + longDay(dr.date) + (x && x.prevDate ? ' ↔ 앞 저장 ' + longDay(x.prevDate) : '');
-        const q = new URLSearchParams({ from: P.dates[0], to: P.dates.at(-1), q: hp.key });
-        if (state.block) q.set('block', state.block);
-        $('drLink').href = '/cop/dashboard/brand?' + q.toString();
 
         const repSet = new Set(hp.repeat.map(p => p.block + '|' + p.pick));
         let html = '';

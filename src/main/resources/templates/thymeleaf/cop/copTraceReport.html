@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>BOM 변동 원인 분석 보고서 · SENTINEL</title>
+    <title>BOM 변동 원인 분석 보고서 · BOM FDC</title>
     <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
     <!--
-        SENTINEL · BOM 변동 원인 분석 보고서 (CopMainController : GET /cop/trace/report)
+        BOM FDC · BOM 변동 원인 분석 보고서 (CopMainController : GET /cop/trace/report)
 
         주소 : /cop/trace/report?hogi=호기&date=yyyyMMdd&prev=yyyyMMdd&block=블럭PID&pick=PICK
                copTraceCause(원인 추적) 와 같은 파라미터 · 같은 추적 순서를 쓰고, 결과를 문서(보고서) 형식으로 보여준다.
@@ -238,7 +238,7 @@
 
 <header class="bar">
     <div class="bar-in">
-        <b>SENTINEL</b>
+        <b>BOM FDC</b>
         <span class="crumb">원인 추적 › <strong>분석 보고서</strong></span>
         <span class="sp"></span>
         <label for="selPick">대상 PICK</label>
@@ -255,7 +255,7 @@
 
 <main class="sheet" id="sheet">
     <div class="doc-top">
-        <span class="org">SENTINEL</span>
+        <span class="org">BOM FDC</span>
         <span class="gen">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 5.6a3 3 0 0 0 1.9 1.9L21.4 11.4l-5.6 1.9a3 3 0 0 0-1.9 1.9L12 20.8l-1.9-5.6a3 3 0 0 0-1.9-1.9L2.6 11.4l5.6-1.9a3 3 0 0 0 1.9-1.9z"/></svg>
             자동 분석 보고서
@@ -267,7 +267,7 @@
     <dl class="meta" id="docMeta"></dl>
     <div id="body"></div>
     <footer class="doc-foot">
-        <span>이 보고서는 SENTINEL 이 저장 이력과 PID 재실행 결과를 규칙으로 분석해 자동 작성했습니다. 최종 판단은 담당자 확인이 필요합니다.</span>
+        <span>이 보고서는 BOM FDC가 저장 이력과 PID 재실행 결과를 규칙으로 분석해 자동 작성했습니다. 최종 판단은 담당자 확인이 필요합니다.</span>
         <span id="docTime">-</span>
     </footer>
 </main>

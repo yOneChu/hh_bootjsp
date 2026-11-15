@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>BOM 변동 원인 추적 · SENTINEL</title>
+    <title>BOM 변동 원인 추적 · BOM FDC</title>
     <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
     <!--
-        SENTINEL · BOM 변동 원인 추적 (CopMainController : GET /cop/trace/cause)
+        BOM FDC · BOM 변동 원인 추적 (CopMainController : GET /cop/trace/cause)
 
         주소 : /cop/trace/cause?hogi=호기&date=yyyyMMdd&prev=yyyyMMdd&block=블럭PID&pick=PICK
                date  = 변동이 난 저장 일자 (필수)
@@ -209,7 +209,7 @@
 
 <header class="nav">
     <div class="wrap nav-in">
-        <b>SENTINEL</b>
+        <b>BOM FDC</b>
         <span class="crumb">BOM 변동 대시보드 › <strong>원인 추적</strong></span>
         <span class="sp"></span>
         <a class="btn" id="lnkBack" href="/cop/dashboard">대시보드로</a>
@@ -230,7 +230,7 @@
 
     <div class="layout" id="layout" hidden>
         <aside class="card side" aria-labelledby="sideTitle">
-            <div class="side-hd"><h2 id="sideTitle">바뀐 PICK</h2><p id="sideSub">-</p></div>
+            <div class="side-hd"><h2 id="sideTitle">바뀐 자재</h2><p id="sideSub">-</p></div>
             <div class="side-bd" id="picks"></div>
         </aside>
         <div>
@@ -345,7 +345,7 @@
     function renderPicks() {
         const byB = new Map();
         H.events.forEach(e => { if (!byB.has(e.block)) byB.set(e.block, []); byB.get(e.block).push(e); });
-        $('sideSub').textContent = day(P.date) + ' · 블럭 ' + byB.size + '개 · ' + H.events.length + '건 · 누르면 그 PICK 을 추적합니다';
+        $('sideSub').textContent = day(P.date) + ' · 블럭 ' + byB.size + '개 · ' + H.events.length + '건 · 누르면 그 자재를 추적합니다';
         $('picks').innerHTML = Array.from(byB.entries()).map(([b, list]) =>
             '<div class="blk"><span>' + esc(b) + '</span><span>앞 저장 ' + sd(list[0].prevDate) + ' · ' + list.length + '건</span></div>' +
             list.map(e => '<button type="button" class="pk" data-b="' + esc(e.block) + '" data-p="' + esc(e.pick) + '" aria-current="' + (e === SEL) + '">' +
@@ -412,7 +412,7 @@
     const rmkCell = (r, cls) => r ? '<div class="rmk ' + (cls || '') + '">' + esc(r) + '</div>' : '';
     function setTags(e) {
         const sp = H.spec || {};
-        $('vTags').innerHTML = [ ['호기', P.hogi], ['브랜드', sp.brand], ['기종', sp.atyp], ['속도', sp.speed], ['용량', sp.acapa], ['블럭', e && e.block], ['PICK', e && e.pick],
+        $('vTags').innerHTML = [ ['호기', P.hogi], ['브랜드', sp.brand], ['기종', sp.atyp], ['속도', sp.speed], ['용량', sp.acapa], ['블럭', e && e.block], ['자재', e && e.pick],
             ['비교', e ? sd(e.prevDate) + ' → ' + sd(e.date) : day(P.date)] ]
             .filter(x => x[1]).map(x => '<span class="tag">' + x[0] + ' <b>' + esc(x[1]) + '</b></span>').join('') +
             (e ? '<span class="tag hot">' + (e.revert ? '예전 자재 복귀' : TYPES[e.type]) + '</span>' : '');
@@ -440,13 +440,13 @@
         $('lnkReport').href = '/cop/trace/report?' + url;
         initChain();
         $('todoCard').hidden = true;
-        setVerdict('', e.block + ' · PICK ' + e.pick, '두 날짜를 기준일로 다시 계산하는 중입니다…', 'PLM DB 에서 기준일 버전 PID 를 읽어 실행합니다. 블럭 PICK 수에 따라 시간이 걸릴 수 있습니다.');
+        setVerdict('', e.block + ' · 자재 ' + e.pick, '두 날짜를 기준일로 다시 계산하는 중입니다…', 'PLM DB 에서 기준일 버전 PID 를 읽어 실행합니다. 블럭 자재 수에 따라 시간이 걸릴 수 있습니다.');
 
         /* STEP 1 */
         const isPart = e.type !== 'qty';
-        step(0, 'done', e.type === 'qty' ? 'PICK ' + e.pick + ' 의 수량이 ' + vtxt(e.prevQty) + ' → ' + vtxt(e.nextQty) + ' 로 바뀌었습니다'
-            : e.type === 'swap' ? 'PICK ' + e.pick + ' 의 자재번호가 ' + e.prevNo + ' → ' + e.nextNo + ' 로 바뀌었습니다' + (e.revert ? ' (예전 자재로 복귀)' : '')
-            : e.type === 'add' ? 'PICK ' + e.pick + ' 이(가) 새로 수배되었습니다' : 'PICK ' + e.pick + ' 이(가) 수배에서 빠졌습니다',
+        step(0, 'done', e.type === 'qty' ? '자재 ' + e.pick + ' 의 수량이 ' + vtxt(e.prevQty) + ' → ' + vtxt(e.nextQty) + ' 로 바뀌었습니다'
+            : e.type === 'swap' ? '자재 ' + e.pick + ' 의 자재번호가 ' + e.prevNo + ' → ' + e.nextNo + ' 로 바뀌었습니다' + (e.revert ? ' (예전 자재로 복귀)' : '')
+            : e.type === 'add' ? '자재 ' + e.pick + ' 이(가) 새로 수배되었습니다' : '자재 ' + e.pick + ' 이(가) 수배에서 빠졌습니다',
             '<div class="pair"><div class="A"><small>앞 저장 ' + day(e.prevDate) + '</small><b>' + esc(vtxt(e.prevNo)) + '</b><span class="q2">수량 ' + esc(vtxt(e.prevQty)) + '</span></div>' +
             '<span class="neq" aria-label="다름">≠</span>' +
             '<div class="B"><small>바뀐 날 ' + day(e.date) + '</small><b>' + esc(vtxt(e.nextNo)) + '</b><span class="q2">수량 ' + esc(vtxt(e.nextQty)) + '</span></div></div>' +
@@ -473,7 +473,7 @@
         const reDiff = !same(reA.part, reB.part) || !same(reA.qty, reB.qty);
         const row = (d, saved, re, ok, run) => '<tr' + (ok ? '' : ' class="hot"') + '><td class="nw">' + day(d) + '</td>' +
             '<td class="m">' + esc(vtxt(saved.part)) + '</td><td class="m">' + esc(vtxt(saved.qty)) + '</td>' +
-            '<td class="m">' + (run ? esc(vtxt(re.part)) : '<i>PICK 없음</i>') + '</td><td class="m">' + esc(vtxt(re.qty)) + '</td>' +
+            '<td class="m">' + (run ? esc(vtxt(re.part)) : '<i>자재 없음</i>') + '</td><td class="m">' + esc(vtxt(re.qty)) + '</td>' +
             '<td>' + (ok ? '<span class="kind add">같음</span>' : '<span class="kind del">다름</span>') + (run && run.error ? '<div class="cap">' + esc(run.error) + '</div>' : '') + '</td></tr>';
         const s2body = '<div class="tbl-wrap"><table class="t"><thead><tr><th>기준일</th><th>저장된 자재번호</th><th>저장된 수량</th><th>다시 실행 자재번호</th><th>다시 실행 수량</th><th>재현</th></tr></thead><tbody>' +
             row(e.prevDate, { part: e.prevNo, qty: e.prevQty }, reA, okA, ra) + row(e.date, { part: e.nextNo, qty: e.nextQty }, reB, okB, rb) + '</tbody></table></div>' +
@@ -517,7 +517,7 @@
             step(3, 'done', '로직이 같아 라인 비교를 건너뜁니다', note('같은 버전 · 같은 영업사양이면 모든 라인의 판정이 같습니다.', 'info') +
                 '<div class="links">' + simLink(target, ver(vB, target), '', 'PID 시뮬레이터에서 ' + target + ' 열기') + '</div>');
             step(4, 'done', '결과값 비교를 건너뜁니다');
-            setVerdict('root', e.block + ' · PICK ' + e.pick, '로직은 같습니다. <em>영업사양 · 지정값</em> 차이로 추정됩니다',
+            setVerdict('root', e.block + ' · 자재 ' + e.pick, '로직은 같습니다. <em>영업사양 · 지정값</em> 차이로 추정됩니다',
                 sd(e.prevDate) + ' · ' + sd(e.date) + ' 두 날짜에 쓰인 PID ' + pids.length + '개의 버전이 모두 같습니다. 지금 다시 계산하면 두 날짜 결과가 ' + (reDiff ? '다르므로 실행 조건을 확인하세요.' : '같으므로, 저장할 때의 공사값이나 일자별 수량 계산의 지정값이 달랐을 가능성이 큽니다.'));
             todo(['영업사양 변경 이력에서 ' + P.hogi + ' 의 ' + sd(e.prevDate) + ' ~ ' + sd(e.date) + ' 사이 변경 확인',
                   '일자별 수량 계산에서 두 날짜에 지정값을 넣어 저장했는지 확인',
@@ -533,7 +533,7 @@
         const tv = { a: ver(vA, target), b: ver(vB, target) };
         const subs = m => Object.keys(m).filter(p => p !== target && m[p] && m[p].version != null).map(p => p + ':' + m[p].version).join(',');
         const sA = subs(vA), sB = subs(vB);
-        step(3, 'run', target + ' 를 두 날짜 버전으로 실행해 라인을 비교하는 중…', '<p class="loading">' + esc(target) + ' v' + tv.a + ' / v' + tv.b + (isPart ? '' : ' · PICK ' + esc(e.pick)) + '</p>');
+        step(3, 'run', target + ' 를 두 날짜 버전으로 실행해 라인을 비교하는 중…', '<p class="loading">' + esc(target) + ' v' + tv.a + ' / v' + tv.b + (isPart ? '' : ' · 자재 ' + esc(e.pick)) + '</p>');
         const runSim = (v, s) => {
             const q = new URLSearchParams({ project: P.hogi, pid: target });
             if (v != null) q.set('version', v);
@@ -552,7 +552,7 @@
                 '<div class="links">' + simLink(target, tv.a, sA, sd(e.prevDate) + ' 버전 열기') + simLink(target, tv.b, sB, sd(e.date) + ' 버전 열기') + '</div>');
             step(4, 'done', '결과값 비교를 건너뜁니다');
             if (!root) $('st2').className = 'step root';
-            setVerdict('root', e.block + ' · PICK ' + e.pick, '<em>' + esc(verDiff[0]) + '</em> 의 버전이 v' + esc(ver(vA, verDiff[0])) + ' → v' + esc(ver(vB, verDiff[0])) + ' 로 바뀌었습니다',
+            setVerdict('root', e.block + ' · 자재 ' + e.pick, '<em>' + esc(verDiff[0]) + '</em> 의 버전이 v' + esc(ver(vA, verDiff[0])) + ' → v' + esc(ver(vB, verDiff[0])) + ' 로 바뀌었습니다',
                 '라인 단위 비교는 실패했습니다 (' + x.message + '). PID 시뮬레이터에서 두 버전을 직접 비교하세요.');
             showVerRemark(verDiff[0]);
             todo(['PID 시뮬레이터에서 ' + target + ' v' + tv.a + ' 와 v' + tv.b + ' 비교', 'PID 변경 이력에서 ' + verDiff.join(', ') + ' 변경 사유 확인']);
@@ -580,9 +580,9 @@
                     '<td>' + (d.kind === 'mod' && d.condA !== d.condB ? condCell(d.condA, 'A') + condCell(d.condB, 'B') : condCell(d.condB || d.condA, '')) + '</td>' +
                     '<td>' + (d.kind === 'mod' && d.outA !== d.outB ? condCell(d.outA, 'A') + condCell(d.outB, 'B') : condCell(d.outB || d.outA, '')) + '</td>' +
                     '<td>' + (d.noA != null ? stc(d.sA) : '-') + '</td><td>' + (d.noB != null ? stc(d.sB) : '-') + '</td></tr>').join('') +
-                '</tbody></table></div><p class="cap">주황 = ' + sd(e.prevDate) + ' 버전, 파랑 = ' + sd(e.date) + ' 버전. 실행된(TRUE) 라인과 이 PICK · 자재번호가 나오는 라인을 먼저 보여줍니다' +
+                '</tbody></table></div><p class="cap">주황 = ' + sd(e.prevDate) + ' 버전, 파랑 = ' + sd(e.date) + ' 버전. 실행된(TRUE) 라인과 이 자재와 자재번호가 나오는 라인을 먼저 보여줍니다' +
                 (D.rows.length > MAX_LINES ? ' · 외 ' + (D.rows.length - MAX_LINES) + '개' : '') + (D.approx ? ' · 라인이 많아 순서대로 맞춰 비교했습니다' : '') + '</p>' : '') +
-            (isPart ? '' : '<p class="cap">PICK 실행은 자재수배 PID(' + esc(elp) + ')를 최신 버전으로 돌립니다. 자재수배 PID 버전이 바뀐 경우 STEP 3 표를 함께 보세요.</p>') +
+            (isPart ? '' : '<p class="cap">자재 단위 실행은 자재수배 PID(' + esc(elp) + ')를 최신 버전으로 돌립니다. 자재수배 PID 버전이 바뀐 경우 STEP 3 표를 함께 보세요.</p>') +
             '<div class="links">' + simLink(target, tv.a, sA, sd(e.prevDate) + ' 버전 (v' + tv.a + ') 열기') + simLink(target, tv.b, sB, sd(e.date) + ' 버전 (v' + tv.b + ') 열기') + '</div>';
 
         /* STEP 5 : 결과값 */
@@ -603,7 +603,7 @@
             step(3, 'root', javaPid ? 'JAVA 방식 PID 라 라인은 비교할 수 없습니다'
                 : (top ? KIND[top.kind] + ' 등 ' + D.rows.length + '개 라인이 두 버전에서 다릅니다' : ''), s4body);
             const where = top && !javaPid ? '라인 <em>' + esc(top.noB != null ? top.noB : top.noA) + '</em>' + (top.addrB || top.addrA ? ' (ADDR ' + esc(top.addrB || top.addrA) + ')' : '') + ' 이(가) ' + { add: '추가되었습니다', del: '삭제되었습니다', mod: '수정되었습니다', state: '다르게 판정되었습니다' }[top.kind] : '';
-            setVerdict('root', e.block + ' · PICK ' + e.pick + ' · 로직 변경',
+            setVerdict('root', e.block + ' · 자재 ' + e.pick + ' · 로직 변경',
                 '<em>' + esc(target) + '</em> 이(가) v' + esc(tv.a) + ' → v' + esc(tv.b) + (targetChanged ? ' 로 바뀌면서 ' : ' (하위 PID 버전 변경) 에서 ') + (where || '결과가 달라졌습니다'),
                 (isPart ? '자재번호를 고르는 자재수배 PID' : '수량을 계산하는 블럭 PID') + ' 를 두 날짜 버전으로 실행해 비교했습니다. 버전이 바뀐 PID ' + verDiff.length + '개 · 다른 라인 ' + D.rows.length + '개 · 다른 결과값 ' + rd.length + '개.');
             showVerRemark(verDiff.includes(target) ? target : verDiff[0]);
@@ -613,7 +613,7 @@
         } else {
             step(3, 'done', '두 버전의 라인 내용과 판정이 같습니다', s4body + note('이 PID 자체는 같게 동작합니다. 버전이 바뀐 하위 · 전처리 PID 쪽을 확인하세요.'));
             $('st2').className = 'step root';
-            setVerdict('root', e.block + ' · PICK ' + e.pick, '<em>' + esc(verDiff[0]) + '</em> 의 버전이 v' + esc(ver(vA, verDiff[0])) + ' → v' + esc(ver(vB, verDiff[0])) + ' 로 바뀌었습니다',
+            setVerdict('root', e.block + ' · 자재 ' + e.pick, '<em>' + esc(verDiff[0]) + '</em> 의 버전이 v' + esc(ver(vA, verDiff[0])) + ' → v' + esc(ver(vB, verDiff[0])) + ' 로 바뀌었습니다',
                 target + ' 의 라인 판정은 같아, 버전이 바뀐 다른 PID(' + verDiff.join(', ') + ')가 원인일 가능성이 큽니다.');
             showVerRemark(verDiff[0]);
             todo(verDiff.slice(0, 3).map(p => 'PID 시뮬레이터에서 ' + p + ' v' + ver(vA, p) + ' ↔ v' + ver(vB, p) + ' 비교').concat(['다시 계산해 ' + e.pick + ' 결과 재확인']));
@@ -708,7 +708,7 @@
         }
         setTags(null);
         if (!H.events.length) {
-            setVerdict('ok', P.hogi + ' · ' + day(P.date), '이 날짜에는 앞 저장일과 달라진 PICK 이 없습니다', H.blocks.size ? '저장된 블럭 ' + H.blocks.size + '개를 앞 저장일과 비교했습니다.' : '이 호기의 저장 이력이 없습니다.');
+            setVerdict('ok', P.hogi + ' · ' + day(P.date), '이 날짜에는 앞 저장일과 달라진 자재가 없습니다', H.blocks.size ? '저장된 블럭 ' + H.blocks.size + '개를 앞 저장일과 비교했습니다.' : '이 호기의 저장 이력이 없습니다.');
             showState('추적할 변동이 없습니다', '다른 날짜를 고르거나 대시보드로 돌아가세요.');
             return;
         }
