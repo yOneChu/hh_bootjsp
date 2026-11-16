@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,766 +7,393 @@
 
     <title>3D 조회</title>
 
-
-    <!-- Font Awesome -->
+    <!-- 사내망에서 CDN 이 차단되므로 /resources 아래 로컬 파일만 사용한다 -->
     <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
-
-    <!-- DataTables -->
     <link rel="stylesheet" href="/resources/dist/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css">
-    <link rel="stylesheet" href="/resources/dist/plugins/datatables-responsive/css/responsive.bootstrap4.min.css">
-    <link rel="stylesheet" href="/resources/dist/plugins/datatables-buttons/css/buttons.bootstrap4.min.css">
-
-    <link rel="stylesheet" href="/resources/dist/plugins/select2/css/select2.min.css">
-    <!-- Theme style -->
     <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
-    <!-- Custom dark mode enhancements -->
     <link rel="stylesheet" href="/resources/css/dark-mode.css">
-
-
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
-
 
     <style>
         :root {
-            --he-primary: #00a651;          /* 현대엘리베이터 메인 그린 느낌 */
-            --he-primary-dark: #008044;
-            --he-primary-light: #e6f7ef;
-            --he-gray-bg: #f5f7fa;
-            --he-text-main: #212529;
-            --he-text-muted: #6c757d;
-            --he-border: #dde2e8;
+            --mv-surface: #ffffff;
+            --mv-surface-2: #f6f8fa;
+            --mv-line: #dfe5ec;
+            --mv-line-strong: #c3ccd8;
+            --mv-text: #1f2937;
+            --mv-muted: #5b6675;
+            --mv-primary: #00803f;        /* 현대엘리베이터 그린 계열 (흰 글씨 대비 확보용으로 한 단계 어둡게) */
+            --mv-primary-hover: #006632;
+            --mv-primary-soft: #e8f6ee;
+            --mv-accent: #00803f;         /* 강조 글씨 */
+            --mv-hover: #f2f7f4;
+            --mv-iam-bg: #e0e7ff;  --mv-iam-fg: #3730a3;
+            --mv-ipt-bg: #fef3c7;  --mv-ipt-fg: #92400e;
+            --mv-etc-bg: #e5e7eb;  --mv-etc-fg: #374151;
+            --mv-danger: #b42318;
+            --mv-shadow: 0 1px 2px rgba(16, 24, 40, .05);
+        }
+        body.dark-mode {
+            --mv-surface: #0b1220;        /* dark-mode.css 의 카드 색과 맞춤 */
+            --mv-surface-2: #0f172a;
+            --mv-line: #25314a;
+            --mv-line-strong: #3a4a6b;
+            --mv-text: #e5e7eb;
+            --mv-muted: #a8b3c4;
+            --mv-primary: #0b7d43;
+            --mv-primary-hover: #0e9450;
+            --mv-primary-soft: #143524;
+            --mv-accent: #4ade80;
+            --mv-hover: #122038;
+            --mv-iam-bg: #312e81;  --mv-iam-fg: #c7d2fe;
+            --mv-ipt-bg: #5a3a0b;  --mv-ipt-fg: #fde68a;
+            --mv-etc-bg: #374151;  --mv-etc-fg: #d1d5db;
+            --mv-danger: #fca5a5;
+            --mv-shadow: none;
         }
 
-        /* 전체 배경 톤 */
-        body {
-            background-color: var(--he-gray-bg);
+        .mv-page { padding: 16px 16px 24px; color: var(--mv-text); font-size: 14px; }
+        .mv-page :focus-visible { outline: 2px solid var(--mv-accent); outline-offset: 2px; }
+
+        /* 제목 줄 */
+        .mv-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 14px; }
+        .mv-title { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.3; display: flex; align-items: center; gap: 10px; }
+        .mv-title i { color: var(--mv-accent); font-size: 18px; }
+        .mv-sub { margin: 2px 0 0; font-size: 13px; color: var(--mv-muted); }
+        .mv-head-right { margin-left: auto; }
+
+        /* 카드 */
+        .mv-card {
+            background: var(--mv-surface); border: 1px solid var(--mv-line); border-radius: 10px;
+            box-shadow: var(--mv-shadow); margin-bottom: 14px;
         }
 
-        /* 모듈러 도면 조회 헤더 */
-        .module-header {
-            margin-bottom: 1rem;
+        /* 조회 조건 */
+        .mv-search { padding: 16px; }
+        .mv-fields { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+        .mv-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .mv-field-name { flex: 2 1 280px; }
+        .mv-field-folder { flex: 1 1 200px; }
+        .mv-field label { margin: 0; font-size: 12px; font-weight: 600; color: var(--mv-muted); }
+        .mv-input, .mv-select {
+            height: 38px; width: 100%; padding: 0 12px; font-size: 14px; color: var(--mv-text);
+            background: var(--mv-surface); border: 1px solid var(--mv-line-strong); border-radius: 6px;
         }
+        .mv-input:focus, .mv-select:focus { border-color: var(--mv-accent); box-shadow: 0 0 0 3px var(--mv-primary-soft); outline: none; }
+        .mv-select:disabled { background: var(--mv-surface-2); color: var(--mv-muted); cursor: not-allowed; }
+        .mv-input-wrap { position: relative; }
+        .mv-input-wrap > i { position: absolute; left: 12px; top: 12px; color: var(--mv-muted); pointer-events: none; }
+        .mv-input-wrap .mv-input { padding-left: 34px; }
+        .mv-hint { font-size: 12px; color: var(--mv-muted); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-height: 24px; }
+        .mv-eg {
+            border: 1px solid var(--mv-line-strong); background: var(--mv-surface-2); color: var(--mv-text);
+            border-radius: 4px; padding: 1px 7px; font-family: Consolas, "D2Coding", monospace; font-size: 12px; cursor: pointer;
+        }
+        .mv-eg:hover { border-color: var(--mv-accent); color: var(--mv-accent); }
+        .mv-actions { display: flex; gap: 8px; padding-top: 20px; }
 
-        .module-header-title {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--he-text-main);
+        .mv-btn {
+            height: 38px; padding: 0 16px; border-radius: 6px; border: 1px solid var(--mv-line-strong);
+            background: var(--mv-surface); color: var(--mv-text); font-size: 14px; font-weight: 600; white-space: nowrap;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+            transition: background-color .15s, border-color .15s;
         }
+        .mv-btn:hover { background: var(--mv-hover); }
+        .mv-btn:disabled { opacity: .5; cursor: not-allowed; }
+        .mv-btn-primary { background: var(--mv-primary); border-color: var(--mv-primary); color: #fff; }
+        .mv-btn-primary:hover { background: var(--mv-primary-hover); border-color: var(--mv-primary-hover); }
+        .mv-btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
 
-        .module-header-subtitle {
-            font-size: 0.9rem;
-            color: var(--he-text-muted);
-        }
+        /* 이용 안내 (접기) */
+        .mv-guide { margin-top: 12px; border-top: 1px dashed var(--mv-line); padding-top: 10px; font-size: 13px; }
+        .mv-guide summary { cursor: pointer; color: var(--mv-muted); font-weight: 600; width: max-content; max-width: 100%; }
+        .mv-guide summary:hover { color: var(--mv-text); }
+        .mv-guide summary i { margin-right: 4px; }
+        .mv-guide-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 8px 24px; margin-top: 10px; }
+        .mv-guide h3 { margin: 0 0 4px; font-size: 13px; font-weight: 700; }
+        .mv-guide ul { margin: 0; padding-left: 18px; color: var(--mv-muted); line-height: 1.7; }
+        .mv-guide code { color: var(--mv-accent); background: var(--mv-primary-soft); padding: 0 4px; border-radius: 3px; font-size: 12px; }
 
-        /* 상단 요약 카드 */
-        .module-stat-card {
-            background-color: #ffffff;
-            border-radius: 12px;
-            padding: 1rem 1.1rem;
-            border: 1px solid var(--he-border);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        /* 결과 */
+        .mv-result { position: relative; overflow: hidden; }
+        .mv-result-head {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+            padding: 12px 16px; border-bottom: 1px solid var(--mv-line);
         }
+        .mv-count { margin: 0; font-size: 15px; font-weight: 700; }
+        .mv-count b { color: var(--mv-accent); font-variant-numeric: tabular-nums; }
+        .mv-count-sub { font-size: 12px; font-weight: 400; color: var(--mv-muted); margin-left: 6px; }
+        .mv-tools { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .mv-tools .mv-input, .mv-tools .mv-select { height: 32px; font-size: 13px; }
+        .mv-tools .mv-input-wrap { width: 220px; }
+        .mv-tools .mv-input-wrap > i { top: 9px; }
+        .mv-tools .mv-select { width: auto; padding-right: 8px; }
 
-        .module-stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
-
-        .module-stat-label {
-            font-size: 0.8rem;
-            color: var(--he-text-muted);
-        }
-
-        .module-stat-number {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--he-primary-dark);
-        }
-
-        .module-stat-desc {
-            font-size: 0.75rem;
-            color: var(--he-text-muted);
-        }
-
-        /* 조회 조건 박스 */
-        .module-search-card {
-            background-color: #ffffff;
-            border-radius: 12px;
-            border: 1px solid var(--he-border);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            padding: 1.25rem 1.25rem 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .module-search-title {
-            font-size: 1rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .module-search-title i {
-            color: var(--he-primary);
-        }
-
-        .module-search-help {
-            font-size: 0.75rem;
-            color: var(--he-text-muted);
-        }
-
-        /* DataTable 컨테이너 */
-        .module-table-wrap {
-            background-color: #ffffff;
-            border-radius: 12px;
-            border: 1px solid var(--he-border);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            overflow: hidden;
-        }
-
-        .module-table-header {
-            background: linear-gradient(90deg, var(--he-primary-dark), var(--he-primary));
-            color: #ffffff;
-            padding: 0.6rem 0.85rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .module-table-header-title {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.95rem;
-            font-weight: 600;
-        }
-
-        .module-table-header-actions button {
-            font-size: 0.75rem;
-        }
-
-        /* 공통 버튼 */
-        .btn-he-primary {
-            background-color: var(--he-primary);
-            border-color: var(--he-primary);
-            color: #ffffff;
-            font-weight: 600;
-        }
-
-        .btn-he-primary:hover {
-            background-color: var(--he-primary-dark);
-            border-color: var(--he-primary-dark);
-            color: #ffffff;
-        }
-
-        .btn-he-outline {
-            border-color: var(--he-primary);
-            color: var(--he-primary);
-            font-weight: 500;
-            background-color: #ffffff;
-        }
-
-        .btn-he-outline:hover {
-            background-color: var(--he-primary-light);
-            border-color: var(--he-primary-dark);
-            color: var(--he-primary-dark);
-        }
-
-        /* 테이블 내 View 버튼 가시성 개선 (밝은 배경에서 흐리게 보이는 문제 해결) */
-        .module-table-wrap .btn-outline-light {
-            color: var(--he-primary-dark);
-            border-color: var(--he-border);
-            background-color: #ffffff;
-            font-weight: 600;
-        }
-
-        .module-table-wrap .btn-outline-light:hover {
-            background-color: var(--he-primary-light);
-            border-color: var(--he-primary-dark);
-            color: var(--he-primary-dark);
-        }
-
-        /* ==============================
-           Module Drawing Table (modDrawingTable)
-           - 가독성 개선, 페이지 스타일과 조화
-           - DataTables 구성요소 포함
-           ============================== */
-        .module-table-wrap #modDrawingTable {
-            border-color: var(--he-border);
-        }
-
-        /* 헤더: 상단 고정 + 대비 강화 */
-        .module-table-wrap #modDrawingTable thead th {
-            position: sticky;
-            top: 0;
-            z-index: 2;
-            background: var(--he-surface, #f8f9fa);
-            color: var(--he-primary-dark);
-            font-weight: 700;
-            border-bottom: 2px solid var(--he-border);
-            vertical-align: middle;
-            white-space: nowrap;
-        }
-
-        /* 셀 패딩(컴팩트) */
-        .module-table-wrap #modDrawingTable.table-sm td,
-        .module-table-wrap #modDrawingTable.table-sm th {
-            padding: 0.5rem 0.75rem;
-        }
-
-        /* 지브라 스트라이프 + 호버 강조 */
-        .module-table-wrap #modDrawingTable tbody tr:nth-child(odd) {
-            background-color: var(--he-row-alt, rgba(0, 0, 0, 0.02));
-        }
-        .module-table-wrap #modDrawingTable tbody tr:hover {
-            background-color: var(--he-primary-xxlight, rgba(0, 0, 0, 0.04));
-        }
-
-        /* 경계선 컬러 정돈 */
-        .module-table-wrap #modDrawingTable td,
-        .module-table-wrap #modDrawingTable th {
-            border-color: var(--he-border);
-        }
-
-        /* 텍스트 정렬 보정 (파일 경로 등 긴 텍스트는 줄바꿈 허용) */
-        .module-table-wrap #modDrawingTable td {
-            vertical-align: middle;
-            word-break: break-all;
-        }
-
-        /* DataTables 컨트롤(검색/페이지네이션/길이/정보) */
-        .module-table-wrap .dataTables_wrapper .dataTables_filter input {
-            height: 32px;
-            padding: 0.25rem 0.5rem;
-            border: 1px solid var(--he-border);
-            border-radius: 6px;
-            background: var(--he-surface, #fff);
-            color: inherit;
-        }
-        .module-table-wrap .dataTables_wrapper .dataTables_length select {
-            height: 32px;
-            padding: 0.25rem 1.75rem 0.25rem 0.5rem;
-            border: 1px solid var(--he-border);
-            border-radius: 6px;
-            background: var(--he-surface, #fff);
-            color: inherit;
-        }
-        .module-table-wrap .dataTables_wrapper .dataTables_info {
-            color: var(--he-text-secondary, #6c757d);
-            font-size: 0.875rem;
-        }
-        .module-table-wrap .dataTables_wrapper .dataTables_paginate .paginate_button {
-            padding: 0.25rem 0.5rem;
-            margin: 0 2px;
-            border: 1px solid transparent;
-            border-radius: 6px;
-            color: inherit !important;
-        }
-        .module-table-wrap .dataTables_wrapper .dataTables_paginate .paginate_button.current,
-        .module-table-wrap .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-            background: var(--he-primary-light);
-            border-color: var(--he-primary-dark);
-            color: var(--he-primary-dark) !important;
-        }
-        .module-table-wrap .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-            background: var(--he-primary-xxlight, #eef5ff);
-            border-color: var(--he-border);
-        }
-
-        /* 다크 모드 보정 */
-        body.dark-mode .module-table-wrap #modDrawingTable thead th {
-            background: #1f2937;
-            color: #e5e7eb;
-            border-bottom-color: #374151;
-        }
-        body.dark-mode .module-table-wrap #modDrawingTable tbody tr:nth-child(odd) {
-            background-color: rgba(255, 255, 255, 0.02);
-        }
-        body.dark-mode .module-table-wrap #modDrawingTable tbody tr:hover {
-            background-color: rgba(255, 255, 255, 0.06);
-        }
-        body.dark-mode .module-table-wrap #modDrawingTable td,
-        body.dark-mode .module-table-wrap #modDrawingTable th {
-            border-color: #374151;
-        }
-        body.dark-mode .module-table-wrap .dataTables_wrapper .dataTables_filter input,
-        body.dark-mode .module-table-wrap .dataTables_wrapper .dataTables_length select {
-            background: #111827;
-            border-color: #374151;
-            color: #e5e7eb;
-        }
-
-        /* 폼 컨트롤 */
-        .module-search-card .form-label {
-            font-size: 0.8rem;
-            margin-bottom: 0.15rem;
-            color: var(--he-text-main);
-            font-weight: 500;
-        }
-
-        .module-search-card .form-control,
-        .module-search-card .select2-selection--single {
-            font-size: 0.8rem;
-            border-radius: 6px;
-        }
-
-        /* 작은 도움말 */
-        .module-search-hint {
-            border-top: 1px dashed var(--he-border);
-            margin-top: 0.75rem;
-            padding-top: 0.5rem;
-            font-size: 0.75rem;
-            color: var(--he-text-muted);
-        }
-
-        /* 카드 안 작은 배지 */
-        .module-badge {
-            border-radius: 999px;
-            padding: 0.15rem 0.5rem;
-            font-size: 0.7rem;
-            border: 1px solid var(--he-primary);
-            color: var(--he-primary-dark);
-            background-color: var(--he-primary-light);
-        }
-
-        /* 테이블 */
+        .mv-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        #modDrawingTable { width: 100% !important; margin: 0 !important; border-collapse: collapse !important; color: var(--mv-text); }
         #modDrawingTable thead th {
-            background-color: #f0f4f7;
-            border-bottom: 1px solid var(--he-border);
-            font-size: 0.78rem;
-            font-weight: 600;
-            vertical-align: middle;
+            background: var(--mv-surface-2); color: var(--mv-muted); font-size: 12px; font-weight: 700;
+            padding: 9px 30px 9px 16px; border: 0; border-bottom: 1px solid var(--mv-line); white-space: nowrap;
         }
-
         #modDrawingTable tbody td {
-            font-size: 0.78rem;
-            vertical-align: middle;
+            padding: 8px 16px; font-size: 13.5px; vertical-align: middle; background: transparent;
+            border: 0; border-bottom: 1px solid var(--mv-line); color: var(--mv-text);
         }
+        #modDrawingTable tbody tr { background: transparent; }
+        #modDrawingTable tbody tr:hover td { background: var(--mv-hover); }
+        #modDrawingTable td.dataTables_empty { padding: 48px 16px; text-align: center; color: var(--mv-muted); font-size: 14px; }
 
-        #modDrawingTable tbody tr:hover {
-            background-color: #f9fcff;
+        .mv-file { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .mv-ext {
+            flex: none; min-width: 34px; text-align: center; padding: 1px 5px; border-radius: 4px;
+            font-size: 11px; font-weight: 700; background: var(--mv-etc-bg); color: var(--mv-etc-fg);
         }
-
-        /* 상태 칩 */
-        .badge-status {
-            border-radius: 999px;
-            padding: 0.1rem 0.55rem;
-            font-size: 0.7rem;
+        .mv-ext-iam { background: var(--mv-iam-bg); color: var(--mv-iam-fg); }
+        .mv-ext-ipt { background: var(--mv-ipt-bg); color: var(--mv-ipt-fg); }
+        .mv-name { font-weight: 600; overflow-wrap: anywhere; }
+        .mv-icon-btn {
+            flex: none; width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent;
+            color: var(--mv-muted); cursor: pointer; opacity: 0; transition: opacity .15s, background-color .15s;
         }
+        #modDrawingTable tr:hover .mv-icon-btn, .mv-icon-btn:focus-visible, .mv-icon-btn.is-done { opacity: 1; }
+        .mv-icon-btn:hover { background: var(--mv-line); color: var(--mv-text); }
+        .mv-icon-btn.is-done { color: var(--mv-accent); }
 
-        .badge-status-released {
-            background-color: #e6f7ef;
-            color: var(--he-primary-dark);
+        .mv-view {
+            height: 30px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--mv-accent);
+            background: transparent; color: var(--mv-accent); font-size: 13px; font-weight: 600; white-space: nowrap;
+            display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+            transition: background-color .15s, color .15s;
         }
+        .mv-view:hover { background: var(--mv-primary); border-color: var(--mv-primary); color: #fff; }
 
-        .badge-status-wip {
-            background-color: #fff3cd;
-            color: #856404;
+        .mv-path {
+            border: 0; background: transparent; padding: 2px 4px; margin-left: -4px; border-radius: 4px;
+            color: var(--mv-muted); font-size: 13px; text-align: left; cursor: pointer; overflow-wrap: anywhere;
         }
+        .mv-path:hover { color: var(--mv-accent); background: var(--mv-primary-soft); }
+        .mv-path i { font-size: 9px; margin: 0 5px; opacity: .6; }
+        .mv-creator { color: var(--mv-muted); white-space: nowrap; }
 
-        .badge-status-ecn {
-            background-color: #e7f1ff;
-            color: #0c4da2;
+        /* dark-mode.css 가 표 색을 !important 로 지정하므로 같은 강도로 이 화면 토큰을 적용 */
+        body.dark-mode #modDrawingTable thead th {
+            background-color: var(--mv-surface-2) !important; color: var(--mv-muted) !important; border-color: var(--mv-line) !important;
         }
-
-        .badge-status-obsolete {
-            background-color: #f8d7da;
-            color: #842029;
+        body.dark-mode #modDrawingTable tbody tr,
+        body.dark-mode #modDrawingTable tbody td {
+            background-color: transparent !important; color: var(--mv-text) !important; border-color: var(--mv-line) !important;
         }
+        body.dark-mode #modDrawingTable tbody tr:hover td { background-color: var(--mv-hover) !important; }
+        body.dark-mode #modDrawingTable td.dataTables_empty,
+        body.dark-mode #modDrawingTable td.mv-creator { color: var(--mv-muted) !important; }
 
-        /* 반응형 - 모바일에서 여백/정렬 조정 */
-        @media (max-width: 767.98px) {
-            .module-header-title {
-                font-size: 1.2rem;
-            }
+        /* DataTables 하단 (정보 / 페이지) */
+        .mv-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; }
+        .mv-foot .dataTables_info { padding: 0 !important; font-size: 13px; color: var(--mv-muted); }
+        .mv-foot .dataTables_paginate { margin: 0 !important; }
+        .mv-foot .pagination { margin: 0; flex-wrap: wrap; }
+        .mv-foot .page-link { color: var(--mv-text); background: var(--mv-surface); border-color: var(--mv-line); font-size: 13px; }
+        .mv-foot .page-item.active .page-link { background: var(--mv-primary); border-color: var(--mv-primary); color: #fff; }
+        .mv-foot .page-item.disabled .page-link { color: var(--mv-muted); background: var(--mv-surface); border-color: var(--mv-line); opacity: .6; }
 
-            .module-search-card {
-                padding: 1rem 0.9rem 0.8rem;
-            }
-
-            .module-table-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.4rem;
-            }
+        /* 로딩 / 오류 */
+        .mv-loading {
+            display: none; position: absolute; inset: 0; z-index: 5; align-items: flex-start; justify-content: center;
+            padding-top: 110px; background: color-mix(in srgb, var(--mv-surface) 72%, transparent);
         }
-
-        /* --- 모바일/태블릿 최적화 추가 --- */
-        /* 스크롤 성능 향상 (iOS 등) */
-        .table-responsive {
-            -webkit-overflow-scrolling: touch;
+        .mv-result.is-loading .mv-loading { display: flex; }
+        .mv-spinner {
+            display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 8px;
+            background: var(--mv-surface); border: 1px solid var(--mv-line); font-size: 13px; font-weight: 600;
         }
+        .mv-spinner::before {
+            content: ""; width: 16px; height: 16px; border-radius: 50%;
+            border: 2px solid var(--mv-line-strong); border-top-color: var(--mv-accent); animation: mv-spin .8s linear infinite;
+        }
+        @keyframes mv-spin { to { transform: rotate(360deg); } }
+        .mv-error { display: none; padding: 48px 16px; text-align: center; }
+        .mv-result.is-error .mv-error { display: block; }
+        .mv-result.is-error .mv-table-area { display: none; }
+        .mv-error-title { margin: 0 0 4px; font-size: 15px; font-weight: 700; color: var(--mv-danger); }
+        .mv-error-desc { margin: 0 0 14px; font-size: 13px; color: var(--mv-muted); }
+        .mv-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-        /* 작은 화면에서 폼 요소와 버튼 터치 영역 확대 */
+        /* 좁은 화면: 덜 중요한 열부터 숨김 */
+        @media (max-width: 991.98px) {
+            #modDrawingTable th:nth-child(4), #modDrawingTable td:nth-child(4) { display: none; }
+        }
         @media (max-width: 575.98px) {
-            .module-search-card .form-control,
-            .module-search-card .select2-selection--single {
-                min-height: 38px;
-                font-size: 0.9rem;
-            }
-            .module-search-card .btn {
-                min-height: 36px;
-                font-size: 0.9rem;
-            }
+            .mv-page { padding: 12px 10px 20px; }
+            #modDrawingTable th:nth-child(3), #modDrawingTable td:nth-child(3) { display: none; }
+            #modDrawingTable thead th, #modDrawingTable tbody td { padding-left: 10px; padding-right: 10px; }
+            .mv-actions { width: 100%; padding-top: 0; }
+            .mv-actions .mv-btn { flex: 1; height: 44px; }
+            .mv-input, .mv-select { height: 44px; font-size: 16px; }
+            .mv-tools { margin-left: 0; width: 100%; }
+            .mv-tools .mv-input-wrap { flex: 1; width: auto; }
+            .mv-view { height: 36px; }
+            .mv-icon-btn { opacity: 1; }
         }
-
-        /* 테이블 컬럼 가시성: 화면 크기에 따라 중요도 낮은 컬럼 숨김
-           - xs(<576px): 파일명 + 뷰어 링크만 표시 (경로/작업자 숨김)
-           - sm~md(576–992px): 경로는 표시, 작업자만 숨김
-        */
-        /* xs: 숨김 - 3열(파일경로), 4열(작업자) */
-        @media (max-width: 575.98px) {
-            #modDrawingTable thead th:nth-child(3),
-            #modDrawingTable tbody td:nth-child(3),
-            #modDrawingTable thead th:nth-child(4),
-            #modDrawingTable tbody td:nth-child(4) {
-                display: none !important;
-            }
-
-            /* 버튼 셀의 버튼을 조금 더 크고 터치 친화적으로 */
-            .module-table-wrap #modDrawingTable tbody td:nth-child(2) .btn {
-                padding: 0.3rem 0.6rem;
-                font-weight: 600;
-                border-radius: 8px;
-            }
-
-            /* 파일명은 두 줄까지 표시하고 넘치면 말줄임 처리 */
-            #modDrawingTable tbody td:nth-child(1) {
-                max-width: 60vw;
-                white-space: normal;
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-            }
+        @media (prefers-reduced-motion: reduce) {
+            .mv-page * { transition: none !important; }
+            .mv-spinner::before { animation-duration: 2s; }
         }
-
-        /* sm~md: 4열(작업자)만 숨김, 경로는 표시 */
-        @media (min-width: 576px) and (max-width: 991.98px) {
-            #modDrawingTable thead th:nth-child(4),
-            #modDrawingTable tbody td:nth-child(4) {
-                display: none !important;
-            }
-        }
-
-        /* 태블릿에서 테이블 셀 가독성 약간 증가 */
-        @media (min-width: 576px) and (max-width: 991.98px) {
-            #modDrawingTable thead th,
-            #modDrawingTable tbody td {
-                font-size: 0.82rem;
-            }
-        }
-
-        /* 다크모드에서도 숨김 규칙 유지 (명시적 재정의 불필요하지만 가독성 향상을 위해 폰트 크기 보정) */
-        @media (max-width: 575.98px) {
-            body.dark-mode #modDrawingTable thead th,
-            body.dark-mode #modDrawingTable tbody td {
-                font-size: 0.9rem;
-            }
-        }
-
     </style>
-
 </head>
 
 
-<body class="hold-transition sidebar-mini text-sm" style="zoom:100%;">
+<body class="hold-transition sidebar-mini text-sm">
 
 <div class="wrapper">
 
     <!-- Navbar -->
-    <!-- <nav class="main-header navbar navbar-expand navbar-white navbar-light"> -->
     <nav class="main-header navbar navbar-expand">
-        <!-- Left navbar links -->
         <ul class="navbar-nav">
             <li class="nav-item">
-                <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+                <a class="nav-link" data-widget="pushmenu" href="#" role="button" aria-label="메뉴 열기/닫기"><i class="fas fa-bars"></i></a>
             </li>
-
             <li class="nav-item">
-                <a class="nav-link" data-widget="fullscreen" href="#" role="button">
+                <a class="nav-link" data-widget="fullscreen" href="#" role="button" aria-label="전체 화면">
                     <i class="fas fa-expand-arrows-alt"></i>
                 </a>
             </li>
         </ul>
     </nav>
 
-
-    <!-- <jsp:include page="../dashboard/dashboardLayoutSideBar.jsp" flush="true">
-         <jsp:param name="menuType" value="dashboard" />
-     </jsp:include>
- -->
     <div th:replace="thymeleaf/fragments/sidebar :: sidebarFragment"></div>
 
-
     <div class="content-wrapper">
+        <main class="mv-page">
 
-        <section class="content-header">
-            <div class="container-fluid">
-                <div class="row mb-2">
-                    <!--<div class="col-sm-6">
-                        <h1><i class="fas fa-building me-3"></i>JQPR 시스템</h1>
-                        <p class="mb-0">엘리베이터 설치 현장 비용 관리 시스템</p>
-                    </div>-->
-
-                   <!-- <div class="d-flex align-items-center mb-1">-->
-                    <div class="col-sm-6">
-                        <i class="bi bi-grid-3x3-gap-fill me-2 text-success"></i>
-                        <span class="module-header-title">모듈러시스템 3D 조회</span>
-                    </div>
-
-                    <div class="col-sm-6">
-                        <ol class="breadcrumb float-sm-right">
-                            <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
-                                <input type="checkbox" class="custom-control-input" id="darkModeToggle">
-                                <label class="custom-control-label" for="darkModeToggle">🌓 다크모드</label>
-                            </div>
-                        </ol>
-                    </div>
+            <!-- 제목 -->
+            <div class="mv-head">
+                <div>
+                    <h1 class="mv-title"><i class="fas fa-cubes" aria-hidden="true"></i>모듈러시스템 3D 조회</h1>
+                    <p class="mv-sub">도면번호나 폴더로 찾아서 웹 3D 뷰어로 바로 확인합니다.</p>
                 </div>
-            </div><!-- /.container-fluid -->
-
-            <div class="col-md-12">
-                <div class="callout callout-danger">
-                    📢 도움말 <br>
-                    <!--<font color="red">- 집계 기준:  중국법인 자재 제외, 최신 릴리즈, 엘리베이터 자재(BlockNo 1,2,3) </font><br>-->
-                    - 파일명에 특수문자, 띄어쓰기 있다면 정상적으로 작동안할 수 있습니다.<br>
-                    - iam, ipt 포함 동일한 도면 파일명이 2개 존재한다면 중복오류 발생
-                    - 조회 시, dwg 파일을 보이지 않도록 제외 시킴<br>
-                    - 추후 I-Logic 등을 사용한다면 파일명에 특수문자, 띄어쓰기를 사용하지 않는게 좋음<br>
-                    - 도면 파일명은 '_'(언더바)를 제외한 한글, 특수문자, 띄어쓰기 사용을 지양해주시기 바랍니다.
-                    - 해당 조회화면은 사내망 or 외부에서 VPN을 통해 접속 시에만 사용가능합니다.
-                </div>
-            </div>
-        </section>
-
-
-        <div class="container-fluid">
-            <div class="row module-header align-items-center mb-3">
-                <div class="col-12 col-md-8">
-<!--                    <div class="d-flex align-items-center mb-1">
-                        <i class="bi bi-grid-3x3-gap-fill me-2 text-success"></i>
-                        <span class="module-header-title">모듈러시스템 도면 조회</span>
-                    </div>-->
-                   <!-- <p class="module-header-subtitle mb-1">
-                        모듈러 프로젝트의 3D 도면을 빠르게 조회하는 화면입니다.
-                    </p>-->
-                    <span class="module-badge">
-                            <i class="bi bi-pc-display-horizontal me-1"></i>PC · Tablet · Mobile 반응형
-                    </span>
+                <div class="mv-head-right">
+                    <div class="custom-control custom-switch custom-switch-off-danger custom-switch-on-success">
+                        <input type="checkbox" class="custom-control-input" id="darkModeToggle">
+                        <label class="custom-control-label" for="darkModeToggle">다크모드</label>
+                    </div>
                 </div>
             </div>
 
-            <!--<div class="col-12 col-md-4 mt-2 mt-md-0 text-md-end">
-                    <button type="button" class="btn btn-he-outline btn-sm me-1">
-                        <i class="bi bi-question-circle me-1"></i>가이드
-                    </button>
-                    <button type="button" class="btn btn-he-primary btn-sm">
-                        <i class="bi bi-star me-1"></i>즐겨찾기 등록
-                    </button>
-                </div>
-            </div>-->
-
-            <!-- 상단 요약 카드 -->
-            <!--<div class="row g-2 mb-3">
-                <div class="col-12 col-md-4">
-                    <div class="module-stat-card">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <div>
-                                <div class="module-stat-label">전체 도면 수</div>
-                                <div class="module-stat-number" id="modTotalCount">0</div>
+            <!-- 조회 조건 -->
+            <section class="mv-card mv-search" aria-label="도면 조회 조건">
+                <form id="modSearchForm" autocomplete="off">
+                    <div class="mv-fields">
+                        <div class="mv-field mv-field-name">
+                            <label for="fileName">3D 도면번호</label>
+                            <div class="mv-input-wrap">
+                                <i class="fas fa-search" aria-hidden="true"></i>
+                                <input type="text" class="mv-input" id="fileName" name="fileName"
+                                       placeholder="예: 12100420_H04_P*" aria-describedby="fileNameHint" spellcheck="false">
                             </div>
-                            <i class="bi bi-file-earmark-text fs-3 text-muted"></i>
-                        </div>
-                        <div class="module-stat-desc">
-                            모듈러 프로젝트에 등록된 총 도면 개수입니다.
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-md-4">
-                    <div class="module-stat-card">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <div>
-                                <div class="module-stat-label">금일 변경 도면</div>
-                                <div class="module-stat-number" id="modTodayChangedCount">0</div>
+                            <div class="mv-hint" id="fileNameHint">
+                                <span><code>*</code> 는 임의의 글자입니다. 예시:</span>
+                                <button type="button" class="mv-eg" data-eg="12100420_H04_P*" title="12100420_H04_P 로 시작하는 도면">12100420_H04_P*</button>
+                                <button type="button" class="mv-eg" data-eg="*CORE*" title="CORE 가 들어간 도면">*CORE*</button>
                             </div>
-                            <i class="bi bi-arrow-repeat fs-3 text-muted"></i>
                         </div>
-                        <div class="module-stat-desc">
-                            오늘 기준으로 수정/등록된 도면 수입니다.
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-md-4">
-                    <div class="module-stat-card">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <div>
-                                <div class="module-stat-label">3D 뷰어 지원 도면</div>
-                                <div class="module-stat-number" id="modViewerCount">0</div>
-                            </div>
-                            <i class="bi bi-cube fs-3 text-muted"></i>
-                        </div>
-                        <div class="module-stat-desc">
-                            웹 3D 뷰어로 바로 확인 가능한 도면 수입니다.
-                        </div>
-                    </div>
-                </div>
-            </div>-->
 
-            <!-- 모바일용 검색조건 토글 버튼 -->
-            <!--<div class="d-md-none mb-2">-->
-           <!-- <div class="mb-2">
-                <button class="btn btn-outline-secondary w-100 btn-sm" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#modSearchArea"
-                        aria-expanded="true" aria-controls="modSearchArea">
-                    <i class="bi bi-funnel me-1"></i> 조회 조건 열기/닫기
-                </button>
-            </div>-->
-
-            <!-- 조회 조건 영역 -->
-            <div id="modSearchArea" class="collapse show">
-                <div class="module-search-card">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div class="module-search-title">
-                            <i class="bi bi-funnel"></i>
-                            <span>도면 조회 조건</span>
+                        <div class="mv-field mv-field-folder">
+                            <label for="folderList">상위폴더</label>
+                            <select class="mv-select" id="folderList" name="folderList">
+                                <option value="">전체</option>
+                            </select>
                         </div>
-                        <div class="d-none d-md-block">
-                        <!--<div>-->
-                            <button type="button" id="modBtnReset" class="btn btn-outline-secondary btn-sm me-1">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i>초기화
+
+                        <div class="mv-field mv-field-folder">
+                            <label for="folderChild">하위폴더</label>
+                            <select class="mv-select" id="folderChild" name="folderChild" disabled aria-describedby="folderChildHint">
+                                <option value="">전체</option>
+                            </select>
+                            <div class="mv-hint" id="folderChildHint">상위폴더를 고르면 선택할 수 있습니다.</div>
+                        </div>
+
+                        <div class="mv-actions">
+                            <button type="submit" id="modBtnSearch" class="mv-btn mv-btn-primary">
+                                <i class="fas fa-search" aria-hidden="true"></i>조회
                             </button>
-                            <button type="button" id="modBtnSearch" class="btn btn-he-primary btn-sm">
-                                <i class="bi bi-search me-1"></i>조회
+                            <button type="button" id="modBtnReset" class="mv-btn">
+                                <i class="fas fa-undo" aria-hidden="true"></i>초기화
                             </button>
                         </div>
                     </div>
+                </form>
 
-                    <form id="modSearchForm">
-                        <div class="row g-2">
-                            <!-- 1열 -->
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">3D 도면번호</label>
-                                <input type="text" class="form-control form-control-sm"
-                                       id="fileName" name="fileName"
-                                       placeholder="예: 12100420_H04_P*">
-                            </div>
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">상위폴더</label>
-                                <select class="form-control form-control-sm select2"
-                                        id="folderList" name="folderList" style="width: 100%;">
-                                        <option value="">전체</option>
-
-
-                                    <!--<option value="">전체</option>
-                                    <option value="RELEASED">최신 릴리즈</option>
-                                    <option value="WIP">작성 중(WIP)</option>
-                                    <option value="ECN">변경 진행 중(ECN)</option>
-                                    <option value="OBSOLETE">사용 중지</option>-->
-                                </select>
-                            </div>
-                            <div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">하위폴더</label>
-                                <select class="form-control form-control-sm select2"
-                                        id="folderChild" name="folderChild" style="width: 100%;">
-                                    <option value="">전체</option>
-
-
-                                    <!--<option value="">전체</option>
-                                    <option value="RELEASED">최신 릴리즈</option>
-                                    <option value="WIP">작성 중(WIP)</option>
-                                    <option value="ECN">변경 진행 중(ECN)</option>
-                                    <option value="OBSOLETE">사용 중지</option>-->
-                                </select>
-                            </div>
-
-                            <!--<div class="col-12 col-md-6 col-xl-3">
-                                <label class="form-label">도면 명</label>
-                                <input type="text" class="form-control form-control-sm"
-                                       id="modDrawingName" name="drawingName"
-                                       placeholder="예: T-BOX 모듈 프레임">
-                            </div>-->
-
-                            <!-- 모바일용 버튼(아래쪽) -->
-                            <div class="col-12 d-md-none mt-1">
-                                <div class="d-grid gap-1">
-                                    <button type="button" id="modBtnSearch_m" class="btn btn-he-primary btn-sm">
-                                        <i class="bi bi-search me-1"></i>조회
-                                    </button>
-                                    <button type="button" id="modBtnReset_m" class="btn btn-outline-secondary btn-sm">
-                                        <i class="bi bi-arrow-counterclockwise me-1"></i>초기화
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="module-search-hint">
-                            <div class="module-search-help mb-1">
-                                📝 <strong>검색 예시</strong>
-                            </div>
-                            <ul class="mb-0 ps-3">
-                                <li>도면번호 <code>12100420_H04_P*</code> 입력 → <strong>201153로 시작</strong>하는 도면 전체 조회</li>
-                                <li>도면번호 <code>*12100420_H04_P*</code> 입력 → <strong>100325G02 포함</strong> 도면 조회</li>
-                                <li>도면번호 <code>*CORE*</code> 입력 → 코드에 <strong>CORE 포함</strong> 모듈 조회</li>
+                <details class="mv-guide">
+                    <summary><i class="fas fa-info-circle" aria-hidden="true"></i>이용 안내 · 주의사항</summary>
+                    <div class="mv-guide-body">
+                        <div>
+                            <h3>조회 범위</h3>
+                            <ul>
+                                <li>사내망 또는 외부 VPN 접속 시에만 사용할 수 있습니다.</li>
+                                <li><code>dwg</code> 파일은 목록에서 제외됩니다.</li>
+                                <li>파일명에 특수문자가 있는 도면은 뷰어가 열리지 않아 목록에서 제외됩니다.</li>
                             </ul>
                         </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- 결과 영역 -->
-            <div class="row mt-2">
-                <div class="col-12">
-                    <div class="module-table-wrap">
-                        <div class="module-table-header">
-                            <div class="module-table-header-title">
-                                <i class="bi bi-list-check"></i>
-                                <span>-</span>
-                                <!--<span class="badge bg-light text-dark ms-1" id="modResultCountBadge">0건</span>-->
-                            </div>
-                            <!--<div class="module-table-header-actions">
-                                <button type="button" id="modBtnExportExcel"
-                                        class="btn btn-sm btn-outline-light">
-                                    <i class="bi bi-file-earmark-excel me-1"></i>Excel
-                                </button>
-                            </div>-->
-                        </div>
-                        <div class="table-responsive">
-                            <table id="modDrawingTable" class="table table-sm table-hover mb-0">
-                                <thead>
-                                    <tr>
-                                        <!--<th style="width: 40px;">파일명</th>-->
-                                        <th style="width: 260px;">파일명</th>
-                                        <th style="width: 130px;">뷰어 Link</th>
-                                        <th>파일경로</th>
-
-                                        <!--<th>모듈 코드</th>-->
-
-                                        <!--<th>폴더명</th>-->
-                                     <!--   <th>상태</th>-->
-                                        <!--<th style="width: 110px;">작업자</th>-->
-                                        <th style="width: 100px;">작업자</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="contentTable">
-                                <!-- DataTables로 바인딩 -->
-                                </tbody>
-                            </table>
+                        <div>
+                            <h3>도면 파일명 규칙</h3>
+                            <ul>
+                                <li><code>_</code>(언더바) 외의 한글 · 특수문자 · 띄어쓰기는 쓰지 않는 것이 좋습니다.</li>
+                                <li>iam, ipt 를 포함해 같은 파일명이 2개 있으면 중복 오류가 발생합니다.</li>
+                                <li>추후 I-Logic 등을 쓸 때도 특수문자 · 띄어쓰기가 없는 파일명이 안전합니다.</li>
+                            </ul>
                         </div>
                     </div>
+                </details>
+            </section>
+
+            <!-- 결과 -->
+            <section class="mv-card mv-result" id="mvResult" aria-label="조회 결과" aria-busy="false">
+                <div class="mv-result-head">
+                    <h2 class="mv-count">조회 결과 <b id="mvCount">0</b>건<span class="mv-count-sub" id="mvCountSub"></span></h2>
+
+                    <div class="mv-tools">
+                        <div class="mv-input-wrap">
+                            <i class="fas fa-filter" aria-hidden="true"></i>
+                            <input type="search" class="mv-input" id="mvFilter" placeholder="결과 내 검색" aria-label="조회 결과 안에서 검색">
+                        </div>
+                        <select class="mv-select" id="mvLen" aria-label="한 페이지에 표시할 건수">
+                            <option value="25">25건씩</option>
+                            <option value="50" selected>50건씩</option>
+                            <option value="100">100건씩</option>
+                            <option value="-1">전체</option>
+                        </select>
+                        <button type="button" class="mv-btn mv-btn-sm" id="mvExcel" title="조회 결과를 엑셀 파일로 저장">
+                            <i class="fas fa-file-excel" aria-hidden="true"></i>Excel
+                        </button>
+                    </div>
                 </div>
-            </div>
 
+                <div class="mv-table-area">
+                    <div class="mv-table-wrap">
+                        <table id="modDrawingTable" class="table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">파일명</th>
+                                    <th scope="col" style="width: 120px;">3D 뷰어</th>
+                                    <th scope="col">폴더</th>
+                                    <th scope="col" style="width: 110px;">작업자</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contentTable"></tbody>
+                        </table>
+                    </div>
+                </div>
 
-        </div>
+                <div class="mv-error" role="alert">
+                    <p class="mv-error-title"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> 도면 목록을 가져오지 못했습니다</p>
+                    <p class="mv-error-desc">사내망(VPN) 연결 상태를 확인한 뒤 다시 시도하세요.</p>
+                    <button type="button" class="mv-btn mv-btn-sm" id="mvRetry"><i class="fas fa-redo" aria-hidden="true"></i>다시 시도</button>
+                </div>
 
+                <div class="mv-loading"><span class="mv-spinner">도면 목록을 불러오는 중…</span></div>
+            </section>
+
+            <div class="mv-sr" id="mvLive" role="status" aria-live="polite"></div>
+        </main>
 
         <footer class="main-footer">
             <div class="float-right d-none d-sm-block">
@@ -780,47 +407,21 @@
 
     </div>
 
-
 </div>
 
-</body>
-
 <script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-<script src="/resources/javascript/commonUtil.js"></script>
-<!--<script src="/resources/javascript/StringUtil.js"></script>-->
-<script src="/resources/javascript/moduleView.js"></script>
-
-<!-- AdminLTE App -->
-<script src="/resources/dist/js/adminlte.min.js"></script>
-
-
-<!-- Bootstrap 4 -->
+<!-- Bootstrap 4 + AdminLTE -->
 <script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<!-- DataTables  & Plugins -->
+<script src="/resources/dist/js/adminlte.min.js"></script>
+<!-- DataTables + Excel 내보내기 -->
 <script src="/resources/dist/plugins/datatables/jquery.dataTables.min.js"></script>
 <script src="/resources/dist/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
-<script src="/resources/dist/plugins/datatables-responsive/js/dataTables.responsive.min.js"></script>
-<script src="/resources/dist/plugins/datatables-responsive/js/responsive.bootstrap4.min.js"></script>
-
-
-<script src="/resources/dist/plugins/select2/js/select2.full.min.js"></script>
 <script src="/resources/dist/plugins/datatables-buttons/js/dataTables.buttons.min.js"></script>
-<script src="/resources/dist/plugins/datatables-buttons/js/buttons.bootstrap4.min.js"></script>
 <script src="/resources/dist/plugins/jszip/jszip.min.js"></script>
-<script src="/resources/dist/plugins/pdfmake/pdfmake.min.js"></script>
-<script src="/resources/dist/plugins/pdfmake/vfs_fonts.js"></script>
 <script src="/resources/dist/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
-<script src="/resources/dist/plugins/datatables-buttons/js/buttons.print.min.js"></script>
-<script src="/resources/dist/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
 
-<script>
-    $(document).ready(function() {
+<script src="/resources/javascript/commonUtil.js"></script>
+<script src="/resources/javascript/moduleView.js"></script>
 
-
-
-    }) // end document ready
-</script>
-
+</body>
 </html>
