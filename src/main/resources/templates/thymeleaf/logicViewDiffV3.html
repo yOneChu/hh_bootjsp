@@ -5,118 +5,413 @@
     <link rel="icon" type="image/png" href="/resources/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>로직 비교 분석</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 사내망에서 CDN 이 차단되므로 외부 CSS/JS 없이 이 파일의 스타일만 사용한다 -->
     <style>
-        ::-webkit-scrollbar { width: 15px; height: 15px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-track { background: #f8fafc; }
+        :root {
+            --bg: #f1f4f8;
+            --surface: #ffffff;
+            --surface-2: #f8fafc;
+            --line: #e2e8f0;
+            --line-strong: #cbd5e1;
+            --text: #0f172a;
+            --text-2: #475569;
+            --text-3: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --focus: #2563eb;
 
-        /* 커스텀 팝오버 스타일 */
-        #custom-popover {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 0.5rem;
-            padding: 0.75rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            /*max-width: 500px;*/
-            width: max-content;   /* 내용만큼 넓어짐 */
-            min-width: 250px;     /* 너무 작아지는 것 방지 */
-            max-width: 1000px;     /* 너무 커지는 것 방지 */
+            --add-row: #f0fdf4;  --add-bg: #bbf7d0;  --add-fg: #166534;
+            --mod-row: #fffbeb;  --mod-bg: #fde68a;  --mod-fg: #92400e;
+            --del-row: #fef2f2;  --del-bg: #fecaca;  --del-fg: #991b1b;
+            --mov-bg: #e0e7ff;   --mov-fg: #3730a3;
+            --eq-bg: #e2e8f0;    --eq-fg: #475569;
+            --sel: #dbeafe;      --hover: #f1f5f9;
+            --mark: #f59e0b55;
 
-            font-size: 0.875rem;
-            pointer-events: none;
-            white-space: pre-line;
+            --s1: 96px;  /* 상태 열 폭 */
+            --s2: 84px;  /* NO 열 폭 */
+            --s3: 150px; /* ADDR 열 폭 */
+        }
+        body.dark-mode {
+            --bg: #0b1220;
+            --surface: #111a2e;
+            --surface-2: #16213a;
+            --line: #26334f;
+            --line-strong: #3a4a6b;
+            --text: #e5e7eb;
+            --text-2: #b6c2d6;
+            --text-3: #94a3b8;
+            --primary: #2563eb;
+            --primary-hover: #3b82f6;
+            --focus: #60a5fa;
+
+            --add-row: #0f2419;  --add-bg: #14532d;  --add-fg: #86efac;
+            --mod-row: #241d0c;  --mod-bg: #713f12;  --mod-fg: #fde68a;
+            --del-row: #2a1416;  --del-bg: #7f1d1d;  --del-fg: #fecaca;
+            --mov-bg: #312e81;   --mov-fg: #c7d2fe;
+            --eq-bg: #26334f;    --eq-fg: #b6c2d6;
+            --sel: #1e3a5f;      --hover: #18243d;
+            --mark: #f59e0b66;
         }
 
-        .selected-row {
-            background-color: #fef08a !important; /* bg-yellow-200 */
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Pretendard", "Malgun Gothic", "맑은 고딕", "Segoe UI", sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
         }
-        .selected-row td {
-            background-color: #fef08a !important; /* bg-yellow-200 */
+        button, input, select { font: inherit; color: inherit; }
+        :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+        ::-webkit-scrollbar { width: 14px; height: 14px; }
+        ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 7px; border: 3px solid var(--surface-2); }
+        ::-webkit-scrollbar-track { background: var(--surface-2); }
+
+        .ld-app { height: 100vh; display: flex; flex-direction: column; padding: 12px; gap: 10px; }
+
+        /* 상단: 제목 + 조회 조건 */
+        .ld-top {
+            background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+            padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px;
+        }
+        .ld-title { margin: 0; font-size: 18px; font-weight: 700; line-height: 1.3; }
+        .ld-context { margin: 2px 0 0; font-size: 12px; color: var(--text-3); min-height: 18px; }
+        .ld-head { min-width: 180px; margin-right: auto; }
+        .ld-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+        .ld-field { display: flex; flex-direction: column; gap: 4px; }
+        .ld-field label { font-size: 12px; font-weight: 600; color: var(--text-2); }
+        .ld-input, .ld-select {
+            height: 36px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 6px;
+            background: var(--surface); min-width: 0;
+        }
+        .ld-input { width: 150px; text-transform: uppercase; }
+        .ld-select { width: 250px; max-width: 100%; }
+        .ld-sep { width: 1px; height: 36px; background: var(--line); margin: 0 4px; }
+
+        .ld-btn {
+            height: 36px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 6px;
+            background: var(--surface); font-weight: 600; cursor: pointer; white-space: nowrap;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: background-color .15s, border-color .15s;
+        }
+        .ld-btn:hover { background: var(--hover); }
+        .ld-btn:disabled { opacity: .45; cursor: not-allowed; }
+        .ld-btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .ld-btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+        .ld-btn-icon { width: 36px; padding: 0; justify-content: center; }
+        .ld-btn svg { width: 16px; height: 16px; flex: none; }
+
+        /* 도구 막대 */
+        .ld-tools {
+            background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+            padding: 8px 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+        }
+        .ld-tools.is-off { display: none; }
+        .ld-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .ld-chip {
+            height: 30px; padding: 0 10px; border-radius: 15px; border: 1px solid transparent;
+            font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+            transition: opacity .15s;
+        }
+        .ld-chip b { font-variant-numeric: tabular-nums; }
+        .ld-chip-mark { font-weight: 700; width: 10px; text-align: center; }
+        .ld-chip-add { background: var(--add-bg); color: var(--add-fg); }
+        .ld-chip-mod { background: var(--mod-bg); color: var(--mod-fg); }
+        .ld-chip-del { background: var(--del-bg); color: var(--del-fg); }
+        .ld-chip-eq  { background: var(--eq-bg);  color: var(--eq-fg); }
+        .ld-chip[aria-pressed="false"] {
+            background: transparent; color: var(--text-3); border-color: var(--line-strong); border-style: dashed;
+            text-decoration: line-through;
+        }
+        .ld-extra { font-size: 12px; color: var(--text-3); }
+        .ld-nav { display: inline-flex; align-items: center; gap: 4px; }
+        .ld-nav .ld-btn { height: 30px; }
+        .ld-nav .ld-btn-icon { width: 30px; }
+        .ld-nav-pos { min-width: 62px; text-align: center; font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+        .ld-search { position: relative; }
+        .ld-search svg { position: absolute; left: 8px; top: 7px; width: 16px; height: 16px; color: var(--text-3); pointer-events: none; }
+        .ld-search input { height: 30px; width: 190px; padding: 0 8px 0 30px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); }
+        .ld-check { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-2); cursor: pointer; white-space: nowrap; }
+        .ld-check input { width: 15px; height: 15px; margin: 0; accent-color: var(--primary); cursor: pointer; }
+        .ld-right { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+        .ld-count { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+        .ld-tools .ld-btn { height: 30px; font-size: 13px; }
+
+        /* 본문: 표 + 상세 패널 */
+        .ld-main { flex: 1; min-height: 0; display: flex; gap: 10px; }
+        .ld-wrap {
+            flex: 1; min-width: 0; overflow: auto; position: relative;
+            background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+        }
+        .ld-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; text-align: center; }
+        .ld-empty-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--text-2); }
+        .ld-empty-desc { margin: 0; font-size: 13px; color: var(--text-3); }
+        .ld-none { padding: 32px 16px; text-align: center; color: var(--text-3); position: sticky; left: 0; }
+        .ld-none .ld-btn { margin-top: 8px; height: 30px; }
+
+        .ld-table { border-collapse: separate; border-spacing: 0; font-size: 12.5px; white-space: nowrap; min-width: 100%; }
+        .ld-table th, .ld-table td {
+            padding: 5px 10px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+            text-align: left; vertical-align: top;
+        }
+        .ld-table thead th {
+            position: sticky; top: 0; z-index: 20; background: var(--surface-2); color: var(--text-2);
+            font-size: 12px; font-weight: 600; border-bottom: 1px solid var(--line-strong); border-top: 3px solid transparent;
+            vertical-align: middle;
+        }
+        .ld-table thead th.ld-g-cond { border-top-color: #60a5fa; }
+        .ld-table thead th.ld-g-out  { border-top-color: #2dd4bf; }
+        .ld-table thead th.ld-g-etc  { border-top-color: #a78bfa; }
+        .ld-table thead th.ld-th-diff { color: var(--text); }
+        .ld-th-n {
+            display: inline-block; margin-left: 5px; padding: 0 5px; border-radius: 8px; min-width: 16px; text-align: center;
+            background: var(--mod-bg); color: var(--mod-fg); font-size: 11px; font-weight: 700; line-height: 16px;
+            font-variant-numeric: tabular-nums;
+        }
+        .ld-table .ld-g-start { border-left: 2px solid var(--line-strong); }
+
+        .ld-table tbody tr { --row: var(--surface); cursor: pointer; }
+        .ld-table tbody td { background: var(--row); max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
+        .ld-r-add { --row: var(--add-row); }
+        .ld-r-mod { --row: var(--mod-row); }
+        .ld-r-del { --row: var(--del-row); }
+        .ld-r-del td:not(.ld-s1) { color: var(--del-fg); text-decoration: line-through; }
+        .ld-r-eq td:not(.ld-s1) { color: var(--text-3); }
+        .ld-table tbody tr:hover { --row: var(--hover); }
+        .ld-table tbody tr.is-sel { --row: var(--sel); }
+        .ld-table tbody tr.is-sel td { border-bottom-color: var(--primary); }
+
+        /* 고정 열 (상태 / NO / ADDR) */
+        .ld-sticky { position: sticky; z-index: 10; }
+        .ld-table thead th.ld-sticky { z-index: 30; }
+        .ld-s1 { left: 0; width: var(--s1); min-width: var(--s1); max-width: var(--s1); }
+        .ld-s2 { left: var(--s1); width: var(--s2); min-width: var(--s2); max-width: var(--s2); font-variant-numeric: tabular-nums; }
+        .ld-s3 { left: calc(var(--s1) + var(--s2)); width: var(--s3); min-width: var(--s3); max-width: var(--s3); font-weight: 600; box-shadow: 2px 0 0 var(--line-strong); }
+        .ld-table tbody td.ld-s1, .ld-table tbody td.ld-s2, .ld-table tbody td.ld-s3 { max-width: none; }
+        .ld-table tbody td.ld-s1 { max-width: var(--s1); }
+        .ld-table tbody td.ld-s2 { max-width: var(--s2); }
+        .ld-table tbody td.ld-s3 { max-width: var(--s3); }
+        .ld-no-old { color: var(--text-3); text-decoration: line-through; margin-right: 3px; }
+        .ld-no-old + span { color: var(--text-3); margin-right: 3px; }
+
+        .ld-badge {
+            display: inline-flex; align-items: center; gap: 4px; padding: 0 7px; border-radius: 4px;
+            font-size: 11.5px; font-weight: 700; line-height: 19px; text-decoration: none;
+        }
+        .ld-badge-add { background: var(--add-bg); color: var(--add-fg); }
+        .ld-badge-mod { background: var(--mod-bg); color: var(--mod-fg); }
+        .ld-badge-del { background: var(--del-bg); color: var(--del-fg); }
+        .ld-badge-eq  { background: var(--eq-bg);  color: var(--eq-fg); font-weight: 600; }
+        .ld-tag {
+            display: inline-block; margin-left: 3px; padding: 0 4px; border-radius: 3px; border: 1px solid var(--line-strong);
+            font-size: 10.5px; line-height: 17px; color: var(--text-2); background: var(--surface);
+        }
+
+        /* 변경된 셀 */
+        .ld-table tbody td.ld-c-chg { background: var(--mod-bg); color: var(--mod-fg); box-shadow: inset 0 0 0 1px #d9770655; }
+        .ld-table tbody td.ld-c-add { background: var(--add-bg); color: var(--add-fg); box-shadow: inset 0 0 0 1px #16a34a55; }
+        .ld-table tbody td.ld-c-del { background: var(--del-bg); color: var(--del-fg); box-shadow: inset 0 0 0 1px #dc262655; }
+        .ld-table tbody td.ld-c-mov { background: var(--mov-bg); color: var(--mov-fg); box-shadow: inset 0 0 0 1px #6366f155; }
+        .ld-new { font-weight: 700; }
+        .ld-old { font-size: 11.5px; text-decoration: line-through; opacity: .85; }
+        .ld-sign { display: inline-block; width: 12px; font-weight: 700; }
+        .ld-from { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 600; text-decoration: none; opacity: .9; }
+        .ld-table mark, .ld-d-table mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
+
+        /* 상세 비교 패널 */
+        .ld-detail {
+            display: none; width: 440px; max-width: 45vw; flex: none; flex-direction: column; min-height: 0;
+            background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+        }
+        .ld-detail.is-open { display: flex; }
+        .ld-d-head { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; gap: 8px; }
+        .ld-d-info { flex: 1; min-width: 0; }
+        .ld-d-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .ld-d-addr { font-size: 14px; overflow-wrap: anywhere; }
+        .ld-d-notes { margin: 4px 0 0; font-size: 12px; color: var(--text-3); }
+        .ld-d-opt { padding: 6px 12px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+        .ld-d-scroll { flex: 1; overflow: auto; }
+        .ld-d-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; table-layout: fixed; }
+        .ld-d-table th, .ld-d-table td {
+            padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: anywhere;
+        }
+        .ld-d-table thead th { position: sticky; top: 0; background: var(--surface-2); font-size: 12px; color: var(--text-2); z-index: 1; }
+        .ld-d-table tbody th { width: 96px; font-weight: 600; color: var(--text-2); }
+        .ld-d-table col.ld-d-c1 { width: 96px; }
+        .ld-d-type { display: block; font-size: 11px; font-weight: 600; }
+        .ld-d-chg td, .ld-d-chg th { background: var(--mod-row); }
+        .ld-d-chg .ld-d-type { color: var(--mod-fg); }
+        .ld-d-add td, .ld-d-add th { background: var(--add-row); }
+        .ld-d-add .ld-d-type { color: var(--add-fg); }
+        .ld-d-del td, .ld-d-del th { background: var(--del-row); }
+        .ld-d-del .ld-d-type { color: var(--del-fg); }
+        .ld-d-mov .ld-d-type { color: var(--mov-fg); }
+        .ld-d-chg td:nth-child(2), .ld-d-del td:nth-child(2) { text-decoration: line-through; color: var(--text-2); }
+        .ld-d-chg td:nth-child(3), .ld-d-add td:nth-child(3) { font-weight: 700; }
+        .ld-d-table .ld-from { text-decoration: none; padding: 0 4px; border-radius: 3px; background: var(--mov-bg); color: var(--mov-fg); }
+        .ld-nil { color: var(--text-3); }
+        .ld-d-none { text-align: center; padding: 24px 0; }
+
+        /* 범례 / 안내 */
+        .ld-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--text-3); padding: 0 4px; }
+        .ld-legend span { display: inline-flex; align-items: center; gap: 5px; }
+        .ld-sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+        .ld-kbd { border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 5px; font-size: 11px; background: var(--surface); color: var(--text-2); }
+
+        /* 알림 */
+        .ld-toast {
+            position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 12px); z-index: 1000;
+            max-width: min(560px, 90vw); padding: 10px 16px; border-radius: 8px;
+            background: #0f172a; color: #f8fafc; font-size: 13px; box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+            opacity: 0; pointer-events: none; transition: opacity .18s ease-out, transform .18s ease-out;
+        }
+        .ld-toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+        .ld-toast.is-error { background: #991b1b; }
+
+        @media (max-width: 1100px) {
+            .ld-main { flex-direction: column; }
+            .ld-detail { width: auto; max-width: none; max-height: 45%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            * { transition: none !important; }
         }
     </style>
-
-
 </head>
-<body class="bg-slate-50 p-6">
+<body>
 
-<div class="max-w-full mx-auto bg-white rounded-xl shadow-md overflow-hidden flex flex-col h-[90vh]">
-    <div class="p-6 border-b border-gray-200 bg-slate-800 text-white flex justify-between items-center">
-        <h1 class="text-2xl font-bold">로직 비교 분석</h1>
-        <div class="flex gap-4 text-sm font-medium">
-            <!--<span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-200 inline-block border border-green-500"></span> 추가됨</span>
-            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-100 inline-block border border-red-400"></span> 삭제됨</span>
-            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-yellow-200 inline-block border border-yellow-500"></span> 수정됨 (셀 강조)</span>-->
+<div class="ld-app">
+
+    <!-- 제목 + 조회 조건 -->
+    <header class="ld-top">
+        <div class="ld-head">
+            <h1 class="ld-title">로직 비교 분석</h1>
+            <p class="ld-context" id="ld-context">PID를 조회한 뒤 비교할 두 버전을 선택하세요.</p>
         </div>
+
+        <div class="ld-form">
+            <div class="ld-field">
+                <label for="pidInput">Part ID (PID)</label>
+                <input type="text" id="pidInput" class="ld-input" placeholder="예: P-001" autocomplete="off" spellcheck="false">
+            </div>
+            <button type="button" id="searchBtnPID" class="ld-btn">버전 조회</button>
+
+            <span class="ld-sep" aria-hidden="true"></span>
+
+            <div class="ld-field">
+                <label for="baseVersion">기준 버전 (과거)</label>
+                <select id="baseVersion" class="ld-select">
+                    <option value="">PID를 먼저 조회하세요</option>
+                </select>
+            </div>
+            <button type="button" id="ld-swap" class="ld-btn ld-btn-icon" aria-label="과거/최신 버전 서로 바꾸기" title="과거/최신 버전 서로 바꾸기">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h13l-3-3M17 17H4l3 3"/></svg>
+            </button>
+            <div class="ld-field">
+                <label for="compareVersion">비교 버전 (최신)</label>
+                <select id="compareVersion" class="ld-select">
+                    <option value="">PID를 먼저 조회하세요</option>
+                </select>
+            </div>
+            <button type="button" id="searchBtn" class="ld-btn ld-btn-primary">비교 실행</button>
+        </div>
+    </header>
+
+    <!-- 요약(상태 필터) + 보기 옵션 : 비교 후 표시 -->
+    <section class="ld-tools is-off" id="ld-tools" aria-label="비교 결과 도구">
+        <div id="diff-summary" class="ld-chips" role="group" aria-label="상태별 행 표시"></div>
+        <span class="ld-extra" id="ld-extra"></span>
+
+        <div class="ld-right">
+            <div class="ld-nav" role="group" aria-label="변경 행 이동">
+                <button type="button" id="ld-prev" class="ld-btn ld-btn-icon" aria-label="이전 변경 (P)" title="이전 변경 (P)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
+                </button>
+                <span class="ld-nav-pos" id="ld-nav-pos" aria-live="polite">– / 0</span>
+                <button type="button" id="ld-next" class="ld-btn ld-btn-icon" aria-label="다음 변경 (N)" title="다음 변경 (N)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+            </div>
+
+            <div class="ld-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <input type="search" id="ld-search" placeholder="ADDR · 값 검색" aria-label="ADDR 또는 셀 값으로 행 검색" autocomplete="off">
+            </div>
+
+            <label class="ld-check"><input type="checkbox" id="ld-opt-changed"> 차이 있는 열만</label>
+            <label class="ld-check"><input type="checkbox" id="ld-opt-empty" checked> 빈 열 숨기기</label>
+
+            <span class="ld-count" id="ld-count"></span>
+
+            <button type="button" id="ld-export" class="ld-btn" title="화면에 표시된 행/열을 CSV로 저장">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></svg>
+                CSV
+            </button>
+        </div>
+    </section>
+
+    <!-- 표 + 상세 비교 -->
+    <div class="ld-main">
+        <div class="ld-wrap" id="ld-wrap">
+            <div class="ld-empty" id="ld-empty">
+                <p class="ld-empty-title">비교할 버전을 선택하세요</p>
+                <p class="ld-empty-desc">PID 입력 → 버전 조회 → 과거/최신 버전 선택 → 비교 실행</p>
+            </div>
+
+            <table class="ld-table" id="ld-table" style="display:none;">
+                <thead>
+                    <!-- 헤더는 logicViewDiffV3.js 의 renderTable() 이 서버 columns 기준으로 생성 -->
+                    <tr id="table-header"></tr>
+                </thead>
+                <tbody id="bom-tbody"></tbody>
+            </table>
+
+            <div class="ld-none" id="ld-none" style="display:none;">
+                조건에 맞는 행이 없습니다.<br>
+                <button type="button" class="ld-btn" id="ld-none-reset">필터 · 검색 초기화</button>
+            </div>
+        </div>
+
+        <aside class="ld-detail" id="ld-detail" aria-label="선택한 행 상세 비교">
+            <div class="ld-d-head">
+                <div class="ld-d-info">
+                    <div class="ld-d-meta" id="ld-d-meta"></div>
+                    <p class="ld-d-notes" id="ld-d-notes"></p>
+                </div>
+                <button type="button" id="ld-d-close" class="ld-btn ld-btn-icon" aria-label="상세 비교 닫기 (Esc)" title="닫기 (Esc)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+            <div class="ld-d-opt">
+                <label class="ld-check"><input type="checkbox" id="ld-d-changed"> 차이 있는 항목만</label>
+            </div>
+            <div class="ld-d-scroll">
+                <table class="ld-d-table">
+                    <colgroup><col class="ld-d-c1"><col><col></colgroup>
+                    <thead>
+                        <tr><th scope="col">항목</th><th scope="col">과거</th><th scope="col">최신</th></tr>
+                    </thead>
+                    <tbody id="ld-d-body"></tbody>
+                </table>
+            </div>
+        </aside>
     </div>
 
-    <div class="bg-gray-50 p-4 border-b border-gray-200 flex flex-wrap gap-4 items-end">
-        <div>
-            <label for="pidInput" class="block text-sm font-semibold text-gray-700 mb-1">Part ID (PID)</label>
-            <input type="text" id="pidInput" placeholder="예: P-001" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48">
-        </div>
-
-        <button id="searchBtnPID" onclick="searchPIDList()" class="bg-blue-600 text-white px-5 py-2 rounded-md text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
-            조회
-        </button>
-
-        <div>
-            <label for="baseVersion" class="block text-sm font-semibold text-gray-700 mb-1">기준 버전 (과거)</label>
-            <select id="baseVersion" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-32 bg-white">
-                <option value="">선택</option>
-                <!--<option value="v1.0">v1.0</option>
-                <option value="v2.0">v2.0</option>-->
-            </select>
-        </div>
-
-        <div>
-            <label for="compareVersion" class="block text-sm font-semibold text-gray-700 mb-1">비교 버전 (최신)</label>
-            <select id="compareVersion" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-32 bg-white">
-                <option value="">선택</option>
-                <!--<option value="v2.0">v2.0</option>
-                <option value="v3.0">v3.0</option>-->
-            </select>
-        </div>
-
-        <button id="searchBtn" class="bg-blue-600 text-white px-5 py-2 rounded-md text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm">
-            조회 및 비교
-        </button>
-
-        <button id="hide-empty-cols" class="bg-green-600 text-white px-5 py-2 rounded-md text-sm font-bold hover:bg-green-700 transition-colors shadow-sm">
-            빈 열 숨기기
-        </button>
-    </div>
-
-    <!-- 요약 + 상태 필터 -->
-    <div class="bg-white px-4 py-2 border-b border-gray-200 flex flex-wrap items-center gap-4">
-        <div id="diff-summary" class="flex flex-wrap gap-2"></div>
-        <div class="flex flex-wrap gap-3 text-xs text-gray-600 ml-auto">
-            <label class="flex items-center gap-1"><input type="checkbox" id="filter-added" checked> <span class="px-2 py-0.5 rounded bg-green-200 text-green-800">추가</span></label>
-            <label class="flex items-center gap-1"><input type="checkbox" id="filter-modified" checked> <span class="px-2 py-0.5 rounded bg-amber-200 text-amber-800">수정</span></label>
-            <label class="flex items-center gap-1"><input type="checkbox" id="filter-deleted" checked> <span class="px-2 py-0.5 rounded bg-red-200 text-red-800">삭제</span></label>
-            <label class="flex items-center gap-1"><input type="checkbox" id="filter-equal" checked> <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-600">동일</span></label>
-        </div>
-    </div>
-
-    <div class="flex-1 overflow-auto">
-        <table class="min-w-max w-full text-left text-sm whitespace-nowrap" style="zoom:77%;">
-            <thead class="bg-slate-100 sticky top-0 z-10 shadow-sm text-xs">
-                <!-- 헤더는 logicViewDiffV3.js 의 renderHeader() 가 서버 columns 기준으로 생성 -->
-                <tr id="table-header" class="text-slate-600"></tr>
-            </thead>
-            <tbody id="bom-tbody" class="divide-y divide-gray-200 border-b border-gray-200">
-                <tr><td colspan="200" class="text-center py-10 text-gray-500">PID와 버전을 선택한 후 조회 버튼을 눌러주세요.</td></tr>
-            </tbody>
-        </table>
-    </div>
+    <!-- 범례 -->
+    <footer class="ld-legend">
+        <span><i class="ld-sw" style="background:var(--mod-bg)"></i>값 변경 (위: 최신 / 아래: 과거)</span>
+        <span><i class="ld-sw" style="background:var(--add-bg)"></i>+ 값 추가</span>
+        <span><i class="ld-sw" style="background:var(--del-bg)"></i>− 값 삭제</span>
+        <span><i class="ld-sw" style="background:var(--mov-bg)"></i>← 열 위치만 이동</span>
+        <span>행을 클릭하면 과거/최신 상세 비교</span>
+        <span><kbd class="ld-kbd">N</kbd><kbd class="ld-kbd">P</kbd> 다음 / 이전 변경</span>
+    </footer>
 </div>
 
-<!-- 커스텀 팝오버 컨테이너 -->
-<div id="custom-popover" class="text-slate-700 border-slate-200"></div>
-
+<div class="ld-toast" id="ld-toast" role="status" aria-live="polite"></div>
 
 <script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
 <script src="/resources/javascript/commonUtil.js"></script>
