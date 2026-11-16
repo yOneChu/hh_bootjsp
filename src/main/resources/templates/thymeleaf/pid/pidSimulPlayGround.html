@@ -164,7 +164,7 @@
         header input::placeholder { color: #7b8aa0; }
         #project { width: 130px; }
         #pid { width: 150px; }
-        #version { max-width: 250px; }
+        #version { max-width: 420px; }
         #beforePid { width: 240px; }
         header button { border-color: var(--head-border); background: #334155; color: var(--head-text); }
         header button:hover:not(:disabled) { background: #475569; }
@@ -1067,7 +1067,23 @@
 
     // ---------- 버전 목록 ----------
     let versionsReq = 0;
-    const versionLabel = (v, latest, regDate) => (String(v) === TEST_VERSION ? 'TEST' : `v${v}`) + (latest ? ' (최신)' : '') + (regDate ? ` · ${regDate}` : '');
+    // 버전 표시 : v3 (최신) · 2026-10-01 10:20 · 비고 · 작성자 홍길동
+    // (regDate : VARIANT_H.REG_DATE, remarks : VARIANT_H.REMARKS, userName : FUSER$SF.MD$DESC)
+    // 비고는 30자까지만 보여주고, 전체는 option 의 title 로 본다
+    const REMARKS_MAX = 30;
+    const remarksText = (remarks) => {
+        const s = nvl(remarks).replace(/\s+/g, ' ').trim();
+        return s.length > REMARKS_MAX ? `${s.slice(0, REMARKS_MAX)}…` : s;
+    };
+    const userText = (userName) => (nvl(userName).trim() ? ` · 작성자 ${nvl(userName).trim()}` : '');
+    const versionLabel = (v, latest, regDate, remarks, userName) => (String(v) === TEST_VERSION ? 'TEST' : `v${v}`) + (latest ? ' (최신)' : '')
+        + (regDate ? ` · ${regDate}` : '') + (remarksText(remarks) ? ` · ${remarksText(remarks)}` : '') + userText(userName);
+    // '최신' 항목 표시 : 최신 (v5 · 2026-10-01 10:20 · 비고 · 작성자 홍길동)
+    const latestLabel = (latest) => (!latest ? '최신'
+        : `최신 (v${latest.version}${latest.regDate ? ` · ${latest.regDate}` : ''}`
+            + `${remarksText(latest.remarks) ? ` · ${remarksText(latest.remarks)}` : ''}${userText(latest.userName)})`);
+    // 버전 option 의 title (비고 전체 + 작성자)
+    const versionTitle = (v) => (v ? (nvl(v.remarks) + userText(v.userName)).replace(/^ · /, '') : '');
 
     async function loadVersions(keep) {
         const pid = $('pid').value.trim();
@@ -1083,8 +1099,14 @@
             if (!res.ok || !Array.isArray(list)) throw new Error((list && list.error) || `HTTP ${res.status}`);
             const latest = list.find((v) => v.latest);
             sel.innerHTML = '';
-            sel.add(new Option(latest ? `최신 (v${latest.version}${latest.regDate ? ' · ' + latest.regDate : ''})` : '최신', ''));
-            list.forEach((v) => sel.add(new Option(versionLabel(v.version, v.latest, v.regDate), String(v.version))));
+            const latestOpt = new Option(latestLabel(latest), '');
+            latestOpt.title = versionTitle(latest);
+            sel.add(latestOpt);
+            list.forEach((v) => {
+                const opt = new Option(versionLabel(v.version, v.latest, v.regDate, v.remarks, v.userName), String(v.version));
+                opt.title = versionTitle(v);
+                sel.add(opt);
+            });
         } catch (e) {
             console.warn('버전 목록 로딩 실패:', e);
         }
