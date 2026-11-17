@@ -884,7 +884,7 @@
         <svg class="ico" aria-hidden="true"><use href="#i-compare"/></svg>최신과 비교</button>
     <button type="button" id="btnElvEnt" title="PID 실행 후 최종 영업사양"><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg>최종 영업사양 (<span id="stElvEnt">0</span>)</button>
     <span class="sep" aria-hidden="true"></span>
-    <label class="chk" title="JSP 원본처럼 SPEC/CON, KEY/VAL을 각각 컬럼으로 펼쳐서 봅니다"><input type="checkbox" id="fullView"> 원본 컬럼 펼치기</label>
+    <label class="chk" title="JSP 원본처럼 SPEC/CON, KEY/VAL을 각각 컬럼으로 펼쳐서 봅니다"><input type="checkbox" id="fullView" checked> 원본 컬럼 펼치기</label>
     <label class="chk"><input type="checkbox" id="hideBlank"> 빈 라인 숨기기</label>
     <label class="sr-only" for="keyword" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">라인 검색</label>
     <input type="search" id="keyword" placeholder="SPEC / KEY / VAL / REMARK 검색  ( / )">
@@ -993,7 +993,7 @@
         filter: 'all',
         keyword: '',
         hideBlank: false,
-        fullView: false,
+        fullView: true,
         selectedIdx: -1,
         drawerMode: '',   // 'row' | 'final' | 'elvEnt'
         result: null,     // 서버 응답 (PIDSimulResult)
