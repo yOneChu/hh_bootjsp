@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>BOM 수정 검증</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+
+    <script>
+        // 페이지 렌더 전 다크모드/사이드바 상태 적용 (깜빡임 방지) — 기본값: 다크
+        if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+    </script>
+
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/resources/dist/googleFont.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <script>
+        tailwind.config = {
+            corePlugins: { preflight: false },
+            important: true,
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: {
+                            blue: '#0071E3', blueD: '#0A84FF', ink: '#1D1D1F', gray1: '#8E8E93',
+                            gray5: '#E5E5EA', gray6: '#F5F5F7', card: '#FFFFFF',
+                            darkBg: '#000000', darkCard: '#1C1C1E', darkLine: '#38383A',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard Variable', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Helvetica Neue', 'Arial', 'sans-serif']
+                    },
+                    boxShadow: { btn: '0 2px 10px rgba(0,113,227,.35)' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* ══════════════════════════════════════════════════════════
+           디자인 토큰 — searchPartAnalysisV2 와 같은 Apple 계열 표면 + 변경 유형 색
+             추가(add) 초록 / 삭제(del) 빨강 / 변경(mod) 주황
+             검증: 확인(ok) 초록 / 이상(ng) 빨강 / 미검증 회색
+           ══════════════════════════════════════════════════════════ */
+        :root {
+            --c-add: #248A3D;  --c-add-bg: rgba(52,199,89,.12);
+            --c-del: #D70015;  --c-del-bg: rgba(255,59,48,.10);
+            --c-mod: #C93400;  --c-mod-bg: rgba(255,149,0,.14);
+            --line: rgba(0,0,0,.06);
+            --muted: #8E8E93;
+        }
+        html.dark {
+            --c-add: #30D158;  --c-add-bg: rgba(48,209,88,.16);
+            --c-del: #FF453A;  --c-del-bg: rgba(255,69,58,.16);
+            --c-mod: #FF9F0A;  --c-mod-bg: rgba(255,159,10,.18);
+            --line: rgba(255,255,255,.08);
+            --muted: #98989D;
+        }
+
+        html { -webkit-font-smoothing: antialiased; }
+        body {
+            font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #F5F5F7;
+        }
+        .dark body { background: #000; }
+
+        h1, h2, h3, h4, h5 { margin: 0; }
+        main p, header p, footer p, aside p { margin: 0; }
+        main ul { margin: 0; padding-left: 0; list-style: none; }
+        main label { margin-bottom: 0; }
+
+        :focus-visible { outline: 2px solid #0071E3; outline-offset: 2px; }
+        .dark :focus-visible { outline-color: #0A84FF; }
+
+        /* ── 표면 ── */
+        .panel {
+            background: #fff; border: 1px solid rgba(0,0,0,.05); border-radius: 16px;
+            box-shadow: 0 2px 20px rgba(0,0,0,.05); overflow: hidden;
+        }
+        .dark .panel { background: #1C1C1E; border-color: rgba(255,255,255,.07); box-shadow: 0 2px 20px rgba(0,0,0,.45); }
+        .panel-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 20px 24px 16px; }
+        .panel-head.divider { border-bottom: 1px solid var(--line); }
+        .panel-body { padding: 20px 24px; }
+        .panel-foot {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+            padding: 16px 24px; background: #FAFAFC; border-top: 1px solid var(--line);
+        }
+        .dark .panel-foot { background: rgba(255,255,255,.03); }
+        .panel-title { font-size: 15px; font-weight: 700; }
+
+        .tile { width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
+        .tile-blue   { background: rgba(0,113,227,.10); }
+        .tile-indigo { background: rgba(88,86,214,.10); }
+        .tile-green  { background: rgba(52,199,89,.12); }
+        .tile-amber  { background: rgba(255,159,10,.14); font-size: 13px; }
+        .dark .tile-blue   { background: rgba(10,132,255,.18); }
+        .dark .tile-indigo { background: rgba(94,92,230,.20); }
+        .dark .tile-green  { background: rgba(48,209,88,.18); }
+        .dark .tile-amber  { background: rgba(255,159,10,.20); }
+
+        /* ── 폼 ── */
+        .field-label { display: block; font-size: 11.5px; font-weight: 600; color: #86868B; margin-bottom: 6px; }
+        .dark .field-label { color: #98989D; }
+        .form-input, .form-select {
+            width: 100%; height: 40px; padding: 0 13px; font-size: 14px; color: #1D1D1F;
+            background: #fff; border: 1.5px solid #E5E5EA; border-radius: 11px; outline: none;
+            transition: border-color .18s, box-shadow .18s; font-family: inherit; box-sizing: border-box;
+        }
+        .form-select {
+            appearance: none; -webkit-appearance: none; padding-right: 34px; cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238E8E93' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 13px center;
+        }
+        .form-input:focus, .form-select:focus { border-color: #0071E3; box-shadow: 0 0 0 3.5px rgba(0,113,227,.14); }
+        .dark .form-input, .dark .form-select { background: #2C2C2E; border-color: #38383A; color: #F5F5F7; color-scheme: dark; }
+        .dark .form-input:focus, .dark .form-select:focus { border-color: #0A84FF; box-shadow: 0 0 0 3.5px rgba(10,132,255,.22); }
+        .dark .form-select option { background: #2C2C2E; }
+        .form-input::placeholder { color: #AEAEB2; }
+        .dark .form-input::placeholder { color: #636366; }
+        .dark input[type="search"]::-webkit-search-cancel-button { filter: invert(1) opacity(.55); }
+
+        .range { display: flex; align-items: center; gap: 6px; }
+        .range span { color: var(--muted); font-size: 13px; }
+
+        /* ── 조건 카드 ── */
+        .cond-card { background: #F7F7F9; border: 1px solid rgba(0,0,0,.03); border-radius: 12px; padding: 16px; }
+        .dark .cond-card { background: rgba(255,255,255,.045); border-color: rgba(255,255,255,.06); }
+        .cond-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .cond-badge { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 6px; color: #fff; font-size: 11px; font-weight: 700; }
+        .cond-note { font-size: 12px; color: var(--muted); }
+        .cond-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 640px)  { .cond-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+        @media (min-width: 1024px) { .cond-grid.c4 { grid-template-columns: 1.4fr 1fr 1fr 1fr; } }
+
+        /* 변경 유형 선택 칩 (복수 선택) */
+        .type-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .type-chip {
+            display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px;
+            border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+            background: #fff; color: #3C3C43; border: 1.5px solid #E5E5EA; transition: background .15s, border-color .15s;
+        }
+        .dark .type-chip { background: #2C2C2E; color: #E5E5EA; border-color: #38383A; }
+        .type-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+        .type-chip[aria-pressed="true"] { border-color: currentColor; }
+        .type-chip.add[aria-pressed="true"] { color: var(--c-add); background: var(--c-add-bg); }
+        .type-chip.del[aria-pressed="true"] { color: var(--c-del); background: var(--c-del-bg); }
+        .type-chip.mod[aria-pressed="true"] { color: var(--c-mod); background: var(--c-mod-bg); }
+        .type-chip.add .dot { background: var(--c-add); }
+        .type-chip.del .dot { background: var(--c-del); }
+        .type-chip.mod .dot { background: var(--c-mod); }
+
+        /* ── 버튼 ── */
+        .btn-primary {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 42px; padding: 0 26px;
+            border-radius: 11px; background: #0071E3; color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,113,227,.35); transition: background .15s, transform .1s;
+        }
+        .btn-primary:hover { background: #0077ED; color: #fff; }
+        .btn-primary:active { transform: scale(.97); }
+        .btn-ghost {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 42px; padding: 0 20px;
+            border-radius: 11px; background: transparent; color: #0071E3; font-size: 14px; font-weight: 600;
+            border: 1.5px solid #D2D2D7; cursor: pointer; transition: background .15s, border-color .15s;
+        }
+        .btn-ghost:hover { background: rgba(0,113,227,.06); border-color: #0071E3; }
+        .dark .btn-ghost { color: #0A84FF; border-color: #48484A; }
+        .btn-mini {
+            display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 13px; border-radius: 9px;
+            font-size: 12.5px; font-weight: 600; cursor: pointer; background: #F5F5F7; color: #1D1D1F; border: 1px solid transparent;
+        }
+        .btn-mini:hover { background: #E8E8ED; }
+        .dark .btn-mini { background: #2C2C2E; color: #F5F5F7; }
+        .dark .btn-mini:hover { background: #3A3A3C; }
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 9px;
+            border: none; cursor: pointer; background: transparent; color: #1D1D1F;
+        }
+        .icon-btn:hover { background: rgba(0,0,0,.06); }
+        .dark .icon-btn { color: #F5F5F7; }
+        .dark .icon-btn:hover { background: rgba(255,255,255,.1); }
+
+        .ios-switch { position: relative; width: 46px; height: 27px; cursor: pointer; margin: 0; }
+        .ios-switch input { display: none; }
+        .ios-switch .track { position: absolute; inset: 0; border-radius: 999px; background: #D2D2D7; transition: background .2s; }
+        .dark .ios-switch .track { background: #38383A; }
+        .ios-switch input:checked + .track { background: #34C759; }
+        .ios-switch .knob { position: absolute; top: 2.5px; left: 2.5px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: transform .2s; }
+        .ios-switch input:checked ~ .knob { transform: translateX(19px); }
+
+        details.help summary { list-style: none; cursor: pointer; }
+        details.help summary::-webkit-details-marker { display: none; }
+        details.help[open] .chev { transform: rotate(90deg); }
+        .chev { transition: transform .18s; }
+
+        /* ══════════════════════════════════════════════════════════
+           요약 스트립 : 숫자 + 변경 유형 구성 막대 + 검증 진행
+           ══════════════════════════════════════════════════════════ */
+        .summary { display: grid; grid-template-columns: 1fr; }
+        @media (min-width: 1024px) { .summary { grid-template-columns: auto auto 1fr 1fr; } }
+        .summary > div { padding: 18px 24px; }
+        @media (min-width: 1024px) { .summary > div + div { border-left: 1px solid var(--line); } }
+        @media (max-width: 1023px) { .summary > div + div { border-top: 1px solid var(--line); } }
+        .sum-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+        .sum-num { font-size: 28px; font-weight: 800; letter-spacing: -.03em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+        .sum-num small { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 3px; letter-spacing: 0; }
+
+        .mix-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; margin: 10px 0 8px; background: var(--line); }
+        .mix-bar span { display: block; height: 100%; }
+        .mix-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; }
+        .mix-legend b { font-variant-numeric: tabular-nums; }
+        .lg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: 1px; }
+
+        /* ══════════════════════════════════════════════════════════
+           마스터(수정 제품 목록) – 디테일(자재 변경 내역)
+           ══════════════════════════════════════════════════════════ */
+        .md-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
+        @media (min-width: 1280px) { .md-grid { grid-template-columns: 380px minmax(0,1fr); align-items: start; } }
+
+        .prod-list { max-height: 720px; overflow-y: auto; }
+        .prod-item {
+            display: block; width: 100%; text-align: left; font-family: inherit; cursor: pointer;
+            padding: 14px 20px 14px 17px; background: transparent; border: none;
+            border-left: 3px solid transparent; border-bottom: 1px solid var(--line); color: inherit;
+            transition: background .12s;
+        }
+        .prod-item:hover { background: rgba(0,113,227,.045); }
+        .prod-item[aria-selected="true"] { background: rgba(0,113,227,.08); border-left-color: #0071E3; }
+        .dark .prod-item[aria-selected="true"] { background: rgba(10,132,255,.14); border-left-color: #0A84FF; }
+        .prod-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+        .prod-no { font-size: 14.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .prod-date { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+        .prod-meta { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+        .prod-counts { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+        .cnt { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 5px; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .cnt.add { color: var(--c-add); background: var(--c-add-bg); }
+        .cnt.del { color: var(--c-del); background: var(--c-del-bg); }
+        .cnt.mod { color: var(--c-mod); background: var(--c-mod-bg); }
+        .prod-progress { margin-left: auto; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+        .prod-progress.done { color: var(--c-add); font-weight: 700; }
+
+        /* 디테일 헤더 */
+        .detail-head { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: flex-end; }
+        .detail-no { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+        .spec-list { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; }
+        .spec-list dt { color: var(--muted); font-weight: 500; display: inline; margin-right: 6px; }
+        .spec-list dd { display: inline; margin: 0; font-weight: 600; }
+        .ver-shift { font-variant-numeric: tabular-nums; }
+        .ver-shift s { color: var(--muted); }
+
+        /* 유형 탭 (디테일 필터) */
+        .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: #EEEEF0; gap: 2px; }
+        .dark .seg { background: #2C2C2E; }
+        .seg button {
+            height: 30px; padding: 0 13px; border-radius: 8px; border: none; background: transparent; cursor: pointer;
+            font-family: inherit; font-size: 12.5px; font-weight: 600; color: #6E6E73;
+        }
+        .dark .seg button { color: #AEAEB2; }
+        .seg button[aria-pressed="true"] { background: #fff; color: #1D1D1F; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+        .dark .seg button[aria-pressed="true"] { background: #48484A; color: #fff; }
+
+        /* ── 변경 내역 테이블 : 이 화면의 핵심 (변경 전 → 후) ── */
+        .tbl-scroll { overflow-x: auto; }
+        .tbl-scroll::-webkit-scrollbar { height: 10px; }
+        .tbl-scroll::-webkit-scrollbar-thumb { background: #C7C7CC; border-radius: 8px; }
+        .dark .tbl-scroll::-webkit-scrollbar-thumb { background: #48484A; }
+
+        .chg-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+        .chg-table th {
+            position: sticky; top: 0; background: #FAFAFC; color: #6E6E73; font-size: 11.5px; font-weight: 700;
+            text-align: left; padding: 10px 12px; white-space: nowrap; border-bottom: 1.5px solid #E5E5EA;
+        }
+        .dark .chg-table th { background: #232325; color: #98989D; border-bottom-color: #38383A; }
+        .chg-table td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; white-space: nowrap; }
+        .chg-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .chg-table tr > td:first-child { box-shadow: inset 3px 0 0 transparent; }
+        .chg-table tr.add > td:first-child { box-shadow: inset 3px 0 0 var(--c-add); }
+        .chg-table tr.del > td:first-child { box-shadow: inset 3px 0 0 var(--c-del); }
+        .chg-table tr.mod > td:first-child { box-shadow: inset 3px 0 0 var(--c-mod); }
+        .chg-table tbody tr:hover td { background: rgba(0,113,227,.04); }
+        .chg-table tr.ng td { background: var(--c-del-bg); }
+
+        .type-tag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; }
+        .type-tag.add { color: var(--c-add); background: var(--c-add-bg); }
+        .type-tag.del { color: var(--c-del); background: var(--c-del-bg); }
+        .type-tag.mod { color: var(--c-mod); background: var(--c-mod-bg); }
+
+        /* diff : 변경 전은 취소선, 변경 후는 강조. 바뀌지 않은 값은 평범하게 */
+        .diff { display: flex; flex-direction: column; gap: 2px; }
+        .diff .old { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--c-del); font-size: 12px; }
+        .diff .new { font-weight: 700; }
+        .diff.num { align-items: flex-end; }
+        tr.add .val { color: var(--c-add); font-weight: 600; }
+        tr.del .val { color: var(--muted); text-decoration: line-through; }
+        .part-no { font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+        .cmt { max-width: 260px; white-space: normal; line-height: 1.45; }
+
+        /* 검증 버튼 (확인 / 이상) */
+        .verify { display: inline-flex; gap: 4px; }
+        .verify button {
+            height: 28px; padding: 0 10px; border-radius: 7px; font-family: inherit; font-size: 12px; font-weight: 700;
+            cursor: pointer; background: transparent; color: var(--muted); border: 1.5px solid #E5E5EA;
+        }
+        .dark .verify button { border-color: #48484A; }
+        .verify button.ok[aria-pressed="true"] { color: #fff; background: var(--c-add); border-color: var(--c-add); }
+        .verify button.ng[aria-pressed="true"] { color: #fff; background: var(--c-del); border-color: var(--c-del); }
+        .note-input { height: 30px; font-size: 12.5px; border-radius: 8px; min-width: 160px; }
+
+        .empty { padding: 56px 24px; text-align: center; color: var(--muted); font-size: 13.5px; }
+        .empty b { display: block; color: inherit; font-size: 15px; margin-bottom: 4px; }
+
+        .sample-note { font-size: 12px; color: var(--c-mod); background: var(--c-mod-bg); padding: 6px 12px; border-radius: 8px; }
+
+        @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+    </style>
+</head>
+
+<body class="bg-apple-gray6 dark:bg-apple-darkBg text-apple-ink dark:text-apple-gray6 min-h-screen">
+
+<div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+
+<div id="appContent">
+
+<!-- ═══════════ Top Bar ═══════════ -->
+<header class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-black/60 border-b border-black/5 dark:border-white/10">
+    <div class="w-full px-5 xl:px-8 h-[58px] flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <button type="button" id="sbToggle" class="icon-btn -ml-2" title="사이드바 열기/닫기" aria-label="사이드바 열기/닫기">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
+            <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-[16px] font-bold tracking-tight leading-none">BOM 수정 검증</h1>
+                <p class="text-[11px] text-apple-gray1 leading-none mt-[3px]">Logic Design Intelligence Platform</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <span class="text-[12.5px] font-medium text-apple-gray1" id="themeLabel">다크모드</span>
+            <label class="ios-switch" aria-label="다크모드 전환">
+                <input type="checkbox" id="darkModeToggle">
+                <span class="track"></span><span class="knob"></span>
+            </label>
+        </div>
+    </div>
+</header>
+
+<main class="w-full px-5 xl:px-8 py-8 space-y-6">
+
+    <!-- ═══════════ Hero ═══════════ -->
+    <section class="pt-2 pb-1">
+        <h2 class="text-[30px] font-bold tracking-tight leading-tight">BOM 수정 검증</h2>
+        <p class="text-[14.5px] text-apple-gray1 mt-1">설계자가 수정한 제품의 자재 변경 내역을 제품별로 모아, 수정이 맞게 되었는지 한 줄씩 확인합니다.</p>
+    </section>
+
+    <!-- ═══════════ 도움말 ═══════════ -->
+    <details class="help panel">
+        <summary class="panel-head">
+            <span class="tile tile-amber" style="border-radius:999px;">💡</span>
+            <span class="text-[14px] font-semibold flex-1">검증 방법 안내</span>
+            <svg class="chev text-apple-gray1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+        <ul class="px-7 pb-5 pt-1 space-y-2 text-[13px] leading-relaxed text-[#515154] dark:text-[#AEAEB2]">
+            <li class="flex gap-2"><span class="text-rose-500 font-bold">·</span><span><b class="text-rose-500">수정 기간은 필수</b>입니다. 기간이 길면 조회가 느려질 수 있습니다.</span></li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>왼쪽 목록에서 제품을 고르면, 오른쪽에 그 제품의 자재 변경 내역이 나옵니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>변경된 값은 <s>변경 전</s> 아래에 <b>변경 후</b>를 함께 보여줍니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>각 행에서 <b>확인</b> 또는 <b>이상</b>을 누르고, 이상이면 사유를 메모로 남깁니다.</li>
+        </ul>
+    </details>
+
+    <!-- ═══════════ 검색 조건 ═══════════ -->
+    <section class="panel" aria-labelledby="condTitle">
+        <div class="panel-head">
+            <span class="tile tile-blue">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="text-apple-blue dark:text-apple-blueD"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+            </span>
+            <h3 class="panel-title" id="condTitle">검색 조건</h3>
+        </div>
+
+        <div class="panel-body space-y-4" style="padding-top:4px;">
+
+            <!-- ▸ 수정 정보 -->
+            <div class="cond-card">
+                <div class="cond-head">
+                    <span class="cond-badge" style="background:#0071E3;">수정 정보</span>
+                    <span class="cond-note">수정 기간 필수</span>
+                </div>
+                <div class="cond-grid c4">
+                    <div>
+                        <label class="field-label" for="fromDate">수정 기간</label>
+                        <div class="range">
+                            <input type="date" id="fromDate" class="form-input" aria-label="수정 시작일">
+                            <span>~</span>
+                            <input type="date" id="toDate" class="form-input" aria-label="수정 종료일">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="field-label" for="designer">설계자</label>
+                        <select id="designer" class="form-select">
+                            <option value="">전체</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label" for="prodNo">제품번호(호기)</label>
+                        <input type="search" id="prodNo" class="form-input" placeholder="ex. 206663L01" autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="field-label" for="blockNo">Block No.</label>
+                        <input type="search" id="blockNo" class="form-input" placeholder="ex. B181B" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+
+            <!-- ▸ 변경 범위 -->
+            <div class="cond-card">
+                <div class="cond-head">
+                    <span class="cond-badge" style="background:#5856D6;">변경 범위</span>
+                    <span class="cond-note">선택</span>
+                </div>
+                <div class="cond-grid c4">
+                    <div>
+                        <span class="field-label" id="typeLabel">변경 유형</span>
+                        <div class="type-chips" role="group" aria-labelledby="typeLabel">
+                            <button type="button" class="type-chip add" aria-pressed="true"><span class="dot"></span>추가</button>
+                            <button type="button" class="type-chip del" aria-pressed="true"><span class="dot"></span>삭제</button>
+                            <button type="button" class="type-chip mod" aria-pressed="true"><span class="dot"></span>변경</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="field-label" for="partNo">Part No.</label>
+                        <input type="search" id="partNo" class="form-input" placeholder="26300551G0* (Like 검색)" autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="field-label" for="status">제품 상태</label>
+                        <select id="status" class="form-select">
+                            <option value="">전체</option>
+                            <option value="RLS" selected>릴리즈</option>
+                            <option value="WIP">작업중</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label" for="verifyStatus">검증 상태</label>
+                        <select id="verifyStatus" class="form-select">
+                            <option value="">전체</option>
+                            <option value="NONE" selected>미검증</option>
+                            <option value="OK">확인</option>
+                            <option value="NG">이상</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-foot">
+            <span class="text-[12px] text-apple-gray1">제품번호 / Block No. 입력 후 Enter 키로 바로 조회할 수 있습니다.</span>
+            <div class="flex items-center gap-2.5">
+                <button type="button" class="btn-ghost">초기화</button>
+                <button type="button" class="btn-primary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                    조회
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- UI 확인용 샘플 데이터 안내 (기능 개발 시 제거) -->
+    <p class="sample-note">아래 숫자와 목록은 화면 확인용 샘플입니다. 조회 기능을 붙이면 실제 데이터로 바뀝니다.</p>
+
+    <!-- ═══════════ 요약 ═══════════ -->
+    <section class="panel summary" aria-label="조회 결과 요약">
+        <div>
+            <p class="sum-label">수정 제품</p>
+            <p class="sum-num" id="sumProducts">12<small>개</small></p>
+        </div>
+        <div>
+            <p class="sum-label">변경 자재</p>
+            <p class="sum-num" id="sumParts">148<small>건</small></p>
+        </div>
+        <div>
+            <p class="sum-label">변경 유형</p>
+            <div class="mix-bar" role="img" aria-label="추가 41건, 삭제 23건, 변경 84건">
+                <span style="width:27.7%; background:var(--c-add);"></span>
+                <span style="width:15.5%; background:var(--c-del);"></span>
+                <span style="width:56.8%; background:var(--c-mod);"></span>
+            </div>
+            <div class="mix-legend">
+                <span><i class="lg-dot" style="background:var(--c-add)"></i>추가 <b>41</b></span>
+                <span><i class="lg-dot" style="background:var(--c-del)"></i>삭제 <b>23</b></span>
+                <span><i class="lg-dot" style="background:var(--c-mod)"></i>변경 <b>84</b></span>
+            </div>
+        </div>
+        <div>
+            <p class="sum-label">검증 진행</p>
+            <div class="mix-bar" role="img" aria-label="확인 62건, 이상 5건, 미검증 81건">
+                <span style="width:41.9%; background:var(--c-add);"></span>
+                <span style="width:3.4%; background:var(--c-del);"></span>
+            </div>
+            <div class="mix-legend">
+                <span><i class="lg-dot" style="background:var(--c-add)"></i>확인 <b>62</b></span>
+                <span><i class="lg-dot" style="background:var(--c-del)"></i>이상 <b>5</b></span>
+                <span><i class="lg-dot" style="background:var(--line)"></i>미검증 <b>81</b></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ 제품 목록 + 자재 변경 내역 ═══════════ -->
+    <div class="md-grid">
+
+        <!-- ▸ 수정 제품 목록 -->
+        <section class="panel" aria-labelledby="prodTitle">
+            <div class="panel-head divider">
+                <span class="tile tile-indigo">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="text-indigo-500"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                </span>
+                <h3 class="panel-title flex-1" id="prodTitle">수정 제품</h3>
+                <select class="form-select" style="width:auto; height:32px; font-size:12.5px; border-radius:9px;" aria-label="제품 정렬">
+                    <option>최근 수정순</option>
+                    <option>변경 많은순</option>
+                    <option>미검증 많은순</option>
+                </select>
+            </div>
+            <div class="px-4 pt-3 pb-3" style="border-bottom:1px solid var(--line);">
+                <input type="search" class="form-input" style="height:34px; font-size:13px;" placeholder="목록에서 제품번호 찾기" aria-label="목록에서 제품번호 찾기">
+            </div>
+            <div class="prod-list" id="prodList" role="listbox" aria-label="수정 제품 목록">
+                <button type="button" class="prod-item" role="option" aria-selected="true">
+                    <div class="prod-top"><span class="prod-no">206663L01</span><span class="prod-date">2026-11-17</span></div>
+                    <p class="prod-meta">설계자 홍길동 · 버전 3 → 4</p>
+                    <div class="prod-counts"><span class="cnt add">+4</span><span class="cnt del">−2</span><span class="cnt mod">~6</span><span class="prod-progress">검증 3 / 12</span></div>
+                </button>
+                <button type="button" class="prod-item" role="option" aria-selected="false">
+                    <div class="prod-top"><span class="prod-no">208618L17</span><span class="prod-date">2026-11-17</span></div>
+                    <p class="prod-meta">설계자 이수정 · 버전 1 → 2</p>
+                    <div class="prod-counts"><span class="cnt add">+1</span><span class="cnt mod">~3</span><span class="prod-progress done">검증 완료</span></div>
+                </button>
+                <button type="button" class="prod-item" role="option" aria-selected="false">
+                    <div class="prod-top"><span class="prod-no">N29738L01</span><span class="prod-date">2026-11-16</span></div>
+                    <p class="prod-meta">설계자 박도면 · 버전 5 → 6</p>
+                    <div class="prod-counts"><span class="cnt add">+12</span><span class="cnt del">−9</span><span class="cnt mod">~21</span><span class="prod-progress">검증 0 / 42</span></div>
+                </button>
+                <button type="button" class="prod-item" role="option" aria-selected="false">
+                    <div class="prod-top"><span class="prod-no">207541L03</span><span class="prod-date">2026-11-15</span></div>
+                    <p class="prod-meta">설계자 홍길동 · 버전 2 → 3</p>
+                    <div class="prod-counts"><span class="cnt del">−1</span><span class="cnt mod">~2</span><span class="prod-progress">검증 1 / 3</span></div>
+                </button>
+                <button type="button" class="prod-item" role="option" aria-selected="false">
+                    <div class="prod-top"><span class="prod-no">209002L11</span><span class="prod-date">2026-11-14</span></div>
+                    <p class="prod-meta">설계자 최설계 · 버전 1 → 2</p>
+                    <div class="prod-counts"><span class="cnt add">+6</span><span class="cnt mod">~8</span><span class="prod-progress">검증 10 / 14</span></div>
+                </button>
+            </div>
+        </section>
+
+        <!-- ▸ 선택 제품의 자재 변경 내역 -->
+        <section class="panel" aria-labelledby="detailTitle">
+            <div class="panel-head divider" style="padding-bottom:18px;">
+                <div class="detail-head w-full">
+                    <div>
+                        <p class="text-[12px] text-apple-gray1 font-semibold">자재 변경 내역</p>
+                        <h3 class="detail-no" id="detailTitle">206663L01</h3>
+                    </div>
+                    <dl class="spec-list flex-1" style="margin:0;">
+                        <div><dt>설계자</dt><dd>홍길동</dd></div>
+                        <div><dt>수정일</dt><dd>2026-11-17 14:32</dd></div>
+                        <div><dt>제품버전</dt><dd class="ver-shift"><s>3</s> → 4</dd></div>
+                        <div><dt>브랜드</dt><dd>-</dd></div>
+                        <div><dt>기종</dt><dd>-</dd></div>
+                        <div><dt>속도</dt><dd>- m/min</dd></div>
+                        <div><dt>생산거점</dt><dd>-</dd></div>
+                    </dl>
+                    <div class="flex gap-2">
+                        <button type="button" class="btn-mini"><i class="fas fa-check-double" style="font-size:11px;"></i>남은 행 모두 확인</button>
+                        <button type="button" class="btn-mini"><i class="fas fa-file-excel" style="font-size:11px;"></i>Excel</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 py-3 flex flex-wrap items-center gap-3" style="border-bottom:1px solid var(--line);">
+                <div class="seg" role="group" aria-label="변경 유형으로 거르기">
+                    <button type="button" aria-pressed="true">전체 12</button>
+                    <button type="button" aria-pressed="false">추가 4</button>
+                    <button type="button" aria-pressed="false">삭제 2</button>
+                    <button type="button" aria-pressed="false">변경 6</button>
+                </div>
+                <label class="inline-flex items-center gap-2 text-[12.5px] text-apple-gray1 cursor-pointer">
+                    <input type="checkbox"> 미검증만 보기
+                </label>
+                <input type="search" class="form-input ml-auto" style="height:34px; font-size:13px; max-width:240px;" placeholder="품번 · 품명 · Block 찾기" aria-label="변경 내역에서 찾기">
+            </div>
+
+            <div class="tbl-scroll">
+                <table class="chg-table">
+                    <thead>
+                    <tr>
+                        <th>유형</th>
+                        <th>Block No.</th>
+                        <th>품번</th>
+                        <th>품명</th>
+                        <th style="text-align:right;">QTY</th>
+                        <th>CMT</th>
+                        <th>SPEC</th>
+                        <th>GL_CODE</th>
+                        <th>검증</th>
+                        <th>메모</th>
+                    </tr>
+                    </thead>
+                    <tbody id="chgBody">
+                    <!-- UI 확인용 샘플 행 (기능 개발 시 제거) -->
+                    <tr class="mod">
+                        <td><span class="type-tag mod">변경</span></td>
+                        <td>B181B</td>
+                        <td><div class="diff"><span class="old part-no">26300551G01</span><span class="new part-no">26300551G02</span></div></td>
+                        <td>BRACKET, RAIL</td>
+                        <td class="num"><div class="diff num"><span class="old">4</span><span class="new">6</span></div></td>
+                        <td class="cmt">EL_ATYP=STVF7</td>
+                        <td>SS400 T3.2</td>
+                        <td>1101</td>
+                        <td><div class="verify"><button type="button" class="ok" aria-pressed="false">확인</button><button type="button" class="ng" aria-pressed="false">이상</button></div></td>
+                        <td><input type="text" class="form-input note-input" placeholder="사유 입력" aria-label="메모"></td>
+                    </tr>
+                    <tr class="add">
+                        <td><span class="type-tag add">추가</span></td>
+                        <td>B181B</td>
+                        <td><span class="val part-no">26300612G01</span></td>
+                        <td><span class="val">PLATE, FIX</span></td>
+                        <td class="num"><span class="val">2</span></td>
+                        <td class="cmt"><span class="val">EL_ETHRU=Y</span></td>
+                        <td>SPCC T2.0</td>
+                        <td>1101</td>
+                        <td><div class="verify"><button type="button" class="ok" aria-pressed="true">확인</button><button type="button" class="ng" aria-pressed="false">이상</button></div></td>
+                        <td><input type="text" class="form-input note-input" placeholder="사유 입력" aria-label="메모"></td>
+                    </tr>
+                    <tr class="mod ng">
+                        <td><span class="type-tag mod">변경</span></td>
+                        <td>B204A</td>
+                        <td><span class="part-no">27100118G03</span></td>
+                        <td>COVER, TOP</td>
+                        <td class="num">1</td>
+                        <td class="cmt"><div class="diff"><span class="old">EL_COB=A</span><span class="new">EL_COB=A,B</span></div></td>
+                        <td>SUS304 HL</td>
+                        <td>1203</td>
+                        <td><div class="verify"><button type="button" class="ok" aria-pressed="false">확인</button><button type="button" class="ng" aria-pressed="true">이상</button></div></td>
+                        <td><input type="text" class="form-input note-input" value="전망타입 B 조건 누락 확인 필요" aria-label="메모"></td>
+                    </tr>
+                    <tr class="del">
+                        <td><span class="type-tag del">삭제</span></td>
+                        <td>B204A</td>
+                        <td><span class="val part-no">27100097G01</span></td>
+                        <td><span class="val">BOLT SET</span></td>
+                        <td class="num"><span class="val">8</span></td>
+                        <td class="cmt"><span class="val">-</span></td>
+                        <td>M10x25</td>
+                        <td>1301</td>
+                        <td><div class="verify"><button type="button" class="ok" aria-pressed="false">확인</button><button type="button" class="ng" aria-pressed="false">이상</button></div></td>
+                        <td><input type="text" class="form-input note-input" placeholder="사유 입력" aria-label="메모"></td>
+                    </tr>
+                    <tr class="mod">
+                        <td><span class="type-tag mod">변경</span></td>
+                        <td>B310C</td>
+                        <td><span class="part-no">28400230G05</span></td>
+                        <td>HARNESS, CAR</td>
+                        <td class="num"><div class="diff num"><span class="old">1</span><span class="new">2</span></div></td>
+                        <td class="cmt">-</td>
+                        <td><div class="diff"><span class="old">L=12000</span><span class="new">L=14500</span></div></td>
+                        <td>2101</td>
+                        <td><div class="verify"><button type="button" class="ok" aria-pressed="false">확인</button><button type="button" class="ng" aria-pressed="false">이상</button></div></td>
+                        <td><input type="text" class="form-input note-input" placeholder="사유 입력" aria-label="메모"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 조회 전 / 결과 없음 상태 (기능 개발 시 사용) -->
+            <div class="empty" id="chgEmpty" style="display:none;">
+                <b>선택한 제품이 없습니다</b>
+                왼쪽 목록에서 제품을 고르면 자재 변경 내역이 여기에 나옵니다.
+            </div>
+
+            <div class="panel-foot">
+                <span class="text-[12px] text-apple-gray1">이 제품 12건 중 3건 검증</span>
+                <button type="button" class="btn-primary" style="height:38px; padding:0 20px;">검증 결과 저장</button>
+            </div>
+        </section>
+    </div>
+
+    <footer class="pt-4 pb-8 text-center">
+        <p class="text-[12px] text-apple-gray1">Copyright © 2026 <b>수배로직설계팀 · 김영환 M</b>. All rights reserved. · Version 1.0.0</p>
+    </footer>
+</main>
+
+</div><!-- /#appContent -->
+
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    /* ── UI 동작만 (데이터 조회/저장 기능은 추후 개발) ── */
+
+    // 다크모드 (searchPartAnalysisV2 와 localStorage 키 'theme' 공유)
+    (function initTheme() {
+        const dark = localStorage.getItem('theme') !== 'light';
+        document.documentElement.classList.toggle('dark', dark);
+        document.getElementById('darkModeToggle').checked = dark;
+        document.getElementById('themeLabel').textContent = dark ? '🌙 다크모드' : '☀️ 라이트모드';
+    })();
+    document.getElementById('darkModeToggle').addEventListener('change', function () {
+        document.documentElement.classList.toggle('dark', this.checked);
+        try { localStorage.setItem('theme', this.checked ? 'dark' : 'light'); } catch (e) {}
+        document.getElementById('themeLabel').textContent = this.checked ? '🌙 다크모드' : '☀️ 라이트모드';
+    });
+
+    // 사이드바 현재 메뉴 활성화
+    document.querySelectorAll('#sidebar .sb-link').forEach(a => a.classList.remove('active'));
+    document.querySelector('#sidebar a[href="/track/findModifyBom"]')?.classList.add('active');
+
+    // 수정 기간 기본값 : 최근 7일
+    (function initDates() {
+        const fmt = d => d.toISOString().slice(0, 10);
+        const to = new Date(), from = new Date();
+        from.setDate(to.getDate() - 7);
+        document.getElementById('fromDate').value = fmt(from);
+        document.getElementById('toDate').value = fmt(to);
+    })();
+
+    // 변경 유형 칩 (복수 선택 토글)
+    document.querySelectorAll('.type-chip').forEach(btn => btn.addEventListener('click', () => {
+        btn.setAttribute('aria-pressed', btn.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+    }));
+
+    // 제품 목록 선택
+    document.getElementById('prodList').addEventListener('click', e => {
+        const item = e.target.closest('.prod-item');
+        if (!item) return;
+        document.querySelectorAll('.prod-item').forEach(i => i.setAttribute('aria-selected', 'false'));
+        item.setAttribute('aria-selected', 'true');
+        document.getElementById('detailTitle').textContent = item.querySelector('.prod-no').textContent;
+    });
+
+    // 유형 탭 (하나만 선택)
+    document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', 'false'));
+        b.setAttribute('aria-pressed', 'true');
+    }));
+
+    // 행 검증 (확인 / 이상 중 하나, 다시 누르면 해제)
+    document.getElementById('chgBody').addEventListener('click', e => {
+        const b = e.target.closest('.verify button');
+        if (!b) return;
+        const on = b.getAttribute('aria-pressed') !== 'true';
+        b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', 'false'));
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.closest('tr').classList.toggle('ng', on && b.classList.contains('ng'));
+    });
+</script>
+
+</body>
+</html>

@@ -1,11 +1,13 @@
 package com.kyhslam.controller.simulate;
 
+import com.kyhslam.service.simulate.PIDAsOfGuard;
 import com.kyhslam.service.simulate.PIDSimulatorUpService;
 import com.kyhslam.util.pidSimulatorUp.PIDSimulResult;
 import com.kyhslam.util.pidSimulatorUp.SimConsts;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Description;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +25,7 @@ import java.util.Map;
 public class PIDSimulatorUpController {
 
     private final PIDSimulatorUpService pidSimulatorUpService;
+    private final PIDAsOfGuard pidAsOfGuard;
 
     /**
      * @apiNote PID 시뮬레이터 화면 (PLM DB 직접 실행)
@@ -227,7 +230,13 @@ public class PIDSimulatorUpController {
         //POST http://localhost:8070/simulateup/simulatePidAsOf   (hogi=206663L01, date=20261001, pid=EL_A101A)
         log.info("simulatePidAsOf hogi:{}, date:{}, pid:{}", hogi, date, pid);
         try {
-            return ResponseEntity.ok(pidSimulatorUpService.simulateAsOf(hogi, date, pid));
+            // 부하 보호 : 같은 (호기, 기준일, PID) 는 캐시 결과, 동시 실행 수를 넘으면 429
+            return ResponseEntity.ok(pidAsOfGuard.execute(hogi, date, pid,
+                    () -> pidSimulatorUpService.simulateAsOf(hogi, date, pid)));
+        } catch (PIDAsOfGuard.TooManyRequestsException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).header("Retry-After", "5").body(error);
         } catch (Exception e) {
             log.error("simulatePidAsOf error hogi:{}, date:{}, pid:{}", hogi, date, pid, e);
 
