@@ -1615,6 +1615,7 @@ public class ProductCommonUtil {
     }
 
     /**
+     * 최초설계완료BOM 조회
      * 해당 호기의 최초설계BOM 조회
      * @param productNo
      * @return
