@@ -8,6 +8,7 @@ public class BomDTO {
     private String lev;
     private String productOid;
     private String productNo;
+    private String productCreator;
     private String productName;
     private String productVersion;
     private String productCreDate;

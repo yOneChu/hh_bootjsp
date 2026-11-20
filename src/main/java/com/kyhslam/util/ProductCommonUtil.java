@@ -391,7 +391,7 @@ public class ProductCommonUtil {
                 dto.setProductOid(PRODUCTOUID);
                 dto.setProductNo(PARENTNO);
 
-                //dto.setProductCreator(PCREATOR); // 제품 등록자
+                dto.setProductCreator(PCREATOR); // 제품 등록자
                 //dto.setProductEmail(PEMAIL); // 제품 등록자 이메일
 
                 dto.setSeq(SEQ);
@@ -418,7 +418,7 @@ public class ProductCommonUtil {
                 dto.setUcheck(UCHECK);
                 dto.setUsername(CUSERNAME);
                 dto.setUserId(USERID);
-                dto.setHASCHILD(HASCHILD);
+                //dto.setHASCHILD(HASCHILD);
 
 
                 list.add(dto);
@@ -1758,4 +1758,138 @@ public class ProductCommonUtil {
 
         return list;
     }
+
+
+    /**
+     * 특정일 기준으로 제품들 중 수정한 자재 조회
+     * @param startDate
+     * @param endDate
+     * @return
+     */
+    public static ArrayList<ProductDto> findModifyPartNo(String startDate, String endDate) {
+
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        ArrayList<ProductDto> list = new ArrayList<>();
+
+        try {
+            con = PLMDBConnection.getConnection();
+
+            String sql = """
+                    with ouid as
+                    ( select A.vf$ouid AS VFOID from product$vf A, product$id B
+                    where A.vf$identity = B.id$ouid
+                        and A.vf$ouid = B.id$wip
+                        --AND SUBSTR(A.MD$MDATE, 0, 8) = ? -- 제품의 수정일자 20261108
+                        AND SUBSTR(A.MD$MDATE, 0, 8) >= ? -- 제품의 수정일자 startDate
+                        AND SUBSTR(A.MD$MDATE, 0, 8) <= ? -- 제품의 수정일자 endDate
+                    )
+                    SELECT
+                             PE.ASSOOUID ASSOOUID
+                             , PE.PRODUCTOUID PRODUCTOUID
+                             , PE.PARTOUID PARTOUID
+                             , PE.SEQ
+                             , (SELECT MD$NUMBER FROM PRODUCT$VF WHERE VF$OUID = PE.PRODUCTOUID) PARENTNO
+                             , ( SELECT F.MD$DESC FROM FUSER$SF F
+                                  WHERE F.MD$NUMBER = (SELECT VV.MD$USER
+                                                       FROM PRODUCT$VF VV WHERE VV.VF$OUID = PE.PRODUCTOUID )
+                                ) AS PCREATOR
+                                , ( SELECT F.EMAIL FROM FUSER$SF F
+                                  WHERE F.MD$NUMBER = (SELECT VV.MD$USER
+                                                       FROM PRODUCT$VF VV WHERE VV.VF$OUID = PE.PRODUCTOUID )
+                                ) AS PEMAIL
+                             , NP.MD$NUMBER AS PARTNO
+                             , CODN(NP.NATION) AS NATION -- 자재코드(Ownership)
+                             , NP.MD$DESC AS PARTNAME
+                             , NP.VF$VERSION AS VERSION
+                             , NVL(NP.G_L_CODE, '') AS GLCODE
+                             , NVL(NP.SPEC, '') AS SPEC
+                             , NVL(NP.PART_SIZE, '') AS PART_SIZE
+                             , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCKNO
+                             , (SELECT COD(BLOCK_OPT) FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.BLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.BLOCKNO, 12))))) BLOCK_OPT -- 품목구분
+                             , (SELECT MD$NUMBER FROM BLOCKNO$SF WHERE SF$OUID =  DECODE(NP.UPPERBLOCKNO, NULL, NULL, HEXTODEC(UPPER(SUBSTR(NP.UPPERBLOCKNO, 12))))) UPPERBLOCKNO
+                             , NVL(COD(NP.UOM), '') AS UOM -- 단위
+                             , PE.QTY AS QTY
+                             , VP.WORK_QTY AS WORK_QTY -- 공사수량
+                             , PE.CMT AS CMT
+                             , VP.WORK_CMT AS WORK_CMT
+                             , NVL(CODN(NP.ORIGIN_DIV), '') AS DIV -- 최초구분 : (외주(ROH) / 내작(HALB_E)
+                             , NVL(COD(NP.PART_MBOM), '') AS PART_MBOM
+                             , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = NP.MD$USER) USERNAME -- 자재 생성자(채번자)
+                             , NP.MD$USER USERID
+                             --, COD(NP.SPT) SPT
+                             , COD(NP.PARTMPCHECK) PARTMPCHECK
+                             , (SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = PE.CUSER) CUSERNAME -- 자재 등록자
+                             , PE.CUSER CUSERID
+                             , VP.UCHECK AS UCHECK
+                             --, VP.MCHECK
+                             , NVL(COD(NP.PART_DIVISION), '') AS PART_DIVISION
+                             --, PE.CDATE
+                             --, VP.MDATE
+                             , TO_CHAR(TO_DATE(PE.CDATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS CDATE -- 자재 등록일
+                             , TO_CHAR(TO_DATE(VP.MDATE,'YYYYMMDDHH24MISS'),'YYYY-MM-DD HH24:MI:SS') AS MDATE -- 자재 수정일
+                             , VP.user5
+                             --, (SELECT COUNT(1) FROM PARTOFPART$AC WHERE AS$END1=NP.VF$OUID AND ROWNUM=1) AS HASCHILD -- 하위 자재 존재 여부
+                        FROM
+                     PARTOFEBOM PE
+                    INNER JOIN NORMALPART$VF NP ON PE.PARTOUID = NP.VF$OUID
+                    LEFT OUTER JOIN VARIABLEPART_NEW VP ON VP.PRODUCTOUID = PE.PRODUCTOUID AND VP.ASSOOUID = PE.ASSOOUID
+                    WHERE
+                     PE.PRODUCTOUID IN (SELECT VFOID FROM ouid)
+                     AND VP.UCHECK = '1' -- 수정여부
+                        """;
+
+
+            //System.out.println("sql.toString() = " + sql.toString());
+            stmt = con.prepareStatement(sql.toString());
+            stmt.setString(1, startDate);
+            stmt.setString(2, endDate);
+
+            rs = stmt.executeQuery();
+
+            while(rs.next()) {
+                String hogi = rs.getString("PARENTNO");
+                String PARTNO = rs.getString("PARTNO");
+                String PARTNAME = rs.getString("PARTNAME");
+                String SPEC = rs.getString("SPEC");
+                String UCHECK = rs.getString("UCHECK");
+                String DIV = rs.getString("DIV"); // 최초구분 : (외주(ROH) / 내작(HALB_E)
+                String QTY = rs.getString("QTY");
+                String CMT = rs.getString("CMT");
+
+                String BLOCKNO = rs.getString("BLOCKNO");
+                String PART_SIZE = rs.getString("PART_SIZE");
+
+                String CUSERNAME = rs.getString("CUSERNAME");
+                String CDATE = rs.getString("CDATE");
+                String MDATE = rs.getString("MDATE");
+
+                ProductDto dto = new ProductDto();
+                dto.setProductNo(hogi); //호기번호
+                dto.setPartNo(PARTNO); //자재번호
+                dto.setPartName(PARTNAME); //자재명
+                dto.setBlockNo(BLOCKNO); //blockNo
+                dto.setPart_size(PART_SIZE);
+                dto.setSpec(SPEC);
+                dto.setUcheck(UCHECK); //수정여부
+                dto.setDiv(DIV); //품목
+                dto.setQty(QTY); //수량
+                dto.setCmt(CMT); //주석
+                dto.setModDate(MDATE); //수정일
+                dto.setPartModUser(CUSERNAME); //수정자
+
+                list.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, stmt, rs);
+        }
+
+        return list;
+    }
+
 }
