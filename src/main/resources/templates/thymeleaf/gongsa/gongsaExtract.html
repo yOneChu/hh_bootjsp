@@ -858,6 +858,10 @@
                     조건 수정
                 </button>
                 <input type="search" id="filter" class="field sm" placeholder="공사번호, 사양 값으로 찾기" autocomplete="off" disabled aria-label="결과에서 찾기">
+                <button type="button" class="tool" id="graphBtn" disabled title="추출 결과를 새 탭에서 그래프로 분석">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-6"/></svg>
+                    그래프 분석
+                </button>
                 <button type="button" class="tool primary" id="csvBtn" disabled>
                     <i class="fas fa-file-download" aria-hidden="true"></i> <span id="csvBtnText">CSV 다운로드</span>
                 </button>
@@ -904,6 +908,9 @@
     var HIST_MAX = 50;
     var TIP_DEFAULT = "엑셀에서 <b>특성 CODE · 값 CODE</b> 두 열을 복사해 아무 특성 CODE 칸에 <kbd>Ctrl</kbd>+<kbd>V</kbd> 하면 아래 칸까지 한 번에 채워집니다. 마지막 칸을 채우면 새 칸이 생깁니다.";
     var KIND_LABEL = { include: "포함", exclude: "제외", compare: "숫자 비교", none: "컬럼만 표시" };
+
+    var URL_GRAPH = "/extract/gongsa/graph";
+    var GRAPH_KEY = "gongsaExtract.graphPayload"; // 그래프 분석 탭에 넘기는 추출 결과 (gongsaGraph.html)
 
     var URL_BLOCK_PARTS = "/extract/gongsa/blockParts";
     var BLK_CHUNK = 20;                      // 한 번에 보내는 공사번호 수 (컨트롤러 BLOCK_PARTS_MAX 이하)
@@ -1675,6 +1682,7 @@
         if (!on) return;
 
         $("csvBtn").disabled = true;
+        $("graphBtn").disabled = true;
         $("filter").disabled = true;
         var started = performance.now();
         $("tableBody").innerHTML =
@@ -1719,6 +1727,7 @@
         $("filter").value = "";
         $("filter").disabled = rows.length === 0;
         $("csvBtn").disabled = rows.length === 0;
+        $("graphBtn").disabled = rows.length === 0;
 
         if (rows.length === 0) {
             $("count").innerHTML = "<b>0</b>건";
@@ -2071,6 +2080,29 @@
             });
     }
 
+    /* =========================================================
+       그래프 분석 (새 탭 : /extract/gongsa/graph)
+         - 같은 출처 새 탭이라 window.opener.__gongsaGraph 로 바로 넘기고 (크기 제한 없음)
+         - 새로 고침·직접 열기에 대비해 localStorage 에도 담는다 (용량을 넘으면 그래프 화면이 조건으로 다시 조회)
+       ========================================================= */
+
+    function openGraph() {
+        if (!lastParam || !baseRows.length) return;
+        var payload = {
+            v: 1, at: Date.now(), param: lastParam,
+            head: baseHead, titles: baseTitles, data: baseRows   // BLOCK 자재 열을 붙이기 전 호기당 1행
+        };
+        window.__gongsaGraph = payload;
+        try {
+            localStorage.setItem(GRAPH_KEY, JSON.stringify(payload));
+        } catch (e) {
+            try { localStorage.removeItem(GRAPH_KEY); } catch (e2) { /* 무시 */ }
+        }
+        var w = window.open(URL_GRAPH, "gongsaGraph");
+        if (!w) location.href = URL_GRAPH;   // 팝업 차단 시 같은 탭에서
+        else w.focus();
+    }
+
     function fileNameOf(cd) {
         if (!cd) return null;
         var m = /filename\*=UTF-8''([^;]+)/i.exec(cd) || /filename="?([^";]+)"?/i.exec(cd);
@@ -2191,6 +2223,7 @@
             filterTimer = setTimeout(renderTable, 150);
         });
         $("csvBtn").addEventListener("click", downloadCsv);
+        $("graphBtn").addEventListener("click", openGraph);
 
         // BLOCK 자재 : 추출 결과가 있으면 Enter 는 다시 추출하지 않고 자재 열만 붙인다 (없으면 폼 제출 = 추출 후 이어서 붙임)
         $("blockNo").addEventListener("keydown", function (e) {

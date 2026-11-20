@@ -68,6 +68,15 @@ public class GongsaExtractController {
     }
 
     /**
+     * 공사번호 추출 결과 그래프 분석 화면
+     * 데이터는 추출 화면이 넘겨준 결과(window.opener / localStorage)를 쓰고, 없으면 마지막 조회 조건으로 /extract/gongsa/search 를 다시 부른다
+     */
+    @GetMapping("/extract/gongsa/graph")
+    public String gongsaGraph() {
+        return "thymeleaf/gongsa/gongsaGraph";
+    }
+
+    /**
      * 특성 CODE 검색 목록 (서버 기동 시 MasterDataCache 에 담아 둔 목록, DB 조회 없음)
      * 예) /extract/gongsa/specs?tableType=shipelv -> [{ "code": "EL_ETM", "name": "권상기" }, ...]
      */
