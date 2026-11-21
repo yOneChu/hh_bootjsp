@@ -63,6 +63,13 @@ public class AnalysisController {
         return "thymeleaf/searchInteractive";
     }
 
+    //조회결과 동적 그래프 팝업 화면 (동적 조건 Key 포함 전체 컬럼 자유 분석)
+    @GetMapping("/dash/searchDynamicGraph")
+    public String searchDynamicGraph() {
+
+        return "thymeleaf/searchDynamicGraph";
+    }
+
     /**
      * 자재번호가 사용되고 있는 모든 제품 찾기
      *

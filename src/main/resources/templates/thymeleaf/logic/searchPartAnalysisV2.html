@@ -519,6 +519,198 @@
             border-top-color: #0A84FF !important;
         }
         .dark #loadingOverlay p { color: #F5F5F7 !important; }
+        .dark #loadingOverlay #loadingElapsed { color: #98989D !important; }
+
+        /* ══════════════════════════════════════════════════════════
+           사용성 개선 (searchPartAnalysis.js 와 짝)
+           ══════════════════════════════════════════════════════════ */
+        :focus-visible { outline: 2px solid #0071E3; outline-offset: 2px; }
+        .dark :focus-visible { outline-color: #0A84FF; }
+        [hidden] { display: none !important; }
+        button:disabled { opacity: .5; cursor: progress !important; }
+        kbd {
+            display: inline-block; padding: 0 5px; border-radius: 4px; border: 1px solid #D2D2D7;
+            background: #F5F5F7; color: #515154; font-family: inherit; font-size: 11px; box-shadow: none; line-height: 1.6;
+        }
+        .dark kbd { background: #2C2C2E; border-color: #48484A; color: #D1D1D6; }
+
+        /* 조회 버튼 아래 안내 (조건 부족 / 복원 / 오류) */
+        .spf-notice {
+            display: flex; align-items: center; gap: 8px; margin: 0 24px 16px; padding: 9px 13px; border-radius: 10px;
+            font-size: 12.5px; font-weight: 600; line-height: 1.5;
+            background: rgba(0,113,227,.07); color: #0060C0;
+        }
+        .spf-notice.warn  { background: rgba(255,159,10,.12); color: #9A5B00; }
+        .spf-notice.error { background: rgba(255,59,48,.09); color: #C42B25; }
+        .dark .spf-notice       { background: rgba(10,132,255,.14); color: #8CC4FF; }
+        .dark .spf-notice.warn  { background: rgba(255,159,10,.16); color: #FFC56B; }
+        .dark .spf-notice.error { background: rgba(255,69,58,.16); color: #FF8A80; }
+        .form-input[aria-invalid="true"] { border-color: #FF3B30; }
+        .dark .form-input[aria-invalid="true"] { border-color: #FF453A; }
+
+        /* 동적 조건 행 안내 */
+        .kv-hint { padding: 2px 0 2px 26px; font-size: 11.5px; color: #8E8E93; min-height: 0; }
+        .kv-hint:empty { display: none; }
+        .kv-hint b { color: #1D1D1F; }
+        .kv-hint code { font-family: Consolas, "D2Coding", monospace; font-size: 11.5px; color: #515154; background: rgba(0,0,0,.04); padding: 1px 6px; border-radius: 5px; }
+        .kv-hint.warn { color: #9A5B00; }
+        .kv-fix {
+            margin-left: 4px; padding: 1px 8px; border-radius: 6px; cursor: pointer; font-family: inherit;
+            font-size: 11.5px; font-weight: 700; color: #0071E3; background: rgba(0,113,227,.08); border: 1px solid rgba(0,113,227,.25);
+        }
+        .dark .kv-hint b { color: #F5F5F7; }
+        .dark .kv-hint code { color: #D1D1D6; background: rgba(255,255,255,.07); }
+        .dark .kv-hint.warn { color: #FFC56B; }
+        .dark .kv-fix { color: #0A84FF; background: rgba(10,132,255,.14); border-color: rgba(10,132,255,.3); }
+
+        /* 분포 칩 : 눌러서 표 걸러 보기 */
+        button.stat-chip { cursor: pointer; font-family: inherit; line-height: 1.4; transition: background .15s, border-color .15s; }
+        button.stat-chip:hover { background: rgba(0,113,227,.15); border-color: rgba(0,113,227,.4); }
+        button.stat-chip.active { background: #0071E3; color: #fff; border-color: #0071E3; }
+        button.stat-chip.active .chip-cnt { background: #fff; color: #0071E3; }
+        .dark button.stat-chip.active { background: #0A84FF; border-color: #0A84FF; color: #fff; }
+        .chip-more {
+            display: inline-flex; align-items: center; padding: 4px 11px; border-radius: 999px; cursor: pointer;
+            font-family: inherit; font-size: 11.5px; font-weight: 600; color: #6E6E73; background: transparent; border: 1px dashed #C7C7CC;
+        }
+        .chip-more:hover { color: #1D1D1F; border-color: #8E8E93; }
+        .dark .chip-more { color: #98989D; border-color: #48484A; }
+        #statsFilterNote { font-size: 12px; color: #515154; }
+        #statsFilterNote b { color: #0071E3; }
+        #statsFilterNote button {
+            margin-left: 4px; height: 24px; padding: 0 10px; border-radius: 7px; cursor: pointer; font-family: inherit;
+            font-size: 11.5px; font-weight: 600; background: #F5F5F7; color: #1D1D1F; border: 1px solid #E5E5EA;
+        }
+        .dark #statsFilterNote { color: #AEAEB2; }
+        .dark #statsFilterNote b { color: #0A84FF; }
+        .dark #statsFilterNote button { background: #2C2C2E; color: #F5F5F7; border-color: #48484A; }
+
+        /* 결과 머리 : 조회 조건 띠 */
+        .result-criteria { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 16px; }
+        .result-criteria .crit-count { font-size: 12.5px; color: #6E6E73; margin-right: 6px; font-variant-numeric: tabular-nums; }
+        .result-criteria .crit-count b { color: #1D1D1F; font-size: 14px; }
+        .result-criteria .crit {
+            display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 7px;
+            font-size: 12px; background: #F5F5F7; border: 1px solid #E5E5EA; white-space: nowrap;
+        }
+        .result-criteria .crit .k { color: #8E8E93; font-weight: 600; }
+        .result-criteria .crit .op { color: #AF52DE; font-weight: 700; font-family: Consolas, monospace; }
+        .result-criteria .crit b { color: #1D1D1F; font-weight: 700; }
+        .result-criteria .crit.kv { box-shadow: inset 2px 0 0 #AF52DE; }
+        .dark .result-criteria .crit-count { color: #98989D; }
+        .dark .result-criteria .crit-count b, .dark .result-criteria .crit b { color: #F5F5F7; }
+        .dark .result-criteria .crit { background: #2C2C2E; border-color: #38383A; }
+
+        /* 결과 빈 상태 / 오류 */
+        .result-state { padding: 44px 20px 52px; text-align: center; }
+        .result-state .rs-ico {
+            width: 44px; height: 44px; margin: 0 auto 12px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; background: rgba(0,113,227,.08); color: #0071E3;
+        }
+        .result-state.error .rs-ico { background: rgba(255,59,48,.09); color: #FF3B30; }
+        .result-state .rs-title { font-size: 15px; font-weight: 700; }
+        .result-state .rs-text { margin-top: 6px !important; font-size: 13px; line-height: 1.7; color: #6E6E73; }
+        .result-state code { font-family: Consolas, monospace; font-size: 12px; color: #0071E3; }
+        .result-state pre {
+            display: inline-block; max-width: min(720px, 100%); margin: 14px 0 0; padding: 10px 14px; text-align: left;
+            border-radius: 9px; background: rgba(255,59,48,.07); color: #C42B25; font-size: 12px; white-space: pre-wrap;
+        }
+        .dark .result-state .rs-ico { background: rgba(10,132,255,.16); color: #0A84FF; }
+        .dark .result-state .rs-text { color: #98989D; }
+        .dark .result-state pre { background: rgba(255,69,58,.14); color: #FF8A80; }
+
+        .label-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .label-row .section-label { flex: 1; margin-bottom: 0; }
+
+        /* ══════════════════════════════════════════════════════════
+           UI 개선 (동작 로직은 그대로, 표현만)
+           ══════════════════════════════════════════════════════════ */
+        /* 값이 들어간 입력칸은 테두리로 바로 구분 */
+        input.form-input:not(:placeholder-shown), input.spf-input:not(:placeholder-shown) {
+            border-color: rgba(0,113,227,.45); background-color: rgba(0,113,227,.025);
+        }
+        .dark input.form-input:not(:placeholder-shown), .dark input.spf-input:not(:placeholder-shown) {
+            border-color: rgba(10,132,255,.55); background-color: #2A2F38;
+        }
+        input.form-input:not(:placeholder-shown):focus, input.spf-input:not(:placeholder-shown):focus { border-color: #0071E3; }
+        .dark input.form-input:not(:placeholder-shown):focus, .dark input.spf-input:not(:placeholder-shown):focus { border-color: #0A84FF; }
+        /* 영문은 대문자로 입력됨 (값 자체를 JS 로 바꾸고, 글자 모양도 맞춘다) */
+        #condRoot input.form-input, #condRoot input.spf-input { text-transform: uppercase; }
+        #condRoot input::placeholder { text-transform: none; }
+        #partNo, #blockNo { font-family: Consolas, "D2Coding", 'Pretendard Variable', monospace; letter-spacing: .02em; }
+        #partNo::placeholder, #blockNo::placeholder { font-family: 'Pretendard Variable', sans-serif; letter-spacing: 0; }
+
+        /* 필수 표시 */
+        .req-mark {
+            display: inline-flex; align-items: center; height: 16px; padding: 0 6px; margin-left: 4px;
+            border-radius: 5px; font-size: 10px; font-weight: 700; letter-spacing: 0; text-transform: none;
+            color: #C42B25; background: rgba(255,59,48,.09); vertical-align: 1px;
+        }
+        .req-mark.alt { color: #9A5B00; background: rgba(255,159,10,.13); }
+        .dark .req-mark { color: #FF8A80; background: rgba(255,69,58,.16); }
+        .dark .req-mark.alt { color: #FFC56B; background: rgba(255,159,10,.18); }
+        .field-help { margin-top: 5px !important; font-size: 11.5px; color: #8E8E93; line-height: 1.4; }
+        .dark .field-help { color: #8E8E93; }
+
+        /* 설계일 : [비교 연산자][날짜] 한 줄 */
+        .date-pair { display: flex; flex-wrap: wrap; gap: 6px; }
+        .date-pair .form-select.sub { flex: 0 0 118px; height: 40px; margin-top: 0; font-size: 13px; border-radius: 11px; padding-left: 11px; }
+        .date-pair .form-input { flex: 1 1 110px; min-width: 0; font-variant-numeric: tabular-nums; }
+
+        /* 조건 카드 머리 : 번호 */
+        .cond-step {
+            display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+            border-radius: 50%; font-size: 11px; font-weight: 700; color: #6E6E73; background: rgba(0,0,0,.06);
+        }
+        .dark .cond-step { color: #AEAEB2; background: rgba(255,255,255,.08); }
+
+        /* 동적 조건 비어 있을 때 안내 */
+        #kvConditionList:empty::before {
+            content: '추가된 동적 조건이 없습니다. [조건 추가] 로 Key – 조건 – Value 행을 만드세요.';
+            display: block; padding: 12px 14px; border-radius: 10px; font-size: 12.5px; color: #8E8E93;
+            border: 1.5px dashed #E5E5EA; text-align: center;
+        }
+        .dark #kvConditionList:empty::before { border-color: #38383A; color: #8E8E93; }
+        .kv-row .spf-input { height: 38px; font-size: 13.5px; }
+
+        /* 하단 액션 바 : 조건이 길어도 [분석] 버튼이 화면 아래에 붙어 있게 */
+        #condPanel { overflow: clip; }
+        .cond-actions { position: sticky; bottom: 0; z-index: 30; background: #fff; box-shadow: 0 -6px 16px -10px rgba(0,0,0,.18); }
+        .dark .cond-actions { background: #1C1C1E; box-shadow: 0 -6px 16px -8px rgba(0,0,0,.7); }
+        .cond-actions .panel-foot { background: #FAFAFC; }
+        .dark .cond-actions .panel-foot { background: #232325; }
+        .cond-actions .spf-notice { margin: 0 24px 14px; }
+        .btn-primary { min-width: 116px; }
+        .btn-ghost.btn-dyn { color: #8E3BB8; border-color: rgba(175,82,222,.45); }
+        .btn-ghost.btn-dyn:hover { background: rgba(175,82,222,.08); border-color: #AF52DE; color: #8E3BB8; }
+        .dark .btn-ghost.btn-dyn { color: #D69CF5; border-color: rgba(191,90,242,.45); }
+        .dark .btn-ghost.btn-dyn:hover { background: rgba(191,90,242,.14); border-color: #BF5AF2; color: #E2B5F8; }
+
+        /* 컬럼 토글 : 켜짐(표시) = 파란 체크 / 꺼짐(숨김) = 흐린 취소선 */
+        .pill-col-btn { color: #0060C0; background: rgba(0,113,227,.07); border-color: rgba(0,113,227,.22); }
+        .pill-col-btn::before {
+            content: ''; width: 10px; height: 10px; flex-shrink: 0;
+            background: currentColor;
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / contain no-repeat;
+                    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / contain no-repeat;
+        }
+        .pill-col-btn.hidden-col {
+            background: transparent !important; border: 1px dashed #C7C7CC !important; color: #8E8E93 !important;
+            text-decoration: line-through; text-decoration-color: rgba(142,142,147,.6);
+        }
+        .pill-col-btn.hidden-col::before { visibility: hidden; width: 0; }
+        .pill-col-btn.hidden-col:hover { color: #0071E3 !important; border-color: #0071E3 !important; text-decoration: none; }
+        .dark .pill-col-btn { color: #8CC4FF; background: rgba(10,132,255,.14); border-color: rgba(10,132,255,.3); }
+        .dark .pill-col-btn.hidden-col { border-color: #48484A !important; color: #8E8E93 !important; }
+        .dark .pill-col-btn.hidden-col:hover { color: #0A84FF !important; border-color: #0A84FF !important; }
+        .pill-legend { font-size: 11.5px; color: #8E8E93; }
+
+        /* 숫자 열 정렬감 */
+        #infoTable tbody td { font-variant-numeric: tabular-nums; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; transition: none !important; }
+        }
     </style>
 </head>
 
@@ -555,7 +747,7 @@
             <div class="flex items-center gap-2">
                 <span class="text-[12.5px] font-medium text-apple-gray1" id="themeLabel">다크모드</span>
                 <label class="ios-switch">
-                    <input type="checkbox" id="darkModeToggle">
+                    <input type="checkbox" id="darkModeToggle" aria-label="다크모드">
                     <span class="track"></span><span class="knob"></span>
                 </label>
             </div>
@@ -575,16 +767,21 @@
     <!-- ═══════════ 도움말 ═══════════ -->
     <details class="help panel">
         <summary class="panel-head">
-            <span class="tile tile-amber" style="border-radius:999px;">💡</span>
+            <span class="tile tile-amber" style="border-radius:999px;" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C77700" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+            </span>
             <span class="text-[14px] font-semibold flex-1">도움말 · 검색 조건 안내</span>
-            <svg class="chev text-apple-gray1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+            <svg class="chev text-apple-gray1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
         </summary>
         <ul class="px-7 pb-5 pt-1 space-y-2 text-[13px] leading-relaxed text-[#515154] dark:text-[#AEAEB2]">
-            <li class="flex gap-2"><span class="text-rose-500 font-bold">·</span><span class="font-semibold text-rose-500">PartNo 또는 BlockNo 중 하나는 필수입력</span> 입니다. (속도 이슈)</li>
+            <li class="flex gap-2"><span class="text-rose-500 font-bold">·</span><span><span class="font-semibold text-rose-500">Part No. · Block No. 중 하나, 또는 브랜드 · 생산거점 · 기종 중 하나는 필수</span> 입니다. (속도 이슈 — 조건이 없으면 그 년도 전체 제품을 훑게 됩니다)</span></li>
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>자재번호 or BlockNo 입력 시, 해당 자재를 사용하는 모든 현장을 역추적 조회합니다.</li>
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>TEST, Q호기는 제외됩니다.</li>
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>사용방법 —
                 <b>26300551G0*</b> → Like 검색 · <b>*</b> 없으면 EQUAL 검색</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>동적 조건 — Value 를 비우면 조건 없이 결과에 그 Key 컬럼만 붙습니다. <b>Like 는 % 를 직접</b> 넣어야 부분일치입니다 (예: <b>%1600%</b>). 엑셀의 Key · Value 두 열을 Key 칸에 붙여넣으면 여러 행이 한 번에 생깁니다.</span></li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>조건 칸에서 <kbd>Enter</kbd>, 어디서든 <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 로 분석 · 마지막 조건은 자동으로 다시 채워집니다.</span></li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>조건 칸에 입력한 <b>영문 소문자는 자동으로 대문자</b>로 바뀝니다. (예: <b>26300551g0*</b> → <b>26300551G0*</b>)</span></li>
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>주요기능 1 — 특정 자재가 어떤 제품에 사용되었는지 역추적</li>
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>주요기능 2 — 다중 조건 필터링을 통한 교차 검색 및 분석</li>
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>주요기능 3 — 브랜드별 부품 구성 Mix 분석</li>
@@ -592,12 +789,13 @@
     </details>
 
     <!-- ═══════════ 검색 조건 카드 ═══════════ -->
-    <section class="panel">
+    <section class="panel" id="condPanel">
         <div class="panel-head">
-            <span class="tile tile-blue">
+            <span class="tile tile-blue" aria-hidden="true">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="text-apple-blue dark:text-apple-blueD"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
             </span>
             <h3 class="panel-title">검색 조건</h3>
+            <span class="text-[12px] text-apple-gray1"><span class="req-mark" style="margin-left:0;">필수</span> 중 하나, 없으면 <span class="req-mark alt">대체</span> 중 하나는 꼭 입력 · 영문은 대문자로 자동 변환</span>
         </div>
 
         <div id="condRoot" class="panel-body space-y-4" style="padding-top:4px;">
@@ -605,8 +803,9 @@
             <!-- ▸ 기본 정보 -->
             <div class="cond-card">
                 <div class="cond-head">
+                    <span class="cond-step" aria-hidden="true">1</span>
                     <span class="cond-badge" style="background:#0071E3;">기본 정보</span>
-                    <span class="cond-note">Part No. 또는 Block No. 필수</span>
+                    <span class="cond-note">Part No. · Block No. 중 하나 필수 <span style="opacity:.75;">(없으면 브랜드 · 생산거점 · 기종 중 하나)</span> · 끝에 <b>*</b> 를 붙이면 Like 검색</span>
                 </div>
                 <div class="cond-grid c4">
                     <div>
@@ -622,12 +821,14 @@
                         </select>
                     </div>
                     <div>
-                        <label class="field-label" for="partNo">Part No.</label>
-                        <input type="search" id="partNo" class="form-input" placeholder="Part No." autocomplete="off">
+                        <label class="field-label" for="partNo">Part No. <span class="req-mark">필수</span></label>
+                        <input type="search" id="partNo" class="form-input" placeholder="예: 26300551G0  /  26300551G0*" autocomplete="off" spellcheck="false" aria-describedby="partNoHelp">
+                        <p class="field-help" id="partNoHelp">* 없으면 일치 검색 · * 있으면 Like 검색</p>
                     </div>
                     <div>
-                        <label class="field-label" for="blockNo">Block No.</label>
-                        <input type="search" id="blockNo" class="form-input" placeholder="Block No." autocomplete="off">
+                        <label class="field-label" for="blockNo">Block No. <span class="req-mark">필수</span></label>
+                        <input type="search" id="blockNo" class="form-input" placeholder="Block No. 입력" autocomplete="off" spellcheck="false" aria-describedby="blockNoHelp">
+                        <p class="field-help" id="blockNoHelp">Part No. 와 둘 중 하나만 넣어도 됩니다</p>
                     </div>
                     <div>
                         <label class="field-label" for="status">제품 상태</label>
@@ -642,18 +843,19 @@
             <!-- ▸ 제품 사양 -->
             <div class="cond-card">
                 <div class="cond-head">
+                    <span class="cond-step" aria-hidden="true">2</span>
                     <span class="cond-badge" style="background:#5856D6;">제품 사양</span>
-                    <span class="cond-note">선택</span>
+                    <span class="cond-note">선택 · Part No. / Block No. 가 없으면 브랜드 · 생산거점 · 기종 중 하나는 입력 · 목록에 없으면 직접 입력</span>
                 </div>
                 <div class="cond-grid c5">
                     <div>
-                        <label class="field-label">브랜드</label>
+                        <label class="field-label" for="EL_BRAND">브랜드 <span class="req-mark alt">대체</span></label>
                         <select id="EL_BRAND" class="form-control select">
                             <option selected>-</option>
                         </select>
                     </div>
                     <div>
-                        <label class="field-label">생산거점 <span class="text-apple-gray1 font-normal normal-case">(EL_ASPSCD)</span></label>
+                        <label class="field-label" for="EL_ASPSCD">생산거점 <span class="text-apple-gray1 font-normal normal-case">(EL_ASPSCD)</span> <span class="req-mark alt">대체</span></label>
                         <select id="EL_ASPSCD" class="form-control select">
                             <option selected>-</option>
                             <option value="KR00">국내(KR00)</option>
@@ -666,32 +868,36 @@
                         </select>
                     </div>
                     <div>
-                        <label class="field-label">기종 <span class="text-apple-gray1 font-normal normal-case">(EL_ATYP)</span></label>
+                        <label class="field-label" for="EL_ATYP">기종 <span class="text-apple-gray1 font-normal normal-case">(EL_ATYP)</span> <span class="req-mark alt">대체</span></label>
                         <select id="EL_ATYP" class="form-control select">
                             <option selected>-</option>
                         </select>
                     </div>
                     <div>
                         <label class="field-label" for="EL_ZFDA">기계구조 최초설계일 <span class="text-apple-gray1 font-normal normal-case">(EL_ZFDA)</span></label>
-                        <input type="search" id="EL_ZFDA" class="form-input" placeholder="ex. 20260130" autocomplete="off">
-                        <select id="EL_ZFDA_TYPE" class="form-select sub">
-                            <option value="=" selected>일치 ( = )</option>
-                            <option value=">=">이상 ( &gt;= )</option>
-                            <option value=">">초과 ( &gt; )</option>
-                            <option value="&lt;=">이하 ( &lt;= )</option>
-                            <option value="&lt;">미만 ( &lt; )</option>
-                        </select>
+                        <div class="date-pair">
+                            <select id="EL_ZFDA_TYPE" class="form-select sub" aria-label="기계구조 최초설계일 비교 방법">
+                                <option value="=" selected>일치 ( = )</option>
+                                <option value=">=">이상 ( &gt;= )</option>
+                                <option value=">">초과 ( &gt; )</option>
+                                <option value="&lt;=">이하 ( &lt;= )</option>
+                                <option value="&lt;">미만 ( &lt; )</option>
+                            </select>
+                            <input type="search" id="EL_ZFDA" class="form-input" placeholder="YYYYMMDD" inputmode="numeric" autocomplete="off">
+                        </div>
                     </div>
                     <div>
                         <label class="field-label" for="EL_ZFDC">전기구조 최초설계일 <span class="text-apple-gray1 font-normal normal-case">(EL_ZFDC)</span></label>
-                        <input type="search" id="EL_ZFDC" class="form-input" placeholder="ex. 20260130" autocomplete="off">
-                        <select id="EL_ZFDC_TYPE" class="form-select sub">
-                            <option value="=" selected>일치 ( = )</option>
-                            <option value=">=">이상 ( &gt;= )</option>
-                            <option value=">">초과 ( &gt; )</option>
-                            <option value="&lt;=">이하 ( &lt;= )</option>
-                            <option value="&lt;">미만 ( &lt; )</option>
-                        </select>
+                        <div class="date-pair">
+                            <select id="EL_ZFDC_TYPE" class="form-select sub" aria-label="전기구조 최초설계일 비교 방법">
+                                <option value="=" selected>일치 ( = )</option>
+                                <option value=">=">이상 ( &gt;= )</option>
+                                <option value=">">초과 ( &gt; )</option>
+                                <option value="&lt;=">이하 ( &lt;= )</option>
+                                <option value="&lt;">미만 ( &lt; )</option>
+                            </select>
+                            <input type="search" id="EL_ZFDC" class="form-input" placeholder="YYYYMMDD" inputmode="numeric" autocomplete="off">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -699,17 +905,18 @@
             <!-- ▸ 옵션 -->
             <div class="cond-card">
                 <div class="cond-head">
+                    <span class="cond-step" aria-hidden="true">3</span>
                     <span class="cond-badge" style="background:#0F9B8E;">옵션</span>
                     <span class="cond-note">선택</span>
                 </div>
                 <div class="cond-grid c5">
                     <div>
                         <label class="field-label" for="cmt">CMT</label>
-                        <input type="search" id="cmt" class="form-input" placeholder="cmt…" autocomplete="off">
+                        <input type="search" id="cmt" class="form-input" placeholder="CMT 입력" autocomplete="off" spellcheck="false">
                     </div>
                     <div>
                         <label class="field-label" for="spec">SPEC</label>
-                        <input type="search" id="spec" class="form-input" placeholder="spec…" autocomplete="off">
+                        <input type="search" id="spec" class="form-input" placeholder="SPEC 입력" autocomplete="off" spellcheck="false">
                     </div>
                     <div>
                         <label class="field-label" for="EL_ETHRU">관통 <span class="text-apple-gray1 font-normal normal-case">(EL_ETHRU)</span></label>
@@ -720,13 +927,13 @@
                         </select>
                     </div>
                     <div>
-                        <label class="field-label">전망 타입 <span class="text-apple-gray1 font-normal normal-case">(EL_COB)</span></label>
+                        <label class="field-label" for="EL_COB">전망 타입 <span class="text-apple-gray1 font-normal normal-case">(EL_COB)</span></label>
                         <select id="EL_COB" class="form-control select">
                             <option value="" selected>-</option>
                         </select>
                     </div>
                     <div>
-                        <label class="field-label">WALL 구조 <span class="text-apple-gray1 font-normal normal-case">(EL_BWALLT)</span></label>
+                        <label class="field-label" for="EL_BWALLT">WALL 구조 <span class="text-apple-gray1 font-normal normal-case">(EL_BWALLT)</span></label>
                         <select id="EL_BWALLT" class="form-control select">
                             <option value="" selected>-</option>
                         </select>
@@ -737,37 +944,51 @@
             <!-- ▸ 동적 조건 (Key – 조건 – Value) -->
             <div class="cond-card">
                 <div class="cond-head">
+                    <span class="cond-step" aria-hidden="true">4</span>
                     <span class="cond-badge" style="background:#AF52DE;">동적 조건</span>
-                    <span class="cond-note">선택 · Key – 조건 – Value</span>
+                    <span class="cond-note">선택 · Key – 조건 – Value · Value 를 비우면 컬럼만 추가 · 엑셀 두 열 붙여넣기 가능</span>
                 </div>
 
                 <!-- 행 컨테이너 (JS로 동적 추가) -->
                 <div id="kvConditionList" class="flex flex-col gap-2 mb-3"></div>
 
                 <button type="button" class="btn-add-kv" onclick="addKeyValueRow()">
-                    <i class="fas fa-plus" style="font-size:11px;"></i> 조건 추가
+                    <i class="fas fa-plus" style="font-size:11px;" aria-hidden="true"></i> 조건 추가
                 </button>
             </div>
         </div>
 
-        <!-- footer actions -->
+        <!-- footer actions (화면 아래에 붙는 액션 바) -->
+        <div class="cond-actions">
         <div class="panel-foot">
-            <span class="text-[12px] text-apple-gray1">Part No. / Block No. 입력 후 Enter 키로 바로 조회할 수 있습니다.</span>
+            <div class="flex items-center gap-3 flex-wrap">
+                <button type="button" class="btn-mini" id="spfResetBtn" title="모든 조건을 처음 상태로">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+                    초기화
+                </button>
+                <span class="text-[12px] text-apple-gray1">조건 칸에서 <kbd>Enter</kbd> · 어디서든 <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 로 분석</span>
+            </div>
             <div class="flex items-center gap-2.5">
-                <button type="button" class="btn-ghost" onclick="searchInteractive()">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+                <button type="button" class="btn-ghost" onclick="searchInteractive()" data-spf-action title="새 창에서 인터렉티브 분석 (방금 분석한 조건이면 다시 조회하지 않음)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
                     인터렉티브
                 </button>
-                <button type="button" class="btn-ghost" onclick="searchGraph()">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+                <button type="button" class="btn-ghost" onclick="searchGraph()" data-spf-action title="새 창에서 그래프 분석 (방금 분석한 조건이면 다시 조회하지 않음)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
                     그래프
                 </button>
-                <button type="button" class="btn-primary" onclick="searchPID()">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                <button type="button" class="btn-ghost btn-dyn" onclick="openAnalysisPopup('/dash/searchDynamicGraph')" data-spf-action title="새 창에서 동적 그래프 — 동적 조건 Key 를 포함한 모든 컬럼을 자유롭게 나눠 보고 자동 인사이트를 확인 (방금 분석한 조건이면 다시 조회하지 않음)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7M17.5 14v7"/></svg>
+                    동적그래프
+                </button>
+                <button type="button" class="btn-primary" onclick="searchPID()" data-spf-action>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
                     분석
                 </button>
             </div>
         </div>
+        <p class="spf-notice" id="searchNotice" role="status" aria-live="polite" hidden></p>
+        </div><!-- /.cond-actions -->
     </section>
 
     <!-- ═══════════ 통계 패널 (조회 후 표시) ═══════════ -->
@@ -780,6 +1001,8 @@
             <h3 class="panel-title">조회 결과 통계</h3>
             <span id="statsTotalBadge"
                   class="inline-flex items-center h-[24px] px-3 rounded-full bg-apple-blue/10 dark:bg-apple-blueD/20 text-apple-blue dark:text-apple-blueD text-[12px] font-bold"></span>
+            <span class="text-[12px] text-apple-gray1">브랜드 · 기종 칩을 누르면 아래 표를 그 값으로 걸러 봅니다</span>
+            <span id="statsFilterNote" class="ml-auto" role="status" aria-live="polite" hidden></span>
         </div>
 
         <div class="panel-body">
@@ -837,8 +1060,15 @@
 
         <div class="panel-body">
 
+            <!-- 조회 조건 · 건수 · 걸린 시간 -->
+            <div id="resultCriteria" class="result-criteria" aria-live="polite" hidden></div>
+
             <!-- 컬럼 토글 -->
-            <div class="section-label">표시 컬럼</div>
+            <div class="label-row">
+                <div class="section-label">표시 컬럼</div>
+                <span class="pill-legend">눌러서 켜기 / 끄기 · 취소선 = 숨긴 컬럼</span>
+                <button type="button" class="btn-mini" onclick="showAllColumns()" style="height:28px;">모두 표시</button>
+            </div>
             <div id="columnToggleToolbar" class="mb-5">
                 <div class="pill-wrap" role="group" aria-label="컬럼 토글">
                     <button type="button" class="pill-col-btn" onclick="hideColumn(0,this)">제품번호</button>
@@ -871,6 +1101,9 @@
                     <button type="button" class="pill-col-btn" onclick="hideColumn(25,this)">전망타입</button>
                 </div>
             </div>
+
+            <!-- 결과 없음 / 오류 / 처음 안내 (searchPartAnalysis.js setResultState) -->
+            <div id="resultState" class="result-state" hidden></div>
 
             <!-- DataTable -->
             <div class="tbl-scroll">
@@ -992,6 +1225,20 @@
 
     window.syncColumnButtons = syncColumnButtons;
 
+    /* 숨긴 컬럼 모두 다시 표시 (수동 · 자동 숨김 모두 해제) */
+    function showAllColumns() {
+        setHiddenCols([]);
+        autoHiddenCols = [];
+        if (!$.fn.DataTable.isDataTable('#infoTable')) {
+            document.querySelectorAll('#columnToggleToolbar .pill-wrap button').forEach(function (b, i) { applyButtonState(i, true); });
+            return;
+        }
+        const table = $('#infoTable').DataTable();
+        table.columns().every(function () { this.visible(true, false); });
+        table.columns.adjust().draw(false);
+        syncColumnButtons();
+    }
+
     /* ══════════════════════════════════════════════════════════
        PartNo / BlockNo 미입력 조회 시 자동 컬럼 숨김
          - 두 값이 모두 비어 있는 상태로 조회하면 0~4, 15~21 열을
@@ -1069,18 +1316,66 @@
         });
     });
 
+    /* ══════════════════════════════════════════════════════════
+       영문 소문자 → 대문자 자동 변환
+         - 대상 : 조건 영역(#condRoot)의 입력칸(동적 조건 포함) + Select2 직접입력 칸
+         - 캡처 단계에서 먼저 바꾸므로 뒤이은 input 핸들러들은 대문자 값을 본다
+         - 한글 IME 조합 중에는 건드리지 않고, 조합이 끝나면 바꾼다
+         - JS 가 값을 직접 넣는 경우(엑셀 붙여넣기 · 마지막 조건 복원)는 paste / 포커스 아웃 / 화면 로드 때 정리
+       ══════════════════════════════════════════════════════════ */
+    (function initUpperCaseInput() {
+        function isTarget(el) {
+            if (!el || el.tagName !== 'INPUT') return false;
+            if (el.type && ['text', 'search'].indexOf(el.type) === -1) return false;
+            return !!(el.closest('#condRoot') || el.classList.contains('select2-search__field'));
+        }
+        /* 값이 바뀌었으면 true. 커서 위치를 유지한다 (a-z 만 바꾸므로 길이 불변) */
+        function toUpper(el) {
+            const v = el.value;
+            if (!/[a-z]/.test(v)) return false;
+            const s = el.selectionStart, e = el.selectionEnd;
+            el.value = v.replace(/[a-z]+/g, function (m) { return m.toUpperCase(); });
+            try { if (s != null) el.setSelectionRange(s, e); } catch (ignore) {}
+            return true;
+        }
+        /* 프로그램으로 값을 바꾼 뒤에는 input 이벤트를 다시 쏴서 안내문(kv-hint) 등도 갱신 */
+        function normalizeAll() {
+            document.querySelectorAll('#condRoot input').forEach(function (el) {
+                if (isTarget(el) && toUpper(el)) el.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        }
+
+        document.addEventListener('input', function (e) {
+            if (e.isComposing || !isTarget(e.target)) return;
+            toUpper(e.target);
+        }, true);
+        document.addEventListener('compositionend', function (e) {
+            if (!isTarget(e.target)) return;
+            const el = e.target;
+            setTimeout(function () { if (toUpper(el)) el.dispatchEvent(new Event('input', { bubbles: true })); }, 0);
+        }, true);
+        document.addEventListener('paste', function (e) {
+            if (!isTarget(e.target)) return;
+            setTimeout(normalizeAll, 0);   // 엑셀 붙여넣기로 생긴 행까지
+        }, true);
+        document.addEventListener('focusout', function (e) {
+            if (isTarget(e.target) && toUpper(e.target)) e.target.dispatchEvent(new Event('input', { bubbles: true }));
+        }, true);
+        $(function () { setTimeout(normalizeAll, 300); });   // 복원된 지난 조건
+    })();
+
     /* ── 다크모드 (searchLogicPIDv3 와 동일 · localStorage 키 'theme' 공유) ── */
     (function initTheme() {
         const dark = localStorage.getItem('theme') !== 'light'; // 기본 다크모드
         document.documentElement.classList.toggle('dark', dark);
         document.getElementById('darkModeToggle').checked = dark;
-        document.getElementById('themeLabel').textContent = dark ? '🌙 다크모드' : '☀️ 라이트모드';
+        document.getElementById('themeLabel').textContent = dark ? '다크모드' : '라이트모드';
         if (dark) localStorage.setItem('theme', 'dark');
     })();
     document.getElementById('darkModeToggle').addEventListener('change', function () {
         document.documentElement.classList.toggle('dark', this.checked);
         localStorage.setItem('theme', this.checked ? 'dark' : 'light');
-        document.getElementById('themeLabel').textContent = this.checked ? '🌙 다크모드' : '☀️ 라이트모드';
+        document.getElementById('themeLabel').textContent = this.checked ? '다크모드' : '라이트모드';
     });
 
     /* ── 사이드바 현재 메뉴 활성화 ── */

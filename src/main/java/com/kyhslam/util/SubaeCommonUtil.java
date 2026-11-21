@@ -1181,7 +1181,7 @@ public class SubaeCommonUtil {
             if (keyList != null && keyList.size() > 0) {
                 for (int k = 0; k < keyList.size(); k++) {
                     String el_code = keyList.get(k);
-                    String op = opList.get(k);
+                    String op = kvSqlOp(opList.get(k));
                     String codeVal = valList.get(k);
 
                     if (el_code != null && !"".equals(el_code.trim()) && codeVal != null && !"".equals(codeVal.trim())) {
@@ -1886,7 +1886,7 @@ public class SubaeCommonUtil {
         if (keyList != null && keyList.size() > 0) {
             for (int k = 0; k < keyList.size(); k++) {
                 String el_code = keyList.get(k);
-                String op = opList.get(k);
+                String op = kvSqlOp(opList.get(k));
                 String codeVal = valList.get(k);
 
                 if (el_code != null && !"".equals(el_code.trim()) && codeVal != null && !"".equals(codeVal.trim())) {
@@ -1898,6 +1898,18 @@ public class SubaeCommonUtil {
 
         return sql;
 
+    }
+
+    /**
+     * 동적 조건(kvConditions) 의 op 를 SQL 연산자로 바꾼다.
+     * 화면은 'notlike' 를 보내는데 그대로 넣으면 Oracle 문법 오류(ORA-00920)가 나므로 NOT LIKE 로 바꾼다.
+     * 나머지(=, !=, like)는 그대로 둔다.
+     */
+    private static String kvSqlOp(String op) {
+        if (op == null) return "";
+        String o = op.trim();
+        if ("notlike".equalsIgnoreCase(o) || "not like".equalsIgnoreCase(o)) return "NOT LIKE";
+        return o;
     }
 
 }

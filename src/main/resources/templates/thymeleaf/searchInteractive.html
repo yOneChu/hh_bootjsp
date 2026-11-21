@@ -1,834 +1,1718 @@
-<!DOCTYPE html>
-<html lang="ko">
+﻿<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <link rel="icon" type="image/png" href="/resources/favicon.ico" />
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>PLM 제품-자재 Analytics – 인터렉티브 3D</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
 
-    <title>PLM 제품-자재 Analytics – 통계 대시보드</title>
-
-    <link rel="stylesheet" href="/resources/dist/googleFont.css">
-    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
-    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
-    <link rel="stylesheet" href="/resources/css/dark-mode.css">
-
-    <!-- TailwindCSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            corePlugins: { preflight: false },
-            darkMode: ['class', 'body.dark-mode'],
-            theme: { extend: { fontFamily: {
-                sans: ['Pretendard', 'Noto Sans KR', '-apple-system', 'BlinkMacSystemFont', 'sans-serif']
-            } } }
-        }
+        // 본 화면과 같은 테마 키('theme') 사용 — 기본값 다크
+        if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
     </script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
 
     <!-- Highcharts (사내망: 외부 CDN 차단 → 로컬 파일 사용) -->
     <script src="/resources/dist/js/highcharts.js"></script>
     <script src="/resources/dist/js/highcharts-3d.js"></script>
     <script src="/resources/dist/js/exporting.js"></script>
+    <script src="/resources/dist/js/export-data.js"></script>
+    <script src="/resources/dist/js/accessibility.js"></script>
 
-    <!-- Three.js (로컬 ES 모듈 r174) — 히어로 앰비언트 배경용 -->
+    <!-- Three.js r174 (로컬 ES 모듈) -->
     <script type="importmap" th:inline="none">
-    {
-        "imports": {
-            "three": "/resources/dist/three/three.module.js",
-            "three/OrbitControls": "/resources/dist/three/OrbitControls.js"
+        {
+            "imports": {
+                "three": "/resources/dist/three/three.module.js",
+                "three/OrbitControls": "/resources/dist/three/OrbitControls.js"
+            }
         }
-    }
     </script>
 
     <style>
         :root {
-            --bg:        #F5F5F7;   /* Apple light gray */
-            --card:      #FFFFFF;
-            --ink:       #1D1D1F;   /* Apple near-black */
-            --ink-soft:  #6E6E73;   /* Apple secondary */
-            --hair:      rgba(0,0,0,0.07);
-            --accent:    #6E5BF2;
+            --bg: #F5F5F7; --panel: #fff; --card: #F7F7F9; --line: rgba(0,0,0,.06); --line2: #E5E5EA;
+            --ink: #1D1D1F; --sub: #6E6E73; --mute: #8E8E93;
+            --blue: #0071E3; --blue-t: rgba(0,113,227,.08); --purple: #AF52DE; --purple-t: rgba(175,82,222,.10);
+            --green: #248A3D; --amber: #9A5B00; --amber-t: rgba(255,159,10,.12); --red: #C42B25;
+            --shadow: 0 2px 20px rgba(0,0,0,.05);
         }
+        html.dark {
+            --bg: #000; --panel: #1C1C1E; --card: rgba(255,255,255,.045); --line: rgba(255,255,255,.07); --line2: #38383A;
+            --ink: #F5F5F7; --sub: #98989D; --mute: #8E8E93;
+            --blue: #0A84FF; --blue-t: rgba(10,132,255,.16); --purple: #BF5AF2; --purple-t: rgba(191,90,242,.16);
+            --green: #30D158; --amber: #FFC56B; --amber-t: rgba(255,159,10,.16); --red: #FF8A80;
+            --shadow: 0 2px 20px rgba(0,0,0,.45);
+        }
+        * { box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', sans-serif;
-            background: var(--bg);
-            color: var(--ink);
-            margin: 0;
-            -webkit-font-smoothing: antialiased;
+            margin: 0; background: var(--bg); color: var(--ink);
+            font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+            font-size: 14px; line-height: 1.5;
         }
-        body.dark-mode {
-            --bg: #0A0A0C; --card: #1A1A1E; --ink: #F5F5F7; --ink-soft: #98989D;
-            --hair: rgba(255,255,255,0.08);
-            background: var(--bg); color: var(--ink);
-        }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.16); border-radius: 4px; }
-        body.dark-mode ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); }
+        h1, h2, h3, p { margin: 0; }
+        button, select, input { font-family: inherit; }
+        :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+        [hidden] { display: none !important; }
 
-        /* ── 섹션 타이틀 ── */
-        .sec-title {
-            font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em;
-            text-transform: uppercase; color: var(--ink-soft);
-            margin: 1.6rem 0.3rem 0.7rem;
+        /* ── Top bar ── */
+        .topbar {
+            position: sticky; top: 0; z-index: 50;
+            display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+            padding: 12px 24px; border-bottom: 1px solid var(--line);
+            background: var(--panel);
+            background: color-mix(in srgb, var(--panel) 82%, transparent);
+            backdrop-filter: saturate(180%) blur(18px); -webkit-backdrop-filter: saturate(180%) blur(18px);
         }
+        .logo {
+            width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #0071E3, #5856D6); box-shadow: 0 2px 10px rgba(0,113,227,.35);
+        }
+        .tb-title { font-size: 16px; font-weight: 700; letter-spacing: -.01em; line-height: 1.1; }
+        .tb-sub { font-size: 11.5px; color: var(--mute); margin-top: 2px !important; }
+        .tb-spacer { flex: 1; }
+        .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); }
+        .seg button {
+            height: 28px; padding: 0 12px; border: none; border-radius: 8px; cursor: pointer;
+            background: transparent; color: var(--sub); font-size: 12.5px; font-weight: 600;
+        }
+        .seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+        .seg button:disabled { opacity: .4; cursor: not-allowed; }
+        .tb-label { font-size: 12px; color: var(--mute); font-weight: 600; }
+        .icon-btn {
+            width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--line); cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center; background: var(--card); color: var(--ink);
+        }
+        .icon-btn:hover { border-color: var(--blue); color: var(--blue); }
+        .ghost-btn {
+            display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px; border-radius: 9px; cursor: pointer;
+            font-size: 12.5px; font-weight: 600; color: var(--purple); background: var(--purple-t); border: 1px solid transparent;
+        }
+        .ghost-btn:hover { border-color: var(--purple); }
 
-        /* ── 카드 (Apple frosted) ── */
-        .spf-card {
-            background: var(--card);
-            border-radius: 1.4rem;
-            border: 1px solid var(--hair);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 22px 48px -28px rgba(20,20,40,0.28);
-            overflow: hidden;
-            transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), box-shadow 0.35s ease;
+        /* ── Filter bar ── */
+        .filterbar {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            padding: 10px 24px; border-bottom: 1px solid var(--line); background: var(--panel); font-size: 12.5px;
         }
-        .spf-card:hover { transform: translateY(-3px); box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 32px 60px -28px rgba(20,20,40,0.34); }
-        body.dark-mode .spf-card { box-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 22px 48px -28px rgba(0,0,0,0.8); }
+        .filterbar .fb-hint { color: var(--mute); }
+        .fchip {
+            display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 6px 0 11px; border-radius: 999px;
+            background: var(--blue); color: #fff; font-size: 12px; font-weight: 600; border: none; cursor: pointer;
+        }
+        .fchip .x { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.22); font-size: 11px; }
+        .fchip:hover .x { background: rgba(255,255,255,.38); }
+        .link-btn { border: none; background: none; color: var(--blue); font-weight: 600; font-size: 12.5px; cursor: pointer; padding: 4px 6px; }
 
-        .spf-card-head {
-            display: flex; align-items: center; gap: 0.65rem;
-            padding: 1.05rem 1.35rem 0.7rem;
-            font-size: 1rem; font-weight: 700; letter-spacing: -0.02em;
-        }
-        .spf-card-head .ic {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 1.85rem; height: 1.85rem; border-radius: 0.65rem; color: #fff;
-            font-size: 0.78rem;
-            background: linear-gradient(135deg, #7C6CF5 0%, #A855F7 100%);
-            box-shadow: 0 6px 14px -4px rgba(124,108,245,0.55);
-        }
-        .spf-card-head .sub { font-size: 0.72rem; font-weight: 500; color: var(--ink-soft); margin-left: auto; letter-spacing: 0; }
-        .spf-card-body { padding: 0.2rem 1rem 1.2rem; }
+        /* ── Layout ── */
+        main { padding: 20px 24px 40px; display: flex; flex-direction: column; gap: 18px; }
+        .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); min-width: 0; }
+        .p-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 18px 8px; }
+        .p-head h2 { font-size: 14.5px; font-weight: 700; }
+        .p-head .p-desc { font-size: 12px; color: var(--mute); }
+        .p-head .p-right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--mute); }
+        .p-body { padding: 4px 18px 16px; }
+        .tile { width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .t-blue { background: var(--blue-t); color: var(--blue); }
+        .t-purple { background: var(--purple-t); color: var(--purple); }
+        .t-amber { background: var(--amber-t); color: #FF9F0A; }
+        .t-green { background: rgba(52,199,89,.13); color: var(--green); }
+        .cols-2 { display: grid; grid-template-columns: 1fr; gap: 18px; }
+        @media (min-width: 1100px) { .cols-2 { grid-template-columns: minmax(0,1fr) minmax(0,1fr); } }
+        .cols-3 { display: grid; grid-template-columns: 1fr; gap: 18px; }
+        @media (min-width: 900px)  { .cols-3 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+        @media (min-width: 1400px) { .cols-3 { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+        .sec-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--mute); letter-spacing: .06em; margin: 6px 2px -6px !important; }
+        .sec-title::after { content: ''; flex: 1; height: 1px; background: var(--line2); }
 
         /* ── KPI ── */
-        .kpi {
-            position: relative; overflow: hidden;
-            border-radius: 1.4rem; padding: 1.25rem 1.35rem;
-            color: #fff; min-height: 116px;
-            box-shadow: 0 18px 40px -16px rgba(0,0,0,0.4);
-            transition: transform 0.35s cubic-bezier(0.16,1,0.3,1);
-        }
-        .kpi:hover { transform: translateY(-3px) scale(1.012); }
-        .kpi::before {
-            content:''; position:absolute; inset:0;
-            background: radial-gradient(120% 80% at 85% -10%, rgba(255,255,255,0.28), transparent 60%);
-            pointer-events:none;
-        }
-        .kpi .kpi-ic { position: absolute; right: -6px; bottom: -12px; font-size: 3.8rem; opacity: 0.16; }
-        .kpi-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em; opacity: 0.92; }
-        .kpi-value { font-size: 2.25rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.045em; margin-top: 0.25rem; font-variant-numeric: tabular-nums; }
-        .kpi-unit  { font-size: 0.72rem; opacity: 0.82; margin-left: 0.2rem; font-weight: 600; }
-        .g-indigo  { background: linear-gradient(135deg, #5E5CE6 0%, #7C3AED 100%); }
-        .g-violet  { background: linear-gradient(135deg, #AF52DE 0%, #C026D3 100%); }
-        .g-sky     { background: linear-gradient(135deg, #0A84FF 0%, #2563EB 100%); }
-        .g-emerald { background: linear-gradient(135deg, #30D158 0%, #0D9488 100%); }
-        .g-amber   { background: linear-gradient(135deg, #FF9F0A 0%, #EA580C 100%); }
+        .kpis { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+        @media (min-width: 900px) { .kpis { grid-template-columns: repeat(5, minmax(0,1fr)); } }
+        .kpi { padding: 14px 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
+        .kpi .k-label { font-size: 11px; font-weight: 700; color: var(--mute); letter-spacing: .04em; }
+        .kpi .k-val { font-size: 26px; font-weight: 800; letter-spacing: -.03em; line-height: 1.15; margin-top: 4px !important; font-variant-numeric: tabular-nums; }
+        .kpi .k-val small { font-size: 12px; font-weight: 600; color: var(--mute); margin-left: 3px; letter-spacing: 0; }
+        .kpi .k-sub { font-size: 11.5px; color: var(--mute); font-variant-numeric: tabular-nums; }
 
-        /* ── Hero ── */
-        .hero {
-            position: relative; overflow: hidden;
-            background: linear-gradient(120deg, #1E1B4B 0%, #312E81 38%, #4F46E5 68%, #7C3AED 100%);
-            color: #fff;
-            border-radius: 1.7rem;
+        /* ── Insights ── */
+        .insights { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 8px; }
+        @media (min-width: 1100px) { .insights { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+        .ins {
+            display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; border-radius: 12px;
+            background: var(--card); border: 1px solid var(--line); font-size: 13px; line-height: 1.55;
         }
-        .hero::after {
-            content: ''; position: absolute; top: -60%; right: -5%;
-            width: 480px; height: 480px; border-radius: 50%;
-            background: radial-gradient(circle, rgba(168,85,247,0.4) 0%, transparent 70%);
-            pointer-events: none; z-index: 1;
+        .ins .i-ico { flex-shrink: 0; width: 22px; height: 22px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
+        .ins.info .i-ico { background: var(--blue-t); color: var(--blue); }
+        .ins.link .i-ico { background: var(--purple-t); color: var(--purple); }
+        .ins.part .i-ico { background: rgba(52,199,89,.13); color: var(--green); }
+        .ins.warn .i-ico { background: var(--amber-t); color: #FF9F0A; }
+        .ins b { font-weight: 700; }
+        .ins .i-go { margin-left: auto; flex-shrink: 0; align-self: center; }
+        .mini-btn {
+            height: 26px; padding: 0 10px; border-radius: 8px; cursor: pointer; font-size: 11.5px; font-weight: 600;
+            background: var(--panel); color: var(--blue); border: 1px solid var(--line2); white-space: nowrap;
         }
-        #heroCanvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0.92; }
+        .mini-btn:hover { border-color: var(--blue); }
 
-        /* ── 브랜드 필터 칩 (Apple segmented) ── */
+        /* ── 차트 카드 ── */
+        .chart-sm { height: 290px; }
+        .card-note { font-size: 12px; color: var(--sub); margin-top: 4px !important; min-height: 18px; }
+        .card-note b { color: var(--ink); }
+        .dcard-key { font-family: Consolas, 'D2Coding', monospace; font-weight: 700; color: var(--purple); }
+        .tag { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 6px; font-size: 11px; font-weight: 600; background: var(--panel); border: 1px solid var(--line2); color: var(--sub); white-space: nowrap; }
+        .tag.cond { color: var(--purple); }
+
+        /* ── 부품 현황 ── */
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
         .brand-chip {
-            display: inline-flex; align-items: center; gap: 0.4rem;
-            padding: 0.4rem 0.95rem; border-radius: 9999px;
-            font-size: 0.78rem; font-weight: 600; cursor: pointer;
-            background: rgba(120,120,128,0.1); color: var(--ink);
-            border: 1px solid transparent;
-            transition: all 0.2s ease;
+            display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px; cursor: pointer;
+            font-size: 12.5px; font-weight: 600; color: var(--ink); background: var(--panel); border: 1.5px solid var(--line2);
         }
-        .brand-chip:hover { background: rgba(120,120,128,0.18); }
-        .brand-chip.active {
-            background: linear-gradient(135deg, #5E5CE6, #7C3AED);
-            color: #fff;
-            box-shadow: 0 8px 18px -6px rgba(94,92,230,0.6);
+        .brand-chip:hover { border-color: var(--blue); }
+        .brand-chip[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #fff; }
+        .brand-chip .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+        .brand-chip .cnt { font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 999px; background: var(--card); color: var(--sub); font-variant-numeric: tabular-nums; }
+        .brand-chip[aria-pressed="true"] .cnt { background: rgba(255,255,255,.25); color: #fff; }
+        .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .search {
+            width: 100%; max-width: 340px; height: 36px; padding: 0 12px; font-size: 13px; color: var(--ink);
+            border: 1.5px solid var(--line2); border-radius: 10px; outline: none; background: var(--panel);
         }
-        .brand-chip .cnt { font-size: 0.66rem; background: rgba(0,0,0,0.08); border-radius: 9999px; padding: 0.05rem 0.45rem; font-weight: 700; }
-        .brand-chip.active .cnt { background: rgba(255,255,255,0.28); color: #fff; }
-        body.dark-mode .brand-chip { background: rgba(120,120,128,0.24); }
-        body.dark-mode .brand-chip .cnt { background: rgba(255,255,255,0.14); }
-
-        /* ── 검색 ── */
-        .apple-search {
-            width: 100%; max-width: 340px; height: 38px; padding: 0 0.95rem;
-            font-size: 0.82rem; color: var(--ink);
-            border: 1px solid var(--hair); border-radius: 0.7rem; outline: none;
-            background: rgba(120,120,128,0.08); transition: all 0.2s ease;
+        .search:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-t); }
+        html.dark .search { background: #2C2C2E; }
+        html.dark input[type="search"]::-webkit-search-cancel-button { filter: invert(1) opacity(.55); }
+        .tb-wrap { max-height: 480px; overflow: auto; border-radius: 10px; border: 1px solid var(--line); }
+        table.sum { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+        table.sum thead th {
+            position: sticky; top: 0; z-index: 2; background: var(--panel);
+            text-align: left; font-size: 11px; color: var(--mute); font-weight: 700; padding: 9px 10px; border-bottom: 1.5px solid var(--line2); white-space: nowrap;
         }
-        .apple-search:focus { background: var(--card); border-color: rgba(94,92,230,0.5); box-shadow: 0 0 0 4px rgba(94,92,230,0.12); }
-
-        /* ── 테이블 ── */
-        .sum-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-        .sum-table thead th {
-            position: sticky; top: 0; z-index: 2;
-            background: var(--card); color: var(--ink-soft); font-weight: 600;
-            font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
-            padding: 0.7rem 0.8rem; text-align: left; border-bottom: 1px solid var(--hair);
-        }
-        .sum-table td { padding: 0.62rem 0.8rem; border-bottom: 1px solid var(--hair); }
-        .sum-table tbody tr { transition: background 0.15s ease; }
-        .sum-table tbody tr:hover td { background: rgba(94,92,230,0.06); }
-        body.dark-mode .sum-table tbody tr:hover td { background: rgba(124,108,245,0.12); }
-        .sum-table td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
-        .rank {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 1.4rem; height: 1.4rem; border-radius: 0.5rem;
-            font-size: 0.66rem; font-weight: 800; color: var(--ink-soft);
-            background: rgba(120,120,128,0.12);
-        }
-        .rank.top { color: #fff; background: linear-gradient(135deg, #5E5CE6, #A855F7); box-shadow: 0 4px 10px -3px rgba(94,92,230,0.6); }
-        .brand-badge { display: inline-block; padding: 0.12rem 0.55rem; border-radius: 9999px; font-size: 0.68rem; font-weight: 700; color: #fff; }
+        html.dark table.sum thead th { background: #232325; }
+        table.sum thead th.sortable { cursor: pointer; user-select: none; }
+        table.sum thead th.sortable:hover { color: var(--blue); }
+        table.sum thead th[aria-sort="descending"]::after { content: ' ▼'; font-size: 9px; color: var(--blue); }
+        table.sum thead th[aria-sort="ascending"]::after { content: ' ▲'; font-size: 9px; color: var(--blue); }
+        table.sum td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+        table.sum tbody tr:hover td { background: var(--blue-t); }
+        table.sum td.num, table.sum th.num { text-align: right; }
+        table.sum td.num { font-weight: 700; }
+        .brand-badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #fff; white-space: nowrap; }
         .bar-cell { position: relative; }
-        .bar-cell .bar-fill {
-            position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-            height: 64%; border-radius: 5px; opacity: 0.16;
-            background: linear-gradient(90deg, #5E5CE6, #A855F7);
-        }
+        .bar-cell .bar-fill { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); height: 62%; border-radius: 4px; background: var(--blue); opacity: .16; }
+        .bar-cell span { position: relative; }
+        .use-rate { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; width: 100%; }
+        .use-rate i { display: inline-block; width: 46px; height: 5px; border-radius: 999px; background: var(--line2); overflow: hidden; }
+        .use-rate i b { display: block; height: 100%; background: var(--green); border-radius: 999px; }
+        .row-filter { width: 24px; height: 24px; border-radius: 7px; border: 1px solid var(--line2); background: var(--panel); color: var(--sub); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+        .row-filter:hover { color: var(--blue); border-color: var(--blue); }
+        .muted { color: var(--mute); }
+        .table-foot { font-size: 11.5px; color: var(--mute); margin-top: 8px !important; }
+        .empty-row { text-align: center; color: var(--mute); padding: 22px !important; }
 
-        /* ── 로딩 ── */
-        #spfLoading {
-            position: fixed; inset: 0; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; gap: 1rem;
-            background: rgba(245,245,247,0.92); z-index: 9999; backdrop-filter: blur(8px);
+        /* ── Loading ── */
+        #loading { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--sub); }
+        .spinner { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--line2); border-top-color: var(--blue); animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .flash { animation: flash 1.1s ease; }
+        @keyframes flash { 0% { box-shadow: 0 0 0 0 var(--blue); } 30% { box-shadow: 0 0 0 4px var(--blue-t); } 100% { box-shadow: var(--shadow); } }
+        /* ══════════ 3D 전용 ══════════ */
+        .hero {
+            position: relative; overflow: hidden; border-radius: 20px; min-height: 148px;
+            padding: 26px 28px; color: #fff; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+            background: radial-gradient(120% 140% at 0% 0%, #2B1C6B 0%, #14123A 45%, #070712 100%);
+            box-shadow: 0 24px 60px -22px rgba(88,86,214,.65), inset 0 0 0 1px rgba(255,255,255,.06);
         }
-        body.dark-mode #spfLoading { background: rgba(10,10,12,0.92); }
-        .spinner {
-            width: 46px; height: 46px; border-radius: 50%;
-            border: 4px solid rgba(94,92,230,0.18); border-top-color: #5E5CE6;
-            animation: spfSpin 0.75s linear infinite;
+        html:not(.dark) .hero { background: radial-gradient(120% 140% at 0% 0%, #4B3FD1 0%, #2A2A8F 48%, #12124A 100%); }
+        #heroCanvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .9; -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.25) 28%, #000 55%); mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.25) 28%, #000 55%); }
+        .hero > *:not(canvas) { position: relative; z-index: 1; }
+        .hero .h-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .18em; color: rgba(255,255,255,.6); }
+        .hero .h-title { font-size: 26px; font-weight: 800; letter-spacing: -.03em; margin-top: 2px !important; }
+        .hero .h-desc { font-size: 13px; color: rgba(255,255,255,.72); margin-top: 4px !important; }
+        .hero .h-badge {
+            margin-left: auto; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
+            background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
         }
-        @keyframes spfSpin { to { transform: rotate(360deg); } }
-        @keyframes fadeUp { from { opacity:0; transform: translateY(14px); } to { opacity:1; transform:none; } }
-        .anim { animation: fadeUp 0.65s cubic-bezier(0.16,1,0.3,1) both; }
+        .kpi { position: relative; overflow: hidden; transition: transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s; transform-style: preserve-3d; }
+        .kpi:hover { transform: perspective(700px) rotateX(4deg) translateY(-2px); box-shadow: 0 18px 34px -16px rgba(0,0,0,.35); }
+        .kpi::after { content: ''; position: absolute; inset: auto -30% -60% auto; width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle, currentColor 0%, transparent 70%); opacity: .06; pointer-events: none; }
+
+        /* 3D 데이터 시티 */
+        .city-wrap { position: relative; height: 560px; border-radius: 14px; overflow: hidden;
+            background: radial-gradient(90% 90% at 50% 20%, #F7F8FC 0%, #E9ECF5 100%); border: 1px solid var(--line); }
+        html.dark .city-wrap { background: radial-gradient(90% 90% at 50% 20%, #17172A 0%, #07070D 100%); }
+        .city-wrap canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+        .city-wrap canvas:active { cursor: grabbing; }
+        .city-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+        .city-labels .lb {
+            position: absolute; transform: translate(-50%, -50%); white-space: nowrap; font-size: 11.5px; font-weight: 700;
+            color: var(--ink); text-shadow: 0 1px 2px rgba(255,255,255,.7); max-width: 140px; overflow: hidden; text-overflow: ellipsis;
+        }
+        html.dark .city-labels .lb { text-shadow: 0 1px 3px rgba(0,0,0,.9); }
+        .city-labels .lb.z { color: var(--sub); font-weight: 600; }
+        .city-labels .lb.ax { font-size: 11px; color: var(--blue); letter-spacing: .04em; }
+        .city-tip {
+            position: absolute; pointer-events: none; z-index: 3; padding: 8px 11px; border-radius: 10px; font-size: 12px; line-height: 1.5;
+            background: var(--panel); color: var(--ink); border: 1px solid var(--line2); box-shadow: 0 8px 24px rgba(0,0,0,.18); transform: translate(12px, 12px);
+        }
+        .city-side {
+            position: absolute; top: 12px; right: 12px; z-index: 4; width: 280px; max-width: calc(100% - 24px); padding: 14px 15px; border-radius: 14px;
+            background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line2); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            box-shadow: 0 12px 34px -12px rgba(0,0,0,.3); font-size: 12.5px;
+        }
+        .city-side h3 { font-size: 13.5px; font-weight: 700; margin-bottom: 6px !important; }
+        .city-side .kv { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px dashed var(--line2); font-variant-numeric: tabular-nums; }
+        .city-side .kv span:first-child { color: var(--mute); }
+        .city-side ol { margin: 6px 0 10px; padding-left: 18px; color: var(--sub); }
+        .city-side .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+        .city-hint { position: absolute; left: 12px; bottom: 10px; z-index: 2; font-size: 11.5px; color: var(--mute); pointer-events: none; }
+        .city-legend { position: absolute; left: 12px; top: 12px; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; max-width: 60%; }
+        .city-legend span { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--panel) 80%, transparent); border: 1px solid var(--line); }
+        .city-legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+        .city-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--sub); padding: 20px; }
+        .rank { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 7px; font-size: 11px; font-weight: 800; background: var(--card); color: var(--sub); }
+        .rank.top { background: linear-gradient(135deg, #FFB340, #FF6B22); color: #fff; }
+        .drag-hint { font-size: 11px; color: var(--mute); }
+        .ctl-inline { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; color: var(--mute); }
+        .sel {
+            height: 28px; padding: 0 26px 0 9px; border-radius: 8px; font-size: 12px; color: var(--ink); max-width: 170px;
+            background: var(--panel); border: 1.5px solid var(--line2); outline: none; cursor: pointer; appearance: none; -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238E8E93' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 8px center;
+        }
+        .sel:focus { border-color: var(--blue); }
+        html.dark .sel { background-color: #2C2C2E; }
+        html.dark .sel option { background: #2C2C2E; color: #F5F5F7; }
+        .mini-btn[aria-pressed="true"] { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+        footer { text-align: center; color: var(--mute); font-size: 11.5px; padding: 0 0 24px; }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition: none !important; } }
     </style>
 </head>
+<body>
 
-<body class="text-sm">
+<header class="topbar">
+    <div class="logo" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+    </div>
+    <div>
+        <h1 class="tb-title">인터렉티브 3D 대시보드</h1>
+        <p class="tb-sub" id="tbSub">3D 데이터 시티 · 3D 분포 · 부품 현황 · 자동 인사이트</p>
+    </div>
+    <div class="tb-spacer"></div>
+    <span class="tb-label" id="unitLabel">분포 집계 단위</span>
+    <div class="seg" role="group" aria-labelledby="unitLabel">
+        <button type="button" data-unit="product" aria-pressed="true" title="같은 제품번호는 한 번만 셉니다 (제품 분포를 볼 때 정확)">제품 기준</button>
+        <button type="button" data-unit="rows" aria-pressed="false" title="결과 행(제품 × 자재)을 그대로 셉니다 (기존 화면 방식)">행 기준</button>
+    </div>
+    <button type="button" class="ghost-btn" id="toDynamic" hidden title="같은 데이터로 동적 그래프(자유 분석 · 교차표 · 산점도)를 이 창에서 엽니다">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7M17.5 14v7"/></svg>
+        동적그래프로 자세히
+    </button>
+    <button type="button" class="icon-btn" id="themeBtn" title="다크 / 라이트 전환" aria-label="다크 / 라이트 전환">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+</header>
 
-    <!-- 로딩 -->
-    <div id="spfLoading">
-        <div class="spinner"></div>
-        <p id="spfLoadingMsg" style="margin:0;font-size:0.9rem;font-weight:600;color:var(--ink-soft);">데이터 집계 중…</p>
-        <p id="spfLoadingSub" style="margin:0;font-size:0.74rem;font-weight:500;color:var(--ink-soft);opacity:0.7;"></p>
+<div class="filterbar" id="filterBar" hidden>
+    <span class="fb-hint" id="fbHint"></span>
+    <span id="fbChips" style="display:contents;"></span>
+    <button type="button" class="link-btn" id="fbClear" hidden>필터 모두 해제</button>
+</div>
+
+<div id="loading" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p id="loadingText">데이터 집계 중…</p>
+</div>
+
+<main id="app" hidden>
+
+    <!-- Hero (Three.js 파티클 물결 배경) -->
+    <section class="hero" aria-label="요약">
+        <canvas id="heroCanvas" aria-hidden="true"></canvas>
+        <div>
+            <p class="h-eyebrow">PLM INTERACTIVE ANALYTICS</p>
+            <h2 class="h-title">제품-자재 3D 인사이트</h2>
+            <p class="h-desc">드래그로 돌려 보고, 누르면 걸러 보고, 조합의 속을 들여다봅니다.</p>
+        </div>
+        <span class="h-badge" id="heroBadge"></span>
+    </section>
+
+    <!-- KPI -->
+    <section class="kpis" id="kpis" aria-label="요약 수치"></section>
+
+    <!-- 자동 인사이트 -->
+    <section class="panel" id="secInsight">
+        <div class="p-head">
+            <span class="tile t-amber" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+            </span>
+            <h2>자동 인사이트</h2>
+            <span class="p-desc">쏠림 · 공통/전용 부품 · 컬럼 간 연관을 자동으로 찾아 냅니다 (필터 적용 결과 기준)</span>
+        </div>
+        <div class="p-body"><ul class="insights" id="insights"></ul></div>
+    </section>
+
+    <!-- ★ 3D 데이터 시티 -->
+    <section class="panel" id="secCity">
+        <div class="p-head">
+            <span class="tile t-purple" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V10l4-2v13M9 21V5l6-3v19M15 21V9l4 2v10"/></svg>
+            </span>
+            <h2>3D 데이터 시티</h2>
+            <span class="p-desc">두 컬럼의 조합을 빌딩 높이로 — 높을수록 많음</span>
+            <div class="p-right">
+                <div class="ctl-inline"><label for="cityX">X축</label> <select id="cityX" class="sel"></select></div>
+                <div class="ctl-inline"><label for="cityZ">Z축</label> <select id="cityZ" class="sel"></select></div>
+                <button type="button" class="mini-btn" id="citySwap" title="X · Z 축 맞바꾸기">⇄</button>
+                <button type="button" class="mini-btn" id="cityRotate" aria-pressed="true" title="자동 회전 켜기 / 끄기">자동 회전 ON</button>
+                <button type="button" class="mini-btn" id="cityTop" title="위에서 내려다보기 (히트맵처럼)">위에서</button>
+                <button type="button" class="mini-btn" id="cityReset" title="처음 시점으로">시점 초기화</button>
+            </div>
+        </div>
+        <div class="p-body">
+            <div class="city-wrap" id="cityWrap">
+                <div class="city-legend" id="cityLegend"></div>
+                <div class="city-labels" id="cityLabels"></div>
+                <div class="city-tip" id="cityTip" hidden></div>
+                <aside class="city-side" id="citySide" hidden aria-live="polite"></aside>
+                <p class="city-hint" id="cityHint">드래그: 회전 · 휠: 확대 · 우클릭 드래그: 이동 · 빌딩 클릭: 상세</p>
+            </div>
+            <p class="card-note" id="cityNote" style="margin-top:8px !important;"></p>
+        </div>
+    </section>
+
+    <!-- 분포 -->
+    <p class="sec-title">3D 분포 — 3D 막대는 드래그로 돌려 볼 수 있고, 막대 · 조각을 누르면 화면 전체를 걸러 봅니다</p>
+    <div class="cols-3">
+        <section class="panel" id="cardBrand">
+            <div class="p-head"><span class="tile t-blue" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg></span><h2>브랜드 분포</h2></div>
+            <div class="p-body"><div class="chart-sm" id="chartBrand"></div><p class="card-note" id="noteBrand"></p></div>
+        </section>
+        <section class="panel" id="cardGisong">
+            <div class="p-head"><span class="tile t-blue" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/></svg></span><h2>기종 분포</h2><span class="p-right">상위 12</span></div>
+            <div class="p-body"><div class="chart-sm" id="chartGisong"></div><p class="card-note" id="noteGisong"></p></div>
+        </section>
+        <section class="panel" id="cardSpeed">
+            <div class="p-head"><span class="tile t-blue" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 14l4-4"/><path d="M3.3 19a10 10 0 1 1 17.4 0"/></svg></span><h2>속도 구간 분포</h2><span class="p-right">m/min · 25 단위</span></div>
+            <div class="p-body"><div class="chart-sm" id="chartSpeed"></div><p class="card-note" id="noteSpeed"></p></div>
+        </section>
+        <section class="panel" id="cardAspscd">
+            <div class="p-head"><span class="tile t-blue" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20M4 20V9l5 3V9l5 3V5h6v15"/></svg></span><h2>생산거점 분포</h2></div>
+            <div class="p-body"><div class="chart-sm" id="chartAspscd"></div><p class="card-note" id="noteAspscd"></p></div>
+        </section>
+        <section class="panel" id="cardCob">
+            <div class="p-head"><span class="tile t-blue" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span><h2>전망타입 분포</h2></div>
+            <div class="p-body"><div class="chart-sm" id="chartCob"></div><p class="card-note" id="noteCob"></p></div>
+        </section>
+        <section class="panel" id="cardEtc">
+            <div class="p-head"><span class="tile t-blue" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16l-4-4 4-4M17 8l4 4-4 4M3 12h18"/></svg></span><h2>관통 / WALL 구조</h2></div>
+            <div class="p-body"><div class="chart-sm" id="chartEtc"></div><p class="card-note" id="noteEtc"></p></div>
+        </section>
     </div>
 
-    <div class="px-5 py-5" style="max-width:1320px;margin:0 auto;">
-
-        <!-- Hero -->
-        <div class="hero mb-5 flex items-center justify-between anim"
-             style="padding:1.7rem 2rem;box-shadow:0 24px 60px -18px rgba(67,56,202,0.6);">
-            <canvas id="heroCanvas"></canvas>
-            <div class="flex items-center gap-4" style="position:relative;z-index:2;">
-                <div style="width:3.2rem;height:3.2rem;border-radius:1rem;background:rgba(255,255,255,0.14);
-                            border:1px solid rgba(255,255,255,0.22);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);">
-                    <i class="fas fa-chart-pie" style="font-size:1.35rem;"></i>
-                </div>
-                <div>
-                    <p style="margin:0;color:rgba(255,255,255,0.62);font-size:0.64rem;font-weight:700;
-                              text-transform:uppercase;letter-spacing:0.16em;">PLM Executive Analytics</p>
-                    <h1 style="margin:0.2rem 0 0;font-size:1.7rem;font-weight:800;letter-spacing:-0.035em;">
-                        제품-자재 통계 대시보드
-                    </h1>
-                </div>
-            </div>
-            <span id="totalBadge" style="position:relative;z-index:2;
-                  font-size:0.84rem;font-weight:700;background:rgba(255,255,255,0.16);
-                  border:1px solid rgba(255,255,255,0.28);padding:0.45rem 1.2rem;border-radius:9999px;backdrop-filter:blur(6px);"></span>
+    <!-- 동적 조건 Key (있을 때만) -->
+    <section class="panel" id="secDyn" hidden>
+        <div class="p-head">
+            <span class="tile t-purple" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+            </span>
+            <h2>동적 조건 Key 분포</h2>
+            <span class="p-desc" id="dynDesc"></span>
         </div>
+        <div class="p-body"><div class="cols-3" id="dynGrid"></div></div>
+    </section>
 
-        <!-- KPI -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 mb-2">
-            <div class="kpi g-indigo anim"  style="animation-delay:0.04s;"><p class="kpi-label">전체 결과</p><p class="kpi-value" id="kpiTotal">-<span class="kpi-unit">건</span></p><i class="fas fa-layer-group kpi-ic"></i></div>
-            <div class="kpi g-violet anim"  style="animation-delay:0.08s;"><p class="kpi-label">고유 제품 수</p><p class="kpi-value" id="kpiProducts">-<span class="kpi-unit">종</span></p><i class="fas fa-boxes-stacked kpi-ic"></i></div>
-            <div class="kpi g-sky anim"     style="animation-delay:0.12s;"><p class="kpi-label">고유 자재 수</p><p class="kpi-value" id="kpiParts">-<span class="kpi-unit">개</span></p><i class="fas fa-screwdriver-wrench kpi-ic"></i></div>
-            <div class="kpi g-emerald anim" style="animation-delay:0.16s;"><p class="kpi-label">브랜드 수</p><p class="kpi-value" id="kpiBrands">-<span class="kpi-unit">개</span></p><i class="fas fa-tags kpi-ic"></i></div>
-            <div class="kpi g-amber anim"   style="animation-delay:0.20s;"><p class="kpi-label">평균 속도</p><p class="kpi-value" id="kpiSpeedAvg">-<span class="kpi-unit">m/min</span></p><i class="fas fa-gauge-high kpi-ic"></i></div>
-        </div>
+    <!-- ★ 부품 현황 -->
+    <p class="sec-title">부품 현황</p>
 
-        <!-- ★ Featured 3D 그래프 -->
-        <p class="sec-title">Featured · 3D Overview</p>
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-1">
-            <div class="spf-card anim lg:col-span-3">
-                <div class="spf-card-head"><span class="ic"><i class="fas fa-tags"></i></span>브랜드 분포<span class="sub">3D 도넛 · 점유율</span></div>
-                <div class="spf-card-body"><div id="chartBrand" style="height:360px;"></div></div>
-            </div>
-            <div class="spf-card anim lg:col-span-2">
-                <div class="spf-card-head"><span class="ic"><i class="fas fa-cubes"></i></span>기종 분포<span class="sub">3D 컬럼 · 상위 10</span></div>
-                <div class="spf-card-body"><div id="chartGisong" style="height:360px;"></div></div>
-            </div>
-        </div>
-
-        <!-- 2D + 3D 분포 그리드 -->
-        <p class="sec-title">Distributions</p>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-1">
-
-            <div class="spf-card anim">
-                <div class="spf-card-head"><span class="ic"><i class="fas fa-gauge-high"></i></span>속도 구간 분포<span class="sub">2D 추세</span></div>
-                <div class="spf-card-body"><div id="chartSpeed" style="height:300px;"></div></div>
-            </div>
-
-            <div class="spf-card anim">
-                <div class="spf-card-head"><span class="ic"><i class="fas fa-eye"></i></span>전망타입 분포<span class="sub">3D 파이</span></div>
-                <div class="spf-card-body"><div id="chartCob" style="height:300px;"></div></div>
-            </div>
-
-            <div class="spf-card anim">
-                <div class="spf-card-head"><span class="ic"><i class="fas fa-industry"></i></span>생산거점 분포<span class="sub">2D 도넛</span></div>
-                <div class="spf-card-body"><div id="chartAspscd" style="height:300px;"></div></div>
-            </div>
-
-            <div class="spf-card anim">
-                <div class="spf-card-head"><span class="ic"><i class="fas fa-arrows-left-right"></i></span>관통 / WALL 구조<span class="sub">2D 막대</span></div>
-                <div class="spf-card-body"><div id="chartEtc" style="height:300px;"></div></div>
-            </div>
-
-        </div>
-
-        <!-- ★ 브랜드별 부품 구성 (2D 누적 — 비교 가독성) -->
-        <p class="sec-title">Composition</p>
-        <div class="spf-card anim mb-1">
-            <div class="spf-card-head">
-                <span class="ic"><i class="fas fa-layer-group"></i></span>브랜드별 부품 구성
-                <span class="sub">2D 누적 막대 · 상위 브랜드 × 상위 부품</span>
-            </div>
-            <div class="spf-card-body"><div id="chartBrandPart" style="height:460px;"></div></div>
-        </div>
-
-        <!-- 집계: 브랜드별 부품 목록 (필터 + 테이블) -->
-        <p class="sec-title">Aggregation</p>
-        <div class="spf-card anim mb-4">
-            <div class="spf-card-head">
-                <span class="ic"><i class="fas fa-list-check"></i></span>브랜드별 사용 부품 목록
-                <span class="sub" id="brandPartCountInfo"></span>
-            </div>
-            <div class="spf-card-body">
-                <div id="brandChips" class="flex flex-wrap gap-2 mb-3" style="padding:0 0.2rem;"></div>
-                <div class="mb-3" style="padding:0 0.2rem;">
-                    <input id="partSearch" type="search" class="apple-search" placeholder="🔍  품번 / 품명 / SPEC 검색…">
-                </div>
-                <div style="max-height:460px;overflow:auto;border-radius:0.9rem;border:1px solid var(--hair);">
-                    <table class="sum-table">
-                        <thead><tr>
-                            <th style="width:130px;">브랜드</th>
-                            <th>품번</th>
-                            <th>품명</th>
-                            <th>SPEC</th>
-                            <th style="text-align:right;width:96px;">사용 건수</th>
-                            <th style="text-align:right;width:96px;">사용 제품수</th>
-                        </tr></thead>
-                        <tbody id="brandPartBody"></tbody>
-                    </table>
+    <!-- ★ 브랜드별 부품 구성 (누적 막대) -->
+    <section class="panel" id="secBrandPart">
+        <div class="p-head">
+            <span class="tile t-green" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 17l9 5 9-5"/></svg></span>
+            <h2>브랜드별 부품 구성</h2>
+            <span class="p-desc">상위 브랜드 · 상위 부품(품명) 누적 — 막대를 누르면 그 브랜드로 걸러 봅니다</span>
+            <div class="p-right">
+                <div class="seg" role="group" aria-label="부품 구성 값">
+                    <button type="button" data-bpm="cnt" aria-pressed="true">사용 건수</button>
+                    <button type="button" data-bpm="share" aria-pressed="false">구성비 %</button>
                 </div>
             </div>
         </div>
+        <div class="p-body"><div id="chartBrandPart"></div></div>
+    </section>
 
-        <!-- 집계: 요약 테이블 -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="spf-card anim">
-                <div class="spf-card-head"><span class="ic"><i class="fas fa-trophy"></i></span>제품별 자재 건수<span class="sub">상위 15</span></div>
-                <div class="spf-card-body" style="max-height:380px;overflow:auto;">
-                    <table class="sum-table">
-                        <thead><tr><th style="width:42px;">#</th><th>제품번호</th><th>브랜드</th><th>기종</th><th style="text-align:right;">자재 건수</th></tr></thead>
+    <!-- ★ 브랜드별 부품 목록 (필터 + 테이블) -->
+    <section class="panel" id="secPartList">
+        <div class="p-head">
+            <span class="tile t-green" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+            <h2>브랜드별 사용 부품 목록</h2>
+            <span class="p-right" id="brandPartCountInfo"></span>
+        </div>
+        <div class="p-body">
+            <div class="chips" id="brandChips" role="group" aria-label="브랜드 선택"></div>
+            <div class="toolbar">
+                <input id="partSearch" class="search" type="search" placeholder="품번 / 품명 / SPEC 검색…" aria-label="부품 검색" autocomplete="off">
+                <button type="button" class="mini-btn" id="partCsv" style="height:36px;" title="지금 보이는 목록(검색 · 브랜드 · 필터 적용)을 CSV 로 저장">CSV 저장</button>
+                <span class="muted" style="font-size:12px;">머리글을 누르면 정렬 · <b>사용률</b> = 그 브랜드 제품 중 이 부품을 쓴 제품 비율</span>
+            </div>
+            <div class="tb-wrap">
+                <table class="sum" id="partTable">
+                    <thead><tr>
+                        <th style="width:110px;" class="sortable" data-sort="brand">브랜드</th>
+                        <th class="sortable" data-sort="partNo">품번</th>
+                        <th class="sortable" data-sort="partName">품명</th>
+                        <th class="sortable" data-sort="spec">SPEC</th>
+                        <th class="num sortable" style="width:96px;" data-sort="cnt" aria-sort="descending">사용 건수</th>
+                        <th class="num sortable" style="width:96px;" data-sort="prodCnt">사용 제품수</th>
+                        <th class="num sortable" style="width:120px;" data-sort="rate">사용률</th>
+                        <th style="width:40px;"><span class="sr-only" style="position:absolute;left:-9999px;">걸러 보기</span></th>
+                    </tr></thead>
+                    <tbody id="brandPartBody"></tbody>
+                </table>
+            </div>
+            <p class="table-foot" id="partFoot"></p>
+        </div>
+    </section>
+
+    <!-- 요약 테이블 -->
+    <div class="cols-2">
+        <section class="panel" id="secProduct">
+            <div class="p-head">
+                <span class="tile t-green" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/></svg></span>
+                <h2>제품별 자재 건수</h2><span class="p-right">상위 15</span>
+            </div>
+            <div class="p-body">
+                <div class="tb-wrap" style="max-height:380px;">
+                    <table class="sum">
+                        <thead><tr><th style="width:40px;">#</th><th>제품번호</th><th>브랜드</th><th>기종</th><th class="num">자재 건수</th><th style="width:40px;"></th></tr></thead>
                         <tbody id="sumProductBody"></tbody>
                     </table>
                 </div>
+                <p class="table-foot" id="productFoot"></p>
             </div>
-            <div class="spf-card anim">
-                <div class="spf-card-head"><span class="ic"><i class="fas fa-list-ol"></i></span>품명별 사용 건수<span class="sub">상위 15</span></div>
-                <div class="spf-card-body" style="max-height:380px;overflow:auto;">
-                    <table class="sum-table">
-                        <thead><tr><th style="width:42px;">#</th><th>품명</th><th>품번</th><th style="text-align:right;">건수</th></tr></thead>
+        </section>
+        <section class="panel">
+            <div class="p-head">
+                <span class="tile t-green" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg></span>
+                <h2>품명별 사용 건수</h2><span class="p-right">상위 15</span>
+            </div>
+            <div class="p-body">
+                <div class="tb-wrap" style="max-height:380px;">
+                    <table class="sum">
+                        <thead><tr><th style="width:40px;">#</th><th>품명</th><th>품번</th><th class="num">건수</th><th class="num">사용 제품</th><th style="width:40px;"></th></tr></thead>
                         <tbody id="sumPartBody"></tbody>
                     </table>
                 </div>
+                <p class="table-foot" id="partNameFoot"></p>
             </div>
-        </div>
-
-        <p style="text-align:center;color:var(--ink-soft);font-size:0.7rem;margin:1.8rem 0 0.6rem;">
-            PLM 제품-자재 Analytics · Powered by Highcharts 3D
-        </p>
-
+        </section>
     </div>
+</main>
+
+<footer id="pageFoot" hidden>PLM 제품-자재 Analytics · Powered by Highcharts</footer>
 
 <script th:inline="none">
-/* ── 다크모드 동기화 ── */
-try { if (localStorage.getItem('spf_theme') === 'dark') document.body.classList.add('dark-mode'); } catch(e) {}
-const IS_DARK    = document.body.classList.contains('dark-mode');
-const AXIS_COLOR = IS_DARK ? '#98989D' : '#6E6E73';
-const TEXT_COLOR = IS_DARK ? '#F5F5F7' : '#1D1D1F';
-const GRID_COLOR = IS_DARK ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)';
+(function () {
+'use strict';
 
-/* 그라데이션 색상 쌍 (밝은→진한) — Apple-vivid */
-const GRAD = [
-    ['#7C6CF5','#4338CA'], ['#C084FC','#9333EA'], ['#38BDF8','#0369A1'],
-    ['#34D399','#047857'], ['#FBBF24','#D97706'], ['#FB7185','#BE123C'],
-    ['#F472B6','#BE185D'], ['#2DD4BF','#0F766E'], ['#A78BFA','#5B21B6'],
-    ['#FB923C','#C2410C'], ['#22D3EE','#0E7490'], ['#A3E635','#4D7C0F'],
-    ['#60A5FA','#1D4ED8'], ['#E879F9','#A21CAF'], ['#5EEAD4','#0D9488'], ['#FCD34D','#D97706']
-];
-const SOLID = GRAD.map(g => g[1]);
+/* =====================================================
+   상수 · 상태
+===================================================== */
+const FIELD_LABEL = {
+    productNo: '제품번호', productVersion: '제품버전', productStatus: '제품상태', productModDate: '제품수정일',
+    el_ZFDA: '기계구조 최초설계일', brand: '브랜드', gisong: '기종', aspd: '속도', aspscd: '생산거점', acapa: '용량',
+    ucheck: '수정여부', partNo: '품번', partName: '품명', qty: 'QTY', blockNo: 'BlockNo.', cmt: 'cmt', spec: 'SPEC',
+    blockopt: '품목', glCode: 'GL_CODE', version: '버전',
+    ecbg: 'CAR_BG', ecwbg: 'CWT_BG', ecww: 'CWT폭', el_BWALLT: 'WALL 구조', el_ETHRU: '관통', el_COB: '전망타입'
+};
+const EMPTY = '(미정)';
+const OTHER = '기타';
+const PALETTE_L = ['#0071E3', '#FF9F0A', '#34C759', '#AF52DE', '#FF375F', '#30B0C7', '#FFCC00', '#5856D6', '#A2845E', '#8E8E93', '#00C7BE', '#FF6B22'];
+const PALETTE_D = ['#0A84FF', '#FFB340', '#30D158', '#BF5AF2', '#FF6482', '#40C8E0', '#FFD60A', '#7D7AFF', '#C4A27A', '#AEAEB2', '#63E6E2', '#FF8C4A'];
+const OP_LABEL = { like: 'LIKE', notlike: 'NOT LIKE', '=': '=', '!=': '!=' };
+const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const PART_ROW_LIMIT = 500;
 
-/* 세로/가로 선형 그라데이션 */
-function vg(i) { const g = GRAD[i % GRAD.length]; return { linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 }, stops: [[0, g[0]], [1, g[1]]] }; }
-function hg(i) { const g = GRAD[i % GRAD.length]; return { linearGradient: { x1: 0, y1: 0, x2: 1, y2: 0 }, stops: [[0, g[0]], [1, g[1]]] }; }
+let RAW = [], FD = [];
+let DYN = [], KV = {};
+let unit = 'product';
+let filters = [];                 // {f, k, test}
+let brandPartMode = 'cnt';
+let activeBrand = '__ALL__';
+let partSort = { key: 'cnt', dir: -1 };
+let partRowsShown = [];
+const brandIdx = {};              // 브랜드 → 고정 색 (모든 차트 · 표 일관)
+const CH = {};
+FIELD_LABEL['속도구간'] = '속도 구간';
 
-/* 브랜드 → 고정 색상 인덱스 (전 차트/테이블 일관성) */
-const _brandColorIdx = {};
-function brandColor(name) {
-    if (!(name in _brandColorIdx)) _brandColorIdx[name] = Object.keys(_brandColorIdx).length % GRAD.length;
-    return _brandColorIdx[name];
-}
+/* ── 3D 모듈(Three.js, type=module)과 주고받는 창구 ── */
+const IX = window.__spfIX = {
+    ready: false,
+    listeners: [],
+    onRender: function (fn) { this.listeners.push(fn); if (this.ready) { try { fn(); } catch (e) { console.error(e); } } },
+    rows: function () { return FD; },
+    unit: function () { return unit; },
+    unitWord: function () { return unitWord(); },
+    isDark: function () { return isDark(); },
+    reduced: REDUCED,
+    EMPTY: EMPTY,
+    label: function (f) { return label(f); },
+    fmt: function (n, d) { return fmt(n, d); },
+    esc: function (s) { return esc(s); },
+    keyFor: function (f) { return f === '속도구간' ? speedKey : keyOf(f); },
+    color: function (f, k, i) { return f === 'brand' ? brandColor(k) : palette()[i % palette().length]; },
+    /** 3D 시티 축으로 쓸 수 있는 컬럼 (값이 2종 이상) */
+    dims: function () {
+        const cand = ['brand', 'gisong', 'aspscd', '속도구간', 'acapa', 'el_COB', 'el_BWALLT', 'el_ETHRU', 'partName'].concat(DYN);
+        return cand.filter(function (f, i) {
+            if (cand.indexOf(f) !== i) return false;
+            const kf = IX.keyFor(f), s = new Set();
+            for (let j = 0; j < RAW.length && s.size < 3; j++) { const k = kf(RAW[j]); if (k !== EMPTY) s.add(k); }
+            return s.size >= 2;
+        });
+    },
+    /** 여러 필터를 한 번에 걸고 다시 그린다 : [{f, k}] */
+    setFilters: function (arr) {
+        arr.forEach(function (a) { const kf = IX.keyFor(a.f); setFilter(a.f, a.k, function (r) { return kf(r) === a.k; }, false); });
+        renderAll();
+    }
+};
 
-/* ── Highcharts 전역 테마 (Apple) ── */
-if (window.Highcharts) {
-    Highcharts.setOptions({
-        colors: SOLID,
-        chart: { backgroundColor: 'transparent', style: { fontFamily: '-apple-system, BlinkMacSystemFont, Pretendard, Noto Sans KR, sans-serif' }, spacing: [12, 12, 12, 12] },
-        title: { text: undefined },
-        credits: { enabled: false },
-        legend: { itemStyle: { color: AXIS_COLOR, fontWeight: '600', fontSize: '11px' }, itemHoverStyle: { color: TEXT_COLOR } },
-        xAxis: { labels: { style: { color: AXIS_COLOR, fontSize: '11px' } }, lineColor: GRID_COLOR, tickColor: GRID_COLOR },
-        yAxis: { gridLineColor: GRID_COLOR, gridLineDashStyle: 'Dash', labels: { style: { color: AXIS_COLOR, fontSize: '11px' } }, title: { style: { color: AXIS_COLOR } } },
-        tooltip: {
-            backgroundColor: IS_DARK ? 'rgba(26,26,30,0.96)' : 'rgba(255,255,255,0.98)',
-            borderWidth: 0, borderRadius: 14, shadow: { color: 'rgba(0,0,0,0.18)', offsetX: 0, offsetY: 6, width: 14 }, useHTML: true,
-            style: { color: TEXT_COLOR, fontSize: '12px' }
-        },
-        plotOptions: {
-            series: { animation: { duration: 1000 } },
-            pie: { borderWidth: 2, borderColor: IS_DARK ? '#1A1A1E' : '#fff',
-                   dataLabels: { style: { color: TEXT_COLOR, textOutline: 'none', fontWeight: '600', fontSize: '11px' } } },
-            column: { borderRadius: 5, borderWidth: 0 },
-            bar: { borderRadius: 5, borderWidth: 0 }
-        },
-        exporting: { buttons: { contextButton: { symbolStroke: AXIS_COLOR, theme: { fill: 'transparent' } } } }
+const $ = function (id) { return document.getElementById(id); };
+function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
 }
+function val(r, f) { return ((r[f] == null ? '' : r[f]) + '').trim(); }
+function fmt(n, d) {
+    if (n == null || isNaN(n)) return '-';
+    return Number(n).toLocaleString('ko-KR', { maximumFractionDigits: d == null ? (Number.isInteger(n) ? 0 : 1) : d });
+}
+function pct(a, b) { return b ? a / b * 100 : 0; }
+function label(f) { return FIELD_LABEL[f] || f; }
+function isDark() { return document.documentElement.classList.contains('dark'); }
+function palette() { return isDark() ? PALETTE_D : PALETTE_L; }
+function hasPK() { return RAW.length && RAW.some(function (r) { return r.productNo; }); }
+function unitWord() { return unit === 'product' ? '제품' : '건'; }
+function brandColor(b) {
+    if (!(b in brandIdx)) brandIdx[b] = Object.keys(brandIdx).length;
+    return palette()[brandIdx[b] % palette().length];
+}
 
-/* ── 부모창 데이터 대기 ──
-   조회 결과가 많으면 서버 응답이 길어질 수 있어 대기 한계를 5분으로 둔다.
-   실제 실패/결과없음은 부모창이 __spfGraphError 로 명시 신호하므로,
-   이 타임아웃은 진짜로 멈춘 경우를 대비한 안전장치일 뿐이다. */
+/* =====================================================
+   데이터 받기 (기존과 동일)
+   1순위 window.opener.__spfGraphData / 2순위 localStorage('spf_graph_data')
+===================================================== */
 (function waitForData() {
-    const MAX_MS    = 300000;          // 5분
-    const STEP      = 150;
-    const startedAt = Date.now();
-    const msgEl = document.getElementById('spfLoadingMsg');
-    const subEl = document.getElementById('spfLoadingSub');
-
-    const timer = setInterval(function() {
-        const elapsed = Date.now() - startedAt;
-        const sec     = Math.floor(elapsed / 1000);
-
+    let tries = 0;
+    const timer = setInterval(function () {
+        tries++;
         let opener = null;
         try { opener = window.opener; } catch (e) {}
-        let errFlag = opener ? opener.__spfGraphError : false;
+
+        let errFlag = false;
+        try { errFlag = opener ? !!opener.__spfGraphError : false; } catch (e) {}
         try { if (!errFlag && localStorage.getItem('spf_graph_error') === '1') errFlag = true; } catch (e) {}
         if (errFlag) { clearInterval(timer); window.close(); return; }
 
-        let data = opener ? opener.__spfGraphData : null;
+        let data = null;
+        try { data = opener ? opener.__spfGraphData : null; } catch (e) {}
         if (!data) {
             try { const raw = localStorage.getItem('spf_graph_data'); if (raw) data = JSON.parse(raw); } catch (e) {}
         }
         if (data && data.length) {
             clearInterval(timer);
-            document.getElementById('spfLoading').style.display = 'none';
-            try { renderAll(data); } catch (e) { console.error(e); }
+            let kv = [];
+            try { if (opener && typeof opener.getKvConditions === 'function') kv = opener.getKvConditions() || []; } catch (e) {}
+            try { init(Array.prototype.slice.call(data), kv); }
+            catch (e) { console.error(e); $('loadingText').textContent = '화면을 그리는 중 오류가 발생했습니다: ' + e.message; }
             return;
         }
-
-        /* 진행 상황 안내 (경과 시간 + 대량 데이터 안내) */
-        if (subEl) subEl.textContent = '경과 ' + sec + '초';
-        if (msgEl && sec >= 10) msgEl.textContent = '데이터가 많아 집계에 시간이 걸리고 있습니다…';
-
-        if (elapsed > MAX_MS) {   // 5분 초과 시에만 실패 처리
+        /* 결과가 많으면 서버 응답이 길어질 수 있어 기존 인터렉티브와 같이 5분까지 기다린다
+           (실패 · 결과없음은 부모창이 __spfGraphError 로 알려 준다) */
+        const sec = Math.floor(tries * 0.15);
+        if (tries % 7 === 0) $('loadingText').textContent = (sec >= 10 ? '데이터가 많아 집계에 시간이 걸리고 있습니다… ' : '데이터 집계 중… ') + '(' + sec + '초)';
+        if (tries > 2000) {
             clearInterval(timer);
-            document.getElementById('spfLoading').innerHTML =
-                '<p style="font-size:0.9rem;color:#EF4444;font-weight:700;margin:0;">데이터를 불러오지 못했습니다.</p>' +
-                '<p style="font-size:0.74rem;color:var(--ink-soft);font-weight:500;margin:0.4rem 0 0;">잠시 후 다시 시도하거나, 조회 조건을 좁혀 주세요.</p>';
+            $('loading').querySelector('.spinner').hidden = true;
+            $('loadingText').innerHTML = '<b style="color:var(--red)">데이터를 불러오지 못했습니다.</b><br>잠시 후 검색 화면에서 [인터렉티브] 를 다시 누르거나, 조회 조건을 좁혀 주세요.';
         }
-    }, STEP);
+    }, 150);
 })();
 
-/* ── 집계 유틸 ── */
-function esc(s) {
-    return (s == null ? '' : ('' + s)).replace(/[&<>"]/g, function(c) {
-        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+function init(rows, kvList) {
+    RAW = rows;
+    KV = {};
+    kvList.forEach(function (c) { if (c && c.key) KV[c.key] = c; });
+    DYN = Object.keys(KV).filter(function (k) { return rows.some(function (r) { return r[k] != null && String(r[k]).trim() !== ''; }); });
+    if (!hasPK()) unit = 'rows';
+
+    /* 브랜드 색 : 원본 분포 순으로 고정 */
+    countBy(RAW, keyOf('brand')).forEach(function (d) { brandColor(d[0]); });
+
+    bindUI();
+    $('loading').hidden = true;
+    $('app').hidden = false;
+    $('filterBar').hidden = false;
+    $('pageFoot').hidden = false;
+    /* 같은 데이터로 동적 그래프 열기 (/dash 화면에서만 — 경로가 있는 곳) */
+    if (location.pathname.indexOf('/dash/') === 0) $('toDynamic').hidden = false;
+    document.querySelectorAll('[data-unit]').forEach(function (b) {
+        if (b.getAttribute('data-unit') === 'product' && !hasPK()) b.disabled = true;
+        b.setAttribute('aria-pressed', b.getAttribute('data-unit') === unit ? 'true' : 'false');
     });
+    $('tbSub').textContent = '결과 ' + fmt(RAW.length) + '건' + (DYN.length ? ' · 동적 Key ' + DYN.length + '개' : '') + ' · 받은 시각 ' + new Date().toLocaleTimeString('ko-KR');
+    IX.ready = true;
+    renderAll();
 }
-function val(r, f) { return ((r[f] == null ? '' : r[f]) + '').trim(); }
-function countBy(data, field) {
-    const map = {};
-    data.forEach(function(r) { const v = val(r, field) || '(미정)'; map[v] = (map[v] || 0) + 1; });
-    return Object.entries(map).sort(function(a, b) { return b[1] - a[1]; });
+
+/* =====================================================
+   집계 유틸
+===================================================== */
+function keyOf(f) { return function (r) { return val(r, f) || EMPTY; }; }
+function speedKey(r) {
+    const s = parseFloat(r.aspd);
+    if (isNaN(s) || s <= 0) return EMPTY;
+    const b = Math.floor(s / 25) * 25;
+    return b + '~' + (b + 25);
 }
-/* 상위 n + '기타' 묶기 (3D 파이 가독성) */
-function groupTop(dist, n) {
+/** 분포 : [ [값, 개수], ... ] 개수 내림차순. 개수 = 집계 단위(제품/행) */
+function countBy(rows, keyFn) {
+    const m = new Map();
+    rows.forEach(function (r) {
+        const k = keyFn(r);
+        let a = m.get(k);
+        if (!a) m.set(k, a = { n: 0, s: new Set() });
+        a.n++;
+        if (r.productNo) a.s.add(r.productNo);
+    });
+    return Array.from(m.entries()).map(function (e) { return [e[0], unit === 'product' ? e[1].s.size : e[1].n]; })
+        .sort(function (a, b) { return b[1] - a[1]; });
+}
+function totalOf(rows) {
+    if (unit !== 'product') return rows.length;
+    const s = new Set(); rows.forEach(function (r) { if (r.productNo) s.add(r.productNo); }); return s.size;
+}
+function distinct(rows, f) { const s = new Set(); rows.forEach(function (r) { const v = val(r, f); if (v) s.add(v); }); return s.size; }
+function topWithOther(dist, n) {
     if (dist.length <= n) return dist;
     const top = dist.slice(0, n);
-    const rest = dist.slice(n).reduce((s, d) => s + d[1], 0);
-    if (rest > 0) top.push(['기타', rest]);
+    let rest = 0; dist.slice(n).forEach(function (d) { rest += d[1]; });
+    top.push([OTHER, rest]);
     return top;
 }
 
-/* ── KPI 카운트업 ── */
-function setKpiCount(id, target, unit) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (target == null || isNaN(target)) { el.innerHTML = '-<span class="kpi-unit">' + unit + '</span>'; return; }
-    const dur = 1200, start = performance.now();
-    function step(now) {
-        const p = Math.min(1, (now - start) / dur);
-        const e = 1 - Math.pow(1 - p, 3);
-        el.innerHTML = Math.round(target * e).toLocaleString('ko-KR') + '<span class="kpi-unit">' + unit + '</span>';
-        if (p < 1) requestAnimationFrame(step);
+/* Cramér's V (제품 기준이면 같은 제품 · 같은 조합은 한 번만) */
+function cramer(rows, ka, kb) {
+    const cells = new Map(), ra = new Map(), cb = new Map(), seen = new Set();
+    let n = 0;
+    rows.forEach(function (r) {
+        const a = ka(r), b = kb(r);
+        if (a === EMPTY || b === EMPTY) return;
+        if (unit === 'product') { const sk = r.productNo + '\u0001' + a + '\u0001' + b; if (seen.has(sk)) return; seen.add(sk); }
+        const ck = a + '\u0001' + b;
+        cells.set(ck, (cells.get(ck) || 0) + 1);
+        ra.set(a, (ra.get(a) || 0) + 1); cb.set(b, (cb.get(b) || 0) + 1); n++;
+    });
+    if (ra.size < 2 || cb.size < 2 || n < 10 || ra.size > 80 || cb.size > 80) return null;
+    let chi = 0;
+    ra.forEach(function (na, a) { cb.forEach(function (nb, b) { const e = na * nb / n, o = cells.get(a + '\u0001' + b) || 0; chi += (o - e) * (o - e) / e; }); });
+    const v = Math.sqrt(chi / (n * (Math.min(ra.size, cb.size) - 1)));
+    /* B 의 상위 값마다 가장 흔한 A */
+    const map = [];
+    Array.from(cb.entries()).sort(function (x, y) { return y[1] - x[1]; }).slice(0, 2).forEach(function (eb) {
+        let best = null, bn = 0;
+        ra.forEach(function (_, a) { const o = cells.get(a + '\u0001' + eb[0]) || 0; if (o > bn) { bn = o; best = a; } });
+        if (best != null) map.push({ b: eb[0], a: best, share: bn / eb[1] });
+    });
+    return { v: Math.min(1, v), map: map };
+}
+function vWord(v) { return v >= 0.6 ? '매우 강함' : v >= 0.4 ? '강함' : v >= 0.25 ? '보통' : '약함'; }
+
+/* =====================================================
+   필터
+===================================================== */
+function setFilter(f, k, test, render) {
+    if (k === OTHER) return;
+    filters = filters.filter(function (x) { return x.f !== f; });
+    filters.push({ f: f, k: k, test: test || function (r) { return (val(r, f) || EMPTY) === k; } });
+    if (render !== false) renderAll();
+}
+function applyFilters() {
+    FD = filters.length ? RAW.filter(function (r) { for (let i = 0; i < filters.length; i++) if (!filters[i].test(r)) return false; return true; }) : RAW;
+}
+function renderFilterBar() {
+    $('fbChips').innerHTML = filters.map(function (x, i) {
+        return '<button type="button" class="fchip" data-fi="' + i + '" title="이 필터 해제">' + esc(label(x.f)) + ' = ' + esc(x.k) + '<span class="x" aria-hidden="true">✕</span></button>';
+    }).join('');
+    $('fbClear').hidden = !filters.length;
+    $('fbHint').textContent = filters.length
+        ? '필터 적용 중 — ' + fmt(FD.length) + ' / ' + fmt(RAW.length) + '건'
+        : '차트의 막대 · 조각, 표의 ⌕ 버튼을 누르면 그 값으로 화면 전체(부품 현황 포함)를 걸러 봅니다.';
+}
+
+/* =====================================================
+   차트 공통
+===================================================== */
+Highcharts.setOptions({
+    lang: {
+        thousandsSep: ',', decimalPoint: '.', contextButtonTitle: '메뉴', downloadPNG: 'PNG 이미지로 저장', downloadJPEG: 'JPEG 이미지로 저장',
+        downloadSVG: 'SVG 로 저장', downloadPDF: 'PDF 로 저장', downloadCSV: 'CSV 다운로드', downloadXLS: 'Excel 다운로드',
+        viewData: '데이터 표 보기', hideData: '데이터 표 숨기기', printChart: '인쇄', viewFullscreen: '전체 화면', exitFullscreen: '전체 화면 종료'
     }
-    requestAnimationFrame(step);
+});
+function baseOpts(extra) {
+    const d = isDark();
+    const txt = d ? '#E5E5EA' : '#1D1D1F', sub = d ? '#98989D' : '#6E6E73', grid = d ? 'rgba(255,255,255,.08)' : '#EEF0F3';
+    return Highcharts.merge({
+        chart: { backgroundColor: 'transparent', style: { fontFamily: "'Pretendard Variable', -apple-system, 'Malgun Gothic', sans-serif" }, spacing: [8, 6, 8, 6] },
+        title: { text: null }, credits: { enabled: false }, colors: palette(),
+        legend: { itemStyle: { color: txt, fontWeight: '600', fontSize: '12px' }, itemHoverStyle: { color: d ? '#fff' : '#000' } },
+        xAxis: { labels: { style: { color: sub, fontSize: '11.5px' } }, lineColor: grid, tickColor: grid, gridLineColor: grid },
+        yAxis: { title: { text: null }, labels: { style: { color: sub, fontSize: '11px' } }, gridLineColor: grid },
+        tooltip: { backgroundColor: d ? '#2C2C2E' : '#fff', borderColor: d ? '#48484A' : '#E5E5EA', borderRadius: 10, style: { color: txt, fontSize: '12px' }, shadow: false },
+        plotOptions: {
+            series: { animation: REDUCED ? false : { duration: 350 }, borderWidth: 0, cursor: 'pointer' },
+            column: { borderRadius: 4 }, bar: { borderRadius: 4 },
+            pie: { borderWidth: 2, borderColor: d ? '#1C1C1E' : '#fff' }
+        },
+        exporting: { buttons: { contextButton: { symbolStroke: sub, theme: { fill: 'transparent' } } } }
+    }, extra || {});
 }
+function drawChart(id, opts) {
+    if (CH[id]) { try { CH[id].destroy(); } catch (e) {} }
+    CH[id] = Highcharts.chart(id, opts);
+}
+function labelStyle() { return { fontSize: '11px', fontWeight: '600', textOutline: 'none', color: isDark() ? '#E5E5EA' : '#3C3C43' }; }
 
-/* ════════════════ 차트 헬퍼 (3D / 2D 혼합) ════════════════ */
+/* 3D 차트 드래그 회전 (Highcharts 3D 공식 예제 방식) — 드래그 직후의 클릭은 필터로 보지 않는다 */
+function enableDrag3d(chart, lim) {
+    if (!chart || !chart.container) return;
+    lim = lim || { a: [-10, 60], b: [-70, 70] };
+    function start(e0) {
+        e0 = chart.pointer.normalize(e0);
+        const x0 = e0.chartX, y0 = e0.chartY, o = chart.options.chart.options3d, a0 = o.alpha, b0 = o.beta;
+        const off = [];
+        chart.__dragged = false;
+        function move(e) {
+            e = chart.pointer.normalize(e);
+            if (Math.abs(e.chartX - x0) + Math.abs(e.chartY - y0) > 5) chart.__dragged = true;
+            if (!chart.__dragged) return;
+            const a = Math.max(lim.a[0], Math.min(lim.a[1], a0 + (e.chartY - y0) / 5));
+            const b = Math.max(lim.b[0], Math.min(lim.b[1], b0 + (x0 - e.chartX) / 5));
+            chart.update({ chart: { options3d: { alpha: a, beta: b } } }, undefined, undefined, false);
+        }
+        function end() { off.forEach(function (u) { u(); }); off.length = 0; setTimeout(function () { chart.__dragged = false; }, 0); }
+        off.push(Highcharts.addEvent(document, 'mousemove', move), Highcharts.addEvent(document, 'touchmove', move),
+                 Highcharts.addEvent(document, 'mouseup', end), Highcharts.addEvent(document, 'touchend', end));
+    }
+    Highcharts.addEvent(chart.container, 'mousedown', start);
+    Highcharts.addEvent(chart.container, 'touchstart', start);
+}
+function dragged(id) { return CH[id] && CH[id].__dragged; }
 
-/* 3D 도넛/파이 */
-function pie3D(id, dist, donut) {
-    Highcharts.chart(id, {
-        chart: { type: 'pie', options3d: { enabled: true, alpha: 52, beta: 0 }, spacing: [4, 0, 4, 0] },
-        tooltip: { pointFormat: '<b>{point.y:,.0f}건</b> ({point.percentage:.1f}%)' },
+/** 3D 도넛/파이 : 조각을 누르면 필터 */
+function pieChart(id, dist, donut, f, colorFn) {
+    const total = dist.reduce(function (s, d) { return s + d[1]; }, 0);
+    const data = topWithOther(dist, 9).map(function (d, i) {
+        return { name: d[0], y: d[1], color: d[0] === OTHER || d[0] === EMPTY ? (isDark() ? '#48484A' : '#C7C7CC') : (colorFn ? colorFn(d[0]) : palette()[i % palette().length]) };
+    });
+    drawChart(id, baseOpts({
+        chart: { type: 'pie', options3d: { enabled: true, alpha: 48, beta: 0 } },
+        tooltip: { pointFormatter: function () { return '<b>' + fmt(this.y) + '</b> ' + unitWord() + ' (' + fmt(pct(this.y, total), 1) + '%)'; } },
         plotOptions: { pie: {
-            depth: 42, innerSize: donut ? '52%' : '0%',
-            dataLabels: {
-                enabled: true,
-                format: '{point.name}<br><span style="opacity:0.55;font-weight:500">{point.percentage:.1f}%</span>',
-                distance: 14, connectorWidth: 1,
-                filter: { property: 'percentage', operator: '>', value: 3.5 }
-            },
-            showInLegend: false
+            innerSize: donut ? '55%' : '0%', depth: 42, borderWidth: 1,
+            dataLabels: { enabled: true, distance: 16, style: labelStyle(), formatter: function () { return this.point.percentage >= 3 ? esc(this.point.name) + ' <span style="opacity:.6">' + fmt(this.point.percentage, 1) + '%</span>' : null; } },
+            point: { events: { click: function () { setFilter(f, this.name); } } }
         } },
-        series: [{ name: '건수', colorByPoint: true, data: dist.map(function(d, i) { return { name: d[0], y: d[1], color: vg(i) }; }) }]
+        exporting: { filename: 'interactive_' + f },
+        series: [{ name: label(f), data: data }]
+    }));
+}
+/** 막대 : column 은 3D(드래그 회전), bar 는 2D. 막대를 누르면 필터 */
+function barChart(id, dist, type, f, colorIdx, keyFn) {
+    const total = totalOf(FD);
+    const is3d = type === 'column';
+    const base = palette()[colorIdx];
+    drawChart(id, baseOpts({
+        chart: is3d
+            ? { type: 'column', options3d: { enabled: true, alpha: 12, beta: 16, depth: 60, viewDistance: 30,
+                  frame: { bottom: { size: 1, color: isDark() ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)' } } }, marginTop: 20 }
+            : { type: type },
+        xAxis: { categories: dist.map(function (d) { return d[0]; }), labels: { rotation: is3d && dist.length > 6 ? -35 : 0 } },
+        yAxis: { allowDecimals: false },
+        legend: { enabled: false },
+        tooltip: { formatter: function () { return '<b>' + esc(this.key) + '</b><br>' + fmt(this.y) + ' ' + unitWord() + ' (' + fmt(pct(this.y, total), 1) + '%)'; } },
+        plotOptions: {
+            column: is3d ? { depth: 36, borderRadius: 0, edgeWidth: 0, colorByPoint: false } : {},
+            series: {
+                color: is3d ? { linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 }, stops: gradStops(base) } : base,
+                dataLabels: { enabled: true, style: labelStyle() },
+                point: { events: { click: function () {
+                    if (dragged(id)) return;
+                    const k = dist[this.x][0];
+                    if (typeof f === 'function') f(k); else setFilter(f, k, keyFn ? function (r) { return keyFn(r) === k; } : null);
+                } } }
+            }
+        },
+        exporting: { filename: 'interactive_' + (typeof f === 'string' ? f : id) },
+        series: [{ name: unitWord() + ' 수', data: dist.map(function (d) { return d[1]; }) }]
+    }));
+    if (is3d) enableDrag3d(CH[id]);
+}
+/* 위 → 아래로 진해지는 그라데이션 (Thymeleaf 이중 대괄호를 피해 배열을 따로 만든다) */
+function gradStops(hex) {
+    const top = Highcharts.color(hex).brighten(0.22).get('rgb');
+    const s1 = [0, top], s2 = [1, hex];
+    return [s1, s2];
+}
+function distNote(id, dist, f) {
+    const total = dist.reduce(function (s, d) { return s + d[1]; }, 0);
+    const real = dist.filter(function (d) { return d[0] !== EMPTY; });
+    if (!real.length) { $(id).innerHTML = '<span class="muted">값이 없습니다.</span>'; return; }
+    let h = fmt(real.length) + '종 · 1위 <b>' + esc(real[0][0]) + '</b> ' + fmt(pct(real[0][1], total), 1) + '%';
+    if (real.length > 2) { const c3 = real[0][1] + real[1][1] + real[2][1]; h += ' · 상위 3개 ' + fmt(pct(c3, total), 1) + '%'; }
+    const emp = dist.filter(function (d) { return d[0] === EMPTY; })[0];
+    if (emp && pct(emp[1], total) >= 5) h += ' · <span style="color:var(--amber)">값 없음 ' + fmt(pct(emp[1], total), 0) + '%</span>';
+    if (unit === 'product') h += ' <span class="muted">(제품 기준)</span>';
+    $(id).innerHTML = h;
+}
+
+/* =====================================================
+   UI 바인딩
+===================================================== */
+function bindUI() {
+    $('fbChips').addEventListener('click', function (e) { const b = e.target.closest('[data-fi]'); if (b) { filters.splice(Number(b.getAttribute('data-fi')), 1); renderAll(); } });
+    $('fbClear').addEventListener('click', function () { filters = []; renderAll(); });
+    document.querySelectorAll('[data-unit]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            unit = b.getAttribute('data-unit');
+            document.querySelectorAll('[data-unit]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+            renderAll();
+        });
+    });
+    document.querySelectorAll('[data-bpm]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            brandPartMode = b.getAttribute('data-bpm');
+            document.querySelectorAll('[data-bpm]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+            renderBrandPartChart();
+        });
+    });
+    $('themeBtn').addEventListener('click', function () {
+        const d = !isDark();
+        document.documentElement.classList.toggle('dark', d);
+        try { localStorage.setItem('theme', d ? 'dark' : 'light'); } catch (e) {}
+        renderAll();
+    });
+    window.addEventListener('storage', function (e) {
+        if (e.key !== 'theme') return;
+        const d = e.newValue !== 'light';
+        if (d !== isDark()) { document.documentElement.classList.toggle('dark', d); renderAll(); }
+    });
+    $('toDynamic').addEventListener('click', function () { location.href = '/dash/searchDynamicGraph'; });
+
+    /* 부품 목록 : 검색 · 정렬 · 브랜드 칩 · CSV · 행 필터 */
+    $('partSearch').addEventListener('input', renderBrandPartTable);
+    document.querySelectorAll('#partTable th.sortable').forEach(function (th) {
+        th.addEventListener('click', function () {
+            const k = th.getAttribute('data-sort');
+            partSort = { key: k, dir: partSort.key === k ? -partSort.dir : (['cnt', 'prodCnt', 'rate'].indexOf(k) !== -1 ? -1 : 1) };
+            renderBrandPartTable();
+        });
+    });
+    $('brandChips').addEventListener('click', function (e) {
+        const c = e.target.closest('[data-brand]');
+        if (!c) return;
+        activeBrand = c.getAttribute('data-brand');
+        $('brandChips').querySelectorAll('[data-brand]').forEach(function (x) { x.setAttribute('aria-pressed', x === c ? 'true' : 'false'); });
+        renderBrandPartTable();
+    });
+    $('partCsv').addEventListener('click', downloadPartCsv);
+    document.addEventListener('click', function (e) {
+        const b = e.target.closest('[data-rf]');
+        if (b) { setFilter(b.getAttribute('data-rf'), b.getAttribute('data-rv')); window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' }); return; }
+        const g = e.target.closest('[data-jump]');
+        if (g) { const el = $(g.getAttribute('data-jump')); el.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' }); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
     });
 }
 
-/* 2D 도넛 */
-function donut2D(id, dist) {
-    Highcharts.chart(id, {
-        chart: { type: 'pie' },
-        tooltip: { pointFormat: '<b>{point.y:,.0f}건</b> ({point.percentage:.1f}%)' },
-        plotOptions: { pie: {
-            innerSize: '64%',
-            dataLabels: { enabled: true, format: '{point.name}<br><span style="opacity:0.55;font-weight:500">{point.percentage:.1f}%</span>', distance: 12 },
-            showInLegend: false
-        } },
-        series: [{ name: '건수', colorByPoint: true, data: dist.map(function(d, i) { return { name: d[0], y: d[1], color: vg(i) }; }) }]
+/* =====================================================
+   전체 렌더
+===================================================== */
+function renderAll() {
+    applyFilters();
+    renderFilterBar();
+    renderKpis();
+    renderDistributions();
+    renderDynCards();
+    renderPartsAll();
+    renderInsights();
+    IX.listeners.forEach(function (fn) { try { fn(); } catch (e) { console.error(e); } });
+}
+
+function renderKpis() {
+    const speeds = FD.map(function (r) { return parseFloat(r.aspd); }).filter(function (n) { return !isNaN(n) && n > 0; });
+    const avg = speeds.length ? Math.round(speeds.reduce(function (a, b) { return a + b; }, 0) / speeds.length) : null;
+    const mn = speeds.length ? Math.min.apply(null, speeds) : null, mx = speeds.length ? Math.max.apply(null, speeds) : null;
+    const items = [
+        ['전체 결과', fmt(FD.length), '건', filters.length ? '전체 ' + fmt(RAW.length) + '건 중' : '제품 × 자재 행', 'var(--blue)'],
+        ['고유 제품 수', fmt(distinct(FD, 'productNo')), '종', '제품번호 기준', '#5856D6'],
+        ['고유 자재 수', fmt(distinct(FD, 'partNo')), '개', '품번 기준', '#30B0C7'],
+        ['브랜드 수', fmt(distinct(FD, 'brand')), '개', '기종 ' + fmt(distinct(FD, 'gisong')) + '종', 'var(--green)'],
+        ['평균 속도', avg == null ? '-' : fmt(avg), 'm/min', mn == null ? '속도 값 없음' : '범위 ' + fmt(mn) + ' ~ ' + fmt(mx), '#FF9F0A']
+    ];
+    $('kpis').innerHTML = items.map(function (it) {
+        return '<div class="kpi" style="color:' + it[4] + '"><p class="k-label">' + it[0] + '</p><p class="k-val">' + it[1] + '<small>' + it[2] + '</small></p><p class="k-sub">' + esc(it[3]) + '</p></div>';
+    }).join('');
+    $('heroBadge').textContent = '총 ' + fmt(FD.length) + '건 · 제품 ' + fmt(distinct(FD, 'productNo')) + '종' + (filters.length ? ' (필터 적용)' : '');
+}
+
+/* ── 분포 6종 ── */
+function renderDistributions() {
+    const brand = countBy(FD, keyOf('brand'));
+    pieChart('chartBrand', brand, true, 'brand', brandColor);
+    distNote('noteBrand', brand);
+
+    const gis = countBy(FD, keyOf('gisong'));
+    barChart('chartGisong', gis.slice(0, 12), 'column', 'gisong', 1);
+    distNote('noteGisong', gis);
+
+    const sp = countBy(FD, speedKey).filter(function (d) { return d[0] !== EMPTY; })
+        .sort(function (a, b) { return parseInt(a[0], 10) - parseInt(b[0], 10); });
+    barChart('chartSpeed', sp, 'column', '속도구간', 5, speedKey);
+    const spAll = countBy(FD, speedKey);
+    distNote('noteSpeed', spAll);
+
+    const asp = countBy(FD, keyOf('aspscd'));
+    pieChart('chartAspscd', asp, false, 'aspscd');
+    distNote('noteAspscd', asp);
+
+    const cob = countBy(FD, keyOf('el_COB'));
+    pieChart('chartCob', cob, true, 'el_COB');
+    distNote('noteCob', cob);
+
+    /* 관통 / WALL : 두 컬럼을 한 차트에 — 누르면 해당 컬럼으로 필터 */
+    const eth = countBy(FD, keyOf('el_ETHRU')).map(function (d) { const k = d[0]; return ['관통:' + k, d[1], 'el_ETHRU', k ]; });
+    const wal = countBy(FD, keyOf('el_BWALLT')).map(function (d) { const k = d[0]; return ['WALL:' + k, d[1], 'el_BWALLT', k ]; });
+    const etc = eth.concat(wal);
+    barChart('chartEtc', etc, 'bar', function (k) {
+        const hit = etc.filter(function (d) { return d[0] === k; })[0];
+        if (hit) setFilter(hit[2], hit[3]);
+    }, 2);
+    const ethReal = eth.filter(function (d) { return d[3] !== EMPTY; }), walReal = wal.filter(function (d) { return d[3] !== EMPTY; });
+    const tot = totalOf(FD);
+    $('noteEtc').innerHTML = (ethReal.length ? '관통 <b>' + esc(ethReal[0][3]) + '</b> ' + fmt(pct(ethReal[0][1], tot), 1) + '%' : '관통 값 없음')
+        + ' · ' + (walReal.length ? 'WALL <b>' + esc(walReal[0][3]) + '</b> ' + fmt(pct(walReal[0][1], tot), 1) + '%' : 'WALL 값 없음');
+}
+
+/* ── 동적 Key 카드 ── */
+function renderDynCards() {
+    Object.keys(CH).forEach(function (id) { if (id.indexOf('dk_') === 0) { try { CH[id].destroy(); } catch (e) {} delete CH[id]; } });
+    if (!DYN.length) { $('secDyn').hidden = true; return; }
+    $('secDyn').hidden = false;
+    $('dynDesc').textContent = '검색 화면에서 넣은 동적 조건 Key ' + DYN.length + '개 · 막대를 누르면 걸러 봅니다';
+    const total = totalOf(FD);
+    $('dynGrid').innerHTML = DYN.map(function (k, i) {
+        const c = KV[k];
+        const cond = c.value ? (OP_LABEL[c.op] || c.op) + ' ' + c.value : '컬럼만';
+        return '<div style="min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span class="dcard-key">' + esc(k) + '</span><span class="tag cond">' + esc(cond) + '</span></div>'
+            + '<div id="dk_' + i + '" style="height:200px;"></div><p class="card-note" id="dkn_' + i + '"></p></div>';
+    }).join('');
+    DYN.forEach(function (k, i) {
+        const dist = countBy(FD, keyOf(k));
+        barChart('dk_' + i, topWithOther(dist, 8), 'bar', k, 3);
+        CH['dk_' + i].update({ exporting: { enabled: false }, chart: { height: 200 } }, true, false, false);
+        const real = dist.filter(function (d) { return d[0] !== EMPTY; });
+        const emp = dist.filter(function (d) { return d[0] === EMPTY; })[0];
+        $('dkn_' + i).innerHTML = fmt(real.length) + '종' + (real.length ? ' · 1위 <b>' + esc(real[0][0]) + '</b> ' + fmt(pct(real[0][1], total), 1) + '%' : '')
+            + (emp ? ' · <span style="color:var(--amber)">값 없음 ' + fmt(pct(emp[1], total), 0) + '%</span>' : '');
     });
 }
 
-/* 3D 컬럼 */
-function column3D(id, dist) {
-    Highcharts.chart(id, {
-        chart: { type: 'column', options3d: { enabled: true, alpha: 14, beta: 18, depth: 70, viewDistance: 28 }, marginTop: 28 },
-        xAxis: { categories: dist.map(d => d[0]), labels: { rotation: dist.length > 6 ? -38 : 0, style: { fontSize: '10px' } } },
-        yAxis: { title: { text: null }, allowDecimals: false },
-        tooltip: { pointFormat: '<b>{point.y:,.0f}건</b>' },
-        plotOptions: { column: { depth: 55, colorByPoint: true, edgeWidth: 0, groupPadding: 0.12,
-            dataLabels: { enabled: dist.length <= 8, style: { color: TEXT_COLOR, textOutline: 'none', fontWeight: '700', fontSize: '10px' } } } },
-        series: [{ name: '건수', data: dist.map(function(d, i) { return { y: d[1], color: vg(i) }; }) }]
-    });
-}
-
-/* 2D 부드러운 추세 */
-function areaChart(id, dist, gi) {
-    Highcharts.chart(id, {
-        chart: { type: 'areaspline' },
-        xAxis: { categories: dist.map(d => d[0]) },
-        yAxis: { title: { text: null }, allowDecimals: false },
-        tooltip: { pointFormat: '<b>{point.y:,.0f}건</b>' },
-        plotOptions: { areaspline: {
-            fillColor: { linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 }, stops: [[0, GRAD[gi || 2][0]], [1, 'rgba(56,189,248,0.02)']] },
-            color: GRAD[gi || 2][1], lineWidth: 3,
-            marker: { radius: 4, fillColor: '#fff', lineColor: GRAD[gi || 2][1], lineWidth: 2 }
-        } },
-        series: [{ name: '건수', data: dist.map(d => d[1]) }]
-    });
-}
-
-/* 2D 가로 막대 */
-function barChart(id, dist, gi) {
-    Highcharts.chart(id, {
-        chart: { type: 'bar' },
-        xAxis: { categories: dist.map(d => d[0]) },
-        yAxis: { title: { text: null }, allowDecimals: false },
-        tooltip: { pointFormat: '<b>{point.y:,.0f}건</b>' },
-        plotOptions: { bar: { color: hg(gi || 3), dataLabels: { enabled: true, style: { color: TEXT_COLOR, textOutline: 'none', fontWeight: '700' } } } },
-        series: [{ name: '건수', data: dist.map(d => d[1]) }]
-    });
-}
-
-/* ── 전체 렌더 ── */
+/* =====================================================
+   ★ 부품 현황 (기존 구성 유지 + 보강)
+===================================================== */
 let _aggBrandParts = [];
+let _brandProducts = {};
 
-function renderAll(data) {
-    const total = data.length;
-    document.getElementById('totalBadge').textContent = '총 ' + total.toLocaleString('ko-KR') + ' 건';
-    setKpiCount('kpiTotal', total, '건');
-
-    const brandSet = new Set(data.map(r => val(r, 'brand')).filter(Boolean));
-    setKpiCount('kpiProducts', new Set(data.map(r => r.productNo).filter(Boolean)).size, '종');
-    setKpiCount('kpiParts',    new Set(data.map(r => r.partNo).filter(Boolean)).size, '개');
-    setKpiCount('kpiBrands',   brandSet.size, '개');
-
-    const speeds = data.map(r => parseFloat(r.aspd)).filter(n => !isNaN(n) && n > 0);
-    setKpiCount('kpiSpeedAvg', speeds.length ? Math.round(speeds.reduce((a, b) => a + b, 0) / speeds.length) : null, 'm/min');
-
-    countBy(data, 'brand').forEach(d => brandColor(d[0]));
-
-    /* 차트: 3D / 2D 혼합 */
-    pie3D('chartBrand', groupTop(countBy(data, 'brand'), 9), true);        // 3D 도넛
-    column3D('chartGisong', countBy(data, 'gisong').slice(0, 10));         // 3D 컬럼
-    pie3D('chartCob', countBy(data, 'el_COB'), false);                     // 3D 파이
-
-    const speedMap = {};
-    speeds.forEach(function(s) { const b = Math.floor(s / 25) * 25; const l = b + '~' + (b + 25); speedMap[l] = (speedMap[l] || 0) + 1; });
-    areaChart('chartSpeed', Object.entries(speedMap).sort((a, b) => parseInt(a[0]) - parseInt(b[0])), 2);  // 2D 추세
-
-    donut2D('chartAspscd', countBy(data, 'aspscd'));                       // 2D 도넛
-
-    const ethru = countBy(data, 'el_ETHRU').map(d => ['관통:' + d[0], d[1]]);
-    const wall  = countBy(data, 'el_BWALLT').map(d => ['WALL:' + d[0], d[1]]);
-    barChart('chartEtc', ethru.concat(wall), 3);                          // 2D 막대
-
-    /* 브랜드별 부품 */
-    _aggBrandParts = aggBrandParts(data);
-    renderBrandPartChart(_aggBrandParts);
-    buildBrandChips(_aggBrandParts);
-    renderBrandPartTable('__ALL__');
-
-    /* 요약 테이블 */
-    renderProductSummary(data);
-    renderPartSummary(data);
-
-    document.getElementById('partSearch').addEventListener('input', function() { renderBrandPartTable(_activeBrand); });
-}
-
-/* ── 브랜드별 부품 집계 ── */
-function aggBrandParts(data) {
-    const map = {};
-    data.forEach(function(r) {
-        const brand  = val(r, 'brand') || '(미정)';
-        const partNo = val(r, 'partNo');
-        const key = brand + '' + partNo;
-        if (!map[key]) map[key] = { brand: brand, partNo: partNo, partName: val(r, 'partName'), spec: val(r, 'spec'), cnt: 0, products: new Set() };
-        map[key].cnt++;
-        if (r.productNo) map[key].products.add(r.productNo);
+function renderPartsAll() {
+    _aggBrandParts = aggBrandParts(FD);
+    _brandProducts = {};
+    FD.forEach(function (r) {
+        const b = val(r, 'brand') || EMPTY;
+        (_brandProducts[b] || (_brandProducts[b] = new Set())).add(r.productNo);
     });
-    return Object.values(map).map(function(o) { o.prodCnt = o.products.size; return o; })
-        .sort(function(a, b) { return a.brand === b.brand ? b.cnt - a.cnt : a.brand.localeCompare(b.brand); });
+    _aggBrandParts.forEach(function (o) { const bp = _brandProducts[o.brand]; o.rate = bp && bp.size ? o.prodCnt / bp.size : 0; });
+    renderBrandPartChart();
+    buildBrandChips();
+    renderBrandPartTable();
+    renderProductSummary();
+    renderPartSummary();
 }
 
-/* ── 브랜드별 부품 구성 (2D 누적 막대 — 비교 가독성 우선) ── */
-function renderBrandPartChart(agg) {
+/* 브랜드 × 품번 집계 */
+function aggBrandParts(data) {
+    const map = new Map();
+    data.forEach(function (r) {
+        const brand = val(r, 'brand') || EMPTY;
+        const partNo = val(r, 'partNo');
+        const key = brand + '\u0001' + partNo;
+        let o = map.get(key);
+        if (!o) map.set(key, o = { brand: brand, partNo: partNo, partName: val(r, 'partName'), spec: val(r, 'spec'), cnt: 0, products: new Set() });
+        o.cnt++;
+        if (r.productNo) o.products.add(r.productNo);
+    });
+    return Array.from(map.values()).map(function (o) { o.prodCnt = o.products.size; return o; });
+}
+
+/* 브랜드별 부품 구성 (누적 막대) — x축: 상위 브랜드 / 누적: 상위 부품(품명) + 기타 */
+function renderBrandPartChart() {
+    const agg = _aggBrandParts;
     const brandTotal = {};
-    agg.forEach(o => brandTotal[o.brand] = (brandTotal[o.brand] || 0) + o.cnt);
-    const topBrands = Object.entries(brandTotal).sort((a, b) => b[1] - a[1]).slice(0, 10).map(e => e[0]);
+    agg.forEach(function (o) { brandTotal[o.brand] = (brandTotal[o.brand] || 0) + o.cnt; });
+    const topBrands = Object.entries(brandTotal).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 10).map(function (e) { return e[0]; });
     const brandSet = new Set(topBrands);
 
     const partTotal = {};
-    agg.forEach(function(o) {
+    agg.forEach(function (o) {
         if (!brandSet.has(o.brand)) return;
-        const p = o.partName || o.partNo || '(미정)';
+        const p = o.partName || o.partNo || EMPTY;
         partTotal[p] = (partTotal[p] || 0) + o.cnt;
     });
-    const topParts   = Object.entries(partTotal).sort((a, b) => b[1] - a[1]).slice(0, 12).map(e => e[0]);
+    const topParts = Object.entries(partTotal).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 12).map(function (e) { return e[0]; });
     const topPartSet = new Set(topParts);
 
     const m = {};
-    topBrands.forEach(b => m[b] = {});
-    agg.forEach(function(o) {
+    topBrands.forEach(function (b) { m[b] = {}; });
+    agg.forEach(function (o) {
         if (!m[o.brand]) return;
-        const p   = o.partName || o.partNo || '(미정)';
-        const key = topPartSet.has(p) ? p : '기타';
+        const p = o.partName || o.partNo || EMPTY;
+        const key = topPartSet.has(p) ? p : OTHER;
         m[o.brand][key] = (m[o.brand][key] || 0) + o.cnt;
     });
 
-    const seriesNames = topParts.concat(['기타']);
-    const series = seriesNames.map(function(p, i) {
-        return { name: p, data: topBrands.map(b => m[b][p] || 0), color: p === '기타' ? '#C7CAD1' : vg(i) };
+    const seriesNames = topParts.concat([OTHER]);
+    const pal = palette();
+    const series = seriesNames.map(function (p, i) {
+        return { name: p, data: topBrands.map(function (b) { return m[b][p] || 0; }), color: p === OTHER ? (isDark() ? '#48484A' : '#C7C7CC') : pal[i % pal.length] };
     });
+    const share = brandPartMode === 'share';
 
-    Highcharts.chart('chartBrandPart', {
-        chart: { type: 'bar' },
+    drawChart('chartBrandPart', baseOpts({
+        chart: { type: 'bar', height: Math.max(360, topBrands.length * 42 + 120) },
         xAxis: { categories: topBrands },
-        yAxis: { title: { text: '사용 건수', style: { color: AXIS_COLOR } }, allowDecimals: false, reversedStacks: false },
-        legend: { reversed: true, maxHeight: 80 },
-        tooltip: { shared: false, headerFormat: '<b>{point.key}</b><br>', pointFormat: '{series.name}: <b>{point.y:,.0f}건</b>' },
-        plotOptions: { series: { stacking: 'normal', borderWidth: 0, groupPadding: 0.08 } },
+        yAxis: { title: { text: share ? '구성비 (%)' : '사용 건수' }, allowDecimals: false, reversedStacks: false, max: share ? 100 : null },
+        legend: { reversed: false, maxHeight: 90 },
+        tooltip: { shared: false, formatter: function () {
+            return '<b>' + esc(this.key) + '</b><br><span style="color:' + this.color + '">●</span> ' + esc(this.series.name) + ': <b>' + fmt(this.y) + '건</b>'
+                + ' (' + fmt(share ? this.percentage : pct(this.y, brandTotal[this.key]), 1) + '%)';
+        } },
+        plotOptions: { series: { stacking: share ? 'percent' : 'normal', groupPadding: 0.08,
+            point: { events: { click: function () { setFilter('brand', topBrands[this.x]); } } } } },
+        exporting: { filename: 'brand_part_mix' },
         series: series
-    });
+    }));
 }
 
-/* ── 브랜드 필터 칩 ── */
-let _activeBrand = '__ALL__';
-function buildBrandChips(agg) {
+/* 브랜드 칩 */
+function buildBrandChips() {
     const totals = {};
-    agg.forEach(o => totals[o.brand] = (totals[o.brand] || 0) + o.cnt);
-    const brands = Object.entries(totals).sort((a, b) => b[1] - a[1]);
-    const allCnt = brands.reduce((s, b) => s + b[1], 0);
-
-    let html = '<span class="brand-chip active" data-brand="__ALL__">전체 <span class="cnt">' + allCnt + '</span></span>';
-    brands.forEach(function(b) {
-        const idx = brandColor(b[0]);
-        html += '<span class="brand-chip" data-brand="' + encodeURIComponent(b[0]) + '">' +
-                '<span style="width:9px;height:9px;border-radius:50%;background:' + SOLID[idx] + ';display:inline-block;"></span>' +
-                esc(b[0]) + ' <span class="cnt">' + b[1] + '</span></span>';
+    _aggBrandParts.forEach(function (o) { totals[o.brand] = (totals[o.brand] || 0) + o.cnt; });
+    const brands = Object.entries(totals).sort(function (a, b) { return b[1] - a[1]; });
+    const allCnt = brands.reduce(function (s, b) { return s + b[1]; }, 0);
+    if (activeBrand !== '__ALL__' && !totals[activeBrand]) activeBrand = '__ALL__';
+    let html = '<button type="button" class="brand-chip" data-brand="__ALL__" aria-pressed="' + (activeBrand === '__ALL__') + '">전체 <span class="cnt">' + fmt(allCnt) + '</span></button>';
+    brands.forEach(function (b) {
+        html += '<button type="button" class="brand-chip" data-brand="' + esc(b[0]) + '" aria-pressed="' + (activeBrand === b[0]) + '">'
+            + '<span class="dot" style="background:' + brandColor(b[0]) + '"></span>' + esc(b[0]) + ' <span class="cnt">' + fmt(b[1]) + '</span></button>';
     });
-    const box = document.getElementById('brandChips');
-    box.innerHTML = html;
-    box.querySelectorAll('.brand-chip').forEach(function(chip) {
-        chip.addEventListener('click', function() {
-            box.querySelectorAll('.brand-chip').forEach(c => c.classList.remove('active'));
-            chip.classList.add('active');
-            _activeBrand = chip.getAttribute('data-brand');
-            renderBrandPartTable(_activeBrand);
-        });
-    });
+    $('brandChips').innerHTML = html;
 }
 
-/* ── 브랜드별 부품 목록 테이블 ── */
-function renderBrandPartTable(brandKey) {
-    _activeBrand = brandKey;
-    const q = (document.getElementById('partSearch').value || '').trim().toLowerCase();
+/* 브랜드별 부품 목록 */
+function currentPartRows() {
+    const q = ($('partSearch').value || '').trim().toLowerCase();
     let rows = _aggBrandParts;
-    if (brandKey && brandKey !== '__ALL__') {
-        const b = decodeURIComponent(brandKey);
-        rows = rows.filter(o => o.brand === b);
-    }
-    if (q) {
-        rows = rows.filter(o =>
-            (o.partNo + '').toLowerCase().includes(q) ||
-            (o.partName + '').toLowerCase().includes(q) ||
-            (o.spec + '').toLowerCase().includes(q));
-    }
-    rows = rows.slice().sort((a, b) => b.cnt - a.cnt);
-    const maxCnt = rows.reduce((m, o) => Math.max(m, o.cnt), 1);
-
-    document.getElementById('brandPartCountInfo').textContent = rows.length.toLocaleString('ko-KR') + ' 개 부품';
-
-    document.getElementById('brandPartBody').innerHTML = rows.slice(0, 500).map(function(o) {
-        const idx = brandColor(o.brand);
-        const pct = Math.round(o.cnt / maxCnt * 100);
-        return '<tr>' +
-            '<td><span class="brand-badge" style="background:' + SOLID[idx] + ';">' + esc(o.brand) + '</span></td>' +
-            '<td style="font-weight:600;">' + esc(o.partNo || '-') + '</td>' +
-            '<td>' + esc(o.partName || '-') + '</td>' +
-            '<td style="color:var(--ink-soft);">' + esc(o.spec || '-') + '</td>' +
-            '<td class="num bar-cell"><span class="bar-fill" style="width:' + pct + '%;"></span>' + o.cnt + '</td>' +
-            '<td class="num">' + o.prodCnt + '</td>' +
-        '</tr>';
-    }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:1.5rem;">데이터가 없습니다.</td></tr>';
+    if (activeBrand !== '__ALL__') rows = rows.filter(function (o) { return o.brand === activeBrand; });
+    if (q) rows = rows.filter(function (o) {
+        return (o.partNo + '').toLowerCase().indexOf(q) !== -1 || (o.partName + '').toLowerCase().indexOf(q) !== -1 || (o.spec + '').toLowerCase().indexOf(q) !== -1;
+    });
+    const k = partSort.key, d = partSort.dir;
+    return rows.slice().sort(function (a, b) {
+        const x = a[k], y = b[k];
+        if (typeof x === 'number') return (x - y) * d || (b.cnt - a.cnt);
+        return String(x || '').localeCompare(String(y || ''), 'ko', { numeric: true }) * d || (b.cnt - a.cnt);
+    });
+}
+function renderBrandPartTable() {
+    const rows = currentPartRows();
+    partRowsShown = rows;
+    document.querySelectorAll('#partTable th.sortable').forEach(function (th) {
+        if (th.getAttribute('data-sort') === partSort.key) th.setAttribute('aria-sort', partSort.dir < 0 ? 'descending' : 'ascending');
+        else th.removeAttribute('aria-sort');
+    });
+    const maxCnt = rows.reduce(function (m, o) { return Math.max(m, o.cnt); }, 1);
+    $('brandPartCountInfo').textContent = fmt(rows.length) + ' 개 부품';
+    $('brandPartBody').innerHTML = rows.slice(0, PART_ROW_LIMIT).map(function (o) {
+        const w = Math.round(o.cnt / maxCnt * 100);
+        const rate = o.rate * 100;
+        return '<tr>'
+            + '<td><span class="brand-badge" style="background:' + brandColor(o.brand) + ';">' + esc(o.brand) + '</span></td>'
+            + '<td style="font-weight:600;">' + esc(o.partNo || '-') + '</td>'
+            + '<td>' + esc(o.partName || '-') + '</td>'
+            + '<td class="muted">' + esc(o.spec || '-') + '</td>'
+            + '<td class="num bar-cell"><span class="bar-fill" style="width:' + Math.max(4, w * 0.8) + '%;"></span><span>' + fmt(o.cnt) + '</span></td>'
+            + '<td class="num">' + fmt(o.prodCnt) + '</td>'
+            + '<td class="num"><span class="use-rate" title="' + esc(o.brand) + ' 제품 ' + fmt(_brandProducts[o.brand] ? _brandProducts[o.brand].size : 0) + '종 중 ' + fmt(o.prodCnt) + '종"><i><b style="width:' + rate.toFixed(1) + '%"></b></i>' + fmt(rate, 0) + '%</span></td>'
+            + '<td>' + (o.partNo ? '<button type="button" class="row-filter" data-rf="partNo" data-rv="' + esc(o.partNo) + '" title="이 품번이 쓰인 결과만 보기" aria-label="품번 ' + esc(o.partNo) + ' 으로 걸러 보기">⌕</button>' : '') + '</td>'
+            + '</tr>';
+    }).join('') || '<tr><td colspan="8" class="empty-row">데이터가 없습니다.</td></tr>';
+    $('partFoot').textContent = rows.length > PART_ROW_LIMIT
+        ? '상위 ' + PART_ROW_LIMIT + '개만 표시합니다 (전체 ' + fmt(rows.length) + '개 — 검색으로 좁히거나 CSV 로 저장하세요).'
+        : '';
+}
+function downloadPartCsv() {
+    const head = ['브랜드', '품번', '품명', 'SPEC', '사용 건수', '사용 제품수', '사용률(%)'];
+    const q = function (v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    const lines = [head.join(',')].concat(partRowsShown.map(function (o) {
+        return [o.brand, o.partNo, o.partName, o.spec, o.cnt, o.prodCnt, (o.rate * 100).toFixed(1)].map(q).join(',');
+    }));
+    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'brand_parts' + (activeBrand !== '__ALL__' ? '_' + activeBrand : '') + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
 }
 
-/* ── 요약 테이블 ── */
-function renderProductSummary(data) {
-    const map = {};
-    data.forEach(function(r) {
-        const pno = (r.productNo || '(미정)');
-        if (!map[pno]) map[pno] = { cnt: 0, brand: val(r, 'brand'), gisong: val(r, 'gisong') };
-        map[pno].cnt++;
+/* 제품별 자재 건수 (상위 15) */
+function renderProductSummary() {
+    const map = new Map();
+    FD.forEach(function (r) {
+        const pno = r.productNo || EMPTY;
+        let o = map.get(pno);
+        if (!o) map.set(pno, o = { cnt: 0, brand: val(r, 'brand'), gisong: val(r, 'gisong') });
+        o.cnt++;
     });
-    const rows = Object.entries(map).sort((a, b) => b[1].cnt - a[1].cnt).slice(0, 15);
-    document.getElementById('sumProductBody').innerHTML = rows.map(function(e, i) {
-        return '<tr><td><span class="rank' + (i < 3 ? ' top' : '') + '">' + (i + 1) + '</span></td>' +
-               '<td style="font-weight:600;">' + esc(e[0]) + '</td><td>' + esc(e[1].brand) +
-               '</td><td>' + esc(e[1].gisong) + '</td><td class="num">' + e[1].cnt + '</td></tr>';
+    const all = Array.from(map.entries()).sort(function (a, b) { return b[1].cnt - a[1].cnt; });
+    const rows = all.slice(0, 15);
+    const max = rows.length ? rows[0][1].cnt : 1;
+    $('sumProductBody').innerHTML = rows.map(function (e, i) {
+        return '<tr><td><span class="rank' + (i < 3 ? ' top' : '') + '">' + (i + 1) + '</span></td><td style="font-weight:600;">' + esc(e[0]) + '</td>'
+            + '<td>' + (e[1].brand ? '<span class="brand-badge" style="background:' + brandColor(e[1].brand) + '">' + esc(e[1].brand) + '</span>' : '') + '</td>'
+            + '<td>' + esc(e[1].gisong) + '</td>'
+            + '<td class="num bar-cell"><span class="bar-fill" style="width:' + Math.max(4, e[1].cnt / max * 80) + '%"></span><span>' + fmt(e[1].cnt) + '</span></td>'
+            + '<td>' + (e[0] !== EMPTY ? '<button type="button" class="row-filter" data-rf="productNo" data-rv="' + esc(e[0]) + '" title="이 제품만 보기" aria-label="제품 ' + esc(e[0]) + ' 으로 걸러 보기">⌕</button>' : '') + '</td></tr>';
+    }).join('') || '<tr><td colspan="6" class="empty-row">데이터가 없습니다.</td></tr>';
+    if (all.length) {
+        const cnts = all.map(function (e) { return e[1].cnt; }).sort(function (a, b) { return a - b; });
+        const avg = cnts.reduce(function (s, v) { return s + v; }, 0) / cnts.length;
+        $('productFoot').textContent = '제품 ' + fmt(all.length) + '종 · 제품당 자재 평균 ' + fmt(avg, 1) + '건 · 중앙값 ' + fmt(cnts[Math.floor(cnts.length / 2)]) + '건 · 최소 ' + fmt(cnts[0]) + ' / 최대 ' + fmt(cnts[cnts.length - 1]) + '건';
+    } else $('productFoot').textContent = '';
+}
+
+/* 품명별 사용 건수 (상위 15) */
+function renderPartSummary() {
+    const map = new Map();
+    FD.forEach(function (r) {
+        const name = val(r, 'partName') || EMPTY;
+        let o = map.get(name);
+        if (!o) map.set(name, o = { cnt: 0, partNo: val(r, 'partNo'), partNos: new Set(), products: new Set() });
+        o.cnt++;
+        if (r.partNo) o.partNos.add(val(r, 'partNo'));
+        if (r.productNo) o.products.add(r.productNo);
+    });
+    const all = Array.from(map.entries()).sort(function (a, b) { return b[1].cnt - a[1].cnt; });
+    const prodTotal = distinct(FD, 'productNo');
+    const rows = all.slice(0, 15);
+    const max = rows.length ? rows[0][1].cnt : 1;
+    $('sumPartBody').innerHTML = rows.map(function (e, i) {
+        const o = e[1];
+        return '<tr><td><span class="rank' + (i < 3 ? ' top' : '') + '">' + (i + 1) + '</span></td><td>' + esc(e[0]) + '</td>'
+            + '<td style="font-weight:600;">' + esc(o.partNo) + (o.partNos.size > 1 ? ' <span class="muted" title="같은 품명에 품번이 여러 개">외 ' + (o.partNos.size - 1) + '</span>' : '') + '</td>'
+            + '<td class="num bar-cell"><span class="bar-fill" style="width:' + Math.max(4, o.cnt / max * 80) + '%"></span><span>' + fmt(o.cnt) + '</span></td>'
+            + '<td class="num" title="전체 제품 ' + fmt(prodTotal) + '종 중">' + fmt(o.products.size) + ' <span class="muted" style="font-weight:500">(' + fmt(pct(o.products.size, prodTotal), 0) + '%)</span></td>'
+            + '<td>' + (e[0] !== EMPTY ? '<button type="button" class="row-filter" data-rf="partName" data-rv="' + esc(e[0]) + '" title="이 품명이 쓰인 결과만 보기" aria-label="품명 ' + esc(e[0]) + ' 으로 걸러 보기">⌕</button>' : '') + '</td></tr>';
+    }).join('') || '<tr><td colspan="6" class="empty-row">데이터가 없습니다.</td></tr>';
+    $('partNameFoot').textContent = all.length ? '품명 ' + fmt(all.length) + '종 · 상위 15개가 전체 건수의 ' + fmt(pct(rows.reduce(function (s, e) { return s + e[1].cnt; }, 0), FD.length), 1) + '%' : '';
+}
+
+/* =====================================================
+   자동 인사이트
+===================================================== */
+function renderInsights() {
+    const out = [];
+    const rows = FD, total = totalOf(rows);
+    const prodTotal = distinct(rows, 'productNo');
+    const brands = distinct(rows, 'brand');
+
+    /* 1. 쏠림 */
+    [ ['brand', 'cardBrand'], ['gisong', 'cardGisong'], ['aspscd', 'cardAspscd'] ].forEach(function (p) {
+        const d = countBy(rows, keyOf(p[0])).filter(function (x) { return x[0] !== EMPTY; });
+        if (d.length < 2) {
+            if (d.length === 1) out.push({ k: 'info', s: 15, h: label(p[0]) + ' 는 모두 <b>' + esc(d[0][0]) + '</b> 입니다.' });
+            return;
+        }
+        const s1 = pct(d[0][1], total);
+        if (s1 >= 50) out.push({ k: 'info', s: 40 + s1 / 5, h: label(p[0]) + ' 는 <b>' + esc(d[0][0]) + '</b> 가 ' + fmt(s1, 1) + '% 로 가장 많습니다 (' + fmt(d.length) + '종 중).', go: p[1] });
+        else if (d.length >= 4) out.push({ k: 'info', s: 30, h: label(p[0]) + ' 상위 3개(' + d.slice(0, 3).map(function (x) { return esc(x[0]); }).join(', ') + ')가 ' + fmt(pct(d[0][1] + d[1][1] + d[2][1], total), 1) + '% 를 차지합니다.', go: p[1] });
+    });
+
+    /* 2. 속도 */
+    const sp = countBy(rows, speedKey).filter(function (x) { return x[0] !== EMPTY; });
+    if (sp.length) out.push({ k: 'info', s: 28, h: '속도는 <b>' + esc(sp[0][0]) + ' m/min</b> 구간이 ' + fmt(pct(sp[0][1], total), 1) + '% 로 가장 많습니다.', go: 'cardSpeed' });
+
+    /* 3. 부품 : 공통 부품 · 단독 사용 부품 · 브랜드 전용 부품 */
+    if (prodTotal >= 2) {
+        const pm = new Map();
+        rows.forEach(function (r) {
+            const pn = val(r, 'partNo'); if (!pn) return;
+            let o = pm.get(pn);
+            if (!o) pm.set(pn, o = { name: val(r, 'partName'), prods: new Set(), brands: new Set() });
+            if (r.productNo) o.prods.add(r.productNo);
+            const b = val(r, 'brand'); if (b) o.brands.add(b);
+        });
+        const parts = Array.from(pm.entries());
+        const common = parts.filter(function (e) { return e[1].prods.size / prodTotal >= 0.9; });
+        const single = parts.filter(function (e) { return e[1].prods.size === 1; });
+        const top = parts.slice().sort(function (a, b) { return b[1].prods.size - a[1].prods.size; })[0];
+        if (top && top[1].prods.size / prodTotal >= 0.2) out.push({ k: 'part', s: 62, h: '가장 널리 쓰인 품번은 <b>' + esc(top[0]) + '</b>' + (top[1].name ? ' (' + esc(top[1].name) + ')' : '') + ' — 제품 ' + fmt(prodTotal) + '종 중 <b>' + fmt(pct(top[1].prods.size, prodTotal), 0) + '%</b> 에 사용.', go: 'secPartList' });
+        if (common.length > 1) out.push({ k: 'part', s: 55, h: '제품의 90% 이상에 공통으로 쓰인 품번이 <b>' + fmt(common.length) + '개</b> 입니다 — 표준 부품 후보. (사용률 순 정렬로 확인)', go: 'secPartList' });
+        if (single.length && parts.length >= 10) out.push({ k: 'part', s: 45, h: '한 제품에만 쓰인 품번이 <b>' + fmt(single.length) + '개</b> (' + fmt(pct(single.length, parts.length), 0) + '%) 입니다 — 특수 · 단발 사양.', go: 'secPartList' });
+        if (brands >= 2) {
+            const excl = {};
+            parts.forEach(function (e) { if (e[1].brands.size === 1) { const b = e[1].brands.values().next().value; excl[b] = (excl[b] || 0) + 1; } });
+            const ex = Object.entries(excl).sort(function (a, b) { return b[1] - a[1]; });
+            if (ex.length) out.push({ k: 'part', s: 50, h: '한 브랜드에서만 쓰는 전용 품번: ' + ex.slice(0, 4).map(function (e) { return '<b>' + esc(e[0]) + '</b> ' + fmt(e[1]) + '개'; }).join(' · ') + (ex.length > 4 ? ' 외' : '') + '.', go: 'secBrandPart' });
+        }
+        /* 제품당 자재 수 편차 */
+        const per = {};
+        rows.forEach(function (r) { if (r.productNo) per[r.productNo] = (per[r.productNo] || 0) + 1; });
+        const cnts = Object.values(per).sort(function (a, b) { return a - b; });
+        if (cnts.length >= 5) {
+            const med = cnts[Math.floor(cnts.length / 2)], mx = cnts[cnts.length - 1];
+            if (mx >= med * 3 && mx - med >= 5) out.push({ k: 'warn', s: 35, h: '제품당 자재 건수 중앙값은 ' + fmt(med) + '건인데 최대 <b>' + fmt(mx) + '건</b> 인 제품이 있습니다 — 구성이 특이한 제품을 확인해 보세요.', go: 'secProduct' });
+        }
+    }
+
+    /* 4. 연관도 */
+    const pairs = [ ['brand', 'gisong'], ['brand', 'aspscd'], ['gisong', 'aspscd'], ['brand', 'el_COB'], ['gisong', 'el_BWALLT'] ];
+    DYN.forEach(function (k) { pairs.push([k, 'brand']); pairs.push([k, 'gisong']); });
+    pairs.map(function (p) { const c = cramer(rows, keyOf(p[0]), keyOf(p[1])); return c && c.v >= 0.35 ? { p: p, c: c } : null; })
+        .filter(Boolean).sort(function (a, b) { return b.c.v - a.c.v; }).slice(0, 4).forEach(function (x) {
+            const ex = x.c.map.filter(function (m) { return m.share >= 0.5; }).map(function (m) {
+                return esc(label(x.p[1])) + ' <b>' + esc(m.b) + '</b> → ' + esc(label(x.p[0])) + ' <b>' + esc(m.a) + '</b> (' + fmt(m.share * 100, 0) + '%)';
+            });
+            out.push({ k: 'link', s: 58 + x.c.v * 20, h: '<b>' + esc(label(x.p[0])) + '</b> 와 <b>' + esc(label(x.p[1])) + '</b> 의 연관도 <b>' + vWord(x.c.v) + '</b> (V = ' + fmt(x.c.v, 2) + ')' + (ex.length ? '<br>' + ex.join(' · ') : '') });
+        });
+
+    /* 5. 빈 값 */
+    const sparse = ['gisong', 'aspd', 'aspscd', 'el_COB', 'el_BWALLT', 'el_ETHRU', 'partName', 'spec'].filter(function (f) {
+        let e = 0; rows.forEach(function (r) { if (!val(r, f)) e++; }); return rows.length && e / rows.length >= 0.3;
+    });
+    if (sparse.length) out.push({ k: 'warn', s: 20, h: '값이 30% 이상 비어 있는 컬럼: ' + sparse.map(function (f) { return '<b>' + label(f) + '</b>'; }).join(', ') + ' — 분포 해석에 주의.' });
+
+    if (!out.length) out.push({ k: 'info', s: 0, h: '두드러진 쏠림이나 연관이 없습니다.' });
+    const ico = { info: 'i', link: '↔', part: '⚙', warn: '!' };
+    $('insights').innerHTML = out.sort(function (a, b) { return b.s - a.s; }).slice(0, 10).map(function (it) {
+        return '<li class="ins ' + it.k + '"><span class="i-ico" aria-hidden="true">' + ico[it.k] + '</span><span>' + it.h + '</span>'
+            + (it.go ? '<button type="button" class="mini-btn i-go" data-jump="' + it.go + '">보기</button>' : '') + '</li>';
     }).join('');
 }
 
-function renderPartSummary(data) {
-    const map = {};
-    data.forEach(function(r) {
-        const name = (val(r, 'partName') || '(미정)');
-        if (!map[name]) map[name] = { cnt: 0, partNo: val(r, 'partNo') };
-        map[name].cnt++;
-    });
-    const rows = Object.entries(map).sort((a, b) => b[1].cnt - a[1].cnt).slice(0, 15);
-    document.getElementById('sumPartBody').innerHTML = rows.map(function(e, i) {
-        return '<tr><td><span class="rank' + (i < 3 ? ' top' : '') + '">' + (i + 1) + '</span></td>' +
-               '<td>' + esc(e[0]) + '</td><td style="font-weight:600;">' + esc(e[1].partNo) +
-               '</td><td class="num">' + e[1].cnt + '</td></tr>';
-    }).join('');
-}
+})();
 </script>
 
-<!-- ═══════════════ Three.js 히어로 앰비언트 배경 (로컬 ES 모듈) ═══════════════ -->
+<!-- ═══════════════ Three.js : 히어로 물결 + 3D 데이터 시티 (로컬 ES 모듈) ═══════════════ -->
 <script type="module" th:inline="none">
 import * as THREE from 'three';
+import { OrbitControls } from 'three/OrbitControls';
 
-function webglOK() {
-    try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); }
+const IX = window.__spfIX;
+const $ = function (id) { return document.getElementById(id); };
+const HAS_GL = (function () {
+    try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl'))); }
     catch (e) { return false; }
+})();
+
+/* 화면에 보일 때만 그린다 (CPU · 배터리 절약) */
+function watchVisible(el, cb) {
+    if (!('IntersectionObserver' in window)) { cb(true); return; }
+    new IntersectionObserver(function (es) { cb(es[0].isIntersecting); }, { threshold: 0.01 }).observe(el);
 }
 
+/* =====================================================
+   히어로 : 파티클 물결
+===================================================== */
 (function heroWave() {
-    if (!webglOK()) return;
-    const canvas = document.getElementById('heroCanvas');
-    const hero   = canvas ? canvas.parentElement : null;
-    if (!canvas || !hero) return;
-
+    if (!HAS_GL) return;
+    const canvas = $('heroCanvas'), hero = canvas && canvas.parentElement;
+    if (!hero) return;
     let W = hero.clientWidth, H = hero.clientHeight;
     if (W < 10 || H < 10) { setTimeout(heroWave, 300); return; }
 
     const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(W, H, false);
-
-    const scene  = new THREE.Scene();
+    const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 1000);
     camera.position.set(0, 18, 56); camera.lookAt(0, 0, 0);
 
-    const GX = 80, GZ = 40, SP = 2.2, count = GX * GZ;
-    const positions = new Float32Array(count * 3), colors = new Float32Array(count * 3);
-    const cA = new THREE.Color('#C4B5FD'), cB = new THREE.Color('#38BDF8');
+    const GX = 90, GZ = 36, SP = 2.1, count = GX * GZ;
+    const pos = new Float32Array(count * 3), col = new Float32Array(count * 3);
+    const cA = new THREE.Color('#C4B5FD'), cB = new THREE.Color('#38BDF8'), cC = new THREE.Color('#FF9FD5');
     let p = 0;
     for (let ix = 0; ix < GX; ix++) for (let iz = 0; iz < GZ; iz++) {
-        positions[p*3] = (ix-GX/2)*SP; positions[p*3+1] = 0; positions[p*3+2] = (iz-GZ/2)*SP;
-        const c = cA.clone().lerp(cB, ix/GX);
-        colors[p*3] = c.r; colors[p*3+1] = c.g; colors[p*3+2] = c.b; p++;
+        pos[p * 3] = (ix - GX / 2) * SP; pos[p * 3 + 1] = 0; pos[p * 3 + 2] = (iz - GZ / 2) * SP;
+        const t = ix / GX, c = t < 0.6 ? cA.clone().lerp(cB, t / 0.6) : cB.clone().lerp(cC, (t - 0.6) / 0.4);
+        col[p * 3] = c.r; col[p * 3 + 1] = c.g; col[p * 3 + 2] = c.b; p++;
     }
     const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    const pts = new THREE.Points(geo, new THREE.PointsMaterial({
-        size: 1.5, vertexColors: true, transparent: true, opacity: 0.8,
-        blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
-    }));
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 1.4, vertexColors: true, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
     scene.add(pts);
 
-    const clock = new THREE.Clock();
+    let visible = true, mx = 0;
+    watchVisible(hero, function (v) { visible = v; });
+    hero.addEventListener('pointermove', function (e) { const r = hero.getBoundingClientRect(); mx = (e.clientX - r.left) / r.width - 0.5; });
     window.addEventListener('resize', function () {
         W = hero.clientWidth; H = hero.clientHeight;
         renderer.setSize(W, H, false); camera.aspect = W / H; camera.updateProjectionMatrix();
+        if (IX.reduced) frame(0);
     });
-
-    (function tick() {
-        const t = clock.getElapsedTime();
-        const pos = geo.attributes.position.array; let i = 0;
+    const clock = new THREE.Clock();
+    function frame(t) {
+        const a = geo.attributes.position.array; let i = 0;
         for (let ix = 0; ix < GX; ix++) for (let iz = 0; iz < GZ; iz++) {
-            const x = (ix-GX/2)*SP, z = (iz-GZ/2)*SP;
-            pos[i*3+1] = Math.sin(x*0.18 + t*0.9)*2.4 + Math.cos(z*0.22 + t*0.7)*2.0; i++;
+            const x = (ix - GX / 2) * SP, z = (iz - GZ / 2) * SP;
+            a[i * 3 + 1] = Math.sin(x * 0.17 + t * 0.9) * 2.4 + Math.cos(z * 0.22 + t * 0.7) * 2.0; i++;
         }
         geo.attributes.position.needsUpdate = true;
-        pts.rotation.y = Math.sin(t * 0.06) * 0.18;
+        pts.rotation.y += ((mx * 0.35 + Math.sin(t * 0.06) * 0.15) - pts.rotation.y) * 0.04;
         renderer.render(scene, camera);
-        requestAnimationFrame(tick);
-    })();
+    }
+    if (IX.reduced) { frame(0); return; }   // 움직임 줄이기 설정이면 정지 화면 한 장
+    (function tick() { if (visible) frame(clock.getElapsedTime()); requestAnimationFrame(tick); })();
 })();
-</script>
 
+/* =====================================================
+   3D 데이터 시티
+     X축 값 × Z축 값 조합마다 빌딩 하나, 높이 = 제품(또는 행) 수
+     호버 → 툴팁 · 클릭 → 상세 패널(상위 부품 · 비중) → [이 조합으로 걸러 보기]
+===================================================== */
+const MAXX = 12, MAXZ = 8, CELL = 2.3, BAR = 1.55, HMAX = 9;
+const wrap = $('cityWrap'), labelsBox = $('cityLabels'), tip = $('cityTip'), side = $('citySide');
+let renderer, scene, camera, controls, group, ground, grid, raycaster, pointer;
+let bars = [], labels = [], hovered = null, selected = null, growStart = 0, homePos = null, homeTarget = null;
+let cityVisible = true, dims = [], lastKey = '';
+let xs = [], zs = [], xf = '', zf = '', cellTotal = 0;
+
+function initCity() {
+    if (!HAS_GL) {
+        wrap.insertAdjacentHTML('beforeend', '<div class="city-fallback">이 PC · 브라우저는 WebGL(3D 가속)을 쓸 수 없어 3D 시티를 표시하지 못했습니다.<br>아래 3D 분포 차트와 부품 현황은 그대로 사용할 수 있습니다.</div>');
+        $('cityHint').hidden = true;
+        return false;
+    }
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    wrap.insertBefore(renderer.domElement, wrap.firstChild);
+    renderer.domElement.setAttribute('aria-label', '3D 데이터 시티 — 드래그로 회전, 빌딩을 눌러 상세 보기');
+    renderer.domElement.setAttribute('role', 'img');
+
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(40, 1, 0.1, 600);
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor = 0.08;
+    controls.maxPolarAngle = Math.PI * 0.495; controls.minDistance = 6; controls.maxDistance = 120;
+    controls.autoRotate = !IX.reduced; controls.autoRotateSpeed = 0.55;
+    controls.addEventListener('start', function () { setAutoRotate(false); });
+    setAutoRotate(controls.autoRotate);
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x4b4b6b, 0.9));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+    sun.position.set(18, 30, 14); sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    const sc = sun.shadow.camera; sc.left = -30; sc.right = 30; sc.top = 30; sc.bottom = -30; sc.near = 1; sc.far = 90;
+    sun.shadow.radius = 4;
+    scene.add(sun);
+    const rim = new THREE.DirectionalLight(0x9c8cff, 0.5); rim.position.set(-20, 12, -18); scene.add(rim);
+
+    group = new THREE.Group(); scene.add(group);
+    raycaster = new THREE.Raycaster(); pointer = new THREE.Vector2();
+
+    let down = null;
+    const cv = renderer.domElement;
+    cv.addEventListener('pointermove', function (e) { onHover(e); });
+    cv.addEventListener('pointerleave', function () { setHover(null); tip.hidden = true; });
+    cv.addEventListener('pointerdown', function (e) { down = { x: e.clientX, y: e.clientY }; });
+    cv.addEventListener('pointerup', function (e) {
+        if (!down || Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y) > 5) { down = null; return; }
+        down = null;
+        const hit = pick(e);
+        select(hit);
+    });
+    new ResizeObserver(resize).observe(wrap);
+    watchVisible(wrap, function (v) { cityVisible = v; });
+    resize();
+    loop();
+    return true;
+}
+
+function setAutoRotate(on) {
+    if (controls) controls.autoRotate = on;
+    const b = $('cityRotate');
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.textContent = on ? '자동 회전 ON' : '자동 회전 OFF';
+}
+function resize() {
+    if (!renderer) return;
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix();
+}
+
+/* ── 데이터 → 빌딩 ── */
+function isNumLike(keys) { return keys.length && keys.every(function (k) { return !isNaN(parseFloat(k)); }); }
+function vOf(o) { return IX.unit() === 'product' ? o.s.size : o.n; }
+
+function build() {
+    if (!renderer) return;
+    xf = $('cityX').value; zf = $('cityZ').value;
+    clearCity();
+    const rows = IX.rows();
+    if (!xf || !zf || xf === zf) { $('cityNote').textContent = 'X축과 Z축에 서로 다른 컬럼을 고르세요.'; return; }
+    const kx = IX.keyFor(xf), kz = IX.keyFor(zf), E = IX.EMPTY;
+    const cx = new Map(), cz = new Map(), cell = new Map(), all = { n: 0, s: new Set() };
+    function add(m, k, r) { let o = m.get(k); if (!o) m.set(k, o = { n: 0, s: new Set() }); o.n++; if (r.productNo) o.s.add(r.productNo); }
+    rows.forEach(function (r) {
+        const a = kx(r), b = kz(r);
+        if (a === E || b === E) return;
+        add(cx, a, r); add(cz, b, r); add(cell, a + '\u0001' + b, r);
+        all.n++; if (r.productNo) all.s.add(r.productNo);
+    });
+    cellTotal = vOf(all);
+    const rank = function (m, n) {
+        let ks = Array.from(m.keys()).sort(function (a, b) { return vOf(m.get(b)) - vOf(m.get(a)); }).slice(0, n);
+        if (isNumLike(ks)) ks.sort(function (a, b) { return parseFloat(a) - parseFloat(b); });
+        return ks;
+    };
+    xs = rank(cx, MAXX); zs = rank(cz, MAXZ);
+    if (!xs.length || !zs.length) { $('cityNote').textContent = '두 컬럼 모두 값이 있는 데이터가 없습니다.'; renderLegend(); return; }
+
+    let max = 0;
+    xs.forEach(function (a) { zs.forEach(function (b) { const o = cell.get(a + '\u0001' + b); if (o) max = Math.max(max, vOf(o)); }); });
+    const nx = xs.length, nz = zs.length, ox = (nx - 1) / 2, oz = (nz - 1) / 2;
+    const dark = IX.isDark();
+
+    /* 바닥 · 격자 */
+    const gw = nx * CELL + 3, gd = nz * CELL + 3;
+    ground = new THREE.Mesh(new THREE.PlaneGeometry(gw, gd), new THREE.MeshStandardMaterial({ color: dark ? 0x15151f : 0xffffff, roughness: 1, metalness: 0, transparent: true, opacity: dark ? 0.9 : 0.85 }));
+    ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; group.add(ground);
+    const lineMat = new THREE.LineBasicMaterial({ color: dark ? 0x34344a : 0xd9dce6, transparent: true, opacity: 0.9 });
+    const lp = [];
+    for (let i = 0; i <= nx; i++) { const x = (i - nx / 2) * CELL; lp.push(x, 0.01, -nz / 2 * CELL, x, 0.01, nz / 2 * CELL); }
+    for (let j = 0; j <= nz; j++) { const z = (j - nz / 2) * CELL; lp.push(-nx / 2 * CELL, 0.01, z, nx / 2 * CELL, 0.01, z); }
+    const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(lp, 3));
+    grid = new THREE.LineSegments(lg, lineMat); group.add(grid);
+
+    /* 빌딩 */
+    const geo = new THREE.BoxGeometry(BAR, 1, BAR); geo.translate(0, 0.5, 0);
+    const top = [];
+    xs.forEach(function (a, xi) {
+        const c = new THREE.Color(IX.color(xf, a, xi));
+        zs.forEach(function (b, zi) {
+            const o = cell.get(a + '\u0001' + b);
+            const v = o ? vOf(o) : 0;
+            if (!v) return;
+            const h = 0.18 + v / max * HMAX;
+            const mat = new THREE.MeshStandardMaterial({ color: c, roughness: 0.32, metalness: 0.18, emissive: c, emissiveIntensity: 0.04, transparent: true, opacity: 1 });
+            const m = new THREE.Mesh(geo, mat);
+            m.position.set((xi - ox) * CELL, 0, (zi - oz) * CELL);
+            m.scale.set(1, IX.reduced ? h : 0.001, 1);
+            m.castShadow = true; m.receiveShadow = true;
+            m.userData = { a: a, b: b, v: v, h: h, xi: xi, zi: zi, delay: (xi + zi) * 28 };
+            group.add(m); bars.push(m); top.push(m);
+        });
+    });
+    growStart = performance.now();
+
+    /* 라벨 (HTML 오버레이 — 글자가 선명하게) */
+    xs.forEach(function (a, xi) { addLabel(a, new THREE.Vector3((xi - ox) * CELL, 0, nz / 2 * CELL + 1.1), 'x'); });
+    zs.forEach(function (b, zi) { addLabel(b, new THREE.Vector3(nx / 2 * CELL + 1.6, 0, (zi - oz) * CELL), 'z'); });
+    addLabel('X · ' + IX.label(xf) + ' →', new THREE.Vector3(0, 0, nz / 2 * CELL + 2.6), 'ax');
+    addLabel('Z · ' + IX.label(zf) + ' ↗', new THREE.Vector3(nx / 2 * CELL + 1.6, 0, -nz / 2 * CELL - 1.2), 'ax');
+    top.sort(function (p, q) { return q.userData.v - p.userData.v; }).slice(0, 5).forEach(function (m) {
+        addLabel(IX.fmt(m.userData.v), new THREE.Vector3(m.position.x, m.userData.h + 0.55, m.position.z), 'v', m);
+    });
+
+    /* 카메라 */
+    const span = Math.max(nx * CELL, nz * CELL);
+    const d = span * 1.05 + 14;
+    homePos = new THREE.Vector3(d * 0.72, d * 0.62, d * 0.88);
+    homeTarget = new THREE.Vector3(0, HMAX * 0.32, 0);
+    const key = xf + '|' + zf;
+    if (key !== lastKey) { camera.position.copy(homePos); controls.target.copy(homeTarget); lastKey = key; }
+    controls.update();
+
+    renderLegend();
+    /* 해설 */
+    const best = top[0];
+    let note = '<b>' + IX.esc(IX.label(xf)) + '</b> ' + IX.fmt(cx.size) + '종 × <b>' + IX.esc(IX.label(zf)) + '</b> ' + IX.fmt(cz.size) + '종';
+    if (cx.size > nx || cz.size > nz) note += ' · 상위 ' + nx + ' × ' + nz + '만 표시';
+    const filled = bars.length, cells = nx * nz;
+    note += ' · 조합 ' + IX.fmt(filled) + ' / ' + IX.fmt(cells) + '칸 사용 (' + IX.fmt(filled / cells * 100, 0) + '%)';
+    if (best) note += ' · 가장 높은 빌딩 <b>' + IX.esc(best.userData.a) + ' × ' + IX.esc(best.userData.b) + '</b> — ' + IX.fmt(best.userData.v) + ' ' + IX.unitWord() + ' (' + IX.fmt(best.userData.v / Math.max(cellTotal, 1) * 100, 1) + '%)';
+    $('cityNote').innerHTML = note + '. 빌딩을 누르면 그 조합의 상세와 주요 부품을 봅니다.';
+}
+
+function addLabel(text, pos, kind, mesh) {
+    const el = document.createElement('div');
+    el.className = 'lb' + (kind === 'z' ? ' z' : kind === 'ax' ? ' ax' : '');
+    if (kind === 'v') { el.style.fontSize = '11px'; el.style.color = 'var(--blue)'; }
+    el.textContent = text; el.title = text;
+    labelsBox.appendChild(el);
+    labels.push({ el: el, pos: pos, mesh: mesh || null });
+}
+function renderLegend() {
+    $('cityLegend').innerHTML = xs.map(function (a, i) {
+        return '<span><i style="background:' + IX.color(xf, a, i) + '"></i>' + IX.esc(a) + '</span>';
+    }).join('');
+}
+function clearCity() {
+    select(null); setHover(null); tip.hidden = true;
+    bars.forEach(function (m) { m.material.dispose(); });
+    if (bars[0]) bars[0].geometry.dispose();
+    [ground, grid].forEach(function (o) { if (o) { o.geometry.dispose(); o.material.dispose(); } });
+    while (group.children.length) group.remove(group.children[0]);
+    bars = []; ground = null; grid = null;
+    labels.forEach(function (l) { l.el.remove(); }); labels = [];
+}
+
+/* ── 상호작용 ── */
+function pick(e) {
+    const r = renderer.domElement.getBoundingClientRect();
+    pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+    pointer.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const hit = raycaster.intersectObjects(bars, false)[0];
+    return hit ? hit.object : null;
+}
+function setHover(m) {
+    if (hovered === m) return;
+    if (hovered && hovered !== selected) hovered.material.emissiveIntensity = 0.04;
+    hovered = m;
+    if (m && m !== selected) m.material.emissiveIntensity = 0.32;
+    renderer && (renderer.domElement.style.cursor = m ? 'pointer' : '');
+}
+function onHover(e) {
+    const m = pick(e);
+    setHover(m);
+    if (!m) { tip.hidden = true; return; }
+    const u = m.userData, r = wrap.getBoundingClientRect();
+    tip.innerHTML = '<b>' + IX.esc(u.a) + '</b> × <b>' + IX.esc(u.b) + '</b><br>' + IX.fmt(u.v) + ' ' + IX.unitWord() + ' · 전체의 ' + IX.fmt(u.v / Math.max(cellTotal, 1) * 100, 1) + '%';
+    tip.style.left = (e.clientX - r.left) + 'px'; tip.style.top = (e.clientY - r.top) + 'px';
+    tip.hidden = false;
+}
+function select(m) {
+    selected = m;
+    bars.forEach(function (b) {
+        b.material.opacity = !m || b === m ? 1 : 0.28;
+        b.material.emissiveIntensity = b === m ? 0.55 : 0.04;
+        b.material.depthWrite = !m || b === m;
+    });
+    if (!m) { side.hidden = true; side.innerHTML = ''; return; }
+    const u = m.userData;
+    const kx = IX.keyFor(xf), kz = IX.keyFor(zf);
+    const rows = IX.rows();
+    const inCell = [], inX = { n: 0, s: new Set() }, inZ = { n: 0, s: new Set() };
+    rows.forEach(function (r) {
+        const a = kx(r), b = kz(r);
+        if (a === u.a) { inX.n++; if (r.productNo) inX.s.add(r.productNo); }
+        if (b === u.b) { inZ.n++; if (r.productNo) inZ.s.add(r.productNo); }
+        if (a === u.a && b === u.b) inCell.push(r);
+    });
+    const parts = new Map(), prods = new Set();
+    inCell.forEach(function (r) {
+        if (r.productNo) prods.add(r.productNo);
+        const k = (r.partName || r.partNo || '').trim(); if (!k) return;
+        let o = parts.get(k); if (!o) parts.set(k, o = new Set()); o.add(r.productNo || r);
+    });
+    const topParts = Array.from(parts.entries()).sort(function (a, b) { return b[1].size - a[1].size; }).slice(0, 5);
+    const esc = IX.esc, fmt = IX.fmt;
+    side.innerHTML = '<h3>' + esc(u.a) + ' × ' + esc(u.b) + '</h3>'
+        + '<div class="kv"><span>제품 수</span><b>' + fmt(prods.size) + '종</b></div>'
+        + '<div class="kv"><span>결과 행</span><b>' + fmt(inCell.length) + '건</b></div>'
+        + '<div class="kv"><span>전체 대비</span><b>' + fmt(u.v / Math.max(cellTotal, 1) * 100, 1) + '%</b></div>'
+        + '<div class="kv"><span>' + esc(IX.label(xf)) + ' ' + esc(u.a) + ' 안에서</span><b>' + fmt(u.v / Math.max(vOf(inX), 1) * 100, 1) + '%</b></div>'
+        + '<div class="kv"><span>' + esc(IX.label(zf)) + ' ' + esc(u.b) + ' 안에서</span><b>' + fmt(u.v / Math.max(vOf(inZ), 1) * 100, 1) + '%</b></div>'
+        + (topParts.length ? '<p style="margin-top:8px !important;font-weight:700;font-size:12px;">많이 쓰인 부품 (제품 수)</p><ol>'
+            + topParts.map(function (p) { return '<li>' + esc(p[0]) + ' <span style="color:var(--mute)">' + fmt(p[1].size) + ' · ' + fmt(p[1].size / Math.max(prods.size, 1) * 100, 0) + '%</span></li>'; }).join('') + '</ol>' : '')
+        + '<div class="acts"><button type="button" class="mini-btn" id="cityApply" style="background:var(--blue);color:#fff;border-color:var(--blue)">이 조합으로 걸러 보기</button>'
+        + '<button type="button" class="mini-btn" id="cityClose">닫기</button></div>';
+    side.hidden = false;
+    $('cityApply').onclick = function () { IX.setFilters([{ f: xf, k: u.a }, { f: zf, k: u.b }]); };
+    $('cityClose').onclick = function () { select(null); };
+}
+
+/* ── 렌더 루프 ── */
+const tmp = new THREE.Vector3();
+function loop() {
+    requestAnimationFrame(loop);
+    if (!cityVisible) return;
+    const now = performance.now();
+    if (!IX.reduced) bars.forEach(function (m) {
+        const u = m.userData;
+        const t = Math.min(1, Math.max(0, (now - growStart - u.delay) / 700));
+        const e = 1 - Math.pow(1 - t, 3);
+        m.scale.y = Math.max(0.001, u.h * e);
+    });
+    controls.update();
+    renderer.render(scene, camera);
+    /* 라벨 위치 */
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    labels.forEach(function (l) {
+        tmp.copy(l.pos);
+        if (l.mesh) tmp.y = l.mesh.scale.y + 0.55;
+        tmp.project(camera);
+        const off = tmp.z > 1 || (l.mesh && selected && l.mesh !== selected);
+        l.el.style.display = off ? 'none' : '';
+        if (!off) { l.el.style.left = ((tmp.x * 0.5 + 0.5) * w) + 'px'; l.el.style.top = ((-tmp.y * 0.5 + 0.5) * h) + 'px'; }
+    });
+}
+
+/* ── 컨트롤 ── */
+function fillDims() {
+    dims = IX.dims();
+    const opts = dims.map(function (f) { return '<option value="' + IX.esc(f) + '">' + IX.esc(IX.label(f)) + '</option>'; }).join('');
+    $('cityX').innerHTML = opts; $('cityZ').innerHTML = opts;
+    $('cityX').value = dims.indexOf('brand') !== -1 ? 'brand' : (dims[0] || '');
+    const zc = ['gisong', '속도구간', 'aspscd'].filter(function (f) { return dims.indexOf(f) !== -1 && f !== $('cityX').value; })[0];
+    $('cityZ').value = zc || dims.filter(function (f) { return f !== $('cityX').value; })[0] || '';
+}
+$('cityX').addEventListener('change', build);
+$('cityZ').addEventListener('change', build);
+$('citySwap').addEventListener('click', function () { const a = $('cityX').value; $('cityX').value = $('cityZ').value; $('cityZ').value = a; build(); });
+$('cityRotate').addEventListener('click', function () { setAutoRotate(!(controls && controls.autoRotate)); });
+$('cityReset').addEventListener('click', function () { if (!homePos) return; camera.position.copy(homePos); controls.target.copy(homeTarget); controls.update(); });
+$('cityTop').addEventListener('click', function () {
+    if (!homePos) return;
+    setAutoRotate(false);
+    camera.position.set(0, homePos.length() * 1.05, 0.01); controls.target.set(0, 0, 0); controls.update();
+});
+
+let inited = false;
+IX.onRender(function () {
+    if (!inited) { inited = true; fillDims(); if (!initCity()) return; }
+    build();
+});
+</script>
 </body>
 </html>
