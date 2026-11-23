@@ -53,10 +53,37 @@ public class LogicDiffUtil {
         String no = "";
         LinkedHashMap<String, String> cells = new LinkedHashMap<>(); // 컬럼명 -> 정규화 값
         String contentKey = "";                                      // 전체내용 매칭용 키
+
+        // 버전 이력 추적 결과 (Ver 목록의 index)
+        int createdVer = -1;    // 이 라인이 처음 등장한 버전
+        int modifiedVer = -1;   // 지금 내용으로 마지막 바뀐 버전
+        boolean createdEst;     // 추적 중 유사도 매칭을 거침(추정)
+        boolean modifiedEst;
+        boolean origin;         // 추적 가능한 최초 버전부터 존재 (그 이전은 알 수 없음)
     }
 
+    /** VARIANT_H 한 건 (버전 헤더) */
+    private static class Ver {
+        String houid = "";
+        String version = "";
+        String regDate = "";
+        boolean test;           // VERSION = '-1' 테스트 버전
+    }
+
+    /** PID 의 버전 헤더 전체. 등록일 순으로 이력을 이어 붙인다. */
+    private static final String HEADER_SQL = """
+            SELECT H.HOUID AS HOUID, H.VERSION AS VERSION, H.REG_DATE AS REG_DATE
+              FROM variant_h h
+             WHERE H.PID = ?
+             ORDER BY H.REG_DATE, H.HOUID
+            """;
+
+    /**
+     * PID 의 라인 전체(비교 대상 두 버전 중 늦은 등록일까지).
+     * 기존 단일버전 조회 SQL 과 컬럼/정규화는 동일하고, HOUID 조건만 등록일 범위로 바꿨다.
+     */
     private static final String SELECT_SQL = """
-            SELECT h.pid AS PID,
+            SELECT h.pid AS PID, D.HOUID AS HOUID,
                     D.NO AS NO,
                     D.ADDR AS ADDR,
                     NVL(D.SPEC1, '-') AS SPEC1, NVL(D.CON1, '-') AS CON1,
@@ -103,7 +130,9 @@ public class LogicDiffUtil {
              FROM variant_d d, variant_h h
              WHERE H.HOUID = D.HOUID
              AND H.PID = ?
-             AND D.HOUID = ?
+             AND (D.HOUID IN (?, ?)
+                  OR H.REG_DATE <= (SELECT MAX(H2.REG_DATE) FROM variant_h H2
+                                     WHERE H2.PID = ? AND H2.HOUID IN (?, ?)))
             """;
 
     /** SPEC/CON, KEY/VAL 쌍(슬롯) 개수 */
@@ -132,16 +161,19 @@ public class LogicDiffUtil {
      */
     public static HashMap<String, Object> diffVersions(String pid, String beforeOid, String afterOid) {
 
-        List<Row> before = readVersion(pid, beforeOid);
-        List<Row> after = readVersion(pid, afterOid);
+        // 버전 헤더 + 라인 전체를 한 번에 읽고, 두 버전의 라인은 여기서 꺼내 쓴다.
+        List<Ver> vers = readHeaders(pid);
+        Map<String, List<Row>> rowsByVer = readRows(pid, beforeOid, afterOid);
+        List<Row> before = rowsByVer.getOrDefault(nz(beforeOid), new ArrayList<>());
+        List<Row> after = rowsByVer.getOrDefault(nz(afterOid), new ArrayList<>());
+
+        // 각 라인의 생성일 / 최종 수정일 추적 (Row 에 결과 기록)
+        int traced = traceHistory(vers, rowsByVer, nz(beforeOid), nz(afterOid));
 
         boolean[] beforeMatched = new boolean[before.size()];
         Integer[] afterToBefore = new Integer[after.size()]; // 최신행 -> 매칭된 과거행 index
         boolean[] fuzzy = new boolean[after.size()];         // 유사도로 매칭된 행 여부
-
-        matchByKey(before, after, beforeMatched, afterToBefore, r -> r.contentKey); // 1차: 완전 동일
-        matchByKey(before, after, beforeMatched, afterToBefore, r -> r.addr);       // 2차: ADDR
-        matchBySimilarity(before, after, beforeMatched, afterToBefore, fuzzy);      // 3차: 유사도
+        matchRows(before, after, beforeMatched, afterToBefore, fuzzy);
 
         boolean[] moved = detectMoved(afterToBefore); // 행 순서가 바뀐 매칭행
 
@@ -161,14 +193,14 @@ public class LogicDiffUtil {
                 // 이 anchor 앞쪽의 매칭 안된 과거행들을 DELETED 로 먼저 출력
                 while (beforePtr < bi) {
                     if (!beforeMatched[beforePtr]) {
-                        rows.add(buildRow("DELETED", before.get(beforePtr), null, codeMap));
+                        rows.add(buildRow("DELETED", before.get(beforePtr), null, codeMap, vers));
                         deleted++;
                     }
                     beforePtr++;
                 }
                 Row b = before.get(bi);
                 boolean same = a.cells.equals(b.cells);
-                Map<String, Object> row = buildRow(same ? "EQUAL" : "MODIFIED", b, a, codeMap);
+                Map<String, Object> row = buildRow(same ? "EQUAL" : "MODIFIED", b, a, codeMap, vers);
                 if (moved[j]) { row.put("moved", true); movedCnt++; }
                 if (fuzzy[j]) { row.put("fuzzy", true); fuzzyCnt++; }
                 if (same) {
@@ -181,14 +213,14 @@ public class LogicDiffUtil {
                 rows.add(row);
                 if (beforePtr <= bi) beforePtr = bi + 1;
             } else {
-                rows.add(buildRow("ADDED", null, a, codeMap));
+                rows.add(buildRow("ADDED", null, a, codeMap, vers));
                 added++;
             }
         }
         // 남은 과거행(=삭제)
         for (int i = beforePtr; i < before.size(); i++) {
             if (!beforeMatched[i]) {
-                rows.add(buildRow("DELETED", before.get(i), null, codeMap));
+                rows.add(buildRow("DELETED", before.get(i), null, codeMap, vers));
                 deleted++;
             }
         }
@@ -205,12 +237,123 @@ public class LogicDiffUtil {
         summary.put("changedCells", changedCells);
         summary.put("beforeCount", before.size());
         summary.put("afterCount", after.size());
+        summary.put("historyCount", traced);
 
         HashMap<String, Object> result = new HashMap<>();
         result.put("columns", getColumns());
         result.put("rows", rows);
         result.put("summary", summary);
         return result;
+    }
+
+    /**
+     * 두 버전의 행 매칭 (3단계). 비교 화면과 이력 추적에서 같은 규칙을 쓴다.
+     *  1) 전체 내용 동일  2) ADDR  3) 내용 유사도
+     */
+    private static void matchRows(List<Row> before, List<Row> after, boolean[] beforeMatched,
+                                  Integer[] afterToBefore, boolean[] fuzzy) {
+        matchByKey(before, after, beforeMatched, afterToBefore, r -> r.contentKey); // 1차: 완전 동일
+        matchByKey(before, after, beforeMatched, afterToBefore, r -> r.addr);       // 2차: ADDR
+        matchBySimilarity(before, after, beforeMatched, afterToBefore, fuzzy);      // 3차: 유사도
+    }
+
+    /**
+     * 버전 이력 추적: 등록일 순으로 인접 버전끼리 행을 매칭해 각 라인의
+     * 생성 버전(처음 등장) / 최종 수정 버전(지금 내용이 처음 등장) 을 Row 에 기록한다.
+     *
+     *  - 테스트 버전(VERSION=-1)은 이력 체인에서 빠진다. 단, 비교 대상이면 그 시점의
+     *    직전 정식 버전과 이어서 추적한다.
+     *  - 라인이 하나도 없는 버전은 건너뛴다. (전체 삭제 후 재등록으로 오인하지 않도록)
+     *  - 두 비교 버전 중 늦은 쪽까지만 추적한다.
+     *
+     * @return 추적에 사용한 버전 수
+     */
+    private static int traceHistory(List<Ver> vers, Map<String, List<Row>> rowsByVer,
+                                    String beforeOid, String afterOid) {
+        int last = -1;
+        for (int t = 0; t < vers.size(); t++) {
+            String h = vers.get(t).houid;
+            if (h.equals(beforeOid) || h.equals(afterOid)) last = t;
+        }
+        if (last < 0) return 0;
+
+        List<Row> prev = null;
+        int traced = 0;
+        for (int t = 0; t <= last; t++) {
+            Ver v = vers.get(t);
+            boolean target = v.houid.equals(beforeOid) || v.houid.equals(afterOid);
+            List<Row> cur = rowsByVer.get(v.houid);
+            if (!target && (v.test || cur == null || cur.isEmpty())) continue;
+            if (cur == null) continue;
+            traced++;
+
+            if (prev == null) {
+                for (Row r : cur) {
+                    r.createdVer = t;
+                    r.modifiedVer = t;
+                    r.origin = true;
+                }
+            } else {
+                boolean[] pm = new boolean[prev.size()];
+                Integer[] map = new Integer[cur.size()];
+                boolean[] fz = new boolean[cur.size()];
+                matchRows(prev, cur, pm, map, fz);
+                for (int j = 0; j < cur.size(); j++) {
+                    Row r = cur.get(j);
+                    Integer p = map[j];
+                    if (p == null) {               // 이 버전에서 새로 생긴 라인
+                        r.createdVer = t;
+                        r.modifiedVer = t;
+                        continue;
+                    }
+                    Row o = prev.get(p);
+                    r.createdVer = o.createdVer;
+                    r.createdEst = o.createdEst || fz[j];
+                    r.origin = o.origin;
+                    if (r.contentKey.equals(o.contentKey)) { // 내용 그대로
+                        r.modifiedVer = o.modifiedVer;
+                        r.modifiedEst = o.modifiedEst;
+                    } else {                                // 이 버전에서 내용이 바뀜
+                        r.modifiedVer = t;
+                    }
+                }
+            }
+            if (!v.test && !cur.isEmpty()) prev = cur;
+        }
+        return traced;
+    }
+
+    /** 이력 추적 결과를 출력용 Map 으로 */
+    private static Map<String, Object> historyOf(Row r, List<Ver> vers) {
+        LinkedHashMap<String, Object> h = new LinkedHashMap<>();
+        if (r == null || r.createdVer < 0 || r.createdVer >= vers.size()) return h;
+        Ver c = vers.get(r.createdVer);
+        Ver m = vers.get(Math.max(0, Math.min(r.modifiedVer, vers.size() - 1)));
+        h.put("cDate", shortDate(c.regDate));
+        h.put("cDateRaw", c.regDate);
+        h.put("cVer", verLabel(c));
+        h.put("cEst", r.createdEst);
+        h.put("origin", r.origin);
+        h.put("mDate", shortDate(m.regDate));
+        h.put("mDateRaw", m.regDate);
+        h.put("mVer", verLabel(m));
+        h.put("mEst", r.modifiedEst);
+        h.put("same", r.modifiedVer == r.createdVer); // 생성 이후 내용 변경 없음
+        return h;
+    }
+
+    private static String verLabel(Ver v) {
+        if (v.test) return "TEST";
+        return v.version.isEmpty() ? "" : "v" + v.version;
+    }
+
+    /** 등록일 표시용: 2024-01-05 00:00:00.0 / 20240105... -> 2024-01-05 */
+    private static String shortDate(String raw) {
+        String s = nz(raw).trim();
+        if (s.matches("^\\d{4}-\\d{2}-\\d{2}.*")) return s.substring(0, 10);
+        if (s.matches("^\\d{4}/\\d{2}/\\d{2}.*")) return s.substring(0, 10).replace('/', '-');
+        if (s.matches("^\\d{8}.*")) return s.substring(0, 4) + "-" + s.substring(4, 6) + "-" + s.substring(6, 8);
+        return s;
     }
 
     /** 아직 매칭 안된 행끼리 같은 키(전체내용/ADDR)를 가진 것을 순서대로 매칭 */
@@ -404,7 +547,8 @@ public class LogicDiffUtil {
      * 셀: {b:과거표시값, a:최신표시값, c:차이여부, t:차이종류, f:과거 컬럼(위치가 다를 때)}
      *   t = chg(값 변경) / add(값 추가) / del(값 삭제) / mov(값은 같고 열 위치만 이동)
      */
-    private static Map<String, Object> buildRow(String status, Row before, Row after, Map<String, String> codeMap) {
+    private static Map<String, Object> buildRow(String status, Row before, Row after, Map<String, String> codeMap,
+                                                List<Ver> vers) {
         Row primary = after != null ? after : before;
         boolean modified = "MODIFIED".equals(status);
         LinkedHashMap<String, Object> cells = new LinkedHashMap<>();
@@ -462,6 +606,8 @@ public class LogicDiffUtil {
             row.put("nMov", nMov);
             row.put("shiftOnly", nChg == 0); // 값 변경 없이 열 위치만 달라진 행
         }
+        // 라인 이력: 삭제행은 과거 버전 기준, 나머지는 최신 버전 기준
+        row.put("hist", historyOf(after != null ? after : before, vers));
         row.put("cells", cells);
         return row;
     }
@@ -483,20 +629,56 @@ public class LogicDiffUtil {
         return value;
     }
 
-    /** 한 버전의 모든 행을 읽어 정규화 */
-    private static List<Row> readVersion(String pid, String houid) {
-        List<Row> rows = new ArrayList<>();
+    /** PID 의 버전 헤더 (등록일 오름차순) */
+    private static List<Ver> readHeaders(String pid) {
+        List<Ver> vers = new ArrayList<>();
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try {
+            con = PLMDBConnection.getConnection();
+            pstmt = con.prepareStatement(HEADER_SQL);
+            pstmt.setString(1, pid);
+            rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Ver v = new Ver();
+                v.houid = nz(rs.getString("HOUID"));
+                v.version = nz(rs.getString("VERSION")).trim();
+                v.regDate = nz(rs.getString("REG_DATE")).trim();
+                v.test = "-1".equals(v.version);
+                vers.add(v);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+        return vers;
+    }
+
+    /**
+     * 비교할 두 버전 + 그 이전 이력 버전들의 모든 행을 한 번에 읽어 HOUID 별로 정규화.
+     * (HOUID 별 행 순서는 DB 가 돌려준 순서 그대로 유지)
+     */
+    private static Map<String, List<Row>> readRows(String pid, String beforeOid, String afterOid) {
+        Map<String, List<Row>> byVer = new HashMap<>();
         Connection con = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
         try {
             con = PLMDBConnection.getConnection();
             pstmt = con.prepareStatement(SELECT_SQL);
+            pstmt.setFetchSize(1000);
             pstmt.setString(1, pid);
-            pstmt.setString(2, houid);
+            pstmt.setString(2, beforeOid);
+            pstmt.setString(3, afterOid);
+            pstmt.setString(4, pid);
+            pstmt.setString(5, beforeOid);
+            pstmt.setString(6, afterOid);
             rs = pstmt.executeQuery();
 
             while (rs.next()) {
+                List<Row> rows = byVer.computeIfAbsent(nz(rs.getString("HOUID")), k -> new ArrayList<>());
                 Row row = new Row();
                 row.no = nz(rs.getString("NO"));
                 row.addr = norm("ADDR", rs.getString("ADDR"));
@@ -515,7 +697,7 @@ public class LogicDiffUtil {
         } finally {
             PLMDBConnection.disconnect(con, pstmt, rs);
         }
-        return rows;
+        return byVer;
     }
 
     /** 컬럼별 정규화 규칙(기존 동작 유지). 비교/표시 모두 동일 규칙 적용 */

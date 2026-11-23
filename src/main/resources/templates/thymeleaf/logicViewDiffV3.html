@@ -28,6 +28,7 @@
             --sel: #dbeafe;      --hover: #f1f5f9;
             --mark: #f59e0b55;
 
+            --s0: 164px; /* 생성/수정일 열 폭 */
             --s1: 96px;  /* 상태 열 폭 */
             --s2: 84px;  /* NO 열 폭 */
             --s3: 150px; /* ADDR 열 폭 */
@@ -179,19 +180,29 @@
         .ld-r-add { --row: var(--add-row); }
         .ld-r-mod { --row: var(--mod-row); }
         .ld-r-del { --row: var(--del-row); }
-        .ld-r-del td:not(.ld-s1) { color: var(--del-fg); text-decoration: line-through; }
-        .ld-r-eq td:not(.ld-s1) { color: var(--text-3); }
+        .ld-r-del td:not(.ld-s0):not(.ld-s1) { color: var(--del-fg); text-decoration: line-through; }
+        .ld-r-eq td:not(.ld-s0):not(.ld-s1) { color: var(--text-3); }
         .ld-table tbody tr:hover { --row: var(--hover); }
         .ld-table tbody tr.is-sel { --row: var(--sel); }
         .ld-table tbody tr.is-sel td { border-bottom-color: var(--primary); }
 
-        /* 고정 열 (상태 / NO / ADDR) */
+        /* 고정 열 (생성/수정일 / 상태 / NO / ADDR) */
         .ld-sticky { position: sticky; z-index: 10; }
         .ld-table thead th.ld-sticky { z-index: 30; }
-        .ld-s1 { left: 0; width: var(--s1); min-width: var(--s1); max-width: var(--s1); }
-        .ld-s2 { left: var(--s1); width: var(--s2); min-width: var(--s2); max-width: var(--s2); font-variant-numeric: tabular-nums; }
-        .ld-s3 { left: calc(var(--s1) + var(--s2)); width: var(--s3); min-width: var(--s3); max-width: var(--s3); font-weight: 600; box-shadow: 2px 0 0 var(--line-strong); }
-        .ld-table tbody td.ld-s1, .ld-table tbody td.ld-s2, .ld-table tbody td.ld-s3 { max-width: none; }
+        .ld-s0 { left: 0; width: var(--s0); min-width: var(--s0); max-width: var(--s0); font-variant-numeric: tabular-nums; }
+        .ld-s1 { left: var(--s0); width: var(--s1); min-width: var(--s1); max-width: var(--s1); }
+        .ld-s2 { left: calc(var(--s0) + var(--s1)); width: var(--s2); min-width: var(--s2); max-width: var(--s2); font-variant-numeric: tabular-nums; }
+        .ld-s3 { left: calc(var(--s0) + var(--s1) + var(--s2)); width: var(--s3); min-width: var(--s3); max-width: var(--s3); font-weight: 600; box-shadow: 2px 0 0 var(--line-strong); }
+        .ld-table tbody td.ld-s0, .ld-table tbody td.ld-s1, .ld-table tbody td.ld-s2, .ld-table tbody td.ld-s3 { max-width: none; }
+        .ld-table tbody td.ld-s0 { max-width: var(--s0); font-size: 11.5px; line-height: 1.45; }
+
+        /* 생성/수정일 */
+        .ld-h { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+        .ld-h-k { flex: none; width: 24px; font-size: 10.5px; font-weight: 700; color: var(--text-3); }
+        .ld-h-d { font-weight: 600; color: var(--text); }
+        .ld-h-v { font-size: 10.5px; color: var(--text-3); }
+        .ld-h-m .ld-h-d { color: var(--mod-fg); }
+        .ld-h-none .ld-h-d { font-weight: 400; color: var(--text-3); }
         .ld-table tbody td.ld-s1 { max-width: var(--s1); }
         .ld-table tbody td.ld-s2 { max-width: var(--s2); }
         .ld-table tbody td.ld-s3 { max-width: var(--s3); }
@@ -406,6 +417,7 @@
         <span><i class="ld-sw" style="background:var(--add-bg)"></i>+ 값 추가</span>
         <span><i class="ld-sw" style="background:var(--del-bg)"></i>− 값 삭제</span>
         <span><i class="ld-sw" style="background:var(--mov-bg)"></i>← 열 위치만 이동</span>
+        <span><b>생성</b> 라인이 처음 생긴 버전 · <b>수정</b> 지금 내용이 된 버전 (≤ 최초 버전부터 존재, ~ 유사도 추정)</span>
         <span>행을 클릭하면 과거/최신 상세 비교</span>
         <span><kbd class="ld-kbd">N</kbd><kbd class="ld-kbd">P</kbd> 다음 / 이전 변경</span>
     </footer>

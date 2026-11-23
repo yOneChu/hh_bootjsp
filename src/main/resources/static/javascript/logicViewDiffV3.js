@@ -6,6 +6,9 @@
 //        moved     = 행 순서가 바뀜,  fuzzy = ADDR 이 달라 내용 유사도로 매칭됨
 //        shiftOnly = 값 변경 없이 열 위치만 달라짐
 //        cells[col] = { b:과거값, a:최신값, c:차이여부, t:chg|add|del|mov, f:과거 컬럼(위치가 다를 때) }
+//        hist      = 버전 이력 추적 결과 (삭제행은 과거 버전, 나머지는 최신 버전 기준)
+//                    { cDate/cVer: 생성(처음 등장), mDate/mVer: 최종 수정(지금 내용이 처음 등장),
+//                      cEst/mEst: 유사도 매칭을 거친 추정, origin: 추적 가능한 최초 버전부터 존재, same: 생성 후 변경 없음 }
 //  - summary : 상태별 건수
 // 이 스크립트는 그 결과를 셀 단위로 렌더링하고, 필터/검색/변경 이동/상세 비교/CSV 내보내기를 제공한다.
 (function () {
@@ -217,7 +220,8 @@
         state.columns.forEach(col => { stats[col] = { hasValue: false, diff: 0 }; });
         state.rows.forEach(row => {
             const cells = row.cells || {};
-            let text = (row.addr || '') + '\n';
+            const h = row.hist || {};
+            let text = (row.addr || '') + '\n' + (h.cDate || '') + '\n' + (h.mDate || '') + '\n'; // 날짜로도 검색 가능
             state.columns.forEach(col => {
                 const c = cells[col];
                 if (!c) return;
@@ -261,6 +265,7 @@
         if (s.moved) extra.push('순서 변경 ' + s.moved + '행');
         if (s.shiftOnly) extra.push('열 이동만 ' + s.shiftOnly + '행');
         if (s.fuzzy) extra.push('유사 매칭 ' + s.fuzzy + '행');
+        if (s.historyCount) extra.push('이력 ' + s.historyCount + '개 버전 추적');
         $id('ld-extra').textContent = extra.join('  ·  ');
     }
 
@@ -313,6 +318,36 @@
         return '<td class="' + cls.trim() + '"' + title + '>' + cellInner(c, row) + '</td>';
     }
 
+    // 생성/수정일 표시 문자열 (CSV·상세 패널과 공용)
+    function histText(h, kind) {
+        if (!h || !h.cDate) return '';
+        if (kind === 'c') return (h.origin ? '≤' : '') + (h.cEst ? '~' : '') + h.cDate + (h.cVer ? ' (' + h.cVer + ')' : '');
+        if (h.same) return '변경 없음';
+        return (h.mEst ? '~' : '') + h.mDate + (h.mVer ? ' (' + h.mVer + ')' : '');
+    }
+
+    function histTitle(h) {
+        if (!h || !h.cDate) return '이력 정보 없음';
+        const t = ['생성: ' + (h.cDateRaw || h.cDate) + ' ' + (h.cVer || '')];
+        if (h.origin) t.push('  · 추적 가능한 최초 버전부터 있던 라인 (그 이전은 알 수 없음)');
+        if (h.cEst) t.push('  · ADDR 이 바뀐 이력이 있어 유사도로 추정');
+        t.push('수정: ' + (h.same ? '생성 이후 변경 없음' : (h.mDateRaw || h.mDate) + ' ' + (h.mVer || '')));
+        if (!h.same && h.mEst) t.push('  · 유사도로 추정');
+        return t.join('\n');
+    }
+
+    function histCell(h) {
+        if (!h || !h.cDate) return '<td class="ld-sticky ld-s0"><span class="ld-nil">–</span></td>';
+        const c = '<div class="ld-h"><span class="ld-h-k">생성</span><span class="ld-h-d">'
+            + (h.origin ? '≤' : '') + (h.cEst ? '~' : '') + esc(h.cDate) + '</span>'
+            + '<span class="ld-h-v">' + esc(h.cVer) + '</span></div>';
+        const m = h.same
+            ? '<div class="ld-h ld-h-none"><span class="ld-h-k">수정</span><span class="ld-h-d">변경 없음</span></div>'
+            : '<div class="ld-h ld-h-m"><span class="ld-h-k">수정</span><span class="ld-h-d">'
+                + (h.mEst ? '~' : '') + esc(h.mDate) + '</span><span class="ld-h-v">' + esc(h.mVer) + '</span></div>';
+        return '<td class="ld-sticky ld-s0" title="' + esc(histTitle(h)) + '">' + c + m + '</td>';
+    }
+
     function renderTable() {
         const table = $id('ld-table');
         const cols = visibleColumns();
@@ -324,7 +359,8 @@
         }
 
         // 헤더
-        let head = '<th class="ld-sticky ld-s1" scope="col">상태</th>'
+        let head = '<th class="ld-sticky ld-s0" scope="col" title="생성: 라인이 처음 생긴 버전의 등록일&#10;수정: 지금 내용이 처음 나온 버전의 등록일">생성 / 수정일</th>'
+            + '<th class="ld-sticky ld-s1" scope="col">상태</th>'
             + '<th class="ld-sticky ld-s2" scope="col" title="행 번호 (과거 → 최신)">NO</th>'
             + '<th class="ld-sticky ld-s3" scope="col">ADDR' + diffBadge('ADDR') + '</th>';
         let prevGroup = '';
@@ -358,6 +394,7 @@
             }
 
             let html = '<tr data-i="' + i + '" class="ld-r-' + conf.cls + '">'
+                + histCell(row.hist)
                 + '<td class="ld-sticky ld-s1"><span class="ld-badge ld-badge-' + conf.cls + '">'
                 + '<span aria-hidden="true">' + conf.mark + '</span>' + label + '</span>' + tags + '</td>'
                 + '<td class="ld-sticky ld-s2">' + no + '</td>'
@@ -499,8 +536,13 @@
         if (row.status === 'MODIFIED') notes.push('변경 ' + (row.nChg || 0) + '셀' + (row.nMov ? ', 열 이동 ' + row.nMov + '셀' : ''));
         if (row.moved) notes.push('행 순서 변경');
         if (row.fuzzy) notes.push('ADDR 이 달라 유사도로 매칭');
+        if (row.hist && row.hist.cDate) {
+            notes.push('생성 ' + histText(row.hist, 'c'));
+            notes.push('수정 ' + histText(row.hist, 'm'));
+        }
         $id('ld-d-meta').innerHTML = meta;
         $id('ld-d-notes').textContent = notes.join('  ·  ');
+        $id('ld-d-notes').title = histTitle(row.hist);
 
         let body = '';
         state.columns.forEach(col => {
@@ -536,7 +578,7 @@
         if (!state.rows.length) { toast('내보낼 비교 결과가 없습니다.', true); return; }
         const cols = ['ADDR'].concat(visibleColumns());
         const q = (v) => '"' + String(v === null || v === undefined ? '' : v).replace(/"/g, '""').replace(/\r?\n/g, ' ') + '"';
-        const lines = [['상태', 'NO(과거)', 'NO(최신)', '비고'].concat(cols).map(q).join(',')];
+        const lines = [['생성일', '최종 수정일', '상태', 'NO(과거)', 'NO(최신)', '비고'].concat(cols).map(q).join(',')];
 
         const trs = $id('bom-tbody').rows;
         for (let k = 0; k < trs.length; k++) {
@@ -545,7 +587,8 @@
             if (!row) continue;
             const cells = row.cells || {};
             const note = [row.shiftOnly ? '열이동' : '', row.moved ? '순서변경' : '', row.fuzzy ? '유사매칭' : ''].filter(Boolean).join('/');
-            const line = [(STATUS[row.status] || STATUS.EQUAL).label, row.noBefore, row.noAfter, note];
+            const line = [histText(row.hist, 'c'), histText(row.hist, 'm'),
+                (STATUS[row.status] || STATUS.EQUAL).label, row.noBefore, row.noAfter, note];
             cols.forEach(col => {
                 const c = cells[col] || {};
                 if (row.status === 'DELETED') line.push(c.b);
