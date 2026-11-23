@@ -25,22 +25,9 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Block No. 별 영업사양 코드 추출
- * - A열(0) 의 BlockNo 로 PID 'EL_P' + BlockNo 의 최신 버전 로직을 조회
- * - 로직 SPEC1~30 열의 특성코드 중 영업사양 코드(dosfld 특성코드 사전에 있는 것)만 골라
- *   C열(2) 부터 가로로 순서대로 기록 (로직 등장 순, 중복 제거)
+ * PID 'CALC_CAR_WT' 시뮬을 돌려서 엑셀에 입력된 호기들의 카자중에 사용되는 변수값 추출하는 기능
  */
 public class EXCEL_20261123 {
-
-
-
-    // ===== 테스트 파라미터 =====
-    /** 공사번호(호기) */
-    private static final String HOGI = System.getProperty("hogi", "N29738L01");
-    /** 기준일 yyyyMMdd (yyyy-MM-dd 도 가능) */
-    private static final String DATE = System.getProperty("date", "20261001");
-    /** 실행할 PID */
-    private static final String PID  = System.getProperty("pid", "EL_PA101A");
 
     /** 서버 주소 */
     private static final String BASE_URL = System.getProperty("baseUrl", "https://vault-in.hdel.co.kr:8070");
@@ -72,7 +59,7 @@ public class EXCEL_20261123 {
 
             int lastRow = sheet.getLastRowNum();
 
-            for (int i = 1; i <= 4; i++) {
+            for (int i = 300; i <= lastRow; i++) {
 
                 Row row = sheet.getRow(i);
 
@@ -80,7 +67,7 @@ public class EXCEL_20261123 {
 
                 // 1. 빈 행이거나, 필터/수동 숨김 처리된 행이면 건너뛰기
                 if (row == null || row.getZeroHeight()) {
-                    //continue;
+                    continue;
                 }
 
                 Cell cell0 = row.getCell(1); //호기번호
@@ -89,26 +76,47 @@ public class EXCEL_20261123 {
                 //Cell cell5 = row.getCell(10); //CAR_WT
                 //String partNo = cell5.getStringCellValue();
 
-                System.out.println("hogi = " + hogi + " , " + row.getCell(2).getStringCellValue());
+                //System.out.println("hogi = " + hogi + " , " + row.getCell(2).getStringCellValue());
 
 
                 String XC_CAR_WT = "";
                 String XC_FLOOR_WT = "";
                 String XC_AIRCON_WT = "";
+                String XC_BALANCE_WT = "";
+                String XC_COM_WT = "";
+                String XC_PAD_WT = "";
+                String XC_ADD_WT = "";
+                String XC_WALL_WT = "";
+                String XC_CEILING_WT = "";
+
+                String XC_EMG_WT = "";
+                String XC_THRU_WT = "";
+                String XC_OB_WT = "";
+                String XC_CS_WT = "";
+                String XC_DIS_WT = "";
+                String XC_BWCAD_WT = "";
+
 
                 Map<String, Object> output = callAsOf(hogi.trim(), "20261123", "CALC_CAR_WT");
-                System.out.println("===== 최종 OUTPUT (" + output.size() + "건) =====");
+                System.out.println("===== 최종 OUTPUT (" + output + "건) =====");
 
 
+                row.createCell(8).setCellValue((String)output.get("XC_CAR_WT")); //XC_CAR_WT
+                row.createCell(9).setCellValue((String)output.get("XC_FLOOR_WT")); //XC_CAR_WT
+                row.createCell(10).setCellValue((String)output.get("XC_AIRCON_WT")); //XC_CAR_WT
+                row.createCell(11).setCellValue((String)output.get("XC_BALANCE_WT")); //XC_CAR_WT
+                row.createCell(12).setCellValue((String)output.get("XC_COM_WT")); //XC_CAR_WT
+                row.createCell(13).setCellValue((String)output.get("XC_PAD_WT")); //XC_PAD_WT
+                row.createCell(14).setCellValue((String)output.get("XC_ADD_WT")); //XC_CAR_WT
+                row.createCell(15).setCellValue((String)output.get("XC_WALL_WT")); //XC_CAR_WT
+                row.createCell(16).setCellValue((String)output.get("XC_CEILING_WT")); //XC_CAR_WT
 
-
-
-                //row.createCell(8).setCellValue(pMap.get("GUBUN")); //XC_CAR_WT
-
-
-                //XC_BALANCE_WT
-
-                //XC_COM_WT
+                row.createCell(17).setCellValue((String)output.get("XC_EMG_WT"));
+                row.createCell(18).setCellValue((String)output.get("XC_THRU_WT"));
+                row.createCell(19).setCellValue((String)output.get("XC_OB_WT"));
+                row.createCell(20).setCellValue((String)output.get("XC_CS_WT"));
+                row.createCell(21).setCellValue((String)output.get("XC_DIS_WT"));
+                row.createCell(22).setCellValue((String)output.get("XC_BWCAD_WT"));
             }
 
             try (FileOutputStream fos = new FileOutputStream(fileName)) {
