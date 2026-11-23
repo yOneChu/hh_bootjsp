@@ -35,7 +35,7 @@ public class simulatorTest {
     private static final String PID  = System.getProperty("pid", "EL_PA101A");
 
     /** 서버 주소 */
-    private static final String BASE_URL = System.getProperty("baseUrl", "https://vault-in.hdel.co.kr/:8070");
+    private static final String BASE_URL = System.getProperty("baseUrl", "https://vault-in.hdel.co.kr:8070");
     private static final String API_PATH = "/simulateup/simulatePidAsOf";
 
     private final ObjectMapper mapper = new ObjectMapper();
