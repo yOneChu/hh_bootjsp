@@ -56,6 +56,17 @@ public class SimulController {
         return "thymeleaf/simulate/getBlockSimulOutput";
     }
 
+    /**
+     * @apiNote PID 출력값 추출 화면 (여러 호기 × PID 시뮬 → 지정한 OUTPUT 키 값을 표로)
+     * @return
+     */
+    @GetMapping("/getPidOutputExtractView")
+    @CrossOrigin
+    public String getPidOutputExtractView() {
+        //http://localhost:8070/simulate/getPidOutputExtractView
+        return "thymeleaf/simulate/getPidOutputExtract";
+    }
+
 
     @Description("호기의 PICK 정보 추출 (pickMap : 품번 → PICK, separateInfo : 품번-PICK → 수량)")
     @GetMapping("/getPick")
