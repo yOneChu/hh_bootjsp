@@ -2088,6 +2088,66 @@ public class MLBCommonUtil {
         return result;
     }
 
+    /**
+     * 특성코드 사전 팝업(pidSimulCodePopup) 전용 - 육상 + 선박용 특성코드와 값 목록.
+     *  - DIV: ELV(육상, DOSCLAS=2248993771) / SHIP(선박, DOSCLAS=2706224418)
+     *
+     * getCodeList() 는 INNER JOIN + TYPE=24 조건이라 코드 분류가 없거나, 값이 하나도 없거나,
+     * 선택형(TYPE=24)이 아닌 특성은 통째로 빠진다. 이 쿼리는 LEFT JOIN 으로 특성은 모두 남기고
+     * 값만 붙을 수 있을 때 붙인다. (값이 없는 특성은 TYPENAME/TYPEVAL 이 null 인 1행)
+     *  - TYPE=24 조건은 값 조인 쪽으로 옮겨서, 선택형이 아닌 특성은 값 없이 코드/이름만 나온다.
+     *  - getCodeList() 는 다른 화면/캐시(elvValueIndex)에서 쓰므로 건드리지 않는다.
+     */
+    public static ArrayList<CodeInfoDTO> getCodeDictList() {
+
+        Connection con 			= null;
+        PreparedStatement pstmt = null;
+        ResultSet rs 			= null;
+
+        ArrayList<CodeInfoDTO> result = new  ArrayList<>();
+
+        try {
+            con = PLMDBPool.getConnection();
+
+            String sql = """
+                    SELECT a.name AS CODE,
+                           a.TIT  AS CODENAME,
+                           c.NAME AS TYPENAME,
+                           c.DES  AS TYPEVAL,
+                           b.name AS NAME,
+                           CASE WHEN a.DOSCLAS = 2706224418 THEN 'SHIP' ELSE 'ELV' END AS DIV
+                      FROM HDEL_SYSTEM.dosfld a
+                      LEFT JOIN HDEL_SYSTEM.doscod b
+                        ON a.TYPECLAS = b.OUID
+                       AND a.TYPE = 24
+                      LEFT JOIN HDEL_SYSTEM.DOSCODITM c
+                        ON c.DOSCOD = b.OUID
+                     WHERE a.DOSCLAS IN (2248993771, 2706224418)
+                    """;
+
+            pstmt = con.prepareStatement(sql);
+            rs = pstmt.executeQuery();
+
+            while(rs.next()) {
+                CodeInfoDTO dto = new  CodeInfoDTO();
+                dto.setCode(rs.getString("CODE"));         // 특성코드
+                dto.setCodeName(rs.getString("CODENAME")); // 사양명
+                dto.setTypeName(rs.getString("TYPENAME")); // 특성값 (없으면 null)
+                dto.setTypeVal(rs.getString("TYPEVAL"));   // 특성값 설명 (없으면 null)
+                dto.setName(rs.getString("NAME"));         // 코드 분류명 (없으면 null)
+                dto.setDiv(rs.getString("DIV"));           // ELV / SHIP
+                result.add(dto);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            PLMDBConnection.disconnect(con, pstmt, rs);
+        }
+
+        return result;
+    }
+
     //선박용 엘리베이터 특성값 리스트 (getCodeList 의 선박용, 공사번호 추출 화면의 값 CODE 제안)
     public static ArrayList<CodeInfoDTO> getShipCodeValueList() {
 

@@ -119,6 +119,8 @@
         .name { font-weight: bold; }
         .meta { color: var(--muted); font-size: 12px; }
         .missing .meta { color: var(--warn); }
+        .div-tag { font-size: 11px; font-weight: bold; padding: 0 5px; border-radius: 3px; line-height: 17px; background: #e0f2fe; color: #075985; }
+        .div-tag.ship { background: #ede9fe; color: #5b21b6; }
         .used { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
         .used-chip {
             padding: 0 6px;
@@ -167,7 +169,8 @@
 </main>
 
 <script>
-    const CODE_API = '/api/getCodeList?key=subae';
+    // 팝업 전용 목록: 값이 없거나 선택형이 아닌 특성도 포함 (getCodeList 는 INNER JOIN 이라 빠짐)
+    const CODE_API = '/api/getCodeDictList?key=subae';
     // 검색 결과(PID 외 특성)는 너무 많으면 화면이 느려지므로 상한을 둔다
     const MAX_OTHER = 50;
     // 이 개수 이하일 때만 값 목록을 펼친 상태로 보여줌
@@ -206,30 +209,54 @@
     const splitCons = (cons) => new Set(
         cons.flatMap((c) => nvl(c).split(/[,|]/)).map((c) => c.trim().toUpperCase()).filter(Boolean));
 
+    // 자연 정렬: 숫자는 크기로 비교 (GY5 < GY55 < GY100), 대소문자 무시
+    const naturalCmp = (a, b) => nvl(a).localeCompare(nvl(b), 'en', { numeric: true, sensitivity: 'base' });
+
     // ---------- 데이터 ----------
-    // getCodeList 결과는 (특성코드, 값) 단위 행 → 특성코드별로 묶는다
+    // getCodeDictList 결과는 (특성코드, 값) 단위 행 → 특성코드별로 묶는다.
+    // 육상(ELV)/선박(SHIP)에 같은 코드가 있으면 한 카드로 합치고 값도 합친다.
     function buildGroups(list) {
         const groups = new Map();
         (list || []).forEach((r) => {
             const k = keyOf(r.code);
             if (!k) return;
+            const div = nvl(r.div).toUpperCase() === 'SHIP' ? 'SHIP' : 'ELV';
             let g = groups.get(k);
             if (!g) {
-                g = { code: nvl(r.code), name: nvl(r.codeName), values: [], seen: new Set() };
+                g = { code: nvl(r.code), name: '', shipName: '', divs: new Set(), values: [], seen: new Set() };
                 groups.set(k, g);
             }
+            g.divs.add(div);
+            // 한글명: 육상 이름 우선, 없으면 선박 이름
+            const nm = nvl(r.codeName);
+            if (nm && nm !== 'null') {
+                if (div === 'ELV' && !g.name) g.name = nm;
+                if (div === 'SHIP' && !g.shipName) g.shipName = nm;
+            }
             const v = nvl(r.typeName), d = nvl(r.typeVal);
-            const vk = `${v}\u0000${d}`;
+            const vk = `${v.toUpperCase()}\u0000${d}`;
             if ((v || d) && !g.seen.has(vk)) {
                 g.seen.add(vk);
                 g.values.push({ v, d });
             }
         });
-        groups.forEach((g) => {
+        // 코드 순으로 다시 담아서 어디서 꺼내도 정렬된 순서가 되게 함
+        const sorted = new Map([...groups.entries()].sort((a, b) => naturalCmp(a[1].code, b[1].code)));
+        sorted.forEach((g) => {
             delete g.seen;
-            g.text = [g.code, g.name, ...g.values.flatMap((x) => [x.v, x.d])].join(' ').toLowerCase();
+            if (!g.name) g.name = g.shipName;
+            g.values.sort((x, y) => naturalCmp(x.v, y.v) || naturalCmp(x.d, y.d));
+            g.text = [g.code, g.name, g.shipName, ...g.values.flatMap((x) => [x.v, x.d])].join(' ').toLowerCase();
         });
-        return groups;
+        return sorted;
+    }
+
+    // 구분 배지: 육상만 있는 코드는 표시하지 않고, 선박이 끼면 표시
+    function divTag(g) {
+        if (!g || !g.divs.has('SHIP')) return '';
+        return g.divs.has('ELV')
+            ? '<span class="div-tag" title="육상·선박 모두에 있는 특성코드">육상·선박</span>'
+            : '<span class="div-tag ship" title="선박용 특성코드">선박</span>';
     }
 
     async function loadMaster() {
@@ -296,7 +323,7 @@
             : '<div class="more" style="padding:8px 12px">등록된 값이 없습니다.</div>';
 
         return `<details class="grp"${open ? ' open' : ''}><summary>`
-            + `<span class="code">${hl(g.code, q)}</span><span class="name">${hl(g.name, q)}</span>`
+            + `<span class="code">${hl(g.code, q)}</span><span class="name">${hl(g.name, q)}</span>${divTag(g)}`
             + `<span class="meta">${meta}</span>${usedHtml}</summary>${body}</details>`;
     }
 
@@ -325,7 +352,7 @@
             const g = state.groups.get(keyOf(s.code));
             const text = g ? g.text : s.code.toLowerCase();
             return text.includes(q) || s.cons.some((c) => nvl(c).toLowerCase().includes(q));
-        });
+        }).sort((a, b) => naturalCmp(a.code, b.code)); // 코드 순 (같은 접두어끼리 모이게)
 
         let h = '<section class="section">';
         h += sectionHead('이 PID에서 사용한 특성', q ? `${pidItems.length} / ${specs.length}종` : `${specs.length}종`, pidItems.length > 0);
@@ -349,7 +376,7 @@
             state.groups.forEach((g, k) => { if (!pidKeys.has(k) && g.text.includes(q)) others.push(g); });
             // 코드/한글명에 직접 걸린 것을 값·설명에 걸린 것보다 먼저
             const direct = (g) => (g.code.toLowerCase().includes(q) || g.name.toLowerCase().includes(q) ? 0 : 1);
-            others.sort((a, b) => direct(a) - direct(b) || a.code.localeCompare(b.code));
+            others.sort((a, b) => direct(a) - direct(b) || naturalCmp(a.code, b.code));
 
             const shown = others.slice(0, MAX_OTHER);
             h += sectionHead('그 외 특성코드 검색 결과', `${others.length}종`, shown.length > 0);

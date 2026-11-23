@@ -27,6 +27,9 @@ public class MasterDataCache {
 
     private volatile List<CodeInfoDTO> codeShipValueList = Collections.emptyList();
 
+    // 특성코드 사전 팝업 전용 (육상+선박, LEFT JOIN: 값 없는 특성도 포함)
+    private volatile List<CodeInfoDTO> codeDictList = Collections.emptyList();
+
     // 특성 CODE(대문자) -> 특성값 목록 (공사번호 추출 화면의 값 CODE 제안)
     private volatile Map<String, List<CodeInfoDTO>> elvValueIndex = Collections.emptyMap();
 
@@ -48,6 +51,10 @@ public class MasterDataCache {
         this.codeList = Collections.unmodifiableList(new ArrayList<>(list));
         this.elvValueIndex = indexByCode(codeList);
         log.info("특성코드 마스터 로딩 완료: {}건", codeList.size());
+
+        List<CodeInfoDTO> listDict = MLBCommonUtil.getCodeDictList();
+        this.codeDictList = Collections.unmodifiableList(new ArrayList<>(listDict));
+        log.info("특성코드 사전 마스터 로딩 완료: {}건", codeDictList.size());
 
         List<CodeInfoDTO> list02 = MLBCommonUtil.getCodeListV2();
         this.codeElvList = Collections.unmodifiableList(new ArrayList<>(list02));
@@ -104,6 +111,11 @@ public class MasterDataCache {
 
     public List<CodeInfoDTO> getCodeList() {
         return codeList;
+    }
+
+    /** 특성코드 사전 팝업 전용 (값 없는 특성 / 비선택형 특성 포함) */
+    public List<CodeInfoDTO> getCodeDictList() {
+        return codeDictList;
     }
 
     public List<CodeInfoDTO> getCodeListV2() {

@@ -412,6 +412,18 @@ public class APIController {
         return Collections.emptyList();
     }
 
+    @Description("특성코드 사전 팝업 전용 특성코드 리스트 - 육상+선박 (LEFT JOIN: 값 없는 특성 포함)")
+    @GetMapping("/getCodeDictList")
+    @ResponseBody
+    @CrossOrigin
+    public List<CodeInfoDTO> getCodeDictList(String key) {
+        //http://localhost:8070/api/getCodeDictList?key=subae
+        if ("subae".equals(key)) {
+            return masterDataCache.getCodeDictList();
+        }
+        return Collections.emptyList();
+    }
+
     @Description("영업사양 팝업의 특성코드 리스트")
     @GetMapping("/getElvCodeList")
     @ResponseBody
