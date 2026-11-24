@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>BOM 수정 검증</title>
+    <title>BOM 수정 검증 · 최초설계완료호기 BOM</title>
     <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
 
     <script>
@@ -44,23 +44,24 @@
 
     <style>
         /* ══════════════════════════════════════════════════════════
-           디자인 토큰 — searchPartAnalysisV2 와 같은 Apple 계열 표면 + 변경 유형 색
-             추가(add) 초록 / 삭제(del) 빨강 / 변경(mod) 주황
-             검증: 확인(ok) 초록 / 이상(ng) 빨강 / 미검증 회색
+           디자인 토큰 — searchPartAnalysisV2 와 같은 Apple 계열 표면
+             품목구분(Block Opt) 은 6색 범주 팔레트(--o0 ~ --o5)로 구분
            ══════════════════════════════════════════════════════════ */
         :root {
-            --c-add: #248A3D;  --c-add-bg: rgba(52,199,89,.12);
-            --c-del: #D70015;  --c-del-bg: rgba(255,59,48,.10);
-            --c-mod: #C93400;  --c-mod-bg: rgba(255,149,0,.14);
             --line: rgba(0,0,0,.06);
-            --muted: #8E8E93;
+            --muted: #6E6E73;
+            --ok: #248A3D;    --ok-bg: rgba(52,199,89,.12);
+            --err: #D70015;   --err-bg: rgba(255,59,48,.10);
+            --warn: #C93400;  --warn-bg: rgba(255,149,0,.14);
+            --o0: #0064D2; --o1: #5856D6; --o2: #0E7C86; --o3: #C93400; --o4: #C2185B; --o5: #6E6E73;
         }
         html.dark {
-            --c-add: #30D158;  --c-add-bg: rgba(48,209,88,.16);
-            --c-del: #FF453A;  --c-del-bg: rgba(255,69,58,.16);
-            --c-mod: #FF9F0A;  --c-mod-bg: rgba(255,159,10,.18);
             --line: rgba(255,255,255,.08);
             --muted: #98989D;
+            --ok: #30D158;    --ok-bg: rgba(48,209,88,.16);
+            --err: #FF453A;   --err-bg: rgba(255,69,58,.16);
+            --warn: #FF9F0A;  --warn-bg: rgba(255,159,10,.18);
+            --o0: #409CFF; --o1: #7D7AFF; --o2: #40C8E0; --o3: #FF9F0A; --o4: #FF6482; --o5: #AEAEB2;
         }
 
         html { -webkit-font-smoothing: antialiased; }
@@ -89,24 +90,23 @@
         .panel-body { padding: 20px 24px; }
         .panel-foot {
             display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
-            padding: 16px 24px; background: #FAFAFC; border-top: 1px solid var(--line);
+            padding: 14px 24px; background: #FAFAFC; border-top: 1px solid var(--line);
         }
         .dark .panel-foot { background: rgba(255,255,255,.03); }
         .panel-title { font-size: 15px; font-weight: 700; }
 
         .tile { width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
-        .tile-blue   { background: rgba(0,113,227,.10); }
-        .tile-indigo { background: rgba(88,86,214,.10); }
-        .tile-green  { background: rgba(52,199,89,.12); }
-        .tile-amber  { background: rgba(255,159,10,.14); font-size: 13px; }
-        .dark .tile-blue   { background: rgba(10,132,255,.18); }
-        .dark .tile-indigo { background: rgba(94,92,230,.20); }
-        .dark .tile-green  { background: rgba(48,209,88,.18); }
-        .dark .tile-amber  { background: rgba(255,159,10,.20); }
+        .tile-blue   { background: rgba(0,113,227,.10); color: #0071E3; }
+        .tile-indigo { background: rgba(88,86,214,.10); color: #5856D6; }
+        .tile-amber  { background: rgba(255,159,10,.14); color: #C93400; }
+        .dark .tile-blue   { background: rgba(10,132,255,.18); color: #0A84FF; }
+        .dark .tile-indigo { background: rgba(94,92,230,.20); color: #7D7AFF; }
+        .dark .tile-amber  { background: rgba(255,159,10,.20); color: #FF9F0A; }
 
         /* ── 폼 ── */
-        .field-label { display: block; font-size: 11.5px; font-weight: 600; color: #86868B; margin-bottom: 6px; }
+        .field-label { display: block; font-size: 12px; font-weight: 600; color: #6E6E73; margin-bottom: 6px; }
         .dark .field-label { color: #98989D; }
+        .field-label .req { color: var(--err); margin-left: 2px; }
         .form-input, .form-select {
             width: 100%; height: 40px; padding: 0 13px; font-size: 14px; color: #1D1D1F;
             background: #fff; border: 1.5px solid #E5E5EA; border-radius: 11px; outline: none;
@@ -118,42 +118,25 @@
             background-repeat: no-repeat; background-position: right 13px center;
         }
         .form-input:focus, .form-select:focus { border-color: #0071E3; box-shadow: 0 0 0 3.5px rgba(0,113,227,.14); }
+        .form-input[aria-invalid="true"] { border-color: var(--err); }
         .dark .form-input, .dark .form-select { background: #2C2C2E; border-color: #38383A; color: #F5F5F7; color-scheme: dark; }
         .dark .form-input:focus, .dark .form-select:focus { border-color: #0A84FF; box-shadow: 0 0 0 3.5px rgba(10,132,255,.22); }
         .dark .form-select option { background: #2C2C2E; }
         .form-input::placeholder { color: #AEAEB2; }
         .dark .form-input::placeholder { color: #636366; }
         .dark input[type="search"]::-webkit-search-cancel-button { filter: invert(1) opacity(.55); }
+        .field-error { margin-top: 6px; font-size: 12.5px; color: var(--err); font-weight: 600; }
 
-        .range { display: flex; align-items: center; gap: 6px; }
-        .range span { color: var(--muted); font-size: 13px; }
-
-        /* ── 조건 카드 ── */
-        .cond-card { background: #F7F7F9; border: 1px solid rgba(0,0,0,.03); border-radius: 12px; padding: 16px; }
-        .dark .cond-card { background: rgba(255,255,255,.045); border-color: rgba(255,255,255,.06); }
-        .cond-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-        .cond-badge { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 6px; color: #fff; font-size: 11px; font-weight: 700; }
-        .cond-note { font-size: 12px; color: var(--muted); }
-        .cond-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-        @media (min-width: 640px)  { .cond-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
-        @media (min-width: 1024px) { .cond-grid.c4 { grid-template-columns: 1.4fr 1fr 1fr 1fr; } }
-
-        /* 변경 유형 선택 칩 (복수 선택) */
-        .type-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-        .type-chip {
-            display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px;
-            border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit;
-            background: #fff; color: #3C3C43; border: 1.5px solid #E5E5EA; transition: background .15s, border-color .15s;
+        /* 설계완료일 : 이전/다음 날 버튼 + 날짜 */
+        .date-step { display: flex; align-items: center; gap: 6px; max-width: 340px; }
+        .step-btn {
+            flex-shrink: 0; width: 40px; height: 40px; border-radius: 11px; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: #fff; color: #1D1D1F; border: 1.5px solid #E5E5EA; transition: background .15s, border-color .15s;
         }
-        .dark .type-chip { background: #2C2C2E; color: #E5E5EA; border-color: #38383A; }
-        .type-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
-        .type-chip[aria-pressed="true"] { border-color: currentColor; }
-        .type-chip.add[aria-pressed="true"] { color: var(--c-add); background: var(--c-add-bg); }
-        .type-chip.del[aria-pressed="true"] { color: var(--c-del); background: var(--c-del-bg); }
-        .type-chip.mod[aria-pressed="true"] { color: var(--c-mod); background: var(--c-mod-bg); }
-        .type-chip.add .dot { background: var(--c-add); }
-        .type-chip.del .dot { background: var(--c-del); }
-        .type-chip.mod .dot { background: var(--c-mod); }
+        .step-btn:hover { background: #F5F5F7; border-color: #C7C7CC; }
+        .dark .step-btn { background: #2C2C2E; color: #F5F5F7; border-color: #38383A; }
+        .dark .step-btn:hover { background: #3A3A3C; }
 
         /* ── 버튼 ── */
         .btn-primary {
@@ -163,6 +146,7 @@
         }
         .btn-primary:hover { background: #0077ED; color: #fff; }
         .btn-primary:active { transform: scale(.97); }
+        .btn-primary[disabled] { opacity: .55; cursor: progress; transform: none; }
         .btn-ghost {
             display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 42px; padding: 0 20px;
             border-radius: 11px; background: transparent; color: #0071E3; font-size: 14px; font-weight: 600;
@@ -171,10 +155,12 @@
         .btn-ghost:hover { background: rgba(0,113,227,.06); border-color: #0071E3; }
         .dark .btn-ghost { color: #0A84FF; border-color: #48484A; }
         .btn-mini {
-            display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 13px; border-radius: 9px;
-            font-size: 12.5px; font-weight: 600; cursor: pointer; background: #F5F5F7; color: #1D1D1F; border: 1px solid transparent;
+            display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 13px; border-radius: 9px;
+            font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; background: #F5F5F7; color: #1D1D1F;
+            border: 1px solid transparent; transition: background .15s; white-space: nowrap;
         }
         .btn-mini:hover { background: #E8E8ED; }
+        .btn-mini[disabled] { opacity: .5; cursor: not-allowed; }
         .dark .btn-mini { background: #2C2C2E; color: #F5F5F7; }
         .dark .btn-mini:hover { background: #3A3A3C; }
         .icon-btn {
@@ -184,6 +170,9 @@
         .icon-btn:hover { background: rgba(0,0,0,.06); }
         .dark .icon-btn { color: #F5F5F7; }
         .dark .icon-btn:hover { background: rgba(255,255,255,.1); }
+
+        .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .ios-switch { position: relative; width: 46px; height: 27px; cursor: pointer; margin: 0; }
         .ios-switch input { display: none; }
@@ -198,34 +187,53 @@
         details.help[open] .chev { transform: rotate(90deg); }
         .chev { transition: transform .18s; }
 
+        /* ── 알림 (오류) ── */
+        .alert-err {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border-radius: 12px;
+            color: var(--err); background: var(--err-bg); font-size: 13.5px; font-weight: 600;
+        }
+        .alert-err .btn-mini { margin-left: auto; }
+
         /* ══════════════════════════════════════════════════════════
-           요약 스트립 : 숫자 + 변경 유형 구성 막대 + 검증 진행
+           요약 스트립
            ══════════════════════════════════════════════════════════ */
         .summary { display: grid; grid-template-columns: 1fr; }
-        @media (min-width: 1024px) { .summary { grid-template-columns: auto auto 1fr 1fr; } }
-        .summary > div { padding: 18px 24px; }
+        @media (min-width: 1024px) { .summary { grid-template-columns: auto auto auto 1fr; } }
+        .summary > div { padding: 18px 24px; min-width: 0; }
         @media (min-width: 1024px) { .summary > div + div { border-left: 1px solid var(--line); } }
         @media (max-width: 1023px) { .summary > div + div { border-top: 1px solid var(--line); } }
         .sum-label { font-size: 12px; color: var(--muted); font-weight: 600; }
         .sum-num { font-size: 28px; font-weight: 800; letter-spacing: -.03em; line-height: 1.15; font-variant-numeric: tabular-nums; }
         .sum-num small { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 3px; letter-spacing: 0; }
+        .sum-sub { font-size: 12px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
 
         .mix-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; margin: 10px 0 8px; background: var(--line); }
         .mix-bar span { display: block; height: 100%; }
-        .mix-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; }
+        .mix-bar span + span { box-shadow: inset 2px 0 0 #fff; }
+        .dark .mix-bar span + span { box-shadow: inset 2px 0 0 #1C1C1E; }
+        .mix-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; }
         .mix-legend b { font-variant-numeric: tabular-nums; }
         .lg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: 1px; }
 
+        /* 품목구분 범주 색 */
+        .opt-0 { --oc: var(--o0); } .opt-1 { --oc: var(--o1); } .opt-2 { --oc: var(--o2); }
+        .opt-3 { --oc: var(--o3); } .opt-4 { --oc: var(--o4); } .opt-5 { --oc: var(--o5); }
+        .opt-tag {
+            display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px;
+            font-size: 11.5px; font-weight: 700; color: var(--oc);
+            background: color-mix(in srgb, var(--oc) 13%, transparent);
+        }
+
         /* ══════════════════════════════════════════════════════════
-           마스터(수정 제품 목록) – 디테일(자재 변경 내역)
+           마스터(호기 목록) – 디테일(BOM)
            ══════════════════════════════════════════════════════════ */
         .md-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
-        @media (min-width: 1280px) { .md-grid { grid-template-columns: 380px minmax(0,1fr); align-items: start; } }
+        @media (min-width: 1280px) { .md-grid { grid-template-columns: 360px minmax(0,1fr); align-items: start; } }
 
         .prod-list { max-height: 720px; overflow-y: auto; }
         .prod-item {
             display: block; width: 100%; text-align: left; font-family: inherit; cursor: pointer;
-            padding: 14px 20px 14px 17px; background: transparent; border: none;
+            padding: 13px 20px 13px 17px; background: transparent; border: none;
             border-left: 3px solid transparent; border-bottom: 1px solid var(--line); color: inherit;
             transition: background .12s;
         }
@@ -235,88 +243,72 @@
         .prod-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
         .prod-no { font-size: 14.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
         .prod-date { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-        .prod-meta { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-        .prod-counts { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
-        .cnt { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 5px; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
-        .cnt.add { color: var(--c-add); background: var(--c-add-bg); }
-        .cnt.del { color: var(--c-del); background: var(--c-del-bg); }
-        .cnt.mod { color: var(--c-mod); background: var(--c-mod-bg); }
-        .prod-progress { margin-left: auto; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-        .prod-progress.done { color: var(--c-add); font-weight: 700; }
+        .prod-meta { font-size: 12.5px; color: var(--muted); margin-top: 3px; overflow-wrap: anywhere; }
+        .prod-state { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+        .prod-state.ok  { color: var(--ok); }
+        .prod-state.err { color: var(--err); }
+        .prod-state .spin { width: 11px; height: 11px; border-width: 1.5px; }
 
         /* 디테일 헤더 */
-        .detail-head { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: flex-end; }
-        .detail-no { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
-        .spec-list { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; }
+        .detail-head { display: flex; flex-wrap: wrap; gap: 14px 32px; align-items: flex-end; }
+        .detail-no { font-size: 22px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+        .spec-list { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; margin: 0; }
         .spec-list dt { color: var(--muted); font-weight: 500; display: inline; margin-right: 6px; }
-        .spec-list dd { display: inline; margin: 0; font-weight: 600; }
-        .ver-shift { font-variant-numeric: tabular-nums; }
-        .ver-shift s { color: var(--muted); }
+        .spec-list dd { display: inline; margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-        /* 유형 탭 (디테일 필터) */
-        .seg { display: inline-flex; padding: 3px; border-radius: 10px; background: #EEEEF0; gap: 2px; }
+        /* 품목구분 필터 */
+        .seg { display: inline-flex; flex-wrap: wrap; padding: 3px; border-radius: 10px; background: #EEEEF0; gap: 2px; }
         .dark .seg { background: #2C2C2E; }
         .seg button {
-            height: 30px; padding: 0 13px; border-radius: 8px; border: none; background: transparent; cursor: pointer;
-            font-family: inherit; font-size: 12.5px; font-weight: 600; color: #6E6E73;
+            display: inline-flex; align-items: center; gap: 6px;
+            height: 30px; padding: 0 12px; border-radius: 8px; border: none; background: transparent; cursor: pointer;
+            font-family: inherit; font-size: 12.5px; font-weight: 600; color: #6E6E73; font-variant-numeric: tabular-nums;
         }
         .dark .seg button { color: #AEAEB2; }
         .seg button[aria-pressed="true"] { background: #fff; color: #1D1D1F; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
         .dark .seg button[aria-pressed="true"] { background: #48484A; color: #fff; }
+        .seg .sw { width: 8px; height: 8px; border-radius: 2px; background: var(--oc); }
 
-        /* ── 변경 내역 테이블 : 이 화면의 핵심 (변경 전 → 후) ── */
-        .tbl-scroll { overflow-x: auto; }
-        .tbl-scroll::-webkit-scrollbar { height: 10px; }
+        /* ── BOM 테이블 ── */
+        .tbl-scroll { overflow: auto; max-height: 640px; }
+        .tbl-scroll::-webkit-scrollbar { height: 10px; width: 10px; }
         .tbl-scroll::-webkit-scrollbar-thumb { background: #C7C7CC; border-radius: 8px; }
         .dark .tbl-scroll::-webkit-scrollbar-thumb { background: #48484A; }
 
-        .chg-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
-        .chg-table th {
-            position: sticky; top: 0; background: #FAFAFC; color: #6E6E73; font-size: 11.5px; font-weight: 700;
+        .bom-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+        .bom-table th {
+            position: sticky; top: 0; z-index: 1; background: #FAFAFC; color: #6E6E73; font-size: 11.5px; font-weight: 700;
             text-align: left; padding: 10px 12px; white-space: nowrap; border-bottom: 1.5px solid #E5E5EA;
         }
-        .dark .chg-table th { background: #232325; color: #98989D; border-bottom-color: #38383A; }
-        .chg-table td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; white-space: nowrap; }
-        .chg-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
-        .chg-table tr > td:first-child { box-shadow: inset 3px 0 0 transparent; }
-        .chg-table tr.add > td:first-child { box-shadow: inset 3px 0 0 var(--c-add); }
-        .chg-table tr.del > td:first-child { box-shadow: inset 3px 0 0 var(--c-del); }
-        .chg-table tr.mod > td:first-child { box-shadow: inset 3px 0 0 var(--c-mod); }
-        .chg-table tbody tr:hover td { background: rgba(0,113,227,.04); }
-        .chg-table tr.ng td { background: var(--c-del-bg); }
+        .dark .bom-table th { background: #232325; color: #98989D; border-bottom-color: #38383A; }
+        .bom-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; white-space: nowrap; }
+        .bom-table td.num, .bom-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .bom-table tbody tr:hover td { background: rgba(0,113,227,.04); }
+        .bom-table tr.block-start td { border-top: 1px solid rgba(0,0,0,.10); }
+        .dark .bom-table tr.block-start td { border-top-color: rgba(255,255,255,.14); }
+        .bom-table .dim { color: var(--muted); }
+        .part-no { font-variant-numeric: tabular-nums; letter-spacing: .01em; font-weight: 600; }
+        .cmt { max-width: 280px; white-space: normal !important; line-height: 1.45; overflow-wrap: anywhere; }
+        .spec { max-width: 220px; white-space: normal !important; overflow-wrap: anywhere; }
+        .uc-tag { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 5px; font-size: 11px; font-weight: 700; color: var(--warn); background: var(--warn-bg); }
+        mark.hl { background: rgba(255,204,0,.35); color: inherit; border-radius: 2px; padding: 0 1px; }
 
-        .type-tag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; }
-        .type-tag.add { color: var(--c-add); background: var(--c-add-bg); }
-        .type-tag.del { color: var(--c-del); background: var(--c-del-bg); }
-        .type-tag.mod { color: var(--c-mod); background: var(--c-mod-bg); }
+        /* 스켈레톤 */
+        .sk { display: block; height: 12px; border-radius: 6px; background: linear-gradient(90deg, rgba(120,120,128,.12), rgba(120,120,128,.22), rgba(120,120,128,.12)); background-size: 200% 100%; animation: sk 1.2s ease-in-out infinite; }
+        @keyframes sk { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
-        /* diff : 변경 전은 취소선, 변경 후는 강조. 바뀌지 않은 값은 평범하게 */
-        .diff { display: flex; flex-direction: column; gap: 2px; }
-        .diff .old { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--c-del); font-size: 12px; }
-        .diff .new { font-weight: 700; }
-        .diff.num { align-items: flex-end; }
-        tr.add .val { color: var(--c-add); font-weight: 600; }
-        tr.del .val { color: var(--muted); text-decoration: line-through; }
-        .part-no { font-variant-numeric: tabular-nums; letter-spacing: .01em; }
-        .cmt { max-width: 260px; white-space: normal; line-height: 1.45; }
+        .empty { padding: 56px 24px; text-align: center; color: var(--muted); font-size: 13.5px; line-height: 1.6; }
+        .empty b { display: block; color: #1D1D1F; font-size: 15px; margin-bottom: 4px; }
+        .dark .empty b { color: #F5F5F7; }
+        .empty .btn-mini { margin-top: 14px; }
 
-        /* 검증 버튼 (확인 / 이상) */
-        .verify { display: inline-flex; gap: 4px; }
-        .verify button {
-            height: 28px; padding: 0 10px; border-radius: 7px; font-family: inherit; font-size: 12px; font-weight: 700;
-            cursor: pointer; background: transparent; color: var(--muted); border: 1.5px solid #E5E5EA;
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { transition: none !important; }
+            .sk { animation: none !important; }
+            .spin { animation-duration: 2s !important; }
         }
-        .dark .verify button { border-color: #48484A; }
-        .verify button.ok[aria-pressed="true"] { color: #fff; background: var(--c-add); border-color: var(--c-add); }
-        .verify button.ng[aria-pressed="true"] { color: #fff; background: var(--c-del); border-color: var(--c-del); }
-        .note-input { height: 30px; font-size: 12.5px; border-radius: 8px; min-width: 160px; }
-
-        .empty { padding: 56px 24px; text-align: center; color: var(--muted); font-size: 13.5px; }
-        .empty b { display: block; color: inherit; font-size: 15px; margin-bottom: 4px; }
-
-        .sample-note { font-size: 12px; color: var(--c-mod); background: var(--c-mod-bg); padding: 6px 12px; border-radius: 8px; }
-
-        @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
     </style>
 </head>
 
@@ -331,10 +323,10 @@
     <div class="w-full px-5 xl:px-8 h-[58px] flex items-center justify-between">
         <div class="flex items-center gap-3">
             <button type="button" id="sbToggle" class="icon-btn -ml-2" title="사이드바 열기/닫기" aria-label="사이드바 열기/닫기">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
             </button>
             <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
                 </svg>
             </div>
@@ -358,339 +350,171 @@
 
     <!-- ═══════════ Hero ═══════════ -->
     <section class="pt-2 pb-1">
-        <h2 class="text-[30px] font-bold tracking-tight leading-tight">BOM 수정 검증</h2>
-        <p class="text-[14.5px] text-apple-gray1 mt-1">설계자가 수정한 제품의 자재 변경 내역을 제품별로 모아, 수정이 맞게 되었는지 한 줄씩 확인합니다.</p>
+        <h2 class="text-[30px] font-bold tracking-tight leading-tight">최초설계완료호기 BOM</h2>
+        <p class="text-[14.5px] text-apple-gray1 mt-1">설계완료일에 최초설계가 끝난 호기가 몇 개인지, 각 호기의 최초설계 BOM 이 무엇인지 봅니다.</p>
     </section>
 
     <!-- ═══════════ 도움말 ═══════════ -->
     <details class="help panel">
         <summary class="panel-head">
-            <span class="tile tile-amber" style="border-radius:999px;">💡</span>
-            <span class="text-[14px] font-semibold flex-1">검증 방법 안내</span>
-            <svg class="chev text-apple-gray1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+            <span class="tile tile-amber" style="border-radius:999px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+            </span>
+            <span class="text-[14px] font-semibold flex-1">조회 방법 안내</span>
+            <svg class="chev text-apple-gray1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
         </summary>
         <ul class="px-7 pb-5 pt-1 space-y-2 text-[13px] leading-relaxed text-[#515154] dark:text-[#AEAEB2]">
-            <li class="flex gap-2"><span class="text-rose-500 font-bold">·</span><span><b class="text-rose-500">수정 기간은 필수</b>입니다. 기간이 길면 조회가 느려질 수 있습니다.</span></li>
-            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>왼쪽 목록에서 제품을 고르면, 오른쪽에 그 제품의 자재 변경 내역이 나옵니다.</li>
-            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>변경된 값은 <s>변경 전</s> 아래에 <b>변경 후</b>를 함께 보여줍니다.</li>
-            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span>각 행에서 <b>확인</b> 또는 <b>이상</b>을 누르고, 이상이면 사유를 메모로 남깁니다.</li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span><b>설계완료일</b>을 고르고 조회하면, 그날 최초설계가 완료된 호기 목록을 PLM 에서 가져옵니다.</span></li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>왼쪽 목록에서 호기를 고르면 그 호기의 <b>최초설계 BOM</b>(품목구분별 첫 버전)이 오른쪽에 나옵니다.</span></li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>BOM 은 호기마다 따로 조회합니다. 모든 호기의 자재 수를 한 번에 보려면 <b>전체 BOM 불러오기</b>를 누르세요.</span></li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>‹ › 버튼으로 하루씩 앞뒤 날짜를 바로 조회할 수 있습니다.</span></li>
         </ul>
     </details>
 
     <!-- ═══════════ 검색 조건 ═══════════ -->
     <section class="panel" aria-labelledby="condTitle">
-        <div class="panel-head">
-            <span class="tile tile-blue">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="text-apple-blue dark:text-apple-blueD"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
-            </span>
-            <h3 class="panel-title" id="condTitle">검색 조건</h3>
-        </div>
-
-        <div class="panel-body space-y-4" style="padding-top:4px;">
-
-            <!-- ▸ 수정 정보 -->
-            <div class="cond-card">
-                <div class="cond-head">
-                    <span class="cond-badge" style="background:#0071E3;">수정 정보</span>
-                    <span class="cond-note">수정 기간 필수</span>
-                </div>
-                <div class="cond-grid c4">
-                    <div>
-                        <label class="field-label" for="fromDate">수정 기간</label>
-                        <div class="range">
-                            <input type="date" id="fromDate" class="form-input" aria-label="수정 시작일">
-                            <span>~</span>
-                            <input type="date" id="toDate" class="form-input" aria-label="수정 종료일">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="field-label" for="designer">설계자</label>
-                        <select id="designer" class="form-select">
-                            <option value="">전체</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="field-label" for="prodNo">제품번호(호기)</label>
-                        <input type="search" id="prodNo" class="form-input" placeholder="ex. 206663L01" autocomplete="off">
-                    </div>
-                    <div>
-                        <label class="field-label" for="blockNo">Block No.</label>
-                        <input type="search" id="blockNo" class="form-input" placeholder="ex. B181B" autocomplete="off">
-                    </div>
-                </div>
+        <form id="searchForm" novalidate>
+            <div class="panel-head">
+                <span class="tile tile-blue">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+                </span>
+                <h3 class="panel-title" id="condTitle">검색 조건</h3>
             </div>
 
-            <!-- ▸ 변경 범위 -->
-            <div class="cond-card">
-                <div class="cond-head">
-                    <span class="cond-badge" style="background:#5856D6;">변경 범위</span>
-                    <span class="cond-note">선택</span>
+            <div class="panel-body" style="padding-top:4px;">
+                <label class="field-label" for="coDate">설계완료일<span class="req" aria-hidden="true">*</span></label>
+                <div class="date-step">
+                    <button type="button" class="step-btn" id="prevDay" aria-label="하루 전 조회">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+                    </button>
+                    <input type="date" id="coDate" class="form-input" required aria-describedby="coDateErr">
+                    <button type="button" class="step-btn" id="nextDay" aria-label="하루 뒤 조회">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
                 </div>
-                <div class="cond-grid c4">
-                    <div>
-                        <span class="field-label" id="typeLabel">변경 유형</span>
-                        <div class="type-chips" role="group" aria-labelledby="typeLabel">
-                            <button type="button" class="type-chip add" aria-pressed="true"><span class="dot"></span>추가</button>
-                            <button type="button" class="type-chip del" aria-pressed="true"><span class="dot"></span>삭제</button>
-                            <button type="button" class="type-chip mod" aria-pressed="true"><span class="dot"></span>변경</button>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="field-label" for="partNo">Part No.</label>
-                        <input type="search" id="partNo" class="form-input" placeholder="26300551G0* (Like 검색)" autocomplete="off">
-                    </div>
-                    <div>
-                        <label class="field-label" for="status">제품 상태</label>
-                        <select id="status" class="form-select">
-                            <option value="">전체</option>
-                            <option value="RLS" selected>릴리즈</option>
-                            <option value="WIP">작업중</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="field-label" for="verifyStatus">검증 상태</label>
-                        <select id="verifyStatus" class="form-select">
-                            <option value="">전체</option>
-                            <option value="NONE" selected>미검증</option>
-                            <option value="OK">확인</option>
-                            <option value="NG">이상</option>
-                        </select>
-                    </div>
-                </div>
+                <p class="field-error" id="coDateErr" role="alert" style="display:none;"></p>
             </div>
-        </div>
 
-        <div class="panel-foot">
-            <span class="text-[12px] text-apple-gray1">제품번호 / Block No. 입력 후 Enter 키로 바로 조회할 수 있습니다.</span>
-            <div class="flex items-center gap-2.5">
-                <button type="button" class="btn-ghost">초기화</button>
-                <button type="button" class="btn-primary">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-                    조회
-                </button>
+            <div class="panel-foot">
+                <span class="text-[12px] text-apple-gray1">날짜를 고른 뒤 Enter 키로 바로 조회할 수 있습니다.</span>
+                <div class="flex items-center gap-2.5">
+                    <button type="button" class="btn-ghost" id="btnToday">오늘</button>
+                    <button type="submit" class="btn-primary" id="btnSearch">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                        <span>조회</span>
+                    </button>
+                </div>
             </div>
-        </div>
+        </form>
     </section>
 
-    <!-- UI 확인용 샘플 데이터 안내 (기능 개발 시 제거) -->
-    <p class="sample-note">아래 숫자와 목록은 화면 확인용 샘플입니다. 조회 기능을 붙이면 실제 데이터로 바뀝니다.</p>
+    <!-- 조회 오류 -->
+    <div class="alert-err" id="searchError" role="alert" style="display:none;">
+        <span id="searchErrorMsg"></span>
+        <button type="button" class="btn-mini" id="btnRetrySearch">다시 시도</button>
+    </div>
 
     <!-- ═══════════ 요약 ═══════════ -->
-    <section class="panel summary" aria-label="조회 결과 요약">
+    <section class="panel summary" aria-label="조회 결과 요약" id="summary">
         <div>
-            <p class="sum-label">수정 제품</p>
-            <p class="sum-num" id="sumProducts">12<small>개</small></p>
+            <p class="sum-label">최초설계완료 호기</p>
+            <p class="sum-num" id="sumHogi">-<small>개</small></p>
+            <p class="sum-sub" id="sumDate">조회 전</p>
         </div>
         <div>
-            <p class="sum-label">변경 자재</p>
-            <p class="sum-num" id="sumParts">148<small>건</small></p>
+            <p class="sum-label">BOM 조회</p>
+            <p class="sum-num" id="sumLoaded">-</p>
+            <p class="sum-sub">조회된 호기 / 전체 호기</p>
         </div>
         <div>
-            <p class="sum-label">변경 유형</p>
-            <div class="mix-bar" role="img" aria-label="추가 41건, 삭제 23건, 변경 84건">
-                <span style="width:27.7%; background:var(--c-add);"></span>
-                <span style="width:15.5%; background:var(--c-del);"></span>
-                <span style="width:56.8%; background:var(--c-mod);"></span>
-            </div>
-            <div class="mix-legend">
-                <span><i class="lg-dot" style="background:var(--c-add)"></i>추가 <b>41</b></span>
-                <span><i class="lg-dot" style="background:var(--c-del)"></i>삭제 <b>23</b></span>
-                <span><i class="lg-dot" style="background:var(--c-mod)"></i>변경 <b>84</b></span>
-            </div>
+            <p class="sum-label">BOM 자재</p>
+            <p class="sum-num" id="sumParts">-<small>건</small></p>
+            <p class="sum-sub" id="sumPartsSub">조회된 호기 기준</p>
         </div>
         <div>
-            <p class="sum-label">검증 진행</p>
-            <div class="mix-bar" role="img" aria-label="확인 62건, 이상 5건, 미검증 81건">
-                <span style="width:41.9%; background:var(--c-add);"></span>
-                <span style="width:3.4%; background:var(--c-del);"></span>
-            </div>
-            <div class="mix-legend">
-                <span><i class="lg-dot" style="background:var(--c-add)"></i>확인 <b>62</b></span>
-                <span><i class="lg-dot" style="background:var(--c-del)"></i>이상 <b>5</b></span>
-                <span><i class="lg-dot" style="background:var(--line)"></i>미검증 <b>81</b></span>
-            </div>
+            <p class="sum-label">품목구분 구성 <span class="font-medium">(조회된 호기 기준)</span></p>
+            <div class="mix-bar" id="optMixBar" role="img" aria-label="품목구분 구성 없음"></div>
+            <div class="mix-legend" id="optMixLegend"><span class="text-apple-gray1">BOM 을 조회하면 표시됩니다.</span></div>
         </div>
     </section>
 
-    <!-- ═══════════ 제품 목록 + 자재 변경 내역 ═══════════ -->
+    <!-- ═══════════ 호기 목록 + BOM ═══════════ -->
     <div class="md-grid">
 
-        <!-- ▸ 수정 제품 목록 -->
-        <section class="panel" aria-labelledby="prodTitle">
+        <!-- ▸ 최초설계완료 호기 목록 -->
+        <section class="panel" aria-labelledby="hogiTitle">
             <div class="panel-head divider">
                 <span class="tile tile-indigo">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" class="text-indigo-500"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
                 </span>
-                <h3 class="panel-title flex-1" id="prodTitle">수정 제품</h3>
-                <select class="form-select" style="width:auto; height:32px; font-size:12.5px; border-radius:9px;" aria-label="제품 정렬">
-                    <option>최근 수정순</option>
-                    <option>변경 많은순</option>
-                    <option>미검증 많은순</option>
+                <h3 class="panel-title flex-1" id="hogiTitle">최초설계완료 호기 <span class="text-apple-gray1 font-semibold" id="hogiCount"></span></h3>
+                <select class="form-select" id="hogiSort" style="width:auto; height:32px; font-size:12.5px; border-radius:9px;" aria-label="호기 정렬">
+                    <option value="hogi">호기번호순</option>
+                    <option value="parts">자재 많은순</option>
                 </select>
             </div>
-            <div class="px-4 pt-3 pb-3" style="border-bottom:1px solid var(--line);">
-                <input type="search" class="form-input" style="height:34px; font-size:13px;" placeholder="목록에서 제품번호 찾기" aria-label="목록에서 제품번호 찾기">
+            <div class="px-4 pt-3 pb-3 flex gap-2" style="border-bottom:1px solid var(--line);">
+                <input type="search" id="hogiFilter" class="form-input" style="height:34px; font-size:13px;" placeholder="목록에서 호기번호 찾기" aria-label="목록에서 호기번호 찾기" autocomplete="off">
+                <button type="button" class="btn-mini" id="btnLoadAll" style="height:34px;" disabled>
+                    <i class="fas fa-layer-group" style="font-size:11px;" aria-hidden="true"></i><span id="loadAllLabel">전체 BOM 불러오기</span>
+                </button>
             </div>
-            <div class="prod-list" id="prodList" role="listbox" aria-label="수정 제품 목록">
-                <button type="button" class="prod-item" role="option" aria-selected="true">
-                    <div class="prod-top"><span class="prod-no">206663L01</span><span class="prod-date">2026-11-17</span></div>
-                    <p class="prod-meta">설계자 홍길동 · 버전 3 → 4</p>
-                    <div class="prod-counts"><span class="cnt add">+4</span><span class="cnt del">−2</span><span class="cnt mod">~6</span><span class="prod-progress">검증 3 / 12</span></div>
-                </button>
-                <button type="button" class="prod-item" role="option" aria-selected="false">
-                    <div class="prod-top"><span class="prod-no">208618L17</span><span class="prod-date">2026-11-17</span></div>
-                    <p class="prod-meta">설계자 이수정 · 버전 1 → 2</p>
-                    <div class="prod-counts"><span class="cnt add">+1</span><span class="cnt mod">~3</span><span class="prod-progress done">검증 완료</span></div>
-                </button>
-                <button type="button" class="prod-item" role="option" aria-selected="false">
-                    <div class="prod-top"><span class="prod-no">N29738L01</span><span class="prod-date">2026-11-16</span></div>
-                    <p class="prod-meta">설계자 박도면 · 버전 5 → 6</p>
-                    <div class="prod-counts"><span class="cnt add">+12</span><span class="cnt del">−9</span><span class="cnt mod">~21</span><span class="prod-progress">검증 0 / 42</span></div>
-                </button>
-                <button type="button" class="prod-item" role="option" aria-selected="false">
-                    <div class="prod-top"><span class="prod-no">207541L03</span><span class="prod-date">2026-11-15</span></div>
-                    <p class="prod-meta">설계자 홍길동 · 버전 2 → 3</p>
-                    <div class="prod-counts"><span class="cnt del">−1</span><span class="cnt mod">~2</span><span class="prod-progress">검증 1 / 3</span></div>
-                </button>
-                <button type="button" class="prod-item" role="option" aria-selected="false">
-                    <div class="prod-top"><span class="prod-no">209002L11</span><span class="prod-date">2026-11-14</span></div>
-                    <p class="prod-meta">설계자 최설계 · 버전 1 → 2</p>
-                    <div class="prod-counts"><span class="cnt add">+6</span><span class="cnt mod">~8</span><span class="prod-progress">검증 10 / 14</span></div>
-                </button>
+            <div class="prod-list" id="hogiList" role="listbox" aria-label="최초설계완료 호기 목록">
+                <div class="empty"><b>조회 전입니다</b>설계완료일을 고르고 조회하세요.</div>
             </div>
         </section>
 
-        <!-- ▸ 선택 제품의 자재 변경 내역 -->
+        <!-- ▸ 선택 호기의 최초설계 BOM -->
         <section class="panel" aria-labelledby="detailTitle">
             <div class="panel-head divider" style="padding-bottom:18px;">
                 <div class="detail-head w-full">
                     <div>
-                        <p class="text-[12px] text-apple-gray1 font-semibold">자재 변경 내역</p>
-                        <h3 class="detail-no" id="detailTitle">206663L01</h3>
+                        <p class="text-[12px] text-apple-gray1 font-semibold">최초설계 BOM</p>
+                        <h3 class="detail-no" id="detailTitle">-</h3>
                     </div>
-                    <dl class="spec-list flex-1" style="margin:0;">
-                        <div><dt>설계자</dt><dd>홍길동</dd></div>
-                        <div><dt>수정일</dt><dd>2026-11-17 14:32</dd></div>
-                        <div><dt>제품버전</dt><dd class="ver-shift"><s>3</s> → 4</dd></div>
-                        <div><dt>브랜드</dt><dd>-</dd></div>
-                        <div><dt>기종</dt><dd>-</dd></div>
-                        <div><dt>속도</dt><dd>- m/min</dd></div>
-                        <div><dt>생산거점</dt><dd>-</dd></div>
-                    </dl>
-                    <div class="flex gap-2">
-                        <button type="button" class="btn-mini"><i class="fas fa-check-double" style="font-size:11px;"></i>남은 행 모두 확인</button>
-                        <button type="button" class="btn-mini"><i class="fas fa-file-excel" style="font-size:11px;"></i>Excel</button>
-                    </div>
+                    <dl class="spec-list flex-1" id="detailSpecs"></dl>
+                    <button type="button" class="btn-mini" id="btnCsv" disabled>
+                        <i class="fas fa-file-csv" style="font-size:11px;" aria-hidden="true"></i>CSV 다운로드
+                    </button>
                 </div>
             </div>
 
             <div class="px-6 py-3 flex flex-wrap items-center gap-3" style="border-bottom:1px solid var(--line);">
-                <div class="seg" role="group" aria-label="변경 유형으로 거르기">
-                    <button type="button" aria-pressed="true">전체 12</button>
-                    <button type="button" aria-pressed="false">추가 4</button>
-                    <button type="button" aria-pressed="false">삭제 2</button>
-                    <button type="button" aria-pressed="false">변경 6</button>
-                </div>
-                <label class="inline-flex items-center gap-2 text-[12.5px] text-apple-gray1 cursor-pointer">
-                    <input type="checkbox"> 미검증만 보기
-                </label>
-                <input type="search" class="form-input ml-auto" style="height:34px; font-size:13px; max-width:240px;" placeholder="품번 · 품명 · Block 찾기" aria-label="변경 내역에서 찾기">
+                <div class="seg" id="optSeg" role="group" aria-label="품목구분으로 거르기"></div>
+                <input type="search" id="bomQuery" class="form-input ml-auto" style="height:34px; font-size:13px; max-width:260px;" placeholder="품번 · 품명 · Block · SPEC 찾기" aria-label="BOM 에서 찾기" autocomplete="off">
             </div>
 
-            <div class="tbl-scroll">
-                <table class="chg-table">
+            <div class="tbl-scroll" id="bomScroll">
+                <table class="bom-table">
                     <thead>
                     <tr>
-                        <th>유형</th>
+                        <th>품목구분</th>
                         <th>Block No.</th>
                         <th>품번</th>
                         <th>품명</th>
-                        <th style="text-align:right;">QTY</th>
-                        <th>CMT</th>
+                        <th class="num">QTY</th>
                         <th>SPEC</th>
-                        <th>GL_CODE</th>
-                        <th>검증</th>
-                        <th>메모</th>
+                        <th>CMT</th>
+                        <th class="num">버전</th>
+                        <th>수정여부</th>
                     </tr>
                     </thead>
-                    <tbody id="chgBody">
-                    <!-- UI 확인용 샘플 행 (기능 개발 시 제거) -->
-                    <tr class="mod">
-                        <td><span class="type-tag mod">변경</span></td>
-                        <td>B181B</td>
-                        <td><div class="diff"><span class="old part-no">26300551G01</span><span class="new part-no">26300551G02</span></div></td>
-                        <td>BRACKET, RAIL</td>
-                        <td class="num"><div class="diff num"><span class="old">4</span><span class="new">6</span></div></td>
-                        <td class="cmt">EL_ATYP=STVF7</td>
-                        <td>SS400 T3.2</td>
-                        <td>1101</td>
-                        <td><div class="verify"><button type="button" class="ok" aria-pressed="false">확인</button><button type="button" class="ng" aria-pressed="false">이상</button></div></td>
-                        <td><input type="text" class="form-input note-input" placeholder="사유 입력" aria-label="메모"></td>
-                    </tr>
-                    <tr class="add">
-                        <td><span class="type-tag add">추가</span></td>
-                        <td>B181B</td>
-                        <td><span class="val part-no">26300612G01</span></td>
-                        <td><span class="val">PLATE, FIX</span></td>
-                        <td class="num"><span class="val">2</span></td>
-                        <td class="cmt"><span class="val">EL_ETHRU=Y</span></td>
-                        <td>SPCC T2.0</td>
-                        <td>1101</td>
-                        <td><div class="verify"><button type="button" class="ok" aria-pressed="true">확인</button><button type="button" class="ng" aria-pressed="false">이상</button></div></td>
-                        <td><input type="text" class="form-input note-input" placeholder="사유 입력" aria-label="메모"></td>
-                    </tr>
-                    <tr class="mod ng">
-                        <td><span class="type-tag mod">변경</span></td>
-                        <td>B204A</td>
-                        <td><span class="part-no">27100118G03</span></td>
-                        <td>COVER, TOP</td>
-                        <td class="num">1</td>
-                        <td class="cmt"><div class="diff"><span class="old">EL_COB=A</span><span class="new">EL_COB=A,B</span></div></td>
-                        <td>SUS304 HL</td>
-                        <td>1203</td>
-                        <td><div class="verify"><button type="button" class="ok" aria-pressed="false">확인</button><button type="button" class="ng" aria-pressed="true">이상</button></div></td>
-                        <td><input type="text" class="form-input note-input" value="전망타입 B 조건 누락 확인 필요" aria-label="메모"></td>
-                    </tr>
-                    <tr class="del">
-                        <td><span class="type-tag del">삭제</span></td>
-                        <td>B204A</td>
-                        <td><span class="val part-no">27100097G01</span></td>
-                        <td><span class="val">BOLT SET</span></td>
-                        <td class="num"><span class="val">8</span></td>
-                        <td class="cmt"><span class="val">-</span></td>
-                        <td>M10x25</td>
-                        <td>1301</td>
-                        <td><div class="verify"><button type="button" class="ok" aria-pressed="false">확인</button><button type="button" class="ng" aria-pressed="false">이상</button></div></td>
-                        <td><input type="text" class="form-input note-input" placeholder="사유 입력" aria-label="메모"></td>
-                    </tr>
-                    <tr class="mod">
-                        <td><span class="type-tag mod">변경</span></td>
-                        <td>B310C</td>
-                        <td><span class="part-no">28400230G05</span></td>
-                        <td>HARNESS, CAR</td>
-                        <td class="num"><div class="diff num"><span class="old">1</span><span class="new">2</span></div></td>
-                        <td class="cmt">-</td>
-                        <td><div class="diff"><span class="old">L=12000</span><span class="new">L=14500</span></div></td>
-                        <td>2101</td>
-                        <td><div class="verify"><button type="button" class="ok" aria-pressed="false">확인</button><button type="button" class="ng" aria-pressed="false">이상</button></div></td>
-                        <td><input type="text" class="form-input note-input" placeholder="사유 입력" aria-label="메모"></td>
-                    </tr>
-                    </tbody>
+                    <tbody id="bomBody"></tbody>
                 </table>
             </div>
 
-            <!-- 조회 전 / 결과 없음 상태 (기능 개발 시 사용) -->
-            <div class="empty" id="chgEmpty" style="display:none;">
-                <b>선택한 제품이 없습니다</b>
-                왼쪽 목록에서 제품을 고르면 자재 변경 내역이 여기에 나옵니다.
+            <div class="empty" id="bomEmpty">
+                <b>선택한 호기가 없습니다</b>
+                왼쪽 목록에서 호기를 고르면 최초설계 BOM 이 여기에 나옵니다.
             </div>
 
             <div class="panel-foot">
-                <span class="text-[12px] text-apple-gray1">이 제품 12건 중 3건 검증</span>
-                <button type="button" class="btn-primary" style="height:38px; padding:0 20px;">검증 결과 저장</button>
+                <span class="text-[12px] text-apple-gray1" id="detailFoot" aria-live="polite">-</span>
             </div>
         </section>
     </div>
+
+    <p class="sr-only" id="liveStatus" aria-live="polite"></p>
 
     <footer class="pt-4 pb-8 text-center">
         <p class="text-[12px] text-apple-gray1">Copyright © 2026 <b>수배로직설계팀 · 김영환 M</b>. All rights reserved. · Version 1.0.0</p>
@@ -703,65 +527,535 @@
 <script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    /* ── UI 동작만 (데이터 조회/저장 기능은 추후 개발) ── */
+    /* ※ Thymeleaf 가 이중 대괄호를 표현식으로 해석하므로, 이 스크립트에서는 이중 대괄호를 쓰지 않는다. */
+    const $id = id => document.getElementById(id);
 
-    // 다크모드 (searchPartAnalysisV2 와 localStorage 키 'theme' 공유)
+    // ── 다크모드 (searchPartAnalysisV2 와 localStorage 키 'theme' 공유)
     (function initTheme() {
         const dark = localStorage.getItem('theme') !== 'light';
         document.documentElement.classList.toggle('dark', dark);
-        document.getElementById('darkModeToggle').checked = dark;
-        document.getElementById('themeLabel').textContent = dark ? '🌙 다크모드' : '☀️ 라이트모드';
+        $id('darkModeToggle').checked = dark;
+        $id('themeLabel').textContent = dark ? '다크모드' : '라이트모드';
     })();
-    document.getElementById('darkModeToggle').addEventListener('change', function () {
+    $id('darkModeToggle').addEventListener('change', function () {
         document.documentElement.classList.toggle('dark', this.checked);
         try { localStorage.setItem('theme', this.checked ? 'dark' : 'light'); } catch (e) {}
-        document.getElementById('themeLabel').textContent = this.checked ? '🌙 다크모드' : '☀️ 라이트모드';
+        $id('themeLabel').textContent = this.checked ? '다크모드' : '라이트모드';
     });
 
-    // 사이드바 현재 메뉴 활성화
+    // ── 사이드바 현재 메뉴 활성화
     document.querySelectorAll('#sidebar .sb-link').forEach(a => a.classList.remove('active'));
     document.querySelector('#sidebar a[href="/track/findModifyBom"]')?.classList.add('active');
 
-    // 수정 기간 기본값 : 최근 7일
-    (function initDates() {
-        const fmt = d => d.toISOString().slice(0, 10);
-        const to = new Date(), from = new Date();
-        from.setDate(to.getDate() - 7);
-        document.getElementById('fromDate').value = fmt(from);
-        document.getElementById('toDate').value = fmt(to);
-    })();
+    /* ══════════════════════════════════════════════════════════
+       상태
+       ══════════════════════════════════════════════════════════ */
+    const state = {
+        seq: 0,              // 조회 번호 (이전 조회의 늦은 응답 무시용)
+        phase: 'idle',       // idle | loading | done | error
+        date: '',
+        hogis: [],           // { hogi, codat }
+        bom: new Map(),      // hogi -> { ok:true, rows } | { ok:false, error }
+        inflight: new Map(), // hogi -> Promise
+        selected: null,
+        optFilter: '',
+        loadingAll: false,
+    };
 
-    // 변경 유형 칩 (복수 선택 토글)
-    document.querySelectorAll('.type-chip').forEach(btn => btn.addEventListener('click', () => {
-        btn.setAttribute('aria-pressed', btn.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
-    }));
+    /* ── 유틸 ── */
+    const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ESC[c]);
+    const pad2 = n => String(n).padStart(2, '0');
+    const toInputDate = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    const fmtYmd = s => {
+        const v = String(s || '').trim();
+        return /^\d{8}$/.test(v) ? v.slice(0, 4) + '-' + v.slice(4, 6) + '-' + v.slice(6, 8) : (v || '-');
+    };
+    const num = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+    const fmtQty = v => (v == null || v === '') ? '-' : (isNaN(parseFloat(v)) ? v : String(parseFloat(v)));
+    const optKey = v => (v == null || String(v).trim() === '') ? '(없음)' : String(v).trim();
 
-    // 제품 목록 선택
-    document.getElementById('prodList').addEventListener('click', e => {
+    // 품목구분 → 색 인덱스 (자주 쓰는 값은 고정, 나머지는 해시)
+    const OPT_FIXED = { '1': 0, '2': 1, '3': 2, 'M': 3, 'C': 4 };
+    function optIdx(k) {
+        if (Object.prototype.hasOwnProperty.call(OPT_FIXED, k)) return OPT_FIXED[k];
+        if (k === '(없음)') return 5;
+        let h = 0;
+        for (const ch of k) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+        return h % 6;
+    }
+    const OPT_ORDER = ['1', '2', '3', 'M', 'C'];
+    function optCompare(a, b) {
+        const ia = OPT_ORDER.indexOf(a), ib = OPT_ORDER.indexOf(b);
+        if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+        return a.localeCompare(b);
+    }
+    function countByOpt(rows) {
+        const m = new Map();
+        rows.forEach(r => { const k = optKey(r.blockOpt); m.set(k, (m.get(k) || 0) + 1); });
+        return Array.from(m.entries()).sort((x, y) => optCompare(x[0], y[0]));
+    }
+    function sortRows(rows) {
+        return rows.slice().sort((a, b) =>
+            String(a.blockNo || '').localeCompare(String(b.blockNo || '')) ||
+            String(a.partNo || '').localeCompare(String(b.partNo || '')));
+    }
+    function announce(msg) { $id('liveStatus').textContent = msg; }
+
+    /* ══════════════════════════════════════════════════════════
+       조회
+       ══════════════════════════════════════════════════════════ */
+    function setFieldError(msg) {
+        const el = $id('coDateErr');
+        el.textContent = msg || '';
+        el.style.display = msg ? '' : 'none';
+        $id('coDate').setAttribute('aria-invalid', msg ? 'true' : 'false');
+    }
+
+    function setSearching(on) {
+        const b = $id('btnSearch');
+        b.disabled = on;
+        b.querySelector('span').textContent = on ? '조회 중…' : '조회';
+        $id('prevDay').disabled = on;
+        $id('nextDay').disabled = on;
+    }
+
+    async function search() {
+        const date = $id('coDate').value;
+        if (!date) { setFieldError('설계완료일을 선택하세요.'); $id('coDate').focus(); return; }
+        setFieldError('');
+
+        const seq = ++state.seq;
+        Object.assign(state, { phase: 'loading', date, hogis: [], selected: null, optFilter: '', loadingAll: false });
+        state.bom.clear();
+        state.inflight.clear();
+        $id('bomQuery').value = '';
+        $id('searchError').style.display = 'none';
+        setSearching(true);
+        renderAll();
+
+        try {
+            const res = await fetch('/track/initialHogiList?date=' + encodeURIComponent(date), { headers: { 'Accept': 'application/json' } });
+            const data = await res.json().catch(() => null);
+            if (seq !== state.seq) return;
+            if (!res.ok) throw new Error((data && data.message) || ('서버 응답 오류 (HTTP ' + res.status + ')'));
+
+            state.hogis = (Array.isArray(data) ? data : []).map(h => ({ hogi: h.hogi, codat: h.codat }));
+            state.phase = 'done';
+            renderAll();
+            announce(fmtYmd(date.replace(/-/g, '')) + ' 최초설계완료 호기 ' + state.hogis.length + '개');
+            if (state.hogis.length) selectHogi(sortedHogis()[0].hogi);
+        } catch (e) {
+            if (seq !== state.seq) return;
+            state.phase = 'error';
+            $id('searchErrorMsg').textContent = '호기 목록을 가져오지 못했습니다. ' + e.message;
+            $id('searchError').style.display = '';
+            renderAll();
+        } finally {
+            if (seq === state.seq) setSearching(false);
+        }
+    }
+
+    function loadBom(hogi) {
+        const cached = state.bom.get(hogi);
+        if (cached) return Promise.resolve(cached);
+        const running = state.inflight.get(hogi);
+        if (running) return running;
+
+        const seq = state.seq;
+        const p = fetch('/track/initialHogiBom?hogi=' + encodeURIComponent(hogi), { headers: { 'Accept': 'application/json' } })
+            .then(r => { if (!r.ok) throw new Error('서버 응답 오류 (HTTP ' + r.status + ')'); return r.json(); })
+            .then(rows => ({ ok: true, rows: sortRows(Array.isArray(rows) ? rows : []) }))
+            .catch(e => ({ ok: false, error: e.message }))
+            .then(entry => {
+                if (seq === state.seq) { state.bom.set(hogi, entry); state.inflight.delete(hogi); }
+                return entry;
+            });
+        state.inflight.set(hogi, p);
+        return p;
+    }
+
+    async function selectHogi(hogi, focus) {
+        if (state.selected !== hogi) { state.optFilter = ''; $id('bomQuery').value = ''; }
+        state.selected = hogi;
+        const seq = state.seq;
+        const p = loadBom(hogi);   // 먼저 요청을 걸어 목록에 '불러오는 중' 이 바로 보이게
+        renderList(focus);
+        renderDetail();
+        await p;
+        if (seq !== state.seq) return;
+        renderList();
+        renderSummary();
+        if (state.selected === hogi) renderDetail();
+    }
+
+    function retryBom(hogi) {
+        const e = state.bom.get(hogi);
+        if (e && !e.ok) state.bom.delete(hogi);
+        selectHogi(hogi);
+    }
+
+    async function loadAll() {
+        if (state.loadingAll || !state.hogis.length) return;
+        const seq = state.seq;
+        const queue = state.hogis.map(h => h.hogi).filter(h => { const e = state.bom.get(h); return !e || !e.ok; });
+        queue.forEach(h => { const e = state.bom.get(h); if (e && !e.ok) state.bom.delete(h); });
+        const total = queue.length;
+        if (!total) return;
+
+        state.loadingAll = true;
+        let done = 0;
+        renderLoadAllBtn(done, total);
+
+        const worker = async () => {
+            while (queue.length && seq === state.seq) {
+                const h = queue.shift();
+                await loadBom(h);
+                if (seq !== state.seq) return;
+                done++;
+                renderLoadAllBtn(done, total);
+                renderList();
+                renderSummary();
+                if (h === state.selected) renderDetail();
+            }
+        };
+        await Promise.all(Array.from({ length: Math.min(3, total) }, worker));   // 동시 3건씩
+        if (seq !== state.seq) return;
+        state.loadingAll = false;
+        renderLoadAllBtn();
+        announce('전체 ' + state.hogis.length + '개 호기 BOM 조회 완료');
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       렌더링
+       ══════════════════════════════════════════════════════════ */
+    function renderAll() { renderSummary(); renderList(); renderDetail(); renderLoadAllBtn(); }
+
+    function loadedEntries() {
+        const out = [];
+        state.hogis.forEach(h => { const e = state.bom.get(h.hogi); if (e && e.ok) out.push(e); });
+        return out;
+    }
+
+    function renderSummary() {
+        const total = state.hogis.length;
+        const loaded = loadedEntries();
+        const allRows = [];
+        loaded.forEach(e => e.rows.forEach(r => allRows.push(r)));
+
+        if (state.phase === 'idle' || state.phase === 'error') {
+            $id('sumHogi').innerHTML = '-<small>개</small>';
+            $id('sumDate').textContent = state.phase === 'error' ? '조회 실패' : '조회 전';
+        } else if (state.phase === 'loading') {
+            $id('sumHogi').innerHTML = '<span class="spin" aria-hidden="true" style="width:20px;height:20px;"></span>';
+            $id('sumDate').textContent = '설계완료일 ' + state.date + ' 조회 중';
+        } else {
+            $id('sumHogi').innerHTML = total.toLocaleString() + '<small>개</small>';
+            $id('sumDate').textContent = '설계완료일 ' + state.date;
+        }
+
+        $id('sumLoaded').innerHTML = total ? loaded.length + '<small>/ ' + total + '</small>' : '-';
+        $id('sumParts').innerHTML = (loaded.length ? allRows.length.toLocaleString() : '-') + '<small>건</small>';
+        $id('sumPartsSub').textContent = loaded.length && loaded.length < total
+            ? total - loaded.length + '개 호기는 아직 조회 전'
+            : '조회된 호기 기준';
+
+        const bar = $id('optMixBar'), legend = $id('optMixLegend');
+        if (!allRows.length) {
+            bar.innerHTML = '';
+            bar.setAttribute('aria-label', '품목구분 구성 없음');
+            legend.innerHTML = '<span class="text-apple-gray1">BOM 을 조회하면 표시됩니다.</span>';
+            return;
+        }
+        const counts = countByOpt(allRows);
+        bar.innerHTML = counts.map(c =>
+            '<span class="opt-' + optIdx(c[0]) + '" style="width:' + (c[1] / allRows.length * 100).toFixed(2) + '%; background:var(--oc);"></span>').join('');
+        bar.setAttribute('aria-label', '품목구분 구성: ' + counts.map(c => c[0] + ' ' + c[1] + '건').join(', '));
+        legend.innerHTML = counts.map(c =>
+            '<span class="opt-' + optIdx(c[0]) + '"><i class="lg-dot" style="background:var(--oc)"></i>' + esc(c[0]) + ' <b>' + c[1].toLocaleString() + '</b></span>').join('');
+    }
+
+    function sortedHogis() {
+        const list = state.hogis.slice();
+        if ($id('hogiSort').value === 'parts') {
+            const cnt = h => { const e = state.bom.get(h.hogi); return e && e.ok ? e.rows.length : -1; };
+            list.sort((a, b) => cnt(b) - cnt(a) || a.hogi.localeCompare(b.hogi));
+        } else {
+            list.sort((a, b) => a.hogi.localeCompare(b.hogi));
+        }
+        return list;
+    }
+
+    function renderList(focusSelected) {
+        const box = $id('hogiList');
+        $id('hogiCount').textContent = state.phase === 'done' ? state.hogis.length.toLocaleString() : '';
+
+        if (state.phase === 'idle') { box.innerHTML = '<div class="empty"><b>조회 전입니다</b>설계완료일을 고르고 조회하세요.</div>'; return; }
+        if (state.phase === 'error') { box.innerHTML = '<div class="empty"><b>호기 목록을 가져오지 못했습니다</b>위의 다시 시도를 눌러 주세요.</div>'; return; }
+        if (state.phase === 'loading') {
+            box.innerHTML = Array.from({ length: 6 }, () =>
+                '<div style="padding:16px 20px; border-bottom:1px solid var(--line);"><span class="sk" style="width:46%;"></span><span class="sk" style="width:72%; margin-top:10px; height:10px;"></span></div>').join('');
+            return;
+        }
+        if (!state.hogis.length) {
+            box.innerHTML = '<div class="empty"><b>최초설계완료 호기가 없습니다</b>' + esc(state.date) + ' 에 최초설계가 완료된 호기가 없습니다.<br>‹ › 버튼으로 다른 날짜를 조회해 보세요.</div>';
+            return;
+        }
+
+        const active = document.activeElement;
+        const focusedHogi = active && active.classList.contains('prod-item') && box.contains(active) ? active.dataset.hogi : null;
+        const q = $id('hogiFilter').value.trim().toUpperCase();
+        const list = sortedHogis().filter(h => !q || h.hogi.toUpperCase().includes(q));
+        if (!list.length) { box.innerHTML = '<div class="empty"><b>찾는 호기가 없습니다</b>"' + esc(q) + '" 와 맞는 호기번호가 없습니다.</div>'; return; }
+
+        box.innerHTML = list.map(h => {
+            const e = state.bom.get(h.hogi);
+            const sel = h.hogi === state.selected;
+            let meta = '', st;
+            if (e && e.ok) {
+                const name = e.rows.length ? e.rows[0].productName : '';
+                if (name) meta = '<p class="prod-meta">' + esc(name) + '</p>';
+                st = '<span class="prod-state ok"><i class="fas fa-check" style="font-size:10px;" aria-hidden="true"></i>자재 ' + e.rows.length.toLocaleString() + '건</span>';
+            } else if (e && !e.ok) {
+                st = '<span class="prod-state err"><i class="fas fa-exclamation-circle" style="font-size:10px;" aria-hidden="true"></i>BOM 조회 실패</span>';
+            } else if (state.inflight.has(h.hogi)) {
+                st = '<span class="prod-state"><span class="spin" aria-hidden="true"></span>BOM 불러오는 중</span>';
+            } else {
+                st = '<span class="prod-state">BOM 조회 전</span>';
+            }
+            return '<button type="button" class="prod-item" role="option" tabindex="' + (sel ? '0' : '-1') + '" aria-selected="' + sel + '" data-hogi="' + esc(h.hogi) + '">' +
+                '<div class="prod-top"><span class="prod-no">' + esc(h.hogi) + '</span><span class="prod-date">' + esc(fmtYmd(h.codat)) + '</span></div>' +
+                meta + st + '</button>';
+        }).join('');
+
+        // 선택된 항목이 필터로 숨겨졌으면 첫 항목을 Tab 진입점으로
+        if (!box.querySelector('[tabindex="0"]')) box.querySelector('.prod-item')?.setAttribute('tabindex', '0');
+        if (focusSelected) box.querySelector('.prod-item[aria-selected="true"]')?.focus();
+        else if (focusedHogi) Array.from(box.querySelectorAll('.prod-item')).find(b => b.dataset.hogi === focusedHogi)?.focus();
+    }
+
+    function renderLoadAllBtn(done, total) {
+        const b = $id('btnLoadAll'), label = $id('loadAllLabel');
+        if (state.loadingAll) {
+            b.disabled = true;
+            label.textContent = '불러오는 중 ' + (done || 0) + ' / ' + (total || 0);
+            return;
+        }
+        const remaining = state.hogis.filter(h => { const e = state.bom.get(h.hogi); return !e || !e.ok; }).length;
+        b.disabled = state.phase !== 'done' || remaining === 0;
+        label.textContent = state.phase === 'done' && state.hogis.length && remaining === 0 ? '전체 BOM 조회 완료' : '전체 BOM 불러오기';
+    }
+
+    function showTable(on) {
+        $id('bomScroll').style.display = on ? '' : 'none';
+        $id('bomEmpty').style.display = on ? 'none' : '';
+    }
+    function setEmpty(html) { $id('bomEmpty').innerHTML = html; showTable(false); }
+
+    function renderDetail() {
+        const hogi = state.selected;
+        const specs = $id('detailSpecs'), seg = $id('optSeg'), foot = $id('detailFoot');
+        $id('btnCsv').disabled = true;
+
+        if (!hogi) {
+            $id('detailTitle').textContent = '-';
+            specs.innerHTML = ''; seg.innerHTML = ''; foot.textContent = '-';
+            setEmpty(state.phase === 'done' && !state.hogis.length
+                ? '<b>표시할 BOM 이 없습니다</b>이 날짜에는 최초설계완료 호기가 없습니다.'
+                : '<b>선택한 호기가 없습니다</b>왼쪽 목록에서 호기를 고르면 최초설계 BOM 이 여기에 나옵니다.');
+            return;
+        }
+
+        $id('detailTitle').textContent = hogi;
+        const info = state.hogis.find(h => h.hogi === hogi) || {};
+        const e = state.bom.get(hogi);
+
+        if (!e) {   // 불러오는 중 → 스켈레톤
+            specs.innerHTML = '<div><dt>설계완료일</dt><dd>' + esc(fmtYmd(info.codat)) + '</dd></div>';
+            seg.innerHTML = '';
+            foot.textContent = 'BOM 을 불러오는 중입니다…';
+            showTable(true);
+            $id('bomBody').innerHTML = Array.from({ length: 8 }, () =>
+                '<tr>' + Array.from({ length: 9 }, (_, i) => '<td><span class="sk" style="width:' + (i === 3 ? 140 : 60) + 'px;"></span></td>').join('') + '</tr>').join('');
+            return;
+        }
+
+        if (!e.ok) {
+            specs.innerHTML = '<div><dt>설계완료일</dt><dd>' + esc(fmtYmd(info.codat)) + '</dd></div>';
+            seg.innerHTML = '';
+            foot.textContent = 'BOM 조회 실패';
+            setEmpty('<b>BOM 을 가져오지 못했습니다</b>' + esc(e.error) + '<br><button type="button" class="btn-mini" data-retry="' + esc(hogi) + '">다시 시도</button>');
+            return;
+        }
+
+        const rows = e.rows;
+        const versions = Array.from(new Set(rows.map(r => r.productVersion).filter(v => v != null && v !== '')))
+            .sort((a, b) => num(a) - num(b));
+        const blocks = new Set(rows.map(r => r.blockNo));
+        specs.innerHTML =
+            '<div><dt>제품명</dt><dd>' + esc((rows[0] && rows[0].productName) || '-') + '</dd></div>' +
+            '<div><dt>설계완료일</dt><dd>' + esc(fmtYmd(info.codat)) + '</dd></div>' +
+            '<div><dt>최초설계 버전</dt><dd>' + esc(versions.length ? versions.join(', ') : '-') + '</dd></div>' +
+            '<div><dt>Block</dt><dd>' + blocks.size.toLocaleString() + '개</dd></div>' +
+            '<div><dt>자재</dt><dd>' + rows.length.toLocaleString() + '건</dd></div>';
+
+        if (!rows.length) {
+            seg.innerHTML = '';
+            foot.textContent = '자재 0건';
+            setEmpty('<b>최초설계 BOM 이 없습니다</b>PLM 에서 이 호기의 최초설계 BOM 을 찾지 못했습니다.');
+            return;
+        }
+
+        // 품목구분 필터
+        const counts = countByOpt(rows);
+        if (state.optFilter && !counts.some(c => c[0] === state.optFilter)) state.optFilter = '';
+        seg.innerHTML = '<button type="button" data-opt="" aria-pressed="' + (state.optFilter === '') + '">전체 ' + rows.length.toLocaleString() + '</button>' +
+            counts.map(c => '<button type="button" class="opt-' + optIdx(c[0]) + '" data-opt="' + esc(c[0]) + '" aria-pressed="' + (state.optFilter === c[0]) + '">' +
+                '<span class="sw" aria-hidden="true"></span>' + esc(c[0]) + ' ' + c[1].toLocaleString() + '</button>').join('');
+
+        renderRows();
+    }
+
+    function filteredRows() {
+        const e = state.bom.get(state.selected);
+        if (!e || !e.ok) return [];
+        const q = $id('bomQuery').value.trim().toUpperCase();
+        return e.rows.filter(r =>
+            (!state.optFilter || optKey(r.blockOpt) === state.optFilter) &&
+            (!q || [r.partNo, r.partName, r.blockNo, r.spec, r.cmt].some(v => String(v || '').toUpperCase().includes(q))));
+    }
+
+    function hl(text, q) {
+        const s = String(text == null ? '' : text);
+        if (!q) return esc(s);
+        const i = s.toUpperCase().indexOf(q);
+        if (i < 0) return esc(s);
+        return esc(s.slice(0, i)) + '<mark class="hl">' + esc(s.slice(i, i + q.length)) + '</mark>' + esc(s.slice(i + q.length));
+    }
+
+    function renderRows() {
+        const e = state.bom.get(state.selected);
+        if (!e || !e.ok || !e.rows.length) return;
+        const q = $id('bomQuery').value.trim().toUpperCase();
+        const rows = filteredRows();
+        $id('btnCsv').disabled = false;
+
+        $id('detailFoot').textContent = rows.length === e.rows.length
+            ? '자재 ' + e.rows.length.toLocaleString() + '건'
+            : '자재 ' + e.rows.length.toLocaleString() + '건 중 ' + rows.length.toLocaleString() + '건 표시';
+
+        if (!rows.length) {
+            setEmpty('<b>조건에 맞는 자재가 없습니다</b>품목구분 필터나 검색어를 바꿔 보세요.');
+            return;
+        }
+        showTable(true);
+
+        let prevBlock = null;
+        $id('bomBody').innerHTML = rows.map(r => {
+            const k = optKey(r.blockOpt);
+            const first = r.blockNo !== prevBlock;
+            const cls = first && prevBlock !== null ? ' class="block-start"' : '';
+            prevBlock = r.blockNo;
+            const dash = '<span class="dim">-</span>';
+            return '<tr' + cls + '>' +
+                '<td><span class="opt-tag opt-' + optIdx(k) + '">' + esc(k) + '</span></td>' +
+                '<td>' + (first ? hl(r.blockNo, q) : '<span class="dim">' + hl(r.blockNo, q) + '</span>') + '</td>' +
+                '<td class="part-no">' + hl(r.partNo, q) + '</td>' +
+                '<td>' + hl(r.partName, q) + '</td>' +
+                '<td class="num">' + esc(fmtQty(r.qty)) + '</td>' +
+                '<td class="spec">' + (r.spec ? hl(r.spec, q) : dash) + '</td>' +
+                '<td class="cmt">' + (r.cmt ? hl(r.cmt, q) : dash) + '</td>' +
+                '<td class="num">' + esc(r.productVersion || '-') + '</td>' +
+                '<td>' + (String(r.ucheck) === '1' ? '<span class="uc-tag">수정</span>' : dash) + '</td>' +
+                '</tr>';
+        }).join('');
+    }
+
+    /* ── CSV 다운로드 (현재 필터 적용 결과) ── */
+    function downloadCsv() {
+        const rows = filteredRows();
+        if (!rows.length) return;
+        const cell = v => {
+            const s = String(v == null ? '' : v);
+            return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+        };
+        const head = ['호기', '설계완료일', '품목구분', 'Block No.', '품번', '품명', 'QTY', 'SPEC', 'CMT', '버전', '수정여부'];
+        const info = state.hogis.find(h => h.hogi === state.selected) || {};
+        const lines = [head.map(cell).join(',')].concat(rows.map(r => [
+            state.selected, fmtYmd(info.codat), optKey(r.blockOpt), r.blockNo, r.partNo, r.partName,
+            fmtQty(r.qty), r.spec, r.cmt, r.productVersion, String(r.ucheck) === '1' ? 'Y' : ''
+        ].map(cell).join(',')));
+        const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = state.selected + '_최초설계BOM.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       이벤트
+       ══════════════════════════════════════════════════════════ */
+    $id('searchForm').addEventListener('submit', e => { e.preventDefault(); search(); });
+    $id('btnRetrySearch').addEventListener('click', search);
+    $id('coDate').addEventListener('change', () => setFieldError(''));
+
+    function shiftDay(delta) {
+        const v = $id('coDate').value;
+        const d = v ? new Date(v + 'T00:00:00') : new Date();
+        d.setDate(d.getDate() + delta);
+        $id('coDate').value = toInputDate(d);
+        search();
+    }
+    $id('prevDay').addEventListener('click', () => shiftDay(-1));
+    $id('nextDay').addEventListener('click', () => shiftDay(1));
+    $id('btnToday').addEventListener('click', () => { $id('coDate').value = toInputDate(new Date()); search(); });
+
+    $id('hogiFilter').addEventListener('input', () => renderList());
+    $id('hogiSort').addEventListener('change', () => renderList());
+    $id('btnLoadAll').addEventListener('click', loadAll);
+
+    // 호기 선택 (클릭 + 방향키)
+    $id('hogiList').addEventListener('click', e => {
         const item = e.target.closest('.prod-item');
-        if (!item) return;
-        document.querySelectorAll('.prod-item').forEach(i => i.setAttribute('aria-selected', 'false'));
-        item.setAttribute('aria-selected', 'true');
-        document.getElementById('detailTitle').textContent = item.querySelector('.prod-no').textContent;
+        if (item) selectHogi(item.dataset.hogi, true);
+    });
+    $id('hogiList').addEventListener('keydown', e => {
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        const items = Array.from($id('hogiList').querySelectorAll('.prod-item'));
+        const i = items.indexOf(document.activeElement);
+        if (i < 0) return;
+        e.preventDefault();
+        const next = items.at(e.key === 'ArrowDown' ? Math.min(i + 1, items.length - 1) : Math.max(i - 1, 0));
+        if (next && next !== items.at(i)) selectHogi(next.dataset.hogi, true);
     });
 
-    // 유형 탭 (하나만 선택)
-    document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
+    // 품목구분 필터
+    $id('optSeg').addEventListener('click', e => {
         const b = e.target.closest('button');
         if (!b) return;
-        seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', 'false'));
-        b.setAttribute('aria-pressed', 'true');
-    }));
-
-    // 행 검증 (확인 / 이상 중 하나, 다시 누르면 해제)
-    document.getElementById('chgBody').addEventListener('click', e => {
-        const b = e.target.closest('.verify button');
-        if (!b) return;
-        const on = b.getAttribute('aria-pressed') !== 'true';
-        b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', 'false'));
-        b.setAttribute('aria-pressed', on ? 'true' : 'false');
-        b.closest('tr').classList.toggle('ng', on && b.classList.contains('ng'));
+        state.optFilter = b.dataset.opt;
+        $id('optSeg').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+        renderRows();
     });
+
+    // BOM 내 검색 (입력 멈춘 뒤 반영)
+    let qTimer = null;
+    $id('bomQuery').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(renderRows, 150); });
+
+    // BOM 다시 시도
+    $id('bomEmpty').addEventListener('click', e => {
+        const b = e.target.closest('[data-retry]');
+        if (b) retryBom(b.dataset.retry);
+    });
+
+    $id('btnCsv').addEventListener('click', downloadCsv);
+
+    // ── 초기 상태 : 오늘 날짜만 채워 두고, 조회는 사용자가 실행
+    $id('coDate').value = toInputDate(new Date());
+    renderAll();
 </script>
 
 </body>

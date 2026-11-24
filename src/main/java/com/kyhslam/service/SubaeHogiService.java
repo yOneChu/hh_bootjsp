@@ -69,7 +69,7 @@ public class SubaeHogiService {
     /**
      * 금일 최초설계완료 호기 및 BOM 배치 처리
      */
-    @Scheduled(cron = "0 30 22 * * *")
+    //@Scheduled(cron = "0 30 22 * * *")
     public void subaeHogiBatch() {
 
         //1. 금일 최초설계완료 호기 저장
@@ -141,8 +141,75 @@ public class SubaeHogiService {
             System.out.printf("   - %.3f 초%n", seconds);
             System.out.printf("   - %.3f 분%n", minutes);
         }
+    }
+
+    /**
+     * 최초설계완료호기 목록 조회 (DB 저장 없이 PLM API 결과만 반환)
+     * @param searchDate 설계완료일 (yyyymmdd)
+     * @return 호기번호(hogi) / 설계완료일(codat) 목록
+     */
+    public List<HashMap<String, String>> fetchInitialDesignHogiList(String searchDate) throws Exception {
+        String requestUrl = "https://plmpro.hdel.co.kr/jsp/help/gethogilistByBlockopt.jsp?searchdate=" + searchDate;
+
+        String jsonResponse = getJson(requestUrl);
+        JsonNode root = new ObjectMapper().readTree(jsonResponse);
+
+        List<HashMap<String, String>> list = new ArrayList<>();
+        HashSet<String> seen = new HashSet<>();
+        if (root.isArray()) {
+            for (JsonNode node : root) {
+                String hogiNo = node.path("posid").asText("").trim();
+                if (hogiNo.isEmpty() || !seen.add(hogiNo)) continue;
+
+                HashMap<String, String> m = new HashMap<>();
+                m.put("hogi", hogiNo);
+                m.put("codat", node.path("codat").asText(""));
+                list.add(m);
+            }
+        }
+        return list;
+    }
+
+    /**
+     * 최초설계완료호기 조회 후 저장
+     * @param toDate (yyyymmdd)
+     */
+    public void subaeHogiInsertBatch(String toDate) {
+        StopWatch sw = new StopWatch();
+        sw.start();
+
+        try {
+            String todayVal = DateUtil.getTodayDate();
+
+            for (HashMap<String, String> h : fetchInitialDesignHogiList(toDate)) {
+                System.out.println("hogiNo = " + h.get("hogi"));
+                System.out.println("codat = " + h.get("codat"));
+
+                SubaeHogi s = new  SubaeHogi();
+                s.setHogi(h.get("hogi"));
+                s.setCodat(h.get("codat"));
+                s.setBatchDate(todayVal);
+
+                subaeHogiSave(s);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            sw.stop();
+
+            long millis = sw.getTotalTimeMillis();
+
+            double seconds = millis / 1000.0;
+            double minutes = seconds / 60.0;
+
+            System.out.println("⏱ 수행 시간:");
+            System.out.printf("   - %.3f 초%n", seconds);
+            System.out.printf("   - %.3f 분%n", minutes);
+        }
 
     }
+
 
     public static String getJson(String requestUrl) throws Exception {
         HttpClient client = HttpClient.newBuilder()
@@ -189,6 +256,7 @@ public class SubaeHogiService {
                 String hogi = subaeHogi.getHogi();
                 String codat =  subaeHogi.getCodat();
 
+                //최초설계완료호기의 BOM 추출
                 ArrayList<ProductDto> productDtos = ProductCommonUtil.getInitialDesignBom(hogi);
 
                 for(ProductDto dto : productDtos) {
