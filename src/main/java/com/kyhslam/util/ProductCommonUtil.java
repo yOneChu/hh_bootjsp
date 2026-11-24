@@ -1452,17 +1452,12 @@ public class ProductCommonUtil {
                 dto.setWorkQty(WORK_QTY);
                 dto.setUom(UOM);
 
-
-
-
                 if (QTY.contains("CE") && WORK_QTY.equals("0")) {
 
                 } else {
                     list.add(dto);
                     System.out.println(LEV + ">" + PARTNO + " > " + PARTNAME + " > " + QTY + " > " + WORK_QTY);
                 }
-
-
             }
 
         } catch (Exception e) {
