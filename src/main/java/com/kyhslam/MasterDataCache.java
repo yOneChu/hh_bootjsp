@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +38,19 @@ public class MasterDataCache {
 
     private volatile HashMap<String, String> saleMap = new HashMap<>();
 
+    // 특성코드 목록 화면 전용: codeDictList 를 (구분, 특성 CODE) 단위로 묶은 것
+    private volatile List<CodeGroup> codeGroupList = Collections.emptyList();
+
+    /**
+     * 특성코드 목록 화면용 묶음 (JSON 크기를 줄이려고 필드명을 짧게 둔다)
+     * @param d 구분 E(육상) / S(선박)
+     * @param c 특성 CODE
+     * @param n 사양명
+     * @param g 코드 분류명 (선택형이 아니면 빈 문자열)
+     * @param v 특성값 목록, 각 항목은 {값 CODE, 값 설명}
+     */
+    public record CodeGroup(String d, String c, String n, String g, List<String[]> v) {}
+
     // 특성 CODE(대문자) -> 사양명 (육상 우선, 없으면 선박용. 로직 Viewer 의 SPEC 한글명)
     private volatile Map<String, String> specNameIndex = Collections.emptyMap();
 
@@ -55,6 +69,8 @@ public class MasterDataCache {
         List<CodeInfoDTO> listDict = MLBCommonUtil.getCodeDictList();
         this.codeDictList = Collections.unmodifiableList(new ArrayList<>(listDict));
         log.info("특성코드 사전 마스터 로딩 완료: {}건", codeDictList.size());
+        this.codeGroupList = groupDict(codeDictList);
+        log.info("특성코드 목록 화면 묶음 완료: {}개 특성", codeGroupList.size());
 
         List<CodeInfoDTO> list02 = MLBCommonUtil.getCodeListV2();
         this.codeElvList = Collections.unmodifiableList(new ArrayList<>(list02));
@@ -88,6 +104,41 @@ public class MasterDataCache {
         return Collections.unmodifiableMap(index);
     }
 
+    /** codeDictList(특성 x 값 행) -> 특성 단위 묶음. 구분(육상 먼저) -> CODE 순으로 정렬 */
+    private static List<CodeGroup> groupDict(List<CodeInfoDTO> list) {
+        Map<String, String[]> head = new LinkedHashMap<>();          // key -> {d, c, n, g}
+        Map<String, List<String[]>> values = new HashMap<>();
+        for (CodeInfoDTO dto : list) {
+            if (dto.getCode() == null) continue;
+            String code = dto.getCode().trim();
+            if (code.isEmpty()) continue;
+            String d = "SHIP".equals(dto.getDiv()) ? "S" : "E";
+            String key = d + "|" + code.toUpperCase();
+            head.computeIfAbsent(key, k -> new String[]{d, code, clean(dto.getCodeName()), clean(dto.getName())});
+            List<String[]> vs = values.computeIfAbsent(key, k -> new ArrayList<>());
+            String valCode = clean(dto.getTypeName());
+            String valDes = clean(dto.getTypeVal());
+            if (!valCode.isEmpty() || !valDes.isEmpty()) vs.add(new String[]{valCode, valDes});
+        }
+        List<CodeGroup> result = new ArrayList<>(head.size());
+        head.forEach((key, h) -> {
+            List<String[]> vs = values.get(key);
+            vs.sort((a, b) -> a[0].compareToIgnoreCase(b[0]));
+            result.add(new CodeGroup(h[0], h[1], h[2], h[3], Collections.unmodifiableList(vs)));
+        });
+        result.sort((a, b) -> {
+            int c = a.d().compareTo(b.d());                          // E(육상) 먼저
+            return c != 0 ? c : a.c().compareToIgnoreCase(b.c());
+        });
+        return Collections.unmodifiableList(result);
+    }
+
+    private static String clean(String s) {
+        if (s == null) return "";
+        String t = s.trim();
+        return "null".equals(t) ? "" : t;
+    }
+
     /** 특성 CODE(대문자) -> 사양명. 앞에 넘긴 목록이 우선 */
     @SafeVarargs
     private static Map<String, String> indexSpecName(List<CodeInfoDTO>... lists) {
@@ -116,6 +167,11 @@ public class MasterDataCache {
     /** 특성코드 사전 팝업 전용 (값 없는 특성 / 비선택형 특성 포함) */
     public List<CodeInfoDTO> getCodeDictList() {
         return codeDictList;
+    }
+
+    /** 특성코드 목록 화면 전용 (구분 x 특성 CODE 단위로 묶은 것, DB 조회 없음) */
+    public List<CodeGroup> getCodeGroupList() {
+        return codeGroupList;
     }
 
     public List<CodeInfoDTO> getCodeListV2() {

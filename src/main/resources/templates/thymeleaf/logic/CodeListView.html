@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>특성코드 목록</title>
+    <link rel="icon" type="image/png" href="/resources/favicon.ico"/>
+
+    <script>
+        // 페이지 렌더 전 다크모드/사이드바 상태 적용 (깜빡임 방지) — 기본값: 다크
+        if (localStorage.getItem('theme') !== 'light') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('sbCollapsed') === '1') document.documentElement.classList.add('sb-collapsed');
+    </script>
+
+    <link rel="stylesheet" href="/resources/dist/plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="/resources/dist/css/adminlte.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/resources/dist/googleFont.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+
+    <script>
+        tailwind.config = {
+            // Bootstrap(adminlte) 기반 사이드바 마크업을 쓰므로 preflight 는 끈다
+            corePlugins: { preflight: false },
+            important: true,
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: {
+                            blue:  '#0071E3',
+                            blueD: '#0A84FF',
+                            ink:   '#1D1D1F',
+                            gray1: '#8E8E93',
+                            gray5: '#E5E5EA',
+                            gray6: '#F5F5F7',
+                            card:  '#FFFFFF',
+                            darkBg:   '#000000',
+                            darkCard: '#1C1C1E',
+                            darkLine: '#38383A',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard Variable', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Helvetica Neue', 'Arial', 'sans-serif']
+                    },
+                    boxShadow: {
+                        btn: '0 2px 10px rgba(0,113,227,.35)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* ════════════ 토큰 (searchBomGetPartNo 와 동일) ════════════ */
+        :root {
+            --paper:     #F4F5F3;
+            --sheet:     #FFFFFF;
+            --ink:       #1D1F22;
+            --ink-2:     #565B61;
+            --ink-3:     #7A8086;
+            --rule:      #D9DCD8;
+            --rule-soft: #ECEEEB;
+            --wash:      #F8F9F7;
+            --focus:     #0071E3;
+
+            --c-accent:  #0071E3;
+            --t-accent:  rgba(0,113,227,.08);
+            --c-ship:    #0A7F6F;
+            --t-ship:    rgba(10,127,111,.10);
+            --c-warn:    #A86200;
+            --t-warn:    rgba(168,98,0,.09);
+            --c-error:   #C42B25;
+            --t-mark:    rgba(255,204,0,.38);
+            --t-sel:     rgba(0,113,227,.10);
+        }
+        html.dark {
+            --paper:     #000000;
+            --sheet:     #1C1C1E;
+            --ink:       #F2F2F0;
+            --ink-2:     #B0B4B8;
+            --ink-3:     #8A8F94;
+            --rule:      #3A3A3C;
+            --rule-soft: #2A2A2C;
+            --wash:      #232325;
+            --focus:     #0A84FF;
+
+            --c-accent:  #0A84FF;
+            --t-accent:  rgba(10,132,255,.14);
+            --c-ship:    #3CCFB8;
+            --t-ship:    rgba(60,207,184,.13);
+            --c-warn:    #F0A33A;
+            --t-warn:    rgba(240,163,58,.13);
+            --c-error:   #FF6B61;
+            --t-mark:    rgba(255,214,10,.28);
+            --t-sel:     rgba(10,132,255,.18);
+        }
+
+        html { -webkit-font-smoothing: antialiased; }
+        html.dark { color-scheme: dark; }
+        body {
+            font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--paper);
+            color: var(--ink);
+            word-break: keep-all;
+            overflow-wrap: anywhere;
+        }
+        h1, h2, h3, h4, h5 { margin: 0; }
+        main p, header p { margin: 0; }
+        main label { margin-bottom: 0; }
+        [hidden] { display: none !important; }
+        :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+        /* ── 상단 바 (다른 화면과 공통) ── */
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; border-radius: 9px; border: none; cursor: pointer;
+            background: transparent; color: var(--ink); transition: background .15s;
+        }
+        .icon-btn:hover { background: rgba(127,127,127,.12); }
+        .ios-switch { position: relative; width: 46px; height: 27px; cursor: pointer; margin: 0; }
+        .ios-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .ios-switch .track { position: absolute; inset: 0; border-radius: 999px; background: #D2D2D7; transition: background .2s; }
+        .dark .ios-switch .track { background: #38383A; }
+        .ios-switch input:checked + .track { background: #34C759; }
+        .ios-switch input:focus-visible + .track { outline: 2px solid var(--focus); outline-offset: 2px; }
+        .ios-switch .knob {
+            position: absolute; top: 2.5px; left: 2.5px; width: 22px; height: 22px;
+            border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: transform .2s;
+        }
+        .ios-switch input:checked ~ .knob { transform: translateX(19px); }
+
+        /* ════════════ 화면 골격 : 조건 바 + (목록 | 상세) — 화면 높이에 맞춤 ════════════ */
+        .cl-main {
+            display: flex; flex-direction: column; gap: 14px;
+            height: calc(100vh - 58px); min-height: 560px; box-sizing: border-box;
+            padding: 18px 20px 14px;
+        }
+        @media (min-width: 1280px) { .cl-main { padding: 20px 32px 14px; } }
+
+        /* ── 조건 바 ── */
+        .cl-bar {
+            flex: none; display: flex; flex-wrap: wrap; align-items: stretch;
+            background: var(--sheet); border: 1.5px solid var(--ink); border-radius: 10px; overflow: hidden;
+        }
+        .dark .cl-bar { border-color: #4A4A4E; }
+        .cl-cell { padding: 11px 14px 12px; min-width: 0; }
+        .cl-cell + .cl-cell { border-left: 1px solid var(--rule); }
+        .cl-title { flex: 0 1 250px; }
+        .cl-title h2 { font-size: 18px; font-weight: 750; letter-spacing: -.02em; line-height: 1.25; }
+        .cl-title p { font-size: 12px; color: var(--ink-2); margin-top: 4px; line-height: 1.55; }
+        .cl-search { flex: 1 1 340px; }
+        .cl-label { display: block; font-size: 11.5px; font-weight: 600 !important; color: var(--ink-2); margin-bottom: 6px; }
+        .cl-hint { font-size: 11px; color: var(--ink-3); margin-top: 5px; }
+        .cl-hint kbd, .cl-kbd {
+            font-family: inherit; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+            border: 1px solid var(--rule); background: var(--wash); color: var(--ink-2); box-shadow: none;
+        }
+
+        .cl-field-wrap { position: relative; }
+        .cl-field-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+        .cl-field {
+            width: 100%; height: 38px; padding: 0 34px 0 34px; box-sizing: border-box;
+            font-family: inherit; font-size: 14px; font-weight: 600;
+            color: var(--ink); background: var(--wash);
+            border: 1px solid var(--rule); border-radius: 7px; outline: none;
+            transition: border-color .15s, background .15s;
+        }
+        .cl-field::placeholder { color: var(--ink-3); font-weight: 400; }
+        .cl-field:focus { border-color: var(--focus); background: var(--sheet); }
+        .cl-field:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0,113,227,.18); }
+        .cl-field.sm { height: 30px; font-size: 12.5px; font-weight: 500; padding: 0 10px 0 30px; }
+        .cl-field.sm + svg, .cl-field-wrap.sm svg { left: 9px; }
+        .cl-clear {
+            position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+            width: 26px; height: 26px; border: none; border-radius: 6px; background: transparent; cursor: pointer;
+            color: var(--ink-3); display: inline-flex; align-items: center; justify-content: center;
+        }
+        .cl-clear:hover { background: rgba(127,127,127,.14); color: var(--ink); }
+
+        /* 세그먼트 */
+        .cl-seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--wash); }
+        .cl-seg button {
+            display: inline-flex; align-items: center; gap: 6px;
+            height: 38px; padding: 0 12px; border: none; cursor: pointer; font-family: inherit;
+            font-size: 12.5px; font-weight: 600; color: var(--ink-2); background: transparent; white-space: nowrap;
+            transition: background .12s, color .12s;
+        }
+        .cl-seg button:hover { color: var(--ink); }
+        .cl-seg button + button { border-left: 1px solid var(--rule); }
+        .cl-seg button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
+        .cl-seg button .n { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; opacity: .7; }
+        .cl-seg.sm button { height: 26px; padding: 0 9px; font-size: 11.5px; }
+
+        .cl-actions { display: flex; align-items: flex-end; gap: 8px; margin-left: auto; }
+        .cl-tool {
+            display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 12px;
+            border: 1px solid var(--rule); border-radius: 8px; background: var(--sheet); cursor: pointer;
+            font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink); white-space: nowrap;
+        }
+        .cl-tool:hover { background: var(--wash); }
+        .cl-tool:disabled { opacity: .45; cursor: default; }
+        .cl-tool.sm { height: 28px; padding: 0 9px; font-size: 11.5px; border-radius: 7px; }
+
+        /* ── 본문 : 목록 | 상세 ── */
+        .cl-body { flex: 1 1 auto; min-height: 0; display: flex; gap: 14px; }
+        .cl-pane {
+            display: flex; flex-direction: column; min-width: 0; min-height: 0;
+            background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden;
+        }
+        .cl-list-pane { flex: 1 1 auto; }
+        .cl-detail-pane { flex: 0 0 min(520px, 42%); }
+
+        .cl-pane-head {
+            flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px;
+            padding: 9px 14px; border-bottom: 1px solid var(--rule);
+        }
+        .cl-pane-head h3 { font-size: 14px; font-weight: 700; }
+        .cl-count { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+        .cl-count b { color: var(--ink); font-weight: 700; }
+        .cl-head-tools { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .cl-head-tools .cl-sub { font-size: 11.5px; color: var(--ink-3); font-weight: 600; }
+
+        /* 가상 스크롤 목록 */
+        .cl-vlist { flex: 1 1 auto; min-height: 0; overflow-y: auto; position: relative; outline: none; }
+        .cl-vlist:focus-visible { box-shadow: inset 0 0 0 2px var(--focus); }
+        .cl-vlist::-webkit-scrollbar { width: 10px; }
+        .cl-vlist::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 8px; border: 2px solid var(--sheet); }
+        .cl-spacer { position: relative; width: 100%; }
+        .cl-row {
+            position: absolute; left: 0; right: 0; height: 56px; box-sizing: border-box;
+            display: flex; align-items: center; gap: 12px; padding: 0 14px;
+            border-bottom: 1px solid var(--rule-soft); cursor: pointer;
+        }
+        .cl-row:hover { background: var(--wash); }
+        .cl-row[aria-selected="true"] { background: var(--t-sel); box-shadow: inset 3px 0 0 var(--c-accent); }
+        .cl-row-main { flex: 1 1 auto; min-width: 0; }
+        .cl-row-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+        .cl-code { font-size: 13.5px; font-weight: 750; letter-spacing: .01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .cl-name { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .cl-row-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cl-row-sub .vhit { color: var(--c-accent); font-weight: 600; }
+        .cl-vc {
+            flex: none; min-width: 52px; text-align: right; font-size: 12px; font-weight: 700;
+            font-variant-numeric: tabular-nums; color: var(--ink-2);
+        }
+        .cl-vc.zero { color: var(--ink-3); font-weight: 500; }
+
+        .cl-div {
+            flex: none; display: inline-flex; align-items: center; justify-content: center;
+            height: 20px; min-width: 34px; padding: 0 6px; border-radius: 5px; box-sizing: border-box;
+            font-size: 11px; font-weight: 700; color: var(--c-accent); background: var(--t-accent);
+        }
+        .cl-div.ship { color: var(--c-ship); background: var(--t-ship); }
+
+        mark.hl { background: var(--t-mark); color: inherit; padding: 0 1px; border-radius: 2px; }
+
+        /* 상세 */
+        .cl-detail { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+        .cl-dhead { flex: none; padding: 16px 18px 14px; border-bottom: 1px solid var(--rule); }
+        .cl-dhead-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .cl-dcode {
+            font-size: 22px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums;
+            border: none; background: transparent; padding: 0; cursor: pointer; color: var(--ink); font-family: inherit;
+            border-bottom: 1px dashed transparent; line-height: 1.2;
+        }
+        .cl-dcode:hover { border-bottom-color: var(--ink-3); }
+        .cl-dname { font-size: 15px; font-weight: 600; margin-top: 6px; line-height: 1.45; }
+        .cl-dmeta { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12px; color: var(--ink-2); }
+        .cl-dmeta b { font-weight: 600; color: var(--ink-3); margin-right: 5px; }
+        .cl-twin {
+            display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; height: 28px; padding: 0 10px;
+            border-radius: 7px; border: 1px dashed var(--rule); background: transparent; cursor: pointer;
+            font-family: inherit; font-size: 12px; font-weight: 600; color: var(--ink-2);
+        }
+        .cl-twin:hover { color: var(--ink); border-style: solid; }
+
+        .cl-vhead {
+            flex: none; display: flex; align-items: center; gap: 10px; padding: 10px 18px;
+            border-bottom: 1px solid var(--rule-soft);
+        }
+        .cl-vhead h4 { font-size: 13px; font-weight: 700; white-space: nowrap; }
+        .cl-vhead .cl-field-wrap { flex: 1 1 auto; max-width: 240px; margin-left: auto; }
+        .cl-vscroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+        .cl-vscroll::-webkit-scrollbar { width: 10px; }
+        .cl-vscroll::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 8px; border: 2px solid var(--sheet); }
+
+        .cl-vtable { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+        .cl-vtable thead th {
+            position: sticky; top: 0; z-index: 1; background: var(--sheet);
+            padding: 7px 18px; text-align: left; font-size: 11px; font-weight: 600; color: var(--ink-2);
+            border-bottom: 1px solid var(--ink);
+        }
+        .dark .cl-vtable thead th { border-bottom-color: #4A4A4E; }
+        .cl-vtable td { padding: 7px 18px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; line-height: 1.45; }
+        .cl-vtable td.no { width: 1%; color: var(--ink-3); font-variant-numeric: tabular-nums; padding-right: 0; }
+        .cl-vtable td.vcode { width: 1%; white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .cl-vtable tr:hover td { background: var(--wash); }
+        .cl-vtable tr.hit td { background: var(--t-mark); }
+        .cl-copy {
+            border: none; background: transparent; padding: 0; cursor: pointer; font: inherit; color: inherit;
+            border-bottom: 1px dashed transparent; text-align: left;
+        }
+        .cl-copy:hover { border-bottom-color: var(--ink-3); }
+
+        /* 빈 상태 / 로딩 / 오류 */
+        .cl-state { padding: 56px 24px; text-align: center; }
+        .cl-state-icon {
+            display: inline-flex; width: 44px; height: 44px; border-radius: 12px; align-items: center; justify-content: center;
+            background: var(--wash); border: 1px solid var(--rule); color: var(--ink-3); margin-bottom: 14px;
+        }
+        .cl-state-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+        .cl-state-text { font-size: 13px; color: var(--ink-2); margin-top: 6px; line-height: 1.6; }
+        .cl-state.error .cl-state-title { color: var(--c-error); }
+        .cl-state .cl-tool { margin-top: 16px; }
+        .cl-skel { padding: 4px 0; }
+        .cl-skel div { height: 56px; border-bottom: 1px solid var(--rule-soft); display: flex; align-items: center; gap: 12px; padding: 0 14px; }
+        .cl-skel i { display: block; height: 10px; border-radius: 4px; background: var(--rule-soft); animation: pulse 1.2s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+        /* 모바일 : 상세 닫기 버튼 */
+        .cl-back { display: none; }
+
+        /* 복사 알림 */
+        .toast {
+            position: fixed; left: 50%; bottom: 28px; z-index: 60; transform: translate(-50%, 12px); opacity: 0;
+            padding: 9px 14px; border-radius: 9px; font-size: 12.5px; font-weight: 600;
+            background: var(--ink); color: var(--sheet); box-shadow: 0 8px 24px rgba(0,0,0,.25);
+            transition: opacity .2s, transform .2s; pointer-events: none;
+        }
+        .toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+        }
+
+        /* ── 반응형 ── */
+        @media (max-width: 1099px) {
+            .cl-title { flex-basis: 100%; }
+            .cl-cell + .cl-cell { border-left: none; }
+            .cl-cell { border-top: 1px solid var(--rule); }
+            .cl-title { border-top: none; }
+            .cl-search { flex-basis: 100%; }
+        }
+        @media (max-width: 899px) {
+            .cl-main { height: auto; min-height: 0; }
+            .cl-body { flex-direction: column; }
+            .cl-list-pane { height: 62vh; }
+            .cl-detail-pane { flex-basis: auto; height: 70vh; }
+        }
+        @media (max-width: 639px) {
+            .cl-actions { margin-left: 0; width: 100%; }
+            .cl-actions .cl-tool { flex: 1 1 0; justify-content: center; }
+            .cl-seg { width: 100%; }
+            .cl-seg button { flex: 1 1 0; justify-content: center; padding: 0 6px; }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+
+<!-- ═══════════ Left Sidebar (fragments/newSideBar.html) ═══════════ -->
+<div th:replace="thymeleaf/fragments/newSideBar :: newSideBarFragment"></div>
+
+<div id="appContent">
+
+<!-- ═══════════ Top Bar ═══════════ -->
+<header class="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-black/60 border-b border-black/5 dark:border-white/10">
+    <div class="w-full px-5 xl:px-8 h-[58px] flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <button type="button" id="sbToggle" class="icon-btn -ml-2" title="사이드바 열기/닫기" aria-label="사이드바 열기/닫기">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
+            <div class="w-8 h-8 rounded-[9px] bg-gradient-to-br from-apple-blue to-indigo-500 flex items-center justify-center shadow-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 6h3M4 12h3M4 18h3M10 6h10M10 12h10M10 18h6"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-[16px] font-bold tracking-tight leading-none">특성코드 목록</h1>
+                <p class="text-[11px] text-apple-gray1 leading-none mt-[3px]">Logic Design Intelligence Platform</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <label for="darkModeToggle" class="text-[12.5px] font-medium text-apple-gray1 cursor-pointer" id="themeLabel">다크모드</label>
+            <label class="ios-switch">
+                <input type="checkbox" id="darkModeToggle" aria-label="다크모드">
+                <span class="track"></span><span class="knob"></span>
+            </label>
+        </div>
+    </div>
+</header>
+
+<main class="cl-main">
+
+    <!-- ═══════════ 조건 바 ═══════════ -->
+    <section class="cl-bar" aria-label="검색 조건">
+        <div class="cl-cell cl-title">
+            <h2>육상 · 선박 특성코드</h2>
+            <p>서버에 올라와 있는 특성 마스터를 바로 보여줍니다. 조회할 때 DB 를 다시 읽지 않습니다.</p>
+        </div>
+
+        <div class="cl-cell cl-search">
+            <label class="cl-label" for="q">검색</label>
+            <div class="cl-field-wrap">
+                <input type="search" id="q" class="cl-field" autocomplete="off" spellcheck="false"
+                       placeholder="특성 CODE, 사양명, 코드 분류, 특성값" aria-describedby="qHint" disabled>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <button type="button" class="cl-clear" id="qClear" aria-label="검색어 지우기" hidden>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+            <p class="cl-hint" id="qHint">띄어쓰기로 여러 단어를 넣으면 모두 들어간 특성만 남습니다. <kbd>/</kbd> 검색 · <kbd>↑</kbd><kbd>↓</kbd> 이동 · <kbd>Esc</kbd> 지우기</p>
+        </div>
+
+        <div class="cl-cell">
+            <span class="cl-label" id="divLabel">구분</span>
+            <div class="cl-seg" id="divSeg" role="group" aria-labelledby="divLabel">
+                <button type="button" data-div="ALL" aria-pressed="true">전체 <span class="n" data-n="ALL">-</span></button>
+                <button type="button" data-div="E" aria-pressed="false">육상 <span class="n" data-n="E">-</span></button>
+                <button type="button" data-div="S" aria-pressed="false">선박 <span class="n" data-n="S">-</span></button>
+            </div>
+        </div>
+
+        <div class="cl-cell">
+            <span class="cl-label" id="typeLabel">특성값</span>
+            <div class="cl-seg" id="typeSeg" role="group" aria-labelledby="typeLabel">
+                <button type="button" data-type="ALL" aria-pressed="true">전체</button>
+                <button type="button" data-type="VAL" aria-pressed="false" title="특성값 목록이 있는 선택형 특성">값 있음</button>
+                <button type="button" data-type="NOVAL" aria-pressed="false" title="입력형 등 특성값 목록이 없는 특성">값 없음</button>
+            </div>
+        </div>
+
+        <div class="cl-cell cl-actions">
+            <button type="button" class="cl-tool" id="btnCsv" disabled title="지금 걸러진 특성과 특성값을 CSV 로 받습니다">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+                CSV
+            </button>
+        </div>
+    </section>
+
+    <!-- ═══════════ 본문 ═══════════ -->
+    <div class="cl-body">
+
+        <!-- 목록 -->
+        <section class="cl-pane cl-list-pane" aria-label="특성 목록">
+            <div class="cl-pane-head">
+                <h3>특성</h3>
+                <span class="cl-count" id="listCount" aria-live="polite">불러오는 중…</span>
+                <div class="cl-head-tools">
+                    <span class="cl-sub" id="sortLabel">정렬</span>
+                    <div class="cl-seg sm" id="sortSeg" role="group" aria-labelledby="sortLabel">
+                        <button type="button" data-sort="rel" aria-pressed="true" title="검색어와 가까운 순 (검색어가 없으면 CODE 순)">관련도</button>
+                        <button type="button" data-sort="code" aria-pressed="false">CODE</button>
+                        <button type="button" data-sort="name" aria-pressed="false">사양명</button>
+                        <button type="button" data-sort="cnt" aria-pressed="false">값 많은 순</button>
+                    </div>
+                </div>
+            </div>
+            <div class="cl-vlist" id="vlist" role="listbox" tabindex="0" aria-label="특성 목록" aria-activedescendant="">
+                <div class="cl-skel" id="skel" aria-hidden="true"></div>
+                <div class="cl-spacer" id="spacer"></div>
+            </div>
+        </section>
+
+        <!-- 상세 -->
+        <section class="cl-pane cl-detail-pane" aria-label="특성 상세" id="detailPane">
+            <div class="cl-detail" id="detail">
+                <div class="cl-state">
+                    <div class="cl-state-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/></svg></div>
+                    <div class="cl-state-title">특성을 고르세요</div>
+                    <div class="cl-state-text">왼쪽 목록에서 특성을 누르면 특성값이 여기에 나옵니다.</div>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+
+</div><!-- /#appContent -->
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/resources/dist/js/jquery-3.7.1.min.js"></script>
+<script src="/resources/dist/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+<script th:inline="none">
+(function () {
+    'use strict';
+
+    const ROW_H = 56;          // .cl-row 높이와 같아야 함
+    const OVERSCAN = 8;
+    const DIV_NAME = { E: '육상', S: '선박' };
+
+    /** 전체 특성 : { d, c, n, g, v, cnt, key, lcCode, lcHead, lcVals } */
+    let all = [];
+    let byKey = new Map();     // 'E|CODE' -> item
+    let list = [];             // 걸러진 목록 { it, rank, hit }
+    let tokens = [];
+    let sel = -1;              // list 안의 선택 위치
+    const state = { q: '', div: 'ALL', type: 'ALL', sort: 'rel', code: '' };
+
+    const $q = document.getElementById('q');
+    const $vlist = document.getElementById('vlist');
+    const $spacer = document.getElementById('spacer');
+    const $count = document.getElementById('listCount');
+    const $detail = document.getElementById('detail');
+
+    /* ════════════ 공통 ════════════ */
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+        });
+    }
+    function fmt(n) { return n.toLocaleString('ko-KR'); }
+
+    /** 검색어 토큰을 <mark> 로 감싼다 (HTML 이스케이프 포함) */
+    function hl(text, toks) {
+        const s = String(text == null ? '' : text);
+        if (!toks.length || !s) return esc(s);
+        const lc = s.toLowerCase();
+        const marks = [];
+        toks.forEach(function (t) {
+            let from = 0, i;
+            while ((i = lc.indexOf(t, from)) !== -1) { marks.push([i, i + t.length]); from = i + t.length; }
+        });
+        if (!marks.length) return esc(s);
+        marks.sort(function (a, b) { return a[0] - b[0]; });
+        let out = '', pos = 0;
+        marks.forEach(function (m) {
+            const st = Math.max(m[0], pos);
+            if (st >= m[1]) return;
+            out += esc(s.slice(pos, st)) + '<mark class="hl">' + esc(s.slice(st, m[1])) + '</mark>';
+            pos = m[1];
+        });
+        return out + esc(s.slice(pos));
+    }
+
+    let toastTimer = null;
+    function toast(msg) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.classList.add('on');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { el.classList.remove('on'); }, 1600);
+    }
+    function copy(text) {
+        const done = function () { toast('복사했습니다 : ' + text); };
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(done, fallback);
+        } else fallback();
+        function fallback() {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+        }
+    }
+
+    /* ════════════ 데이터 로딩 ════════════ */
+    function renderSkeleton() {
+        const w = [38, 52, 44, 60, 36, 48, 56, 40, 50, 46];
+        document.getElementById('skel').innerHTML = w.map(function (x) {
+            return '<div><i style="width:34px;height:18px"></i><i style="width:' + x + '%"></i></div>';
+        }).join('');
+    }
+
+    function load() {
+        renderSkeleton();
+        document.getElementById('skel').hidden = false;
+        $spacer.innerHTML = '';
+        $spacer.style.height = '0px';
+        $count.textContent = '불러오는 중…';
+
+        fetch('/mlb/codeListData', { headers: { Accept: 'application/json' } })
+            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(function (data) {
+                prepare(Array.isArray(data) ? data : []);
+                document.getElementById('skel').hidden = true;
+                $q.disabled = false;
+                document.getElementById('btnCsv').disabled = false;
+                readUrl();
+                apply(true);
+                if (!all.length) showListState('특성 마스터가 비어 있습니다', '서버 기동 때 특성 마스터를 읽지 못했을 수 있습니다. 서버 로그의 "특성코드 사전 마스터 로딩" 줄을 확인하세요.');
+            })
+            .catch(function (e) {
+                document.getElementById('skel').hidden = true;
+                $count.textContent = '불러오지 못했습니다';
+                showListState('특성 목록을 불러오지 못했습니다', '(' + esc(e.message) + ') 잠시 뒤 다시 시도하세요.', true);
+            });
+    }
+
+    function showListState(title, text, isError) {
+        $spacer.style.height = 'auto';
+        $spacer.innerHTML = '<div class="cl-state' + (isError ? ' error' : '') + '">'
+            + '<div class="cl-state-title">' + esc(title) + '</div>'
+            + '<div class="cl-state-text">' + text + '</div>'
+            + (isError ? '<button type="button" class="cl-tool" id="btnRetry">다시 불러오기</button>' : '')
+            + '</div>';
+        const retry = document.getElementById('btnRetry');
+        if (retry) retry.addEventListener('click', load);
+    }
+
+    /** 검색용 소문자 문자열을 미리 만든다 (입력할 때마다 만들지 않도록) */
+    function prepare(data) {
+        all = data.map(function (r) {
+            const v = Array.isArray(r.v) ? r.v : [];
+            const it = {
+                d: r.d === 'S' ? 'S' : 'E',
+                c: r.c || '', n: r.n || '', g: r.g || '', v: v, cnt: v.length
+            };
+            it.key = it.d + '|' + it.c.toUpperCase();
+            it.lcCode = it.c.toLowerCase();
+            it.lcName = it.n.toLowerCase();
+            it.lcHead = it.lcCode + '\u0001' + it.lcName + '\u0001' + it.g.toLowerCase();
+            it.lcVals = v.map(function (p) { return (p[0] + '\u0001' + p[1]).toLowerCase(); });
+            return it;
+        });
+        byKey = new Map(all.map(function (it) { return [it.key, it]; }));
+    }
+
+    /* ════════════ 거르기 / 정렬 ════════════ */
+    /**
+     * 토큰이 모두 (CODE·사양명·분류) 또는 특성값 어딘가에 있어야 한다.
+     * rank 가 작을수록 앞 : 0 CODE 일치, 1 CODE 시작, 2 CODE 포함, 3 사양명/분류, 4 특성값에서만
+     */
+    function match(it) {
+        if (!tokens.length) return { rank: 5, hit: -1 };
+        let valHit = -1, headAll = true;
+        for (let t = 0; t < tokens.length; t++) {
+            const tok = tokens[t];
+            if (it.lcHead.indexOf(tok) !== -1) continue;
+            headAll = false;
+            let found = -1;
+            for (let i = 0; i < it.lcVals.length; i++) {
+                if (it.lcVals[i].indexOf(tok) !== -1) { found = i; break; }
+            }
+            if (found === -1) return null;
+            if (valHit === -1) valHit = found;
+        }
+        const t0 = tokens[0];
+        let rank;
+        if (!headAll) rank = 4;
+        else if (it.lcCode === t0) rank = 0;
+        else if (it.lcCode.indexOf(t0) === 0) rank = 1;
+        else if (it.lcCode.indexOf(t0) !== -1) rank = 2;
+        else rank = 3;
+        // CODE·사양명으로 걸렸어도 특성값에 검색어가 있으면 상세에서 표시하려고 첫 위치를 기억
+        if (valHit === -1) {
+            for (let i = 0; i < it.lcVals.length; i++) {
+                if (it.lcVals[i].indexOf(t0) !== -1) { valHit = i; break; }
+            }
+        }
+        return { rank: rank, hit: valHit };
+    }
+
+    function cmpCode(a, b) {
+        if (a.it.d !== b.it.d) return a.it.d < b.it.d ? -1 : 1;
+        return a.it.lcCode < b.it.lcCode ? -1 : a.it.lcCode > b.it.lcCode ? 1 : 0;
+    }
+    const SORTS = {
+        rel:  function (a, b) { return a.rank - b.rank || cmpCode(a, b); },
+        code: cmpCode,
+        name: function (a, b) { return a.it.n.localeCompare(b.it.n, 'ko') || cmpCode(a, b); },
+        cnt:  function (a, b) { return b.it.cnt - a.it.cnt || cmpCode(a, b); }
+    };
+
+    function apply(keepSelection) {
+        tokens = state.q.toLowerCase().split(/\s+/).filter(Boolean);
+        const prevKey = keepSelection && sel >= 0 && list[sel] ? list[sel].it.key : (state.code || null);
+
+        const counts = { ALL: 0, E: 0, S: 0 };
+        const out = [];
+        for (let i = 0; i < all.length; i++) {
+            const it = all[i];
+            if (state.type === 'VAL' && !it.cnt) continue;
+            if (state.type === 'NOVAL' && it.cnt) continue;
+            const m = match(it);
+            if (!m) continue;
+            counts.ALL++; counts[it.d]++;
+            if (state.div !== 'ALL' && it.d !== state.div) continue;
+            out.push({ it: it, rank: m.rank, hit: m.hit });
+        }
+        out.sort(SORTS[state.sort] || SORTS.rel);
+        list = out;
+
+        document.querySelectorAll('#divSeg .n').forEach(function (el) { el.textContent = fmt(counts[el.dataset.n]); });
+        $count.innerHTML = tokens.length || state.type !== 'ALL' || state.div !== 'ALL'
+            ? '<b>' + fmt(list.length) + '</b> / ' + fmt(all.length) + '개'
+            : '<b>' + fmt(all.length) + '</b>개';
+
+        $spacer.innerHTML = '';
+        $spacer.style.height = (list.length * ROW_H) + 'px';
+
+        if (!list.length && all.length) {
+            showListState('맞는 특성이 없습니다', tokens.length
+                ? '검색어를 줄이거나 구분·특성값 조건을 "전체" 로 바꿔 보세요.'
+                : '구분·특성값 조건을 "전체" 로 바꿔 보세요.');
+        }
+
+        // 선택 유지 : 같은 특성이 남아 있으면 그대로, 없으면 해제
+        let idx = -1;
+        if (prevKey) {
+            const k = prevKey.indexOf('|') === -1 ? null : prevKey;
+            for (let i = 0; i < list.length; i++) {
+                if (k ? list[i].it.key === k : list[i].it.c.toUpperCase() === prevKey.toUpperCase()) { idx = i; break; }
+            }
+        }
+        sel = idx;
+        if (sel >= 0) scrollToSel(true);
+        else $vlist.scrollTop = 0;
+        renderRows();
+        renderDetail();
+        writeUrl();
+    }
+
+    /* ════════════ 가상 스크롤 목록 ════════════ */
+    let rafId = 0;
+    $vlist.addEventListener('scroll', function () {
+        if (rafId) return;
+        rafId = requestAnimationFrame(function () { rafId = 0; renderRows(); });
+    }, { passive: true });
+    window.addEventListener('resize', function () { renderRows(); });
+
+    function renderRows() {
+        if (!list.length) return;
+        const top = $vlist.scrollTop, h = $vlist.clientHeight || 600;
+        const from = Math.max(0, Math.floor(top / ROW_H) - OVERSCAN);
+        const to = Math.min(list.length, Math.ceil((top + h) / ROW_H) + OVERSCAN);
+        let html = '';
+        for (let i = from; i < to; i++) html += rowHtml(list[i], i);
+        $spacer.innerHTML = html;
+        $vlist.setAttribute('aria-activedescendant', sel >= 0 ? 'opt-' + sel : '');
+    }
+
+    function rowHtml(r, i) {
+        const it = r.it;
+        let sub = '';
+        if (r.rank === 4 && r.hit >= 0) {
+            const p = it.v[r.hit];
+            sub = '<span class="vhit">값 일치</span> · ' + hl(p[0], tokens) + (p[1] ? ' ' + hl(p[1], tokens) : '');
+        } else {
+            sub = it.g ? hl(it.g, tokens) : (it.cnt ? '' : '특성값 목록 없음');
+        }
+        return '<div class="cl-row" role="option" id="opt-' + i + '" data-i="' + i + '" aria-selected="' + (i === sel) + '" style="top:' + (i * ROW_H) + 'px">'
+            + '<span class="cl-div' + (it.d === 'S' ? ' ship' : '') + '">' + DIV_NAME[it.d] + '</span>'
+            + '<div class="cl-row-main">'
+            +   '<div class="cl-row-top"><span class="cl-code">' + hl(it.c, tokens) + '</span>'
+            +   '<span class="cl-name">' + (it.n ? hl(it.n, tokens) : '<span style="color:var(--ink-3)">사양명 없음</span>') + '</span></div>'
+            +   '<div class="cl-row-sub">' + (sub || '&nbsp;') + '</div>'
+            + '</div>'
+            + '<span class="cl-vc' + (it.cnt ? '' : ' zero') + '" title="특성값 개수">' + (it.cnt ? fmt(it.cnt) + '개' : '-') + '</span>'
+            + '</div>';
+    }
+
+    function scrollToSel(center) {
+        if (sel < 0) return;
+        const y = sel * ROW_H, h = $vlist.clientHeight;
+        if (center) { $vlist.scrollTop = Math.max(0, y - h / 2 + ROW_H / 2); return; }
+        if (y < $vlist.scrollTop) $vlist.scrollTop = y;
+        else if (y + ROW_H > $vlist.scrollTop + h) $vlist.scrollTop = y + ROW_H - h;
+    }
+
+    function select(i, opts) {
+        if (i < 0 || i >= list.length) return;
+        sel = i;
+        scrollToSel(opts && opts.center);
+        renderRows();
+        renderDetail();
+        writeUrl();
+        if (opts && opts.reveal && window.innerWidth < 900) {
+            document.getElementById('detailPane').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    $spacer.addEventListener('click', function (e) {
+        const row = e.target.closest('.cl-row');
+        if (!row) return;
+        select(+row.dataset.i, { reveal: true });
+    });
+
+    /* 키보드 : 목록/검색창에서 ↑↓ PageUp/Down Home/End, Enter 는 CODE 복사 */
+    function onNavKey(e) {
+        if (!list.length) return false;
+        const page = Math.max(1, Math.floor($vlist.clientHeight / ROW_H) - 1);
+        let next = null;
+        switch (e.key) {
+            case 'ArrowDown': next = sel < 0 ? 0 : Math.min(list.length - 1, sel + 1); break;
+            case 'ArrowUp':   next = sel < 0 ? 0 : Math.max(0, sel - 1); break;
+            case 'PageDown':  next = Math.min(list.length - 1, Math.max(0, sel) + page); break;
+            case 'PageUp':    next = Math.max(0, sel - page); break;
+            case 'Home':      if (e.target === $q) return false; next = 0; break;
+            case 'End':       if (e.target === $q) return false; next = list.length - 1; break;
+            case 'Enter':     if (sel >= 0) { copy(list[sel].it.c); e.preventDefault(); return true; } return false;
+            default: return false;
+        }
+        e.preventDefault();
+        select(next);
+        return true;
+    }
+    $vlist.addEventListener('keydown', onNavKey);
+
+    /* ════════════ 상세 ════════════ */
+    let valFilter = '';
+
+    function renderDetail() {
+        if (sel < 0 || !list[sel]) {
+            $detail.innerHTML = '<div class="cl-state">'
+                + '<div class="cl-state-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/></svg></div>'
+                + '<div class="cl-state-title">특성을 고르세요</div>'
+                + '<div class="cl-state-text">왼쪽 목록에서 특성을 누르면 특성값이 여기에 나옵니다.<br>CODE 를 누르면 복사됩니다.</div></div>';
+            return;
+        }
+        const it = list[sel].it;
+        const twin = byKey.get((it.d === 'E' ? 'S' : 'E') + '|' + it.c.toUpperCase());
+        valFilter = '';
+
+        let html = '<div class="cl-dhead">'
+            + '<div class="cl-dhead-top">'
+            +   '<span class="cl-div' + (it.d === 'S' ? ' ship' : '') + '">' + DIV_NAME[it.d] + '</span>'
+            +   '<button type="button" class="cl-dcode" data-copy="' + esc(it.c) + '" title="CODE 복사">' + esc(it.c) + '</button>'
+            +   '<button type="button" class="cl-tool sm" data-copy="' + esc(it.c) + '" style="margin-left:auto">CODE 복사</button>'
+            + '</div>'
+            + '<div class="cl-dname">' + (it.n ? esc(it.n) : '<span style="color:var(--ink-3)">사양명 없음</span>') + '</div>'
+            + '<div class="cl-dmeta">'
+            +   '<span><b>코드 분류</b>' + (it.g ? esc(it.g) : '-') + '</span>'
+            +   '<span><b>특성값</b>' + (it.cnt ? fmt(it.cnt) + '개' : '없음') + '</span>'
+            + '</div>'
+            + (twin ? '<button type="button" class="cl-twin" id="btnTwin">'
+                + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>'
+                + DIV_NAME[twin.d] + '에도 같은 CODE 가 있습니다 · ' + (twin.cnt ? fmt(twin.cnt) + '개 값' : '값 없음') + ' 보기</button>' : '')
+            + '</div>';
+
+        if (!it.cnt) {
+            html += '<div class="cl-state"><div class="cl-state-title">특성값 목록이 없습니다</div>'
+                + '<div class="cl-state-text">선택형(코드형)이 아닌 특성이거나, 연결된 코드 분류에 값이 없습니다.</div></div>';
+            $detail.innerHTML = html;
+            return;
+        }
+
+        html += '<div class="cl-vhead"><h4>특성값 <span class="cl-count" id="valCount">' + fmt(it.cnt) + '개</span></h4>'
+            + (it.cnt > 8 ? '<div class="cl-field-wrap sm"><input type="search" id="valQ" class="cl-field sm" placeholder="값 안에서 찾기" aria-label="특성값 안에서 찾기" autocomplete="off">'
+                + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></div>' : '')
+            + '</div>'
+            + '<div class="cl-vscroll" id="valScroll"><table class="cl-vtable"><thead><tr><th>#</th><th>값 CODE</th><th>설명</th></tr></thead>'
+            + '<tbody id="valBody"></tbody></table></div>';
+        $detail.innerHTML = html;
+        renderValues();
+
+        // 특성값에서 걸린 경우 그 줄까지 내려 보여준다
+        const hitRow = document.querySelector('#valBody tr.hit');
+        if (hitRow) hitRow.scrollIntoView({ block: 'center' });
+    }
+
+    function renderValues() {
+        const it = list[sel] && list[sel].it;
+        const body = document.getElementById('valBody');
+        if (!it || !body) return;
+        const vt = valFilter.toLowerCase().split(/\s+/).filter(Boolean);
+        const marks = vt.length ? vt : tokens;
+        let html = '', shown = 0;
+        for (let i = 0; i < it.v.length; i++) {
+            const p = it.v[i];
+            if (vt.length && !vt.every(function (t) { return it.lcVals[i].indexOf(t) !== -1; })) continue;
+            shown++;
+            const hit = !vt.length && tokens.length && tokens.some(function (t) { return it.lcVals[i].indexOf(t) !== -1; });
+            html += '<tr' + (hit ? ' class="hit"' : '') + '><td class="no">' + (i + 1) + '</td>'
+                + '<td class="vcode"><button type="button" class="cl-copy" data-copy="' + esc(p[0]) + '" title="값 CODE 복사">' + hl(p[0], marks) + '</button></td>'
+                + '<td>' + (p[1] ? hl(p[1], marks) : '<span style="color:var(--ink-3)">-</span>') + '</td></tr>';
+        }
+        body.innerHTML = html || '<tr><td colspan="3" style="text-align:center;color:var(--ink-3);padding:24px">맞는 특성값이 없습니다</td></tr>';
+        const c = document.getElementById('valCount');
+        if (c) c.textContent = vt.length ? fmt(shown) + ' / ' + fmt(it.cnt) + '개' : fmt(it.cnt) + '개';
+    }
+
+    $detail.addEventListener('click', function (e) {
+        const cp = e.target.closest('[data-copy]');
+        if (cp && cp.dataset.copy) { copy(cp.dataset.copy); return; }
+        if (e.target.closest('#btnTwin')) {
+            const it = list[sel].it;
+            const key = (it.d === 'E' ? 'S' : 'E') + '|' + it.c.toUpperCase();
+            let idx = list.findIndex(function (r) { return r.it.key === key; });
+            if (idx === -1) {
+                // 지금 조건에 걸러져 안 보이면 구분을 전체로 풀고 다시 찾는다
+                state.div = 'ALL'; state.type = 'ALL';
+                syncSeg();
+                apply(false);
+                idx = list.findIndex(function (r) { return r.it.key === key; });
+                if (idx === -1) { state.q = ''; $q.value = ''; syncClear(); apply(false); idx = list.findIndex(function (r) { return r.it.key === key; }); }
+            }
+            if (idx >= 0) select(idx, { center: true });
+        }
+    });
+    let valTimer = null;
+    $detail.addEventListener('input', function (e) {
+        if (e.target.id !== 'valQ') return;
+        clearTimeout(valTimer);
+        valTimer = setTimeout(function () { valFilter = e.target.value.trim(); renderValues(); }, 120);
+    });
+
+    /* ════════════ 조건 바 ════════════ */
+    let qTimer = null;
+    $q.addEventListener('input', function () {
+        syncClear();
+        clearTimeout(qTimer);
+        qTimer = setTimeout(function () { state.q = $q.value.trim(); apply(true); }, 140);
+    });
+    $q.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { e.preventDefault(); clearQuery(); return; }
+        if (e.key === 'Enter' && sel < 0 && list.length) { e.preventDefault(); select(0); return; }
+        onNavKey(e);
+    });
+    function syncClear() { document.getElementById('qClear').hidden = !$q.value; }
+    function clearQuery() {
+        $q.value = ''; syncClear();
+        clearTimeout(qTimer);
+        state.q = ''; apply(true);
+        $q.focus();
+    }
+    document.getElementById('qClear').addEventListener('click', clearQuery);
+
+    function bindSeg(id, attr, field) {
+        document.getElementById(id).addEventListener('click', function (e) {
+            const b = e.target.closest('button');
+            if (!b || state[field] === b.dataset[attr]) return;
+            state[field] = b.dataset[attr];
+            syncSeg();
+            apply(true);
+        });
+    }
+    function syncSeg() {
+        const segs = { divSeg: 'div', typeSeg: 'type', sortSeg: 'sort' };
+        Object.keys(segs).forEach(function (id) {
+            const field = segs[id];
+            const cur = state[field];
+            document.querySelectorAll('#' + id + ' button').forEach(function (btn) {
+                btn.setAttribute('aria-pressed', String(btn.dataset[field] === cur));
+            });
+        });
+    }
+    bindSeg('divSeg', 'div', 'div');
+    bindSeg('typeSeg', 'type', 'type');
+    bindSeg('sortSeg', 'sort', 'sort');
+
+    // '/' 로 검색창 (입력 중이 아닐 때)
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        e.preventDefault();
+        $q.focus(); $q.select();
+    });
+
+    /* ════════════ URL (새로고침·공유해도 같은 화면) ════════════ */
+    function readUrl() {
+        const p = new URLSearchParams(location.search);
+        state.q = (p.get('q') || '').trim();
+        state.div = ['E', 'S'].indexOf(p.get('div')) !== -1 ? p.get('div') : 'ALL';
+        state.type = ['VAL', 'NOVAL'].indexOf(p.get('type')) !== -1 ? p.get('type') : 'ALL';
+        state.sort = SORTS[p.get('sort')] ? p.get('sort') : 'rel';
+        const code = (p.get('code') || '').trim();
+        state.code = code ? ((p.get('cdiv') === 'S' || p.get('cdiv') === 'E') ? p.get('cdiv') + '|' + code.toUpperCase() : code) : '';
+        $q.value = state.q;
+        syncClear(); syncSeg();
+    }
+    function writeUrl() {
+        const p = new URLSearchParams();
+        if (state.q) p.set('q', state.q);
+        if (state.div !== 'ALL') p.set('div', state.div);
+        if (state.type !== 'ALL') p.set('type', state.type);
+        if (state.sort !== 'rel') p.set('sort', state.sort);
+        if (sel >= 0 && list[sel]) { p.set('code', list[sel].it.c); p.set('cdiv', list[sel].it.d); }
+        state.code = '';
+        const qs = p.toString();
+        history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+    }
+
+    /* ════════════ CSV (지금 걸러진 목록, 특성값 1줄씩) ════════════ */
+    document.getElementById('btnCsv').addEventListener('click', function () {
+        if (!list.length) { toast('내려받을 특성이 없습니다'); return; }
+        const q = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
+        const header = ['구분', '특성 CODE', '사양명', '코드 분류', '값 CODE', '값 설명'];
+        const lines = [ header.map(q).join(',') ];
+        list.forEach(function (r) {
+            const it = r.it, head = [DIV_NAME[it.d], it.c, it.n, it.g].map(q).join(',');
+            if (!it.cnt) lines.push(head + ',"",""');
+            else it.v.forEach(function (p) { lines.push(head + ',' + q(p[0]) + ',' + q(p[1])); });
+        });
+        const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        const d = new Date();
+        a.href = URL.createObjectURL(blob);
+        a.download = 'CODE_LIST_' + (state.div === 'ALL' ? 'ALL' : state.div === 'E' ? 'ELV' : 'SHIP') + '_'
+            + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '.csv';
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    });
+
+    /* ════════════ 다크모드 (localStorage 키 'theme' 공유) ════════════ */
+    (function initTheme() {
+        const dark = localStorage.getItem('theme') !== 'light';
+        document.documentElement.classList.toggle('dark', dark);
+        document.getElementById('darkModeToggle').checked = dark;
+        document.getElementById('themeLabel').textContent = dark ? '🌙 다크모드' : '☀️ 라이트모드';
+        if (dark) localStorage.setItem('theme', 'dark');
+    })();
+    document.getElementById('darkModeToggle').addEventListener('change', function () {
+        document.documentElement.classList.toggle('dark', this.checked);
+        localStorage.setItem('theme', this.checked ? 'dark' : 'light');
+        document.getElementById('themeLabel').textContent = this.checked ? '🌙 다크모드' : '☀️ 라이트모드';
+    });
+
+    /* ── 사이드바 현재 메뉴 활성화 ── */
+    document.querySelectorAll('#sidebar .sb-link').forEach(function (a) { a.classList.remove('active'); });
+    const me = document.querySelector('#sidebar a[href="/mlb/codeListView"]');
+    if (me) me.classList.add('active');
+
+    load();
+})();
+</script>
+
+</body>
+</html>

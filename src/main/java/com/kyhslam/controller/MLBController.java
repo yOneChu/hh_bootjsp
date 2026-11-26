@@ -1,5 +1,6 @@
 package com.kyhslam.controller;
 
+import com.kyhslam.MasterDataCache;
 import com.kyhslam.dto.PartInfoDTO;
 import com.kyhslam.service.MLBService;
 import com.kyhslam.util.MLBCommonUtil;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
@@ -20,6 +22,20 @@ import java.util.HashMap;
 public class MLBController {
 
     private final MLBService mlbService;
+    private final MasterDataCache masterDataCache;
+
+    @Description("육상/선박 특성코드 목록 화면")
+    @GetMapping("/codeListView")
+    public String codeListView() {
+        return "thymeleaf/logic/CodeListView";
+    }
+
+    @Description("육상/선박 특성코드 목록 데이터 (서버 기동 시 캐시한 마스터, DB 조회 없음)")
+    @GetMapping("/codeListData")
+    @ResponseBody
+    public List<MasterDataCache.CodeGroup> codeListData() {
+        return masterDataCache.getCodeGroupList();
+    }
 
     @Description("수량 PID 조회 화면")
     @GetMapping("/searchPartQtyPid")
