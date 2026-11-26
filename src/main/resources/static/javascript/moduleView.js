@@ -5,6 +5,7 @@
     'use strict';
 
     const PATH_PREFIX = '$/Dev Project/모듈러구조개발팀/';
+    //const PATH_PREFIX = '$/Dev Project/케이지개발팀/';
     const VIEWER_URL = 'http://10.225.80.35/vaultview/getView.html?filename=';
     const VIEWER_FEATURES = 'width=1200,height=800,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes';
 

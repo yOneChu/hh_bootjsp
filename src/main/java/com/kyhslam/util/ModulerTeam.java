@@ -18,6 +18,7 @@ public class ModulerTeam {
         System.out.println("filePath = " + filePath);
         System.out.println("fileName = " + fileName);
         String folderName = "$/Dev Project/모듈러구조개발팀";
+        //String folderName = "$/Dev Project/케이지개발팀";
 
         ArrayList<HashMap<String, String>> list = new ArrayList<>();
 
@@ -47,14 +48,13 @@ public class ModulerTeam {
                     """;
 
             if(filePath!= null && !"".equals(filePath)){
-
                 filePath = folderName + "/" +  filePath;
-
                 sql += "AND F.VaultPath LIKE '" + filePath + "%'";
-
             } else {
                 sql += " AND F.VaultPath LIKE '$/Dev Project/모듈러구조개발팀%'";
             }
+
+            //sql += " AND F.VaultPath LIKE '$/Dev Project/케이지개발팀%'";
 
 
             if(fileName != null && !"".equals(fileName)){
