@@ -421,6 +421,8 @@
         }
         .drawer-head h2 { margin: 0; font-size: 15px; flex: 1; }
         .drawer-head button { padding: 4px 10px; font-size: 12px; }
+        /* 이전 / 다음 라인 버튼은 라인 상세에서만 (button 의 display 가 hidden 속성을 덮지 않도록) */
+        .drawer-head button[hidden] { display: none; }
         .drawer-body { padding: 12px 14px; overflow: auto; flex: 1; }
         .drawer-body input[type=search] {
             width: 100%;
@@ -704,6 +706,82 @@
             *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; }
             .progress::before { left: 0; width: 100%; opacity: .6; }
         }
+
+        /* ===== 사양 출처 (상세 패널) ===== */
+        #btnOrigin { color: #0f766e; border-color: #99f6e4; background: #f0fdfa; }
+        .kv th .og-from { min-height: 20px; margin-left: 6px; padding: 0 6px; border-color: #99f6e4; border-radius: 4px; background: #f0fdfa; color: #0f766e; font-size: 10.5px; font-weight: 700; vertical-align: 1px; }
+        .kv th .og-from:hover { background: #ccfbf1; }
+        .og-head { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+        .og-sum { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-weight: 700; color: var(--text); }
+        .og-sum b { font-family: var(--mono); }
+        .og-note { color: var(--muted); font-size: 11.5px; font-weight: normal; line-height: 1.5; }
+        .og-shown { color: var(--muted); }
+        .og-filters { display: flex; flex-wrap: wrap; gap: 4px; }
+        .og-filters button { min-height: 26px; padding: 1px 10px; border-radius: 999px; font-size: 11.5px; gap: 4px; }
+        .og-filters button b { font-variant-numeric: tabular-nums; }
+        .og-filters button[aria-pressed="true"] { background: #1e293b; border-color: #1e293b; color: #fff; }
+        .og-filters button[aria-pressed="true"] .og-sw { box-shadow: 0 0 0 1.5px #fff; }
+        .og-tools { display: flex; gap: 6px; align-items: center; }
+        .drawer-body .og-tools input.og-q { flex: 1; min-width: 0; width: auto; margin: 0; }
+        .og-sw { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+        .og-sw.self, .og-chip.self .dot { background: #7c3aed; }
+        .og-sw.down, .og-chip.down .dot { background: #2563eb; }
+        .og-sw.up, .og-chip.up .dot { background: #c2410c; }
+        .og-sw.sales { background: #16a34a; }
+        .og-sw.other, .og-chip.other .dot { background: #64748b; }
+        .og-sw.none { background: #dc2626; }
+        .og-sw.pending { background: #cbd5e1; }
+        .og-banner { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 6px 10px; border-radius: 6px; font-size: 12px; }
+        .og-banner.load { background: #eff6ff; color: #1d4ed8; }
+        .og-banner.load .spinner { border-color: #1d4ed8; border-top-color: transparent; margin-right: 0; }
+        .og-banner.err { background: #fef2f2; color: #b91c1c; }
+        .og-banner button { min-height: 24px; padding: 1px 8px; }
+        .og-list { display: grid; gap: 8px; }
+        .og-card { --c: #cbd5e1; padding: 10px 12px; border: 1px solid var(--border); border-left: 3px solid var(--c); border-radius: 8px; background: var(--surface); transition: box-shadow .15s, background-color .15s; }
+        .og-card[hidden] { display: none; }
+        .og-card.c-self { --c: #7c3aed; }
+        .og-card.c-down { --c: #2563eb; }
+        .og-card.c-up { --c: #c2410c; }
+        .og-card.c-sales { --c: #16a34a; }
+        .og-card.c-other { --c: #64748b; }
+        .og-card.c-none { --c: #dc2626; }
+        .og-card.og-focus { background: #fffdf0; box-shadow: 0 0 0 3px rgba(234, 179, 8, .28); }
+        .og-card-h { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+        .og-code { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
+        .og-name { margin-top: 2px; color: var(--muted); font-size: 11.5px; }
+        .og-cat { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .og-cat.self { background: #ede9fe; color: #5b21b6; }
+        .og-cat.down { background: #dbeafe; color: #1d4ed8; }
+        .og-cat.up { background: #ffedd5; color: #9a3412; }
+        .og-cat.sales { background: #dcfce7; color: #166534; }
+        .og-cat.other { background: #e2e8f0; color: #334155; }
+        .og-cat.none { background: #fee2e2; color: #991b1b; }
+        .og-cat.pending { background: #f1f5f9; color: #64748b; }
+        .og-tag { display: inline-block; padding: 0 6px; border: 1px solid #bbf7d0; border-radius: 4px; background: #f0fdf4; color: #166534; font-size: 10.5px; font-weight: 700; }
+        .og-why { margin-top: 5px; color: var(--text-2); font-size: 12px; line-height: 1.55; }
+        .og-why .warn { color: #9a3412; }
+        .og-dl { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 6px 8px; margin: 9px 0 0; font-size: 12px; }
+        .og-dl dt { padding-top: 3px; color: var(--muted); }
+        .og-dl dd { margin: 0; min-width: 0; }
+        .og-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+        .og-chip { min-height: 22px; padding: 1px 7px; gap: 5px; border-radius: 5px; font-family: var(--mono); font-size: 11.5px; color: var(--text); }
+        .og-chip.call-pid { text-decoration: none; color: var(--text); }
+        .og-chip i { font-style: normal; font-family: var(--sans); font-size: 10.5px; color: var(--muted); }
+        .og-chip .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+        .og-chip.self { border-color: #c4b5fd; }
+        .og-chip.down { border-color: #93c5fd; }
+        .og-chip.up { border-color: #fdba74; }
+        .og-chip.other { border-color: #cbd5e1; border-style: dashed; }
+        .og-chip.use { background: var(--surface-2); }
+        .og-chip.st-unread { border-style: dashed; color: var(--muted); }
+        .og-chip.more { color: var(--primary); font-family: var(--sans); font-weight: 700; }
+        .og-dim { color: var(--muted); font-size: 11.5px; align-self: center; }
+        .og-run { font-size: 12px; line-height: 1.7; }
+        .og-run b { font-family: var(--mono); }
+        .og-run b.t { color: #15803d; font-family: var(--sans); }
+        .og-run b.f { color: #b91c1c; font-family: var(--sans); }
+        .og-link { min-height: 0; padding: 0; border: 0; background: none; color: var(--primary); font-family: var(--mono); font-size: 12px; text-decoration: underline; }
+        .og-link:hover:not(:disabled) { background: none; color: var(--primary-dark); }
     </style>
 </head>
 <body>
@@ -883,6 +961,8 @@
     <button type="button" id="btnCompare" disabled title="최신이 아닌 버전(PID 또는 하위 PID)을 지정해 실행했을 때, 전체 최신 버전으로 실행한 최종 OUTPUT 과 비교합니다">
         <svg class="ico" aria-hidden="true"><use href="#i-compare"/></svg>최신과 비교</button>
     <button type="button" id="btnElvEnt" title="PID 실행 후 최종 영업사양"><svg class="ico" aria-hidden="true"><use href="#i-list"/></svg>최종 영업사양 (<span id="stElvEnt">0</span>)</button>
+    <button type="button" id="btnOrigin" title="조건 SPEC / {CODE} 계산식에 쓴 사양마다 값이 어디서 들어오는지 (영업사양 · 이 PID · 상위 / 하위 PID) 봅니다">
+        <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.5 6.5l7 4.5M8.5 17.5l7-4.5"/></svg>사양 출처 (<span id="stOrigin">0</span>)</button>
     <span class="sep" aria-hidden="true"></span>
     <label class="chk" title="JSP 원본처럼 SPEC/CON, KEY/VAL을 각각 컬럼으로 펼쳐서 봅니다"><input type="checkbox" id="fullView" checked> 원본 컬럼 펼치기</label>
     <label class="chk"><input type="checkbox" id="hideBlank"> 빈 라인 숨기기</label>
@@ -995,7 +1075,7 @@
         hideBlank: false,
         fullView: true,
         selectedIdx: -1,
-        drawerMode: '',   // 'row' | 'final' | 'elvEnt'
+        drawerMode: '',   // 'row' | 'final' | 'elvEnt' | 'origin'
         result: null,     // 서버 응답 (PIDSimulResult)
         query: null,      // 마지막으로 성공한 조회 조건 (CALL 새 탭 / 최신 비교용)
     };
@@ -1535,6 +1615,7 @@
         $('stUnread').textContent = cnt.unread;
         $('stFinal').textContent = Object.keys(finalResultMap()).length;
         $('stElvEnt').textContent = Object.keys(finalElvEnt()).length;
+        $('stOrigin').textContent = ogRoot() ? originScan().uses.size : 0;
         $('btnCompare').disabled = !compareTargets().length;
         $('toolbar').hidden = false;
         syncFilterUI();
@@ -1687,6 +1768,7 @@
         scrollRowIntoView(tr);
         // 상세 패널이 라인 상세를 보여주는 중이면 따라서 갱신
         if (isDrawerOpen() && state.drawerMode === 'row') showRowDetail(state.selectedIdx, { keepFocus: true });
+        else if (isDrawerOpen() && state.drawerMode === 'origin') originFollowRow(state.selectedIdx);
     }
 
     function moveSelection(step) {
@@ -1794,7 +1876,9 @@
                 const specName = specNames.get(nvl(specs[j]).trim().toUpperCase());
                 // 조건값 아래에 영업사양 값을 함께 보여줘서 왜 일치/불일치인지 바로 비교
                 const act = actualValue(row, j);
-                html += `<tr><th>${esc(specs[j])}${specName ? ` <span class="spec-name">(${esc(specName)})</span>` : ''}</th>`
+                const ogc = ogCode(specs[j]);
+                html += `<tr><th>${esc(specs[j])}${specName ? ` <span class="spec-name">(${esc(specName)})</span>` : ''}`
+                    + (ogc ? `<button type="button" class="og-from" data-og-show="${esc(ogc)}" title="${esc(ogc)} 값이 어디서 들어오는지 보기">출처</button>` : '') + '</th>'
                     + `<td class="${cls}">${esc(cons[j])} ${c ? `(${c === 'T' ? '일치' : '불일치'})` : ''}`
                     + (act !== undefined ? `<div class="actual">영업사양값: <b>${esc(actualText(act))}</b></div>` : '')
                     + '</td></tr>';
@@ -1861,6 +1945,366 @@
             '<div style="color:var(--muted);margin-bottom:8px">PID 실행 후 최종 영업사양입니다 (전처리 PID · CALL 결과 반영).</div>'
             + '<input type="search" placeholder="특성코드 / 사양명 / 값 검색">' + kvTable(map, null, specNames), 'elvEnt');
     }
+
+    // ---------- 사양 출처 : 조건 SPEC / {CODE} 계산식에 쓴 사양의 값이 어디서 들어오는지 ----------
+    // 서버(/subae/specOrigin) : 특성코드 마스터(영업사양) 여부 + 그 사양을 KEY 로 넣는 PID 와 실행 PID 와의 관계(상위 / 하위 / 무관)
+    // 화면 : 실행 결과 라인에서 사양을 쓰는 라인, 이 PID 의 KEY 로 넣는 라인, 하위 PID 를 CALL 하는 라인의 순서를 비교
+    const ORIGIN_API = '/subae/specOrigin';
+    const og = { root: '', info: new Map(), loading: false, error: '', filter: 'all', q: '', focus: new Set(), scrollToFocus: false, open: new Set(), loadedAt: 0, req: 0, noFollow: false };
+    const OG_CAT = {
+        self:    { label: '이 PID', title: '이 PID 의 KEY 로 값을 넣습니다' },
+        down:    { label: '하위 PID', title: '이 PID 가 CALL 하는 PID 가 KEY 로 값을 넣습니다' },
+        up:      { label: '상위 PID', title: '이 PID 를 CALL 하는 PID 가 KEY 로 값을 넣습니다' },
+        sales:   { label: '영업사양', title: '특성코드 마스터에 있는 영업사양 값을 그대로 씁니다' },
+        other:   { label: '다른 PID', title: '호출 관계가 없는 PID 에서만 KEY 로 넣습니다' },
+        none:    { label: '출처 없음', title: '영업사양도 아니고 KEY 로 넣는 PID 도 없습니다' },
+        pending: { label: '확인 중', title: '서버에서 확인하는 중입니다' },
+    };
+    const OG_ORDER = ['self', 'down', 'up', 'sales', 'other', 'none', 'pending'];
+    const OG_CHIP_MAX = 6;
+
+    /** 사양 CODE 로 정리 (XXX_CODE_NAME → XXX). 계산식 등 CODE 가 아닌 값은 null */
+    function ogCode(raw) {
+        let s = nvl(raw).trim().toUpperCase();
+        if (!s || s === '-') return null;
+        if (s.endsWith('_CODE_NAME') && s.length > 10) s = s.slice(0, -10);
+        return /^[A-Z0-9_]+$/.test(s) ? s : null;
+    }
+    function ogRefs(text, fn) {
+        const t = nvl(text);
+        if (t.indexOf('{') < 0) return;
+        const re = /\{([^{}]+)\}/g;
+        let m;
+        while ((m = re.exec(t))) { const c = ogCode(m[1]); if (c) fn(c); }
+    }
+    const ogRoot = () => (state.result && !state.result.javaMethod ? nvl(state.result.pid).trim().toUpperCase() : '');
+
+    /** 실행 결과 라인 기준 : 사양을 쓰는 곳 / 이 PID 의 KEY 로 넣는 곳 / CALL 라인 (idx = 라인 순서) */
+    function originScan() {
+        const uses = new Map(), decl = new Map(), calls = new Map();
+        const push = (m, k, v) => { if (!m.has(k)) m.set(k, []); m.get(k).push(v); };
+        state.rows.forEach((row, idx) => {
+            const at = (col) => ({ idx, no: row.line_no || idx + 1, col, st: classify(row) });
+            const specs = row.specList || [], cons = row.conList || [];
+            for (let j = 0; j < Math.max(specs.length, cons.length); j++) {
+                const c = ogCode(specs[j]);
+                if (c) push(uses, c, Object.assign(at(`SPEC${j + 1}`), { kind: 'spec', j }));
+                ogRefs(cons[j], (r) => push(uses, r, Object.assign(at(`CON${j + 1}`), { kind: 'ref' })));
+            }
+            const keys = row.keyList || [], vals = row.valList || [];
+            for (let j = 0; j < Math.max(keys.length, vals.length); j++) {
+                const k = ogCode(keys[j]);
+                if (k === 'CALL') {
+                    const to = ogCode(vals[j]);
+                    if (to) push(calls, to, at(`KEY${j + 1}`));
+                } else if (k) {
+                    push(decl, k, Object.assign(at(`KEY${j + 1}`), { val: nvl(vals[j]) }));
+                }
+                ogRefs(vals[j], (r) => push(uses, r, Object.assign(at(`VAL${j + 1}`), { kind: 'ref' })));
+            }
+        });
+        return { uses, decl, calls };
+    }
+
+    /** 값이 실제로 들어오는 곳을 하나 고른다 : 사용보다 앞선 선언 > 상위 PID > 하위 PID > 영업사양 > 무관한 PID */
+    function originCat(code, sc, info) {
+        const uses = sc.uses.get(code) || [];
+        const firstIdx = uses.length ? Math.min(...uses.map((u) => u.idx)) : Infinity;
+        const self = sc.decl.get(code) || [];
+        const decl = (info && info.declared) || [];
+        const downs = decl.filter((d) => d.rel === 'down').map((d) => {
+            const call = (sc.calls.get(d.via) || []).slice().sort((a, b) => a.idx - b.idx)[0] || null;
+            return Object.assign({}, d, { call, before: !!call && call.idx < firstIdx });
+        });
+        const ups = decl.filter((d) => d.rel === 'up');
+        const others = decl.filter((d) => d.rel === 'other');
+        const selfBefore = self.filter((x) => x.idx < firstIdx);
+        let cat;
+        if (selfBefore.length) cat = 'self';
+        else if (downs.some((d) => d.before)) cat = 'down';
+        else if (ups.length) cat = 'up';
+        else if (downs.length) cat = 'down';
+        else if (self.length) cat = 'self';
+        else if (!info) cat = 'pending';
+        else if (info.master) cat = 'sales';
+        else if (others.length) cat = 'other';
+        else cat = 'none';
+        return { cat, uses, firstIdx, self, selfBefore, downs, ups, others };
+    }
+
+    async function originFetch(codes, refresh) {
+        const root = ogRoot();
+        if (!root || !codes.length) return;
+        const my = ++og.req;
+        og.loading = true;
+        og.error = '';
+        try {
+            const res = await fetch(ORIGIN_API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify({ pid: root, codes, refresh: !!refresh }),
+            });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(j.message || `HTTP ${res.status}`);
+            if (my !== og.req || root !== ogRoot()) return;
+            (j.codes || []).forEach((c) => og.info.set(c.code, c));
+            // 서버가 거른 값도 다시 묻지 않도록 빈 정보로 채운다
+            codes.forEach((c) => { if (!og.info.has(c)) og.info.set(c, { code: c, name: '', master: false, declared: [], declaredTotal: 0 }); });
+            og.loadedAt = j.loadedAt || Date.now();
+        } catch (e) {
+            if (my === og.req) og.error = e.message || String(e);
+        } finally {
+            if (my === og.req) {
+                og.loading = false;
+                if (isDrawerOpen() && state.drawerMode === 'origin') renderOrigin(true);
+            }
+        }
+    }
+
+    const ogLine = (u) => `NO ${esc(u.no)}`;
+    const OG_ST = { true: '이번 실행 TRUE', false: '이번 실행 FALSE', unread: '이번 실행 미실행' };
+    function ogWhy(x) {
+        const first = x.uses.length ? x.uses.reduce((a, b) => (a.idx <= b.idx ? a : b)) : null;
+        const firstAt = first ? `${ogLine(first)} ${first.col}` : '';
+        switch (x.cat) {
+            case 'self': {
+                const d = x.selfBefore[0] || x.self[0];
+                return x.selfBefore.length
+                    ? `${ogLine(d)} ${d.col} 에서 넣은 값을 ${firstAt} 에서 씁니다.`
+                    : `<span class="warn">이 PID 에서 넣는 곳(${ogLine(d)})이 처음 쓰는 곳(${firstAt})과 같은 라인이거나 뒤에 있습니다. 처음 비교할 때의 값은 다른 곳에서 옵니다.</span>`;
+            }
+            case 'down': {
+                const d = x.downs.find((y) => y.before) || x.downs[0];
+                if (d.before) {
+                    const who = d.via && d.via !== d.pid ? `CALL ${esc(d.via)} 아래의 ${esc(d.pid)}(하위 ${d.depth}단계)` : `CALL ${esc(d.pid)}`;
+                    return `${ogLine(d.call)} 의 ${who} 가 값을 넣고, 그 뒤 ${firstAt} 에서 씁니다.`;
+                }
+                return d.call
+                    ? `<span class="warn">값을 넣는 하위 PID(${esc(d.pid)})를 CALL 하는 라인(${ogLine(d.call)})이 처음 쓰는 곳(${firstAt})보다 뒤에 있습니다.</span>`
+                    : `<span class="warn">${esc(d.pid)} 로 이어지는 CALL ${esc(d.via)} 라인이 이 PID 에 없습니다.</span>`;
+            }
+            case 'up': return '이 PID 를 CALL 하는 상위 PID 가 KEY 로 넣습니다. 상위 PID 에서 이 PID 를 부르기 전에 값이 정해집니다.';
+            case 'sales': return '특성코드 마스터에 있는 영업사양입니다. 공사의 영업사양 값을 그대로 씁니다.';
+            case 'other': return '<span class="warn">호출 관계가 없는 PID 에서만 KEY 로 넣습니다. 전처리 PID 로 함께 실행하는지 확인하세요.</span>';
+            case 'none': return '<span class="warn">영업사양도 아니고 KEY 로 넣는 PID 도 없습니다. 빈 값으로 비교될 수 있습니다 (오타인지 확인).</span>';
+            default: return 'PID 의 KEY 선언을 확인하는 중…';
+        }
+    }
+
+    function ogMore(h, chips, key) {
+        const open = og.open.has(key);
+        let out = chips.slice(0, open ? chips.length : OG_CHIP_MAX).join('');
+        if (chips.length > OG_CHIP_MAX) out += `<button type="button" class="og-chip more" data-og-more="${esc(key)}">${open ? '접기' : '+' + (chips.length - OG_CHIP_MAX)}</button>`;
+        return h + out;
+    }
+
+    function ogDeclChips(x) {
+        const chips = [];
+        x.self.forEach((d) => chips.push(`<button type="button" class="og-chip self st-${d.st}" data-og-idx="${d.idx}" title="이 PID 의 이 라인에서 넣음 (${OG_ST[d.st]})${d.val ? ' · VAL ' + esc(d.val) : ''} · 누르면 결과 표에서 보기"><span class="dot" aria-hidden="true"></span>${ogLine(d)} <i>${d.col}</i></button>`));
+        const relText = (d) => (d.rel === 'down' ? `하위 ${d.depth}단계` : d.rel === 'up' ? `상위 ${d.depth}단계` : '관계 없음');
+        x.downs.concat(x.ups, x.others)
+            .sort((a, b) => OG_ORDER.indexOf(a.rel) - OG_ORDER.indexOf(b.rel) || a.depth - b.depth)
+            .forEach((d) => chips.push(`<button type="button" class="og-chip ${d.rel} call-pid" data-call-pid="${esc(d.pid)}" title="${esc((d.name ? d.name + ' · ' : '') + 'KEY 라인 ' + d.count + '개 · 누르면 새 탭에서 ' + d.pid + ' 시뮬 실행')}"><span class="dot" aria-hidden="true"></span>${esc(d.pid)} <i>${relText(d)}</i></button>`));
+        if (!chips.length) return '<span class="og-dim">-</span>';
+        let h = ogMore('', chips, x.code);
+        const total = x.info ? x.info.declaredTotal || 0 : 0;
+        const got = x.info ? (x.info.declared || []).length : 0;
+        if (total > got) h += `<span class="og-dim">외 ${total - got}개 PID</span>`;
+        return h;
+    }
+
+    function ogUseChips(x) {
+        const chips = x.uses.slice().sort((a, b) => a.idx - b.idx)
+            .map((u) => `<button type="button" class="og-chip use st-${u.st}" data-og-idx="${u.idx}" title="${OG_ST[u.st]} · 누르면 결과 표에서 보기">${ogLine(u)} <i>${u.col}${u.kind === 'ref' ? ' {}' : ''}</i></button>`);
+        return ogMore('', chips, 'use:' + x.code);
+    }
+
+    /** 이번 실행 결과 : 조건 비교 일치 / 불일치, 값을 넣은 라인, 최종 영업사양 값 */
+    function ogRunCell(x) {
+        const parts = [];
+        let t = 0, f = 0;
+        x.uses.forEach((u) => {
+            if (u.kind !== 'spec' || u.st === 'unread') return;
+            const c = nvl((state.rows[u.idx].compareResultList || [])[u.j]);
+            if (c === 'T') t++; else if (c === 'F') f++;
+        });
+        if (t || f) parts.push(`조건 비교 <b class="t">일치 ${t}</b> · <b class="f">불일치 ${f}</b>`);
+        // 이 PID 에서 값을 넣은 라인 (조건 만족 라인의 OUTPUT 중 마지막)
+        let set = null;
+        x.self.forEach((d) => {
+            const row = state.rows[d.idx];
+            if (classify(row) !== 'true') return;
+            outputLines(row).forEach((line) => {
+                const o = parseOutputLine(row, line);
+                if (ogCode(o.key) === x.code) set = { d, value: o.value };
+            });
+        });
+        if (set) parts.push(`<button type="button" class="og-link" data-og-idx="${set.d.idx}">${ogLine(set.d)}</button> 에서 <b>${esc(actualText(set.value))}</b> 로 넣음`);
+        const ent = finalElvEnt();
+        if (Object.prototype.hasOwnProperty.call(ent, x.code)) parts.push(`최종 영업사양 <b>${esc(actualText(nvl(ent[x.code])))}</b>`);
+        if (!parts.length) parts.push('<span class="og-dim">이번 실행에서 비교하지 않음</span>');
+        return parts.map((p) => `<div>${p}</div>`).join('');
+    }
+
+    /** 실행 PID 가 바뀌면 이전 PID 의 출처 정보를 비운다 */
+    function ogSyncRoot() {
+        const root = ogRoot();
+        if (og.root !== root) { og.root = root; og.info.clear(); og.open.clear(); og.focus.clear(); og.error = ''; og.loading = false; og.req++; }
+    }
+
+    function originView() {
+        const root = ogRoot();
+        if (!root) return '<div class="empty">라인 단위로 실행한 결과가 있어야 사양 출처를 볼 수 있습니다 (JAVA 방식 PID 는 지원하지 않습니다).</div>';
+        ogSyncRoot();
+        const sc = originScan();
+        const codes = Array.from(sc.uses.keys());
+        if (!codes.length) return '<div class="empty">조건 SPEC 이나 {CODE} 계산식에 쓴 사양이 없습니다.</div>';
+        const missing = codes.filter((c) => !og.info.has(c));
+        if (missing.length && !og.loading && !og.error) originFetch(missing, false);
+
+        const rows = codes.map((c) => Object.assign({ code: c, info: og.info.get(c) }, originCat(c, sc, og.info.get(c))))
+            .sort((a, b) => OG_ORDER.indexOf(a.cat) - OG_ORDER.indexOf(b.cat) || a.firstIdx - b.firstIdx);
+        const count = {};
+        rows.forEach((x) => { count[x.cat] = (count[x.cat] || 0) + 1; });
+        const t = og.loadedAt ? new Date(og.loadedAt) : null;
+        const pad2 = (v) => String(v).padStart(2, '0');
+
+        let h = '<div class="og-head">'
+            + `<div class="og-sum"><span><b>${esc(root)}</b> 의 조건 · 계산식에 쓴 사양 <b>${codes.length}</b>개</span>${t ? `<span class="og-note">관계 기준 ${pad2(t.getHours())}:${pad2(t.getMinutes())}</span>` : ''}</div>`
+            + '<div class="og-filters" role="group" aria-label="출처로 거르기">'
+            + `<button type="button" data-og-filter="all" aria-pressed="${og.filter === 'all'}">전체 <b>${codes.length}</b></button>`
+            + OG_ORDER.filter((k) => count[k]).map((k) => `<button type="button" data-og-filter="${k}" aria-pressed="${og.filter === k}" title="${OG_CAT[k].title}"><span class="og-sw ${k}" aria-hidden="true"></span>${OG_CAT[k].label} <b>${count[k]}</b></button>`).join('')
+            + '</div>'
+            + '<div class="og-tools">'
+            + `<input type="search" class="og-q" placeholder="사양 / 사양명 / PID 검색" aria-label="사양 출처 검색" value="${esc(og.q)}">`
+            + `<button type="button" data-og-act="refresh" title="PID 의 KEY 선언과 호출 관계를 DB 에서 다시 읽습니다"${og.loading ? ' disabled' : ''}><svg class="ico sm" aria-hidden="true"><use href="#i-refresh"/></svg>DB 다시 읽기</button>`
+            + '</div>'
+            + '<div class="og-note">결과 표에서 라인을 고르면 그 라인의 사양 카드로 따라갑니다 · 상위 / 하위 관계는 각 PID 최신 버전의 KEY 를 조건과 무관하게 본 정적 분석입니다 <span class="og-shown" aria-live="polite"></span></div>'
+            + '</div>';
+        if (og.loading) h += '<div class="og-banner load"><span class="spinner" aria-hidden="true"></span> PID 의 KEY 선언을 읽는 중… 처음 한 번은 조금 걸릴 수 있습니다.</div>';
+        if (og.error) h += `<div class="og-banner err" role="alert">출처를 확인하지 못했습니다 : ${esc(og.error)} <button type="button" data-og-act="retry">다시 시도</button></div>`;
+
+        h += '<div class="og-list">';
+        rows.forEach((x) => {
+            const name = (x.info && x.info.name) || specNames.get(x.code) || '';
+            const pids = x.downs.concat(x.ups, x.others).map((d) => d.pid).join(' ');
+            const q = `${x.code} ${name} ${pids}`.toLowerCase();
+            h += `<article class="og-card c-${x.cat}" data-og-code="${esc(x.code)}" data-og-cat="${x.cat}" data-og-q="${esc(q)}">`
+                + `<div class="og-card-h"><span class="og-code">${esc(x.code)}</span><span class="og-cat ${x.cat}" title="${OG_CAT[x.cat].title}">${OG_CAT[x.cat].label}</span>`
+                + (x.info && x.info.master && x.cat !== 'sales' ? '<span class="og-tag" title="특성코드 마스터에도 있는 사양 : PID 가 값을 덮어씁니다">영업사양에도 있음</span>' : '')
+                + '</div>'
+                + (name ? `<div class="og-name">${esc(name)}</div>` : '')
+                + `<div class="og-why">${ogWhy(x)}</div>`
+                + '<dl class="og-dl">'
+                + `<dt>넣는 곳</dt><dd><div class="og-chips">${ogDeclChips(x)}</div></dd>`
+                + `<dt>쓰는 곳</dt><dd><div class="og-chips">${ogUseChips(x)}</div></dd>`
+                + `<dt>이번 실행</dt><dd class="og-run">${ogRunCell(x)}</dd>`
+                + '</dl></article>';
+        });
+        return h + '</div>';
+    }
+
+    function originFilter() {
+        const body = $('drawerBody');
+        const q = og.q.trim().toLowerCase();
+        let shown = 0, total = 0;
+        body.querySelectorAll('.og-card').forEach((card) => {
+            total++;
+            const ok = (og.filter === 'all' || card.dataset.ogCat === og.filter) && (!q || card.dataset.ogQ.includes(q));
+            card.hidden = !ok;
+            card.classList.toggle('og-focus', og.focus.has(card.dataset.ogCode));
+            if (ok) shown++;
+        });
+        const s = body.querySelector('.og-shown');
+        if (s) s.textContent = shown === total ? '' : `· ${shown}개 표시`;
+        body.querySelectorAll('[data-og-filter]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ogFilter === og.filter)));
+    }
+
+    /** 상세 패널에 사양 출처를 그린다 (keepScroll : 다시 그려도 스크롤 위치 유지) */
+    function renderOrigin(keepScroll) {
+        const body = $('drawerBody');
+        const top = keepScroll ? body.scrollTop : 0;
+        const n = ogRoot() ? originScan().uses.size : 0;
+        openDrawer(`사양 출처${n ? ` (${n})` : ''}`, originView(), 'origin');
+        originFilter();
+        const f = og.scrollToFocus ? body.querySelector('.og-card.og-focus:not([hidden])') : null;
+        // 서버 응답 뒤 카드 순서가 바뀌므로 읽는 중에는 다시 맞춘다
+        if (f) { f.scrollIntoView({ block: 'center' }); if (!og.loading) og.scrollToFocus = false; } else body.scrollTop = top;
+    }
+
+    /** 사양 출처 열기 (code 가 있으면 그 사양 카드로) */
+    function showOrigin(code) {
+        ogSyncRoot();
+        og.focus.clear();
+        if (code) {
+            og.focus.add(code);
+            og.scrollToFocus = true;
+            og.filter = 'all';
+            og.q = '';
+        }
+        renderOrigin(!code && state.drawerMode === 'origin');
+    }
+
+    /** 사양 출처를 보는 중 결과 표에서 라인을 고르면 그 라인에서 쓰는 사양 카드로 따라간다 */
+    function originFollowRow(idx) {
+        if (og.noFollow) return;
+        const row = state.rows[idx];
+        if (!row) return;
+        const codes = new Set();
+        (row.specList || []).forEach((s) => { const c = ogCode(s); if (c) codes.add(c); });
+        (row.conList || []).concat(row.valList || []).forEach((v) => ogRefs(v, (c) => codes.add(c)));
+        (row.keyList || []).forEach((k) => { const c = ogCode(k); if (c && c !== 'CALL') codes.add(c); });
+        const body = $('drawerBody');
+        const cards = [...codes].map((c) => body.querySelector(`.og-card[data-og-code="${CSS.escape(c)}"]`)).filter(Boolean);
+        og.focus = new Set(cards.map((c) => c.dataset.ogCode));
+        if (cards.some((c) => c.hidden)) {
+            og.filter = 'all';
+            og.q = '';
+            const q = body.querySelector('.og-q');
+            if (q) q.value = '';
+        }
+        originFilter();
+        if (cards.length) cards[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    /** 사양 출처의 라인 칩 : 상세 패널은 그대로 두고 결과 표에서 그 라인으로 이동 */
+    function originJumpRow(idx) {
+        let tr = rowEl(idx);
+        if (!tr) {
+            // 필터로 숨겨져 있으면 필터 해제 후 다시 그림
+            resetFilterUI();
+            renderTable();
+            tr = rowEl(idx);
+        }
+        if (!tr) return;
+        const offset = tr.getBoundingClientRect().top - area.getBoundingClientRect().top;
+        area.scrollTop = area.scrollTop + offset - area.clientHeight / 3;
+        og.noFollow = true;
+        try { selectRow(tr); } finally { og.noFollow = false; }
+        tr.classList.remove('flash');
+        void tr.offsetWidth;
+        tr.classList.add('flash');
+    }
+
+    $('drawerBody').addEventListener('click', (e) => {
+        // 라인 상세 조건의 '출처' 버튼
+        const show = e.target.closest('[data-og-show]');
+        if (show) { showOrigin(show.dataset.ogShow); return; }
+        if (state.drawerMode !== 'origin') return;
+        const b = e.target.closest('[data-og-idx],[data-og-more],[data-og-filter],[data-og-act]');
+        if (!b) return;
+        if (b.dataset.ogIdx !== undefined) { originJumpRow(Number(b.dataset.ogIdx)); return; }
+        if (b.dataset.ogFilter) { og.filter = b.dataset.ogFilter; og.focus.clear(); originFilter(); return; }
+        if (b.dataset.ogMore) { const k = b.dataset.ogMore; if (og.open.has(k)) og.open.delete(k); else og.open.add(k); renderOrigin(true); return; }
+        if (b.dataset.ogAct === 'refresh') { og.info.clear(); og.error = ''; originFetch(Array.from(originScan().uses.keys()), true); renderOrigin(true); return; }
+        if (b.dataset.ogAct === 'retry') { og.error = ''; renderOrigin(true); }
+    });
+    $('drawerBody').addEventListener('input', (e) => {
+        if (state.drawerMode !== 'origin' || !e.target.classList.contains('og-q')) return;
+        og.q = e.target.value;
+        originFilter();
+    });
+    $('btnOrigin').addEventListener('click', () => showOrigin(''));
 
     // ---------- 데이터 적재 ----------
     function loadResult(result) {
@@ -2583,7 +3027,7 @@
         if (jump) return jumpToAddr(jump.dataset.goto);
         const tr = e.target.closest('tbody tr[data-idx]');
         if (tr) {
-            const wasRowDetail = isDrawerOpen() && state.drawerMode === 'row';
+            const wasRowDetail = isDrawerOpen() && (state.drawerMode === 'row' || state.drawerMode === 'origin');
             selectRow(tr);  // 라인 상세가 열려 있으면 selectRow 가 갱신
             if (!wasRowDetail) showRowDetail(Number(tr.dataset.idx));
             // 'resultMap N건 보기' 를 누르면 라인 상세의 resultMap 위치로 이동
