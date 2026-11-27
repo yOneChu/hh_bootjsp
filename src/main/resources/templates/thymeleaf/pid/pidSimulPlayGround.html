@@ -70,7 +70,7 @@
             --mono: Consolas, "D2Coding", "Cascadia Mono", "Courier New", monospace;
             --sans: "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
             --radius: 6px;
-            --panel-h: 46vh;
+            --panel-h: 38vh;
         }
 
         * { box-sizing: border-box; }
@@ -164,7 +164,7 @@
         header input::placeholder { color: #7b8aa0; }
         #project { width: 130px; }
         #pid { width: 150px; }
-        #version { max-width: 420px; }
+        #version { max-width: 230px; }
         #beforePid { width: 240px; }
         header button { border-color: var(--head-border); background: #334155; color: var(--head-text); }
         header button:hover:not(:disabled) { background: #475569; }
@@ -244,8 +244,36 @@
         .warn-bar #warnText { flex: 1; white-space: pre-line; max-height: 84px; overflow: auto; }
         .warn-bar button { min-height: 24px; padding: 2px 6px; background: transparent; border-color: transparent; color: inherit; }
 
+        /* ===== 작업 영역 : 편집 표 | 살펴보기 창 (라인 상세 · 사양 출처 · 변경 내역) ===== */
+        .work { flex: 1; min-height: 140px; display: flex; }
+        .vresizer { flex: none; width: 6px; cursor: col-resize; background: var(--border); position: relative; }
+        .vresizer::after { content: ''; position: absolute; top: 50%; left: 1.5px; width: 3px; height: 36px; margin-top: -18px; border-radius: 3px; background: #9aa5b4; }
+        .vresizer:hover, .vresizer.active { background: var(--primary); }
+        .vresizer:hover::after, .vresizer.active::after { background: #fff; }
+        .insp { flex: none; width: var(--insp-w, 440px); min-width: 300px; max-width: 70vw; display: flex; flex-direction: column; background: var(--surface); }
+        .work.insp-off > .insp, .work.insp-off > .vresizer { display: none; }
+        .insp-head { flex: none; display: flex; align-items: stretch; gap: 4px; padding: 0 6px 0 4px; border-bottom: 1px solid var(--border); background: var(--surface); }
+        .insp-tabs { flex: 1; min-width: 0; display: flex; overflow-x: auto; }
+        .itab .ico { color: currentColor; }
+        #btnInspClose { align-self: center; border-color: transparent; background: transparent; }
+        #btnInspClose:hover { background: #eef2f7; }
+        .insp-body { flex: 1; min-height: 0; overflow: auto; }
+        .insp-body .pad { padding: 12px 14px 18px; }
+        .insp-body .empty { color: var(--muted); padding: 32px 16px; text-align: center; line-height: 1.6; }
+        .insp-body .cols-2 { grid-template-columns: minmax(0, 1fr); }
+        .insp-body input[type=search] { width: 100%; height: 30px; padding: 3px 9px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; }
+        #btnInsp[aria-expanded="true"] { background: #e8eef9; border-color: #bfd0ee; color: var(--primary-dark); }
+        /* 좁은 창 안의 표 : 머리글은 한 줄, 칸 너비는 내용에 맞게 */
+        .insp-body table.kv { font-size: 12px; }
+        .insp-body .kv th, .insp-body .kv td { padding: 4px 7px; }
+        .insp-body .kv th { width: auto; }
+        .insp-body .kv thead th { white-space: nowrap; }
+        .insp-body .kv tbody th { width: 34%; }
+        /* 헤더가 한 줄에 들어가도록 : 화면이 좁으면 단계 이름(번호는 그대로)을 줄인다 */
+        @media (max-width: 1760px) { .step-group .step-title { display: none; } }
+
         /* ===== 편집 그리드 ===== */
-        .editor-wrap { flex: 1; min-height: 140px; position: relative; background: var(--surface); }
+        .editor-wrap { flex: 1; min-width: 0; position: relative; background: var(--surface); }
         #grid { position: absolute; inset: 0; overflow: hidden; }
         .editor-empty {
             position: absolute; inset: 0; z-index: 5;
@@ -327,10 +355,15 @@
         .zoom button:disabled { cursor: not-allowed; }
         #zoomLevel, #gridZoomLevel { min-width: 56px; font-variant-numeric: tabular-nums; }
 
-        .tabs { flex: none; display: flex; align-items: flex-end; gap: 2px; padding: 6px 12px 0; border-bottom: 1px solid var(--border); background: var(--surface-2); overflow-x: auto; }
-        .tabs button.tab { border-radius: 6px 6px 0 0; border-bottom: none; min-height: 30px; padding: 4px 12px; background: #e9eef4; color: var(--text-2); }
-        .tabs button.tab[aria-selected="true"] { background: var(--surface); font-weight: 700; color: var(--primary); position: relative; top: 1px; box-shadow: inset 0 2px 0 var(--primary); }
-        .tabs button.tab b { color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+        .tabs { flex: none; display: flex; align-items: stretch; gap: 2px; padding: 0 10px; border-bottom: 1px solid var(--border); background: var(--surface); overflow-x: auto; }
+        .tabs button.tab, .itab {
+            border: 0; border-radius: 0; min-height: 36px; padding: 4px 12px; background: transparent; color: var(--text-2);
+            box-shadow: inset 0 -2px 0 transparent; transition: color .15s, box-shadow .15s;
+        }
+        .tabs button.tab:hover:not(:disabled), .itab:hover:not(:disabled) { background: transparent; color: var(--text); box-shadow: inset 0 -2px 0 var(--border-strong); }
+        .tabs button.tab[aria-selected="true"], .itab[aria-selected="true"] { color: var(--primary); font-weight: 700; box-shadow: inset 0 -2px 0 var(--primary); }
+        .tabs button.tab b, .itab b { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+        .tabs button.tab b:empty, .itab b:empty { display: none; }
         /* 만든 사람 (탭 줄 오른쪽 끝) */
         .credit {
             margin-left: auto; align-self: center; margin-bottom: 5px; flex: none;
@@ -436,6 +469,244 @@
             *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; }
             .progress::before { left: 0; width: 100%; opacity: .6; }
         }
+
+        /* ===== 사양 출처 탭 ===== */
+        .og-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
+        .og-sum { font-weight: 700; color: var(--text); }
+        .og-sum b { font-family: var(--mono); }
+        .og-head .og-q { width: 200px; }
+        .og-shown { color: var(--muted); font-size: 12px; }
+        .og-note { color: var(--muted); font-size: 11.5px; }
+        .og-sw { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 2px; }
+        .og-sw.self, .og-chip.self .dot { background: #7c3aed; }
+        .og-sw.down, .og-chip.down .dot { background: #2563eb; }
+        .og-sw.up, .og-chip.up .dot { background: #c2410c; }
+        .og-sw.sales { background: #16a34a; }
+        .og-sw.other, .og-chip.other .dot { background: #64748b; }
+        .og-sw.none { background: #dc2626; }
+        .og-sw.pending { background: #cbd5e1; }
+        .seg button[aria-pressed="true"] .og-sw { box-shadow: 0 0 0 1.5px #fff; }
+        .og-banner { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 6px 10px; border-radius: 6px; font-size: 12px; }
+        .og-banner.load { background: #eff6ff; color: #1d4ed8; }
+        .og-banner.err { background: #fef2f2; color: var(--danger); }
+        .og-banner button { min-height: 24px; padding: 1px 8px; }
+
+        .og-code { font-family: var(--mono); font-weight: 700; color: var(--text); }
+        .og-name { margin-top: 2px; max-width: 220px; white-space: normal; color: var(--muted); font-family: var(--sans); font-size: 11.5px; }
+        .og-cat { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .og-cat.self { background: #ede9fe; color: #5b21b6; }
+        .og-cat.down { background: #dbeafe; color: #1d4ed8; }
+        .og-cat.up { background: #ffedd5; color: #9a3412; }
+        .og-cat.sales { background: #dcfce7; color: #166534; }
+        .og-cat.other { background: #e2e8f0; color: #334155; }
+        .og-cat.none { background: #fee2e2; color: #991b1b; }
+        .og-cat.pending { background: #f1f5f9; color: #64748b; }
+        .og-tag { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid #bbf7d0; border-radius: 4px; background: #f0fdf4; color: #166534; font-size: 10.5px; font-weight: 700; }
+        .og-why { margin-top: 5px; color: var(--text-2); font-size: 12px; line-height: 1.55; white-space: normal; }
+        .og-why .warn { color: #9a3412; }
+        .og-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+        .og-chip { min-height: 22px; padding: 1px 7px; gap: 5px; border-radius: 5px; font-family: var(--mono); font-size: 11.5px; color: var(--text); }
+        .og-chip i { font-style: normal; font-family: var(--sans); font-size: 10.5px; color: var(--muted); }
+        .og-chip .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+        .og-chip.self { border-color: #c4b5fd; }
+        .og-chip.down { border-color: #93c5fd; }
+        .og-chip.up { border-color: #fdba74; }
+        .og-chip.other { border-color: #cbd5e1; border-style: dashed; }
+        .og-chip.use { background: var(--surface-2); }
+        .og-chip.more { color: var(--primary); font-family: var(--sans); font-weight: 700; }
+        .og-dim { color: var(--muted); font-size: 11.5px; align-self: center; }
+        .og-run { font-size: 12px; line-height: 1.6; white-space: nowrap; }
+        .og-run b { font-family: var(--mono); }
+        .og-head { flex-direction: column; align-items: stretch; gap: 8px; }
+        .og-head .og-sum { display: flex; align-items: baseline; gap: 6px; }
+        .og-filters { display: flex; flex-wrap: wrap; gap: 4px; }
+        .og-filters button { min-height: 26px; padding: 1px 10px; border-radius: 999px; font-size: 11.5px; gap: 4px; }
+        .og-filters button b { font-variant-numeric: tabular-nums; }
+        .og-filters button[aria-pressed="true"] { background: #1e293b; border-color: #1e293b; color: #fff; }
+        .og-filters button[aria-pressed="true"] .og-sw { box-shadow: 0 0 0 1.5px #fff; }
+        .og-tools { display: flex; gap: 6px; }
+        .og-tools .og-q { flex: 1; min-width: 0; }
+        .og-list { display: grid; gap: 8px; }
+        .og-card { --c: #cbd5e1; padding: 10px 12px; border: 1px solid var(--border); border-left: 3px solid var(--c); border-radius: 8px; background: var(--surface); transition: box-shadow .15s, border-color .15s; }
+        .og-card[hidden] { display: none; }
+        .og-card.c-self { --c: #7c3aed; }
+        .og-card.c-down { --c: #2563eb; }
+        .og-card.c-up { --c: #c2410c; }
+        .og-card.c-sales { --c: #16a34a; }
+        .og-card.c-other { --c: #64748b; }
+        .og-card.c-none { --c: #dc2626; }
+        .og-card.og-focus { background: #fffdf0; box-shadow: 0 0 0 3px rgba(234, 179, 8, .28); }
+        .og-card-h { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+        .og-card .og-code { font-size: 13px; overflow-wrap: anywhere; }
+        .og-card .og-name { max-width: none; }
+        .og-card .og-tag { margin-left: 0; }
+        .og-dl { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 6px 8px; margin: 9px 0 0; font-size: 12px; }
+        .og-dl dt { padding-top: 3px; color: var(--muted); }
+        .og-dl dd { margin: 0; min-width: 0; }
+        .og-card .og-run { white-space: normal; }
+
+        /* ===== PID 관계 맵 (마인드맵) : 상위(호출하는 PID) ← 기준 PID → 하위(호출되는 PID) ===== */
+        dialog.rm {
+            width: min(1680px, 96vw); height: 92vh; max-width: none; max-height: none;
+            margin: auto; padding: 0; border: 0; border-radius: 12px; overflow: hidden;
+            background: var(--surface); color: var(--text); font-family: var(--sans); font-size: 13px;
+            box-shadow: 0 24px 70px rgba(15, 23, 42, .4);
+        }
+        dialog.rm[open] { display: flex; flex-direction: column; }
+        dialog.rm::backdrop { background: rgba(15, 23, 42, .6); }
+
+        .rm-top { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 9px 12px 9px 18px; background: var(--head-bg); color: var(--head-text); }
+        .rm-top h2 { margin: 0; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .rm-top input {
+            height: 30px; padding: 4px 8px; border: 1px solid var(--head-border); border-radius: var(--radius);
+            background: var(--head-bg-2); color: var(--head-text); font-family: var(--mono); font-size: 13px;
+        }
+        .rm-top input::placeholder { color: #7b8aa0; }
+        #rmPid { width: 160px; text-transform: uppercase; }
+        #rmSearch { width: 210px; font-family: var(--sans); }
+        .rm-top button { border-color: var(--head-border); background: #334155; color: var(--head-text); }
+        .rm-top button:hover:not(:disabled) { background: #475569; }
+        .rm-top button.primary { background: var(--primary); border-color: var(--primary); font-weight: 700; }
+        .rm-top button.primary:hover:not(:disabled) { background: var(--primary-dark); }
+        .rm-top .rm-lbl { color: var(--head-muted); font-size: 12px; white-space: nowrap; }
+        .rm-grp { display: flex; align-items: center; gap: 6px; }
+        .rm-seg { display: inline-flex; border: 1px solid var(--head-border); border-radius: var(--radius); overflow: hidden; }
+        .rm-seg button { border: 0; border-radius: 0; min-height: 28px; padding: 2px 10px; background: transparent; color: var(--head-muted); }
+        .rm-seg button + button { border-left: 1px solid var(--head-border); }
+        .rm-seg button:hover:not(:disabled) { background: #334155; color: var(--head-text); }
+        .rm-seg button[aria-pressed="true"], .rm-seg button[aria-pressed="true"]:hover { background: var(--head-text); color: var(--head-bg); font-weight: 700; }
+        .rm-sp { flex: 1; }
+        #rmHitInfo { color: var(--head-muted); font-size: 12px; white-space: nowrap; }
+        .rm-x { width: 32px; padding: 0 !important; }
+
+        .rm-sub {
+            flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 18px;
+            padding: 7px 18px; border-bottom: 1px solid var(--border); background: var(--surface); font-size: 12px; color: var(--text-2);
+        }
+        .rm-sub b { font-family: var(--mono); color: var(--text); }
+        .rm-sub .rm-trunc { color: #9a3412; font-weight: 700; }
+        .rm-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-left: auto; color: var(--muted); }
+        .rm-legend span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .rm-legend i { display: inline-block; width: 16px; height: 10px; border-radius: 3px; }
+        .rm-legend i.up { background: #c2410c; }
+        .rm-legend i.down { background: #2563eb; }
+        .rm-legend i.miss { background: #fff; border: 1.5px dashed #94a3b8; }
+        .rm-legend i.ref { width: auto; height: auto; padding: 0 5px; border-radius: 8px; background: #ede9fe; color: #6d28d9; font-style: normal; font-size: 10px; font-weight: 700; line-height: 15px; }
+
+        .rm-body { flex: 1; min-height: 0; display: flex; }
+        .rm-canvas {
+            position: relative; flex: 1; min-width: 0; overflow: hidden; cursor: grab;
+            background-color: #f8fafc;
+            background-image: radial-gradient(#d5dbe3 1px, transparent 1px);
+            background-size: 22px 22px;
+        }
+        .rm-canvas.grabbing { cursor: grabbing; }
+        #rmSvg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; }
+        #rmViewport { transform-origin: 0 0; }
+        #rmViewport.anim { transition: transform .35s cubic-bezier(.2, .8, .2, 1); }
+        .rm-zoombar {
+            position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 4px; padding: 4px;
+            background: rgba(255, 255, 255, .94); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 14px rgba(15, 23, 42, .08);
+        }
+        .rm-zoombar button { min-height: 28px; padding: 2px 8px; }
+        #rmZoom { min-width: 52px; font-family: var(--mono); }
+        .rm-help {
+            position: absolute; left: 12px; bottom: 12px; padding: 5px 10px; border-radius: 8px;
+            background: rgba(255, 255, 255, .92); border: 1px solid var(--border); color: var(--muted); font-size: 11.5px;
+        }
+        .rm-state { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+        .rm-state[hidden] { display: none; }
+        .rm-state .card { max-width: 440px; padding: 22px 26px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px rgba(15, 23, 42, .08); }
+        .rm-state h3 { margin: 0 0 6px; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .rm-state p { margin: 0; color: var(--muted); line-height: 1.6; }
+        .rm-state.err h3 { color: var(--danger); }
+        .rm-state button { margin-top: 14px; }
+
+        /* 맵 (SVG) */
+        .rm-col { font-size: 11px; font-weight: 700; letter-spacing: .02em; fill: #475569; }
+        .rm-col.down { fill: #1d4ed8; }
+        .rm-col.up { fill: #c2410c; }
+        .rm-col .n { font-weight: 500; fill: #64748b; }
+        .rm-link { fill: none; stroke-linecap: round; transition: opacity .15s; }
+        .rm-link.down { stroke: #a3bdf3; }
+        .rm-link.up { stroke: #f2b994; }
+        .rm-link.on { stroke-width: 3px !important; }
+        .rm-link.down.on { stroke: #2563eb; }
+        .rm-link.up.on { stroke: #c2410c; }
+        .has-path .rm-link:not(.on) { opacity: .35; }
+        .rm-node { cursor: pointer; outline: none; }
+        .rm-box { fill: #fff; stroke: #cfd6df; stroke-width: 1.2; transition: stroke .12s, fill .12s; }
+        .rm-bar { fill: #2563eb; }
+        .rm-up .rm-bar { fill: #c2410c; }
+        .rm-pid { font-family: var(--mono); font-size: 12.5px; font-weight: 700; fill: #0f172a; }
+        .rm-name { font-size: 11.5px; fill: #5b6676; }
+        .rm-node:hover .rm-box { stroke: #94a3b8; }
+        .rm-down.rm-on .rm-box { stroke: #2563eb; stroke-width: 1.8; }
+        .rm-up.rm-on .rm-box { stroke: #c2410c; stroke-width: 1.8; }
+        .rm-down.rm-sel .rm-box { stroke: #2563eb; stroke-width: 2.6; fill: #eff6ff; }
+        .rm-up.rm-sel .rm-box { stroke: #c2410c; stroke-width: 2.6; fill: #fff7ed; }
+        .rm-hit .rm-box { fill: #fef9c3; stroke: #ca8a04; }
+        .rm-missing .rm-box { fill: #f8fafc; stroke-dasharray: 4 3; }
+        .rm-missing .rm-pid { fill: #64748b; }
+        .rm-node:focus-visible .rm-box { stroke: var(--focus); stroke-width: 3; }
+        .rm-rootn .rm-box { fill: #0f172a; stroke: #0f172a; filter: drop-shadow(0 6px 14px rgba(15, 23, 42, .28)); }
+        .rm-rootn .rm-pid { fill: #fff; font-size: 15px; }
+        .rm-rootn .rm-name { fill: #cbd5e1; }
+        .rm-rootn .rm-cap { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; fill: #93c5fd; }
+        .rm-rootn.rm-sel .rm-box { stroke: #60a5fa; stroke-width: 2.6; }
+        .rm-rootn:focus-visible .rm-box { stroke: #93c5fd; stroke-width: 3; }
+        .rm-ref rect { fill: #ede9fe; }
+        .rm-ref text { font-size: 10px; font-weight: 700; fill: #6d28d9; text-anchor: middle; }
+        .rm-tg rect { fill: #fff; stroke-width: 1.4; }
+        .rm-tg text { font-size: 10.5px; font-weight: 700; text-anchor: middle; }
+        .rm-down .rm-tg rect { stroke: #2563eb; }
+        .rm-down .rm-tg text { fill: #1d4ed8; }
+        .rm-up .rm-tg rect { stroke: #c2410c; }
+        .rm-up .rm-tg text { fill: #c2410c; }
+        .rm-tg:hover rect { fill: #f1f5f9; }
+
+        /* 오른쪽 상세 */
+        .rm-side { flex: none; width: 330px; overflow-y: auto; border-left: 1px solid var(--border); background: var(--surface); }
+        .rm-sec { padding: 14px 16px; border-bottom: 1px solid #eef1f4; }
+        .rm-sec h4 { margin: 0 0 8px; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); }
+        .rm-sec h4 b { font-family: var(--mono); font-weight: 600; color: var(--muted); }
+        .rm-where { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #e2e8f0; color: #334155; }
+        .rm-where.down { background: #dbeafe; color: #1d4ed8; }
+        .rm-where.up { background: #ffedd5; color: #9a3412; }
+        .rm-big { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+        .rm-big span { font-family: var(--mono); font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+        .rm-big button { margin-left: auto; min-height: 24px; padding: 1px 8px; font-size: 11.5px; }
+        .rm-nm { margin-top: 2px; color: var(--text-2); line-height: 1.5; }
+        .rm-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 10px 0 0; font-size: 12px; }
+        .rm-meta dt { color: var(--muted); }
+        .rm-meta dd { margin: 0; font-family: var(--mono); overflow-wrap: anywhere; }
+        .rm-warn { margin-top: 10px; padding: 7px 10px; border-radius: 6px; background: #fff7ed; color: #9a3412; font-size: 12px; line-height: 1.5; }
+        .rm-acts { display: grid; gap: 6px; margin-top: 12px; }
+        .rm-acts button { min-height: 32px; }
+        .rm-acts button.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 700; }
+        .rm-acts button.primary:hover:not(:disabled) { background: var(--primary-dark); }
+        .rm-chain { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+        .rm-chain li { display: inline-flex; align-items: center; gap: 4px; }
+        .rm-chain li + li::before { content: '→'; color: #94a3b8; }
+        .rm-chain button { min-height: 22px; padding: 0 6px; font-family: var(--mono); font-size: 12px; }
+        .rm-chain .me button { background: #0f172a; border-color: #0f172a; color: #fff; }
+        .rm-chain-note { margin: 6px 0 0; color: var(--muted); font-size: 11.5px; }
+        .rm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+        .rm-list button {
+            width: 100%; justify-content: flex-start; gap: 8px; min-height: 28px; padding: 3px 6px;
+            border-color: transparent; background: transparent; text-align: left;
+        }
+        .rm-list button:hover:not(:disabled) { background: #f1f5f9; }
+        .rm-list b { flex: none; font-family: var(--mono); font-size: 12px; color: var(--text); }
+        .rm-list span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-size: 11.5px; }
+        .rm-list i { font-style: normal; font-size: 10.5px; font-weight: 700; color: #6d28d9; }
+        .rm-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+        .rm-dot.down { background: #2563eb; }
+        .rm-dot.up { background: #c2410c; }
+        .rm-dot.root { background: #0f172a; }
+        .rm-none { margin: 0; color: var(--muted); font-size: 12px; }
+        .rm-foot { margin: 0; padding: 10px 16px 16px; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
+        @media (max-width: 1100px) { .rm-side { width: 270px; } .rm-legend { margin-left: 0; } }
     </style>
 </head>
 <body>
@@ -465,6 +736,11 @@
         <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></symbol>
         <symbol id="i-key" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
         <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></symbol>
+        <symbol id="i-map" viewBox="0 0 24 24"><rect x="8.5" y="9.5" width="7" height="5" rx="1.5"/><rect x="1.5" y="3" width="5" height="4" rx="1"/><rect x="1.5" y="17" width="5" height="4" rx="1"/><rect x="17.5" y="3" width="5" height="4" rx="1"/><rect x="17.5" y="17" width="5" height="4" rx="1"/><path d="M6.5 5c2 0 2 7 2 7M6.5 19c2 0 2-7 2-7M17.5 5c-2 0-2 7-2 7M17.5 19c-2 0-2-7-2-7"/></symbol>
+        <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M14.5 4v16"/></symbol>
+        <symbol id="i-line" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></symbol>
+        <symbol id="i-origin" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.5 6.5c4 0 3 5 7 5.3M8.5 17.5c4 0 3-5 7-5.3"/></symbol>
+        <symbol id="i-diff" viewBox="0 0 24 24"><path d="M12 4v8M8 8h8M8 18h8"/></symbol>
         <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
     </defs>
 </svg>
@@ -495,6 +771,8 @@
                 </div>
                 <button type="submit" class="primary" id="btnLoad" title="DB 에서 PID 로직을 불러와 아래 표에서 편집합니다">
                     <svg class="ico" aria-hidden="true"><use href="#i-download"/></svg><span>불러오기</span></button>
+                <button type="button" id="btnRelMap" title="이 PID 를 CALL 하는 상위 PID 와 이 PID 가 CALL 하는 하위 PID 를 마인드맵으로 봅니다">
+                    <svg class="ico" aria-hidden="true"><use href="#i-map"/></svg><span>관계 맵</span></button>
             </div>
 
             <div class="step-group" id="stepRun" role="group" aria-labelledby="stepRunTitle">
@@ -552,6 +830,8 @@
         </div>
         <button type="button" class="danger" id="btnRevert" title="모든 수정을 버리고 DB 원본으로 되돌립니다" disabled>
             <svg class="ico" aria-hidden="true"><use href="#i-undo"/></svg>DB 원본으로 되돌리기</button>
+        <button type="button" id="btnInsp" aria-expanded="true" aria-controls="insp" title="오른쪽 살펴보기 창 (라인 상세 · 사양 출처 · 변경 내역) 열기 / 닫기">
+            <svg class="ico" aria-hidden="true"><use href="#i-panel"/></svg>살펴보기</button>
         <details class="pop">
             <summary><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg>범례</summary>
             <div class="pop-body">
@@ -592,7 +872,8 @@
     <button type="button" id="btnWarnClose" aria-label="알림 닫기" title="닫기"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
 </div>
 
-<!-- ===== 편집 그리드 ===== -->
+<!-- ===== 작업 영역 : 편집 그리드 | 살펴보기 ===== -->
+<div class="work" id="work">
 <main class="editor-wrap" aria-label="PID 로직 편집">
     <div id="grid"></div>
     <div class="editor-empty" id="editorEmpty">
@@ -608,10 +889,23 @@
         </div>
     </div>
 </main>
+<div class="vresizer" id="vresizer" role="separator" aria-orientation="vertical" aria-label="살펴보기 창 너비 조절" title="끌어서 너비 조절 · 더블클릭하면 넓게 / 좁게"></div>
+<aside class="insp" id="insp" aria-label="살펴보기">
+    <div class="insp-head">
+        <div class="insp-tabs" id="inspTabs" role="tablist" aria-label="살펴보기">
+            <button type="button" class="itab" role="tab" aria-selected="true" data-insp="line" title="고른 라인의 조건 비교 · 바뀐 값 · OUTPUT"><svg class="ico sm" aria-hidden="true"><use href="#i-line"/></svg>라인 상세</button>
+            <button type="button" class="itab" role="tab" aria-selected="false" data-insp="origin" title="SPEC 에 쓴 사양의 값이 어디서 들어오는지 (영업사양 / 이 PID / 상위 · 하위 PID)"><svg class="ico sm" aria-hidden="true"><use href="#i-origin"/></svg>사양 출처 <b id="tbOrigin"></b></button>
+            <button type="button" class="itab" role="tab" aria-selected="false" data-insp="diff" title="DB 원본에서 고친 내용 (PLM 에 옮겨 적기)"><svg class="ico sm" aria-hidden="true"><use href="#i-diff"/></svg>변경 내역 <b id="tbDiff"></b></button>
+        </div>
+        <button type="button" class="icon" id="btnInspClose" aria-label="살펴보기 창 닫기" title="닫기"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="insp-body" id="inspBody" role="tabpanel" tabindex="0"></div>
+</aside>
+</div>
 
-<!-- ===== 하단 디버그 패널 ===== -->
+<!-- ===== 하단 실행 결과 패널 ===== -->
 <div class="hresizer" id="hresizer" role="separator" aria-orientation="horizontal" aria-label="디버그 패널 높이 조절" title="끌어서 높이 조절 · 더블클릭하면 크게/작게"></div>
-<section class="panel" id="debugPanel" aria-label="디버그">
+<section class="panel" id="debugPanel" aria-label="실행 결과">
     <div class="progress" id="runProgress" hidden aria-hidden="true"></div>
     <div class="panel-head">
         <div class="run-summary" id="runStatus" role="status" aria-live="polite"></div>
@@ -630,14 +924,12 @@
         <button type="button" id="btnPanelToggle" aria-expanded="true" aria-controls="debugPanel" title="결과 영역 접기 (편집 표를 넓게)">
             <svg class="ico" aria-hidden="true"><use href="#i-down"/></svg><span>접기</span></button>
     </div>
-    <div class="tabs" id="tabs" role="tablist" aria-label="디버그 보기">
+    <div class="tabs" id="tabs" role="tablist" aria-label="실행 결과 보기">
         <button type="button" class="tab active" role="tab" aria-selected="true" data-tab="debug">라인별 결과</button>
-        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="line">라인 상세</button>
         <button type="button" class="tab" role="tab" aria-selected="false" data-tab="watch" title="현재 단계까지 실행했을 때의 값">변수 <b id="tbWatch"></b></button>
         <button type="button" class="tab" role="tab" aria-selected="false" data-tab="final">최종 OUTPUT <b id="tbFinal"></b></button>
         <button type="button" class="tab" role="tab" aria-selected="false" data-tab="elvEnt">최종 영업사양 <b id="tbElvEnt"></b></button>
         <button type="button" class="tab" role="tab" aria-selected="false" data-tab="sub">하위 PID <b id="tbSub"></b></button>
-        <button type="button" class="tab" role="tab" aria-selected="false" data-tab="diff">변경 내역 <b id="tbDiff"></b></button>
         <span class="credit" title="Copyright © 2026 수배로직설계팀 · 김영환 M. All rights reserved."><svg class="ico sm" aria-hidden="true"><use href="#i-check"/></svg>© 2026 수배로직설계팀 · 김영환 M</span>
     </div>
     <div class="panel-tools" id="debugTools">
@@ -657,6 +949,75 @@
 </section>
 
 </div><!-- /#appContent -->
+
+<!-- ===== PID 관계 맵 (마인드맵) : 상위 ← 기준 → 하위 ===== -->
+<dialog class="rm" id="rmDialog" aria-labelledby="rmTitle">
+    <div class="rm-top">
+        <h2 id="rmTitle"><svg class="ico" aria-hidden="true"><use href="#i-map"/></svg>PID 관계 맵</h2>
+        <form class="rm-grp" id="rmForm" autocomplete="off">
+            <label class="rm-lbl" for="rmPid">기준 PID</label>
+            <input id="rmPid" spellcheck="false" placeholder="EL_PB126A01">
+            <button type="submit" class="primary" id="rmGo">보기</button>
+            <button type="button" id="rmBack" hidden title="이전 기준 PID 로 돌아가기"><svg class="ico" aria-hidden="true"><use href="#i-prev"/></svg>이전</button>
+        </form>
+        <div class="rm-grp">
+            <span class="rm-lbl" id="rmDepthLbl">펼칠 단계</span>
+            <div class="rm-seg" id="rmDepth" role="group" aria-labelledby="rmDepthLbl">
+                <button type="button" data-v="1" aria-pressed="false">1</button>
+                <button type="button" data-v="2" aria-pressed="true">2</button>
+                <button type="button" data-v="3" aria-pressed="false">3</button>
+                <button type="button" data-v="all" aria-pressed="false">전체</button>
+            </div>
+        </div>
+        <div class="rm-grp">
+            <span class="rm-lbl" id="rmDirLbl">방향</span>
+            <div class="rm-seg" id="rmDir" role="group" aria-labelledby="rmDirLbl">
+                <button type="button" data-v="both" aria-pressed="true">양쪽</button>
+                <button type="button" data-v="up" aria-pressed="false">상위만</button>
+                <button type="button" data-v="down" aria-pressed="false">하위만</button>
+            </div>
+        </div>
+        <div class="rm-grp">
+            <label class="sr-only" for="rmSearch">맵에서 PID 찾기</label>
+            <input type="search" id="rmSearch" placeholder="맵에서 PID · 이름 찾기">
+            <span id="rmHitInfo" aria-live="polite"></span>
+        </div>
+        <div class="rm-sp"></div>
+        <button type="button" id="rmRefresh" title="관계 정보를 DB 에서 다시 읽습니다 (서버 캐시 무시)"><svg class="ico" aria-hidden="true"><use href="#i-undo"/></svg>새로 읽기</button>
+        <button type="button" class="rm-x" id="rmClose" aria-label="관계 맵 닫기" title="닫기 (Esc)"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="rm-sub">
+        <span id="rmStats" aria-live="polite">-</span>
+        <div class="rm-legend" aria-label="범례">
+            <span><i class="up"></i>상위 : 이 PID 를 CALL 하는 PID</span>
+            <span><i class="down"></i>하위 : 이 PID 가 CALL 하는 PID</span>
+            <span><i class="ref">×2</i>맵 안에서 여러 곳과 연결</span>
+            <span><i class="miss"></i>최신 PID 목록에 없음</span>
+        </div>
+    </div>
+    <div class="rm-body">
+        <div class="rm-canvas" id="rmCanvas">
+            <svg id="rmSvg" role="img" aria-label="PID 호출 관계 마인드맵">
+                <defs>
+                    <marker id="rmArr-down" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1L9 5L0 9z" fill="#a3bdf3"/></marker>
+                    <marker id="rmArr-down-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1L9 5L0 9z" fill="#2563eb"/></marker>
+                    <marker id="rmArr-up" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1L9 5L0 9z" fill="#f2b994"/></marker>
+                    <marker id="rmArr-up-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1L9 5L0 9z" fill="#c2410c"/></marker>
+                </defs>
+                <g id="rmViewport"></g>
+            </svg>
+            <div class="rm-state" id="rmState" hidden></div>
+            <div class="rm-help">드래그 이동 · 휠 확대 · <b>+N</b> 눌러 펼치기 · 더블클릭하면 그 PID 기준으로 다시 그리기</div>
+            <div class="rm-zoombar" role="group" aria-label="맵 확대/축소">
+                <button type="button" id="rmZoomOut" aria-label="축소" title="축소 (-)"><svg class="ico" aria-hidden="true"><use href="#i-minus"/></svg></button>
+                <button type="button" id="rmZoom" title="화면에 맞추기 (0)">100%</button>
+                <button type="button" id="rmZoomIn" aria-label="확대" title="확대 (+)"><svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg></button>
+                <button type="button" id="rmFit" title="화면에 맞추기 (0)">맞추기</button>
+            </div>
+        </div>
+        <aside class="rm-side" id="rmSide" aria-label="선택한 PID 상세"></aside>
+    </div>
+</dialog>
 
 <script>
     const API = {
@@ -710,6 +1071,8 @@
         onlyChanged: false,
         elapsed: '',
     };
+    // 오른쪽 살펴보기 창의 탭 (line : 라인 상세, origin : 사양 출처, diff : 변경 내역)
+    state.insp = ['line', 'origin', 'diff'].includes(storeGet('insp')) ? storeGet('insp') : 'line';
 
     // ---------- 그리드 행 ↔ API 라인 ----------
     const specProp = (i) => `s${i}`, conProp = (i) => `c${i}`, keyProp = (i) => `k${i}`, valProp = (i) => `v${i}`;
@@ -970,6 +1333,19 @@
                         },
                     },
                     remove_row: { name: '라인 삭제' },
+                    sp0: '---------',
+                    origin_of: {
+                        name: '이 사양의 출처 보기 (어느 PID 에서 넣는지)',
+                        hidden() {
+                            const r = hot.getSelectedRangeLast();
+                            const p = r ? hot.colToProp(r.highlight.col) : null;
+                            return !(typeof p === 'string' && /^[sckv]\d+$/.test(p));
+                        },
+                        callback(key, sel) {
+                            const c = sel[0].start;
+                            showOriginFor(hot.getDataAtRowProp(c.row, hot.colToProp(c.col)));
+                        },
+                    },
                     sp1: '---------',
                     undo: { name: '되돌리기 (Ctrl+Z)' },
                     redo: { name: '다시 실행 (Ctrl+Y)' },
@@ -993,7 +1369,8 @@
                 const i = idxOfRid(rid);
                 const dbg = i >= 0 ? dbgAt(i) : null;
                 if (dbg && dbg.step) setStep(dbg.step, { fromGrid: true });
-                else if (state.tab === 'line') renderPanel();
+                else if (state.insp === 'line') renderInsp();
+                if (state.insp === 'origin') originFollowCell();
             },
             afterGetColHeader(col, th) {
                 const p = col >= 0 ? this.colToProp(col) : null;
@@ -1051,7 +1428,8 @@
         if (state.result) state.stale = true;
         renderEditStatus();
         renderRunStatus();
-        if (state.tab === 'diff') renderPanel();
+        if (state.insp === 'diff') renderInsp();
+        if (state.insp === 'origin') { clearTimeout(inspEditTimer); inspEditTimer = setTimeout(renderInsp, 500); }
         if ($('autoRun').checked) {
             clearTimeout(autoTimer);
             autoTimer = setTimeout(() => {
@@ -1162,6 +1540,7 @@
             renderRunStatus();
             hideWarn();
             renderPanel();
+            renderInsp();
             updateUrl();
         } catch (e) {
             console.error(e);
@@ -1274,6 +1653,7 @@
             renderSummary();
             renderRunStatus();
             renderPanel();
+            renderInsp();
             updateUrl();
         } catch (e) {
             console.error(e);
@@ -1384,6 +1764,7 @@
         renderStepper();
         if (state.tab === 'debug') markCurrentDebugRow(true);
         else renderPanel();
+        if (state.insp === 'line') renderInsp();
     }
 
     // ---------- 하단 패널 ----------
@@ -1408,7 +1789,6 @@
         let h = '';
         switch (state.tab) {
             case 'debug': renderDebugTable(); return;
-            case 'line': h = `<div class="pad">${lineDetail()}</div>`; break;
             case 'watch': h = `<div class="pad">${watchView()}</div>`; break;
             case 'final':
                 h = `<div class="pad">${!r ? '<div class="empty">실행하면 최종 OUTPUT 이 표시됩니다.</div>' : searchBox('키 / 값 검색') + kvTable(r.resultMap)}</div>`;
@@ -1417,7 +1797,6 @@
                 h = `<div class="pad">${!r ? '<div class="empty">실행하면 PID 실행 후 최종 영업사양이 표시됩니다.</div>' : searchBox('특성코드 / 값 검색') + kvTable(r.elvEnt)}</div>`;
                 break;
             case 'sub': h = `<div class="pad">${subPidTable()}</div>`; break;
-            case 'diff': h = `<div class="pad">${diffTable()}</div>`; break;
         }
         body.innerHTML = h;
         const search = body.querySelector('[data-kv-search]');
@@ -1635,6 +2014,345 @@
         return h + '</tbody></table>';
     }
 
+    // ===== 사양 출처 : SPEC 칸 / {CODE} 계산식에 쓴 사양의 값이 어디서 들어오는지 =====
+    // 서버(/subae/specOrigin) : 특성코드 마스터(영업사양) 여부 + 그 사양을 KEY 로 넣는 PID 와 기준 PID 와의 관계(상위 / 하위 / 무관)
+    // 화면 : 지금 편집 표에서 그 사양을 쓰는 라인, 이 PID 의 KEY 로 넣는 라인, 하위 PID 를 CALL 하는 라인의 순서를 비교
+    const ORIGIN_API = '/subae/specOrigin';
+    const og = { root: '', info: new Map(), loading: false, error: '', filter: 'all', q: '', focus: '', open: new Set(), loadedAt: 0, req: 0 };
+    const OG_CAT = {
+        self:    { label: '이 PID', title: '이 PID 의 KEY 로 값을 넣습니다' },
+        down:    { label: '하위 PID', title: '이 PID 가 CALL 하는 PID 가 KEY 로 값을 넣습니다' },
+        up:      { label: '상위 PID', title: '이 PID 를 CALL 하는 PID 가 KEY 로 값을 넣습니다' },
+        sales:   { label: '영업사양', title: '특성코드 마스터에 있는 영업사양 값을 그대로 씁니다' },
+        other:   { label: '다른 PID', title: '호출 관계가 없는 PID 에서만 KEY 로 넣습니다' },
+        none:    { label: '출처 없음', title: '영업사양도 아니고 KEY 로 넣는 PID 도 없습니다' },
+        pending: { label: '확인 중', title: '서버에서 확인하는 중입니다' },
+    };
+    const OG_ORDER = ['self', 'down', 'up', 'sales', 'other', 'none', 'pending'];
+    const OG_CHIP_MAX = 6;
+
+    /** 사양 CODE 로 정리 (XXX_CODE_NAME → XXX). 계산식 등 CODE 가 아닌 값은 null */
+    function ogCode(raw) {
+        let s = String(raw === null || raw === undefined ? '' : raw).trim().toUpperCase();
+        if (!s || s === '-') return null;
+        if (s.endsWith('_CODE_NAME') && s.length > 10) s = s.slice(0, -10);
+        return /^[A-Z0-9_]+$/.test(s) ? s : null;
+    }
+    function ogRefs(text, fn) {
+        const t = norm(text);
+        if (t.indexOf('{') < 0) return;
+        const re = /\{([^{}]+)\}/g;
+        let m;
+        while ((m = re.exec(t))) { const c = ogCode(m[1]); if (c) fn(c); }
+    }
+    const ogRoot = () => (state.logic ? String(state.logic.pid || '').trim().toUpperCase() : '');
+
+    /** 지금 편집 표 기준 : 사양을 쓰는 곳 / 이 PID 의 KEY 로 넣는 곳 / CALL 라인 (idx = 화면 순서) */
+    function originScan() {
+        const uses = new Map(), decl = new Map(), calls = new Map();
+        const push = (m, k, v) => { if (!m.has(k)) m.set(k, []); m.get(k).push(v); };
+        gridRows().forEach((o, idx) => {
+            const at = (col, prop) => ({ rid: o._rid, no: o.no, idx, col, prop });
+            for (let i = 1; i <= MAX_SPEC; i++) {
+                const c = ogCode(o[specProp(i)]);
+                if (c) push(uses, c, Object.assign(at(`SPEC${i}`, specProp(i)), { kind: 'spec' }));
+                ogRefs(o[conProp(i)], (r) => push(uses, r, Object.assign(at(`CON${i}`, conProp(i)), { kind: 'ref' })));
+            }
+            for (let i = 1; i <= MAX_RES; i++) {
+                const k = ogCode(o[keyProp(i)]);
+                if (k === 'CALL') {
+                    const to = ogCode(o[valProp(i)]);
+                    if (to) push(calls, to, at(`KEY${i}`, keyProp(i)));
+                } else if (k) {
+                    push(decl, k, Object.assign(at(`KEY${i}`, keyProp(i)), { val: norm(o[valProp(i)]) }));
+                }
+                ogRefs(o[valProp(i)], (r) => push(uses, r, Object.assign(at(`VAL${i}`, valProp(i)), { kind: 'ref' })));
+            }
+        });
+        return { uses, decl, calls };
+    }
+
+    /** 값이 실제로 들어오는 곳을 하나 고른다 : 사용보다 앞선 선언 > 상위 PID > 하위 PID > 영업사양 > 무관한 PID */
+    function originCat(code, sc, info) {
+        const uses = sc.uses.get(code) || [];
+        const firstIdx = uses.length ? Math.min(...uses.map((u) => u.idx)) : Infinity;
+        const self = sc.decl.get(code) || [];
+        const decl = (info && info.declared) || [];
+        const downs = decl.filter((d) => d.rel === 'down').map((d) => {
+            const call = (sc.calls.get(d.via) || []).slice().sort((a, b) => a.idx - b.idx)[0] || null;
+            return Object.assign({}, d, { call, before: !!call && call.idx < firstIdx });
+        });
+        const ups = decl.filter((d) => d.rel === 'up');
+        const others = decl.filter((d) => d.rel === 'other');
+        const selfBefore = self.filter((x) => x.idx < firstIdx);
+        let cat;
+        if (selfBefore.length) cat = 'self';
+        else if (downs.some((d) => d.before)) cat = 'down';
+        else if (ups.length) cat = 'up';
+        else if (downs.length) cat = 'down';
+        else if (self.length) cat = 'self';
+        else if (!info) cat = 'pending';
+        else if (info.master) cat = 'sales';
+        else if (others.length) cat = 'other';
+        else cat = 'none';
+        return { cat, uses, firstIdx, self, selfBefore, downs, ups, others };
+    }
+
+    /** 실행 결과가 있으면 : 처음 비교할 때의 값, 이번 실행에서 값이 들어간 단계, 최종 영업사양 값 */
+    function originRun(code) {
+        const r = state.result;
+        if (!r || r.javaMethod) return null;
+        const out = { first: null, set: null, sales: undefined };
+        if (r.elvEnt && Object.prototype.hasOwnProperty.call(r.elvEnt, code)) out.sales = r.elvEnt[code];
+        for (let s = 1; s <= state.stepIdx.length && !(out.first && out.set); s++) {
+            const d = dbgAt(state.stepIdx[s - 1]);
+            if (!d) continue;
+            if (!out.first) { const c = (d.conds || []).find((x) => ogCode(x.spec) === code); if (c) out.first = { step: s, value: c.specValue }; }
+            if (!out.set) { const ch = (d.changes || []).find((x) => ogCode(x.key) === code); if (ch) out.set = { step: s, value: ch.after }; }
+        }
+        return out;
+    }
+
+    async function originFetch(codes, refresh) {
+        const root = ogRoot();
+        if (!root || !codes.length) return;
+        const my = ++og.req;
+        og.loading = true;
+        og.error = '';
+        try {
+            const res = await fetch(ORIGIN_API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                body: JSON.stringify({ pid: root, codes, refresh: !!refresh }),
+            });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(j.message || `HTTP ${res.status}`);
+            if (my !== og.req || root !== ogRoot()) return;
+            (j.codes || []).forEach((c) => og.info.set(c.code, c));
+            // 서버가 거른 값도 다시 묻지 않도록 빈 정보로 채운다
+            codes.forEach((c) => { if (!og.info.has(c)) og.info.set(c, { code: c, name: '', master: false, declared: [], declaredTotal: 0 }); });
+            og.loadedAt = j.loadedAt || Date.now();
+        } catch (e) {
+            if (my === og.req) og.error = e.message || String(e);
+        } finally {
+            if (my === og.req) {
+                og.loading = false;
+                if (state.insp === 'origin') renderInsp();
+            }
+        }
+    }
+
+    const ogLine = (u) => (u.no ? `NO ${esc(u.no)}` : '새 라인');
+    function ogWhy(x) {
+        const first = x.uses.length ? x.uses.reduce((a, b) => (a.idx <= b.idx ? a : b)) : null;
+        const firstAt = first ? `${ogLine(first)} ${first.col}` : '';
+        switch (x.cat) {
+            case 'self': {
+                const d = x.selfBefore[0] || x.self[0];
+                return x.selfBefore.length
+                    ? `${ogLine(d)} ${d.col} 에서 넣은 값을 ${firstAt} 에서 씁니다.`
+                    : `<span class="warn">이 PID 에서 넣는 곳(${ogLine(d)})이 처음 쓰는 곳(${firstAt})과 같은 라인이거나 뒤에 있습니다. 처음 비교할 때의 값은 다른 곳에서 옵니다.</span>`;
+            }
+            case 'down': {
+                const d = x.downs.find((y) => y.before) || x.downs[0];
+                if (d.before) {
+                    const who = d.via && d.via !== d.pid ? `CALL ${esc(d.via)} 아래의 ${esc(d.pid)}(하위 ${d.depth}단계)` : `CALL ${esc(d.pid)}`;
+                    return `${ogLine(d.call)} 의 ${who} 가 값을 넣고, 그 뒤 ${firstAt} 에서 씁니다.`;
+                }
+                return d.call
+                    ? `<span class="warn">값을 넣는 하위 PID(${esc(d.pid)})를 CALL 하는 라인(${ogLine(d.call)})이 처음 쓰는 곳(${firstAt})보다 뒤에 있습니다.</span>`
+                    : `<span class="warn">${esc(d.pid)} 로 이어지는 CALL ${esc(d.via)} 라인이 지금 편집 표에 없습니다.</span>`;
+            }
+            case 'up': return `이 PID 를 CALL 하는 상위 PID 가 KEY 로 넣습니다. 상위 PID 에서 이 PID 를 부르기 전에 값이 정해집니다.`;
+            case 'sales': return '특성코드 마스터에 있는 영업사양입니다. 공사의 영업사양 값을 그대로 씁니다.';
+            case 'other': return '<span class="warn">호출 관계가 없는 PID 에서만 KEY 로 넣습니다. 전처리 PID 로 함께 실행하는지 확인하세요.</span>';
+            case 'none': return '<span class="warn">영업사양도 아니고 KEY 로 넣는 PID 도 없습니다. 빈 값으로 비교될 수 있습니다 (오타인지 확인).</span>';
+            default: return 'PID 의 KEY 선언을 확인하는 중…';
+        }
+    }
+
+    function ogDeclChips(x) {
+        const chips = [];
+        x.self.forEach((d) => chips.push(`<button type="button" class="og-chip self" data-og-rid="${esc(d.rid)}" data-og-prop="${d.prop}" title="이 PID 의 이 라인에서 넣음 · 누르면 편집 표에서 보기${d.val ? ' · VAL ' + esc(d.val) : ''}"><span class="dot" aria-hidden="true"></span>${ogLine(d)} <i>${d.col}</i></button>`));
+        const relText = (d) => (d.rel === 'down' ? `하위 ${d.depth}단계` : d.rel === 'up' ? `상위 ${d.depth}단계` : '관계 없음');
+        const serverDecl = x.downs.concat(x.ups, x.others).sort((a, b) => OG_ORDER.indexOf(a.rel) - OG_ORDER.indexOf(b.rel) || a.depth - b.depth);
+        serverDecl.forEach((d) => chips.push(`<button type="button" class="og-chip ${d.rel}" data-og-pid="${esc(d.pid)}" data-og-rel="${d.rel}" title="${esc((d.name || '') + ' · KEY 라인 ' + d.count + '개 · 누르면 PID 관계 맵에서 보기')}"><span class="dot" aria-hidden="true"></span>${esc(d.pid)} <i>${relText(d)}</i></button>`));
+        if (!chips.length) return '<span class="og-dim">-</span>';
+        const open = og.open.has(x.code);
+        let h = chips.slice(0, open ? chips.length : OG_CHIP_MAX).join('');
+        if (chips.length > OG_CHIP_MAX) h += `<button type="button" class="og-chip more" data-og-more="${esc(x.code)}">${open ? '접기' : '+' + (chips.length - OG_CHIP_MAX)}</button>`;
+        const total = x.info ? x.info.declaredTotal || 0 : 0;
+        const got = x.info ? (x.info.declared || []).length : 0;
+        if (total > got) h += `<span class="og-dim">외 ${total - got}개 PID</span>`;
+        return h;
+    }
+
+    function ogUseChips(x) {
+        const list = x.uses.slice().sort((a, b) => a.idx - b.idx);
+        const open = og.open.has('use:' + x.code);
+        let h = list.slice(0, open ? list.length : OG_CHIP_MAX)
+            .map((u) => `<button type="button" class="og-chip use" data-og-rid="${esc(u.rid)}" data-og-prop="${u.prop}" title="편집 표에서 이 칸 보기">${ogLine(u)} <i>${u.col}${u.kind === 'ref' ? ' {}' : ''}</i></button>`).join('');
+        if (list.length > OG_CHIP_MAX) h += `<button type="button" class="og-chip more" data-og-more="use:${esc(x.code)}">${open ? '접기' : '+' + (list.length - OG_CHIP_MAX)}</button>`;
+        return h;
+    }
+
+    function ogRunCell(code) {
+        const r = originRun(code);
+        if (!r) return '';
+        const parts = [];
+        if (r.first) parts.push(`처음 비교 값 <b>${esc(shownVal(r.first.value))}</b> <a class="link" data-step="${r.first.step}">단계 ${r.first.step}</a>`);
+        if (r.set) parts.push(`<a class="link" data-step="${r.set.step}">단계 ${r.set.step}</a> 에서 <b>${esc(shownVal(r.set.value))}</b> 로 넣음`);
+        if (r.sales !== undefined) parts.push(`최종 영업사양 <b>${esc(shownVal(r.sales))}</b>`);
+        if (!parts.length) parts.push('<span class="og-dim">이번 실행에서 쓰지 않음</span>');
+        return parts.map((p) => `<div>${p}</div>`).join('');
+    }
+
+    function originView() {
+        if (!state.logic) return '<div class="empty">PID 를 불러오면 SPEC 에 쓴 사양마다 값이 어디서 들어오는지 보여줍니다.</div>';
+        const root = ogRoot();
+        if (og.root !== root) { og.root = root; og.info.clear(); og.open.clear(); og.error = ''; og.loading = false; og.req++; }
+        const sc = originScan();
+        const codes = Array.from(sc.uses.keys());
+        $('tbOrigin').textContent = codes.length || '';
+        if (!codes.length) return '<div class="empty">SPEC 칸이나 {CODE} 계산식에 쓴 사양이 없습니다.</div>';
+        const missing = codes.filter((c) => !og.info.has(c));
+        if (missing.length && !og.loading && !og.error) originFetch(missing, false);
+
+        const rows = codes.map((c) => Object.assign({ code: c, info: og.info.get(c) }, originCat(c, sc, og.info.get(c))))
+            .sort((a, b) => OG_ORDER.indexOf(a.cat) - OG_ORDER.indexOf(b.cat) || a.firstIdx - b.firstIdx);
+        const count = {};
+        rows.forEach((x) => { count[x.cat] = (count[x.cat] || 0) + 1; });
+        const hasRun = !!(state.result && !state.result.javaMethod);
+        const t = og.loadedAt ? new Date(og.loadedAt) : null;
+        const pad2 = (v) => String(v).padStart(2, '0');
+
+        let h = '<div class="og-head">'
+            + `<div class="og-sum">SPEC · 계산식에 쓴 사양 <b>${codes.length}</b>개${t ? `<span class="og-note">기준 ${pad2(t.getHours())}:${pad2(t.getMinutes())}</span>` : ''}</div>`
+            + '<div class="og-filters" role="group" aria-label="출처로 거르기">'
+            + `<button type="button" data-og-filter="all" aria-pressed="${og.filter === 'all'}">전체 <b>${codes.length}</b></button>`
+            + OG_ORDER.filter((k) => count[k]).map((k) => `<button type="button" data-og-filter="${k}" aria-pressed="${og.filter === k}" title="${OG_CAT[k].title}"><span class="og-sw ${k}" aria-hidden="true"></span>${OG_CAT[k].label} <b>${count[k]}</b></button>`).join('')
+            + '</div>'
+            + '<div class="og-tools">'
+            + `<input type="search" class="og-q" placeholder="사양 / PID 검색" aria-label="사양 출처 검색" value="${esc(og.q)}">`
+            + `<button type="button" data-og-act="refresh" title="PID 의 KEY 선언과 호출 관계를 DB 에서 다시 읽습니다"${og.loading ? ' disabled' : ''}><svg class="ico sm" aria-hidden="true"><use href="#i-undo"/></svg>DB 다시 읽기</button>`
+            + '</div>'
+            + `<div class="og-note">편집 표에서 칸을 고르면 그 사양으로 따라갑니다 · 로직에 적힌 KEY 를 조건과 무관하게 본 정적 분석${hasRun ? '' : ' · 실행하면 실제 값도 함께 보입니다'} <span class="og-shown" aria-live="polite"></span></div>`
+            + '</div>';
+        if (og.loading) h += '<div class="og-banner load"><span class="spinner" aria-hidden="true"></span> PID 의 KEY 선언을 읽는 중… 처음 한 번은 조금 걸릴 수 있습니다.</div>';
+        if (og.error) h += `<div class="og-banner err" role="alert">출처를 확인하지 못했습니다 : ${esc(og.error)} <button type="button" data-og-act="retry">다시 시도</button></div>`;
+
+        h += '<div class="og-list">';
+        rows.forEach((x) => {
+            const name = (x.info && x.info.name) || '';
+            const pids = x.downs.concat(x.ups, x.others).map((d) => d.pid).join(' ');
+            const q = `${x.code} ${name} ${pids}`.toLowerCase();
+            h += `<article class="og-card c-${x.cat}" data-og-code="${esc(x.code)}" data-og-cat="${x.cat}" data-og-q="${esc(q)}">`
+                + `<div class="og-card-h"><span class="og-code">${esc(x.code)}</span><span class="og-cat ${x.cat}" title="${OG_CAT[x.cat].title}">${OG_CAT[x.cat].label}</span>`
+                + (x.info && x.info.master && x.cat !== 'sales' ? '<span class="og-tag" title="특성코드 마스터에도 있는 사양 : PID 가 값을 덮어씁니다">영업사양에도 있음</span>' : '')
+                + '</div>'
+                + (name ? `<div class="og-name">${esc(name)}</div>` : '')
+                + `<div class="og-why">${ogWhy(x)}</div>`
+                + '<dl class="og-dl">'
+                + `<dt>넣는 곳</dt><dd><div class="og-chips">${ogDeclChips(x)}</div></dd>`
+                + `<dt>쓰는 곳</dt><dd><div class="og-chips">${ogUseChips(x)}</div></dd>`
+                + (hasRun ? `<dt>이번 실행</dt><dd class="og-run">${ogRunCell(x.code)}</dd>` : '')
+                + '</dl></article>';
+        });
+        return h + '</div>';
+    }
+
+    function originFilter(body) {
+        const q = og.q.trim().toLowerCase();
+        let shown = 0, total = 0;
+        body.querySelectorAll('.og-card').forEach((card) => {
+            total++;
+            const ok = (og.filter === 'all' || card.dataset.ogCat === og.filter) && (!q || card.dataset.ogQ.includes(q));
+            card.hidden = !ok;
+            card.classList.toggle('og-focus', !!og.focus && card.dataset.ogCode === og.focus);
+            if (ok) shown++;
+        });
+        const s = body.querySelector('.og-shown');
+        if (s) s.textContent = shown === total ? '' : `· ${shown}개 표시`;
+        body.querySelectorAll('[data-og-filter]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ogFilter === og.filter)));
+    }
+    function originAfterRender(body, keepTop) {
+        originFilter(body);
+        const f = og.focus && og.scrollToFocus ? body.querySelector('.og-card.og-focus') : null;
+        if (f) { f.scrollIntoView({ block: 'center' }); og.scrollToFocus = false; }
+        else if (keepTop) body.scrollTop = keepTop;
+    }
+    /** 칸 값에서 사양 CODE (SPEC / KEY 값 그대로, CON / VAL 은 {CODE} 중 첫 번째) */
+    function cellCode(value) {
+        let code = ogCode(value);
+        if (!code) ogRefs(value, (c) => { if (!code) code = c; });
+        return code === 'CALL' ? null : code;
+    }
+    /** 편집 표에서 칸을 고르면 사양 출처 창이 그 사양 카드로 따라간다 */
+    function originFollowCell() {
+        if (!hot || !inspOpen()) return;
+        const r = hot.getSelectedRangeLast();
+        const p = r ? hot.colToProp(r.highlight.col) : null;
+        if (!(typeof p === 'string' && /^[sckv]\d+$/.test(p))) return;
+        const code = cellCode(hot.getDataAtRowProp(r.highlight.row, p));
+        const body = $('inspBody');
+        const card = code ? body.querySelector(`.og-card[data-og-code="${CSS.escape(code)}"]`) : null;
+        if (!card) return;
+        og.focus = code;
+        if (card.hidden) {
+            og.filter = 'all';
+            og.q = '';
+            const q = body.querySelector('.og-q');
+            if (q) q.value = '';
+        }
+        originFilter(body);
+        card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    /** 편집 표의 칸 값에서 사양 CODE 를 골라 사양 출처 탭을 연다 (오른쪽 클릭 메뉴) */
+    function showOriginFor(value) {
+        const code = cellCode(value);
+        if (!code) { alert('이 칸에서 사양 CODE 를 찾지 못했습니다.'); return; }
+        og.q = '';
+        og.focus = code;
+        og.scrollToFocus = true;
+        og.filter = 'all';
+        setInsp('origin');
+    }
+
+    $('inspBody').addEventListener('click', (e) => {
+        if (state.insp !== 'origin') return;
+        const b = e.target.closest('[data-og-rid],[data-og-pid],[data-og-more],[data-og-filter],[data-og-act]');
+        if (!b) return;
+        const body = $('inspBody');
+        if (b.dataset.ogFilter) { og.filter = b.dataset.ogFilter; og.focus = ''; originFilter(body); return; }
+        if (b.dataset.ogMore) { const k = b.dataset.ogMore; if (og.open.has(k)) og.open.delete(k); else og.open.add(k); renderInsp(); return; }
+        if (b.dataset.ogAct === 'refresh') { og.info.clear(); og.error = ''; const codes = Array.from(originScan().uses.keys()); originFetch(codes, true); renderInsp(); return; }
+        if (b.dataset.ogAct === 'retry') { og.error = ''; renderInsp(); return; }
+        if (b.dataset.ogPid) {
+            const pid = b.dataset.ogPid;
+            if (typeof window.pgRelMapOpen === 'function') {
+                if (b.dataset.ogRel === 'other') window.pgRelMapOpen(pid);
+                else window.pgRelMapOpen(ogRoot(), pid);
+            }
+            return;
+        }
+        if (b.dataset.ogRid) {
+            const v = visualRowOf(b.dataset.ogRid);
+            if (v < 0 || !hot) return;
+            const col = hot.propToCol(b.dataset.ogProp);
+            state.selectedRid = b.dataset.ogRid;
+            selectingFromCode = true;
+            try { hot.selectCell(v, typeof col === 'number' && col >= 0 ? col : 2, v, typeof col === 'number' && col >= 0 ? col : 2, true, false); } catch (err) { /* 무시 */ }
+            selectingFromCode = false;
+        }
+    });
+    $('inspBody').addEventListener('input', (e) => {
+        if (state.insp !== 'origin' || !e.target.classList.contains('og-q')) return;
+        og.q = e.target.value;
+        og.focus = '';
+        originFilter($('inspBody'));
+    });
+
     function subPidTable() {
         const r = state.result;
         if (!r) return '<div class="empty">실행하면 CALL 로 실행된 하위 PID 가 표시됩니다 (최신 버전).</div>';
@@ -1711,6 +2429,46 @@
         hot.updateSettings({ columns: cols, colHeaders: headers });
     }
     $('btnAddSpec').addEventListener('click', () => addCols('spec'));
+    // ---------- 오른쪽 살펴보기 창 (라인 상세 · 사양 출처 · 변경 내역) ----------
+    let inspEditTimer = null;
+    let inspLast = '';
+    const inspOpen = () => !$('work').classList.contains('insp-off');
+    function renderInsp() {
+        if (!inspOpen()) return;
+        const body = $('inspBody');
+        const keep = inspLast === state.insp ? body.scrollTop : 0;   // 같은 탭을 다시 그릴 때는 스크롤 유지
+        let h;
+        switch (state.insp) {
+            case 'origin': h = originView(); break;
+            case 'diff': h = diffTable(); break;
+            default: h = lineDetail();
+        }
+        body.innerHTML = `<div class="pad">${h}</div>`;
+        inspLast = state.insp;
+        if (state.insp === 'origin') originAfterRender(body, keep);
+        else if (state.insp === 'diff') body.scrollTop = keep;
+    }
+    function setInsp(tab) {
+        if (tab) { state.insp = tab; storeSet('insp', tab); }
+        document.querySelectorAll('#inspTabs .itab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.insp === state.insp)));
+        if (!inspOpen()) setInspOpen(true, true, false);
+        renderInsp();
+    }
+    function setInspOpen(open, save = true, render = true) {
+        $('work').classList.toggle('insp-off', !open);
+        $('btnInsp').setAttribute('aria-expanded', String(open));
+        if (save) storeSet('inspOpen', open ? 'Y' : 'N');
+        if (hot) hot.refreshDimensions();
+        if (open && render) renderInsp();
+    }
+    $('inspTabs').addEventListener('click', (e) => { const b = e.target.closest('.itab'); if (b) setInsp(b.dataset.insp); });
+    $('btnInsp').addEventListener('click', () => setInspOpen(!inspOpen()));
+    $('btnInspClose').addEventListener('click', () => setInspOpen(false));
+    $('inspBody').addEventListener('click', (e) => {
+        const link = e.target.closest('[data-step]');
+        if (link) setStep(Number(link.dataset.step));
+    });
+
     $('btnAddKey').addEventListener('click', () => addCols('key'));
 
     // 실시간 실행 설정은 브라우저에 기억 (처음에는 켜 둔다)
@@ -1773,11 +2531,12 @@
             try { hot.selectCell(v, 2, v, 2, true, false); } catch (err) { /* 무시 */ }
             selectingFromCode = false;
         }
+        if (state.insp === 'line') renderInsp();
     });
-    // 라인별 결과 행 더블클릭 : 라인 상세로
+    // 라인별 결과 행 더블클릭 : 오른쪽 살펴보기 창에서 라인 상세
     $('panelBody').addEventListener('dblclick', (e) => {
         if (!e.target.closest('table.dbg tbody tr[data-i]')) return;
-        document.querySelector('#tabs button.tab[data-tab="line"]').click();
+        setInsp('line');
     });
     $('panelBody').addEventListener('change', (e) => {
         if (e.target.id !== 'watchInput') return;
@@ -1921,6 +2680,39 @@
     $('btnPanelToggle').addEventListener('click', () => setPanelCollapsed(!$('debugPanel').classList.contains('collapsed')));
     setPanelCollapsed(storeGet('panelCollapsed') === 'Y', false);
 
+    // 살펴보기 창 : 열림 상태 · 탭 · 너비를 브라우저에 기억
+    setInspOpen(storeGet('inspOpen') !== 'N', false, false);
+    setInsp(state.insp);
+    (function initVResizer() {
+        const KEY = 'inspWidth';
+        const setW = (w) => document.documentElement.style.setProperty('--insp-w', `${Math.round(w)}px`);
+        const saved = Number(storeGet(KEY));
+        if (saved) setW(saved);
+        const bar = $('vresizer');
+        let dragging = false;
+        const done = () => {
+            storeSet(KEY, String(Math.round($('insp').getBoundingClientRect().width)));
+            if (hot) hot.refreshDimensions();
+        };
+        bar.addEventListener('mousedown', (e) => { dragging = true; bar.classList.add('active'); document.body.style.userSelect = 'none'; e.preventDefault(); });
+        window.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            const right = $('work').getBoundingClientRect().right;
+            setW(Math.max(300, Math.min(window.innerWidth * 0.7, right - e.clientX)));
+        });
+        window.addEventListener('mouseup', () => {
+            if (!dragging) return;
+            dragging = false;
+            bar.classList.remove('active');
+            document.body.style.userSelect = '';
+            done();
+        });
+        bar.addEventListener('dblclick', () => {
+            setW($('insp').getBoundingClientRect().width < 560 ? 680 : 420);
+            done();
+        });
+    })();
+
     // 수정한 내용이 있으면 페이지를 떠날 때 브라우저가 확인을 묻는다
     window.addEventListener('beforeunload', (e) => {
         if (!hasUnsaved()) return;
@@ -1999,6 +2791,679 @@
             closeTimer = setTimeout(closePeek, PEEK_HOLD_MS);
         }, PEEK_START_MS);
     })();
+</script>
+<script>
+/* ═══════════ PID 관계 맵 (마인드맵) ═══════════
+ * 데이터 : /subae/logicRelationData?pid=  (로직 Viewer 'PID 관계 분석' 과 같은 API, 서버 메모리 그래프)
+ *   nodes : { PID: { pid, name, version, method, floorSpec, exists } }
+ *   down  : [{ from, to, count }]  기준에서 아래로 (from 이 to 를 CALL)
+ *   up    : [{ from, to, count }]  기준에서 위로   (from 이 to 를 CALL)
+ * 화면 : 왼쪽 = 상위(기준을 부르는 PID), 가운데 = 기준, 오른쪽 = 하위(기준이 부르는 PID).
+ *        화살표는 모두 '호출 방향'(왼쪽 → 오른쪽)이라 왼쪽에서 오른쪽으로 읽으면 실행 흐름이 된다.
+ *        여러 PID 가 같은 PID 를 부르면 처음 만난 곳(가장 가까운 단계)에만 그리고 ×N 으로 표시한다.
+ */
+(function () {
+    'use strict';
+    const API_REL = '/subae/logicRelationData';
+    const NW = 188, NH = 50, RW = 224, RH = 62, GAPX = 92, GAPY = 12;
+    const LIST_MAX = 60;
+
+    const g = (id) => document.getElementById(id);
+    const dlg = g('rmDialog'), svg = g('rmSvg'), vp = g('rmViewport'), canvas = g('rmCanvas');
+    const S = {
+        data: null, trees: null, callers: new Map(), callees: new Map(),
+        depth: 2, dir: 'both',
+        expanded: new Set(), collapsed: new Set(),
+        items: new Map(), cols: new Map(), sel: 'root',
+        view: { x: 0, y: 0, k: 1 },
+        hits: [], hitIdx: -1,
+        history: [], req: 0
+    };
+
+    // ---------- 유틸 ----------
+    function h(v) {
+        return String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    }
+    /** 글자 폭을 어림해서 px 안에 들어가게 자른다 (SVG text 는 줄바꿈/말줄임이 없어서) */
+    function clip(s, px, font) {
+        s = String(s || '');
+        let w = 0;
+        for (let i = 0; i < s.length; i++) {
+            const c = s.charCodeAt(i);
+            w += c > 0x2e80 ? font : (c >= 65 && c <= 90 ? font * 0.66 : font * 0.58);
+            if (w > px) return s.slice(0, Math.max(1, i - 1)) + '…';
+        }
+        return s;
+    }
+    function info(pid) {
+        const n = S.data && S.data.nodes ? S.data.nodes[pid] : null;
+        return n || { pid: pid, name: '', exists: false };
+    }
+    function sideName(side, d) { return side === 'down' ? `하위 ${d}단계` : `상위 ${d}단계`; }
+
+    // ---------- 데이터 → 트리 ----------
+    /** 기준에서 한쪽 방향으로 너비 우선 탐색. 처음 만난 부모가 트리 부모가 된다 */
+    function buildTree(list, side, root) {
+        const adj = new Map(), indeg = new Map();
+        list.forEach((e) => {
+            const p = side === 'down' ? e.from : e.to;
+            const c = side === 'down' ? e.to : e.from;
+            if (!adj.has(p)) adj.set(p, []);
+            adj.get(p).push({ pid: c, count: e.count || 1 });
+            indeg.set(c, (indeg.get(c) || 0) + 1);
+        });
+        const kids = new Map(), depth = new Map(), parent = new Map(), counts = new Map();
+        depth.set(root, 0);
+        const order = [root];
+        for (let qi = 0; qi < order.length; qi++) {
+            const cur = order[qi];
+            const ch = [];
+            (adj.get(cur) || []).slice()
+                .sort((a, b) => (a.pid < b.pid ? -1 : a.pid > b.pid ? 1 : 0))
+                .forEach((o) => {
+                    if (depth.has(o.pid)) return;
+                    depth.set(o.pid, depth.get(cur) + 1);
+                    parent.set(o.pid, cur);
+                    counts.set(o.pid, o.count);
+                    order.push(o.pid);
+                    ch.push(o.pid);
+                });
+            kids.set(cur, ch);
+        }
+        // 펼치면 몇 개가 나오는지 (+N) : 아래에서부터 계산
+        const desc = new Map();
+        for (let i = order.length - 1; i >= 0; i--) {
+            let n = 0;
+            (kids.get(order[i]) || []).forEach((c) => { n += 1 + (desc.get(c) || 0); });
+            desc.set(order[i], n);
+        }
+        return { side, kids, depth, parent, counts, indeg, desc, order, total: order.length - 1 };
+    }
+
+    function isOpen(key, d, n) {
+        if (!n) return false;
+        if (S.collapsed.has(key)) return false;
+        if (S.expanded.has(key)) return true;
+        return d < S.depth;
+    }
+    function colX(side, d) {
+        if (d === 0) return 0;
+        const x = RW / 2 + GAPX + NW / 2 + (d - 1) * (NW + GAPX);
+        return side === 'down' ? x : -x;
+    }
+
+    /** 가로 트리 배치 : 잎은 차례로 한 칸씩, 부모는 자식들의 가운데 */
+    function layout() {
+        const items = new Map(), cols = new Map();
+        const root = S.data.root;
+        items.set('root', { key: 'root', pid: root, side: 'root', depth: 0, x: 0, y: 0, w: RW, h: RH, kids: 0, parentKey: null });
+        ['up', 'down'].forEach((side) => {
+            if (S.dir !== 'both' && S.dir !== side) return;
+            const t = S.trees[side];
+            const top = t.kids.get(root) || [];
+            if (!top.length) return;
+            const placed = [];
+            let slot = 0;
+            function place(pid, d, parentKey) {
+                const key = side + ':' + pid;
+                const kids = t.kids.get(pid) || [];
+                const open = isOpen(key, d, kids.length);
+                const it = {
+                    key, pid, side, depth: d, w: NW, h: NH, x: colX(side, d), y: 0, parentKey,
+                    kids: kids.length, desc: t.desc.get(pid) || 0, open,
+                    refs: t.indeg.get(pid) || 0, count: t.counts.get(pid) || 1
+                };
+                items.set(key, it);
+                placed.push(it);
+                const ck = side + d;
+                if (!cols.has(ck)) cols.set(ck, { side, d, n: 0 });
+                cols.get(ck).n++;
+                if (open) {
+                    const ys = kids.map((c) => place(c, d + 1, key));
+                    it.y = (ys[0] + ys[ys.length - 1]) / 2;
+                    slot += 0.3;                         // 펼친 묶음 사이를 조금 띄워 무리를 구분
+                } else {
+                    it.y = slot * (NH + GAPY);
+                    slot++;
+                }
+                return it.y;
+            }
+            const ys = top.map((c) => place(c, 1, 'root'));
+            const mid = (ys[0] + ys[ys.length - 1]) / 2;
+            placed.forEach((it) => { it.y -= mid; });
+        });
+        S.items = items;
+        S.cols = cols;
+    }
+
+    function pathKeys(key) {
+        const s = new Set();
+        let k = key;
+        while (k && S.items.has(k)) { s.add(k); k = S.items.get(k).parentKey; }
+        return s;
+    }
+
+    // ---------- 그리기 ----------
+    function render() {
+        layout();
+        const items = S.items;
+        const hitSet = new Set(S.hits.map((x) => x.key));
+        let minY = -RH / 2;
+        items.forEach((n) => { minY = Math.min(minY, n.y - n.h / 2); });
+        const ly = minY - 22;
+
+        let out = `<text class="rm-col" x="0" y="${ly}" text-anchor="middle">기준</text>`;
+        S.cols.forEach((c) => {
+            out += `<text class="rm-col ${c.side}" x="${colX(c.side, c.d)}" y="${ly}" text-anchor="middle">${sideName(c.side, c.d)} <tspan class="n">· ${c.n}</tspan></text>`;
+        });
+
+        items.forEach((n) => {
+            if (!n.parentKey) return;
+            const p = items.get(n.parentKey);
+            let x1, y1, x2, y2;
+            if (n.side === 'down') { x1 = p.x + p.w / 2; y1 = p.y; x2 = n.x - n.w / 2; y2 = n.y; }
+            else { x1 = n.x + n.w / 2; y1 = n.y; x2 = p.x - p.w / 2; y2 = p.y; }
+            const mx = (x1 + x2) / 2;
+            const sw = Math.min(1.4 + (n.count - 1) * 0.35, 3.2).toFixed(2);
+            const title = n.side === 'down' ? `${p.pid} → ${n.pid}` : `${n.pid} → ${p.pid}`;
+            out += `<path class="rm-link ${n.side}" data-k="${h(n.key)}" data-s="${n.side}" d="M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}" style="stroke-width:${sw}px" marker-end="url(#rmArr-${n.side})"><title>${h(title)} · CALL ${n.count}줄</title></path>`;
+        });
+
+        items.forEach((n) => { out += n.key === 'root' ? rootSvg(n) : nodeSvg(n, hitSet.has(n.key)); });
+        vp.innerHTML = out;
+        paintSel();
+    }
+
+    function nodeSvg(n, hit) {
+        const inf = info(n.pid);
+        const missing = inf.exists === false;
+        const name = missing ? '최신 PID 목록에 없음' : (inf.name || '이름 없음');
+        const cls = 'rm-node rm-' + n.side + (missing ? ' rm-missing' : '') + (hit ? ' rm-hit' : '');
+        const label = `${sideName(n.side, n.depth)} ${n.pid} ${inf.name || ''}`;
+        let s = `<g class="${cls}" data-key="${h(n.key)}" transform="translate(${n.x - n.w / 2},${n.y - n.h / 2})" tabindex="0" role="button" aria-label="${h(label)}">`
+            + `<title>${h(n.pid + (inf.name ? ' · ' + inf.name : ''))}</title>`
+            + `<rect class="rm-box" width="${n.w}" height="${n.h}" rx="9"/>`
+            + `<rect class="rm-bar" x="${n.side === 'down' ? 0 : n.w - 4}" y="9" width="4" height="${n.h - 18}" rx="2"/>`
+            + `<text class="rm-pid" x="14" y="21">${h(clip(n.pid, n.w - (n.refs > 1 ? 62 : 28), 12.5))}</text>`
+            + `<text class="rm-name" x="14" y="38">${h(clip(name, n.w - 28, 11.5))}</text>`;
+        if (n.refs > 1) {
+            const tip = n.side === 'down' ? `이 맵 안에서 ${n.refs}개 PID 가 이 PID 를 CALL` : `이 맵 안에서 이 PID 가 ${n.refs}개 PID 를 CALL`;
+            s += `<g class="rm-ref"><title>${tip}</title><rect x="${n.w - 44}" y="8" width="34" height="16" rx="8"/><text x="${n.w - 27}" y="19.5">×${n.refs}</text></g>`;
+        }
+        if (n.kids) {
+            const cx = n.side === 'down' ? n.w : 0;
+            const txt = n.open ? '−' : '+' + (n.desc > 999 ? '999+' : n.desc);
+            const half = n.open ? 9 : Math.max(12, txt.length * 3.6 + 5);
+            const tip = n.open ? '접기' : `펼치기 (${n.side === 'down' ? '하위' : '상위'} ${n.desc}개)`;
+            s += `<g class="rm-tg" data-act="toggle"><title>${tip}</title><rect x="${cx - half}" y="${n.h / 2 - 9}" width="${half * 2}" height="18" rx="9"/><text x="${cx}" y="${n.h / 2 + 3.8}">${txt}</text></g>`;
+        }
+        return s + '</g>';
+    }
+
+    function rootSvg(n) {
+        const inf = info(n.pid);
+        const name = inf.name || (inf.exists === false ? '최신 PID 목록에 없음' : '');
+        return `<g class="rm-node rm-rootn" data-key="root" transform="translate(${-RW / 2},${-RH / 2})" tabindex="0" role="button" aria-label="기준 PID ${h(n.pid)}">`
+            + `<title>${h(n.pid + (inf.name ? ' · ' + inf.name : ''))}</title>`
+            + `<rect class="rm-box" width="${RW}" height="${RH}" rx="12"/>`
+            + `<text class="rm-cap" x="16" y="18">기준 PID</text>`
+            + `<text class="rm-pid" x="16" y="38">${h(clip(n.pid, RW - 32, 15))}</text>`
+            + `<text class="rm-name" x="16" y="54">${h(clip(name, RW - 32, 11.5))}</text>`
+            + '</g>';
+    }
+
+    /** 선택 / 호출 경로 강조만 바꾼다 (다시 그리지 않음 : 더블클릭 대상이 유지되도록) */
+    function paintSel() {
+        const path = pathKeys(S.sel);
+        vp.querySelectorAll('.rm-node').forEach((el) => {
+            const k = el.getAttribute('data-key');
+            el.classList.toggle('rm-sel', k === S.sel);
+            el.classList.toggle('rm-on', path.has(k));
+        });
+        vp.querySelectorAll('.rm-link').forEach((el) => {
+            const on = path.has(el.getAttribute('data-k'));
+            el.classList.toggle('on', on);
+            el.setAttribute('marker-end', `url(#rmArr-${el.getAttribute('data-s')}${on ? '-on' : ''})`);
+        });
+        vp.classList.toggle('has-path', path.size > 1);
+    }
+
+    // ---------- 보기 (이동 / 확대) ----------
+    function applyView(anim) {
+        const v = S.view;
+        vp.classList.toggle('anim', !!anim);
+        vp.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.k})`;
+        g('rmZoom').textContent = Math.round(v.k * 100) + '%';
+    }
+    function fit() {
+        const r = svg.getBoundingClientRect();
+        if (!r.width || !S.items.size) return;
+        let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+        S.items.forEach((n) => {
+            x1 = Math.min(x1, n.x - n.w / 2 - 18); x2 = Math.max(x2, n.x + n.w / 2 + 18);
+            y1 = Math.min(y1, n.y - n.h / 2 - 36); y2 = Math.max(y2, n.y + n.h / 2);
+        });
+        const pad = 36;
+        const k = Math.max(0.12, Math.min((r.width - pad * 2) / (x2 - x1), (r.height - pad * 2 - 30) / (y2 - y1), 1.1));
+        S.view = { k, x: r.width / 2 - ((x1 + x2) / 2) * k, y: (r.height - 30) / 2 - ((y1 + y2) / 2) * k };
+        applyView(true);
+    }
+    function zoomAt(px, py, f) {
+        const v = S.view;
+        const k = Math.min(2.5, Math.max(0.12, v.k * f));
+        const r = k / v.k;
+        v.x = px - (px - v.x) * r;
+        v.y = py - (py - v.y) * r;
+        v.k = k;
+        applyView(false);
+    }
+    function zoomCenter(f) { const r = svg.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, f); }
+    function centerOn(key) {
+        const n = S.items.get(key);
+        if (!n) return;
+        const r = svg.getBoundingClientRect();
+        const v = S.view;
+        if (v.k < 0.6) v.k = 0.85;
+        v.x = r.width / 2 - n.x * v.k;
+        v.y = r.height / 2 - n.y * v.k;
+        applyView(true);
+    }
+    function focusNode(key) {
+        const el = vp.querySelector(`[data-key="${CSS.escape(key)}"]`);
+        if (el) el.focus({ preventScroll: true });
+    }
+
+    // ---------- 조작 ----------
+    function select(key, opts) {
+        opts = opts || {};
+        if (!S.items.has(key)) key = 'root';
+        S.sel = key;
+        paintSel();
+        renderSide();
+        if (opts.center) centerOn(key);
+        if (opts.focus) focusNode(key);
+    }
+    /** 펼치기 / 접기 : 누른 노드가 화면에서 제자리에 있도록 보기 위치를 보정 */
+    function toggle(key) {
+        const n = S.items.get(key);
+        if (!n || !n.kids) return;
+        const bx = n.x, by = n.y;
+        if (n.open) { S.collapsed.add(key); S.expanded.delete(key); }
+        else { S.expanded.add(key); S.collapsed.delete(key); }
+        render();
+        const m = S.items.get(key);
+        if (m) {
+            S.view.x -= (m.x - bx) * S.view.k;
+            S.view.y -= (m.y - by) * S.view.k;
+            applyView(false);
+        }
+        updateStats();
+    }
+    /** 접혀 있어 안 보이는 PID 면 조상을 펼쳐서 보이게 한다 */
+    function reveal(side, pid) {
+        const t = S.trees[side];
+        if (!t || !t.depth.has(pid)) return null;
+        if (S.dir !== 'both' && S.dir !== side) { S.dir = 'both'; syncSeg('rmDir', 'both'); }
+        let p = t.parent.get(pid);
+        while (p && p !== S.data.root) {
+            const k = side + ':' + p;
+            S.expanded.add(k);
+            S.collapsed.delete(k);
+            p = t.parent.get(p);
+        }
+        return side + ':' + pid;
+    }
+    function goto(pid, prefSide, focus) {
+        if (!S.data) return;
+        if (pid === S.data.root) { select('root', { center: true, focus: focus !== false }); return; }
+        const sides = prefSide === 'up' ? ['up', 'down'] : ['down', 'up'];
+        for (const sd of sides) {
+            const key = reveal(sd, pid);
+            if (!key) continue;
+            if (!S.items.has(key)) { render(); updateStats(); }
+            select(key, { center: true, focus: focus !== false });
+            return;
+        }
+    }
+    function reroot(pid) {
+        if (!pid || !S.data || pid === S.data.root) return;
+        S.history.push(S.data.root);
+        load(pid, false);
+    }
+    function loadIntoPlayground(pid) {
+        dlg.close();
+        const inp = g('pid');
+        if (inp.value.trim().toUpperCase() !== pid) {
+            inp.value = pid;
+            g('version').value = '';
+            inp.dispatchEvent(new Event('input'));    // 버전 목록 다시 읽기
+        }
+        if (typeof loadLogic === 'function') loadLogic();
+    }
+    function copy(text) {
+        const done = () => { const b = g('rmSide').querySelector('[data-copy]'); if (b) { b.textContent = '복사됨'; setTimeout(() => { b.textContent = '복사'; }, 1200); } };
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
+        else fallback();
+        function fallback() {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            dlg.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); done(); } finally { ta.remove(); }
+        }
+    }
+
+    // ---------- 검색 ----------
+    function runSearch() {
+        const q = g('rmSearch').value.trim().toLowerCase();
+        S.hits = [];
+        S.hitIdx = -1;
+        if (q && S.trees) {
+            ['up', 'down'].forEach((side) => {
+                if (S.dir !== 'both' && S.dir !== side) return;
+                S.trees[side].order.forEach((pid, i) => {
+                    if (i === 0) return;
+                    if (pid.toLowerCase().includes(q) || String(info(pid).name || '').toLowerCase().includes(q))
+                        S.hits.push({ side, pid, key: side + ':' + pid });
+                });
+            });
+        }
+        g('rmHitInfo').textContent = q ? (S.hits.length ? `${S.hits.length}개 · Enter 로 이동` : '없음') : '';
+        if (S.data) render();
+    }
+    function nextHit(step) {
+        if (!S.hits.length) return;
+        S.hitIdx = (S.hitIdx + step + S.hits.length) % S.hits.length;
+        const x = S.hits[S.hitIdx];
+        goto(x.pid, x.side, false);
+        g('rmHitInfo').textContent = `${S.hitIdx + 1} / ${S.hits.length}`;
+    }
+
+    // ---------- 상세 패널 ----------
+    function pidList(m, side) {
+        const arr = m ? Array.from(m.entries()).sort((a, b) => (a[0] < b[0] ? -1 : 1)) : [];
+        if (!arr.length) return '<p class="rm-none">없음</p>';
+        const root = S.data.root;
+        let s = '<ul class="rm-list">';
+        arr.slice(0, LIST_MAX).forEach((e) => {
+            const p = e[0], c = e[1];
+            const dot = p === root ? 'root' : side;
+            s += `<li><button type="button" data-goto="${h(p)}" data-side="${side}" title="맵에서 ${h(p)} 로 이동"><span class="rm-dot ${dot}" aria-hidden="true"></span><b>${h(p)}</b><span>${h(info(p).name || '')}</span>${c > 1 ? `<i title="CALL 라인 수">×${c}</i>` : ''}</button></li>`;
+        });
+        s += '</ul>';
+        if (arr.length > LIST_MAX) s += `<p class="rm-none">외 ${arr.length - LIST_MAX}개</p>`;
+        return s;
+    }
+
+    function renderSide() {
+        const box = g('rmSide');
+        if (!S.data) { box.innerHTML = ''; return; }
+        const n = S.items.get(S.sel) || S.items.get('root');
+        const pid = n.pid, inf = info(pid), isRoot = n.key === 'root';
+        const where = isRoot ? '기준 PID' : sideName(n.side, n.depth);
+        const meta = [];
+        if (inf.version) meta.push({ k: '버전', v: inf.version });
+        if (inf.method) meta.push({ k: 'METHOD', v: inf.method });
+        if (inf.floorSpec) meta.push({ k: '층 사양', v: inf.floorSpec });
+
+        let s = '<div class="rm-sec">'
+            + `<span class="rm-where ${isRoot ? '' : n.side}">${where}</span>`
+            + `<div class="rm-big"><span>${h(pid)}</span><button type="button" data-copy="${h(pid)}">복사</button></div>`
+            + `<div class="rm-nm">${inf.name ? h(inf.name) : '<span style="color:var(--muted)">이름 없음</span>'}</div>`
+            + (meta.length ? '<dl class="rm-meta">' + meta.map((x) => `<dt>${x.k}</dt><dd>${h(x.v)}</dd>`).join('') + '</dl>' : '')
+            + (inf.exists === false ? '<div class="rm-warn">최신 버전 PID 목록에 없는 PID 입니다. 로직에 CALL 은 있지만 삭제되었거나 이름이 바뀌었을 수 있습니다.</div>' : '')
+            + '<div class="rm-acts">'
+            + `<button type="button" class="primary" data-act="load"${inf.exists === false ? ' disabled' : ''}><svg class="ico" aria-hidden="true"><use href="#i-download"/></svg>플레이그라운드로 불러오기</button>`
+            + (isRoot ? '' : `<button type="button" data-act="reroot"><svg class="ico" aria-hidden="true"><use href="#i-map"/></svg>이 PID 기준으로 다시 그리기</button>`)
+            + '</div></div>';
+
+        if (!isRoot) {
+            const chain = [];
+            let k = n.key;
+            while (k) { const x = S.items.get(k); if (!x) break; chain.push(x); k = x.parentKey; }
+            if (n.side === 'down') chain.reverse();      // 하위 : 기준 → … → 선택, 상위 : 선택 → … → 기준 (둘 다 호출 순서)
+            s += '<div class="rm-sec"><h4>호출 경로</h4><ol class="rm-chain">'
+                + chain.map((x) => `<li class="${x.key === n.key ? 'me' : ''}"><button type="button" data-goto="${h(x.pid)}" data-side="${n.side}">${h(x.pid)}</button></li>`).join('')
+                + '</ol><p class="rm-chain-note">왼쪽 PID 가 오른쪽 PID 를 CALL 합니다.</p></div>';
+        }
+
+        const callers = S.callers.get(pid), callees = S.callees.get(pid);
+        s += `<div class="rm-sec"><h4><span class="rm-dot up" aria-hidden="true"></span>이 PID 를 CALL 하는 PID <b>${callers ? callers.size : 0}</b></h4>${pidList(callers, n.side === 'down' ? 'down' : 'up')}</div>`
+            + `<div class="rm-sec"><h4><span class="rm-dot down" aria-hidden="true"></span>이 PID 가 CALL 하는 PID <b>${callees ? callees.size : 0}</b></h4>${pidList(callees, n.side === 'up' ? 'up' : 'down')}</div>`
+            + '<p class="rm-foot">목록은 기준 PID 와 이어진 관계(이 맵에 들어온 PID)만 보여줍니다. 누르면 맵에서 그 PID 로 이동합니다.</p>';
+        box.innerHTML = s;
+    }
+
+    // ---------- 불러오기 ----------
+    function showState(kind, msg) {
+        const box = g('rmState');
+        if (!kind) { box.hidden = true; box.className = 'rm-state'; return; }
+        const pid = h(g('rmPid').value.trim().toUpperCase());
+        const card = {
+            loading: '<h3><span class="spinner" aria-hidden="true"></span>관계를 불러오는 중…</h3><p>처음 한 번은 전체 PID 호출 관계를 읽느라 조금 걸릴 수 있습니다.</p>',
+            empty: '<h3>기준 PID 를 입력하세요</h3><p>위 칸에 PID 를 넣고 <b>보기</b> 를 누르면 상위 · 하위 호출 관계가 그려집니다.</p>',
+            notfound: `<h3>${pid} 의 관계가 없습니다</h3><p>최신 버전 PID 목록에 없고, 이 PID 를 CALL 하거나 이 PID 가 CALL 하는 PID 도 없습니다. PID 이름을 확인하세요.</p>`,
+            alone: `<h3>${pid} 는 혼자 있는 PID 입니다</h3><p>이 PID 를 CALL 하는 PID 도, 이 PID 가 CALL 하는 PID 도 없습니다.</p>`,
+            error: `<h3>관계를 불러오지 못했습니다</h3><p>${h(msg || '')}</p><button type="button" class="primary" id="rmRetry">다시 시도</button>`
+        }[kind];
+        box.className = 'rm-state' + (kind === 'error' ? ' err' : '');
+        box.innerHTML = `<div class="card" role="${kind === 'error' ? 'alert' : 'status'}">${card}</div>`;
+        box.hidden = false;
+        if (kind !== 'alone') vp.innerHTML = '';
+        const retry = g('rmRetry');
+        if (retry) retry.addEventListener('click', () => load(g('rmPid').value, false));
+    }
+
+    function updateStats() {
+        if (!S.data || !S.trees) { g('rmStats').textContent = '-'; return; }
+        const up = S.trees.up.total, down = S.trees.down.total;
+        const shown = Math.max(0, S.items.size - 1);
+        const t = new Date(S.data.loadedAt || Date.now());
+        const pad = (v) => String(v).padStart(2, '0');
+        g('rmStats').innerHTML = `상위 <b>${up.toLocaleString()}</b>개 · 하위 <b>${down.toLocaleString()}</b>개 PID`
+            + ` <span style="color:var(--muted)">(지금 ${shown.toLocaleString()}개 표시)</span>`
+            + (S.data.truncated ? ' · <span class="rm-trunc">관계가 너무 많아 일부만 담았습니다</span>' : '')
+            + ` · <span style="color:var(--muted)" title="서버가 PID 관계를 읽은 시각. 새로 읽기로 갱신">기준 ${pad(t.getMonth() + 1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}</span>`;
+    }
+
+    function setBusy(on) {
+        const b = g('rmGo');
+        b.disabled = on;
+        b.innerHTML = on ? '<span class="spinner" aria-hidden="true"></span>' : '보기';
+        g('rmRefresh').disabled = on;
+    }
+
+    async function load(pid, refresh) {
+        pid = String(pid || '').trim().toUpperCase();
+        g('rmPid').value = pid;
+        g('rmBack').hidden = !S.history.length;
+        if (!pid) { S.data = null; renderSide(); updateStats(); showState('empty'); g('rmPid').focus(); return; }
+        const my = ++S.req;
+        showState('loading');
+        setBusy(true);
+        try {
+            const r = await fetch(API_REL + '?' + new URLSearchParams({ pid: pid, refresh: refresh ? 'true' : 'false' }));
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(j.message || ('HTTP ' + r.status));
+            if (my !== S.req) return;
+            setData(j);
+        } catch (e) {
+            if (my === S.req) showState('error', e.message);
+        } finally {
+            if (my === S.req) setBusy(false);
+        }
+    }
+
+    function setData(j) {
+        S.data = j;
+        S.expanded.clear();
+        S.collapsed.clear();
+        S.sel = 'root';
+        S.trees = { down: buildTree(j.down || [], 'down', j.root), up: buildTree(j.up || [], 'up', j.root) };
+        S.callers = new Map();
+        S.callees = new Map();
+        const add = (m, a, b, n) => { if (!m.has(a)) m.set(a, new Map()); m.get(a).set(b, n); };
+        (j.down || []).concat(j.up || []).forEach((e) => {
+            add(S.callees, e.from, e.to, e.count || 1);
+            add(S.callers, e.to, e.from, e.count || 1);
+        });
+        g('rmSearch').value = '';
+        S.hits = [];
+        g('rmHitInfo').textContent = '';
+
+        const none = !S.trees.down.total && !S.trees.up.total;
+        if (none && !j.found) { S.data = null; S.trees = null; S.items = new Map(); renderSide(); updateStats(); showState('notfound'); return; }
+        render();
+        renderSide();
+        updateStats();
+        if (none) showState('alone'); else showState(null);
+        requestAnimationFrame(fit);
+        if (S.pendingFocus) {
+            const f = S.pendingFocus;
+            S.pendingFocus = null;
+            requestAnimationFrame(() => goto(f, null, false));
+        }
+    }
+
+    function syncSeg(id, v) {
+        g(id).querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+    }
+
+    // ---------- 이벤트 ----------
+    /** 다른 기능에서 관계 맵 열기 : root 기준으로 그리고 focus PID 로 이동 (focus 가 맵에 없으면 기준만) */
+    window.pgRelMapOpen = function (root, focus) {
+        root = String(root || '').trim().toUpperCase();
+        focus = focus ? String(focus).trim().toUpperCase() : null;
+        if (!dlg.open) dlg.showModal();
+        if (S.data && S.data.root === root) {
+            requestAnimationFrame(() => { fit(); if (focus) goto(focus, null, false); });
+            return;
+        }
+        S.pendingFocus = focus;
+        S.history = [];
+        load(root, false);
+    };
+
+    g('btnRelMap').addEventListener('click', () => {
+        const pid = g('pid').value.trim().toUpperCase();
+        if (!dlg.open) dlg.showModal();
+        if (S.data && S.data.root === pid) { requestAnimationFrame(fit); return; }
+        S.history = [];
+        load(pid, false);
+    });
+    g('rmForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const pid = g('rmPid').value.trim().toUpperCase();
+        if (S.data && pid && pid !== S.data.root) S.history.push(S.data.root);
+        load(pid, false);
+    });
+    g('rmBack').addEventListener('click', () => { if (S.history.length) load(S.history.pop(), false); });
+    g('rmRefresh').addEventListener('click', () => load(S.data ? S.data.root : g('rmPid').value, true));
+    g('rmClose').addEventListener('click', () => dlg.close());
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });   // 바깥(배경) 누르면 닫기
+
+    g('rmDepth').addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        S.depth = b.dataset.v === 'all' ? Infinity : Number(b.dataset.v);
+        syncSeg('rmDepth', b.dataset.v);
+        S.expanded.clear();
+        S.collapsed.clear();
+        if (!S.data) return;
+        render(); renderSide(); updateStats(); fit();
+    });
+    g('rmDir').addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (!b || !S.data) { if (b) { S.dir = b.dataset.v; syncSeg('rmDir', b.dataset.v); } return; }
+        S.dir = b.dataset.v;
+        syncSeg('rmDir', S.dir);
+        if (S.sel !== 'root' && !S.sel.startsWith(S.dir + ':') && S.dir !== 'both') S.sel = 'root';
+        runSearch();
+        renderSide(); updateStats(); fit();
+    });
+
+    let searchTimer;
+    g('rmSearch').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(runSearch, 150); });
+    g('rmSearch').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); clearTimeout(searchTimer); if (S.hitIdx < 0 && !S.hits.length) runSearch(); nextHit(e.shiftKey ? -1 : 1); }
+    });
+
+    g('rmZoomIn').addEventListener('click', () => zoomCenter(1.2));
+    g('rmZoomOut').addEventListener('click', () => zoomCenter(1 / 1.2));
+    g('rmZoom').addEventListener('click', fit);
+    g('rmFit').addEventListener('click', fit);
+
+    // 노드 : 누르면 선택, +N/− 누르면 펼치기/접기, 더블클릭하면 그 PID 를 기준으로
+    svg.addEventListener('click', (e) => {
+        const node = e.target.closest('.rm-node');
+        if (!node) return;
+        const key = node.getAttribute('data-key');
+        if (e.target.closest('[data-act="toggle"]')) { toggle(key); return; }
+        select(key);
+    });
+    svg.addEventListener('dblclick', (e) => {
+        const node = e.target.closest('.rm-node');
+        if (!node || e.target.closest('[data-act="toggle"]')) return;
+        const n = S.items.get(node.getAttribute('data-key'));
+        if (n && n.key !== 'root') reroot(n.pid);
+    });
+    svg.addEventListener('keydown', (e) => {
+        const node = e.target.closest && e.target.closest('.rm-node');
+        if (!node) return;
+        const key = node.getAttribute('data-key');
+        if (e.key === 'Enter') { e.preventDefault(); select(key); }
+        else if (e.key === ' ') { e.preventDefault(); toggle(key); focusNode(key); }
+    });
+
+    // 끌어서 이동 (노드 위에서는 시작하지 않음)
+    let drag = null;
+    svg.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0 || e.target.closest('.rm-node')) return;
+        drag = { x: e.clientX, y: e.clientY, vx: S.view.x, vy: S.view.y };
+        svg.setPointerCapture(e.pointerId);
+        canvas.classList.add('grabbing');
+    });
+    svg.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        S.view.x = drag.vx + e.clientX - drag.x;
+        S.view.y = drag.vy + e.clientY - drag.y;
+        applyView(false);
+    });
+    const endDrag = () => { drag = null; canvas.classList.remove('grabbing'); };
+    svg.addEventListener('pointerup', endDrag);
+    svg.addEventListener('pointercancel', endDrag);
+    svg.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const r = svg.getBoundingClientRect();
+        zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0015));
+    }, { passive: false });
+
+    g('rmSide').addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (!b || !S.data) return;
+        const n = S.items.get(S.sel) || S.items.get('root');
+        if (b.dataset.goto) goto(b.dataset.goto, b.dataset.side);
+        else if (b.dataset.copy) copy(b.dataset.copy);
+        else if (b.dataset.act === 'load') loadIntoPlayground(n.pid);
+        else if (b.dataset.act === 'reroot') reroot(n.pid);
+    });
+
+    // 맵 단축키 : + / - 확대·축소, 0 맞추기, / 찾기
+    dlg.addEventListener('keydown', (e) => {
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomCenter(1.2); }
+        else if (e.key === '-') { e.preventDefault(); zoomCenter(1 / 1.2); }
+        else if (e.key === '0') { e.preventDefault(); fit(); }
+        else if (e.key === '/') { e.preventDefault(); g('rmSearch').focus(); }
+    });
+    // 맵이 열려 있는 동안 화면 단축키(Ctrl+Enter 실행, F10 단계 이동)는 막는다
+    window.addEventListener('keydown', (e) => {
+        if (!dlg.open) return;
+        if (e.key === 'F10' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) e.stopImmediatePropagation();
+    }, true);
+    window.addEventListener('resize', () => { if (dlg.open && S.data) fit(); });
+})();
 </script>
 </body>
 </html>
