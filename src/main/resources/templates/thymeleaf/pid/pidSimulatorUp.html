@@ -547,12 +547,12 @@
         header .sub-tools #btnSubView[aria-pressed="true"] { background: #475569; }
         .sub-empty { color: #94a3b8; font-size: 12px; padding: 4px 2px; }
         /* 칩 보기에서는 표 전용 칸을 숨긴다 */
-        .sub-item .sub-name, .sub-item .sub-num, .sub-item .sub-quick, .sub-thead { display: none; }
+        .sub-item .sub-name, .sub-item .sub-num, .sub-thead { display: none; }
         /* 표 보기 : 한 줄에 하위 PID 하나, 열 머리글로 정렬 */
         .sub-list.as-table { display: block; max-height: min(45vh, 420px); border: 1px solid #334155; border-radius: 5px; }
         .sub-list.as-table .sub-thead, .sub-list.as-table .sub-item {
             display: grid; align-items: center; column-gap: 8px;
-            grid-template-columns: minmax(170px, 1.2fr) minmax(120px, 1.6fr) 44px 54px 64px 64px minmax(150px, auto) 170px;
+            grid-template-columns: minmax(170px, 1.2fr) minmax(140px, 2fr) 44px 54px 64px 64px minmax(230px, 300px);
         }
         .sub-list.as-table .sub-thead { position: sticky; top: 0; z-index: 1; background: #1e293b; border-bottom: 1px solid #475569; padding: 0 8px; }
         .sub-thead button {
@@ -571,11 +571,8 @@
         .sub-list.as-table .sub-item.error { box-shadow: inset 3px 0 0 #f87171; }
         .sub-list.as-table .sub-name { display: block; color: #94a3b8; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
         .sub-list.as-table .sub-num { display: block; color: #cbd5e1; font-size: 12px; text-align: right; font-family: var(--mono); }
-        .sub-list.as-table .sub-quick { display: flex; flex-wrap: wrap; gap: 3px; }
         .sub-list.as-table .sub-pid { font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; }
         .sub-list.as-table .sub-item select { width: 100%; }
-        header .sub-quick button { min-height: 22px; padding: 0 7px; font-size: 11.5px; border-radius: 11px; background: transparent; }
-        header .sub-quick button.on { background: #e2e8f0; border-color: #e2e8f0; color: #0f172a; font-weight: 700; }
         .sub-actions { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
         .sub-actions button { padding: 5px 12px; font-size: 12px; }
         /* 자재수배 PICK */
@@ -782,6 +779,148 @@
         .og-run b.f { color: #b91c1c; font-family: var(--sans); }
         .og-link { min-height: 0; padding: 0; border: 0; background: none; color: var(--primary); font-family: var(--mono); font-size: 12px; text-decoration: underline; }
         .og-link:hover:not(:disabled) { background: none; color: var(--primary-dark); }
+
+        /* ===== 상단 검색조건 정리 (2026-11-27) =====
+           1줄 : 제목 · 분석 도구 메뉴 · 만든 사람  /  2줄 : 실행 조건(라벨 붙은 입력칸) + 실행 · 최근 실행 정보
+           하위 PID / PICK 은 카드로 묶고, 일괄 버튼은 카드 머리 오른쪽에 둔다 */
+        header { padding: 0 16px 10px; }
+        .top-bar {
+            margin: 0 -16px 10px; padding: 6px 16px;
+            background: var(--head-bg-2); border-bottom: 1px solid #273449;
+            gap: 6px 12px;
+        }
+        .top-sep { width: 1px; height: 20px; background: #334155; flex: none; }
+        .tool-nav { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+        header .tool-nav button.tool {
+            min-height: 30px; padding: 4px 10px; gap: 6px;
+            background: transparent; border-color: transparent; color: #cbd5e1; font-size: 12.5px;
+        }
+        header .tool-nav button.tool .ico { color: #93c5fd; }
+        header .tool-nav button.tool:hover:not(:disabled) { background: #1e293b; border-color: #334155; color: #fff; }
+        .top-bar .credit { padding: 2px 10px; font-size: 11.5px; }
+
+        /* 실행 조건 : 라벨이 앞에 붙은 입력칸 (포커스는 칸 전체에 표시) */
+        .query-bar { gap: 8px 12px; }
+        .query-bar .step-group { padding: 0; border: 0; background: none; gap: 8px; }
+        header .qf {
+            gap: 0; height: 32px; align-items: stretch;
+            border: 1px solid var(--head-border); border-radius: var(--radius);
+            background: var(--head-bg-2); overflow: hidden;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        header .qf:hover { border-color: #64748b; }
+        header .qf:focus-within { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, .28); }
+        header .qf > label {
+            display: flex; align-items: center; gap: 3px; padding: 0 10px;
+            background: #263248; border-right: 1px solid var(--head-border);
+            color: #cbd5e1; font-size: 12px; font-weight: 600;
+        }
+        header .qf input, header .qf select {
+            height: auto; border: 0; border-radius: 0; background: transparent; min-width: 0;
+        }
+        header .qf input:focus-visible, header .qf select:focus-visible, header .qf select:focus { outline: none; }
+        header .qf select { min-width: 110px; padding: 0 6px; }
+        header .qf select + input { border-left: 1px solid var(--head-border); }
+        header .qf #baseDate { width: 132px; border-left: 1px solid var(--head-border); }
+        header .qf input:disabled { background: rgba(15, 23, 42, .5); }
+        .qf-wrap { gap: 8px; }
+        #versionInfo:empty { display: none; }
+        header button.adv-toggle { min-height: 32px; background: transparent; color: #cbd5e1; }
+        header button.adv-toggle:hover:not(:disabled) { background: #334155; color: #fff; }
+        header button.adv-toggle[aria-expanded="true"] { background: #334155; border-color: #60a5fa; color: #fff; }
+        header .query-bar button.run { min-height: 32px; margin-left: 2px; box-shadow: 0 2px 8px rgba(22, 163, 74, .35); }
+
+        /* 최근 실행 정보 : 결과가 있을 때만 알약 모양으로 */
+        #sourceInfo:empty { display: none; }
+        #sourceInfo {
+            padding: 4px 12px; border: 1px solid #334155; border-radius: 8px;
+            background: rgba(15, 23, 42, .55);
+        }
+        #sourceInfo::before {
+            content: '최근 실행'; margin-right: 6px; padding-right: 8px; border-right: 1px solid #475569;
+            color: var(--head-muted); font-size: 11px; font-weight: 600;
+        }
+
+        /* 추가 조건 패널 */
+        .adv {
+            margin-top: 10px; padding: 10px 12px;
+            border: 1px dashed #475569; border-radius: 8px; background: rgba(15, 23, 42, .35);
+        }
+
+        /* 하위 PID 버전 / 자재수배 PICK : 카드 */
+        .sub-row {
+            margin-top: 10px; padding: 8px 10px;
+            border: 1px solid #334155; border-top: 1px solid #334155; border-radius: 8px;
+            background: rgba(15, 23, 42, .4);
+        }
+        .sub-row .sub-head { gap: 8px 12px; }
+        header button.sub-toggle { color: var(--head-text); font-size: 12.5px; font-weight: 700; }
+        .sub-row .sub-actions { margin-left: auto; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+        header .sub-row .sub-actions button { min-height: 28px; padding: 3px 11px; font-size: 12px; }
+        header .sub-row .sub-actions .sub-seg button { padding: 3px 10px; }
+        .sub-row .sub-body { padding-left: 0; }
+        .sub-row .sub-body[hidden] { display: none; }
+        .pick-title { color: var(--head-text); font-weight: 700; }
+
+        /* ===== 하위 PID : 버전은 선택 목록 하나로 (바로 선택 단추 열 제거, 2026-11-27) ===== */
+        /* 도구 줄 : [검색][필터] 개수 ........ 등록일 기준 일괄 선택 [◀이전|이후▶] │ [표로 보기] */
+        .sub-row .sub-tools { gap: 8px 10px; padding-bottom: 2px; }
+        .sub-search {
+            position: relative; display: flex; align-items: center;
+        }
+        .sub-search .ico { position: absolute; left: 8px; color: #7b8aa0; pointer-events: none; }
+        header .sub-search input[type=search] { width: 220px; height: 28px; padding-left: 26px; font-family: var(--sans); }
+        header .sub-search input[type=search]:focus { border-color: #60a5fa; outline: none; box-shadow: 0 0 0 3px rgba(96, 165, 250, .25); }
+        header .sub-row .sub-seg button { min-height: 28px; }
+        .sub-tools-right { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .sub-tools-label { color: var(--head-muted); font-size: 11.5px; white-space: nowrap; }
+        .tools-sep { width: 1px; height: 18px; background: #334155; }
+        header .sub-tools #btnSubView { min-height: 28px; margin-left: 0; }
+
+        /* 적용 실행 : 바꾼 하위 PID 개수 배지 + 강조 */
+        header #btnSubRun { position: relative; }
+        header #btnSubRun.pending { box-shadow: 0 0 0 3px rgba(251, 191, 36, .35); }
+        #btnSubRun:not([data-count=""])::after {
+            content: attr(data-count);
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 18px; height: 18px; margin-left: 2px; padding: 0 5px;
+            border-radius: 9px; background: #fbbf24; color: #422006;
+            font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
+        }
+
+        /* 칩 보기 : [PID │ 버전 선택] 한 덩어리 */
+        .sub-list:not(.as-table) { gap: 6px; max-height: 100px; padding: 1px; }
+        .sub-list:not(.as-table) .sub-item {
+            height: 28px; padding: 0 0 0 9px; gap: 7px; overflow: hidden;
+            border-radius: var(--radius); background: #0f172a;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .sub-list:not(.as-table) .sub-item:hover { border-color: #64748b; }
+        .sub-list:not(.as-table) .sub-item .sub-pid { font-family: var(--mono); }
+        header .sub-list:not(.as-table) .sub-item select {
+            height: 100%; max-width: 210px; min-width: 0; padding: 0 6px;
+            border: 0; border-left: 1px solid #334155; border-radius: 0;
+            background: #172033; color: #e2e8f0; cursor: pointer;
+        }
+        .sub-list:not(.as-table) .sub-item.applied { border-color: #a78bfa; }
+        .sub-list:not(.as-table) .sub-item.applied select { background: #241a45; }
+        .sub-list:not(.as-table) .sub-item.changed { border-color: #fbbf24; box-shadow: 0 0 0 1px #fbbf24 inset; }
+        .sub-list:not(.as-table) .sub-item.changed select { background: #2a2410; color: #fde68a; }
+        .sub-list:not(.as-table) .sub-item:focus-within { border-color: #60a5fa; box-shadow: 0 0 0 2px rgba(96, 165, 250, .35); }
+
+        /* 표 보기 : 마지막 열 = 버전 선택 (넓게) */
+        .sub-list.as-table { background: rgba(2, 6, 23, .35); }
+        .sub-list.as-table .sub-item { min-height: 34px; padding: 3px 8px; }
+        .sub-list.as-table .sub-thead { min-height: 30px; }
+        .sub-list.as-table .sub-thead > span:last-child { padding-left: 2px; }
+        header .sub-list.as-table .sub-item select {
+            height: 28px; padding: 0 8px; border-radius: var(--radius);
+            border: 1px solid #475569; background: #0f172a; color: #e2e8f0; cursor: pointer;
+        }
+        header .sub-list.as-table .sub-item select:hover { border-color: #64748b; }
+        header .sub-list.as-table .sub-item select:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96, 165, 250, .28); }
+        header .sub-list.as-table .sub-item.applied select { border-color: #a78bfa; }
+        header .sub-list.as-table .sub-item.changed select { border-color: #fbbf24; background: #2a2410; color: #fde68a; }
     </style>
 </head>
 <body>
@@ -822,49 +961,59 @@
 <!-- ===== 헤더 + 조회 조건 ===== -->
 <header>
     <form id="searchForm" autocomplete="off">
-        <div class="head-row">
+        <!-- 1줄 : 제목 · 분석 도구 메뉴 · 만든 사람 -->
+        <div class="head-row top-bar">
             <div class="brand">
                 <button type="button" id="sbToggle" title="사이드바 열기/닫기" aria-label="사이드바 열기/닫기">
                     <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
                 </button>
                 <h1>PID 실행 시뮬레이터</h1>
                 <span class="brand-chip" title="PLM DB 의 PID 로직과 영업사양으로 직접 실행합니다 (조회 전용)">
-                    <svg class="ico sm" aria-hidden="true"><use href="#i-db"/></svg>PLM DB 직접 실행</span>
+                    <svg class="ico sm" aria-hidden="true"><use href="#i-db"/></svg>PLM 실행</span>
             </div>
+            <span class="top-sep" aria-hidden="true"></span>
+            <div class="tool-nav" role="group" aria-label="분석 도구">
+                <button type="button" class="tool" id="btnCodeDict" title="SPEC 특성코드의 한글명 / 값 목록을 새 창으로 봅니다">
+                    <svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span>특성코드 사전</span></button>
+                <button type="button" class="tool" id="btnMindMap" title="실행한 PID 가 CALL 로 호출한 하위 PID 의 호출 관계도를 새 창으로 봅니다">
+                    <svg class="ico" aria-hidden="true"><use href="#i-tree"/></svg><span>호출 관계도</span></button>
+                <button type="button" class="tool" id="btnEffectMap" title="PID 마다 직접 쓰는 영업사양과 CALL 하위 PID 에서 쓰는 영업사양을 표로 봅니다">
+                    <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg><span>영업사양 영향도</span></button>
+                <button type="button" class="tool" id="btnSalesMap" title="PID 가 쓰는 영업사양(상→하)과 영업사양이 영향을 주는 PID(하→상)를 흐름도로 봅니다">
+                    <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M7.5 12h4l5-5.5M11.5 12l5 5.5"/></svg><span>영업사양 흐름도</span></button>
+                <button type="button" class="tool" id="btnBlockQty" title="EL_P+블럭번호 결과변수(EL_PB181B_1, _2 …) 마다 PICK 을 넣어 블럭번호 PID 를 따로 실행하고 결과를 표로 봅니다">
+                    <svg class="ico" aria-hidden="true"><use href="#i-sum"/></svg><span>수량 계산</span></button>
+            </div>
+            <span class="credit" title="Copyright © 2026 수배로직설계팀 · 김영환 M. All rights reserved."><svg class="ico sm" aria-hidden="true"><use href="#i-check"/></svg>© 2026 수배로직설계팀 · 김영환 M</span>
+        </div>
+
+        <!-- 2줄 : 실행 조건 + 실행 · 최근 실행 정보 -->
+        <div class="head-row query-bar">
             <div class="step-group" role="group" aria-label="실행 조건">
-                <div class="inline-field">
+                <div class="inline-field qf">
                     <label for="project">공사번호 <span class="req" aria-hidden="true">*</span></label>
                     <input id="project" name="project" value="" required aria-required="true" spellcheck="false"
+                           placeholder="공사번호 / ouid"
                            title="공사번호(md$number) 또는 공사정보 ouid (ex. elv_info$vf@a810066d)">
                 </div>
-                <div class="inline-field">
+                <div class="inline-field qf">
                     <label for="pid">PID <span class="req" aria-hidden="true">*</span></label>
-                    <input id="pid" name="pid" value="" required aria-required="true" spellcheck="false">
+                    <input id="pid" name="pid" value="" required aria-required="true" spellcheck="false" placeholder="PID 코드">
                 </div>
-                <div class="inline-field" title="실행할 PID 버전 (PID 를 입력하면 버전 목록을 불러옵니다)">
+                <div class="inline-field qf" title="실행할 PID 버전 (PID 를 입력하면 버전 목록을 불러옵니다)">
                     <label for="version">버전</label>
                     <select id="version" name="version">
                         <option value="">최신</option>
                     </select>
                     <input type="date" id="baseDate" aria-label="기준일"
                            title="날짜를 고르면 그 날짜(같은 날은 마지막 시각) 이전 중 가장 가까운 버전을 상위 PID 와 하위 PID 마다 고릅니다 (기준일 이전)">
-                    <span id="versionInfo" aria-live="polite"></span>
                 </div>
-                <button type="button" id="btnAdv" aria-expanded="false" aria-controls="advPanel" title="층 / 전처리 PID">
+                <span id="versionInfo" aria-live="polite"></span>
+                <button type="button" class="adv-toggle" id="btnAdv" aria-expanded="false" aria-controls="advPanel" title="층 / 전처리 PID">
                     <svg class="ico" aria-hidden="true"><use href="#i-sliders"/></svg><span>추가 조건</span></button>
+                <button type="submit" class="run" id="btnRun" title="실행 (Enter)">
+                    <svg class="ico" aria-hidden="true"><use href="#i-play"/></svg><span>실행</span><kbd>Enter</kbd></button>
             </div>
-            <button type="submit" class="run" id="btnRun" title="실행 (Enter)">
-                <svg class="ico" aria-hidden="true"><use href="#i-play"/></svg><span>실행</span><kbd>Enter</kbd></button>
-            <button type="button" id="btnCodeDict" title="SPEC 특성코드의 한글명 / 값 목록을 새 창으로 봅니다">
-                <svg class="ico" aria-hidden="true"><use href="#i-book"/></svg><span>특성코드 사전</span></button>
-            <button type="button" id="btnMindMap" title="실행한 PID 가 CALL 로 호출한 하위 PID 의 호출 관계도를 새 창으로 봅니다">
-                <svg class="ico" aria-hidden="true"><use href="#i-tree"/></svg><span>호출 관계도(Mind-Map)</span></button>
-            <button type="button" id="btnEffectMap" title="PID 마다 직접 쓰는 영업사양과 CALL 하위 PID 에서 쓰는 영업사양을 표로 봅니다">
-                <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg><span>영업사양 영향도</span></button>
-            <button type="button" id="btnSalesMap" title="PID 가 쓰는 영업사양(상→하)과 영업사양이 영향을 주는 PID(하→상)를 흐름도로 봅니다">
-                <svg class="ico" aria-hidden="true" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M7.5 12h4l5-5.5M11.5 12l5 5.5"/></svg><span>영업사양 흐름도</span></button>
-            <button type="button" id="btnBlockQty" title="EL_P+블럭번호 결과변수(EL_PB181B_1, _2 …) 마다 PICK 을 넣어 블럭번호 PID 를 따로 실행하고 결과를 표로 봅니다">
-                <svg class="ico" aria-hidden="true"><use href="#i-sum"/></svg><span>수량 계산</span></button>
             <div class="head-spacer"></div>
             <div id="sourceInfo" aria-live="polite"></div>
         </div>
@@ -872,12 +1021,14 @@
         <!-- 추가 조건: 평소에는 접어 두어 결과 영역을 넓게 사용 -->
         <div class="adv" id="advPanel" hidden>
             <div class="adv-fields">
-                <div class="inline-field">
-                    <label for="floor">층 (FLOOR_NAME)</label>
-                    <input id="floor" name="floor" disabled spellcheck="false">
+                <div class="inline-field qf-wrap">
+                    <div class="inline-field qf">
+                        <label for="floor">층 (FLOOR_NAME)</label>
+                        <input id="floor" name="floor" disabled spellcheck="false">
+                    </div>
                     <span id="floorInfo" class="hint">PID 확인 중</span>
                 </div>
-                <div class="inline-field">
+                <div class="inline-field qf">
                     <label for="beforePid">전처리 PID</label>
                     <input id="beforePid" name="beforePid" placeholder="EL_P001, EL_P002" spellcheck="false" aria-describedby="advHint">
                 </div>
@@ -894,31 +1045,40 @@
                 <svg class="ico chev" aria-hidden="true"><use href="#i-down"/></svg>
                 <svg class="ico sm" aria-hidden="true"><use href="#i-layers"/></svg>하위 PID 버전</button>
             <span id="subHint" aria-live="polite"></span>
-            <span class="credit" title="Copyright © 2026 수배로직설계팀 · 김영환 M. All rights reserved."><svg class="ico sm" aria-hidden="true"><use href="#i-check"/></svg>© 2026 수배로직설계팀 · 김영환 M</span>
+            <!-- 적용 / 되돌리기 : 접어도 늘 보이도록 머리 오른쪽에 둔다 -->
+            <div class="sub-actions">
+                <button type="button" id="btnSubReset" title="모든 하위 PID 를 최신 버전으로 되돌려 다시 실행합니다">
+                    <svg class="ico sm" aria-hidden="true"><use href="#i-refresh"/></svg>모두 최신</button>
+                <button type="button" class="primary" id="btnSubRun" data-count="" title="고른 하위 PID 버전으로 다시 실행합니다">
+                    <svg class="ico sm" aria-hidden="true"><use href="#i-play"/></svg>하위 버전 적용 실행</button>
+            </div>
         </div>
         <div class="sub-body" id="subBody">
             <div class="sub-main">
-                <!-- 하위 PID 가 많을 때 : 검색 / 필터 / 표 보기 -->
+                <!-- 찾기(검색 · 필터) | 버전 일괄 선택 | 보기 전환 -->
                 <div class="sub-tools">
-                    <input type="search" id="subQ" placeholder="하위 PID · 이름 검색" aria-label="하위 PID 검색" spellcheck="false">
+                    <div class="sub-search">
+                        <svg class="ico sm" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                        <input type="search" id="subQ" placeholder="하위 PID · 이름 검색" aria-label="하위 PID 검색" spellcheck="false">
+                    </div>
                     <div class="sub-seg" id="subFilter" role="group" aria-label="하위 PID 필터"></div>
                     <span id="subShown"></span>
-                    <button type="button" id="btnSubView" aria-pressed="false" title="하위 PID 를 표로 크게 보기 (정렬, 버전 바로 선택)">
-                        <svg class="ico sm" aria-hidden="true"><use href="#i-list"/></svg><span>표로 보기</span></button>
+                    <div class="sub-tools-right">
+                        <span class="sub-tools-label" id="subBulkLabel">등록일 기준 일괄 선택</span>
+                        <div class="sub-seg" role="group" aria-labelledby="subBulkLabel">
+                            <button type="button" id="btnSubBefore" data-dir="before"
+                                    title="입력한 PID 버전의 등록일 이전(같은 시각 포함) 중 가장 가까운 버전을 하위 PID 마다 고릅니다. 고른 뒤 '하위 버전 적용 실행' 을 누르세요">
+                                <svg class="ico sm" aria-hidden="true"><use href="#i-left"/></svg>이전</button>
+                            <button type="button" id="btnSubAfter" data-dir="after"
+                                    title="입력한 PID 버전의 등록일 이후(같은 시각 포함) 중 가장 가까운 버전을 하위 PID 마다 고릅니다. 고른 뒤 '하위 버전 적용 실행' 을 누르세요">
+                                이후<svg class="ico sm" aria-hidden="true"><use href="#i-right"/></svg></button>
+                        </div>
+                        <span class="tools-sep" aria-hidden="true"></span>
+                        <button type="button" id="btnSubView" aria-pressed="false" title="하위 PID 를 표로 크게 보기 (열 정렬, 이름 · 실행 / 최신 버전 확인)">
+                            <svg class="ico sm" aria-hidden="true"><use href="#i-list"/></svg><span>표로 보기</span></button>
+                    </div>
                 </div>
                 <div class="sub-list" id="subList"></div>
-            </div>
-            <div class="sub-actions">
-                <button type="button" class="primary" id="btnSubRun" title="고른 하위 PID 버전으로 다시 실행합니다">
-                    <svg class="ico" aria-hidden="true"><use href="#i-play"/></svg>하위 버전 적용 실행</button>
-                <button type="button" id="btnSubReset" title="모든 하위 PID 를 최신 버전으로 되돌려 다시 실행합니다">
-                    <svg class="ico" aria-hidden="true"><use href="#i-refresh"/></svg>모두 최신</button>
-                <button type="button" id="btnSubBefore" data-dir="before"
-                        title="입력한 PID 버전의 등록일 이전(같은 시각 포함) 중 가장 가까운 버전을 하위 PID 마다 고릅니다. 고른 뒤 '하위 버전 적용 실행' 을 누르세요">
-                    <svg class="ico" aria-hidden="true"><use href="#i-left"/></svg>기준일 이전</button>
-                <button type="button" id="btnSubAfter" data-dir="after"
-                        title="입력한 PID 버전의 등록일 이후(같은 시각 포함) 중 가장 가까운 버전을 하위 PID 마다 고릅니다. 고른 뒤 '하위 버전 적용 실행' 을 누르세요">
-                    기준일 이후<svg class="ico" aria-hidden="true"><use href="#i-right"/></svg></button>
             </div>
         </div>
     </div>
@@ -929,13 +1089,13 @@
             <span class="pick-title" title="블럭번호 PID 의 자재수배 PID (EL_P / SH_P) 결과변수입니다. 하나를 고르면 PICK = 고른 키 를 추가해 실행합니다">
                 <svg class="ico sm" aria-hidden="true"><use href="#i-key"/></svg>자재수배 PICK</span>
             <span id="pickHint" aria-live="polite"></span>
+            <div class="sub-actions">
+                <button type="button" id="btnPickClear" title="PICK 없이 다시 실행합니다">
+                    <svg class="ico sm" aria-hidden="true"><use href="#i-refresh"/></svg>PICK 해제</button>
+            </div>
         </div>
         <div class="sub-body">
             <div class="sub-list" id="pickList" role="radiogroup" aria-label="PICK 선택"></div>
-            <div class="sub-actions">
-                <button type="button" id="btnPickClear" title="PICK 없이 다시 실행합니다">
-                    <svg class="ico" aria-hidden="true"><use href="#i-refresh"/></svg>PICK 해제</button>
-            </div>
         </div>
     </div>
 </header>
@@ -1271,12 +1431,6 @@
                 s.error ? `오류 : ${s.error}` : '',
             ].filter(Boolean).join('\n');
             const cls = ['sub-item', applied ? 'applied' : '', s.error ? 'error' : ''].filter(Boolean).join(' ');
-            // 표 보기 : 바로 누르는 단추 = 최신 + TEST + 최신 바로 이전 버전들 (나머지는 선택 목록)
-            const quickVers = (s.versions || []).filter((v) => String(v.version) === TEST_VERSION)
-                .concat((s.versions || []).filter((v) => String(v.version) !== TEST_VERSION && !v.latest).slice(0, SUB_QUICK_PREV));
-            const quick = `<button type="button" data-quick="" title="${esc(latestLabel(s.versions))}">최신</button>`
-                + quickVers.map((v) => `<button type="button" data-quick="${esc(String(v.version))}"`
-                    + ` title="${esc(versionLabel(String(v.version), v.latest, v.regDate, v.remarks, v.userName))}">${esc(subVerText(v.version))}</button>`).join('');
             const hasTest = (s.versions || []).some((v) => String(v.version) === TEST_VERSION);
             return `<div class="${cls}" title="${esc(title)}" data-applied="${applied ? esc(String(s.requestedVersion)) : ''}"`
                 + ` data-order="${i}" data-test="${hasTest ? 'Y' : ''}">`
@@ -1287,7 +1441,6 @@
                 + `<span class="sub-num">${esc(s.callCount)}</span>`
                 + `<span class="sub-num">${s.error ? '실패' : esc(hasVal(s.runVersion) ? subVerText(s.runVersion) : '')}</span>`
                 + `<span class="sub-num">${esc(hasVal(s.latestVersion) ? subVerText(s.latestVersion) : '')}</span>`
-                + `<span class="sub-quick">${quick}</span>`
                 + `<select data-sub-pid="${esc(s.pid)}" aria-label="${esc(s.pid)} 버전">${opts}</select></div>`;
         }).join('');
         // 이번 실행에 적용된 버전을 선택해 둔다
@@ -1300,7 +1453,6 @@
     }
 
     // ---------- 하위 PID 검색 / 필터 / 표 보기 ----------
-    const SUB_QUICK_PREV = 3;  // 표 보기에서 단추로 바로 고르는 최신 이전 버전 수
     const SUB_VIEW_KEY = STORE_PREFIX + 'subView';
     const SUB_FILTERS = [
         ['all', '전체', () => true],
@@ -1353,7 +1505,7 @@
             head.className = 'sub-thead';
             head.innerHTML = SUB_COLS.map(([k, text, num]) =>
                 `<button type="button" data-sub-sort="${k}"${num ? ' class="num"' : ''}>${text}</button>`).join('')
-                + '<span>버전 바로 선택</span><span>버전</span>';
+                + '<span>버전 선택</span>';
         }
         head.querySelectorAll('[data-sub-sort]').forEach((b) => {
             if (b.dataset.subSort === subView.sort) b.setAttribute('aria-sort', subView.dir > 0 ? 'ascending' : 'descending');
@@ -1401,15 +1553,6 @@
         } else if (empty) empty.remove();
     }
 
-    // 표 보기의 버전 단추 : 지금 고른 버전을 표시
-    function syncSubQuick() {
-        subSelects().forEach((sel) => {
-            sel.closest('.sub-item').querySelectorAll('[data-quick]').forEach((b) => {
-                b.classList.toggle('on', b.dataset.quick === sel.value);
-            });
-        });
-    }
-
     // 고른 버전이 이번 실행과 다른 하위 PID 표시 + 안내
     function updateSubHint() {
         const sels = subSelects();
@@ -1425,7 +1568,9 @@
             + (applied ? ` · 버전 지정 ${applied}개` : ' · 모두 최신')
             + (changed ? ` · <span class="changed">변경 ${changed}개 (적용 실행 필요)</span>` : '');
         $('btnSubReset').disabled = !applied && !changed;
-        syncSubQuick();
+        // 적용 실행 단추 : 바꾼 개수를 배지로 + 강조
+        $('btnSubRun').dataset.count = changed ? String(changed) : '';
+        $('btnSubRun').classList.toggle('pending', changed > 0);
         applySubFilter();
     }
 
@@ -2844,13 +2989,6 @@
         if (e.target.matches('select[data-sub-pid]')) updateSubHint();
     });
     $('subList').addEventListener('click', (e) => {
-        // 표 보기 : 버전 단추 → 그 줄의 선택 목록에 반영
-        const q = e.target.closest('[data-quick]');
-        if (q) {
-            q.closest('.sub-item').querySelector('select').value = q.dataset.quick;
-            updateSubHint();
-            return;
-        }
         // 표 보기 : 열 머리글 → 정렬 (같은 열을 다시 누르면 반대로, 세 번째는 호출 순서로)
         const h = e.target.closest('[data-sub-sort]');
         if (!h) return;
