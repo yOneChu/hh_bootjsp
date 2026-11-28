@@ -426,7 +426,7 @@
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>왼쪽 목록에서 호기를 고르면 그 호기의 <b>최초설계 BOM</b>(품목구분별 첫 버전)이 오른쪽에 나옵니다.</span></li>
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>BOM 은 호기마다 따로 조회합니다. 모든 호기의 자재 수를 한 번에 보려면 <b>전체 BOM 불러오기</b>를 누르세요.</span></li>
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>BOM 위의 <b>수정된 자재만</b> 버튼을 누르면 수정여부가 '수정'인 자재만 볼 수 있습니다. CSV 다운로드에도 그대로 적용됩니다.</span></li>
-            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>수정여부의 <b>수정 ▾</b> 를 누르면 <b>수정 전</b>(설계완료일 기준으로 <b>EL_P+Block No.</b> PID 를 실행한 자재번호 · CMT)과 <b>수정 후</b>(현재 BOM)를 나란히 봅니다.</span></li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>수정여부의 <b>수정 ▾</b> 를 누르면 <b>수정 전</b>(설계완료일 기준으로 <b>EL_P+Block No.</b> PID 를 실행한 자재번호 · CMT)과 <b>수정 후</b>(현재 BOM)를 나란히 봅니다. CSV 에도 <b>수정 전 품번 · 수정 전 CMT</b> 열이 함께 나갑니다.</span></li>
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>‹ › 버튼으로 하루씩 앞뒤 날짜를 바로 조회할 수 있습니다.</span></li>
         </ul>
     </details>
@@ -1192,6 +1192,36 @@
             : '<span class="vd vd-chg"><i class="fas fa-pen" style="font-size:9px;" aria-hidden="true"></i>' + label + ' 바뀜</span>';
     }
 
+    // PID 결과(out) 에서 이 행의 수정 전 자재를 고른다 (화면 / CSV 공용)
+    function resolveBefore(r, out, elp) {
+        const picks = findPicks(out, elp);
+        const common = commonCmt(out, elp);
+        const parts = picks.map(k => { const p = pickPart(out, k); return { k: k, partNo: p.partNo, cmt: p.cmt != null ? p.cmt : common }; });
+
+        // 현재 품번과 같은 결과변수가 있으면 그것을 수정 전 자재로 본다
+        const curPn = normTxt(r.partNo).toUpperCase();
+        const matched = parts.find(p => normTxt(p.partNo).toUpperCase() === curPn && curPn);
+        const base = matched || (parts.length === 1 ? parts[0] : null);
+        const pnSame = parts.length ? !!matched : null;
+        const cmtSame = base ? normTxt(base.cmt) === normTxt(r.cmt) : null;
+        return { parts, matched, base, pnSame, cmtSame };
+    }
+
+    // CSV 용 수정 전 품번 / CMT (수정 자재가 아니면 빈 값)
+    function beforeCsv(r) {
+        if (!isMod(r)) return ['', ''];
+        const elp = elpPidOf(r.blockNo);
+        if (!elp) return ['(Block No. 없음)', ''];
+        const entry = state.before.get(beforeKey(state.selected, elp, codatYmd()));
+        if (!entry || entry.status === 'loading') return ['(조회 전)', ''];
+        if (entry.status === 'err') return ['(조회 실패) ' + entry.error, ''];
+        const { parts, base } = resolveBefore(r, entry.out || {}, elp);
+        if (!parts.length) return ['(결과 없음)', ''];
+        if (base) return [base.partNo, base.cmt || ''];
+        // 결과가 여러 건이고 현재 품번과 같은 것이 없으면 후보를 모두 적는다
+        return [parts.map(p => p.partNo).join(' / '), parts.map(p => p.cmt || '').join(' / ')];
+    }
+
     function cmpBodyHtml(r) {
         const elp = elpPidOf(r.blockNo);
         const ymd = codatYmd();
@@ -1214,16 +1244,7 @@
         }
 
         const out = entry.out || {};
-        const picks = findPicks(out, elp);
-        const common = commonCmt(out, elp);
-        const parts = picks.map(k => { const p = pickPart(out, k); return { k: k, partNo: p.partNo, cmt: p.cmt != null ? p.cmt : common }; });
-
-        // 현재 품번과 같은 결과변수가 있으면 그것을 수정 전 자재로 본다
-        const curPn = normTxt(r.partNo).toUpperCase();
-        const matched = parts.find(p => normTxt(p.partNo).toUpperCase() === curPn && curPn);
-        const base = matched || (parts.length === 1 ? parts[0] : null);
-        const pnSame = parts.length ? !!matched : null;
-        const cmtSame = base ? normTxt(base.cmt) === normTxt(r.cmt) : null;
+        const { parts, matched, base, pnSame, cmtSame } = resolveBefore(r, out, elp);
 
         let beforeBody;
         if (!parts.length) {
@@ -1307,19 +1328,42 @@
     }
 
     /* ── CSV 다운로드 (현재 필터 적용 결과) ── */
-    function downloadCsv() {
+    let csvBusy = false;
+    async function downloadCsv() {
         const rows = filteredRows();
-        if (!rows.length) return;
+        if (!rows.length || csvBusy) return;
+
+        // 수정 자재의 수정 전 값을 먼저 계산 (이미 받은 PID 결과는 캐시 사용)
+        const seq = state.seq, hogi = state.selected, ymd = codatYmd();
+        const elps = Array.from(new Set(rows.filter(isMod).map(r => elpPidOf(r.blockNo)).filter(Boolean)));
+        const need = elps.filter(elp => { const en = state.before.get(beforeKey(hogi, elp, ymd)); return !en || en.status !== 'ok'; });
+        if (need.length) {
+            const b = $id('btnCsv'), label = b.lastChild;
+            const orig = label.textContent;
+            csvBusy = true; b.disabled = true;
+            let done = 0;
+            const tick = () => { label.textContent = '수정 전 계산 중 ' + done + ' / ' + need.length; };
+            tick();
+            try {
+                await Promise.all(need.map(elp => loadBefore(hogi, elp, ymd).then(() => { done++; tick(); })));
+            } finally {
+                csvBusy = false;
+                label.textContent = orig;
+                b.disabled = false;
+            }
+            if (seq !== state.seq || hogi !== state.selected) return;   // 그 사이 다른 호기 / 날짜로 바뀜
+        }
+
         const cell = v => {
             const s = String(v == null ? '' : v);
             return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
         };
-        const head = ['호기', '설계완료일', '품목구분', 'Block No.', '품번', '품명', 'QTY', 'SPEC', 'CMT', '버전', '수정여부', '수정자'];
+        const head = ['호기', '설계완료일', '품목구분', 'Block No.', '품번', '품명', 'QTY', 'SPEC', 'CMT', '버전', '수정여부', '수정자', '수정 전 품번', '수정 전 CMT'];
         const info = state.hogis.find(h => h.hogi === state.selected) || {};
         const lines = [head.map(cell).join(',')].concat(rows.map(r => [
             state.selected, fmtYmd(info.codat), optKey(r.blockOpt), r.blockNo, r.partNo, r.partName,
             fmtQty(r.qty), r.spec, r.cmt, r.productVersion, isMod(r) ? 'Y' : '', r.modUser
-        ].map(cell).join(',')));
+        ].concat(beforeCsv(r)).map(cell).join(',')));
         const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
