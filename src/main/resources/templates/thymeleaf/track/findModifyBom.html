@@ -497,6 +497,7 @@
                         <th>CMT</th>
                         <th class="num">버전</th>
                         <th>수정여부</th>
+                        <th>수정자</th>
                     </tr>
                     </thead>
                     <tbody id="bomBody"></tbody>
@@ -967,6 +968,7 @@
                 '<td class="cmt">' + (r.cmt ? hl(r.cmt, q) : dash) + '</td>' +
                 '<td class="num">' + esc(r.productVersion || '-') + '</td>' +
                 '<td>' + (String(r.ucheck) === '1' ? '<span class="uc-tag">수정</span>' : dash) + '</td>' +
+                '<td class="moduser">' + esc(r.modUser || '-') + '</td>' +
                 '</tr>';
         }).join('');
     }
@@ -979,11 +981,11 @@
             const s = String(v == null ? '' : v);
             return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
         };
-        const head = ['호기', '설계완료일', '품목구분', 'Block No.', '품번', '품명', 'QTY', 'SPEC', 'CMT', '버전', '수정여부'];
+        const head = ['호기', '설계완료일', '품목구분', 'Block No.', '품번', '품명', 'QTY', 'SPEC', 'CMT', '버전', '수정여부', '수정자'];
         const info = state.hogis.find(h => h.hogi === state.selected) || {};
         const lines = [head.map(cell).join(',')].concat(rows.map(r => [
             state.selected, fmtYmd(info.codat), optKey(r.blockOpt), r.blockNo, r.partNo, r.partName,
-            fmtQty(r.qty), r.spec, r.cmt, r.productVersion, String(r.ucheck) === '1' ? 'Y' : ''
+            fmtQty(r.qty), r.spec, r.cmt, r.productVersion, String(r.ucheck) === '1' ? 'Y' : '', r.modUser
         ].map(cell).join(',')));
         const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
         const a = document.createElement('a');

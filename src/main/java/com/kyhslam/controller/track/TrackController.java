@@ -73,6 +73,7 @@ public class TrackController {
             m.put("spec", d.getSpec());
             m.put("cmt", d.getCmt());
             m.put("ucheck", d.getUcheck());
+            m.put("modUser", d.getPartModUser());
             result.add(m);
         }
         return result;

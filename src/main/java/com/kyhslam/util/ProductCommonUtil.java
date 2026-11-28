@@ -1658,6 +1658,7 @@ public class ProductCommonUtil {
                     	  SELECT B.MD$NUMBER  , B.VF$VERSION , B.MD$DESC , C.MD$NUMBER PART , C.MD$DESC PART_DESC, C.SPEC,
                     	         C.BLOCKNO_NUMBER,cod(E.block_opt) block_opt, A.QTY,
                     	         D.UCHECK, A.CDATE, A.CMT
+                    	         ,(SELECT MD$DESC FROM FUSER$SF WHERE MD$NUMBER = A.CUSER) CUSERNAME -- 자재 등록자
                     	  FROM PARTOFEBOM A
                       	  INNER JOIN PRODUCT$VF B ON    A.PRODUCTOUID = B.VF$OUID
                       	  INNER JOIN NORMALPART$VF C ON    A.PARTOUID = C.VF$oUID
@@ -1703,7 +1704,8 @@ public class ProductCommonUtil {
                            QTY,
                            UCHECK,
                            CDATE,
-                           CMT
+                           CMT,
+                           CUSERNAME
                     FROM FIRST_PRODUCT_BOM
                     WHERE QTY > 0
                        OR (QTY = 0 AND UCHECK = '1')
@@ -1728,6 +1730,7 @@ public class ProductCommonUtil {
                 String qty = rs.getString("QTY");
                 String cdate = rs.getString("cdate");
                 String cmt = rs.getString("CMT");
+                String CUSERNAME = rs.getString("CUSERNAME"); //자재 등록자
 
                 ProductDto dto = new ProductDto();
                 dto.setProductNo(hogi);
@@ -1741,6 +1744,7 @@ public class ProductCommonUtil {
                 dto.setUcheck(ucheck);
                 dto.setQty(qty);
                 dto.setCmt(cmt);
+                dto.setPartModUser(CUSERNAME);
 
                 list.add(dto);
             }
