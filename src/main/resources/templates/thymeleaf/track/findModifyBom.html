@@ -290,8 +290,66 @@
         .part-no { font-variant-numeric: tabular-nums; letter-spacing: .01em; font-weight: 600; }
         .cmt { max-width: 280px; white-space: normal !important; line-height: 1.45; overflow-wrap: anywhere; }
         .spec { max-width: 220px; white-space: normal !important; overflow-wrap: anywhere; }
+        /* 수정된 자재만 보기 토글 */
+        .mod-toggle[aria-pressed="true"] { color: var(--warn); background: var(--warn-bg); border-color: var(--warn); }
+        .mod-toggle .cnt { font-variant-numeric: tabular-nums; opacity: .85; }
+        .bom-table tr.mod-row td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
         .uc-tag { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 5px; font-size: 11px; font-weight: 700; color: var(--warn); background: var(--warn-bg); }
         mark.hl { background: rgba(255,204,0,.35); color: inherit; border-radius: 2px; padding: 0 1px; }
+
+        /* ══════════════════════════════════════════════════════════
+           수정 전/후 비교 (수정된 자재 행 아래 펼침)
+             수정 전 = 설계완료일 기준 EL_P+블럭 PID 실행 결과, 수정 후 = 현재 BOM
+           ══════════════════════════════════════════════════════════ */
+        .cmp-btn {
+            display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 8px; border-radius: 6px;
+            border: 1px solid transparent; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 700;
+            color: var(--warn); background: var(--warn-bg); transition: border-color .15s;
+        }
+        .cmp-btn:hover { border-color: var(--warn); }
+        .cmp-btn svg { transition: transform .18s; }
+        .cmp-btn[aria-expanded="true"] { border-color: var(--warn); }
+        .cmp-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+        .bom-table tr.cmp-row td { padding: 2px 12px 16px; white-space: normal; border-bottom: 1px solid var(--line); }
+        .bom-table tbody tr.cmp-row:hover td { background: transparent; }
+        .bom-table tr.cmp-open td { border-bottom-color: transparent; }
+
+        .cmp { padding: 14px 16px; border-radius: 12px; background: #FAFAFC; border: 1px solid var(--line); max-width: 1180px; }
+        .dark .cmp { background: rgba(255,255,255,.035); }
+        .cmp-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 12px; color: var(--muted); margin-bottom: 12px; font-variant-numeric: tabular-nums; }
+        .cmp-meta b { color: inherit; font-weight: 700; }
+        .cmp-verdicts { display: inline-flex; gap: 6px; margin-left: auto; }
+        .vd { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; }
+        .vd-chg  { color: var(--warn); background: var(--warn-bg); }
+        .vd-same { color: var(--ok);   background: var(--ok-bg); }
+        .vd-unk  { color: var(--muted); background: var(--line); }
+
+        .cmp-cols { display: flex; flex-direction: column; gap: 10px; }
+        @media (min-width: 900px) { .cmp-cols { flex-direction: row; align-items: stretch; } .cmp-cols > .cmp-card { flex: 1 1 0; min-width: 0; } }
+        .cmp-arrow { display: flex; align-items: center; justify-content: center; color: var(--muted); flex-shrink: 0; }
+        @media (max-width: 899px) { .cmp-arrow svg { transform: rotate(90deg); } }
+        .cmp-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+        .dark .cmp-card { background: #1C1C1E; }
+        .cmp-card.after { box-shadow: inset 3px 0 0 var(--warn); }
+        .cmp-h { font-size: 12px; font-weight: 700; margin-bottom: 8px !important; display: flex; align-items: baseline; gap: 6px; }
+        .cmp-h small { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+        .cmp-f { display: grid; grid-template-columns: 52px minmax(0,1fr); gap: 6px 10px; font-size: 13px; margin: 0; }
+        .cmp-f dt { color: var(--muted); font-weight: 500; font-size: 12px; padding-top: 1px; }
+        .cmp-f dd { margin: 0; min-width: 0; overflow-wrap: anywhere; line-height: 1.5; }
+        .cmp-f dd.pn { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+        .cmp-f dd.cm { white-space: pre-wrap; }
+        .cmp-f dd.chg { color: var(--warn); }
+        .cmp-pick + .cmp-pick { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+        .cmp-pick-k { font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 6px !important; display: flex; gap: 6px; align-items: center; }
+        .cmp-pick.match .cmp-pick-k { color: var(--ok); }
+        .cmp-err { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--err); font-size: 13px; font-weight: 600; }
+
+        details.cmp-raw { margin-top: 10px; font-size: 12px; }
+        details.cmp-raw summary { cursor: pointer; color: var(--muted); font-weight: 600; width: max-content; }
+        .cmp-raw-tbl { margin-top: 8px; border-collapse: collapse; font-size: 12px; max-width: 100%; }
+        .cmp-raw-tbl td { padding: 4px 10px 4px 0 !important; border: none !important; vertical-align: top; white-space: pre-wrap !important; overflow-wrap: anywhere; }
+        .cmp-raw-tbl td:first-child { color: var(--muted); font-weight: 600; white-space: nowrap !important; }
 
         /* 스켈레톤 */
         .sk { display: block; height: 12px; border-radius: 6px; background: linear-gradient(90deg, rgba(120,120,128,.12), rgba(120,120,128,.22), rgba(120,120,128,.12)); background-size: 200% 100%; animation: sk 1.2s ease-in-out infinite; }
@@ -367,6 +425,8 @@
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span><b>설계완료일</b>을 고르고 조회하면, 그날 최초설계가 완료된 호기 목록을 PLM 에서 가져옵니다.</span></li>
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>왼쪽 목록에서 호기를 고르면 그 호기의 <b>최초설계 BOM</b>(품목구분별 첫 버전)이 오른쪽에 나옵니다.</span></li>
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>BOM 은 호기마다 따로 조회합니다. 모든 호기의 자재 수를 한 번에 보려면 <b>전체 BOM 불러오기</b>를 누르세요.</span></li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>BOM 위의 <b>수정된 자재만</b> 버튼을 누르면 수정여부가 '수정'인 자재만 볼 수 있습니다. CSV 다운로드에도 그대로 적용됩니다.</span></li>
+            <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>수정여부의 <b>수정 ▾</b> 를 누르면 <b>수정 전</b>(설계완료일 기준으로 <b>EL_P+Block No.</b> PID 를 실행한 자재번호 · CMT)과 <b>수정 후</b>(현재 BOM)를 나란히 봅니다.</span></li>
             <li class="flex gap-2"><span class="text-apple-blue dark:text-apple-blueD font-bold">·</span><span>‹ › 버튼으로 하루씩 앞뒤 날짜를 바로 조회할 수 있습니다.</span></li>
         </ul>
     </details>
@@ -481,6 +541,12 @@
 
             <div class="px-6 py-3 flex flex-wrap items-center gap-3" style="border-bottom:1px solid var(--line);">
                 <div class="seg" id="optSeg" role="group" aria-label="품목구분으로 거르기"></div>
+                <button type="button" class="btn-mini mod-toggle" id="btnModOnly" aria-pressed="false" disabled title="수정여부가 '수정'인 자재만 보기">
+                    <i class="fas fa-pen" style="font-size:10px;" aria-hidden="true"></i>수정된 자재만 <span class="cnt" id="modCount"></span>
+                </button>
+                <button type="button" class="btn-mini" id="btnCmpAll" disabled title="수정된 자재마다 수정 전(설계완료일 기준 PID 결과)과 수정 후(현재 BOM)를 펼쳐 봅니다">
+                    <i class="fas fa-exchange-alt" style="font-size:10px;" aria-hidden="true"></i><span id="cmpAllLabel">수정 전·후 모두 펼치기</span>
+                </button>
                 <input type="search" id="bomQuery" class="form-input ml-auto" style="height:34px; font-size:13px; max-width:260px;" placeholder="품번 · 품명 · Block · SPEC 찾기" aria-label="BOM 에서 찾기" autocomplete="off">
             </div>
 
@@ -560,7 +626,10 @@
         inflight: new Map(), // hogi -> Promise
         selected: null,
         optFilter: '',
+        modOnly: false,      // 수정된 자재만 보기
         loadingAll: false,
+        expanded: new Set(), // 수정 전/후를 펼친 행 (row._k)
+        before: new Map(),   // 'hogi|EL_P블럭' -> { status: loading|ok|err, out, error, promise }
     };
 
     /* ── 유틸 ── */
@@ -574,6 +643,7 @@
     };
     const num = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
     const fmtQty = v => (v == null || v === '') ? '-' : (isNaN(parseFloat(v)) ? v : String(parseFloat(v)));
+    const isMod = r => String(r.ucheck) === '1';
     const optKey = v => (v == null || String(v).trim() === '') ? '(없음)' : String(v).trim();
 
     // 품목구분 → 색 인덱스 (자주 쓰는 값은 고정, 나머지는 해시)
@@ -627,9 +697,11 @@
         setFieldError('');
 
         const seq = ++state.seq;
-        Object.assign(state, { phase: 'loading', date, hogis: [], selected: null, optFilter: '', loadingAll: false });
+        Object.assign(state, { phase: 'loading', date, hogis: [], selected: null, optFilter: '', modOnly: false, loadingAll: false });
         state.bom.clear();
         state.inflight.clear();
+        state.expanded.clear();
+        state.before.clear();
         $id('bomQuery').value = '';
         $id('searchError').style.display = 'none';
         setSearching(true);
@@ -666,7 +738,11 @@
         const seq = state.seq;
         const p = fetch('/track/initialHogiBom?hogi=' + encodeURIComponent(hogi), { headers: { 'Accept': 'application/json' } })
             .then(r => { if (!r.ok) throw new Error('서버 응답 오류 (HTTP ' + r.status + ')'); return r.json(); })
-            .then(rows => ({ ok: true, rows: sortRows(Array.isArray(rows) ? rows : []) }))
+            .then(rows => {
+                const sorted = sortRows(Array.isArray(rows) ? rows : []);
+                sorted.forEach((r, i) => { r._k = i; });   // 행 식별자 (수정 전/후 펼침용)
+                return { ok: true, rows: sorted };
+            })
             .catch(e => ({ ok: false, error: e.message }))
             .then(entry => {
                 if (seq === state.seq) { state.bom.set(hogi, entry); state.inflight.delete(hogi); }
@@ -677,7 +753,7 @@
     }
 
     async function selectHogi(hogi, focus) {
-        if (state.selected !== hogi) { state.optFilter = ''; $id('bomQuery').value = ''; }
+        if (state.selected !== hogi) { state.optFilter = ''; state.modOnly = false; state.expanded.clear(); $id('bomQuery').value = ''; }
         state.selected = hogi;
         const seq = state.seq;
         const p = loadBom(hogi);   // 먼저 요청을 걸어 목록에 '불러오는 중' 이 바로 보이게
@@ -816,7 +892,9 @@
             if (e && e.ok) {
                 const name = e.rows.length ? e.rows[0].productName : '';
                 if (name) meta = '<p class="prod-meta">' + esc(name) + '</p>';
-                st = '<span class="prod-state ok"><i class="fas fa-check" style="font-size:10px;" aria-hidden="true"></i>자재 ' + e.rows.length.toLocaleString() + '건</span>';
+                const mc = e.rows.filter(isMod).length;
+                st = '<span class="prod-state ok"><i class="fas fa-check" style="font-size:10px;" aria-hidden="true"></i>자재 ' + e.rows.length.toLocaleString() + '건</span>' +
+                    (mc ? ' <span class="prod-state" style="color:var(--warn);">· 수정 ' + mc.toLocaleString() + '건</span>' : '');
             } else if (e && !e.ok) {
                 st = '<span class="prod-state err"><i class="fas fa-exclamation-circle" style="font-size:10px;" aria-hidden="true"></i>BOM 조회 실패</span>';
             } else if (state.inflight.has(h.hogi)) {
@@ -853,10 +931,24 @@
     }
     function setEmpty(html) { $id('bomEmpty').innerHTML = html; showTable(false); }
 
+    // 수정된 자재만 보기 버튼 (rows 가 없으면 비활성)
+    function renderModBtn(rows) {
+        const b = $id('btnModOnly');
+        const mc = rows ? rows.filter(isMod).length : 0;
+        if (!mc) state.modOnly = false;
+        b.disabled = !mc;
+        b.setAttribute('aria-pressed', String(state.modOnly));
+        $id('modCount').textContent = rows ? mc.toLocaleString() : '';
+        $id('btnCmpAll').disabled = !mc;
+        if (!mc) $id('cmpAllLabel').textContent = '수정 전·후 모두 펼치기';
+    }
+
     function renderDetail() {
         const hogi = state.selected;
         const specs = $id('detailSpecs'), seg = $id('optSeg'), foot = $id('detailFoot');
         $id('btnCsv').disabled = true;
+        const cur = hogi && state.bom.get(hogi);
+        renderModBtn(cur && cur.ok ? cur.rows : null);
 
         if (!hogi) {
             $id('detailTitle').textContent = '-';
@@ -877,7 +969,7 @@
             foot.textContent = 'BOM 을 불러오는 중입니다…';
             showTable(true);
             $id('bomBody').innerHTML = Array.from({ length: 8 }, () =>
-                '<tr>' + Array.from({ length: 9 }, (_, i) => '<td><span class="sk" style="width:' + (i === 3 ? 140 : 60) + 'px;"></span></td>').join('') + '</tr>').join('');
+                '<tr>' + Array.from({ length: 10 }, (_, i) => '<td><span class="sk" style="width:' + (i === 3 ? 140 : 60) + 'px;"></span></td>').join('') + '</tr>').join('');
             return;
         }
 
@@ -898,7 +990,8 @@
             '<div><dt>설계완료일</dt><dd>' + esc(fmtYmd(info.codat)) + '</dd></div>' +
             '<div><dt>최초설계 버전</dt><dd>' + esc(versions.length ? versions.join(', ') : '-') + '</dd></div>' +
             '<div><dt>Block</dt><dd>' + blocks.size.toLocaleString() + '개</dd></div>' +
-            '<div><dt>자재</dt><dd>' + rows.length.toLocaleString() + '건</dd></div>';
+            '<div><dt>자재</dt><dd>' + rows.length.toLocaleString() + '건</dd></div>' +
+            '<div><dt>수정 자재</dt><dd style="color:var(--warn);">' + rows.filter(isMod).length.toLocaleString() + '건</dd></div>';
 
         if (!rows.length) {
             seg.innerHTML = '';
@@ -923,6 +1016,7 @@
         const q = $id('bomQuery').value.trim().toUpperCase();
         return e.rows.filter(r =>
             (!state.optFilter || optKey(r.blockOpt) === state.optFilter) &&
+            (!state.modOnly || isMod(r)) &&
             (!q || [r.partNo, r.partName, r.blockNo, r.spec, r.cmt].some(v => String(v || '').toUpperCase().includes(q))));
     }
 
@@ -940,13 +1034,14 @@
         const q = $id('bomQuery').value.trim().toUpperCase();
         const rows = filteredRows();
         $id('btnCsv').disabled = false;
+        renderCmpAllLabel(rows);
 
         $id('detailFoot').textContent = rows.length === e.rows.length
             ? '자재 ' + e.rows.length.toLocaleString() + '건'
-            : '자재 ' + e.rows.length.toLocaleString() + '건 중 ' + rows.length.toLocaleString() + '건 표시';
+            : '자재 ' + e.rows.length.toLocaleString() + '건 중 ' + rows.length.toLocaleString() + '건 표시' + (state.modOnly ? ' (수정된 자재만)' : '');
 
         if (!rows.length) {
-            setEmpty('<b>조건에 맞는 자재가 없습니다</b>품목구분 필터나 검색어를 바꿔 보세요.');
+            setEmpty('<b>조건에 맞는 자재가 없습니다</b>품목구분 필터나 검색어' + (state.modOnly ? ', 수정된 자재만 보기' : '') + '를 바꿔 보세요.');
             return;
         }
         showTable(true);
@@ -955,7 +1050,12 @@
         $id('bomBody').innerHTML = rows.map(r => {
             const k = optKey(r.blockOpt);
             const first = r.blockNo !== prevBlock;
-            const cls = first && prevBlock !== null ? ' class="block-start"' : '';
+            const clsList = [];
+            if (first && prevBlock !== null) clsList.push('block-start');
+            if (isMod(r)) clsList.push('mod-row');
+            const open = isMod(r) && state.expanded.has(r._k);
+            if (open) clsList.push('cmp-open');
+            const cls = clsList.length ? ' class="' + clsList.join(' ') + '"' : '';
             prevBlock = r.blockNo;
             const dash = '<span class="dim">-</span>';
             return '<tr' + cls + '>' +
@@ -967,10 +1067,243 @@
                 '<td class="spec">' + (r.spec ? hl(r.spec, q) : dash) + '</td>' +
                 '<td class="cmt">' + (r.cmt ? hl(r.cmt, q) : dash) + '</td>' +
                 '<td class="num">' + esc(r.productVersion || '-') + '</td>' +
-                '<td>' + (String(r.ucheck) === '1' ? '<span class="uc-tag">수정</span>' : dash) + '</td>' +
+                '<td>' + (isMod(r) ? cmpBtnHtml(r, open) : dash) + '</td>' +
                 '<td class="moduser">' + esc(r.modUser || '-') + '</td>' +
-                '</tr>';
+                '</tr>' +
+                (open ? cmpRowHtml(r) : '');
         }).join('');
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       수정 전/후 비교
+         수정 전 : POST /simulateup/simulatePidAsOf (hogi = 선택 호기, pid = EL_P + Block No., date = 설계완료일 yyyyMMdd)
+                   결과의 EL_P블럭 / EL_P블럭_번호 변수 = 자재번호, CMT
+         수정 후 : 현재 BOM 행의 품번 / CMT
+       ══════════════════════════════════════════════════════════ */
+    const ELP = 'EL_P';
+    const elpPidOf = blockNo => {
+        const b = String(blockNo || '').trim();
+        if (!b) return '';
+        return b.toUpperCase().startsWith(ELP) && b.length > ELP.length ? b : ELP + b;
+    };
+    const codatYmd = () => {
+        const info = state.hogis.find(h => h.hogi === state.selected) || {};
+        return String(info.codat || '').replace(/\D/g, '').slice(0, 8) || String(state.date || '').replace(/-/g, '');
+    };
+    const beforeKey = (hogi, elp, ymd) => hogi + '|' + elp + '|' + ymd;
+    const normTxt = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+
+    // 동시 실행 제한 (서버 PIDAsOfGuard 의 429 를 피하려고 2건씩)
+    const cmpQueue = [];
+    let cmpRunning = 0;
+    function cmpSchedule(task) {
+        return new Promise(resolve => { cmpQueue.push(() => task().then(resolve)); cmpPump(); });
+    }
+    function cmpPump() {
+        while (cmpRunning < 2 && cmpQueue.length) {
+            const t = cmpQueue.shift();
+            cmpRunning++;
+            t().finally(() => { cmpRunning--; cmpPump(); });
+        }
+    }
+
+    function loadBefore(hogi, elp, ymd) {
+        const key = beforeKey(hogi, elp, ymd);
+        const cached = state.before.get(key);
+        if (cached && cached.status !== 'err') return cached.promise;
+
+        const seq = state.seq;
+        const entry = { status: 'loading' };
+        entry.promise = cmpSchedule(() => {
+            if (seq !== state.seq) return Promise.resolve();
+            const body = new URLSearchParams({ hogi: hogi, date: ymd, pid: elp });
+            return fetch('/simulateup/simulatePidAsOf', {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                body: body,
+            })
+                .then(async r => {
+                    const d = await r.json().catch(() => null);
+                    if (r.status === 429) throw new Error('지금 실행 요청이 많습니다. 잠시 뒤 다시 시도해 주세요.');
+                    if (!r.ok) throw new Error((d && d.error) || ('서버 응답 오류 (HTTP ' + r.status + ')'));
+                    return d || {};
+                })
+                .then(out => { entry.status = 'ok'; entry.out = out; },
+                      err => { entry.status = 'err'; entry.error = err.message; });
+        }).then(() => {
+            if (seq === state.seq) refreshCmpRows(key);
+            return entry;
+        });
+        state.before.set(key, entry);
+        return entry.promise;
+    }
+
+    // 값 → 문자열 (배열 / 객체도 읽을 수 있게)
+    function valText(v) {
+        if (v == null) return '';
+        if (Array.isArray(v)) return v.map(valText).filter(Boolean).join(', ');
+        if (typeof v === 'object') return JSON.stringify(v);
+        return String(v);
+    }
+    // EL_P 결과변수 하나 → { partNo, cmt }
+    function pickPart(out, k) {
+        const v = out[k];
+        if (v && typeof v === 'object' && !Array.isArray(v)) {
+            return {
+                partNo: valText(v.partNo != null ? v.partNo : (v.PART_NO != null ? v.PART_NO : (v.PARTNO != null ? v.PARTNO : v.value))),
+                cmt: valText(v.cmt != null ? v.cmt : v.CMT),
+            };
+        }
+        const own = ['_CMT', 'CMT', '_cmt'].map(s => out[k + s]).find(x => x != null);
+        return { partNo: valText(v), cmt: own != null ? valText(own) : null };
+    }
+    // 결과에서 EL_P블럭(번호 없음) → EL_P블럭_1, _2 … 순서로
+    function findPicks(out, elp) {
+        const up = elp.toUpperCase();
+        const re = new RegExp('^' + up.replace(/[.*+?^${}()|\\]/g, '\\$&') + '(?:_(\\d+))?$');
+        return Object.keys(out)
+            .map(k => { const m = k.toUpperCase().match(re); return m ? { k: k, n: m[1] == null ? -1 : parseInt(m[1], 10) } : null; })
+            .filter(Boolean)
+            .sort((a, b) => a.n - b.n)
+            .map(x => x.k);
+    }
+    function commonCmt(out, elp) {
+        const keys = ['CMT', elp + '_CMT', elp + 'CMT', 'cmt'];
+        for (const k of keys) if (out[k] != null && out[k] !== '') return valText(out[k]);
+        return '';
+    }
+
+    function cmpBtnHtml(r, open) {
+        return '<button type="button" class="cmp-btn" data-cmp="' + r._k + '" aria-expanded="' + open + '" aria-controls="cmp-' + r._k + '"' +
+            ' title="수정 전/후 보기" aria-label="' + esc(r.partNo || '') + ' 수정 전/후 ' + (open ? '접기' : '보기') + '">수정' +
+            '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>';
+    }
+
+    function cmpRowHtml(r) {
+        const elp = elpPidOf(r.blockNo);
+        const key = elp ? beforeKey(state.selected, elp, codatYmd()) : '';
+        return '<tr class="cmp-row" id="cmp-' + r._k + '" data-row="' + r._k + '" data-bk="' + esc(key) + '"><td colspan="10">' + cmpBodyHtml(r) + '</td></tr>';
+    }
+
+    function verdictHtml(label, same) {
+        if (same == null) return '<span class="vd vd-unk">' + label + ' 확인 불가</span>';
+        return same
+            ? '<span class="vd vd-same"><i class="fas fa-equals" style="font-size:9px;" aria-hidden="true"></i>' + label + ' 같음</span>'
+            : '<span class="vd vd-chg"><i class="fas fa-pen" style="font-size:9px;" aria-hidden="true"></i>' + label + ' 바뀜</span>';
+    }
+
+    function cmpBodyHtml(r) {
+        const elp = elpPidOf(r.blockNo);
+        const ymd = codatYmd();
+        const meta = '<span>기준일 <b>' + esc(fmtYmd(ymd)) + '</b> (설계완료일)</span><span>PID <b>' + esc(elp || '-') + '</b></span>';
+
+        if (!elp) return '<div class="cmp"><div class="cmp-err">Block No. 가 없어 수정 전 자재를 찾을 수 없습니다.</div></div>';
+
+        const entry = state.before.get(beforeKey(state.selected, elp, ymd));
+        const after = '<div class="cmp-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>';
+
+        if (!entry || entry.status === 'loading') {
+            return '<div class="cmp" aria-busy="true"><div class="cmp-meta">' + meta + '<span><span class="spin" aria-hidden="true" style="width:11px;height:11px;border-width:1.5px;vertical-align:-1px;"></span> 수정 전 자재를 계산하는 중…</span></div>' +
+                '<div class="cmp-cols"><div class="cmp-card"><span class="sk" style="width:40%;"></span><span class="sk" style="width:75%;margin-top:10px;"></span></div>' + after +
+                afterCardHtml(r, null, null) + '</div></div>';
+        }
+        if (entry.status === 'err') {
+            return '<div class="cmp"><div class="cmp-meta">' + meta + '</div>' +
+                '<div class="cmp-err" role="alert"><span>수정 전 자재를 가져오지 못했습니다. ' + esc(entry.error) + '</span>' +
+                '<button type="button" class="btn-mini" data-cmp-retry="' + r._k + '">다시 시도</button></div></div>';
+        }
+
+        const out = entry.out || {};
+        const picks = findPicks(out, elp);
+        const common = commonCmt(out, elp);
+        const parts = picks.map(k => { const p = pickPart(out, k); return { k: k, partNo: p.partNo, cmt: p.cmt != null ? p.cmt : common }; });
+
+        // 현재 품번과 같은 결과변수가 있으면 그것을 수정 전 자재로 본다
+        const curPn = normTxt(r.partNo).toUpperCase();
+        const matched = parts.find(p => normTxt(p.partNo).toUpperCase() === curPn && curPn);
+        const base = matched || (parts.length === 1 ? parts[0] : null);
+        const pnSame = parts.length ? !!matched : null;
+        const cmtSame = base ? normTxt(base.cmt) === normTxt(r.cmt) : null;
+
+        let beforeBody;
+        if (!parts.length) {
+            beforeBody = '<p class="text-[13px]" style="color:var(--muted);">' + esc(elp) + ' 실행 결과에 ' + esc(elp) + ' / ' + esc(elp) + '_번호 변수가 없습니다.</p>';
+        } else {
+            beforeBody = parts.map(p => {
+                const isBase = p === base;
+                const head = parts.length > 1
+                    ? '<p class="cmp-pick-k">' + esc(p.k) + (p === matched ? ' <span>· 현재 품번과 같음</span>' : '') + '</p>' : '';
+                return '<div class="cmp-pick' + (p === matched ? ' match' : '') + '">' + head +
+                    '<dl class="cmp-f"><dt>품번</dt><dd class="pn">' + (p.partNo ? esc(p.partNo) : '<span class="dim">없음</span>') + '</dd>' +
+                    '<dt>CMT</dt><dd class="cm">' + (p.cmt ? esc(p.cmt) : '<span class="dim">-</span>') + '</dd></dl></div>';
+            }).join('');
+        }
+
+        const beforeCard = '<div class="cmp-card before"><p class="cmp-h">수정 전 <small>최초설계 PID 결과 (' + esc(elp) + (parts.length > 1 ? ' · 결과 ' + parts.length + '건' : '') + ')</small></p>' + beforeBody + '</div>';
+
+        // 원본 결과 (EL_P 변수 / CMT 관련 변수만, 없으면 전체)
+        const rawKeys = Object.keys(out).filter(k => k.toUpperCase().startsWith(elp.toUpperCase()) || /CMT/i.test(k));
+        const shownKeys = rawKeys.length ? rawKeys : Object.keys(out);
+        const raw = shownKeys.length
+            ? '<details class="cmp-raw"><summary>PID 결과 원본 보기 (' + shownKeys.length + '건' + (rawKeys.length ? ' / 전체 ' + Object.keys(out).length + '건' : '') + ')</summary><table class="cmp-raw-tbl"><tbody>' +
+                shownKeys.map(k => '<tr><td>' + esc(k) + '</td><td>' + esc(valText(out[k])) + '</td></tr>').join('') + '</tbody></table></details>'
+            : '';
+
+        return '<div class="cmp"><div class="cmp-meta">' + meta +
+            '<span class="cmp-verdicts">' + verdictHtml('품번', pnSame) + verdictHtml('CMT', cmtSame) + '</span></div>' +
+            '<div class="cmp-cols">' + beforeCard + after + afterCardHtml(r, pnSame, cmtSame) + '</div>' + raw + '</div>';
+    }
+
+    function afterCardHtml(r, pnSame, cmtSame) {
+        return '<div class="cmp-card after"><p class="cmp-h">수정 후 <small>현재 BOM' + (r.modUser ? ' · 수정자 ' + esc(r.modUser) : '') + '</small></p>' +
+            '<dl class="cmp-f"><dt>품번</dt><dd class="pn' + (pnSame === false ? ' chg' : '') + '">' + (r.partNo ? esc(r.partNo) : '<span class="dim">없음</span>') + '</dd>' +
+            '<dt>CMT</dt><dd class="cm' + (cmtSame === false ? ' chg' : '') + '">' + (r.cmt ? esc(r.cmt) : '<span class="dim">-</span>') + '</dd></dl></div>';
+    }
+
+    // 결과가 도착하면 그 PID 를 쓰는 펼친 행만 다시 그린다 (표 전체를 다시 그리지 않음)
+    function refreshCmpRows(key) {
+        const e = state.bom.get(state.selected);
+        if (!e || !e.ok) return;
+        $id('bomBody').querySelectorAll('tr.cmp-row').forEach(tr => {
+            if (tr.dataset.bk !== key) return;
+            const r = e.rows[parseInt(tr.dataset.row, 10)];
+            if (r) tr.firstElementChild.innerHTML = cmpBodyHtml(r);
+        });
+    }
+
+    function openCmp(r) {
+        state.expanded.add(r._k);
+        const elp = elpPidOf(r.blockNo);
+        if (elp) loadBefore(state.selected, elp, codatYmd());
+    }
+
+    function toggleCmp(k) {
+        const e = state.bom.get(state.selected);
+        const r = e && e.ok ? e.rows[k] : null;
+        if (!r) return;
+        if (state.expanded.has(k)) state.expanded.delete(k); else openCmp(r);
+        renderRows();
+        $id('bomBody').querySelector('.cmp-btn[data-cmp="' + k + '"]')?.focus();
+    }
+
+    function renderCmpAllLabel(rows) {
+        const mods = (rows || filteredRows()).filter(isMod);
+        const allOpen = mods.length > 0 && mods.every(r => state.expanded.has(r._k));
+        $id('cmpAllLabel').textContent = allOpen ? '수정 전·후 모두 접기' : '수정 전·후 모두 펼치기';
+        return allOpen;
+    }
+
+    function toggleCmpAll() {
+        const mods = filteredRows().filter(isMod);
+        if (!mods.length) {
+            announce('지금 조건에 맞는 수정된 자재가 없습니다');
+            return;
+        }
+        const allOpen = mods.every(r => state.expanded.has(r._k));
+        if (allOpen) mods.forEach(r => state.expanded.delete(r._k));
+        else mods.forEach(openCmp);
+        renderRows();
+        announce(allOpen ? '수정 전·후 비교를 모두 접었습니다' : '수정된 자재 ' + mods.length + '건의 수정 전·후를 펼쳤습니다');
     }
 
     /* ── CSV 다운로드 (현재 필터 적용 결과) ── */
@@ -985,12 +1318,12 @@
         const info = state.hogis.find(h => h.hogi === state.selected) || {};
         const lines = [head.map(cell).join(',')].concat(rows.map(r => [
             state.selected, fmtYmd(info.codat), optKey(r.blockOpt), r.blockNo, r.partNo, r.partName,
-            fmtQty(r.qty), r.spec, r.cmt, r.productVersion, String(r.ucheck) === '1' ? 'Y' : '', r.modUser
+            fmtQty(r.qty), r.spec, r.cmt, r.productVersion, isMod(r) ? 'Y' : '', r.modUser
         ].map(cell).join(',')));
         const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = state.selected + '_최초설계BOM.csv';
+        a.download = state.selected + (state.modOnly ? '_최초설계BOM_수정자재.csv' : '_최초설계BOM.csv');
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -1042,6 +1375,31 @@
         $id('optSeg').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
         renderRows();
     });
+
+    // 수정된 자재만 보기
+    $id('btnModOnly').addEventListener('click', function () {
+        state.modOnly = !state.modOnly;
+        this.setAttribute('aria-pressed', String(state.modOnly));
+        renderRows();
+        announce(state.modOnly ? '수정된 자재만 표시' : '전체 자재 표시');
+    });
+
+    // 수정 전/후 비교 : 행 펼치기 / 다시 시도 / 모두 펼치기
+    $id('bomBody').addEventListener('click', e => {
+        const t = e.target.closest('.cmp-btn');
+        if (t) { toggleCmp(parseInt(t.dataset.cmp, 10)); return; }
+        const rt = e.target.closest('[data-cmp-retry]');
+        if (rt) {
+            const be = state.bom.get(state.selected);
+            const r = be && be.ok ? be.rows[parseInt(rt.dataset.cmpRetry, 10)] : null;
+            const elp = r ? elpPidOf(r.blockNo) : '';
+            if (!elp) return;
+            const ymd = codatYmd();
+            loadBefore(state.selected, elp, ymd);
+            refreshCmpRows(beforeKey(state.selected, elp, ymd));   // 불러오는 중 표시
+        }
+    });
+    $id('btnCmpAll').addEventListener('click', toggleCmpAll);
 
     // BOM 내 검색 (입력 멈춘 뒤 반영)
     let qTimer = null;
